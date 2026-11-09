@@ -94,7 +94,7 @@ public class GetClientDashboardEndpoint(
             .FirstOrDefaultAsync(ctl =>
                 ctl.ProfessionalProfileId == professionalProfile.Id &&
                 ctl.ClientProfileId == clientProfile.Id &&
-                ctl.IsActive, ct);
+                ctl.ConnectionState != ConnectionState.Ended, ct);
 
         if (link is null)
         {
@@ -315,7 +315,7 @@ public class GetClientDashboardEndpoint(
         }
 
         var status = ClientStatusClassifier.Classify(
-            link.IsActive,
+            link.ConnectionState != ConnectionState.Ended,
             effective,
             hasActiveNutritionPlan,
             hasActiveTrainingPlan);
@@ -392,7 +392,7 @@ public class GetClientDashboardEndpoint(
             // DateCreated, not DateUpdated — matches GetClientsEndpoint's "Client since" so a
             // capability-flag toggle (which bumps DateUpdated) cannot move this date (#1094).
             LinkedAt = link.DateCreated,
-            IsActive = link.IsActive,
+            IsActive = link.ConnectionState != ConnectionState.Ended,
             Status = status,
             CanViewNutritionPlans = effective.CanViewNutritionPlans,
             CanViewTrainingPlans = effective.CanViewTrainingPlans,

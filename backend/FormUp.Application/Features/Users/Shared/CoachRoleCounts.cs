@@ -1,6 +1,7 @@
 using FormUp.Application.Domain.Constants;
 using FormUp.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using FormUp.Application.Domain.Enums;
 
 namespace FormUp.Application.Features.Users.Shared;
 
@@ -25,7 +26,7 @@ internal static class CoachRoleCounts
     {
         var flags = await db.ClientProfessionalLinks
             .AsNoTracking()
-            .Where(l => l.ProfessionalProfileId == professionalProfileId && l.IsActive)
+            .Where(l => l.ProfessionalProfileId == professionalProfileId && l.ConnectionState != ConnectionState.Ended)
             .Select(l => new { l.CanViewTrainingPlans, l.CanViewNutritionPlans })
             .ToListAsync(ct);
 

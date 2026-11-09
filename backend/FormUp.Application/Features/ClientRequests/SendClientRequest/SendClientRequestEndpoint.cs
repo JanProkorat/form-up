@@ -97,7 +97,7 @@ public class SendClientRequestEndpoint(
         var existingLink = await db.ClientProfessionalLinks
             .AnyAsync(l => l.ClientProfileId == clientProfile.Id
                         && l.ProfessionalProfileId == professionalProfile.Id
-                        && l.IsActive, ct);
+                        && l.ConnectionState != ConnectionState.Ended, ct);
 
         if (existingLink)
         {

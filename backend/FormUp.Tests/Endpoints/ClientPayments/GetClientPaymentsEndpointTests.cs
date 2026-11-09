@@ -109,7 +109,7 @@ public class GetClientPaymentsEndpointTests(FitnessApiFactory factory)
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             await db.ClientProfessionalLinks
                 .Where(l => l.ProfessionalProfileId == world.Coach.ProfileId)
-                .ExecuteUpdateAsync(s => s.SetProperty(l => l.IsActive, false), TestContext.Current.CancellationToken);
+                .ExecuteUpdateAsync(s => s.SetProperty(l => l.ConnectionState, ConnectionState.Ended), TestContext.Current.CancellationToken);
         }
 
         var coach = (await GetOwnAsync(world.Client)).Coaches.Should().ContainSingle().Subject;

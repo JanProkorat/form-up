@@ -72,7 +72,7 @@ internal static class ClientPaymentGuards
             links = (await db.ClientProfessionalLinks
                     .AsNoTracking()
                     .Where(l => l.ProfessionalProfileId == profileId && l.ClientProfileId == client.Id)
-                    .Select(l => new { l.IsActive, l.DateCreated })
+                    .Select(l => new { IsActive = l.ConnectionState != ConnectionState.Ended, l.DateCreated })
                     .ToListAsync(ct))
                 .Select(l => (l.IsActive, l.DateCreated))
                 .ToList();

@@ -196,7 +196,7 @@ public class ReplaceClientTagAssignmentsEndpoint(IApplicationDbContext db)
             .FirstOrDefaultAsync(l =>
                 l.ProfessionalProfileId == professionalProfile.Id &&
                 l.ClientProfileId == clientProfile.Id &&
-                l.IsActive, ct);
+                l.ConnectionState != ConnectionState.Ended, ct);
 
         if (link is null)
         {

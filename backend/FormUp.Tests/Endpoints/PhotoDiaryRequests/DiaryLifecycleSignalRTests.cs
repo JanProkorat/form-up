@@ -89,7 +89,7 @@ public class DiaryLifecycleSignalRTests
         ProfessionalProfileId = prof.Id,
         ClientProfileId = client.Id,
         ClientProfile = client,
-        IsActive = true,
+        ConnectionState = ConnectionState.Connected,
         ProfessionalRole = UserRole.Nutritionist,
         PublicId = Guid.NewGuid(),
         DateCreated = DateTime.UtcNow,

@@ -51,7 +51,7 @@ public static class ProfessionalSendGuard
         var links = await db.ClientProfessionalLinks
             .AsNoTracking()
             .Where(l => l.ProfessionalProfile.UserId == professionalUserId && ids.Contains(l.ClientProfile.UserId))
-            .Select(l => new { ClientUserId = l.ClientProfile.UserId, l.IsActive })
+            .Select(l => new { ClientUserId = l.ClientProfile.UserId, IsActive = l.ConnectionState != ConnectionState.Ended })
             .ToListAsync(ct);
 
         foreach (var link in links)

@@ -85,7 +85,7 @@ public class CreateResponseEndpoint(IApplicationDbContext db, IClientLinkAuthori
             .AsNoTracking()
             .Where(l => l.ClientProfileId == clientProfile.Id
                         && l.ProfessionalProfileId == professionalProfile.Id
-                        && l.IsActive)
+                        && l.ConnectionState != ConnectionState.Ended)
             .Select(l => (long?)l.Id)
             .FirstOrDefaultAsync(ct);
 

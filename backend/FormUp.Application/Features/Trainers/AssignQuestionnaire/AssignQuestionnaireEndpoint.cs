@@ -76,7 +76,7 @@ public class AssignQuestionnaireEndpoint(
         var link = await db.ClientProfessionalLinks
             .FirstOrDefaultAsync(l => l.ClientProfileId == clientProfile.Id
                                    && l.ProfessionalProfileId == professionalProfile.Id
-                                   && l.IsActive, ct);
+                                   && l.ConnectionState != ConnectionState.Ended, ct);
 
         if (link is null)
         {

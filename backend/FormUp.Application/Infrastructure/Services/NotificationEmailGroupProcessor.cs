@@ -205,7 +205,7 @@ public sealed class NotificationEmailGroupProcessor(
         var linkIsLive = await db.ClientProfessionalLinks
             .AsNoTracking()
             .AnyAsync(l => l.ClientProfileId == client.Id
-                           && l.IsActive
+                           && l.ConnectionState != ConnectionState.Ended
                            && (l.CanViewNutritionPlans || l.CanViewTrainingPlans)
                            && l.ProfessionalProfile.UserId == pending.RecipientUserId, ct);
 

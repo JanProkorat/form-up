@@ -63,7 +63,7 @@ public class GetClientPhotoDiaryRequestEndpointTests(FitnessApiFactory factory)
             ClientProfileId = clientProfile.Id,
             ProfessionalProfileId = profProfile.Id,
             ProfessionalRole = UserRole.Nutritionist,
-            IsActive = isActive,
+            ConnectionState = isActive ? ConnectionState.Connected : ConnectionState.Ended,
             CanViewNutritionPlans = true,
             CanViewTrainingPlans = false,
             PublicId = Guid.NewGuid(),

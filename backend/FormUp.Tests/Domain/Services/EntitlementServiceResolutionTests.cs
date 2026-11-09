@@ -60,7 +60,7 @@ public class EntitlementServiceResolutionTests
         ClientProfileId = clientProfileId,
         ProfessionalProfileId = profileId,
         ProfessionalRole = UserRole.Trainer,
-        IsActive = isActive,
+        ConnectionState = isActive ? ConnectionState.Connected : ConnectionState.Ended,
     };
 
     private static EntitlementService CreateService(

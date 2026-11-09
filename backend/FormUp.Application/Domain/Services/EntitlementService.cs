@@ -102,7 +102,7 @@ public class EntitlementService
     public Task<int> GetActiveClientCountAsync(long professionalProfileId, CancellationToken ct) =>
         db.ClientProfessionalLinks
             .AsNoTracking()
-            .Where(cpl => cpl.ProfessionalProfileId == professionalProfileId && cpl.IsActive)
+            .Where(cpl => cpl.ProfessionalProfileId == professionalProfileId && cpl.ConnectionState != ConnectionState.Ended)
             .Select(cpl => cpl.ClientProfileId)
             .Distinct()
             .CountAsync(ct);
@@ -141,7 +141,7 @@ public class EntitlementService
                 .AsNoTracking()
                 .AnyAsync(cpl => cpl.ProfessionalProfileId == professionalProfileId
                                  && cpl.ClientProfileId == clientProfileId
-                                 && cpl.IsActive, ct))
+                                 && cpl.ConnectionState != ConnectionState.Ended, ct))
         {
             return true;
         }

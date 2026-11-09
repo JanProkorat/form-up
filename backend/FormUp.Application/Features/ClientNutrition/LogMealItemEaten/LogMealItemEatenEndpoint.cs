@@ -235,7 +235,7 @@ internal sealed class LogMealItemEatenEndpoint(
     {
         var professionalUserIds = await db.ClientProfessionalLinks
             .AsNoTracking()
-            .Where(l => l.ClientProfileId == clientProfileId && l.IsActive)
+            .Where(l => l.ClientProfileId == clientProfileId && l.ConnectionState != ConnectionState.Ended)
             .Join(db.ProfessionalProfiles.AsNoTracking(),
                 link => link.ProfessionalProfileId,
                 prof => prof.Id,

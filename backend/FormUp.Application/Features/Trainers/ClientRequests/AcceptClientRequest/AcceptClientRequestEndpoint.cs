@@ -198,7 +198,7 @@ public class AcceptClientRequestEndpoint(
 
         if (link is not null)
         {
-            link.IsActive = true;
+            link.ConnectionState = ConnectionState.Connected;
             link.ActivatedAtUtc = DateTime.UtcNow;
             link.ProfessionalRole = professionalRole;
             link.CanViewNutritionPlans = canViewNutritionPlans;
@@ -212,7 +212,7 @@ public class AcceptClientRequestEndpoint(
                 ClientProfileId = clientRequest.ClientProfileId,
                 ProfessionalProfileId = professionalProfile.Id,
                 ProfessionalRole = professionalRole,
-                IsActive = true,
+                ConnectionState = ConnectionState.Connected,
                 ActivatedAtUtc = DateTime.UtcNow,
                 CanViewNutritionPlans = canViewNutritionPlans,
                 CanViewTrainingPlans = canViewTrainingPlans,

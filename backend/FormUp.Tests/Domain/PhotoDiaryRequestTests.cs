@@ -158,15 +158,15 @@ public class PhotoDiaryRequestTests(PhotoDiaryRequestContainerFixture containerF
         await using var conn = new NpgsqlConnection(ConnectionString);
         await conn.OpenAsync(TestContext.Current.CancellationToken);
         await using var cmd = conn.CreateCommand();
-        // professional_role is stored as integer: Nutritionist = 2
+        // professional_role is stored as integer: Nutritionist = 2; connection_state 0 = Connected
         cmd.CommandText = @"
             INSERT INTO client_professional_links
                 (client_profile_id, professional_profile_id, professional_role,
-                 is_active, can_view_nutrition_plans, can_view_training_plans,
+                 connection_state, can_view_nutrition_plans, can_view_training_plans,
                  public_id, date_created)
             VALUES
                 (@clientProfileId, @professionalProfileId, 2,
-                 true, true, false,
+                 0, true, false,
                  @publicId, now())
             RETURNING id";
         cmd.Parameters.AddWithValue("clientProfileId", clientProfileId);

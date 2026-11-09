@@ -99,7 +99,7 @@ public class GetPublicProfilePackagesTests(FitnessApiFactory factory)
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             await db.ClientProfessionalLinks
                 .Where(l => l.ProfessionalProfileId == coach.ProfileId)
-                .ExecuteUpdateAsync(s => s.SetProperty(l => l.IsActive, false), Ct);
+                .ExecuteUpdateAsync(s => s.SetProperty(l => l.ConnectionState, ConnectionState.Ended), Ct);
         }
 
         var ended = await ReadProfileAsync(client, coach);

@@ -540,7 +540,7 @@ public class ClientProfessionalLinkBuilder
     {
         Id = _id,
         ClientProfileId = _clientProfileId, ProfessionalProfileId = _professionalProfileId,
-        ProfessionalRole = _professionalRole, IsActive = _isActive,
+        ProfessionalRole = _professionalRole, ConnectionState = _isActive ? ConnectionState.Connected : ConnectionState.Ended,
         CanViewNutritionPlans = _canViewNutritionPlans,
         CanViewTrainingPlans = _canViewTrainingPlans,
         ClientProfile = _clientProfile!, ProfessionalProfile = _professionalProfile!,

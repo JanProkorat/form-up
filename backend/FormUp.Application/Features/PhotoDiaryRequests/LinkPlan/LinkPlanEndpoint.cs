@@ -70,7 +70,7 @@ public class LinkPlanEndpoint(
         // to them, so treat as not-owned. A deactivated link (collaboration ended) is treated
         // the same way: the caller still owns the diary request (checked above), but a revoked
         // link must not become a channel to retroactively attach a plan to it.
-        var activeLink = request.Link is { IsActive: true } ? request.Link : null;
+        var activeLink = request.Link is { ConnectionState: not ConnectionState.Ended } ? request.Link : null;
 
         var planBelongsToClient = false;
         if (activeLink is not null)

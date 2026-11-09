@@ -38,7 +38,7 @@ public static class AutomationCoverage
     {
         var linkQuery = db.ClientProfessionalLinks
             .AsNoTracking()
-            .Where(l => l.ProfessionalProfileId == professionalProfileId && l.IsActive);
+            .Where(l => l.ProfessionalProfileId == professionalProfileId && l.ConnectionState != ConnectionState.Ended);
 
         if (onlyClientProfileId is not null)
         {

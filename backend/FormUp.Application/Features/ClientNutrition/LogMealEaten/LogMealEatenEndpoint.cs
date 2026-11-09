@@ -426,7 +426,7 @@ public class LogMealEatenEndpoint(
             var links = await db.ClientProfessionalLinks
                 .AsNoTracking()
                 .Where(l => l.ClientProfileId == clientProfile.Id
-                            && l.IsActive
+                            && l.ConnectionState != ConnectionState.Ended
                             && l.ProfessionalProfile.UserId == conflict.PlanAuthorId)
                 .Select(l => new
                 {
@@ -534,7 +534,7 @@ public class LogMealEatenEndpoint(
     {
         var professionalUserIds = await db.ClientProfessionalLinks
             .AsNoTracking()
-            .Where(l => l.ClientProfileId == clientProfileId && l.IsActive)
+            .Where(l => l.ClientProfileId == clientProfileId && l.ConnectionState != ConnectionState.Ended)
             .Join(db.ProfessionalProfiles.AsNoTracking(),
                 link => link.ProfessionalProfileId,
                 prof => prof.Id,

@@ -70,7 +70,7 @@ public class CoachRoleRemover(
             clientUserIds = await db.ClientProfessionalLinks
                 .AsNoTracking()
                 .Where(l => l.ProfessionalProfileId == professionalProfileId
-                            && l.IsActive
+                            && l.ConnectionState != ConnectionState.Ended
                             && ((trainerRemoved && l.CanViewTrainingPlans) || (nutritionistRemoved && l.CanViewNutritionPlans)))
                 .Select(l => l.ClientProfile.UserId)
                 .Distinct()

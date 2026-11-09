@@ -275,7 +275,7 @@ public class ProgressPhotoGroupingTests(FitnessApiFactory factory) : IAsyncLifet
         {
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             await db.ClientProfessionalLinks.Where(l => l.Id == linkId)
-                .ExecuteUpdateAsync(s => s.SetProperty(l => l.IsActive, false), Ct);
+                .ExecuteUpdateAsync(s => s.SetProperty(l => l.ConnectionState, ConnectionState.Ended), Ct);
         }
 
         await Scheduler.RunDueNowAsync(burst.DueAt.AddSeconds(1), Ct);

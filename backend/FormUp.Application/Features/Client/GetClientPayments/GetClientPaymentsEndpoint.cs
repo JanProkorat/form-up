@@ -74,7 +74,7 @@ internal sealed class GetClientPaymentsEndpoint(IApplicationDbContext db, TimePr
             .ToListAsync(ct);
         var activeCoachIds = (await db.ClientProfessionalLinks
                 .AsNoTracking()
-                .Where(l => l.ClientProfileId == clientProfileId && l.IsActive && coachIds.Contains(l.ProfessionalProfileId))
+                .Where(l => l.ClientProfileId == clientProfileId && l.ConnectionState != ConnectionState.Ended && coachIds.Contains(l.ProfessionalProfileId))
                 .Select(l => l.ProfessionalProfileId)
                 .ToListAsync(ct))
             .ToHashSet();

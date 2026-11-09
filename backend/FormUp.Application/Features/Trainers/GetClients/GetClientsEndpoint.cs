@@ -206,7 +206,7 @@ public class GetClientsEndpoint(IMongoContext mongo, IApplicationDbContext db, T
                 FirstName = l.ClientProfile.User.FirstName,
                 LastName = l.ClientProfile.User.LastName,
                 AvatarBlobUrl = l.ClientProfile.User.AvatarBlobUrl,
-                IsActive = l.IsActive,
+                IsActive = l.ConnectionState != ConnectionState.Ended,
                 LinkedAt = l.DateCreated,
                 CanViewNutritionPlans = l.CanViewNutritionPlans,
                 CanViewTrainingPlans = l.CanViewTrainingPlans,

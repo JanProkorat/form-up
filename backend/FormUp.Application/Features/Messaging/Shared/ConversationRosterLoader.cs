@@ -42,7 +42,7 @@ public static class ConversationRosterLoader
     {
         var links = await db.ClientProfessionalLinks
             .AsNoTracking()
-            .Where(l => l.ProfessionalProfileId == professionalProfileId && l.IsActive)
+            .Where(l => l.ProfessionalProfileId == professionalProfileId && l.ConnectionState != ConnectionState.Ended)
             .Select(l => new LinkRow
             {
                 LinkId = l.Id,
