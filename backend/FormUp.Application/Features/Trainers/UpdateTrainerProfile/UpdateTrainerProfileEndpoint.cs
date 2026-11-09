@@ -28,6 +28,11 @@ public class UpdateProfessionalProfileEndpoint(IApplicationDbContext db, IAuditS
         {
             s.Summary = "Update professional profile";
             s.Description = "Updates the professional's profile (bio, specialization).";
+            s.Response(StatusCodes.Status200OK, "Profile updated");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest,"Invalid request");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status403Forbidden, "The caller is not a trainer or nutritionist");
+            s.Response(StatusCodes.Status404NotFound, "Professional profile not found");
         });
     }
 

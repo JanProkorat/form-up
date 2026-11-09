@@ -74,7 +74,41 @@ public class EmailTemplateRendererNotificationTests
         subject.Should().NotBeNullOrWhiteSpace().And.NotContain("{{");
         html.Should().NotContain("{{").And.Contain(ActionUrl).And.Contain("Petra");
         html.Should().Contain($"lang=\"{language}\"");
-        html.Should().NotContain("letter-spacing:2px", "the small label above the heading was dropped");
+    }
+
+    private static string ExpectedLabel(NotificationEvent notificationEvent, string language) =>
+        (notificationEvent, language) switch
+        {
+            (NotificationEvent.NewMessage, "cs") => "NOVÉ ZPRÁVY",
+            (NotificationEvent.NewMessage, "de") => "NEUE NACHRICHTEN",
+            (NotificationEvent.NewMessage, _) => "NEW MESSAGES",
+            (NotificationEvent.WeeklyCheckInSubmitted, "cs") => "TÝDENNÍ CHECK-IN",
+            (NotificationEvent.WeeklyCheckInSubmitted, "de") => "WOCHEN-CHECK-IN",
+            (NotificationEvent.WeeklyCheckInSubmitted, _) => "WEEKLY CHECK-IN",
+            (NotificationEvent.JoinRequest, "cs") => "ŽÁDOST O SPOLUPRÁCI",
+            (NotificationEvent.JoinRequest, "de") => "BEITRITTSANFRAGE",
+            (NotificationEvent.JoinRequest, _) => "JOIN REQUEST",
+            (NotificationEvent.ProgressPhotosSubmitted, "cs") => "FOTKY POKROKU",
+            (NotificationEvent.ProgressPhotosSubmitted, "de") => "FORTSCHRITTSFOTOS",
+            (NotificationEvent.ProgressPhotosSubmitted, _) => "PROGRESS PHOTOS",
+            (NotificationEvent.WorkoutFinished, "cs") => "DOKONČENÝ TRÉNINK",
+            (NotificationEvent.WorkoutFinished, "de") => "TRAINING BEENDET",
+            (NotificationEvent.WorkoutFinished, _) => "WORKOUT FINISHED",
+            _ => throw new ArgumentOutOfRangeException(nameof(notificationEvent))
+        };
+
+    [Theory]
+    [MemberData(nameof(EveryEventAndLanguage))]
+    public void RenderNotification_EveryEventAndLanguage_ShowsTheLocalizedLabelAboveTheHeading(
+        NotificationEvent notificationEvent, string language)
+    {
+        var (_, html) = Renderer.RenderNotification(Item(
+            notificationEvent, language, (NotificationEmailWorkItem.PhotoCountKey, "3")));
+
+        var label = html.IndexOf($">{ExpectedLabel(notificationEvent, language)}</p>", StringComparison.Ordinal);
+
+        label.Should().BeGreaterThan(-1);
+        html.IndexOf("<h1", StringComparison.Ordinal).Should().BeGreaterThan(label);
     }
 
     [Theory]
@@ -262,7 +296,7 @@ public class EmailTemplateRendererNotificationTests
     }
 
     [Fact]
-    public void RenderNotification_NewMessage_HasNoMessageBubblesEyebrowOrMoreLine()
+    public void RenderNotification_NewMessage_HasNoMessageBubblesOrMoreLine()
     {
         var (_, html) = Renderer.RenderNotification(Item(
             NotificationEvent.NewMessage, "en", (NotificationEmailWorkItem.MessageCountKey, "9")));
@@ -270,7 +304,7 @@ public class EmailTemplateRendererNotificationTests
         // The footer's random link token is cut out so a chance "more" inside it cannot fail the check.
         var copy = System.Text.RegularExpressions.Regex.Replace(html, "token=[^\"]+", string.Empty);
 
-        copy.Should().NotContain("&ldquo;").And.NotContain("more").And.NotContain("NEW MESSAGES");
+        copy.Should().NotContain("&ldquo;").And.NotContain("more");
     }
 
     [Theory]

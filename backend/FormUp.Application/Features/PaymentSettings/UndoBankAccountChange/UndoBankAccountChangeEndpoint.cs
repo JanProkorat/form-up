@@ -34,10 +34,10 @@ internal sealed class UndoBankAccountChangeEndpoint(
         {
             s.Summary = "Undo a bank account change";
             s.Description = "Anonymous: the single-use token from the emailed link is the credential. Restores the previous IBAN and account holder if the account has not been changed again since.";
-            s.Responses[StatusCodes.Status204NoContent] = "Previous bank account restored";
-            s.Responses[StatusCodes.Status400BadRequest] = "Unknown, expired or already used token (BANK_ACCOUNT_UNDO_INVALID)";
-            s.Responses[StatusCodes.Status409Conflict] = "The account was changed again afterwards (BANK_ACCOUNT_UNDO_SUPERSEDED)";
-            s.Responses[StatusCodes.Status429TooManyRequests] = "Rate limit exceeded";
+            s.Response(StatusCodes.Status204NoContent, "Previous bank account restored");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Unknown, expired or already used token (BANK_ACCOUNT_UNDO_INVALID)");
+            s.Response(StatusCodes.Status409Conflict, "The account was changed again afterwards (BANK_ACCOUNT_UNDO_SUPERSEDED)");
+            s.Response(StatusCodes.Status429TooManyRequests, "Rate limit exceeded");
         });
     }
 

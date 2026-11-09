@@ -29,9 +29,10 @@ public class RequestPasswordResetEndpoint(
         {
             s.Summary = "Request password reset";
             s.Description = "Sends a password reset link to the specified email. Returns 404 EMAIL_NOT_REGISTERED when no account uses it.";
-            s.Responses[StatusCodes.Status200OK] = "Reset link sent (or send failure logged)";
-            s.Responses[StatusCodes.Status404NotFound] = "No account uses this email";
-            s.Responses[StatusCodes.Status429TooManyRequests] = "Rate limit exceeded";
+            s.Response(StatusCodes.Status200OK, "Reset link sent (or send failure logged)");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest,"Invalid request");
+            s.Response(StatusCodes.Status404NotFound, "No account uses this email");
+            s.Response(StatusCodes.Status429TooManyRequests, "Rate limit exceeded");
         });
     }
 

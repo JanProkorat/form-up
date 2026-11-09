@@ -66,7 +66,9 @@ public class CreatePendingInvitePackageIntegrationTests(FitnessApiFactory factor
 
         var emailService = factory.Services.GetRequiredService<FakeEmailService>();
         await FakeEmailService.WaitForAsync(() => emailService.SentInvitations.Any(i => i.Email == email));
-        var package = emailService.SentInvitations.Single(i => i.Email == email).Package;
+        var sent = emailService.SentInvitations.Single(i => i.Email == email);
+        sent.CoachRole.Should().Be(InvitationCoachRole.Trainer, "a trainer-only coach's grant names the trainer role in the email");
+        var package = sent.Package;
         package.Should().NotBeNull();
         package!.Name.Should().Be("Coaching 12");
         package.Billing.Should().Be(PackageBillingInterval.EveryNWeeks);

@@ -53,13 +53,13 @@ internal sealed class RequestClientPaymentEndpoint(
         {
             s.Summary = "Request a payment";
             s.Description = "Freezes the payment's amount and the coach's bank details and asks the client to pay, by email with a QR code, by app notification, or both. A failed email returns 200 with emailSent false.";
-            s.Responses[StatusCodes.Status200OK] = "The requested payment and how the request was delivered";
-            s.Responses[StatusCodes.Status400BadRequest] = "Neither channel chosen (PAYMENT_REQUEST_CHANNEL_REQUIRED), an amount outside 0 to 9999999.99, or a due date in the past";
-            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
-            s.Responses[StatusCodes.Status403Forbidden] = "The subscription does not include payments (PAYMENTS_NOT_ENTITLED), or the coach role was removed";
-            s.Responses[StatusCodes.Status404NotFound] = "No live link to the client (and no ended one with a payment assignment), or the payment is not this client's payment with this coach";
-            s.Responses[StatusCodes.Status409Conflict] = "The payment is already paid (PAYMENT_ALREADY_PAID) or waived (PAYMENT_ALREADY_WAIVED), the coach has no bank account (BANK_ACCOUNT_NOT_SET), or no variable symbol is left (PAYMENT_VARIABLE_SYMBOL_EXHAUSTED)";
-            s.Responses[StatusCodes.Status429TooManyRequests] = "The payment was requested a minute ago, or the client got ten requests in the last hour (PAYMENT_REQUEST_RATE_LIMITED)";
+            s.Response<RequestClientPaymentResponse>(StatusCodes.Status200OK, "The requested payment and how the request was delivered");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Neither channel chosen (PAYMENT_REQUEST_CHANNEL_REQUIRED), an amount outside 0 to 9999999.99, or a due date in the past");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status403Forbidden, "The subscription does not include payments (PAYMENTS_NOT_ENTITLED), or the coach role was removed");
+            s.Response(StatusCodes.Status404NotFound, "No live link to the client (and no ended one with a payment assignment), or the payment is not this client's payment with this coach");
+            s.Response(StatusCodes.Status409Conflict, "The payment is already paid (PAYMENT_ALREADY_PAID) or waived (PAYMENT_ALREADY_WAIVED), the coach has no bank account (BANK_ACCOUNT_NOT_SET), or no variable symbol is left (PAYMENT_VARIABLE_SYMBOL_EXHAUSTED)");
+            s.Response(StatusCodes.Status429TooManyRequests, "The payment was requested a minute ago, or the client got ten requests in the last hour (PAYMENT_REQUEST_RATE_LIMITED)");
         });
     }
 

@@ -1,4 +1,5 @@
 using FormUp.Application.Domain.Constants;
+using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Interfaces;
 using FormUp.Application.Domain.Services;
 using Resend;
@@ -15,11 +16,11 @@ public class ResendEmailService(IResend resend, IConfiguration configuration, IL
     private readonly EmailTemplateRenderer _renderer = new(configuration);
 
     /// <inheritdoc />
-    public async Task SendInvitationEmailAsync(string toEmail, string trainerName, string invitationToken, string language, string? personalMessage, InvitationPackageInfo? package, CancellationToken ct)
+    public async Task SendInvitationEmailAsync(string toEmail, string trainerName, string invitationToken, string language, string? personalMessage, InvitationPackageInfo? package, CancellationToken ct, InvitationCoachRole? coachRole = null)
     {
         var lang = EmailTemplateRenderer.NormalizeLanguage(language);
         var acceptUrl = $"{BaseUrl}/invite/accept?token={System.Net.WebUtility.UrlEncode(invitationToken)}";
-        var (subject, html) = _renderer.RenderInvitation(trainerName, acceptUrl, lang, personalMessage, package);
+        var (subject, html) = _renderer.RenderInvitation(trainerName, acceptUrl, lang, personalMessage, package, coachRole);
 
         await SendEmailAsync(toEmail, subject, html, ct);
 

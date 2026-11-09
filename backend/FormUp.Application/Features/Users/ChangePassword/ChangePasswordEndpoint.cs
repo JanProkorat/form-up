@@ -35,11 +35,11 @@ public class ChangePasswordEndpoint(
         {
             s.Summary = "Change password";
             s.Description = "Changes the caller's password. Revokes all refresh tokens and returns a fresh access and refresh token pair for the current session.";
-            s.Responses[StatusCodes.Status200OK] = "Password changed; fresh tokens returned";
-            s.Responses[StatusCodes.Status400BadRequest] = "Invalid input, wrong current password (INVALID_CURRENT_PASSWORD), or account has no password (PASSWORD_NOT_SET)";
-            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
-            s.Responses[StatusCodes.Status404NotFound] = "User no longer exists";
-            s.Responses[StatusCodes.Status429TooManyRequests] = "Rate limit exceeded";
+            s.Response<ChangePasswordResponse>(StatusCodes.Status200OK, "Password changed; fresh tokens returned");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Invalid input, wrong current password (INVALID_CURRENT_PASSWORD), or account has no password (PASSWORD_NOT_SET)");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status404NotFound, "User no longer exists");
+            s.Response(StatusCodes.Status429TooManyRequests, "Rate limit exceeded");
         });
     }
 

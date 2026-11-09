@@ -46,10 +46,11 @@ public class GoogleSocialLoginEndpoint(
             s.Summary = "Google social login";
             s.Description = "Verifies a Google ID token and returns platform JWT tokens. Provisions a new account if the email is not yet registered, with the requested roles (Trainer, Nutritionist or Client; default Client). Roles and healthDataConsent are ignored for an already-linked account. A new Client account requires healthDataConsent=true (same as /auth/register); a coach sign-up must omit it.";
             s.Response<GoogleSocialLoginResponse>(200, "Login successful");
-            s.Responses[400] = "idToken or nonce is missing or empty, Roles is invalid (Admin, unknown, or Client combined with a coach role), a coach sends healthDataConsent, or a new Client account lacks healthDataConsent=true. The nonce is already consumed by the time the consent check runs, so the client must request a new nonce to retry";
-            s.Responses[401] = "Google ID token is invalid, expired, has wrong audience, or the nonce is invalid/consumed/expired";
-            s.Responses[403] = "Account is deactivated";
-            s.Responses[409] = "Email belongs to an existing password-only account (social_email_conflict)";
+            s.Response<ProblemDetails>(400, "idToken or nonce is missing or empty, Roles is invalid (Admin, unknown, or Client combined with a coach role), a coach sends healthDataConsent, or a new Client account lacks healthDataConsent=true. The nonce is already consumed by the time the consent check runs, so the client must request a new nonce to retry");
+            s.Response(401, "Google ID token is invalid, expired, has wrong audience, or the nonce is invalid/consumed/expired");
+            s.Response(403, "Account is deactivated");
+            s.Response(409, "Email belongs to an existing password-only account (social_email_conflict)");
+            s.Response(429, "Rate limit exceeded");
         });
     }
 

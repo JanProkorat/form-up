@@ -36,7 +36,8 @@ public class RegisterEndpoint(
             s.Summary = "Register a new user";
             s.Description = "Creates a new user account with the specified role and GDPR consent.";
             s.Response<RegisterResponse>(201, "Registration successful");
-            s.Responses[400] = "Validation error";
+            s.Response<ProblemDetails>(400, "Validation error");
+            s.Response(429, "Rate limit exceeded");
         });
     }
 

@@ -31,6 +31,7 @@ public class RequestNonceEndpoint(IApplicationDbContext db) : EndpointWithoutReq
             s.Summary = "Request a social sign-in nonce";
             s.Description = "Issues a single-use nonce (valid for 10 minutes) for embedding in an Apple or Google sign-in flow. The nonce must be presented together with the resulting identity token.";
             s.Response<RequestNonceResponse>(200, "Nonce issued successfully");
+            s.Response(429, "Rate limit exceeded");
         });
     }
 

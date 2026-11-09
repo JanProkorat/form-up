@@ -43,8 +43,8 @@ public class GetPlanEndpoint(IMongoContext mongo, IClientLinkAuthorizationServic
         {
             s.Summary = "Get a nutrition plan";
             s.Description = "Returns the full nutrition plan with all weeks, days, meals, and foods.";
-            s.Responses[StatusCodes.Status200OK] = "Nutrition plan detail";
-            s.Responses[StatusCodes.Status404NotFound] = "Plan not found, or not readable by the caller";
+            s.Response<GetPlanResponse>(StatusCodes.Status200OK, "Nutrition plan detail");
+            s.Response(StatusCodes.Status404NotFound, "Plan not found, or not readable by the caller");
         });
     }
 
@@ -96,8 +96,15 @@ In order:
 4. **`Description(...)`** only when overriding the auto-generated name —
    see #endpoint-names.
 5. **`Summary(...)`** — mandatory and universal (233 of 233). Set
-   `s.Summary`, `s.Description`, and an `s.Responses[...]` entry for every
-   status code the endpoint can return.
+   `s.Summary`, `s.Description`, and declare every status code the endpoint
+   can return with `s.Response(code, desc)` — `s.Response<TResponse>(...)`
+   for a typed success, `s.Response<ProblemDetails>(400, ...)` for a 400
+   with a body. `s.Responses[code] = "..."` only adds a description to a
+   code that is already declared; on its own the code never reaches Swagger
+   or the generated clients (#1225). Declaring a success code with
+   `s.Response` replaces the default one, so declare the code the handler
+   actually sends.
+   `Architecture/StatusCodeContractTests` pins the exact set per operation.
 
 Not used anywhere in this backend (0 occurrences each): `Group<T>()`,
 `Version()`, `PreProcessor`/`PostProcessor`. Don't introduce one without

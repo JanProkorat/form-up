@@ -22,6 +22,10 @@ public class UpdateTimeZoneEndpoint(UserManager<ApplicationUser> userManager)
         {
             s.Summary = "Update current user time zone";
             s.Description = "Updates the IANA time zone for the currently authenticated user.";
+            s.Response(StatusCodes.Status200OK, "Time zone updated");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest,"Invalid request, or INVALID_TIME_ZONE");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status404NotFound, "User not found");
         });
     }
 

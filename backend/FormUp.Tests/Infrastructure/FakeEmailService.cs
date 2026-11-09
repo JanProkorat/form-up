@@ -1,3 +1,4 @@
+using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Interfaces;
 
 namespace FormUp.Tests.Infrastructure;
@@ -34,7 +35,7 @@ public class FakeEmailService : IEmailService
 {
     private readonly object _sync = new();
 
-    private readonly List<(string Email, string TrainerName, string Token, string Language, string? PersonalMessage, InvitationPackageInfo? Package)> _invitationsSent = [];
+    private readonly List<(string Email, string TrainerName, string Token, string Language, string? PersonalMessage, InvitationPackageInfo? Package, InvitationCoachRole? CoachRole)> _invitationsSent = [];
     private readonly List<(string Email, string Token, string Language)> _passwordResetsSent = [];
     private readonly List<(string Email, string Token, string Language)> _verificationsSent = [];
     private readonly List<(string Email, string Code, string Language)> _reauthCodesSent = [];
@@ -173,7 +174,7 @@ public class FakeEmailService : IEmailService
     /// <summary>
     /// Snapshot of invitation emails sent during the test.
     /// </summary>
-    public IReadOnlyList<(string Email, string TrainerName, string Token, string Language, string? PersonalMessage, InvitationPackageInfo? Package)> SentInvitations
+    public IReadOnlyList<(string Email, string TrainerName, string Token, string Language, string? PersonalMessage, InvitationPackageInfo? Package, InvitationCoachRole? CoachRole)> SentInvitations
     {
         get
         {
@@ -217,7 +218,7 @@ public class FakeEmailService : IEmailService
     }
 
     /// <inheritdoc />
-    public Task SendInvitationEmailAsync(string toEmail, string trainerName, string invitationToken, string language, string? personalMessage, InvitationPackageInfo? package, CancellationToken ct)
+    public Task SendInvitationEmailAsync(string toEmail, string trainerName, string invitationToken, string language, string? personalMessage, InvitationPackageInfo? package, CancellationToken ct, InvitationCoachRole? coachRole = null)
     {
         lock (_sync)
         {
@@ -227,7 +228,7 @@ public class FakeEmailService : IEmailService
                     $"Simulated SMTP failure for {toEmail} (test-configured via FailInvitationSendFor).");
             }
 
-            _invitationsSent.Add((toEmail, trainerName, invitationToken, language, personalMessage, package));
+            _invitationsSent.Add((toEmail, trainerName, invitationToken, language, personalMessage, package, coachRole));
         }
 
         return Task.CompletedTask;

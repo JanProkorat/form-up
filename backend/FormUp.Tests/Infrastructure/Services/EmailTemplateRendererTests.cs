@@ -106,27 +106,63 @@ public class EmailTemplateRendererTests
         html.Should().NotContainEquivalentOf("kouč");
     }
 
-    private static readonly string[] RemovedLabels =
-    [
-        "CONFIRM EMAIL", "POTVRZENÍ E-MAILU", "E-MAIL BESTÄTIGEN",
-        "PASSWORD RESET", "OBNOVENÍ HESLA", "PASSWORT ZURÜCKSETZEN",
-        "INVITATION", "POZVÁNKA", "EINLADUNG",
-        "PAYMENT REQUEST", "ŽÁDOST O PLATBU", "ZAHLUNGSAUFFORDERUNG",
-        "SECURITY", "ZABEZPEČENÍ", "SICHERHEIT"
-    ];
+    private static readonly Dictionary<string, (string En, string Cs, string De)> ExpectedLabels = new()
+    {
+        [EmailTemplateRenderer.EmailVerification] = ("CONFIRM EMAIL", "POTVRZENÍ E-MAILU", "E-MAIL BESTÄTIGEN"),
+        [EmailTemplateRenderer.PasswordReset] = ("PASSWORD RESET", "OBNOVENÍ HESLA", "PASSWORT ZURÜCKSETZEN"),
+        [EmailTemplateRenderer.Invitation] = ("INVITATION", "POZVÁNKA", "EINLADUNG"),
+        [EmailTemplateRenderer.PaymentRequest] = ("PAYMENT REQUEST", "ŽÁDOST O PLATBU", "ZAHLUNGSAUFFORDERUNG"),
+        [EmailTemplateRenderer.BankAccountChanged] = ("SECURITY", "ZABEZPEČENÍ", "SICHERHEIT"),
+        [EmailTemplateRenderer.ReauthCode] = ("SECURITY", "ZABEZPEČENÍ", "SICHERHEIT")
+    };
+
+    private static string ExpectedLabel(string template, string language) => language switch
+    {
+        "cs" => ExpectedLabels[template].Cs,
+        "de" => ExpectedLabels[template].De,
+        _ => ExpectedLabels[template].En
+    };
 
     [Theory]
     [MemberData(nameof(EveryTemplateInEveryLanguage))]
-    public void Render_EveryTemplate_HasNoSmallLabelAboveTheHeading(string template, string language)
+    public void Render_EveryTemplate_ShowsTheLocalizedLabelBetweenTheIconTileAndTheHeading(string template, string language)
     {
         var html = RenderTemplate(Renderer(), template, language);
+        var label = $">{ExpectedLabel(template, language)}</p>";
 
-        html.Should().NotContain("letter-spacing:2px");
+        var tile = html.IndexOf("<td class=\"fu-tile-", StringComparison.Ordinal);
+        var labelAt = html.IndexOf(label, StringComparison.Ordinal);
+        var heading = html.IndexOf("<h1", StringComparison.Ordinal);
 
-        foreach (var label in RemovedLabels)
-        {
-            html.Should().NotContain(label, "the label above the heading was dropped from every email");
-        }
+        tile.Should().BeGreaterThan(-1, "the test renderer has an asset base URL, so the icon tile renders");
+        labelAt.Should().BeGreaterThan(tile);
+        heading.Should().BeGreaterThan(labelAt);
+        html.Should().Contain("margin:0 0 10px;font-size:12px;font-weight:600;letter-spacing:2px;color:#6B6863;");
+    }
+
+    [Theory]
+    [InlineData(InvitationCoachRole.Trainer, "en", "Personal trainer")]
+    [InlineData(InvitationCoachRole.Trainer, "cs", "Osobní trenér")]
+    [InlineData(InvitationCoachRole.Trainer, "de", "Personal Trainer")]
+    [InlineData(InvitationCoachRole.Nutritionist, "en", "Nutritionist")]
+    [InlineData(InvitationCoachRole.Nutritionist, "cs", "Nutriční poradce")]
+    [InlineData(InvitationCoachRole.Nutritionist, "de", "Ernährungsberater")]
+    [InlineData(InvitationCoachRole.Both, "en", "Personal trainer &amp; nutritionist")]
+    [InlineData(InvitationCoachRole.Both, "cs", "Osobní trenér a nutriční poradce")]
+    [InlineData(InvitationCoachRole.Both, "de", "Personal Trainer und Ernährungsberater")]
+    public void RenderInvitation_WithCoachRole_ShowsTheRoleLineUnderTheName(InvitationCoachRole role, string language, string expected)
+    {
+        var html = Renderer().RenderInvitation("Jan Novak", "https://app.example.com/i", language, null, null, role).Html;
+
+        html.Should().Contain($"Jan Novak</p><p class=\"fu-muted\" style=\"margin:2px 0 0;font-size:13px;color:#6B6863;\">{expected}</p>");
+    }
+
+    [Fact]
+    public void RenderInvitation_WithoutCoachRole_LeavesTheRoleLineOut()
+    {
+        var html = Renderer().RenderInvitation("Jan Novák", "https://app.example.com/i", "en", null, null).Html;
+
+        html.Should().NotContain("font-size:13px;color:#6B6863").And.NotContain("{{");
     }
 
     [Theory]

@@ -51,12 +51,12 @@ internal sealed class ChangeBankAccountEndpoint(
         {
             s.Summary = "Set or change the bank account";
             s.Description = "Sets the coach's IBAN and account holder. Needs the caller's password, or the emailed code when the account has no password. Replacing an existing account emails a 7-day undo link.";
-            s.Responses[StatusCodes.Status200OK] = "Updated payment settings";
-            s.Responses[StatusCodes.Status400BadRequest] = "Invalid IBAN or holder (INVALID_IBAN), or failed re-authentication (REAUTH_PASSWORD_REQUIRED, REAUTH_CODE_REQUIRED, INVALID_CURRENT_PASSWORD, REAUTH_CODE_INVALID)";
-            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
-            s.Responses[StatusCodes.Status403Forbidden] = "The subscription does not include payments (PAYMENTS_NOT_ENTITLED)";
-            s.Responses[StatusCodes.Status404NotFound] = "The caller has no professional profile or account";
-            s.Responses[StatusCodes.Status429TooManyRequests] = "Rate limit exceeded";
+            s.Response<PaymentSettingsDto>(StatusCodes.Status200OK, "Updated payment settings");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Invalid IBAN or holder (INVALID_IBAN), or failed re-authentication (REAUTH_PASSWORD_REQUIRED, REAUTH_CODE_REQUIRED, INVALID_CURRENT_PASSWORD, REAUTH_CODE_INVALID)");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status403Forbidden, "The subscription does not include payments (PAYMENTS_NOT_ENTITLED)");
+            s.Response(StatusCodes.Status404NotFound, "The caller has no professional profile or account");
+            s.Response(StatusCodes.Status429TooManyRequests, "Rate limit exceeded");
         });
     }
 

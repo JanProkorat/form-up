@@ -23,6 +23,10 @@ public class UpdateProfileEndpoint(UserManager<ApplicationUser> userManager, IAu
         {
             s.Summary = "Update current user profile";
             s.Description = "Updates the first name and last name of the currently authenticated user.";
+            s.Response(StatusCodes.Status200OK, "Profile updated");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Invalid request");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status404NotFound, "User not found");
         });
     }
 

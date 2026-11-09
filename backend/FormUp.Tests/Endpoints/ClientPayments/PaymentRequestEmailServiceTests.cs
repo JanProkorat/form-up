@@ -54,7 +54,7 @@ public class PaymentRequestEmailServiceTests
     [InlineData("Resend", "en", "Amount", "PAYMENT REQUEST", " for Online coaching")]
     [InlineData("Resend", "de", "Betrag", "ZAHLUNGSAUFFORDERUNG", " f&#252;r Online coaching")]
     public async Task PaymentRequest_EachProvider_SendsTheQrInlineUnderTheContentIdTheHtmlUsesInTheRecipientsLanguage(
-        string provider, string language, string amountLabel, string removedLabel, string headingTail)
+        string provider, string language, string amountLabel, string label, string headingTail)
     {
         var sent = provider == "Smtp" ? await SendViaSmtpAsync(Email(language)) : await SendViaResendAsync(Email(language));
 
@@ -63,7 +63,7 @@ public class PaymentRequestEmailServiceTests
         sent.Html.Should().Contain($"cid:{PaymentMessageComposer.QrContentId}").And.Contain(amountLabel);
         System.Text.RegularExpressions.Regex.Match(sent.Html, "<h1[^>]*>(.*?)</h1>", System.Text.RegularExpressions.RegexOptions.Singleline)
             .Groups[1].Value.Should().Contain(headingTail);
-        sent.Html.Should().NotContain(removedLabel, "the label above the heading was dropped from every email");
+        sent.Html.Should().Contain($">{label}</p>", "the label sits above the heading");
         sent.Html.Should().Contain("prefers-color-scheme").And.NotContain("{{");
         sent.ImageContentId.Should().Be(PaymentMessageComposer.QrContentId);
         sent.ImageBytes.Should().Equal(FakePng);

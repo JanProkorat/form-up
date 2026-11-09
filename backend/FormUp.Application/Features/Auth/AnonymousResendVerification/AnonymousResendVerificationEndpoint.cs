@@ -90,6 +90,9 @@ public class AnonymousResendVerificationEndpoint(
             s.Summary = "Resend verification email (anonymous)";
             s.Description = "Resends the email verification email for an unverified account, keyed by email address instead of an authenticated session. " +
                 "Always returns the same generic response regardless of account state to prevent email enumeration.";
+            s.Response<AnonymousResendVerificationResponse>(StatusCodes.Status200OK, "Generic confirmation, whatever the account state");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Invalid request");
+            s.Response(StatusCodes.Status429TooManyRequests, "Rate limit exceeded");
         });
     }
 

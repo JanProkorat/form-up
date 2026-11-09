@@ -30,9 +30,9 @@ public class PromoteFoodGalleryImageEndpoint(IMongoContext mongo) : Endpoint<Pro
                             + "With no main image the entry is removed from the gallery and set as main. "
                             + "Promoting the current main image is a no-op. Only the food's creator can promote.";
             s.Responses[StatusCodes.Status204NoContent] = "Image promoted (or already main)";
-            s.Responses[StatusCodes.Status400BadRequest] = "FOOD_NOT_OWNED or FOOD_GALLERY_IMAGE_NOT_FOUND";
-            s.Responses[StatusCodes.Status404NotFound] = "Food not found or soft-deleted";
-            s.Responses[StatusCodes.Status409Conflict] = "FOOD_IMAGES_CONFLICT — the images changed concurrently";
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest,"FOOD_NOT_OWNED or FOOD_GALLERY_IMAGE_NOT_FOUND");
+            s.Response(StatusCodes.Status404NotFound, "Food not found or soft-deleted");
+            s.Response(StatusCodes.Status409Conflict, "FOOD_IMAGES_CONFLICT — the images changed concurrently");
         });
     }
 
