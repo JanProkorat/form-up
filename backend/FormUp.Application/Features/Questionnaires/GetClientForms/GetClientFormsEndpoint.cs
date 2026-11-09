@@ -79,7 +79,7 @@ internal sealed class GetClientFormsEndpoint(
             .AsNoTracking()
             .Where(link => link.ClientProfile.UserId == clientUserId
                            && link.ProfessionalProfile.UserId == coachUserId
-                           && link.IsActive)
+                           && link.ConnectionState != ConnectionState.Ended)
             .MaxAsync(link => link.ActivatedAtUtc, ct);
 
         var responses = await db.QuestionnaireResponses

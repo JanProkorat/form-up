@@ -66,7 +66,7 @@ public class CreateResponseEndpointTests(FitnessApiFactory factory)
             ClientProfileId = clientProfile.Id,
             ProfessionalProfileId = professionalProfile.Id,
             ProfessionalRole = UserRole.Trainer,
-            IsActive = true,
+            ConnectionState = ConnectionState.Connected,
             CanViewNutritionPlans = true,
             CanViewTrainingPlans = true,
             PublicId = Guid.NewGuid(),

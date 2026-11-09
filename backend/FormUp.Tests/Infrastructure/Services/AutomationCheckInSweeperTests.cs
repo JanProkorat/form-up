@@ -257,7 +257,7 @@ public class AutomationCheckInSweeperTests(FitnessApiFactory factory)
         var fixture = await ArrangeAsync();
         var reminded = await AddOpenCheckInAsync(fixture, SentAt.AddHours(48));
         await WithDbAsync(db => db.ClientProfessionalLinks.Where(l => l.Id == fixture.LinkId)
-            .ExecuteUpdateAsync(s => s.SetProperty(l => l.IsActive, false), Ct));
+            .ExecuteUpdateAsync(s => s.SetProperty(l => l.ConnectionState, ConnectionState.Ended), Ct));
 
         await SweepAsync(fixture, SentAt.AddHours(25));
         await SweepAsync(fixture, SentAt.AddHours(60));

@@ -91,7 +91,7 @@ public class GetExerciseProgressIntegrationTests(FitnessApiFactory factory)
             ProfessionalProfileId = trainerProfileId,
             ClientProfileId = clientProfileId,
             ProfessionalRole = UserRole.Trainer,
-            IsActive = true,
+            ConnectionState = ConnectionState.Connected,
             CanViewTrainingPlans = true,
             CanViewNutritionPlans = true,
             DateCreated = DateTime.UtcNow,

@@ -82,7 +82,7 @@ public class InstantiateTemplateEndpointTests(FitnessApiFactory factory)
             ProfessionalProfileId = trainerProfileId,
             ClientProfileId = clientProfileId,
             ProfessionalRole = UserRole.Trainer,
-            IsActive = true,
+            ConnectionState = ConnectionState.Connected,
             CanViewTrainingPlans = canViewTrainingPlans,
             CanViewNutritionPlans = canViewNutritionPlans,
             DateCreated = DateTime.UtcNow

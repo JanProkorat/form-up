@@ -387,7 +387,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory)
             .Where(l => l.ClientProfile.UserId == QaSeedRunner.ClientFormerUserId)
             .ToListAsync(ct);
         formerLinks.Should().ContainSingle("the ended qa.trainer <-> former-client link must be created exactly once")
-            .Which.IsActive.Should().BeFalse("the link must stay ended across re-seeds");
+            .Which.ConnectionState.Should().Be(ConnectionState.Ended, "the link must stay ended across re-seeds");
 
         (await db.Conversations.CountAsync(c => c.PublicId == QaSeedRunner.QaEndedLinkConversationId, ct))
             .Should().Be(1, "the ended-link conversation must be created exactly once");
@@ -404,7 +404,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory)
             .Where(l => l.ClientProfile.UserId == QaSeedRunner.ClientEndingUserId)
             .ToListAsync(ct);
         endingLinks.Should().ContainSingle("the qa.trainer <-> ending-client link must be created exactly once")
-            .Which.IsActive.Should().BeTrue("the ending client's link must be live so the e2e can end it");
+            .Which.ConnectionState.Should().Be(ConnectionState.Connected, "the ending client's link must be live so the e2e can end it");
 
         (await db.Conversations.CountAsync(
                 c => c.ClientUserId == QaSeedRunner.ClientEndingUserId, ct))
@@ -1304,7 +1304,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory)
             {
                 ClientUserId = l.ClientProfile.UserId,
                 l.ProfessionalRole,
-                l.IsActive,
+                IsActive = l.ConnectionState != ConnectionState.Ended,
                 l.CanViewNutritionPlans,
                 l.CanViewTrainingPlans,
             })
@@ -2120,7 +2120,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory)
         var nutriLink = await db.ClientProfessionalLinks.FirstOrDefaultAsync(
             l => l.ClientProfileId == clientProfile.Id && l.ProfessionalProfileId == nutriProfile.Id, ct);
         nutriLink.Should().NotBeNull("a nutritionist↔client link must be seeded so the response is queryable by the nutritionist");
-        nutriLink!.IsActive.Should().BeTrue();
+        nutriLink!.ConnectionState.Should().Be(ConnectionState.Connected);
         response.LinkId.Should().Be(nutriLink.Id, "the response's LinkId must reference the nutritionist↔client link");
 
         // Plan link — the nutrition plan must point at this response's PublicId,

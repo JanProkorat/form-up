@@ -9,6 +9,7 @@ using FormUp.Application.Features.Trainers.UpdateClientData;
 using FormUp.Tests.Builders;
 using Microsoft.AspNetCore.Identity;
 using NSubstitute;
+using FormUp.Application.Domain.Enums;
 
 namespace FormUp.Tests.Endpoints.Trainers;
 
@@ -32,7 +33,7 @@ public class UpdateClientDataEndpointTests
         {
             ProfessionalProfileId = trainerProfile.Id,
             ClientProfileId = clientProfile.Id,
-            IsActive = true,
+            ConnectionState = ConnectionState.Connected,
             PublicId = Guid.NewGuid(),
             DateCreated = DateTime.UtcNow
         };

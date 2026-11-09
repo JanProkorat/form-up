@@ -74,7 +74,7 @@ public class GetProfileEndpoint(UserManager<ApplicationUser> userManager, IAppli
                 // AcceptInvitationEndpoint), so they are the
                 // correct source for "which tabs should this client unlock".
                 var activeLinks = await dbContext.ClientProfessionalLinks
-                    .Where(l => l.ClientProfileId == clientProfile.Id && l.IsActive)
+                    .Where(l => l.ClientProfileId == clientProfile.Id && l.ConnectionState != ConnectionState.Ended)
                     .Select(l => new { l.CanViewTrainingPlans, l.CanViewNutritionPlans })
                     .ToListAsync(ct);
 

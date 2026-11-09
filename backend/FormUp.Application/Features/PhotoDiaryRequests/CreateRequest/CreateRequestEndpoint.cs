@@ -90,7 +90,7 @@ public class CreateRequestEndpoint(
                 .FirstOrDefaultAsync(l =>
                     l.ClientProfile.PublicId == req.ClientId.Value &&
                     l.ProfessionalProfileId == professionalProfile.Id &&
-                    l.IsActive, ct);
+                    l.ConnectionState != ConnectionState.Ended, ct);
 
             if (link is null)
             {

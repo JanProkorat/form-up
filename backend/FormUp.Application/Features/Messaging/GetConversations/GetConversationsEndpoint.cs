@@ -292,7 +292,7 @@ public class GetConversationsEndpoint(
             {
                 ClientUserId = l.ClientProfile.UserId,
                 ProfessionalUserId = l.ProfessionalProfile.UserId,
-                l.IsActive,
+                IsActive = l.ConnectionState != ConnectionState.Ended,
                 ChangedAt = l.DateUpdated ?? l.DateCreated,
             })
             .ToListAsync(ct);

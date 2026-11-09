@@ -50,7 +50,7 @@ public class CoachRoleLinkSweeperTests(FitnessApiFactory factory)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        return await db.ClientProfessionalLinks.AsNoTracking().Where(l => l.Id == linkId).Select(l => l.IsActive).FirstAsync(Ct);
+        return await db.ClientProfessionalLinks.AsNoTracking().Where(l => l.Id == linkId).Select(l => l.ConnectionState != ConnectionState.Ended).FirstAsync(Ct);
     }
 
     private async Task<int> CountNotificationsAsync(Guid userId, NotificationType type)
@@ -209,7 +209,7 @@ public class CoachRoleLinkSweeperTests(FitnessApiFactory factory)
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var link = await db.ClientProfessionalLinks.AsNoTracking().FirstAsync(l => l.Id == linkId, Ct);
-        link.IsActive.Should().BeTrue();
+        link.ConnectionState.Should().Be(ConnectionState.Connected);
         link.CanViewTrainingPlans.Should().BeTrue();
         link.CanViewNutritionPlans.Should().BeTrue();
     }

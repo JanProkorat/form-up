@@ -9,6 +9,7 @@ using FormUp.Application.Infrastructure.Data;
 using FormUp.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
+using FormUp.Application.Domain.Enums;
 
 namespace FormUp.Application.Features.ClientNutrition.UnlogMealEaten;
 
@@ -133,7 +134,7 @@ public class UnlogMealEatenEndpoint(IMongoContext mongo, IApplicationDbContext d
     {
         var professionalUserIds = await db.ClientProfessionalLinks
             .AsNoTracking()
-            .Where(l => l.ClientProfileId == clientProfileId && l.IsActive)
+            .Where(l => l.ClientProfileId == clientProfileId && l.ConnectionState != ConnectionState.Ended)
             .Join(db.ProfessionalProfiles.AsNoTracking(),
                 link => link.ProfessionalProfileId,
                 prof => prof.Id,

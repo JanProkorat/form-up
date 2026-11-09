@@ -104,7 +104,7 @@ public class GetMessagesEndpointTests(FitnessApiFactory factory)
             ProfessionalProfileId = professionalProfile.Id,
             ClientProfileId = clientProfile.Id,
             ProfessionalRole = UserRole.Trainer,
-            IsActive = true,
+            ConnectionState = ConnectionState.Connected,
             CanViewNutritionPlans = true,
             CanViewTrainingPlans = true,
             DateCreated = DateTime.UtcNow,

@@ -268,7 +268,7 @@ public sealed class LinkBuilder(FitnessApiFactory factory, long professionalProf
             ProfessionalProfileId = professionalProfileId,
             ClientProfileId = clientProfileId,
             ProfessionalRole = _professionalRole,
-            IsActive = _isActive,
+            ConnectionState = _isActive ? ConnectionState.Connected : ConnectionState.Ended,
             CanViewNutritionPlans = _canViewNutritionPlans,
             CanViewTrainingPlans = _canViewTrainingPlans,
             DateCreated = _dateCreated,

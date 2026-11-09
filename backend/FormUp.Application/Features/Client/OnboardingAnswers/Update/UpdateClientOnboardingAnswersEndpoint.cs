@@ -256,7 +256,7 @@ internal sealed class UpdateClientOnboardingAnswersEndpoint(
     {
         var recipients = await db.ClientProfessionalLinks
             .AsNoTracking()
-            .Where(l => l.ClientProfileId == profile.Id && l.IsActive)
+            .Where(l => l.ClientProfileId == profile.Id && l.ConnectionState != ConnectionState.Ended)
             .Select(l => new { l.ProfessionalProfile.UserId, l.ProfessionalProfile.User.Language })
             .Distinct()
             .ToListAsync(ct);

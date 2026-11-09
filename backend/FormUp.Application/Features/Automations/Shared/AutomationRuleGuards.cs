@@ -217,7 +217,7 @@ public static class AutomationRuleGuards
 
             var clientProfileIds = await db.ClientProfessionalLinks
                 .AsNoTracking()
-                .Where(l => l.ProfessionalProfileId == profile.Id && l.IsActive && publicIds.Contains(l.ClientProfile.PublicId))
+                .Where(l => l.ProfessionalProfileId == profile.Id && l.ConnectionState != ConnectionState.Ended && publicIds.Contains(l.ClientProfile.PublicId))
                 .Select(l => l.ClientProfileId)
                 .Distinct()
                 .ToListAsync(ct);

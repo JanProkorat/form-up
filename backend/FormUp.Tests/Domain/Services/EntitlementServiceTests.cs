@@ -60,7 +60,7 @@ public class EntitlementServiceTests(FitnessApiFactory factory)
             ProfessionalProfileId = professionalProfile.Id,
             ClientProfileId = clientProfile.Id,
             ProfessionalRole = UserRole.Trainer,
-            IsActive = isActive,
+            ConnectionState = isActive ? ConnectionState.Connected : ConnectionState.Ended,
             CanViewNutritionPlans = true,
             CanViewTrainingPlans = true
         });

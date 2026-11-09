@@ -136,7 +136,7 @@ public class GetClientTimelineEndpoint(
             .FirstOrDefaultAsync(ctl =>
                 ctl.ProfessionalProfileId == professionalProfile.Id &&
                 ctl.ClientProfileId == clientProfile.Id &&
-                ctl.IsActive, ct);
+                ctl.ConnectionState != ConnectionState.Ended, ct);
 
         if (link is null)
         {

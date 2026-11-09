@@ -68,7 +68,7 @@ public class UpdateResponseEndpoint(IApplicationDbContext db, TimeProvider timeP
         // A response of an ended or earlier collaboration is indistinguishable from an unknown one.
         if (clientProfileId is null
             || response.Link.ClientProfileId != clientProfileId
-            || !response.Link.IsActive
+            || response.Link.ConnectionState == ConnectionState.Ended
             || (response.Link.ActivatedAtUtc != null && response.DateCreated < response.Link.ActivatedAtUtc))
         {
             await Send.NotFoundAsync(ct);

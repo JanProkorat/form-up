@@ -59,7 +59,7 @@ public sealed class AutomationCheckInSweeper(
                         && (r.Status == QuestionnaireResponseStatus.Pending || r.Status == QuestionnaireResponseStatus.InProgress)
                         && r.QuestionnaireId == rule.QuestionnaireId
                         && r.ProfessionalId == coachUserId
-                        && r.Link.IsActive
+                        && r.Link.ConnectionState != ConnectionState.Ended
                         && r.CheckInDueAtUtc >= horizonStart
                         && (onlyClientUserId == null || r.ClientId == onlyClientUserId)
                         && (r.CheckInReminderSentAtUtc == null || r.CheckInMissedNotifiedAtUtc == null))

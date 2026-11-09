@@ -62,7 +62,7 @@ public class GetClientQuestionnaireEndpoint(IApplicationDbContext db, TimeProvid
                     r.PublicId == responsePublicIdParam.Value
                     && r.ClientId == userGuid
                     && r.Link.ClientProfileId == clientProfile.Id
-                    && r.Link.IsActive
+                    && r.Link.ConnectionState != ConnectionState.Ended
                     && (r.Status == QuestionnaireResponseStatus.Pending || r.Status == QuestionnaireResponseStatus.InProgress), ct);
 
             link = requestedResponse?.Link;
@@ -78,14 +78,14 @@ public class GetClientQuestionnaireEndpoint(IApplicationDbContext db, TimeProvid
             link = await db.ClientProfessionalLinks
                 .Where(l => l.ClientProfileId == clientProfile.Id
                          && l.PublicId == linkPublicIdParam.Value
-                         && l.IsActive)
+                         && l.ConnectionState != ConnectionState.Ended)
                 .FirstOrDefaultAsync(ct);
         }
         else
         {
             // Legacy fallback: first active link
             link = await db.ClientProfessionalLinks
-                .Where(l => l.ClientProfileId == clientProfile.Id && l.IsActive)
+                .Where(l => l.ClientProfileId == clientProfile.Id && l.ConnectionState != ConnectionState.Ended)
                 .FirstOrDefaultAsync(ct);
         }
 

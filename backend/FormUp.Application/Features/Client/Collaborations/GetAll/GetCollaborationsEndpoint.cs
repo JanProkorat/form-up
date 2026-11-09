@@ -47,7 +47,7 @@ public class GetCollaborationsEndpoint(
 
         var links = await db.ClientProfessionalLinks
             .AsNoTracking()
-            .Where(l => l.ClientProfileId == clientProfile.Id && l.IsActive)
+            .Where(l => l.ClientProfileId == clientProfile.Id && l.ConnectionState != ConnectionState.Ended)
             .Include(l => l.ProfessionalProfile)
                 .ThenInclude(pp => pp.User)
             .Select(l => new CollaborationDto
@@ -186,7 +186,7 @@ public class GetCollaborationsEndpoint(
     {
         var links = await db.ClientProfessionalLinks
             .AsNoTracking()
-            .Where(l => l.ClientProfileId == clientProfileId && l.IsActive)
+            .Where(l => l.ClientProfileId == clientProfileId && l.ConnectionState != ConnectionState.Ended)
             .Select(l => new { l.Id, l.PublicId, l.ProfessionalProfileId, l.ProfessionalRole })
             .ToListAsync(ct);
 

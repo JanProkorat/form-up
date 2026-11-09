@@ -74,7 +74,7 @@ public class CreateRequestSignalRTests(FitnessApiFactory factory)
             ClientProfileId = clientProfile.Id,
             ProfessionalProfileId = profProfile.Id,
             ProfessionalRole = UserRole.Nutritionist,
-            IsActive = true,
+            ConnectionState = ConnectionState.Connected,
             CanViewNutritionPlans = true,
             CanViewTrainingPlans = false,
             PublicId = Guid.NewGuid(),

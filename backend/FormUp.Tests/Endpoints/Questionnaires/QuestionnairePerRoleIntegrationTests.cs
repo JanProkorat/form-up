@@ -322,7 +322,7 @@ public class QuestionnairePerRoleIntegrationTests(FitnessApiFactory factory)
         {
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var link = await db.ClientProfessionalLinks.SingleAsync(l => l.Id == target.LinkId, Ct);
-            link.IsActive = false;
+            link.ConnectionState = ConnectionState.Ended;
             await db.SaveChangesAsync(Ct);
         }
 

@@ -89,7 +89,7 @@ public class GetDashboardSummaryEndpoint(
         var links = await db.ClientProfessionalLinks
             .AsNoTracking()
             .Where(l => l.ProfessionalProfileId == professionalProfile.Id
-                        && l.IsActive
+                        && l.ConnectionState != ConnectionState.Ended
                         && (l.CanViewNutritionPlans || l.CanViewTrainingPlans))
             .Include(l => l.ClientProfile)
             .ThenInclude(cp => cp.User)
@@ -374,7 +374,7 @@ public class GetDashboardSummaryEndpoint(
             LastName = link.ClientProfile.User.LastName,
             Email = link.ClientProfile.User.Email!,
             AvatarBlobUrl = link.ClientProfile.User.AvatarBlobUrl,
-            IsActive = link.IsActive,
+            IsActive = link.ConnectionState != ConnectionState.Ended,
             Goal = link.ClientProfile.Goals,
             CompliancePercent = percentForViewer,
             CurrentStreak = streak,

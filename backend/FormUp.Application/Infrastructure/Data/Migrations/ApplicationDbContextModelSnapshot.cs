@@ -1364,6 +1364,10 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("client_profile_id");
 
+                    b.Property<int>("ConnectionState")
+                        .HasColumnType("integer")
+                        .HasColumnName("connection_state");
+
                     b.Property<DateTime>("DateCreated")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("date_created");
@@ -1371,10 +1375,6 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("DateUpdated")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("date_updated");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_active");
 
                     b.Property<long>("ProfessionalProfileId")
                         .HasColumnType("bigint")

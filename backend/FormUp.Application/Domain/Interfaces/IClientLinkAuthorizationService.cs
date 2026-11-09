@@ -65,7 +65,7 @@ public interface IClientLinkAuthorizationService
     /// which capability it grants — including one that grants neither domain
     /// (<see cref="LinkCapabilities.GrantsNothing"/>). This is deliberately distinct from
     /// <see cref="LinkCapabilityScope.Both"/>: <see langword="null"/> applies no capability
-    /// predicate at all (gates on <c>IsActive</c> only), while <see cref="LinkCapabilityScope.Both"/>
+    /// predicate at all (gates on <c>ConnectionState</c> only), while <see cref="LinkCapabilityScope.Both"/>
     /// requires <c>CanViewTrainingPlans AND CanViewNutritionPlans</c>. Collapsing the two would
     /// silently drop every <see cref="LinkCapabilities.GrantsNothing"/> row from the unfiltered
     /// query. When <see cref="LinkCapabilityScope.TrainingOnly"/>, the predicate pushes

@@ -322,7 +322,7 @@ public class GetConversationsFilterTests(FitnessApiFactory factory)
             .FirstAsync(cp => cp.PublicId == clientPublicId, TestContext.Current.CancellationToken);
         var link = await db.ClientProfessionalLinks
             .FirstAsync(l => l.ClientProfileId == clientProfile.Id, TestContext.Current.CancellationToken);
-        link.IsActive = isActive;
+        link.ConnectionState = isActive ? ConnectionState.Connected : ConnectionState.Ended;
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 

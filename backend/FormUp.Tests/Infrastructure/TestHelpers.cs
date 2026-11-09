@@ -119,7 +119,7 @@ public static class TestHelpers
             ProfessionalProfileId = professionalProfile.Id,
             ClientProfileId = clientProfile.Id,
             ProfessionalRole = UserRole.Trainer,
-            IsActive = true,
+            ConnectionState = ConnectionState.Connected,
             CanViewNutritionPlans = canViewNutritionPlans,
             CanViewTrainingPlans = canViewTrainingPlans,
             DateCreated = DateTime.UtcNow
