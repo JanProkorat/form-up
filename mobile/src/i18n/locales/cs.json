@@ -1961,5 +1961,97 @@
         "body": "Tento formulář už jste odeslali."
       }
     }
+  },
+  "photoRequest": {
+    "coachFallback": {
+      "Trainer": "Váš trenér",
+      "Nutritionist": "Váš nutriční poradce",
+      "other": "Váš poradce"
+    },
+    "title": "{{name}} žádá o fotky pokroku",
+    "days_one": "{{count}} den",
+    "days_few": "{{count}} dny",
+    "days_many": "{{count}} dne",
+    "days_other": "{{count}} dní",
+    "subtitle": {
+      "everyDay": "Denně jedna sada fotek, celkem {{days}}. Uvidíte je jen vy a {{name}}.",
+      "once": "Jedna sada fotek, odešlete ji najednou, kdykoli budete chtít. Uvidíte ji jen vy a {{name}}."
+    },
+    "note": "Poznámka ({{name}})",
+    "rows": {
+      "howOften": "Jak často",
+      "everyDay": "Každý den",
+      "once": "Jednou",
+      "until": "Do",
+      "untilValue": "{{date}} · {{days}}",
+      "deadline": "Termín",
+      "noDeadline": "Žádný, pošlete, až budete chtít",
+      "reminder": "Připomenutí",
+      "reminderValue": "V poledne, pokud ještě není fotka",
+      "showsWith": "Zobrazí se u",
+      "asked": "Zadáno",
+      "status": "Stav"
+    },
+    "actions": {
+      "start": "Začít",
+      "addPhotos": "Přidat fotky",
+      "notNow": "Teď ne",
+      "backToToday": "Zpět na Dnes",
+      "close": "Zavřít",
+      "retry": "Zkusit znovu"
+    },
+    "banner": {
+      "open": "Otevřít",
+      "openLabel": "Otevřít žádost o fotky od: {{name}}",
+      "everyDayHint": "Každý den, {{days}}, do {{date}}",
+      "onceHint": "Jednou, kdykoli budete chtít"
+    },
+    "step": {
+      "everyDayTitle": "Posílejte fotku každý den",
+      "everyDayPendingHint": "Každý den, {{days}}",
+      "runningHint": "Den {{day}} z {{total}} · dnes zatím nic",
+      "runningSentHint": "Den {{day}} z {{total}} · dnešní fotky odeslány",
+      "onceTitle": "Pošlete fotky",
+      "oncePendingHint": "Jednou · kdykoli budete chtít",
+      "onceSent": "Fotky odeslány",
+      "add": "Přidat",
+      "view": "Zobrazit"
+    },
+    "decline": {
+      "title": "Odmítnout tuto žádost?",
+      "body": "{{name}} uvidí, že jste žádost odmítli. Později může poslat novou.",
+      "reasonLabel": "Řekněte, proč (nepovinné)",
+      "counter": "{{used}} / {{max}}",
+      "submit": "Odmítnout žádost",
+      "keep": "Ponechat",
+      "errors": {
+        "invalidReason": "Důvod je příliš dlouhý. Použijte nejvýše 500 znaků.",
+        "network": "Server není dostupný. Zkontrolujte připojení a zkuste to znovu.",
+        "generic": "Žádost se nepodařilo odmítnout. Zkuste to prosím znovu."
+      }
+    },
+    "closed": {
+      "title": "Tato žádost je uzavřena",
+      "reason": {
+        "cancelled": "Žádost byla {{date}} zrušena. Nemusíte nic posílat.",
+        "ended": "Skončila {{date}}. Nemusíte nic posílat.",
+        "declined": "Odmítli jste ji {{date}}. {{name}} může poslat novou žádost.",
+        "completed": "Fotky k této žádosti jste už odeslali.",
+        "notFound": "Tuto žádost se nepodařilo najít. Možná byla zrušena."
+      },
+      "status": {
+        "cancelled": "Zrušeno: {{name}}",
+        "ended": "Skončila {{date}}",
+        "declined": "Odmítli jste ji",
+        "completed": "Fotky odeslány"
+      }
+    },
+    "errors": {
+      "load": "Tuto žádost se nepodařilo načíst. Zkontrolujte připojení a zkuste to znovu.",
+      "accept": "Žádost se nepodařilo zahájit. Zkuste to prosím znovu.",
+      "network": "Server není dostupný. Zkontrolujte připojení a zkuste to znovu."
+    },
+    "loading": "Načítání",
+    "placeholder": "Přidávání fotek brzy přibude."
   }
 }
