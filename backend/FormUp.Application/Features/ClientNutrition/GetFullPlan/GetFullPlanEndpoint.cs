@@ -30,9 +30,9 @@ public class GetFullPlanEndpoint(IMongoContext mongo, IApplicationDbContext db, 
         {
             s.Summary = "Get full nutrition plan";
             s.Description = "Returns all published weeks of the client's active nutrition plan for mobile browsing.";
-            s.Responses[StatusCodes.Status200OK] = "Nutrition plan with its published weeks and eaten state";
-            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
-            s.Responses[StatusCodes.Status404NotFound] = "Client profile or active plan with a published week not found";
+            s.Response<GetFullPlanResponse>(StatusCodes.Status200OK, "Nutrition plan with its published weeks and eaten state");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status404NotFound, "Client profile or active plan with a published week not found");
         });
     }
 

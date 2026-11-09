@@ -26,12 +26,12 @@ internal sealed class UpdateSubscriptionPlanEndpoint(IApplicationDbContext db)
         {
             s.Summary = "Update subscription plan";
             s.Description = "Updates a subscription tier's fields. Code is immutable — reactivation/deactivation happens via the IsActive field here, not a separate endpoint. A change to the price, the second-role add-on price or the currency closes the open price row and opens a new one; coaches stay on their old row unless MoveExistingCoachesAtNextRenewal is set. The Free plan must stay at price 0 and active.";
-            s.Responses[StatusCodes.Status200OK] = "Subscription plan updated";
-            s.Responses[StatusCodes.Status400BadRequest] = "Invalid request body";
-            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or invalid credentials";
-            s.Responses[StatusCodes.Status403Forbidden] = "Caller is not an Admin";
-            s.Responses[StatusCodes.Status404NotFound] = "No plan with this Code";
-            s.Responses[StatusCodes.Status409Conflict] = "The Free plan cannot be repriced or deactivated";
+            s.Response<SubscriptionPlanDto>(StatusCodes.Status200OK, "Subscription plan updated");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Invalid request body");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or invalid credentials");
+            s.Response(StatusCodes.Status403Forbidden, "Caller is not an Admin");
+            s.Response(StatusCodes.Status404NotFound, "No plan with this Code");
+            s.Response(StatusCodes.Status409Conflict, "The Free plan cannot be repriced or deactivated");
         });
     }
 

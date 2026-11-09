@@ -45,10 +45,10 @@ public class GetClientDashboardEndpoint(
                 + "sessionsCompletedThisWeek / sessionsPlannedThisWeek count the client's training sessions in the current "
                 + "plan week (week follows the client's local date) and are null without training-plan access or an active "
                 + "plan whose current week is covered by a published week (an unpublished current week uses the latest earlier published one).";
-            s.Responses[StatusCodes.Status200OK] = "Client dashboard";
-            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
-            s.Responses[StatusCodes.Status403Forbidden] = "Active link grants neither nutrition nor training visibility";
-            s.Responses[StatusCodes.Status404NotFound] = "Client unknown, or the caller has no active link to it";
+            s.Response<GetClientDashboardResponse>(StatusCodes.Status200OK, "Client dashboard");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status403Forbidden, "Active link grants neither nutrition nor training visibility");
+            s.Response(StatusCodes.Status404NotFound, "Client unknown, or the caller has no active link to it");
         });
     }
 

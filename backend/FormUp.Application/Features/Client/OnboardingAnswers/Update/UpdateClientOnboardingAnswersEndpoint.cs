@@ -36,11 +36,11 @@ internal sealed class UpdateClientOnboardingAnswersEndpoint(
                 "Partially updates the editable onboarding answers; omitted fields stay unchanged " +
                 "(so a target weight cannot be cleared). Nutrition targets are not recalculated. " +
                 "Linked coaches are notified only when something changed.";
-            s.Responses[StatusCodes.Status200OK] = "Current answers (unchanged when nothing differed)";
-            s.Responses[StatusCodes.Status400BadRequest] = "Invalid request";
-            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
-            s.Responses[StatusCodes.Status404NotFound] = "No client profile";
-            s.Responses[StatusCodes.Status409Conflict] = "Onboarding not completed (ONBOARDING_NOT_COMPLETED)";
+            s.Response<ClientOnboardingAnswersResponse>(StatusCodes.Status200OK, "Current answers (unchanged when nothing differed)");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Invalid request");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status404NotFound, "No client profile");
+            s.Response(StatusCodes.Status409Conflict, "Onboarding not completed (ONBOARDING_NOT_COMPLETED)");
         });
     }
 

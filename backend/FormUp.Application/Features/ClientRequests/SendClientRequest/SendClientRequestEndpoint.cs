@@ -28,15 +28,14 @@ public class SendClientRequestEndpoint(
     {
         Post("/client/requests");
         Roles(AppRoles.Client);
-        Description(b => b.ClearDefaultProduces(StatusCodes.Status200OK)
-            .Produces<SendClientRequestResponse>(StatusCodes.Status201Created));
         Summary(s =>
         {
             s.Summary = "Send a client request";
             s.Description = "Sends a request from a client to a professional to establish a working relationship.";
-            s.Responses[StatusCodes.Status201Created] = "Request sent";
-            s.Responses[StatusCodes.Status400BadRequest] =
-                "Invalid request, or the package is not available (REQUEST_PACKAGE_UNAVAILABLE)";
+            s.Response<SendClientRequestResponse>(StatusCodes.Status201Created, "Request sent");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest,
+                "Invalid request, or the package is not available (REQUEST_PACKAGE_UNAVAILABLE)");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
         });
     }
 

@@ -27,9 +27,10 @@ internal sealed class GetMySubscriptionEndpoint(IApplicationDbContext db, Entitl
                             "feature flags that currently apply. A coach with no subscription is shown on the Free plan with no status. When the paid " +
                             "plan has lapsed the plan fields read as Free, the lapsed plan's names and end date are returned separately, " +
                             "the active-client count is the kept clients and the over-cap count is reported.";
-            s.Responses[StatusCodes.Status200OK] = "The caller's subscription block";
-            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
-            s.Responses[StatusCodes.Status404NotFound] = "The caller has no professional profile, or the Free plan is missing";
+            s.Response<GetMySubscriptionResponse>(StatusCodes.Status200OK, "The caller's subscription block");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status403Forbidden, "The caller is not a trainer or nutritionist");
+            s.Response(StatusCodes.Status404NotFound, "The caller has no professional profile, or the Free plan is missing");
         });
     }
 

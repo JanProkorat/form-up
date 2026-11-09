@@ -53,16 +53,17 @@ public class UpdatePlanEndpoint(
                             "are locked: changing, moving or deleting one returns 409 MEAL_LOCKED, adding a meal to a " +
                             "past day returns 409 PAST_DAY_LOCKED. With PreserveLockedMeals the locked and past-day " +
                             "meals are kept as stored instead and the rest of the payload is applied.";
-            s.Responses[StatusCodes.Status200OK] = "Updated plan";
-            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
-            s.Responses[StatusCodes.Status403Forbidden] =
+            s.Response<GetPlanResponse>(StatusCodes.Status200OK, "Updated plan");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Invalid request, or a published week was removed or the start date is invalid");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status403Forbidden,
                 "The subscription does not include plans (SUBSCRIPTION_REQUIRED), or the client is over the Free plan's client limit " +
-                "and the plan's last published week has ended or the start date changed (CLIENT_OVER_PLAN_LIMIT)";
-            s.Responses[StatusCodes.Status404NotFound] = "Plan not found, or not editable by the caller";
-            s.Responses[StatusCodes.Status409Conflict] =
+                "and the plan's last published week has ended or the start date changed (CLIENT_OVER_PLAN_LIMIT)");
+            s.Response(StatusCodes.Status404NotFound, "Plan not found, or not editable by the caller");
+            s.Response(StatusCodes.Status409Conflict,
                 "PLAN_VERSION_CONFLICT, MEAL_LOCKED or PAST_DAY_LOCKED. Lock responses (MEAL_LOCKED, " +
                 "PAST_DAY_LOCKED) also carry the rejected meal as top-level mealId (null when the request " +
-                "sent none), weekNumber and dayOfWeek";
+                "sent none), weekNumber and dayOfWeek");
         });
     }
 

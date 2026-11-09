@@ -25,11 +25,12 @@ internal sealed class DeactivateSubscriptionPlanEndpoint(IApplicationDbContext d
         {
             s.Summary = "Deactivate subscription plan";
             s.Description = "Soft-deactivates a subscription tier (IsActive = false). The row is never deleted — CoachSubscription FK history must survive. Idempotent.";
-            s.Responses[StatusCodes.Status204NoContent] = "Plan deactivated (or was already inactive)";
-            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or invalid credentials";
-            s.Responses[StatusCodes.Status403Forbidden] = "Caller is not an Admin";
-            s.Responses[StatusCodes.Status404NotFound] = "No plan with this Code";
-            s.Responses[StatusCodes.Status409Conflict] = "The Free plan cannot be deactivated";
+            s.Response(StatusCodes.Status204NoContent, "Plan deactivated (or was already inactive)");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Invalid plan code");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or invalid credentials");
+            s.Response(StatusCodes.Status403Forbidden, "Caller is not an Admin");
+            s.Response(StatusCodes.Status404NotFound, "No plan with this Code");
+            s.Response(StatusCodes.Status409Conflict, "The Free plan cannot be deactivated");
         });
     }
 

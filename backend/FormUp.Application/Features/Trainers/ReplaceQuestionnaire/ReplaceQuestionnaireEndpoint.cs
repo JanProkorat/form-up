@@ -33,8 +33,13 @@ public class ReplaceQuestionnaireEndpoint(
         {
             s.Summary = "Replace a pending questionnaire";
             s.Description = "Cancels the current pending questionnaire and assigns a new one.";
-            s.Responses[StatusCodes.Status403Forbidden] =
-                "The subscription does not include questionnaires (SUBSCRIPTION_REQUIRED), or a removed coach role";
+            s.Response(StatusCodes.Status204NoContent, "Questionnaire replaced");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest,
+                "No pending questionnaire for the client, the questionnaire is unknown, or a check-in form was sent as a questionnaire (CHECK_IN_FORM_NOT_SENDABLE)");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status403Forbidden,
+                "The subscription does not include questionnaires (SUBSCRIPTION_REQUIRED), or a removed coach role");
+            s.Response(StatusCodes.Status404NotFound, "Professional profile or client not found, or the caller has no live link to the client");
         });
     }
 

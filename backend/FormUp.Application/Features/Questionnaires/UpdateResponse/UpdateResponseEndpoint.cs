@@ -26,13 +26,13 @@ public class UpdateResponseEndpoint(IApplicationDbContext db, TimeProvider timeP
                             "(+ valueText for 'Other' when config.allowOther); short_text = valueText; number = valueNumber within " +
                             "config min/max; smiley_rating / star_rating = whole valueNumber 1-5; scale = whole valueNumber within " +
                             "config min/max (default 1-10); file_upload = https fileUrl; section takes no answer.";
-            s.Responses[StatusCodes.Status204NoContent] = "Answers saved";
-            s.Responses[StatusCodes.Status400BadRequest] =
-                "An answer is invalid (QUESTIONNAIRE_ANSWER_INVALID) or a question is not part of the form (QUESTIONNAIRE_QUESTION_NOT_IN_FORM)";
-            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
-            s.Responses[StatusCodes.Status403Forbidden] = "The response belongs to another client";
-            s.Responses[StatusCodes.Status404NotFound] = "Unknown response, or one outside the current collaboration";
-            s.Responses[StatusCodes.Status409Conflict] = "The response has already been submitted, or it is a check-in past its answer window (CHECK_IN_ANSWER_WINDOW_CLOSED)";
+            s.Response(StatusCodes.Status204NoContent, "Answers saved");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest,
+                "An answer is invalid (QUESTIONNAIRE_ANSWER_INVALID) or a question is not part of the form (QUESTIONNAIRE_QUESTION_NOT_IN_FORM)");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status403Forbidden, "The response belongs to another client");
+            s.Response(StatusCodes.Status404NotFound, "Unknown response, or one outside the current collaboration");
+            s.Response(StatusCodes.Status409Conflict, "The response has already been submitted, or it is a check-in past its answer window (CHECK_IN_ANSWER_WINDOW_CLOSED)");
         });
     }
 

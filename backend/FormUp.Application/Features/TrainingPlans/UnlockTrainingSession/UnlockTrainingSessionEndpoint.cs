@@ -41,8 +41,14 @@ public class UnlockTrainingSessionEndpoint(
             s.Summary = "Unlock a training session for editing";
             s.Description = "Acquires an Editing lock on the session. " +
                             "Returns 409 if the session is currently Live (client is training).";
-            s.Responses[StatusCodes.Status403Forbidden] =
-                "The client is over the Free plan's client limit and the plan's last published week has ended (CLIENT_OVER_PLAN_LIMIT)";
+            s.Response(StatusCodes.Status204NoContent, "Editing lock acquired");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Invalid request");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status403Forbidden,
+                "The client is over the Free plan's client limit and the plan's last published week has ended (CLIENT_OVER_PLAN_LIMIT)");
+            s.Response(StatusCodes.Status404NotFound, "Plan or session not found, or not editable by the caller");
+            s.Response(StatusCodes.Status409Conflict,
+                "The session was already completed (SESSION_ALREADY_COMPLETED) or is locked (session_locked)");
         });
     }
 

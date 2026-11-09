@@ -34,8 +34,13 @@ public class AcceptClientInviteEndpoint(
         {
             s.Summary = "Accept a pending invite";
             s.Description = "Accepts a pending invitation from a professional, creating a client-professional link.";
-            s.Responses[StatusCodes.Status403Forbidden] =
-                "The coach role was removed, or the coach is at the active-client limit (CLIENT_LIMIT_REACHED)";
+            s.Response(StatusCodes.Status204NoContent, "Invite accepted");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "The profession slot is already taken (PROFESSION_ALREADY_OCCUPIED)");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status403Forbidden,
+                "The coach role was removed, or the coach is at the active-client limit (CLIENT_LIMIT_REACHED)");
+            s.Response(StatusCodes.Status404NotFound, "Invite not found, not addressed to the caller, or the caller is a coach");
+            s.Response(StatusCodes.Status409Conflict, "The invite has expired (INVITE_EXPIRED)");
         });
     }
 

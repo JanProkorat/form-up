@@ -47,10 +47,11 @@ public class CreateRequestEndpoint(
             s.Summary = "Create a photo diary request";
             s.Description = "Sends a photo diary request to a client via an existing link or a pending invite. " +
                 "The coach picks the mode (Once or Every day) and may add a message.";
-            s.Responses[StatusCodes.Status200OK] = "Request created";
-            s.Responses[StatusCodes.Status400BadRequest] = "Invalid request";
-            s.Responses[StatusCodes.Status404NotFound] = "Link, invite or plan not found, or not the caller's";
-            s.Responses[StatusCodes.Status409Conflict] = "The caller already has an open request for this client";
+            s.Response<CreateRequestResponse>(StatusCodes.Status200OK, "Request created");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Invalid request");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status404NotFound, "Link, invite or plan not found, or not the caller's");
+            s.Response(StatusCodes.Status409Conflict, "The caller already has an open request for this client");
         });
     }
 

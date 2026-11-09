@@ -30,8 +30,8 @@ internal sealed class GetClientPaymentsEndpoint(IApplicationDbContext db, TimePr
         {
             s.Summary = "List my payments";
             s.Description = "Lists the payments the client's coaches asked for (overdue ones marked) and the latest paid ones, grouped by coach. Coaches whose collaboration ended stay listed, flagged collaborationEnded. Empty when the client has no payments.";
-            s.Responses[StatusCodes.Status200OK] = "The client's payments";
-            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
+            s.Response<GetClientPaymentsResponse>(StatusCodes.Status200OK, "The client's payments");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
         });
     }
 

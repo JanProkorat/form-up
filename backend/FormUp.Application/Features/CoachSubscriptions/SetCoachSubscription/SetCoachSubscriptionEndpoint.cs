@@ -26,12 +26,12 @@ internal sealed class SetCoachSubscriptionEndpoint(IApplicationDbContext db)
             s.Summary = "Assign a coach's subscription";
             s.Description = "Creates the coach's subscription if missing, or replaces its plan, status, free-features deadline and " +
                             "second-role add-on. The coach pays the plan's open price row. An inactive plan may be assigned.";
-            s.Responses[StatusCodes.Status200OK] = "The subscription as it now stands";
-            s.Responses[StatusCodes.Status400BadRequest] = "Invalid request body";
-            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or invalid credentials";
-            s.Responses[StatusCodes.Status403Forbidden] = "Caller is not an Admin";
-            s.Responses[StatusCodes.Status404NotFound] =
-                "The coach (user with a professional profile) or the plan code is unknown (PROFESSIONAL_NOT_FOUND, SUBSCRIPTION_PLAN_NOT_FOUND)";
+            s.Response<SetCoachSubscriptionResponse>(StatusCodes.Status200OK, "The subscription as it now stands");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Invalid request body");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or invalid credentials");
+            s.Response(StatusCodes.Status403Forbidden, "Caller is not an Admin");
+            s.Response(StatusCodes.Status404NotFound,
+                "The coach (user with a professional profile) or the plan code is unknown (PROFESSIONAL_NOT_FOUND, SUBSCRIPTION_PLAN_NOT_FOUND)");
         });
     }
 

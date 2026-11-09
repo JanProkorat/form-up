@@ -47,8 +47,11 @@ public class AcceptInvitationEndpoint(
         {
             s.Summary = "Accept a trainer invitation";
             s.Description = "Accepts a one-time invitation token from a trainer, creating a client-professional relationship.";
-            s.Responses[StatusCodes.Status403Forbidden] =
-                "The coach role was removed, or the coach is at the active-client limit (CLIENT_LIMIT_REACHED)";
+            s.Response<AcceptInvitationResponse>(StatusCodes.Status200OK, "Invitation accepted");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Invalid, used or expired token, or the profession slot is already taken (PROFESSION_ALREADY_OCCUPIED)");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status403Forbidden,
+                "The coach role was removed, or the coach is at the active-client limit (CLIENT_LIMIT_REACHED)");
         });
     }
 
