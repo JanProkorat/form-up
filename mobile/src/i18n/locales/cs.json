@@ -2052,6 +2052,48 @@
       "network": "Server není dostupný. Zkontrolujte připojení a zkuste to znovu."
     },
     "loading": "Načítání",
+    "once": {
+      "title": "Fotky pokroku",
+      "yourPhotos": "Vaše fotky",
+      "added_one": "{{count}} přidána",
+      "added_few": "{{count}} přidány",
+      "added_many": "{{count}} přidané",
+      "added_other": "{{count}} přidáno",
+      "empty": "Přidejte fotky, o které {{name}} žádá. Ke každé můžete napsat poznámku.",
+      "addMore": "Přidat další fotky",
+      "noteLabel": "Poznámka",
+      "optional": "(nepovinná)",
+      "notePlaceholder": "Na co upozornit?",
+      "photoLabel": "Fotka {{position}}",
+      "removeLabel": "Odebrat fotku {{position}}",
+      "uploaded": "Fotka {{position}} odeslána",
+      "send_one": "Odeslat {{count}} fotku",
+      "send_few": "Odeslat {{count}} fotky",
+      "send_many": "Odeslat {{count}} fotky",
+      "send_other": "Odeslat {{count}} fotek",
+      "sendNone": "Odeslat fotky",
+      "sending": "Odesílání…",
+      "errors": {
+        "someFailed": "Některé fotky se nepodařilo odeslat. Opravte je nebo odeberte a odešlete znovu. Už odeslané fotky na žádosti zůstávají.",
+        "network": "Server není dostupný. Zkontrolujte připojení a odešlete znovu.",
+        "submit": "Fotky jsou nahrané, ale ještě neodeslané. Zkuste to znovu.",
+        "tooLarge": "Tato fotka je větší než 5 MB. Odeberte ji a vyberte menší.",
+        "unsupportedType": "Tento typ souboru není podporován. Použijte fotku JPEG, PNG, WebP nebo HEIC.",
+        "unreadable": "Fotku se nepodařilo přečíst. Odeberte ji a vyberte znovu.",
+        "rejected": "Tato fotka nebo její poznámka byla odmítnuta. Odeberte ji nebo poznámku zkraťte.",
+        "upload": "Nahrání se nezdařilo. Odešlete znovu a zkuste to."
+      }
+    },
+    "sent": {
+      "title": "Odesláno",
+      "body": "{{name}} je teď uvidí. Tato žádost je hotová.",
+      "cardTitle": "Fotky pokroku",
+      "cardMeta_one": "{{count}} nová · dnes v {{time}}",
+      "cardMeta_few": "{{count}} nové · dnes v {{time}}",
+      "cardMeta_many": "{{count}} nové · dnes v {{time}}",
+      "cardMeta_other": "{{count}} nových · dnes v {{time}}",
+      "view": "Zobrazit"
+    },
     "placeholder": "Přidávání fotek brzy přibude."
   }
 }

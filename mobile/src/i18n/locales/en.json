@@ -1977,6 +1977,42 @@
       "network": "Can't reach the server. Check your connection and try again."
     },
     "loading": "Loading",
+    "once": {
+      "title": "Progress photos",
+      "yourPhotos": "Your photos",
+      "added_one": "{{count}} added",
+      "added_other": "{{count}} added",
+      "empty": "Add the photos {{name}} asked for. You can write a note on each one.",
+      "addMore": "Add more photos",
+      "noteLabel": "Note",
+      "optional": "(optional)",
+      "notePlaceholder": "What should {{name}} notice?",
+      "photoLabel": "Photo {{position}}",
+      "removeLabel": "Remove photo {{position}}",
+      "uploaded": "Photo {{position}} sent",
+      "send_one": "Send {{count}} photo to {{name}}",
+      "send_other": "Send {{count}} photos to {{name}}",
+      "sendNone": "Send photos to {{name}}",
+      "sending": "Sending…",
+      "errors": {
+        "someFailed": "Some photos didn't go through. Fix or remove them, then send again. Photos already sent stay on the request.",
+        "network": "Can't reach the server. Check your connection and send again.",
+        "submit": "Your photos are uploaded but not sent yet. Try again.",
+        "tooLarge": "This photo is larger than 5 MB. Remove it and choose a smaller one.",
+        "unsupportedType": "This file type isn't supported. Use a JPEG, PNG, WebP or HEIC photo.",
+        "unreadable": "Couldn't read this photo. Remove it and pick it again.",
+        "rejected": "This photo or its note was refused. Remove it or shorten the note.",
+        "upload": "The upload failed. Send again to retry."
+      }
+    },
+    "sent": {
+      "title": "Sent to {{name}}",
+      "body": "{{name}} sees them now. This request is done.",
+      "cardTitle": "Progress photos",
+      "cardMeta_one": "{{count}} new · today at {{time}}",
+      "cardMeta_other": "{{count}} new · today at {{time}}",
+      "view": "View"
+    },
     "placeholder": "Adding photos is coming soon."
   }
 }

@@ -2,6 +2,7 @@ import { api } from '@/api/client';
 import { getErrorStatus, isNetworkError } from '@/api/errors';
 import { PhotoDiaryStatus } from '@/api/generated';
 import type { ClientPhotoDiaryRequestSummary } from '@/api/generated';
+import { PhotoUploadError } from '@/api/photos';
 
 /** A coach's photo request as the client sees it, with the fields every screen relies on present. */
 export type PhotoRequest = ClientPhotoDiaryRequestSummary & { id: string };
@@ -55,6 +56,34 @@ export function acceptPhotoRequest(id: string) {
 export function dismissPhotoRequest(id: string, reason: string | undefined) {
   const trimmed = reason?.trim();
   return api.dismissRequestEndpoint(id, trimmed ? { reason: trimmed } : {});
+}
+
+/** Sends the request's photos to the coach (POST /client/photo-diary-requests/{id}/submit). */
+export function submitPhotoRequest(id: string) {
+  return api.submitRequestEndpoint(id);
+}
+
+/** Why one photo did not go through; `closed` means the whole request can no longer be answered. */
+export type PhotoUploadFailureKind =
+  | 'closed'
+  | 'network'
+  | 'rejected'
+  | 'tooLarge'
+  | 'unsupportedType'
+  | 'unreadable'
+  | 'upload';
+
+/**
+ * Maps what a photo upload can throw. A 404 or 409 closes the request; a 400 means the backend refused this
+ * photo (or its note); everything else leaves the row to be tried again.
+ */
+export function classifyPhotoUploadError(error: unknown): PhotoUploadFailureKind {
+  if (error instanceof PhotoUploadError) return error.failure;
+  if (isNetworkError(error)) return 'network';
+  const status = getErrorStatus(error);
+  if (status === 404 || status === 409) return 'closed';
+  if (status === 400) return 'rejected';
+  return 'upload';
 }
 
 export type PhotoRequestFailure = 'network' | 'closed' | 'invalidReason' | 'generic';

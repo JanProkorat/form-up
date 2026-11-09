@@ -1977,6 +1977,42 @@
       "network": "Der Server ist nicht erreichbar. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut."
     },
     "loading": "Wird geladen",
+    "once": {
+      "title": "Fortschrittsfotos",
+      "yourPhotos": "Ihre Fotos",
+      "added_one": "{{count}} hinzugefügt",
+      "added_other": "{{count}} hinzugefügt",
+      "empty": "Fügen Sie die Fotos hinzu, um die {{name}} bittet. Zu jedem können Sie eine Notiz schreiben.",
+      "addMore": "Weitere Fotos hinzufügen",
+      "noteLabel": "Notiz",
+      "optional": "(optional)",
+      "notePlaceholder": "Was soll {{name}} auffallen?",
+      "photoLabel": "Foto {{position}}",
+      "removeLabel": "Foto {{position}} entfernen",
+      "uploaded": "Foto {{position}} gesendet",
+      "send_one": "{{count}} Foto an {{name}} senden",
+      "send_other": "{{count}} Fotos an {{name}} senden",
+      "sendNone": "Fotos an {{name}} senden",
+      "sending": "Wird gesendet…",
+      "errors": {
+        "someFailed": "Einige Fotos sind nicht angekommen. Korrigieren oder entfernen Sie sie und senden Sie erneut. Bereits gesendete Fotos bleiben bei der Anfrage.",
+        "network": "Der Server ist nicht erreichbar. Prüfen Sie Ihre Verbindung und senden Sie erneut.",
+        "submit": "Ihre Fotos sind hochgeladen, aber noch nicht gesendet. Bitte versuchen Sie es erneut.",
+        "tooLarge": "Dieses Foto ist größer als 5 MB. Entfernen Sie es und wählen Sie ein kleineres.",
+        "unsupportedType": "Dieser Dateityp wird nicht unterstützt. Verwenden Sie ein JPEG-, PNG-, WebP- oder HEIC-Foto.",
+        "unreadable": "Das Foto konnte nicht gelesen werden. Entfernen Sie es und wählen Sie es erneut aus.",
+        "rejected": "Dieses Foto oder seine Notiz wurde abgelehnt. Entfernen Sie es oder kürzen Sie die Notiz.",
+        "upload": "Das Hochladen ist fehlgeschlagen. Senden Sie erneut, um es noch einmal zu versuchen."
+      }
+    },
+    "sent": {
+      "title": "An {{name}} gesendet",
+      "body": "{{name}} sieht sie jetzt. Diese Anfrage ist erledigt.",
+      "cardTitle": "Fortschrittsfotos",
+      "cardMeta_one": "{{count}} neu · heute um {{time}}",
+      "cardMeta_other": "{{count}} neu · heute um {{time}}",
+      "view": "Ansehen"
+    },
     "placeholder": "Das Hinzufügen von Fotos folgt in Kürze."
   }
 }
