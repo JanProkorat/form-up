@@ -26809,6 +26809,12 @@ export interface ListClientRequestsResponse {
 export interface ClientPhotoDiaryRequestSummary {
     id?: string;
     professionalId?: string;
+    /** Public id of the coach's professional profile, as in the collaborations list. */
+    professionalPublicId?: string;
+    /** The coach's full name. */
+    professionalName?: string;
+    /** The role the coach holds in the link; null when the request was sent with an invite. */
+    professionalRole?: UserRole | undefined;
     linkId?: number | undefined;
     pendingInviteId?: number | undefined;
     planId?: string | undefined;
@@ -26822,6 +26828,14 @@ export interface ClientPhotoDiaryRequestSummary {
     completedAt?: string | undefined;
     createdAt?: string;
     updatedAt?: string;
+}
+
+/** Defines the available roles within Form Up. */
+export enum UserRole {
+    Admin = "Admin",
+    Trainer = "Trainer",
+    Nutritionist = "Nutritionist",
+    Client = "Client",
 }
 
 /** Query parameters for the client's photo diary request list. */
