@@ -2,6 +2,7 @@ import axios from 'axios';
 import i18n from '@/i18n';
 import { useAuthStore } from '@/stores/auth';
 import { executeRefresh } from '@/lib/refresh';
+import { PLAN_CHOICE_REQUIRED_EVENT, isPlanChoiceRequired } from '@/lib/subscriptionErrors';
 
 const api = axios.create({
   baseURL: '/',
@@ -66,6 +67,13 @@ function handleRefresh(instance: import('axios').AxiosInstance) {
     // 429 on the original request — surface toast, keep the user logged in.
     if (isRateLimited(error)) {
       return rejectWithRateLimit(error);
+    }
+
+    // A coach whose given plan ended is blocked from writes until they choose a plan. Whatever request hit the
+    // wall, tell the app shell once: it refetches the subscription and sends the coach to the plan picker.
+    if (err.response?.status === 403 && isPlanChoiceRequired(error)) {
+      window.dispatchEvent(new Event(PLAN_CHOICE_REQUIRED_EVENT));
+      return Promise.reject(error);
     }
 
     if (err.response?.status === 401 && !original._retry) {

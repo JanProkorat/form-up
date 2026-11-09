@@ -292,6 +292,38 @@
       "aria": "{{plan}} plan, {{detail}}. Open plan and billing",
       "ariaLapsed": "{{plan}} plan, {{detail}}. Choose the clients to keep"
     },
+    "planChoice": {
+      "bannerTitle": "Your free {{plan}} plan ended on {{date}}. Choose a plan to continue.",
+      "bannerTitleNoDate": "Your free {{plan}} plan has ended. Choose a plan to continue.",
+      "title": "Choose your plan",
+      "subtitle": "Your clients always use the app for free.",
+      "loadError": "Could not load the plans. Please try again.",
+      "chooseError": "Could not switch your plan. Please try again.",
+      "header": {
+        "nav": "Account",
+        "messages": "Messages",
+        "settings": "Settings"
+      },
+      "card": {
+        "choose": "Choose {{plan}}",
+        "soon": "Available soon",
+        "per": {
+          "month": "/ month",
+          "year": "/ year"
+        },
+        "bothRoles": "Both roles included",
+        "secondRoleAddOn": "Second role +{{amount}}",
+        "unlimitedClients": "No client limit",
+        "clientCap_one": "Up to {{count}} client",
+        "clientCap_other": "Up to {{count}} clients",
+        "notIncluded": "Not included:"
+      },
+      "keep": {
+        "back": "Back to plans",
+        "confirm_one": "Switch to Free and keep this client",
+        "confirm_other": "Switch to Free and keep these {{count}}"
+      }
+    },
     "lapse": {
       "bannerTitle": "Your {{plan}} plan ended on {{date}}",
       "bannerTitleNoDate": "Your {{plan}} plan has ended",
@@ -3364,6 +3396,8 @@
     "CLIENT_OVER_PLAN_LIMIT": "This client is over your Free plan's limit, so you can't change their plan. Choose the clients you keep from the account menu.",
     "KEEP_CLIENTS_COUNT_INVALID": "Pick exactly as many clients as your Free plan keeps.",
     "SUBSCRIPTION_NOT_LAPSED": "Your plan has not lapsed, so there is nothing to choose.",
+    "PLAN_CHOICE_REQUIRED": "Your free plan ended. Choose a plan to continue.",
+    "PLAN_CHOICE_NOT_REQUIRED": "You have already chosen a plan.",
     "CHECK_IN_ANSWER_WINDOW_CLOSED": "The time to answer this check-in has passed.",
     "INVALID_CREDENTIALS": "Invalid email or password.",
     "ACCOUNT_DEACTIVATED": "Your account has been deactivated.",
