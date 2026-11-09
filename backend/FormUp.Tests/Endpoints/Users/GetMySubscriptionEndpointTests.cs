@@ -5,8 +5,11 @@ using System.Text.Json.Serialization;
 using FluentAssertions;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Features.Users.GetMySubscription;
+using FormUp.Application.Infrastructure.Data;
 using FormUp.Tests.Builders;
 using FormUp.Tests.Infrastructure;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace FormUp.Tests.Endpoints.Users;
 
@@ -82,16 +85,54 @@ public class GetMySubscriptionEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task Get_CanceledSubscription_ShowsTheFreeFlagsUnderTheAssignedPlan()
+    public async Task Get_CanceledSubscription_ReadsAsTheFreePlanWithTheLapsedPlanReportedSeparately()
     {
         var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
         await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, "studio", SubscriptionStatus.Canceled);
+        var endedAt = DateTimeOffset.UtcNow.AddDays(-3);
+        await SetPeriodEndAsync(coach, endedAt);
+        foreach (var daysAgo in new[] { 30, 20, 10 })
+        {
+            var client = await TestActors.Client(factory).CreateAsync(Ct);
+            await TestActors.Link(factory, coach, client).WithActivatedAtUtc(DateTime.UtcNow.AddDays(-daysAgo)).CreateAsync(Ct);
+        }
 
         var block = await GetAsync(coach);
 
-        block.PlanCode.Should().Be("studio");
+        block.IsLapsed.Should().BeTrue();
+        block.PlanCode.Should().Be("free");
         block.Status.Should().Be(SubscriptionStatus.Canceled);
-        block.Features.CanSendQuestionnaires.Should().BeFalse("a canceled subscription falls back to the Free flags");
+        block.LapsedPlanNameEn.Should().NotBeNullOrEmpty().And.NotBe(block.NameEn);
+        block.LapsedPlanNameCs.Should().NotBeNullOrEmpty();
+        block.LapsedPlanNameDe.Should().NotBeNullOrEmpty();
+        block.EndedAt.Should().BeCloseTo(endedAt, TimeSpan.FromSeconds(1));
         block.ClientLimit.Should().Be(2);
+        block.ActiveClientCount.Should().Be(2, "only the kept clients count against the Free plan");
+        block.OverCapClientCount.Should().Be(1);
+        block.Features.CanSendQuestionnaires.Should().BeFalse("a canceled subscription falls back to the Free flags");
+        block.PriceLines.Should().ContainSingle(line => line.AmountMinorUnits == 0);
+    }
+
+    [Fact]
+    public async Task Get_PastDueSubscription_KeepsThePaidPlanAndIsNotLapsed()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, "studio", SubscriptionStatus.PastDue);
+
+        var block = await GetAsync(coach);
+
+        block.IsLapsed.Should().BeFalse();
+        block.PlanCode.Should().Be("studio");
+        block.LapsedPlanNameEn.Should().BeNull();
+        block.OverCapClientCount.Should().Be(0);
+    }
+
+    private async Task SetPeriodEndAsync(Actor coach, DateTimeOffset periodEnd)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var row = await db.CoachSubscriptions.SingleAsync(cs => cs.ProfessionalProfileId == coach.ProfileId, Ct);
+        row.CurrentPeriodEndsAt = periodEnd;
+        await db.SaveChangesAsync(Ct);
     }
 }

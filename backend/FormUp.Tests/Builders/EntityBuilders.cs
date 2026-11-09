@@ -471,6 +471,7 @@ public class ClientProfessionalLinkBuilder
     private long _professionalProfileId;
     private UserRole _professionalRole = UserRole.Trainer;
     private bool _isActive = true;
+    private ConnectionState? _state;
     private bool _canViewNutritionPlans = true;
     private bool _canViewTrainingPlans = true;
     private ClientProfile? _clientProfile;
@@ -509,6 +510,11 @@ public class ClientProfessionalLinkBuilder
     public ClientProfessionalLinkBuilder Inactive() { _isActive = false; return this; }
 
     /// <summary>
+    /// Sets the exact connection state, overriding <see cref="Inactive"/>.
+    /// </summary>
+    public ClientProfessionalLinkBuilder WithConnectionState(ConnectionState state) { _state = state; return this; }
+
+    /// <summary>
     /// Sets whether this link permits viewing nutrition plans.
     /// </summary>
     public ClientProfessionalLinkBuilder WithCanViewNutritionPlans(bool value) { _canViewNutritionPlans = value; return this; }
@@ -540,7 +546,8 @@ public class ClientProfessionalLinkBuilder
     {
         Id = _id,
         ClientProfileId = _clientProfileId, ProfessionalProfileId = _professionalProfileId,
-        ProfessionalRole = _professionalRole, ConnectionState = _isActive ? ConnectionState.Connected : ConnectionState.Ended,
+        ProfessionalRole = _professionalRole,
+        ConnectionState = _state ?? (_isActive ? ConnectionState.Connected : ConnectionState.Ended),
         CanViewNutritionPlans = _canViewNutritionPlans,
         CanViewTrainingPlans = _canViewTrainingPlans,
         ClientProfile = _clientProfile!, ProfessionalProfile = _professionalProfile!,

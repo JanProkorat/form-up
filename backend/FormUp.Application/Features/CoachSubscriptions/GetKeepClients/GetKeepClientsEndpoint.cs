@@ -97,7 +97,7 @@ internal sealed class GetKeepClientsEndpoint(
             {
                 var first = group.First();
                 var isKept = keptIds.Contains(group.Key);
-                var runsUntil = runsUntilByClientUser.GetValueOrDefault(first.ClientUserId);
+                DateOnly? runsUntil = runsUntilByClientUser.TryGetValue(first.ClientUserId, out var lastDay) ? lastDay : null;
 
                 return new KeepClientDto
                 {
@@ -109,7 +109,7 @@ internal sealed class GetKeepClientsEndpoint(
                     PublishedWeeksEnd = runsUntil,
                     AfterLapse = isKept
                         ? KeepClientAfterLapse.FullAccess
-                        : runsUntil is { } lastDay && today <= lastDay
+                        : runsUntil is { } endDay && today <= endDay
                             ? KeepClientAfterLapse.RunsUntilEndThenReadOnly
                             : KeepClientAfterLapse.ReadOnly,
                 };
