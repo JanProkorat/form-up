@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ChevronRight } from 'lucide-react';
 import { SubscriptionStatus } from '@/api/generated';
 import UsageBar from '@/components/subscription/UsageBar';
-import { PLAN_BILLING_PATH } from '@/components/subscription/planLinks';
+import { KEEP_CLIENTS_PATH, PLAN_BILLING_PATH } from '@/components/subscription/planLinks';
 
 interface Props {
   planName: string;
@@ -12,10 +12,12 @@ interface Props {
   /** Null means unlimited. */
   limit: number | null;
   onNavigate?: () => void;
+  /** A lapsed coach: the row links to the keep-clients screen instead of Plan and billing. */
+  lapsed?: boolean;
 }
 
 /** Plan row of the sidebar account card: plan, clients used of the cap, and a link to Plan and billing. */
-export default function SidebarPlanRow({ planName, status, used, limit, onNavigate }: Props) {
+export default function SidebarPlanRow({ planName, status, used, limit, onNavigate, lapsed = false }: Props) {
   const { t } = useTranslation();
   const pastDue = status === SubscriptionStatus.PastDue;
   const usage =
@@ -23,9 +25,9 @@ export default function SidebarPlanRow({ planName, status, used, limit, onNaviga
 
   return (
     <Link
-      to={PLAN_BILLING_PATH}
+      to={lapsed ? KEEP_CLIENTS_PATH : PLAN_BILLING_PATH}
       onClick={onNavigate}
-      aria-label={t('subscription.sidebar.aria', {
+      aria-label={t(lapsed ? 'subscription.sidebar.ariaLapsed' : 'subscription.sidebar.aria', {
         plan: planName,
         detail: pastDue ? t('subscription.status.PastDue') : usage,
       })}

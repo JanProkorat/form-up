@@ -2,9 +2,9 @@ import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useActiveRoles } from '@/hooks/useActiveRoles';
-import { ChevronUp, CreditCard, LogOut, Monitor, Moon, Settings, Sun, User } from 'lucide-react';
+import { ChevronUp, CreditCard, LogOut, Monitor, Moon, Settings, Sun, User, Users } from 'lucide-react';
 import SidebarPlanRow from '@/components/subscription/SidebarPlanRow';
-import { PLAN_BILLING_PATH } from '@/components/subscription/planLinks';
+import { KEEP_CLIENTS_PATH, PLAN_BILLING_PATH } from '@/components/subscription/planLinks';
 import { useSubscription } from '@/hooks/useSubscriptionQueries';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
@@ -154,6 +154,7 @@ export default function AccountMenu({ onNavigate, collapsed = false }: Props) {
           status={subscription.data.status}
           used={subscription.activeClientCount}
           limit={subscription.clientLimit}
+          lapsed={subscription.isLapsed}
           onNavigate={onNavigate}
         />
       )}
@@ -195,6 +196,12 @@ export default function AccountMenu({ onNavigate, collapsed = false }: Props) {
             {subscription.planName && (
               <span className="ml-auto text-meta font-semibold text-muted-foreground">{subscription.planName}</span>
             )}
+          </Link>
+        )}
+        {subscription.isCoach && subscription.isLapsed && (
+          <Link to={KEEP_CLIENTS_PATH} onClick={close} className={ITEM_CLASS}>
+            <Users className="size-4 text-muted-foreground" aria-hidden="true" />
+            {t('accountMenu.keepClients')}
           </Link>
         )}
         <div className="my-1.5 h-px bg-border" />

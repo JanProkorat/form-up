@@ -289,7 +289,44 @@
       "plan": "{{plan}} plan",
       "usage": "{{used}} of {{limit}} clients",
       "unlimited": "Clients: {{count}} · no limit",
-      "aria": "{{plan}} plan, {{detail}}. Open plan and billing"
+      "aria": "{{plan}} plan, {{detail}}. Open plan and billing",
+      "ariaLapsed": "{{plan}} plan, {{detail}}. Choose the clients to keep"
+    },
+    "lapse": {
+      "bannerTitle": "Your {{plan}} plan ended on {{date}}",
+      "bannerTitleNoDate": "Your {{plan}} plan has ended",
+      "bannerBody_one": "You're on Free now: {{count}} active client, both roles.",
+      "bannerBody_other": "You're on Free now: {{count}} active clients, both roles.",
+      "resubscribe": "Resubscribe",
+      "title_one": "Pick {{count}} client to keep",
+      "title_other": "Pick {{count}} clients to keep",
+      "subtitle": "They keep everything as now. The others keep the weeks you already published, then their plans become read-only.",
+      "table": {
+        "keep": "Keep",
+        "client": "Client",
+        "roles": "Roles",
+        "publishedEnd": "Published weeks end",
+        "after": "After"
+      },
+      "keepAria": "Keep {{name}}",
+      "notPublished": "Not published",
+      "after": {
+        "fullAccess": "Stays active",
+        "runsUntil": "Read-only from {{date}}",
+        "runsUntilNoDate": "Read-only after the published weeks",
+        "readOnly": "Read-only now"
+      },
+      "selected": "{{count}} of {{cap}} selected",
+      "changeLater": "You can change your choice here later.",
+      "save_one": "Keep this client",
+      "save_other": "Keep these {{count}}",
+      "saveSuccess": "Your choice is saved",
+      "saveError": "Could not save your choice. Please try again.",
+      "loadError": "Could not load your clients.",
+      "retry": "Try again",
+      "notLapsed": "Your plan has not lapsed, so there is nothing to choose.",
+      "backToClients": "Back to clients",
+      "noClients": "You have no clients to choose from."
     },
     "plan": {
       "title": "Plan and billing",
@@ -341,6 +378,7 @@
     "profile": "Your profile",
     "settings": "Settings",
     "planBilling": "Plan and billing",
+    "keepClients": "Choose clients to keep",
     "language": "Language",
     "theme": "Theme",
     "languages": {
@@ -3322,6 +3360,9 @@
     "AUTOMATION_CHECK_IN_FIELDS_NOT_ALLOWED": "Weekday, answer window and reminder settings belong to weekly check-in rules only.",
     "SUBSCRIPTION_REQUIRED": "This isn't part of your plan.",
     "CLIENT_LIMIT_REACHED": "Your plan is full. It has no room for another client.",
+    "CLIENT_OVER_PLAN_LIMIT": "This client is over your Free plan's limit, so you can't change their plan. Choose the clients you keep from the account menu.",
+    "KEEP_CLIENTS_COUNT_INVALID": "Pick exactly as many clients as your Free plan keeps.",
+    "SUBSCRIPTION_NOT_LAPSED": "Your plan has not lapsed, so there is nothing to choose.",
     "CHECK_IN_ANSWER_WINDOW_CLOSED": "The time to answer this check-in has passed.",
     "INVALID_CREDENTIALS": "Invalid email or password.",
     "ACCOUNT_DEACTIVATED": "Your account has been deactivated.",

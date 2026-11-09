@@ -1,6 +1,6 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { getMySubscription, subscriptionKeys } from '@/api/subscription';
+import { getKeepClients, getMySubscription, setKeepClients, subscriptionKeys } from '@/api/subscription';
 import type { GetMySubscriptionResponse, SubscriptionFeaturesDto } from '@/api/generated';
 import { useAuthStore } from '@/stores/auth';
 
@@ -14,6 +14,15 @@ export function planNameFor(subscription: GetMySubscriptionResponse | undefined,
   const lang = language.slice(0, 2).toLowerCase();
   const byLang = lang === 'cs' ? subscription.nameCs : lang === 'de' ? subscription.nameDe : subscription.nameEn;
   return byLang || subscription.nameEn || subscription.nameCs || subscription.nameDe || subscription.planCode || '';
+}
+
+/** Name of the plan that lapsed in the given UI language, or '' when none is known. */
+export function lapsedPlanNameFor(subscription: GetMySubscriptionResponse | undefined, language: string): string {
+  if (!subscription) return '';
+  const lang = language.slice(0, 2).toLowerCase();
+  const byLang =
+    lang === 'cs' ? subscription.lapsedPlanNameCs : lang === 'de' ? subscription.lapsedPlanNameDe : subscription.lapsedPlanNameEn;
+  return byLang || subscription.lapsedPlanNameEn || subscription.lapsedPlanNameCs || subscription.lapsedPlanNameDe || '';
 }
 
 /**
@@ -41,6 +50,9 @@ export function useSubscription() {
     /** Null means unlimited. */
     clientLimit: data?.clientLimit ?? null,
     activeClientCount: data?.activeClientCount ?? 0,
+    /** True while a paid plan has lapsed and the coach is on Free. */
+    isLapsed: data?.isLapsed === true,
+    lapsedPlanName: lapsedPlanNameFor(data, i18n.language),
   };
 }
 
@@ -48,4 +60,28 @@ export function useSubscription() {
 export function useInvalidateSubscription() {
   const queryClient = useQueryClient();
   return () => queryClient.invalidateQueries({ queryKey: subscriptionKeys.mine });
+}
+
+/** The lapsed coach's live clients with the ones the Free plan keeps; the endpoint answers 409 unless lapsed. */
+export function useKeepClients(enabled: boolean) {
+  return useQuery({
+    queryKey: subscriptionKeys.keepClients,
+    queryFn: getKeepClients,
+    enabled,
+    retry: false,
+  });
+}
+
+/** Saves the kept clients, then refreshes the list and the subscription (kept count, sidebar row). */
+export function useSetKeepClients() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: setKeepClients,
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: subscriptionKeys.keepClients }),
+        queryClient.invalidateQueries({ queryKey: subscriptionKeys.mine }),
+      ]);
+    },
+  });
 }
