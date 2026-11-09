@@ -100,7 +100,7 @@ public class GetClientPendingQuestionnairesEndpoint(
         foreach (var req in pendingDiaryEntities)
         {
             // A Pending request past its end date can no longer be accepted, so it is not a banner.
-            if (now >= req.EndsAt)
+            if (req.IsExpiredAt(now))
             {
                 continue;
             }

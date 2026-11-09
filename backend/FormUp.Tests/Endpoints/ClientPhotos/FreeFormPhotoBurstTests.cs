@@ -7,6 +7,7 @@ using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Documents;
 using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
+using FormUp.Application.Domain.Interfaces;
 using FormUp.Application.Features.ClientPhotos.FinalizeUnlinkedPhoto;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Application.Infrastructure.Data.MongoDb;
@@ -167,6 +168,8 @@ public class FreeFormPhotoBurstTests(FitnessApiFactory factory)
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(clientUserId, AppRoles.Client))),
             db,
+            Substitute.For<IRealtimeNotifier>(),
+            Substitute.For<IClientLinkAuthorizationService>(),
             Substitute.For<ILogger<FinalizeUnlinkedPhotoEndpoint>>(),
             new FakeBlobStorageService());
 

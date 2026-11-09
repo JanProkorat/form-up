@@ -213,6 +213,36 @@ public class GetClientPendingQuestionnairesEndpointTests(FitnessApiFactory facto
         body!.PendingDiaryRequests.Should().NotContain(i => i.RequestPublicId == expiredId);
     }
 
+    [Fact]
+    public async Task DiaryRequest_PendingBulkRequestOlderThanItsDuration_StillReturned()
+    {
+        var (_, profId) = await SetupNutritionistAsync();
+        var (clientHttp, clientUserId, _) = await SetupClientAsync();
+
+        var linkId = await InsertLinkAsync(clientUserId, profId);
+        var bulk = EntityBuilder.PhotoDiaryRequest
+            .OnLink(profId, linkId)
+            .WithMode(PhotoDiaryMode.Bulk)
+            .WithStatus(PhotoDiaryStatus.Pending)
+            .CreatedAt(DateTimeOffset.UtcNow.AddDays(-5))
+            .Build();
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            db.PhotoDiaryRequests.Add(bulk);
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        var response = await clientHttp.GetAsync(
+            "/client/questionnaires/pending",
+            TestContext.Current.CancellationToken);
+        var body = await response.Content.ReadFromJsonAsync<BannerResponse>(
+            JsonOptions, TestContext.Current.CancellationToken);
+
+        body!.PendingDiaryRequests.Should().Contain(i => i.RequestPublicId == bulk.Id,
+            "a one-time request has no end date, so it stays a banner until it is answered");
+    }
+
     // ── Diary request via deactivated link → NOT returned ──────────────────────
 
     [Fact]
