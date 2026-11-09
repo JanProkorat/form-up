@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using FastEndpoints;
+using FormUp.Application.Domain.Authorization;
 using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Extensions;
@@ -14,6 +15,7 @@ namespace FormUp.Application.Features.CoachSubscriptions.SetKeepClients;
 /// </summary>
 /// <param name="db">Application database context.</param>
 /// <param name="entitlementService">Resolves the lapse state and the Free plan's cap.</param>
+[RemovedCoachRole(RemovedCoachRoleMode.Refuse)]
 internal sealed class SetKeepClientsEndpoint(IApplicationDbContext db, EntitlementService entitlementService)
     : Endpoint<SetKeepClientsRequest>
 {
