@@ -273,6 +273,38 @@ public class ListRequestsEndpointTests(FitnessApiFactory factory)
         cancelled.Status.Should().Be(PhotoDiaryStatus.Cancelled);
     }
 
+    [Fact]
+    public async Task ListTrainer_OldOpenBulkRequest_HasNoEndDate_AndIsStillOpen()
+    {
+        var (http, profId) = await SetupProfessionalAsync();
+        var (_, clientUserId, _) = await SetupClientAsync();
+        var linkId = await InsertLinkAsync(clientUserId, profId);
+        var clientPublicId = await GetClientPublicIdAsync(clientUserId);
+
+        var bulk = EntityBuilder.PhotoDiaryRequest
+            .OnLink(profId, linkId)
+            .WithMode(PhotoDiaryMode.Bulk)
+            .WithStatus(PhotoDiaryStatus.Accepted)
+            .CreatedAt(DateTimeOffset.UtcNow.AddDays(-5))
+            .Build();
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            db.PhotoDiaryRequests.Add(bulk);
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        var response = await http.GetAsync(
+            $"/trainer/photo-diary-requests?clientId={clientPublicId}",
+            TestContext.Current.CancellationToken);
+        var body = await response.Content.ReadFromJsonAsync<ListResponseBody>(
+            JsonOptions, TestContext.Current.CancellationToken);
+
+        var item = body!.Items.Single(i => i.Id == bulk.Id);
+        item.EndsAt.Should().BeNull("a one-time request has no end date");
+        item.IsOpen.Should().BeTrue("a one-time request stays open until it is answered or cancelled");
+    }
+
     private async Task<Guid> GetClientPublicIdAsync(Guid clientUserId)
     {
         using var scope = factory.Services.CreateScope();
@@ -387,7 +419,7 @@ public class ListRequestsEndpointTests(FitnessApiFactory factory)
         PhotoDiaryMode? Mode = null,
         string? Message = null,
         int DurationDays = 0,
-        DateTimeOffset EndsAt = default,
+        DateTimeOffset? EndsAt = null,
         bool IsOpen = false);
     private record ListResponseBody(List<ListItem> Items);
 }
