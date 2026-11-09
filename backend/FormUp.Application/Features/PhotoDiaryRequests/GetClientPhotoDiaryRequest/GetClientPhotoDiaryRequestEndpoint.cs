@@ -49,7 +49,12 @@ public class GetClientPhotoDiaryRequestEndpoint(IApplicationDbContext db)
             .AsNoTracking()
             .Include(r => r.Link)
                 .ThenInclude(l => l!.ClientProfile)
+            .Include(r => r.Link)
+                .ThenInclude(l => l!.ProfessionalProfile)
+                    .ThenInclude(pp => pp.User)
             .Include(r => r.PendingInvite)
+                .ThenInclude(i => i!.ProfessionalProfile)
+                    .ThenInclude(pp => pp.User)
             .FirstOrDefaultAsync(r => r.Id == req.Id, ct);
 
         // 404 if not found — do not leak existence for IDOR
@@ -59,10 +64,15 @@ public class GetClientPhotoDiaryRequestEndpoint(IApplicationDbContext db)
             return;
         }
 
+        var coach = (request.Link?.ProfessionalProfile ?? request.PendingInvite!.ProfessionalProfile);
+
         await Send.OkAsync(new ClientPhotoDiaryRequestSummary
         {
             Id = request.Id,
             ProfessionalId = request.ProfessionalId,
+            ProfessionalPublicId = coach.PublicId,
+            ProfessionalName = coach.User.FirstName + " " + coach.User.LastName,
+            ProfessionalRole = request.Link?.ProfessionalRole,
             LinkId = request.LinkId,
             PendingInviteId = request.PendingInviteId,
             PlanId = request.PlanId,

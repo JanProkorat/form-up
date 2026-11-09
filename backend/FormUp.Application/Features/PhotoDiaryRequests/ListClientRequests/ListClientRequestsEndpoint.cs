@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FormUp.Application.Domain.Constants;
+using FormUp.Application.Domain.Enums;
 using FormUp.Application.Features.PhotoDiaryRequests.Shared;
 using FormUp.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -77,6 +78,13 @@ public class ListClientRequestsEndpoint(IApplicationDbContext db)
             {
                 Id = r.Id,
                 ProfessionalId = r.ProfessionalId,
+                ProfessionalPublicId = r.Link != null
+                    ? r.Link.ProfessionalProfile.PublicId
+                    : r.PendingInvite!.ProfessionalProfile.PublicId,
+                ProfessionalName = r.Link != null
+                    ? r.Link.ProfessionalProfile.User.FirstName + " " + r.Link.ProfessionalProfile.User.LastName
+                    : r.PendingInvite!.ProfessionalProfile.User.FirstName + " " + r.PendingInvite.ProfessionalProfile.User.LastName,
+                ProfessionalRole = r.Link != null ? r.Link.ProfessionalRole : (UserRole?)null,
                 LinkId = r.LinkId,
                 PendingInviteId = r.PendingInviteId,
                 PlanId = r.PlanId,

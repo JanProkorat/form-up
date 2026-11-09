@@ -48,7 +48,7 @@ public class ListRequestsEndpointTests(FitnessApiFactory factory)
         return (actor.Http, actor.UserId, actor.Email);
     }
 
-    private async Task<long> InsertLinkAsync(Guid clientUserId, Guid professionalUserId, bool isActive = true)
+    private async Task<long> InsertLinkAsync(Guid clientUserId, Guid professionalUserId, bool isActive = true, UserRole role = UserRole.Nutritionist)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -62,7 +62,7 @@ public class ListRequestsEndpointTests(FitnessApiFactory factory)
         {
             ClientProfileId = clientProfile.Id,
             ProfessionalProfileId = profProfile.Id,
-            ProfessionalRole = UserRole.Nutritionist,
+            ProfessionalRole = role,
             IsActive = isActive,
             CanViewNutritionPlans = true,
             CanViewTrainingPlans = false,
@@ -72,6 +72,17 @@ public class ListRequestsEndpointTests(FitnessApiFactory factory)
         db.ClientProfessionalLinks.Add(link);
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         return link.Id;
+    }
+
+    private async Task<(Guid PublicId, string Name)> GetCoachIdentityAsync(Guid professionalUserId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var coach = await db.ProfessionalProfiles
+            .Where(p => p.UserId == professionalUserId)
+            .Select(p => new { p.PublicId, Name = p.User.FirstName + " " + p.User.LastName })
+            .FirstAsync(TestContext.Current.CancellationToken);
+        return (coach.PublicId, coach.Name);
     }
 
     private async Task<long> InsertPendingInviteAsync(Guid professionalUserId, string inviteeEmail)
@@ -410,12 +421,71 @@ public class ListRequestsEndpointTests(FitnessApiFactory factory)
         body.Items.Should().NotContain(i => i.Id == otherRequestId);
     }
 
+    [Fact]
+    public async Task ListClient_ClientWithTrainerAndNutritionist_EachRequestNamesItsOwnCoach()
+    {
+        var (_, nutritionistId) = await SetupProfessionalAsync();
+        var trainer = await TestActors.Trainer(factory)
+            .WithEmail(UniqueEmail("trainer"))
+            .CreateAsync(TestContext.Current.CancellationToken);
+        var (http, clientUserId, _) = await SetupClientAsync();
+
+        var nutritionistLinkId = await InsertLinkAsync(clientUserId, nutritionistId, role: UserRole.Nutritionist);
+        var trainerLinkId = await InsertLinkAsync(clientUserId, trainer.UserId, role: UserRole.Trainer);
+        var nutritionistRequestId = await InsertDiaryRequestAsync(nutritionistId, linkId: nutritionistLinkId);
+        var trainerRequestId = await InsertDiaryRequestAsync(trainer.UserId, linkId: trainerLinkId);
+        var nutritionist = await GetCoachIdentityAsync(nutritionistId);
+        var trainerIdentity = await GetCoachIdentityAsync(trainer.UserId);
+
+        var response = await http.GetAsync(
+            "/client/photo-diary-requests",
+            TestContext.Current.CancellationToken);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<ListResponseBody>(
+            JsonOptions, TestContext.Current.CancellationToken);
+        var nutritionistItem = body!.Items.Single(i => i.Id == nutritionistRequestId);
+        nutritionistItem.ProfessionalPublicId.Should().Be(nutritionist.PublicId);
+        nutritionistItem.ProfessionalName.Should().Be(nutritionist.Name);
+        nutritionistItem.ProfessionalRole.Should().Be(UserRole.Nutritionist);
+
+        var trainerItem = body.Items.Single(i => i.Id == trainerRequestId);
+        trainerItem.ProfessionalPublicId.Should().Be(trainerIdentity.PublicId);
+        trainerItem.ProfessionalName.Should().Be(trainerIdentity.Name);
+        trainerItem.ProfessionalRole.Should().Be(UserRole.Trainer);
+    }
+
+    [Fact]
+    public async Task ListClient_InviteRequest_NamesTheCoachWithNullRole()
+    {
+        var (_, profId) = await SetupProfessionalAsync();
+        var (http, _, clientEmail) = await SetupClientAsync();
+        var inviteId = await InsertPendingInviteAsync(profId, clientEmail);
+        var requestId = await InsertDiaryRequestAsync(profId, inviteId: inviteId);
+        var coach = await GetCoachIdentityAsync(profId);
+
+        var response = await http.GetAsync(
+            "/client/photo-diary-requests",
+            TestContext.Current.CancellationToken);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<ListResponseBody>(
+            JsonOptions, TestContext.Current.CancellationToken);
+        var item = body!.Items.Single(i => i.Id == requestId);
+        item.ProfessionalPublicId.Should().Be(coach.PublicId);
+        item.ProfessionalName.Should().Be(coach.Name);
+        item.ProfessionalRole.Should().BeNull();
+    }
+
     // ── Response shape helpers ─────────────────────────────────────────────────
 
     private record ListItem(
         Guid Id,
         Guid ProfessionalId,
         PhotoDiaryStatus Status,
+        Guid ProfessionalPublicId = default,
+        string? ProfessionalName = null,
+        UserRole? ProfessionalRole = null,
         PhotoDiaryMode? Mode = null,
         string? Message = null,
         int DurationDays = 0,
