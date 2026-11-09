@@ -35,7 +35,8 @@ function closedKind(request: PhotoRequest | undefined): ClosedKind {
     case PhotoDiaryStatus.Dismissed:
       return 'declined';
     case PhotoDiaryStatus.Completed:
-      return 'completed';
+      // An every-day request is completed by the backend once it has ended, not by the client sending it.
+      return requestMode(request) === 'everyDay' && hasEnded(request) ? 'ended' : 'completed';
     default:
       return hasEnded(request) ? 'ended' : 'notFound';
   }

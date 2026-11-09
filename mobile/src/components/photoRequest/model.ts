@@ -1,7 +1,7 @@
 import type { Collaboration } from '@/api/collaborations';
 import { PhotoDiaryMode, PhotoDiaryStatus } from '@/api/generated';
 import type { PhotoRequest, PhotoRequestLists } from '@/api/photoRequests';
-import type { PhotoMonth } from '@/api/photos';
+import type { PhotoMonth, ProgressPhoto } from '@/api/photos';
 import type { PendingDiaryRequest } from '@/api/questionnaires';
 import type { CoachRole } from '@/components/today/collaborationRoles';
 
@@ -63,21 +63,118 @@ export function requestDay(request: RequestTiming, now: number = Date.now()): { 
   return { day: Math.min(Math.max(day, 1), total), total };
 }
 
-/** True when a photo of this request was taken on the device's current calendar day. */
+const uploadTime = (photo: ProgressPhoto): number => {
+  const time = Date.parse(photo.uploadedAt ?? photo.takenAt ?? '');
+  return Number.isNaN(time) ? Number.NEGATIVE_INFINITY : time;
+};
+
+/** The photos of one request, oldest upload first. */
+export function requestPhotos(months: readonly PhotoMonth[] | undefined, requestId: string): ProgressPhoto[] {
+  const wanted = requestId.toLowerCase();
+  return (months ?? [])
+    .flatMap((month) => month.photos)
+    .filter((photo) => photo.diaryRequestId?.toLowerCase() === wanted)
+    .sort((a, b) => uploadTime(a) - uploadTime(b));
+}
+
+/**
+ * The request day a photo belongs to: the day of its upload, held between 1 and the total like today's day, so a
+ * photo sent in the part of the window that spills into the day after the last one counts for the last day.
+ */
+export function photoDay(request: RequestTiming, photo: ProgressPhoto): number | null {
+  const time = uploadTime(photo);
+  return Number.isFinite(time) ? requestDay(request, time).day : null;
+}
+
+/** True when a photo of this request belongs to today's request day. */
 export function sentToday(
   months: readonly PhotoMonth[] | undefined,
-  requestId: string,
+  request: RequestTiming & { id: string },
   now: number = Date.now(),
 ): boolean {
-  const today = localDayNumber(now);
-  const wanted = requestId.toLowerCase();
-  return (months ?? []).some((month) =>
-    month.photos.some((photo) => {
-      if (photo.diaryRequestId?.toLowerCase() !== wanted) return false;
-      const taken = Date.parse(photo.takenAt ?? photo.uploadedAt ?? '');
-      return !Number.isNaN(taken) && localDayNumber(taken) === today;
-    }),
-  );
+  const today = requestDay(request, now).day;
+  return requestPhotos(months, request.id).some((photo) => photoDay(request, photo) === today);
+}
+
+/** How one day of an every-day request stands; `unknown` is a past day while the photo list is not available. */
+export type DayState = 'sent' | 'missed' | 'today' | 'upcoming' | 'unknown';
+
+export type DayCell = { day: number; date: Date; state: DayState; isToday: boolean };
+
+export type DayGroup = { day: number; date: Date; photos: ProgressPhoto[] };
+
+export type RequestProgress = {
+  day: number;
+  total: number;
+  cells: DayCell[];
+  /** Today's photos, oldest first. */
+  today: DayGroup;
+  /** Past days that have photos, newest day first. */
+  earlier: DayGroup[];
+  sentDays: number;
+  missedDays: number;
+  sentToday: boolean;
+  /** When the last of today's photos went in. */
+  sentAt: Date | null;
+  /** False while the photo list is not available: nothing can be said about sent or missed days. */
+  known: boolean;
+};
+
+/** The local calendar date of day N of a request. */
+function requestDayDate(request: RequestTiming, day: number, now: number): Date {
+  const created = request.createdAt ? Date.parse(request.createdAt) : Number.NaN;
+  const base = new Date(Number.isNaN(created) ? now : created);
+  return new Date(base.getFullYear(), base.getMonth(), base.getDate() + day - 1);
+}
+
+/**
+ * Where an every-day request stands: day N of M, each day's state, today's photos and the earlier days' photos.
+ * A past day without a photo is missed; today is sent once a photo's day equals today's day. `photos` are the
+ * request's own photos, or undefined while the list could not be loaded.
+ */
+export function requestProgress(
+  request: RequestTiming,
+  photos: readonly ProgressPhoto[] | undefined,
+  now: number = Date.now(),
+): RequestProgress {
+  const { day, total } = requestDay(request, now);
+  const known = photos !== undefined;
+  const byDay = new Map<number, ProgressPhoto[]>();
+  for (const photo of photos ?? []) {
+    const photoOn = photoDay(request, photo);
+    if (photoOn === null) continue;
+    byDay.set(photoOn, [...(byDay.get(photoOn) ?? []), photo]);
+  }
+
+  const cells: DayCell[] = [];
+  for (let index = 1; index <= total; index += 1) {
+    const isToday = index === day;
+    let state: DayState;
+    if (byDay.has(index)) state = 'sent';
+    else if (isToday) state = 'today';
+    else if (index > day) state = 'upcoming';
+    else state = known ? 'missed' : 'unknown';
+    cells.push({ day: index, date: requestDayDate(request, index, now), state, isToday });
+  }
+
+  const todayPhotos = byDay.get(day) ?? [];
+  const last = todayPhotos[todayPhotos.length - 1];
+  const sentAt = last ? new Date(uploadTime(last)) : null;
+  return {
+    day,
+    total,
+    cells,
+    today: { day, date: requestDayDate(request, day, now), photos: todayPhotos },
+    earlier: [...byDay.entries()]
+      .filter(([index]) => index < day)
+      .sort(([a], [b]) => b - a)
+      .map(([index, list]) => ({ day: index, date: requestDayDate(request, index, now), photos: list })),
+    sentDays: cells.filter((cell) => cell.state === 'sent').length,
+    missedDays: cells.filter((cell) => cell.state === 'missed').length,
+    sentToday: todayPhotos.length > 0,
+    sentAt: sentAt && !Number.isNaN(sentAt.getTime()) ? sentAt : null,
+    known,
+  };
 }
 
 /** Pending, accepted or in progress: the client can still act on it. */
@@ -95,10 +192,21 @@ export type PhotoRoute = {
     | '/photo-request/[id]'
     | '/photo-request/[id]/once'
     | '/photo-request/[id]/daily'
+    | '/photo-request/[id]/daily-add'
+    | '/photo-request/[id]/daily-sent'
     | '/photo-request/[id]/closed'
     | '/photo-request/[id]/sent';
   params: { id: string; count?: string; at?: string };
 };
+
+/** Where today's photos of an every-day request are picked and sent. */
+export const dailyAddRoute = (id: string): PhotoRoute => ({ pathname: '/photo-request/[id]/daily-add', params: { id } });
+
+/** The every-day confirmation; the count and send time travel as params because nothing stores them. */
+export const dailySentRoute = (id: string, count: number, at: number = Date.now()): PhotoRoute => ({
+  pathname: '/photo-request/[id]/daily-sent',
+  params: { id, count: String(count), at: String(at) },
+});
 
 export const introRoute = (id: string): PhotoRoute => ({ pathname: '/photo-request/[id]', params: { id } });
 export const closedRoute = (id: string): PhotoRoute => ({ pathname: '/photo-request/[id]/closed', params: { id } });
@@ -202,7 +310,7 @@ export function photoStatusFor({
   if (open) {
     if (requestMode(open) === 'everyDay') {
       const { day, total } = requestDay(open, now);
-      return { kind: 'running', id: open.id, day, total, sentToday: sentToday(months, open.id, now) };
+      return { kind: 'running', id: open.id, day, total, sentToday: sentToday(months, open, now) };
     }
     return { kind: 'onceOpen', id: open.id };
   }

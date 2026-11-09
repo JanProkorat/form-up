@@ -2013,6 +2013,39 @@
       "cardMeta_other": "{{count}} new · today at {{time}}",
       "view": "View"
     },
-    "placeholder": "Adding photos is coming soon."
+    "daily": {
+      "title": "Progress photos",
+      "dayOf": "Day {{day}} of {{total}}",
+      "sentDays_one": "{{count}} day sent",
+      "sentDays_other": "{{count}} days sent",
+      "missedDays_one": "{{count}} missed",
+      "missedDays_other": "{{count}} missed",
+      "day": {
+        "sent": "{{date}}, sent",
+        "missed": "{{date}}, no photo"
+      },
+      "dayToday": "Today, {{date}}",
+      "today": "Today",
+      "todaysPhotos": "Today's photos",
+      "reminder": "Reminder at 12:00",
+      "sentAt": "Sent at {{time}}",
+      "none": "No photo yet today",
+      "addToday": "Add today's photos",
+      "addMore": "Add more photos",
+      "coachSays": "{{name}}:",
+      "earlier": "Earlier",
+      "earlierError": "Can't load your earlier photos. Check your connection and try again.",
+      "photoCount_one": "{{count}} photo",
+      "photoCount_other": "{{count}} photos",
+      "noNote": "No note",
+      "sent": {
+        "title": "Today's photos are in",
+        "body": "{{name}} sees them now. We'll remind you tomorrow at noon if you haven't added any yet.",
+        "bodyLast": "{{name}} sees them now. That was the last day of this request.",
+        "cardTitle": "Progress photos",
+        "cardMeta_one": "{{count}} new · day {{day}} of {{total}} · today at {{time}}",
+        "cardMeta_other": "{{count}} new · day {{day}} of {{total}} · today at {{time}}"
+      }
+    }
   }
 }

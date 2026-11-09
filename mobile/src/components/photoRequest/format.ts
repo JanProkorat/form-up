@@ -12,6 +12,20 @@ export function formatRequestDay(language: string, value: Date | string | undefi
   return date.toLocaleDateString(language, { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
+/** "08:12" in the app language. */
+export function formatClock(language: string, value: Date): string {
+  return value.toLocaleTimeString(language, { hour: 'numeric', minute: '2-digit' });
+}
+
+/** One-letter weekday ("W") for the day strip. */
+export const dayLetter = (language: string, value: Date): string =>
+  value.toLocaleDateString(language, { weekday: 'narrow' });
+
+/** "Wed 14 Oct · 1 photo": the heading of one day's photos. */
+export function dayGroupTitle(t: TFunction, language: string, date: Date, count: number): string {
+  return `${formatRequestDay(language, date)} · ${t('photoRequest.daily.photoCount', { count })}`;
+}
+
 /** "7 days" with the language's plural form. */
 export const daysLabel = (t: TFunction, count: number): string => t('photoRequest.days', { count });
 

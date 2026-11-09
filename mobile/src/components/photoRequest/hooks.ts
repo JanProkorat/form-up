@@ -24,7 +24,7 @@ import { usePendingQuestionnaires } from '@/hooks/usePendingQuestionnaires';
 import { usePhotos } from '@/hooks/usePhotos';
 import { useAuthStore } from '@/stores/auth';
 
-import { asCoachRole, photoStatusFor, readRequestId } from './model';
+import { asCoachRole, photoStatusFor, readRequestId, requestPhotos, requestProgress } from './model';
 import type { PhotoStatus } from './model';
 
 /** The request id of the current route; empty when the param is missing or not a well-formed id. */
@@ -40,6 +40,12 @@ export function useLeaveRequest(): () => void {
     if (router.canGoBack()) router.back();
     else router.replace('/');
   };
+}
+
+/** Goes back to Today from deeper in the flow, dropping the request screens in between. */
+export function useBackToToday(): () => void {
+  const router = useRouter();
+  return () => router.dismissTo('/');
 }
 
 /** One request by id. A 404 is final (stale push or link), so it is not retried. */
@@ -79,7 +85,19 @@ export function usePhotoStatus(collaboration: Collaboration | undefined, onlyCol
   });
 }
 
-export type RequestCoach = { name: string; first: string; role: CoachRole | undefined };
+/**
+ * Where an every-day request stands, from the client's photo list. `photos` is the query behind it: while it is
+ * pending or failed the progress has no sent or missed days, and the screens show that state themselves.
+ */
+export function useRequestProgress(request: PhotoRequest | undefined) {
+  const photos = usePhotos();
+  const progress = request
+    ? requestProgress(request, photos.data ? requestPhotos(photos.data, request.id) : undefined)
+    : null;
+  return { progress, photos };
+}
+
+export type RequestCoach ={ name: string; first: string; role: CoachRole | undefined };
 
 /**
  * The coach behind a request: the name and role the request itself carries. A request without them (the role is
