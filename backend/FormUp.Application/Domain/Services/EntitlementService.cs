@@ -184,7 +184,7 @@ public class EntitlementService
         var row = await db.CoachSubscriptions
             .AsNoTracking()
             .Where(cs => cs.ProfessionalProfileId == professionalProfileId)
-            .Select(cs => new { cs.Status, cs.FreeUntil, cs.GivenFreeAt, PlanCode = cs.SubscriptionPlan.Code })
+            .Select(cs => new { cs.Status, cs.FreeUntil, cs.GivenFreeAt, PlanCode = cs.SubscriptionPlan != null ? cs.SubscriptionPlan.Code : null })
             .FirstOrDefaultAsync(ct);
 
         if (row is null)

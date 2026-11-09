@@ -64,6 +64,28 @@ public static class TestActors
         new(factory, professional.ProfileId, client.ProfileId);
 
     /// <summary>
+    /// Creates one client per entry and links each to the professional in the given role, the collaboration of each
+    /// having begun that many days ago. Returns the clients in the same order.
+    /// </summary>
+    public static async Task<List<Actor>> LinkClientsAsync(
+        FitnessApiFactory factory, Actor professional, UserRole role, params int[] linkedDaysAgo)
+    {
+        var clients = new List<Actor>();
+
+        foreach (var daysAgo in linkedDaysAgo)
+        {
+            var client = await Client(factory).CreateAsync(TestContext.Current.CancellationToken);
+            await Link(factory, professional, client)
+                .AsRole(role)
+                .WithActivatedAtUtc(DateTime.UtcNow.AddDays(-daysAgo))
+                .CreateAsync(TestContext.Current.CancellationToken);
+            clients.Add(client);
+        }
+
+        return clients;
+    }
+
+    /// <summary>
     /// Builds a <see cref="ClientProfessionalLink"/> from raw profile ids — for fixtures that
     /// already hold ids rather than full <see cref="Actor"/> records.
     /// </summary>
