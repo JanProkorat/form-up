@@ -2013,6 +2013,39 @@
       "cardMeta_other": "{{count}} neu · heute um {{time}}",
       "view": "Ansehen"
     },
-    "placeholder": "Das Hinzufügen von Fotos folgt in Kürze."
+    "daily": {
+      "title": "Fortschrittsfotos",
+      "dayOf": "Tag {{day}} von {{total}}",
+      "sentDays_one": "{{count}} Tag gesendet",
+      "sentDays_other": "{{count}} Tage gesendet",
+      "missedDays_one": "{{count}} Tag verpasst",
+      "missedDays_other": "{{count}} Tage verpasst",
+      "day": {
+        "sent": "{{date}}, gesendet",
+        "missed": "{{date}}, kein Foto"
+      },
+      "dayToday": "Heute, {{date}}",
+      "today": "Heute",
+      "todaysPhotos": "Heutige Fotos",
+      "reminder": "Erinnerung um 12:00",
+      "sentAt": "Gesendet um {{time}}",
+      "none": "Heute noch kein Foto",
+      "addToday": "Heutige Fotos hinzufügen",
+      "addMore": "Weitere Fotos hinzufügen",
+      "coachSays": "{{name}}:",
+      "earlier": "Früher",
+      "earlierError": "Ihre früheren Fotos konnten nicht geladen werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+      "photoCount_one": "{{count}} Foto",
+      "photoCount_other": "{{count}} Fotos",
+      "noNote": "Keine Notiz",
+      "sent": {
+        "title": "Die heutigen Fotos sind angekommen",
+        "body": "{{name}} sieht sie jetzt. Wir erinnern Sie morgen um die Mittagszeit, falls Sie noch keine hinzugefügt haben.",
+        "bodyLast": "{{name}} sieht sie jetzt. Das war der letzte Tag dieser Anfrage.",
+        "cardTitle": "Fortschrittsfotos",
+        "cardMeta_one": "{{count}} neu · Tag {{day}} von {{total}} · heute um {{time}}",
+        "cardMeta_other": "{{count}} neu · Tag {{day}} von {{total}} · heute um {{time}}"
+      }
+    }
   }
 }

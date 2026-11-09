@@ -2094,6 +2094,47 @@
       "cardMeta_other": "{{count}} nových · dnes v {{time}}",
       "view": "Zobrazit"
     },
-    "placeholder": "Přidávání fotek brzy přibude."
+    "daily": {
+      "title": "Fotky pokroku",
+      "dayOf": "Den {{day}} z {{total}}",
+      "sentDays_one": "{{count}} den odeslán",
+      "sentDays_few": "{{count}} dny odeslány",
+      "sentDays_many": "{{count}} dne odesláno",
+      "sentDays_other": "{{count}} dní odesláno",
+      "missedDays_one": "{{count}} den zmeškán",
+      "missedDays_few": "{{count}} dny zmeškány",
+      "missedDays_many": "{{count}} dne zmeškáno",
+      "missedDays_other": "{{count}} dní zmeškáno",
+      "day": {
+        "sent": "{{date}}, odesláno",
+        "missed": "{{date}}, bez fotky"
+      },
+      "dayToday": "Dnes, {{date}}",
+      "today": "Dnes",
+      "todaysPhotos": "Dnešní fotky",
+      "reminder": "Připomenutí ve 12:00",
+      "sentAt": "Odesláno v {{time}}",
+      "none": "Dnes zatím žádná fotka",
+      "addToday": "Přidat dnešní fotky",
+      "addMore": "Přidat další fotky",
+      "coachSays": "{{name}}:",
+      "earlier": "Dříve",
+      "earlierError": "Dřívější fotky se nepodařilo načíst. Zkontrolujte připojení a zkuste to znovu.",
+      "photoCount_one": "{{count}} fotka",
+      "photoCount_few": "{{count}} fotky",
+      "photoCount_many": "{{count}} fotky",
+      "photoCount_other": "{{count}} fotek",
+      "noNote": "Bez poznámky",
+      "sent": {
+        "title": "Dnešní fotky dorazily",
+        "body": "{{name}} je teď uvidí. Pokud do zítřejšího poledne nic nepřidáte, připomeneme vám to.",
+        "bodyLast": "{{name}} je teď uvidí. Byl to poslední den této žádosti.",
+        "cardTitle": "Fotky pokroku",
+        "cardMeta_one": "{{count}} nová · den {{day}} z {{total}} · dnes v {{time}}",
+        "cardMeta_few": "{{count}} nové · den {{day}} z {{total}} · dnes v {{time}}",
+        "cardMeta_many": "{{count}} nové · den {{day}} z {{total}} · dnes v {{time}}",
+        "cardMeta_other": "{{count}} nových · den {{day}} z {{total}} · dnes v {{time}}"
+      }
+    }
   }
 }
