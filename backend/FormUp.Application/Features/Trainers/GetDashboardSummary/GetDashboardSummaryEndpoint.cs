@@ -41,9 +41,9 @@ public class GetDashboardSummaryEndpoint(
         {
             s.Summary = "Get trainer dashboard summary";
             s.Description = "Returns per-client compliance, streak, training, calorie, and activity data for the trainer's dashboard.";
-            s.Responses[StatusCodes.Status200OK] = "Per-client dashboard items";
-            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
-            s.Responses[StatusCodes.Status404NotFound] = "Professional profile not found";
+            s.Response<GetDashboardSummaryResponse>(StatusCodes.Status200OK, "Per-client dashboard items");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status404NotFound, "Professional profile not found");
         });
     }
 

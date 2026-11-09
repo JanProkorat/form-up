@@ -30,9 +30,9 @@ internal sealed class EmailLinkOneClickEndpoint(
         {
             s.Summary = "One-click unsubscribe from a notification email";
             s.Description = "Anonymous: the signed token in the query string is the credential. Accepts the RFC 8058 form post and sets only that event's email switch to off; the push choice is left alone. A valid token succeeds even without the List-Unsubscribe=One-Click field. Invalid links answer 400 with no body.";
-            s.Responses[StatusCodes.Status200OK] = "The email is off";
-            s.Responses[StatusCodes.Status400BadRequest] = "Tampered, expired or unknown link, or the account no longer exists; no body";
-            s.Responses[StatusCodes.Status429TooManyRequests] = "Rate limit exceeded";
+            s.Response(StatusCodes.Status200OK, "The email is off");
+            s.Response(StatusCodes.Status400BadRequest, "Tampered, expired or unknown link, or the account no longer exists; no body");
+            s.Response(StatusCodes.Status429TooManyRequests, "Rate limit exceeded");
         });
     }
 

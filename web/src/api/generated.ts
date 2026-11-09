@@ -718,7 +718,7 @@ export class ApiClient {
 
     /**
      * Update current user time zone
-     * @return No Content
+     * @return Time zone updated
      */
     updateTimeZoneEndpoint(updateTimeZoneRequest: UpdateTimeZoneRequest, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/users/me/timezone";
@@ -757,7 +757,7 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 204) {
+        if (status === 200) {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
 
@@ -766,11 +766,15 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid request, or INVALID_TIME_ZONE", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("User not found", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -781,7 +785,7 @@ export class ApiClient {
 
     /**
      * Update current user profile
-     * @return No Content
+     * @return Profile updated
      */
     updateProfileEndpoint(updateProfileRequest: UpdateProfileRequest, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/users/me";
@@ -820,7 +824,7 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 204) {
+        if (status === 200) {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
 
@@ -829,11 +833,15 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid request", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("User not found", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -1251,7 +1259,11 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("The caller is not a trainer or nutritionist", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("The caller has no professional profile, or the Free plan is missing", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -1322,7 +1334,7 @@ export class ApiClient {
 
     /**
      * Add a professional role
-     * @return Success
+     * @return The role was added; fresh tokens with the updated roles
      */
     addRoleEndpoint(addRoleRequest: AddRoleRequest, signal?: AbortSignal): Promise<AddRoleResponse> {
         let url_ = this.baseUrl + "/users/me/roles";
@@ -1374,11 +1386,11 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid caller identity, the role is not self-assignable, or the caller already has the role (ROLE_ALREADY_ASSIGNED)", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
@@ -1447,6 +1459,10 @@ export class ApiClient {
             result400 = JSON.parse(resultData400);
             return throwException("Tampered, expired or unknown link, or the account no longer exists (EMAIL_LINK_INVALID)", status, _responseText, _headers, result400);
 
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -1510,6 +1526,10 @@ export class ApiClient {
             result400 = JSON.parse(resultData400);
             return throwException("Tampered, expired or unknown link, or the account no longer exists (EMAIL_LINK_INVALID)", status, _responseText, _headers, result400);
 
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -1520,7 +1540,7 @@ export class ApiClient {
     /**
      * One-click unsubscribe from a notification email
      * @param token The token from the List-Unsubscribe link's query string.
-     * @return No Content
+     * @return The email is off
      */
     emailLinkOneClickEndpoint(token: string, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/users/email-links/one-click?";
@@ -1559,9 +1579,17 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 204) {
+        if (status === 200) {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            return throwException("Tampered, expired or unknown link, or the account no longer exists; no body", status, _responseText, _headers);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -1689,6 +1717,14 @@ export class ApiClient {
         } else if (status === 401) {
             const _responseText = response.data;
             return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("User no longer exists", status, _responseText, _headers);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -2233,7 +2269,7 @@ export class ApiClient {
     /**
      * Instantiate a training plan template
      * @param templateId The template's public identifier (route parameter).
-     * @return Success
+     * @return The new Draft plan
      */
     instantiateTrainingPlanTemplateEndpoint(templateId: string, instantiateTrainingPlanTemplateRequest: InstantiateTrainingPlanTemplateRequest, signal?: AbortSignal): Promise<InstantiateTrainingPlanTemplateResponse> {
         let url_ = this.baseUrl + "/training/plan-templates/{templateId}/instantiate";
@@ -2276,27 +2312,35 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 200) {
+        if (status === 201) {
             const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<InstantiateTrainingPlanTemplateResponse>(result200);
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<InstantiateTrainingPlanTemplateResponse>(result201);
 
         } else if (status === 400) {
             const _responseText = response.data;
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid request", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("The subscription does not include plans (SUBSCRIPTION_REQUIRED), or the client is over the Free plan\'s client limit (CLIENT_OVER_PLAN_LIMIT)", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Template or client not found, or not accessible to the caller", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("The start date window overlaps another plan of the client (PLAN_OVERLAP)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -2438,7 +2482,7 @@ export class ApiClient {
     /**
      * Full-state update of a training plan
      * @param planId The plan's public identifier (route parameter).
-     * @return Success
+     * @return Updated plan
      */
     updateTrainingPlanEndpoint(planId: string, updateTrainingPlanRequest: UpdateTrainingPlanRequest, signal?: AbortSignal): Promise<GetTrainingPlanResponse> {
         let url_ = this.baseUrl + "/training/plans/{planId}";
@@ -2493,15 +2537,23 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid request, or a published week was removed or the start date is invalid", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("The subscription does not include plans (SUBSCRIPTION_REQUIRED), a removed coach role, or the client is over the Free plan\'s client limit and the plan\'s last published week has ended or the start date changed (CLIENT_OVER_PLAN_LIMIT)", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Plan not found, or not editable by the caller", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("PLAN_VERSION_CONFLICT, SESSION_LOCKED (a published session with content changes needs an Editing lock) or WORKOUT_ALREADY_COMPLETED", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -2638,7 +2690,7 @@ export class ApiClient {
      * Unlock a training session for editing
      * @param planId Training plan identifier.
      * @param sessionId Session identifier to unlock for editing.
-     * @return No Content
+     * @return Editing lock acquired
      */
     unlockTrainingSessionEndpoint(planId: string, sessionId: string, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/training/plans/{planId}/sessions/{sessionId}/unlock";
@@ -2688,15 +2740,23 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid request", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("The client is over the Free plan\'s client limit and the plan\'s last published week has ended (CLIENT_OVER_PLAN_LIMIT)", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Plan or session not found, or not editable by the caller", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("The session was already completed (SESSION_ALREADY_COMPLETED) or is locked (session_locked)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -2709,7 +2769,7 @@ export class ApiClient {
      * Relock a training session (release the Editing lock)
      * @param planId Training plan identifier.
      * @param sessionId Session identifier to relock.
-     * @return No Content
+     * @return Lock released (or already released)
      */
     relockTrainingSessionEndpoint(planId: string, sessionId: string, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/training/plans/{planId}/sessions/{sessionId}/relock";
@@ -2759,15 +2819,19 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid request", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("The client is over the Free plan\'s client limit and the plan\'s last published week has ended (CLIENT_OVER_PLAN_LIMIT)", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Plan or session not found, or not editable by the caller", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -2780,7 +2844,7 @@ export class ApiClient {
      * Publish a week of a training plan
      * @param planId Plan identifier.
      * @param weekNumber Week number to publish.
-     * @return Success
+     * @return The plan with the week published
      */
     publishTrainingWeekEndpoint(planId: string, weekNumber: number, publishTrainingWeekRequest: PublishTrainingWeekRequest, signal?: AbortSignal): Promise<GetTrainingPlanResponse> {
         let url_ = this.baseUrl + "/training/plans/{planId}/weeks/{weekNumber}/publish";
@@ -2833,13 +2897,28 @@ export class ApiClient {
             result200 = JSON.parse(resultData200);
             return Promise.resolve<GetTrainingPlanResponse>(result200);
 
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("The week is missing or already published, or the start date is unset or the week starts in the past", status, _responseText, _headers, result400);
+
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("The subscription does not include plans (SUBSCRIPTION_REQUIRED), or the client is over the Free plan\'s client limit (CLIENT_OVER_PLAN_LIMIT)", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Plan not found, or not editable by the caller", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("The plan was changed concurrently (PLAN_VERSION_CONFLICT)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -2851,7 +2930,7 @@ export class ApiClient {
     /**
      * Link questionnaire to training plan
      * @param planId Plan identifier.
-     * @return Success
+     * @return The updated plan
      */
     linkTrainingQuestionnaireEndpoint(planId: string, linkTrainingQuestionnaireRequest: LinkTrainingQuestionnaireRequest, signal?: AbortSignal): Promise<GetTrainingPlanResponse> {
         let url_ = this.baseUrl + "/training/plans/{planId}/link-questionnaire";
@@ -2901,13 +2980,28 @@ export class ApiClient {
             result200 = JSON.parse(resultData200);
             return Promise.resolve<GetTrainingPlanResponse>(result200);
 
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("The plan is not Draft or Active, or the questionnaire response is not found or not submitted", status, _responseText, _headers, result400);
+
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("The client is over the Free plan\'s client limit and the plan\'s last published week has ended (CLIENT_OVER_PLAN_LIMIT)", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Plan not found, or not editable by the caller", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("The plan was changed concurrently (PLAN_VERSION_CONFLICT)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -3001,7 +3095,7 @@ export class ApiClient {
 
     /**
      * Create a training plan
-     * @return Success
+     * @return The new Draft plan
      */
     createTrainingPlanEndpoint(createTrainingPlanRequest: CreateTrainingPlanRequest, signal?: AbortSignal): Promise<TrainingPlanSummaryDto> {
         let url_ = this.baseUrl + "/training/plans";
@@ -3041,27 +3135,35 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 200) {
+        if (status === 201) {
             const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<TrainingPlanSummaryDto>(result200);
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<TrainingPlanSummaryDto>(result201);
 
         } else if (status === 400) {
             const _responseText = response.data;
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid request, or the questionnaire response is not found or not submitted", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("The subscription does not include plans (SUBSCRIPTION_REQUIRED), or the client is over the Free plan\'s client limit (CLIENT_OVER_PLAN_LIMIT)", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Client not found, or not accessible to the caller", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("The start date window overlaps another plan of the client (PLAN_OVERLAP)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -3219,7 +3321,7 @@ export class ApiClient {
 
     /**
      * Update professional profile
-     * @return No Content
+     * @return Profile updated
      */
     updateProfessionalProfileEndpoint(updateProfessionalProfileRequest: UpdateProfessionalProfileRequest, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/trainer/profile";
@@ -3258,7 +3360,7 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 204) {
+        if (status === 200) {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
 
@@ -3267,15 +3369,19 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid request", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("The caller is not a trainer or nutritionist", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Professional profile not found", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -3551,6 +3657,10 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("Active link grants neither nutrition nor training visibility", status, _responseText, _headers);
 
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Client unknown, or the caller has no active link to it", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -3706,7 +3816,7 @@ export class ApiClient {
 
     /**
      * Replace a pending questionnaire
-     * @return No Content
+     * @return Questionnaire replaced
      */
     replaceQuestionnaireEndpoint(clientPublicId: string, replaceQuestionnaireRequest: ReplaceQuestionnaireRequest, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/trainer/clients/{clientPublicId}/replace-questionnaire";
@@ -3752,13 +3862,24 @@ export class ApiClient {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
 
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("No pending questionnaire for the client, the questionnaire is unknown, or a check-in form was sent as a questionnaire (CHECK_IN_FORM_NOT_SENDABLE)", status, _responseText, _headers, result400);
+
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("The subscription does not include questionnaires (SUBSCRIPTION_REQUIRED), or a removed coach role", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Professional profile or client not found, or the caller has no live link to the client", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -3829,7 +3950,7 @@ export class ApiClient {
 
     /**
      * Create a pending invitation
-     * @return Success
+     * @return The pending invitation
      */
     createPendingInviteEndpoint(createPendingInviteRequest: CreatePendingInviteRequest, signal?: AbortSignal): Promise<CreatePendingInviteResponse> {
         let url_ = this.baseUrl + "/trainer/pending-invites";
@@ -3885,11 +4006,23 @@ export class ApiClient {
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("The coach role was removed, the subscription does not include payments (PAYMENTS_NOT_ENTITLED), or the active-client limit is reached (CLIENT_LIMIT_REACHED).", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("The package or discount is unknown or belongs to another coach.", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("A duplicate invite exists, or the package is archived (PACKAGE_ARCHIVED), the discount is archived (DISCOUNT_ARCHIVED) or does not apply to the package (DISCOUNT_PACKAGE_INVALID).", status, _responseText, _headers);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Too many open pending invites (TOO_MANY_PENDING_INVITES), or the invite rate limit was exceeded", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -4218,6 +4351,10 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
 
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Professional profile not found", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -4354,7 +4491,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid query parameters", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -4363,6 +4500,10 @@ export class ApiClient {
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("The link grants no nutrition or training access to the caller", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Client not found, or not linked to the caller", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -4891,7 +5032,7 @@ export class ApiClient {
     /**
      * Accept a client request
      * @param publicId Public identifier of the client request (from route).
-     * @return No Content
+     * @return Request accepted
      */
     acceptClientRequestEndpoint(publicId: string, acceptClientRequestRequest: AcceptClientRequestRequest, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/trainer/client-requests/{publicId}/accept";
@@ -4942,11 +5083,11 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("The request is unknown or already processed (CLIENT_REQUEST_NOT_FOUND), or another coded refusal such as PROFESSION_ALREADY_OCCUPIED", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
@@ -5319,7 +5460,7 @@ export class ApiClient {
     /**
      * Assign a questionnaire to a client
      * @param clientPublicId Public identifier of the client (from route).
-     * @return No Content
+     * @return Questionnaire assigned
      */
     assignQuestionnaireEndpoint(clientPublicId: string, assignQuestionnaireRequest: AssignQuestionnaireRequest, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/trainer/clients/{clientPublicId}/assign-questionnaire";
@@ -5365,9 +5506,16 @@ export class ApiClient {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
 
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("The profile, client, link or questionnaire is unknown, or a check-in form was sent as a questionnaire (CHECK_IN_FORM_NOT_SENDABLE)", status, _responseText, _headers, result400);
+
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
@@ -5448,6 +5596,14 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("Caller is not an Admin", status, _responseText, _headers);
 
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("No plan with this Code", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("The Free plan cannot be repriced or deactivated", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -5505,7 +5661,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid plan code", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -5514,6 +5670,14 @@ export class ApiClient {
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("Caller is not an Admin", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("No plan with this Code", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("The Free plan cannot be deactivated", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -5645,6 +5809,10 @@ export class ApiClient {
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("Caller is not an Admin", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("A plan with this Code already exists", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -7359,6 +7527,14 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
 
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Recipe not found", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("RECIPE_VERSION_CONFLICT \u2014 the images changed concurrently", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -7566,6 +7742,14 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("The response belongs to another client", status, _responseText, _headers);
 
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Unknown response, or one outside the current collaboration", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("The response has already been submitted, or it is a check-in past its answer window (CHECK_IN_ANSWER_WINDOW_CLOSED)", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -7771,7 +7955,7 @@ export class ApiClient {
 
     /**
      * Submit questionnaire response
-     * @return No Content
+     * @return Response submitted
      */
     submitResponseEndpoint(responsePublicId: string, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/client/questionnaire/response/{responsePublicId}/submit";
@@ -7809,9 +7993,16 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 204) {
+        if (status === 200) {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("A required question has no answer (QUESTIONNAIRE_REQUIRED_ANSWER_MISSING)", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -7820,6 +8011,14 @@ export class ApiClient {
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("The response belongs to another client", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Unknown response, or one outside the current collaboration", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("The response is not open for submission, or it is a check-in past its answer window (CHECK_IN_ANSWER_WINDOW_CLOSED)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -8453,11 +8652,19 @@ export class ApiClient {
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("No matching questionnaire, response or active link", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("The response is a check-in past its answer window (CHECK_IN_ANSWER_WINDOW_CLOSED)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -8582,6 +8789,10 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
 
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Unknown client, or the caller has no live link to it", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -8645,6 +8856,10 @@ export class ApiClient {
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Unknown questionnaire, no client profile, or no active link to its owner", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -9200,11 +9415,19 @@ export class ApiClient {
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Link, invite or plan not found, or not the caller\'s", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("The caller already has an open request for this client", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -9813,6 +10036,14 @@ export class ApiClient {
             result400 = JSON.parse(resultData400);
             return throwException("Unknown, expired or already used token (BANK_ACCOUNT_UNDO_INVALID)", status, _responseText, _headers, result400);
 
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("The account was changed again afterwards (BANK_ACCOUNT_UNDO_SUPERSEDED)", status, _responseText, _headers);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -9861,6 +10092,13 @@ export class ApiClient {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
 
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("The account has a password and uses it instead (REAUTH_CODE_NOT_AVAILABLE)", status, _responseText, _headers, result400);
+
         } else if (status === 401) {
             const _responseText = response.data;
             return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
@@ -9868,6 +10106,14 @@ export class ApiClient {
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("The subscription does not include payments (PAYMENTS_NOT_ENTITLED)", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("The caller has no professional profile or account", status, _responseText, _headers);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -10003,6 +10249,14 @@ export class ApiClient {
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("The subscription does not include payments (PAYMENTS_NOT_ENTITLED)", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("The caller has no professional profile or account", status, _responseText, _headers);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -10378,7 +10632,7 @@ export class ApiClient {
     /**
      * Instantiate a nutrition plan template
      * @param templateId The template's public identifier (route parameter).
-     * @return Created
+     * @return The new Draft plan
      */
     instantiateTemplateEndpoint(templateId: string, instantiateNutritionPlanTemplateRequest: InstantiateNutritionPlanTemplateRequest, signal?: AbortSignal): Promise<InstantiateNutritionPlanTemplateResponse> {
         let url_ = this.baseUrl + "/nutrition/plan-templates/{templateId}/instantiate";
@@ -10433,15 +10687,23 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid request", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("The subscription does not include plans (SUBSCRIPTION_REQUIRED), or the client is over the Free plan\'s client limit (CLIENT_OVER_PLAN_LIMIT)", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Template or client not found, or not accessible to the caller", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("The start date window overlaps another plan of the client (PLAN_OVERLAP)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -10642,7 +10904,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid request, or a published week was removed or the start date is invalid", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -10651,6 +10913,14 @@ export class ApiClient {
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("The subscription does not include plans (SUBSCRIPTION_REQUIRED), or the client is over the Free plan\'s client limit and the plan\'s last published week has ended or the start date changed (CLIENT_OVER_PLAN_LIMIT)", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Plan not found, or not editable by the caller", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("PLAN_VERSION_CONFLICT, MEAL_LOCKED or PAST_DAY_LOCKED. Lock responses (MEAL_LOCKED, PAST_DAY_LOCKED) also carry the rejected meal as top-level mealId (null when the request sent none), weekNumber and dayOfWeek", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -10787,7 +11057,7 @@ export class ApiClient {
      * Publish a week of a nutrition plan
      * @param planId Plan identifier.
      * @param weekNumber Week number to publish.
-     * @return Success
+     * @return The plan with the week published
      */
     publishWeekEndpoint(planId: string, weekNumber: number, publishWeekRequest: PublishWeekRequest, signal?: AbortSignal): Promise<GetPlanResponse> {
         let url_ = this.baseUrl + "/nutrition/plans/{planId}/weeks/{weekNumber}/publish";
@@ -10840,13 +11110,28 @@ export class ApiClient {
             result200 = JSON.parse(resultData200);
             return Promise.resolve<GetPlanResponse>(result200);
 
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("The week is missing or already published, or the start date is unset or the week starts in the past", status, _responseText, _headers, result400);
+
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("The subscription does not include plans (SUBSCRIPTION_REQUIRED), or the client is over the Free plan\'s client limit (CLIENT_OVER_PLAN_LIMIT)", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Plan not found, or not editable by the caller", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("The plan was changed concurrently (PLAN_VERSION_CONFLICT)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -10858,7 +11143,7 @@ export class ApiClient {
     /**
      * Link questionnaire to nutrition plan
      * @param planId Plan identifier.
-     * @return Success
+     * @return The updated plan
      */
     linkQuestionnaireEndpoint(planId: string, linkNutritionQuestionnaireRequest: LinkNutritionQuestionnaireRequest, signal?: AbortSignal): Promise<GetPlanResponse> {
         let url_ = this.baseUrl + "/nutrition/plans/{planId}/link-questionnaire";
@@ -10908,13 +11193,28 @@ export class ApiClient {
             result200 = JSON.parse(resultData200);
             return Promise.resolve<GetPlanResponse>(result200);
 
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("The plan is not Draft or Active, or the questionnaire response is not found or not submitted", status, _responseText, _headers, result400);
+
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("The client is over the Free plan\'s client limit and the plan\'s last published week has ended (CLIENT_OVER_PLAN_LIMIT)", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Plan not found, or not editable by the caller", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("The plan was changed concurrently (PLAN_VERSION_CONFLICT)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -11070,6 +11370,14 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("The caller\'s Nutritionist coach role was removed, the subscription does not include plans (SUBSCRIPTION_REQUIRED), or the client is over the Free plan\'s client limit (CLIENT_OVER_PLAN_LIMIT)", status, _responseText, _headers);
 
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Client not found, or not accessible to the caller", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("The start date window overlaps another plan of the client (PLAN_OVERLAP)", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -11144,6 +11452,14 @@ export class ApiClient {
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("The subscription does not include plans (SUBSCRIPTION_REQUIRED), or the target client is over the Free plan\'s client limit (CLIENT_OVER_PLAN_LIMIT)", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Source plan or target client not found, or not accessible to the caller", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("The start date window overlaps another plan of the target client (PLAN_OVERLAP)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -11495,6 +11811,10 @@ export class ApiClient {
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Caller is a professional with no ProfessionalProfile.", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -13315,6 +13635,14 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
 
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Food not found or soft-deleted", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("FOOD_IMAGES_CONFLICT \u2014 the images changed concurrently", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -14627,7 +14955,15 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("The caller is not a trainer or nutritionist, or the coach role was removed", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("The caller has no professional profile, or an id is not one of the caller\'s live clients", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("The paid plan has not lapsed (SUBSCRIPTION_NOT_LAPSED)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -14687,7 +15023,15 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("The caller is not a trainer or nutritionist, or the coach role was removed", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("The caller has no professional profile", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("The paid plan has not lapsed (SUBSCRIPTION_NOT_LAPSED)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -14763,6 +15107,10 @@ export class ApiClient {
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("Caller is not an Admin", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("The coach (user with a professional profile) or the plan code is unknown (PROFESSIONAL_NOT_FOUND, SUBSCRIPTION_PLAN_NOT_FOUND)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -16119,6 +16467,10 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
 
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Client not found, caller has no active link to the client, or one or more tags were not found", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -16315,7 +16667,7 @@ export class ApiClient {
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
@@ -16552,13 +16904,28 @@ export class ApiClient {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
 
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("The client already has an active professional in this profession (PROFESSION_ALREADY_OCCUPIED)", status, _responseText, _headers, result400);
+
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("The coach role was removed (COACH_ROLE_REMOVED), or the coach is at the active-client limit (CLIENT_LIMIT_REACHED)", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("The request is unknown or not the caller\'s (CLIENT_REQUEST_NOT_FOUND)", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("The request has no open proposal (CLIENT_REQUEST_INVALID_STATE)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -17432,6 +17799,18 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("The subscription does not include payments (PAYMENTS_NOT_ENTITLED), or the coach role was removed", status, _responseText, _headers);
 
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("No live link to the client (and no ended one with a payment assignment), or the payment is not this client\'s payment with this coach", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("The payment is already paid (PAYMENT_ALREADY_PAID) or waived (PAYMENT_ALREADY_WAIVED), the coach has no bank account (BANK_ACCOUNT_NOT_SET), or no variable symbol is left (PAYMENT_VARIABLE_SYMBOL_EXHAUSTED)", status, _responseText, _headers);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("The payment was requested a minute ago, or the client got ten requests in the last hour (PAYMENT_REQUEST_RATE_LIMITED)", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -17927,6 +18306,10 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
 
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("No client profile, or the meal is not in the client\'s current plan, or (errorCode MEAL_ITEM_NOT_FOUND) the item is not in the meal", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -18005,6 +18388,10 @@ export class ApiClient {
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("No client profile, or the meal is not in the client\'s current plan, or (errorCode MEAL_ITEM_NOT_FOUND) the item is not in the meal", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -18157,6 +18544,10 @@ export class ApiClient {
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("No such meal in the client\'s plans", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -19036,6 +19427,10 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
 
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Client profile or active plan with a published week not found", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -19106,6 +19501,10 @@ export class ApiClient {
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Plan not found, not owned by the caller, not Active or Completed, or without a published week", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -20435,6 +20834,14 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
 
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("No client profile", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("Onboarding not completed (ONBOARDING_NOT_COMPLETED)", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -20864,7 +21271,7 @@ export class ApiClient {
 
     /**
      * Accept a pending invite
-     * @return No Content
+     * @return Invite accepted
      */
     acceptClientInviteEndpoint(id: string, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/client/invites/{id}/accept";
@@ -20906,13 +21313,28 @@ export class ApiClient {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
 
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("The profession slot is already taken (PROFESSION_ALREADY_OCCUPIED)", status, _responseText, _headers, result400);
+
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("The coach role was removed, or the coach is at the active-client limit (CLIENT_LIMIT_REACHED)", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Invite not found, not addressed to the caller, or the caller is a coach", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("The invite has expired (INVITE_EXPIRED)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -21630,6 +22052,10 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("The live link grants no access", status, _responseText, _headers);
 
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Client not found, or the caller has no live link to them", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -21892,6 +22318,17 @@ export class ApiClient {
             result200 = JSON.parse(resultData200);
             return Promise.resolve<VerifyEmailResponse>(result200);
 
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid, already used or expired verification token", status, _responseText, _headers, result400);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -21943,6 +22380,10 @@ export class ApiClient {
             let resultData200  = _responseText;
             result200 = JSON.parse(resultData200);
             return Promise.resolve<RequestNonceResponse>(result200);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -22007,6 +22448,22 @@ export class ApiClient {
             result400 = JSON.parse(resultData400);
             return throwException("idToken or nonce is missing or empty, Roles is invalid (Admin, unknown, or Client combined with a coach role), a coach sends healthDataConsent, or a new Client account lacks healthDataConsent=true. The nonce is already consumed by the time the consent check runs, so the client must request a new nonce to retry", status, _responseText, _headers, result400);
 
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Google ID token is invalid, expired, has wrong audience, or the nonce is invalid/consumed/expired", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Account is deactivated", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("Email belongs to an existing password-only account (social_email_conflict)", status, _responseText, _headers);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -22070,6 +22527,26 @@ export class ApiClient {
             result400 = JSON.parse(resultData400);
             return throwException("identityToken or nonce is missing or empty, Roles is invalid (Admin, unknown, or Client combined with a coach role), a coach sends healthDataConsent, or a new Client account lacks healthDataConsent=true. The nonce is already consumed by the time the consent check runs, so the client must request a new nonce to retry", status, _responseText, _headers, result400);
 
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Apple identity token is invalid, expired, has wrong audience, email is explicitly unverified, or the nonce is invalid/consumed/expired", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Account is deactivated", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("Email belongs to an existing password-only account (social_email_conflict)", status, _responseText, _headers);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            return throwException("No Apple account link exists and token carries no email \u2014 cannot provision", status, _responseText, _headers);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -22079,7 +22556,7 @@ export class ApiClient {
 
     /**
      * Reset password
-     * @return No Content
+     * @return Password reset; all sessions revoked
      */
     resetPasswordEndpoint(resetPasswordRequest: ResetPasswordRequest, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/auth/password/reset";
@@ -22118,7 +22595,7 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 204) {
+        if (status === 200) {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
 
@@ -22129,6 +22606,10 @@ export class ApiClient {
             result400 = JSON.parse(resultData400);
             return throwException("Invalid input, or invalid/expired reset request", status, _responseText, _headers, result400);
 
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -22138,7 +22619,7 @@ export class ApiClient {
 
     /**
      * Request password reset
-     * @return No Content
+     * @return Reset link sent (or send failure logged)
      */
     requestPasswordResetEndpoint(requestPasswordResetRequest: RequestPasswordResetRequest, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/auth/password/reset";
@@ -22177,7 +22658,7 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 204) {
+        if (status === 200) {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
 
@@ -22186,7 +22667,15 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("No account uses this email", status, _responseText, _headers);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -22303,6 +22792,10 @@ export class ApiClient {
             result400 = JSON.parse(resultData400);
             return throwException("Validation error", status, _responseText, _headers, result400);
 
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -22312,7 +22805,7 @@ export class ApiClient {
 
     /**
      * Refresh access token
-     * @return Success
+     * @return New access and refresh token pair
      */
     refreshTokenEndpoint(refreshTokenRequest: RefreshTokenRequest, signal?: AbortSignal): Promise<RefreshTokenResponse> {
         let url_ = this.baseUrl + "/auth/refresh";
@@ -22364,7 +22857,11 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid input, or an invalid, expired or reused refresh token", status, _responseText, _headers, result400);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -22431,7 +22928,7 @@ export class ApiClient {
 
     /**
      * Authenticate user
-     * @return Success
+     * @return Login successful
      */
     loginEndpoint(loginRequest: LoginRequest, signal?: AbortSignal): Promise<LoginResponse> {
         let url_ = this.baseUrl + "/auth/login";
@@ -22483,7 +22980,11 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid input, wrong credentials (INVALID_CREDENTIALS) or a deactivated account (ACCOUNT_DEACTIVATED)", status, _responseText, _headers, result400);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -22552,6 +23053,14 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Caller\'s account no longer exists", status, _responseText, _headers);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -22561,7 +23070,7 @@ export class ApiClient {
 
     /**
      * Resend verification email (anonymous)
-     * @return Success
+     * @return Generic confirmation, whatever the account state
      */
     anonymousResendVerificationEndpoint(anonymousResendVerificationRequest: AnonymousResendVerificationRequest, signal?: AbortSignal): Promise<AnonymousResendVerificationResponse> {
         let url_ = this.baseUrl + "/auth/resend-verification/anonymous";
@@ -22613,7 +23122,11 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid request", status, _responseText, _headers, result400);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -22624,7 +23137,7 @@ export class ApiClient {
 
     /**
      * Accept a trainer invitation
-     * @return Success
+     * @return Invitation accepted
      */
     acceptInvitationEndpoint(acceptInvitationRequest: AcceptInvitationRequest, signal?: AbortSignal): Promise<AcceptInvitationResponse> {
         let url_ = this.baseUrl + "/auth/invite/accept";
@@ -22676,11 +23189,11 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid, used or expired token, or the profession slot is already taken (PROFESSION_ALREADY_OCCUPIED)", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;

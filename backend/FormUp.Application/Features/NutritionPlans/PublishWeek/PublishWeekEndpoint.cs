@@ -41,8 +41,14 @@ public class PublishWeekEndpoint(
         {
             s.Summary = "Publish a week of a nutrition plan";
             s.Description = "Sets the week's status to Published. Archives other Active plans for the same client whose date window overlaps this plan's.";
-            s.Responses[StatusCodes.Status403Forbidden] =
-                "The subscription does not include plans (SUBSCRIPTION_REQUIRED), or the client is over the Free plan's client limit (CLIENT_OVER_PLAN_LIMIT)";
+            s.Response<GetPlanResponse>(StatusCodes.Status200OK, "The plan with the week published");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest,
+                "The week is missing or already published, or the start date is unset or the week starts in the past");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status403Forbidden,
+                "The subscription does not include plans (SUBSCRIPTION_REQUIRED), or the client is over the Free plan's client limit (CLIENT_OVER_PLAN_LIMIT)");
+            s.Response(StatusCodes.Status404NotFound, "Plan not found, or not editable by the caller");
+            s.Response(StatusCodes.Status409Conflict, "The plan was changed concurrently (PLAN_VERSION_CONFLICT)");
         });
     }
 

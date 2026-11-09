@@ -30,6 +30,9 @@ public class LoginEndpoint(
         {
             s.Summary = "Authenticate user";
             s.Description = "Validates credentials and returns a JWT access token (15 min) and refresh token (7 days).";
+            s.Response<LoginResponse>(StatusCodes.Status200OK, "Login successful");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Invalid input, wrong credentials (INVALID_CREDENTIALS) or a deactivated account (ACCOUNT_DEACTIVATED)");
+            s.Response(StatusCodes.Status429TooManyRequests, "Rate limit exceeded");
         });
     }
 

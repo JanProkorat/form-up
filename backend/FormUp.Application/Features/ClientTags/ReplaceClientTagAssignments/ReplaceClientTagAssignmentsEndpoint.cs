@@ -31,11 +31,11 @@ public class ReplaceClientTagAssignmentsEndpoint(IApplicationDbContext db)
         {
             s.Summary = "Replace a client's tag assignments";
             s.Description = "Replaces the full set of tags assigned to the client for the caller's own link.";
-            s.Responses[StatusCodes.Status200OK] = "The resulting tag set";
-            s.Responses[StatusCodes.Status400BadRequest] = "Invalid request body";
-            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or invalid credentials";
-            s.Responses[StatusCodes.Status404NotFound] =
-                "Client not found, caller has no active link to the client, or one or more tags were not found";
+            s.Response<ReplaceClientTagAssignmentsResponse>(StatusCodes.Status200OK, "The resulting tag set");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Invalid request body");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or invalid credentials");
+            s.Response(StatusCodes.Status404NotFound,
+                "Client not found, caller has no active link to the client, or one or more tags were not found");
         });
     }
 

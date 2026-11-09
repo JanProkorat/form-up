@@ -58,13 +58,16 @@ public class CreatePendingInviteEndpoint(
         {
             s.Summary = "Create a pending invitation";
             s.Description = "Creates a pending invitation for a client, sends an invitation email with a one-time token valid for 7 days.";
-            s.Responses[StatusCodes.Status400BadRequest] =
-                "Requested scope exceeds the caller's held roles, a discount was sent without a package, or a fixed discount is in another currency than the package (CURRENCY_MISMATCH).";
-            s.Responses[StatusCodes.Status403Forbidden] =
-                "The coach role was removed, the subscription does not include payments (PAYMENTS_NOT_ENTITLED), or the active-client limit is reached (CLIENT_LIMIT_REACHED).";
-            s.Responses[StatusCodes.Status404NotFound] = "The package or discount is unknown or belongs to another coach.";
-            s.Responses[StatusCodes.Status409Conflict] =
-                "A duplicate invite exists, or the package is archived (PACKAGE_ARCHIVED), the discount is archived (DISCOUNT_ARCHIVED) or does not apply to the package (DISCOUNT_PACKAGE_INVALID).";
+            s.Response<CreatePendingInviteResponse>(StatusCodes.Status200OK, "The pending invitation");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest,
+                "Requested scope exceeds the caller's held roles, a discount was sent without a package, or a fixed discount is in another currency than the package (CURRENCY_MISMATCH).");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status403Forbidden,
+                "The coach role was removed, the subscription does not include payments (PAYMENTS_NOT_ENTITLED), or the active-client limit is reached (CLIENT_LIMIT_REACHED).");
+            s.Response(StatusCodes.Status404NotFound, "The package or discount is unknown or belongs to another coach.");
+            s.Response(StatusCodes.Status409Conflict,
+                "A duplicate invite exists, or the package is archived (PACKAGE_ARCHIVED), the discount is archived (DISCOUNT_ARCHIVED) or does not apply to the package (DISCOUNT_PACKAGE_INVALID).");
+            s.Response(StatusCodes.Status429TooManyRequests, "Too many open pending invites (TOO_MANY_PENDING_INVITES), or the invite rate limit was exceeded");
         });
     }
 
@@ -283,7 +286,8 @@ public class CreatePendingInviteEndpoint(
         // send that would reintroduce exactly the failure mode this closes.
         if (!emailQueue.TryEnqueue(new InvitationEmailWorkItem(
                 req.Email, trainerName, tokenValue, language, req.Message,
-                package is null ? null : new InvitationPackageInfo(package.Name, package.Billing, package.IntervalWeeks))))
+                package is null ? null : new InvitationPackageInfo(package.Name, package.Billing, package.IntervalWeeks),
+                ResolveCoachRole(wantsTrainingPlans, wantsNutritionPlans))))
         {
             logger.LogWarning(
                 "Background email queue full; dropped invitation email enqueue for {Email}.",
@@ -440,6 +444,16 @@ public class CreatePendingInviteEndpoint(
 
         return (null, null);
     }
+
+    // The email names the disciplines this invite grants; no grant means no role line.
+    private static InvitationCoachRole? ResolveCoachRole(bool wantsTrainingPlans, bool wantsNutritionPlans) =>
+        (wantsTrainingPlans, wantsNutritionPlans) switch
+        {
+            (true, true) => InvitationCoachRole.Both,
+            (true, false) => InvitationCoachRole.Trainer,
+            (false, true) => InvitationCoachRole.Nutritionist,
+            _ => null
+        };
 
     private static CreatePendingInviteResponse BuildResponse(PendingInvite pendingInvite, Guid? questionnairePublicId) =>
         new()

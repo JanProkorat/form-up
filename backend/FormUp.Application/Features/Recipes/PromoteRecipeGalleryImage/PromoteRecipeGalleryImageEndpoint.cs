@@ -30,9 +30,9 @@ public class PromoteRecipeGalleryImageEndpoint(IMongoContext mongo) : Endpoint<P
                             + "With no main image the entry is removed from the gallery and set as main. "
                             + "Promoting the current main image is a no-op. Only the recipe's creator can promote.";
             s.Responses[StatusCodes.Status204NoContent] = "Image promoted (or already main)";
-            s.Responses[StatusCodes.Status400BadRequest] = "RECIPE_NOT_OWNED or RECIPE_GALLERY_IMAGE_NOT_FOUND";
-            s.Responses[StatusCodes.Status404NotFound] = "Recipe not found";
-            s.Responses[StatusCodes.Status409Conflict] = "RECIPE_VERSION_CONFLICT — the images changed concurrently";
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest,"RECIPE_NOT_OWNED or RECIPE_GALLERY_IMAGE_NOT_FOUND");
+            s.Response(StatusCodes.Status404NotFound, "Recipe not found");
+            s.Response(StatusCodes.Status409Conflict, "RECIPE_VERSION_CONFLICT — the images changed concurrently");
         });
     }
 

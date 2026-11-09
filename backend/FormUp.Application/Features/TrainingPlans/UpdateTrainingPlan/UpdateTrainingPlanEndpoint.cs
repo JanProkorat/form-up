@@ -51,9 +51,15 @@ public class UpdateTrainingPlanEndpoint(
             s.Description = "Replaces the plan's name, description, and all weeks/sessions/exercises/sets. " +
                             "Per-week publish status is preserved. Uses optimistic concurrency via version field. " +
                             "Published sessions with content changes require an active Editing lock.";
-            s.Responses[StatusCodes.Status403Forbidden] =
+            s.Response<GetTrainingPlanResponse>(StatusCodes.Status200OK, "Updated plan");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Invalid request, or a published week was removed or the start date is invalid");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status403Forbidden,
                 "The subscription does not include plans (SUBSCRIPTION_REQUIRED), a removed coach role, or the client is over the " +
-                "Free plan's client limit and the plan's last published week has ended or the start date changed (CLIENT_OVER_PLAN_LIMIT)";
+                "Free plan's client limit and the plan's last published week has ended or the start date changed (CLIENT_OVER_PLAN_LIMIT)");
+            s.Response(StatusCodes.Status404NotFound, "Plan not found, or not editable by the caller");
+            s.Response(StatusCodes.Status409Conflict,
+                "PLAN_VERSION_CONFLICT, SESSION_LOCKED (a published session with content changes needs an Editing lock) or WORKOUT_ALREADY_COMPLETED");
         });
     }
 

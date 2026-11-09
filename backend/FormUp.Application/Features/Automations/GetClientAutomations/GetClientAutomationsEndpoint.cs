@@ -41,10 +41,10 @@ public class GetClientAutomationsEndpoint(
             s.Summary = "List a client's effective automation rules";
             s.Description =
                 "Returns each rule with its source, next send, last result and 30-day counts.";
-            s.Responses[StatusCodes.Status200OK] = "The client's effective rules";
-            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or invalid credentials";
-            s.Responses[StatusCodes.Status403Forbidden] = "The live link grants no access";
-            s.Responses[StatusCodes.Status404NotFound] = "Client not found, or the caller has no live link to them";
+            s.Response<GetClientAutomationsResponse>(StatusCodes.Status200OK, "The client's effective rules");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or invalid credentials");
+            s.Response(StatusCodes.Status403Forbidden, "The live link grants no access");
+            s.Response(StatusCodes.Status404NotFound, "Client not found, or the caller has no live link to them");
         });
     }
 

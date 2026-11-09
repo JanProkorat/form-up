@@ -36,10 +36,11 @@ internal sealed class GetKeepClientsEndpoint(
             s.Summary = "List the clients a lapsed plan keeps";
             s.Description = "The caller's live clients with their roles, the end of their published weeks, whether the Free plan " +
                             "keeps them and what happens to them after, plus the cap. Only while the paid plan has lapsed.";
-            s.Responses[StatusCodes.Status200OK] = "The live clients and the cap";
-            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
-            s.Responses[StatusCodes.Status404NotFound] = "The caller has no professional profile";
-            s.Responses[StatusCodes.Status409Conflict] = "The paid plan has not lapsed (SUBSCRIPTION_NOT_LAPSED)";
+            s.Response<GetKeepClientsResponse>(StatusCodes.Status200OK, "The live clients and the cap");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status403Forbidden, "The caller is not a trainer or nutritionist, or the coach role was removed");
+            s.Response(StatusCodes.Status404NotFound, "The caller has no professional profile");
+            s.Response(StatusCodes.Status409Conflict, "The paid plan has not lapsed (SUBSCRIPTION_NOT_LAPSED)");
         });
     }
 

@@ -1,3 +1,5 @@
+using FormUp.Application.Domain.Enums;
+
 namespace FormUp.Application.Domain.Interfaces;
 
 /// <summary>
@@ -15,7 +17,8 @@ public interface IEmailService
     /// <param name="personalMessage">Optional personal message from the trainer to include in the email.</param>
     /// <param name="package">Optional package the invitation offers; the email names it without a price.</param>
     /// <param name="ct">Cancellation token.</param>
-    Task SendInvitationEmailAsync(string toEmail, string trainerName, string invitationToken, string language, string? personalMessage, InvitationPackageInfo? package, CancellationToken ct);
+    /// <param name="coachRole">Discipline(s) the invitation grants, shown under the coach's name; null shows no role line.</param>
+    Task SendInvitationEmailAsync(string toEmail, string trainerName, string invitationToken, string language, string? personalMessage, InvitationPackageInfo? package, CancellationToken ct, InvitationCoachRole? coachRole = null);
 
     /// <summary>
     /// Sends a password reset email containing a link to reset the user's password.

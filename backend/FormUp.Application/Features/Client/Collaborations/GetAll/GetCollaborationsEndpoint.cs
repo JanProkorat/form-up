@@ -23,8 +23,8 @@ public class GetCollaborationsEndpoint(
         {
             s.Summary = "Get active collaborations";
             s.Description = "Returns all active professional links for the authenticated client, each with the first payment of its current terms and the effective weekly check-in days.";
-            s.Responses[StatusCodes.Status200OK] = "The client's active collaborations";
-            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
+            s.Response<GetCollaborationsResponse>(StatusCodes.Status200OK, "The client's active collaborations");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
         });
     }
 

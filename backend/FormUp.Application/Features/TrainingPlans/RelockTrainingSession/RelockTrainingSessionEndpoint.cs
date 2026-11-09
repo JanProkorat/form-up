@@ -38,8 +38,12 @@ public class RelockTrainingSessionEndpoint(
             s.Summary = "Relock a training session (release the Editing lock)";
             s.Description = "Releases the Editing lock, returning the session to Stable state. " +
                             "Idempotent: if the lock is already released or expired this is a no-op success.";
-            s.Responses[StatusCodes.Status403Forbidden] =
-                "The client is over the Free plan's client limit and the plan's last published week has ended (CLIENT_OVER_PLAN_LIMIT)";
+            s.Response(StatusCodes.Status204NoContent, "Lock released (or already released)");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Invalid request");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status403Forbidden,
+                "The client is over the Free plan's client limit and the plan's last published week has ended (CLIENT_OVER_PLAN_LIMIT)");
+            s.Response(StatusCodes.Status404NotFound, "Plan or session not found, or not editable by the caller");
         });
     }
 

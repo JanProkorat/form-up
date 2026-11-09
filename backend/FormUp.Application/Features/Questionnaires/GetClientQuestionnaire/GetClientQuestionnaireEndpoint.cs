@@ -23,9 +23,10 @@ public class GetClientQuestionnaireEndpoint(IApplicationDbContext db, TimeProvid
                             "If omitted, falls back to the first active link (legacy behaviour). " +
                             "Pass ?responsePublicId= to load the questionnaire of one open response instead; " +
                             "an unknown, foreign, closed or inactive-link response is a 404.";
-            s.Responses[StatusCodes.Status200OK] = "The questionnaire with any existing answers";
-            s.Responses[StatusCodes.Status404NotFound] = "No matching questionnaire, response or active link";
-            s.Responses[StatusCodes.Status409Conflict] = "The response is a check-in past its answer window (CHECK_IN_ANSWER_WINDOW_CLOSED)";
+            s.Response<GetClientQuestionnaireResponse>(StatusCodes.Status200OK, "The questionnaire with any existing answers");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status404NotFound, "No matching questionnaire, response or active link");
+            s.Response(StatusCodes.Status409Conflict, "The response is a check-in past its answer window (CHECK_IN_ANSWER_WINDOW_CLOSED)");
         });
     }
 

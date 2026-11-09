@@ -88,10 +88,11 @@ public class GetClientTimelineEndpoint(
         {
             s.Summary = "Get client activity timeline";
             s.Description = "Returns a merged timeline of recent client activity (meals, workouts, measurements, plan events) for a specific client managed by the authenticated trainer.";
-            s.Responses[StatusCodes.Status200OK] = "Timeline items, newest first";
-            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
-            s.Responses[StatusCodes.Status403Forbidden] = "The link grants no nutrition or training access to the caller";
-            s.Responses[StatusCodes.Status404NotFound] = "Client not found, or not linked to the caller";
+            s.Response<GetClientTimelineResponse>(StatusCodes.Status200OK, "Timeline items, newest first");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Invalid query parameters");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status403Forbidden, "The link grants no nutrition or training access to the caller");
+            s.Response(StatusCodes.Status404NotFound, "Client not found, or not linked to the caller");
         });
     }
 

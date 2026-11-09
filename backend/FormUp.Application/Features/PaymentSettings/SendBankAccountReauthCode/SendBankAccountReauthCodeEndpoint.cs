@@ -44,12 +44,12 @@ internal sealed class SendBankAccountReauthCodeEndpoint(
         {
             s.Summary = "Email a bank account confirmation code";
             s.Description = "For an account with no password (social sign-in): emails a 10-minute one-time code that replaces the password when changing the bank account. Replaces any earlier unused code.";
-            s.Responses[StatusCodes.Status204NoContent] = "Code emailed";
-            s.Responses[StatusCodes.Status400BadRequest] = "The account has a password and uses it instead (REAUTH_CODE_NOT_AVAILABLE)";
-            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
-            s.Responses[StatusCodes.Status403Forbidden] = "The subscription does not include payments (PAYMENTS_NOT_ENTITLED)";
-            s.Responses[StatusCodes.Status404NotFound] = "The caller has no professional profile or account";
-            s.Responses[StatusCodes.Status429TooManyRequests] = "Rate limit exceeded";
+            s.Response(StatusCodes.Status204NoContent, "Code emailed");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "The account has a password and uses it instead (REAUTH_CODE_NOT_AVAILABLE)");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status403Forbidden, "The subscription does not include payments (PAYMENTS_NOT_ENTITLED)");
+            s.Response(StatusCodes.Status404NotFound, "The caller has no professional profile or account");
+            s.Response(StatusCodes.Status429TooManyRequests, "Rate limit exceeded");
         });
     }
 

@@ -52,6 +52,9 @@ public class RefreshTokenEndpoint(
         {
             s.Summary = "Refresh access token";
             s.Description = "Exchanges a valid refresh token for a new access + refresh token pair. The old refresh token is invalidated.";
+            s.Response<RefreshTokenResponse>(StatusCodes.Status200OK, "New access and refresh token pair");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Invalid input, or an invalid, expired or reused refresh token");
+            s.Response(StatusCodes.Status429TooManyRequests, "Rate limit exceeded");
         });
     }
 

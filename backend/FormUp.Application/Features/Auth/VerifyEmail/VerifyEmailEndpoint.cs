@@ -45,8 +45,9 @@ public class VerifyEmailEndpoint(
         {
             s.Summary = "Verify email address";
             s.Description = "Verifies a user's email address using the token sent via email. Token is valid for 24 hours.";
-            s.Responses[StatusCodes.Status200OK] = "Email verified; returns the account email and roles";
-            s.Responses[StatusCodes.Status400BadRequest] = "Invalid, already used or expired verification token";
+            s.Response<VerifyEmailResponse>(StatusCodes.Status200OK, "Email verified; returns the account email and roles");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Invalid, already used or expired verification token");
+            s.Response(StatusCodes.Status429TooManyRequests, "Rate limit exceeded");
         });
     }
 

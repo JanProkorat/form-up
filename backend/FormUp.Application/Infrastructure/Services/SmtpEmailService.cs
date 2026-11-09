@@ -1,5 +1,6 @@
 using System.Net;
 using FormUp.Application.Domain.Constants;
+using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Interfaces;
 using FormUp.Application.Domain.Services;
 using MailKit.Net.Smtp;
@@ -32,11 +33,11 @@ public class SmtpEmailService(IConfiguration configuration, ILogger<SmtpEmailSer
         .Build();
 
     /// <inheritdoc />
-    public async Task SendInvitationEmailAsync(string toEmail, string trainerName, string invitationToken, string language, string? personalMessage, InvitationPackageInfo? package, CancellationToken ct)
+    public async Task SendInvitationEmailAsync(string toEmail, string trainerName, string invitationToken, string language, string? personalMessage, InvitationPackageInfo? package, CancellationToken ct, InvitationCoachRole? coachRole = null)
     {
         var lang = EmailTemplateRenderer.NormalizeLanguage(language);
         var acceptUrl = $"{BaseUrl}/invite/accept?token={WebUtility.UrlEncode(invitationToken)}";
-        var (subject, html) = _renderer.RenderInvitation(trainerName, acceptUrl, lang, personalMessage, package);
+        var (subject, html) = _renderer.RenderInvitation(trainerName, acceptUrl, lang, personalMessage, package, coachRole);
 
         await SendEmailAsync(toEmail, subject, html, ct);
 

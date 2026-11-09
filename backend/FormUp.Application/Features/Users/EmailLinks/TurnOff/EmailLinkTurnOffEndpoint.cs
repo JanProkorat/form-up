@@ -30,9 +30,9 @@ internal sealed class EmailLinkTurnOffEndpoint(
         {
             s.Summary = "Turn off a notification email from its link";
             s.Description = "Anonymous: the signed token from the emailed link is the credential. Sets only the email switch of that event to off and leaves the push choice alone. Repeating it changes nothing.";
-            s.Responses[StatusCodes.Status200OK] = "The email is off; returns the account email and the event";
-            s.Responses[StatusCodes.Status400BadRequest] = "Tampered, expired or unknown link, or the account no longer exists (EMAIL_LINK_INVALID)";
-            s.Responses[StatusCodes.Status429TooManyRequests] = "Rate limit exceeded";
+            s.Response<EmailLinkTurnOffResponse>(StatusCodes.Status200OK, "The email is off; returns the account email and the event");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Tampered, expired or unknown link, or the account no longer exists (EMAIL_LINK_INVALID)");
+            s.Response(StatusCodes.Status429TooManyRequests, "Rate limit exceeded");
         });
     }
 

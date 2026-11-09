@@ -36,12 +36,13 @@ public class ChangeUnverifiedEmailEndpoint(
             s.Summary = "Change the email of an unverified account";
             s.Description = "Replaces the email address of the caller's unverified account, invalidates "
                             + "earlier verification tokens and sends a new one. Any authenticated role.";
-            s.Responses[StatusCodes.Status200OK] = "Email changed, verification email sent";
-            s.Responses[StatusCodes.Status400BadRequest] =
-                "Invalid address, already verified, unchanged, in use, or resend limit reached";
-            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
-            s.Responses[StatusCodes.Status404NotFound] = "Caller's account no longer exists";
-            s.Responses[StatusCodes.Status429TooManyRequests] = "Rate limit exceeded";
+            s.Response<ChangeUnverifiedEmailResponse>(StatusCodes.Status200OK, "Email changed, verification email sent");
+            s.Response<ProblemDetails>(
+                StatusCodes.Status400BadRequest,
+                "Invalid address, already verified, unchanged, in use, or resend limit reached");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status404NotFound, "Caller's account no longer exists");
+            s.Response(StatusCodes.Status429TooManyRequests, "Rate limit exceeded");
         });
     }
 

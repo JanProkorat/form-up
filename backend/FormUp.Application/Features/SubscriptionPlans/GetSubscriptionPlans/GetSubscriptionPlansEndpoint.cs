@@ -23,9 +23,9 @@ internal sealed class GetSubscriptionPlansEndpoint(IApplicationDbContext db)
         {
             s.Summary = "List subscription plans";
             s.Description = "Returns every subscription tier, including inactive ones — the Admin management UI needs the full set, not just what's currently offered.";
-            s.Responses[StatusCodes.Status200OK] = "All subscription plans";
-            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or invalid credentials";
-            s.Responses[StatusCodes.Status403Forbidden] = "Caller is not an Admin";
+            s.Response<GetSubscriptionPlansResponse>(StatusCodes.Status200OK, "All subscription plans");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or invalid credentials");
+            s.Response(StatusCodes.Status403Forbidden, "Caller is not an Admin");
         });
     }
 

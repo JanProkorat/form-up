@@ -30,8 +30,12 @@ public class AssignQuestionnaireEndpoint(
         {
             s.Summary = "Assign a questionnaire to a client";
             s.Description = "Assigns a questionnaire to an existing linked client, creating a pending response.";
-            s.Responses[StatusCodes.Status403Forbidden] =
-                "The subscription does not include questionnaires (SUBSCRIPTION_REQUIRED), or a removed coach role";
+            s.Response(StatusCodes.Status204NoContent, "Questionnaire assigned");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest,
+                "The profile, client, link or questionnaire is unknown, or a check-in form was sent as a questionnaire (CHECK_IN_FORM_NOT_SENDABLE)");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status403Forbidden,
+                "The subscription does not include questionnaires (SUBSCRIPTION_REQUIRED), or a removed coach role");
         });
     }
 

@@ -131,7 +131,8 @@ public class EmailDispatchWorker(
                         case InvitationEmailWorkItem invitation:
                             await emailService.SendInvitationEmailAsync(
                                 invitation.Email, invitation.TrainerName, invitation.Token, invitation.Language,
-                                invitation.PersonalMessage, invitation.Package, CancellationToken.None);
+                                invitation.PersonalMessage, invitation.Package, CancellationToken.None,
+                                invitation.CoachRole);
                             break;
                         case NotificationEmailWorkItem notification:
                             await emailService.SendNotificationEmailAsync(notification, CancellationToken.None);
