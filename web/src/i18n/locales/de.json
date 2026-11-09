@@ -327,6 +327,8 @@
     "lapse": {
       "bannerTitle": "Ihr Tarif {{plan}} endete am {{date}}",
       "bannerTitleNoDate": "Ihr Tarif {{plan}} ist beendet",
+      "overCapBanner_one": "Sie nutzen den kostenlosen Tarif mit mehr Klienten, als er erlaubt. Wählen Sie, welcher {{count}} Klient voll aktiv bleibt.",
+      "overCapBanner_other": "Sie nutzen den kostenlosen Tarif mit mehr Klienten, als er erlaubt. Wählen Sie, welche {{count}} Klienten voll aktiv bleiben.",
       "bannerBody_one": "Sie nutzen jetzt den kostenlosen Tarif: {{count}} aktiver Klient, beide Rollen.",
       "bannerBody_other": "Sie nutzen jetzt den kostenlosen Tarif: {{count}} aktive Klienten, beide Rollen.",
       "resubscribe": "Erneut abonnieren",

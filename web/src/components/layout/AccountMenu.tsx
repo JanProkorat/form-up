@@ -94,6 +94,8 @@ export default function AccountMenu({ onNavigate, collapsed = false }: Props) {
 
   const activeRoles = useActiveRoles();
   const subscription = useSubscription();
+  // Lapsed, or on Free with more live clients than it allows: the coach can (re)pick which clients stay.
+  const needsKeepPick = subscription.isLapsed || subscription.overCapClientCount > 0;
   const tokenRoles = (user?.roles ?? []).map((role) => role.toLowerCase());
   const tokenCoachRoles = tokenRoles.filter((role) => COACH_ROLES.has(role));
 
@@ -154,7 +156,7 @@ export default function AccountMenu({ onNavigate, collapsed = false }: Props) {
           status={subscription.data.status}
           used={subscription.activeClientCount}
           limit={subscription.clientLimit}
-          lapsed={subscription.isLapsed}
+          lapsed={needsKeepPick}
           onNavigate={onNavigate}
         />
       )}
@@ -198,7 +200,7 @@ export default function AccountMenu({ onNavigate, collapsed = false }: Props) {
             )}
           </Link>
         )}
-        {subscription.isCoach && subscription.isLapsed && (
+        {subscription.isCoach && needsKeepPick && (
           <Link to={KEEP_CLIENTS_PATH} onClick={close} className={ITEM_CLASS}>
             <Users className="size-4 text-muted-foreground" aria-hidden="true" />
             {t('accountMenu.keepClients')}

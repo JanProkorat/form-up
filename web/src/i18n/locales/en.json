@@ -329,6 +329,8 @@
       "bannerTitleNoDate": "Your {{plan}} plan has ended",
       "bannerBody_one": "You're on Free now: {{count}} active client, both roles.",
       "bannerBody_other": "You're on Free now: {{count}} active clients, both roles.",
+      "overCapBanner_one": "You're on the Free plan with more clients than it allows. Choose which {{count}} stays fully active.",
+      "overCapBanner_other": "You're on the Free plan with more clients than it allows. Choose which {{count}} stay fully active.",
       "resubscribe": "Resubscribe",
       "title_one": "Pick {{count}} client to keep",
       "title_other": "Pick {{count}} clients to keep",

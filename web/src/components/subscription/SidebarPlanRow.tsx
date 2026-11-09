@@ -12,7 +12,7 @@ interface Props {
   /** Null means unlimited. */
   limit: number | null;
   onNavigate?: () => void;
-  /** A lapsed coach: the row links to the keep-clients screen instead of Plan and billing. */
+  /** A lapsed coach, or one on Free over the client cap: the row links to the keep-clients screen instead of Plan and billing. */
   lapsed?: boolean;
 }
 
