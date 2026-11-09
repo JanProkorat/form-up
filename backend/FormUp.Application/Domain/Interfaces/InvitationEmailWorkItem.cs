@@ -1,3 +1,5 @@
+using FormUp.Application.Domain.Enums;
+
 namespace FormUp.Application.Domain.Interfaces;
 
 /// <summary>
@@ -13,11 +15,13 @@ namespace FormUp.Application.Domain.Interfaces;
 /// <param name="Language">Two-letter language code (en, cs, de) for the email template.</param>
 /// <param name="PersonalMessage">Optional personal message included in the invite.</param>
 /// <param name="Package">Optional package the invitation offers; named in the email without a price.</param>
+/// <param name="CoachRole">Discipline(s) the invitation grants; null leaves the role line out of the email.</param>
 public sealed record InvitationEmailWorkItem(
     string Email,
     string TrainerName,
     string Token,
     string Language,
     string? PersonalMessage,
-    InvitationPackageInfo? Package = null)
+    InvitationPackageInfo? Package = null,
+    InvitationCoachRole? CoachRole = null)
     : EmailDispatchWorkItem(Email, Language);

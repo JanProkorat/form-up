@@ -275,7 +275,8 @@ public class CreatePendingInviteEndpoint(
         // send that would reintroduce exactly the failure mode this closes.
         if (!emailQueue.TryEnqueue(new InvitationEmailWorkItem(
                 req.Email, trainerName, tokenValue, language, req.Message,
-                package is null ? null : new InvitationPackageInfo(package.Name, package.Billing, package.IntervalWeeks))))
+                package is null ? null : new InvitationPackageInfo(package.Name, package.Billing, package.IntervalWeeks),
+                ResolveCoachRole(wantsTrainingPlans, wantsNutritionPlans))))
         {
             logger.LogWarning(
                 "Background email queue full; dropped invitation email enqueue for {Email}.",
@@ -432,6 +433,16 @@ public class CreatePendingInviteEndpoint(
 
         return (null, null);
     }
+
+    // The email names the disciplines this invite grants; no grant means no role line.
+    private static InvitationCoachRole? ResolveCoachRole(bool wantsTrainingPlans, bool wantsNutritionPlans) =>
+        (wantsTrainingPlans, wantsNutritionPlans) switch
+        {
+            (true, true) => InvitationCoachRole.Both,
+            (true, false) => InvitationCoachRole.Trainer,
+            (false, true) => InvitationCoachRole.Nutritionist,
+            _ => null
+        };
 
     private static CreatePendingInviteResponse BuildResponse(PendingInvite pendingInvite, Guid? questionnairePublicId) =>
         new()

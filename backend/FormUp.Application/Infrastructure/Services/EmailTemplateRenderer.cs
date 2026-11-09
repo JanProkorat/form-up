@@ -261,8 +261,10 @@ public sealed partial class EmailTemplateRenderer(IConfiguration configuration)
     /// <param name="language">The recipient's language.</param>
     /// <param name="personalMessage">The coach's optional note.</param>
     /// <param name="package">The package offered with the invitation, if any.</param>
+    /// <param name="coachRole">The discipline(s) the invitation grants; null leaves the role line out.</param>
     public (string Subject, string Html) RenderInvitation(
-        string trainerName, string acceptUrl, string? language, string? personalMessage, InvitationPackageInfo? package)
+        string trainerName, string acceptUrl, string? language, string? personalMessage, InvitationPackageInfo? package,
+        InvitationCoachRole? coachRole = null)
     {
         var lang = NormalizeLanguage(language);
         var firstName = FirstName(trainerName);
@@ -279,6 +281,7 @@ public sealed partial class EmailTemplateRenderer(IConfiguration configuration)
             },
             new Dictionary<string, string>
             {
+                ["TrainerRoleLine"] = CoachRoleLine(coachRole, lang),
                 ["PackageBlock"] = InvitationPackageBlock.Render(package, lang, AssetBaseUrl()),
                 ["PersonalMessage"] = PersonalMessageBlock(personalMessage, lang, firstName)
             });
@@ -583,6 +586,26 @@ public sealed partial class EmailTemplateRenderer(IConfiguration configuration)
                 </tr>
               </table>
               """;
+    }
+
+    // The wording is one of this class's own literals, so it needs no encoding.
+    private static string CoachRoleLine(InvitationCoachRole? coachRole, string language)
+    {
+        var text = coachRole switch
+        {
+            InvitationCoachRole.Trainer => Localize(language, "Personal trainer", "Osobní trenér", "Personal Trainer"),
+            InvitationCoachRole.Nutritionist => Localize(language, "Nutritionist", "Nutriční poradce", "Ernährungsberater"),
+            InvitationCoachRole.Both => Localize(
+                language,
+                "Personal trainer &amp; nutritionist",
+                "Osobní trenér a nutriční poradce",
+                "Personal Trainer und Ernährungsberater"),
+            _ => string.Empty
+        };
+
+        return text.Length == 0
+            ? string.Empty
+            : $"""<p class="fu-muted" style="margin:2px 0 0;font-size:13px;color:#6B6863;">{text}</p>""";
     }
 
     private static string FirstName(string fullName) =>
