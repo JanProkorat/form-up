@@ -23205,6 +23205,403 @@ export class ApiClient {
         }
         return Promise.resolve<AcceptInvitationResponse>(null as any);
     }
+
+    /**
+     * List coaches
+     * @param page Page number (1-based). Defaults to 1.
+     * @param pageSize Number of rows per page, 1 to 100. Defaults to 20.
+     * @param status Status bucket to list. Defaults to every coach.
+     * @param search (optional) Optional search by coach name or email.
+     * @return A page of coaches and the stats
+     */
+    listAdminCoachesEndpoint(page: number, pageSize: number, status: AdminCoachStatusFilter, search?: string | null | undefined, signal?: AbortSignal): Promise<ListAdminCoachesResponse> {
+        let url_ = this.baseUrl + "/admin/coaches?";
+        if (page === undefined || page === null)
+            throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
+        else
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === undefined || pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' must be defined and cannot be null.");
+        else
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (status === undefined || status === null)
+            throw new globalThis.Error("The parameter 'status' must be defined and cannot be null.");
+        else
+            url_ += "status=" + encodeURIComponent("" + status) + "&";
+        if (search !== undefined && search !== null)
+            url_ += "search=" + encodeURIComponent("" + search) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processListAdminCoachesEndpoint(_response);
+        });
+    }
+
+    protected processListAdminCoachesEndpoint(response: AxiosResponse): Promise<ListAdminCoachesResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<ListAdminCoachesResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid paging, status filter or search", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Caller is not an Admin", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ListAdminCoachesResponse>(null as any);
+    }
+
+    /**
+     * Give a coach a plan for free
+     * @param coachId Route parameter — the coach's user id; matches {CoachId} in the route exactly.
+     * @return The gift as it now stands
+     */
+    giveCoachPlanFreeEndpoint(coachId: string, giveCoachPlanFreeRequest: GiveCoachPlanFreeRequest, signal?: AbortSignal): Promise<GiveCoachPlanFreeResponse> {
+        let url_ = this.baseUrl + "/admin/coaches/{coachId}/give-free";
+        if (coachId === undefined || coachId === null)
+            throw new globalThis.Error("The parameter 'coachId' must be defined.");
+        url_ = url_.replace("{coachId}", encodeURIComponent("" + coachId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(giveCoachPlanFreeRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGiveCoachPlanFreeEndpoint(_response);
+        });
+    }
+
+    protected processGiveCoachPlanFreeEndpoint(response: AxiosResponse): Promise<GiveCoachPlanFreeResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GiveCoachPlanFreeResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request body", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Caller is not an Admin", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("The coach or the plan code is unknown (PROFESSIONAL_NOT_FOUND, SUBSCRIPTION_PLAN_NOT_FOUND)", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GiveCoachPlanFreeResponse>(null as any);
+    }
+
+    /**
+     * Get a coach
+     * @param coachId Route parameter — the coach's user id; matches {CoachId} in the route exactly.
+     * @return The coach
+     */
+    getAdminCoachEndpoint(coachId: string, signal?: AbortSignal): Promise<GetAdminCoachResponse> {
+        let url_ = this.baseUrl + "/admin/coaches/{coachId}";
+        if (coachId === undefined || coachId === null)
+            throw new globalThis.Error("The parameter 'coachId' must be defined.");
+        url_ = url_.replace("{coachId}", encodeURIComponent("" + coachId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetAdminCoachEndpoint(_response);
+        });
+    }
+
+    protected processGetAdminCoachEndpoint(response: AxiosResponse): Promise<GetAdminCoachResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetAdminCoachResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Caller is not an Admin", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("The coach is unknown (PROFESSIONAL_NOT_FOUND)", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetAdminCoachResponse>(null as any);
+    }
+
+    /**
+     * Disable a coach's account
+     * @param coachId Route parameter — the coach's user id; matches {CoachId} in the route exactly.
+     * @return Date the account stops being active and the roles removed by this call
+     */
+    disableCoachAccountByAdminEndpoint(coachId: string, disableCoachAccountByAdminRequest: DisableCoachAccountByAdminRequest, signal?: AbortSignal): Promise<DisableCoachAccountByAdminResponse> {
+        let url_ = this.baseUrl + "/admin/coaches/{coachId}/disable";
+        if (coachId === undefined || coachId === null)
+            throw new globalThis.Error("The parameter 'coachId' must be defined.");
+        url_ = url_.replace("{coachId}", encodeURIComponent("" + coachId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(disableCoachAccountByAdminRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDisableCoachAccountByAdminEndpoint(_response);
+        });
+    }
+
+    protected processDisableCoachAccountByAdminEndpoint(response: AxiosResponse): Promise<DisableCoachAccountByAdminResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<DisableCoachAccountByAdminResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request body, or the coach has no active coach role (NO_ACTIVE_COACH_ROLE)", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Caller is not an Admin", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("The coach is unknown (PROFESSIONAL_NOT_FOUND)", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<DisableCoachAccountByAdminResponse>(null as any);
+    }
+
+    /**
+     * Cancel a coach's renewal
+     * @param coachId Route parameter — the coach's user id; matches {CoachId} in the route exactly.
+     * @return The renewal is cancelled
+     */
+    cancelCoachRenewalEndpoint(coachId: string, cancelCoachRenewalRequest: CancelCoachRenewalRequest, signal?: AbortSignal): Promise<CancelCoachRenewalResponse> {
+        let url_ = this.baseUrl + "/admin/coaches/{coachId}/cancel-renewal";
+        if (coachId === undefined || coachId === null)
+            throw new globalThis.Error("The parameter 'coachId' must be defined.");
+        url_ = url_.replace("{coachId}", encodeURIComponent("" + coachId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(cancelCoachRenewalRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCancelCoachRenewalEndpoint(_response);
+        });
+    }
+
+    protected processCancelCoachRenewalEndpoint(response: AxiosResponse): Promise<CancelCoachRenewalResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<CancelCoachRenewalResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request body", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Caller is not an Admin", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("The coach is unknown (PROFESSIONAL_NOT_FOUND)", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = JSON.parse(resultData409);
+            return throwException("Nothing renews: no subscription, the Free plan, a given-free plan, or a plan that no longer applies (NO_RENEWING_SUBSCRIPTION)", status, _responseText, _headers, result409);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<CancelCoachRenewalResponse>(null as any);
+    }
 }
 
 /** Response DTO for a single workout template. */
@@ -32860,6 +33257,242 @@ export interface AcceptInvitationResponse {
 export interface AcceptInvitationRequest {
     /** The one-time invitation token received from the trainer. */
     token: string;
+}
+
+/** One page of coaches plus the stats over all coaches. */
+export interface ListAdminCoachesResponse {
+    /** Counts and revenue over every coach, independent of the filter, search and page. */
+    stats?: AdminCoachStatsDto;
+    /** The rows of the requested page. */
+    items?: AdminCoachRowDto[];
+}
+
+/** Counts and revenue over every coach. Paying, Free and Given free add up to All; Payment failed and Cancelling are already part of Paying. */
+export interface AdminCoachStatsDto {
+    /** Every coach. */
+    allCount?: number;
+    /** Coaches paying for a paid plan, including those whose payment failed or whose renewal is cancelled. */
+    payingCount?: number;
+    /** Paying coaches whose last payment failed. */
+    paymentFailedCount?: number;
+    /** Paying coaches whose renewal is cancelled. */
+    cancellingCount?: number;
+    /** Coaches on the Free plan or on a plan that no longer applies. */
+    freeCount?: number;
+    /** Coaches an admin gave a plan for free, gift still in force. */
+    givenFreeCount?: number;
+    /** Paying coaches per plan. */
+    payingByPlan?: AdminCoachPlanCountDto[];
+    /** Monthly revenue of the paying coaches, one entry per currency. Each coach counts at the price row they pay
+plus the second-role add-on they pay; annual plans count a twelfth. Free, given-free and trialing coaches add nothing. */
+    monthlyRevenue?: AdminCoachRevenueDto[];
+}
+
+/** Number of paying coaches on a plan. */
+export interface AdminCoachPlanCountDto {
+    /** The plan. */
+    plan?: AdminCoachPlanDto;
+    /** Paying coaches on it. */
+    count?: number;
+}
+
+/** A subscription plan as an admin sees it on a coach. */
+export interface AdminCoachPlanDto {
+    /** Stable plan code, e.g. pro. */
+    code?: string;
+    /** Czech plan name. */
+    nameCs?: string;
+    /** English plan name. */
+    nameEn?: string;
+    /** German plan name. */
+    nameDe?: string;
+}
+
+/** Monthly revenue in one currency. */
+export interface AdminCoachRevenueDto {
+    /** ISO 4217 currency code. */
+    currency?: string;
+    /** Amount in the smallest unit of the currency. */
+    amountMinorUnits?: number;
+}
+
+/** One coach row. Never carries anything about the coach's clients except counts. */
+export interface AdminCoachRowDto {
+    /** The coach's user id; the route parameter of the coach actions. */
+    coachId?: string;
+    /** The coach's name. */
+    name?: string;
+    /** The coach's email. */
+    email?: string | undefined;
+    /** Active coach roles (Trainer, Nutritionist); empty once every role was removed. */
+    roles?: string[];
+    /** The plan whose limits apply: the assigned plan while it applies, otherwise the Free plan. */
+    plan?: AdminCoachPlanDto;
+    /** The coach's status. */
+    status?: AdminCoachStatus;
+    /** Active clients: distinct clients with a link that is not ended. */
+    clientsUsed?: number;
+    /** The plan's client limit; null means unlimited. */
+    clientsMax?: number | undefined;
+    /** Promotion applied to the coach. Always null until promotions exist. */
+    promotion?: string | undefined;
+    /** End of the current paid period (renewal, or end when cancelling); null unless the coach is paying. */
+    currentPeriodEndsAt?: string | undefined;
+    /** End of the gift; null unless the plan is given free, and null when the gift has no end. */
+    givenFreeUntil?: string | undefined;
+}
+
+/** The one status an admin sees on a coach: the most specific of the filter buckets. */
+export enum AdminCoachStatus {
+    Paying = "Paying",
+    PaymentFailed = "PaymentFailed",
+    Cancelling = "Cancelling",
+    Free = "Free",
+    GivenFree = "GivenFree",
+}
+
+/** Query for the admin coaches list. */
+export interface ListAdminCoachesRequest {
+}
+
+/** Filter of the admin coaches list. Paying, Free and GivenFree split every coach exactly once; PaymentFailed and Cancelling are subsets of Paying. */
+export enum AdminCoachStatusFilter {
+    All = "All",
+    Paying = "Paying",
+    PaymentFailed = "PaymentFailed",
+    Cancelling = "Cancelling",
+    Free = "Free",
+    GivenFree = "GivenFree",
+}
+
+/** The coach's plan after it was given for free. */
+export interface GiveCoachPlanFreeResponse {
+    /** The coach's user id. */
+    coachId?: string;
+    /** Code of the plan given. */
+    planCode?: string;
+    /** When the plan was given. */
+    givenFreeAt?: string;
+    /** When the gift ends; null means it has no end. */
+    freeUntil?: string | undefined;
+}
+
+/** Request for giving a coach a paid plan for free. */
+export interface GiveCoachPlanFreeRequest {
+    /** Code of the plan to give. Must not be the Free plan. */
+    planCode: string;
+    /** When the gift ends; null means it has no end. Must be in the future. */
+    freeUntil?: string | undefined;
+    /** Why the plan is given, at most 300 characters. Stored in the coach's history. */
+    reason: string;
+}
+
+/** One coach as the admin drawer shows them: plan card, clients bar and history. Never carries anything about the coach's clients except counts. */
+export interface GetAdminCoachResponse {
+    /** The coach's user id. */
+    coachId?: string;
+    /** The coach's name. */
+    name?: string;
+    /** The coach's email. */
+    email?: string | undefined;
+    /** Active coach roles (Trainer, Nutritionist). */
+    roles?: string[];
+    /** When the coach joined (UTC). */
+    joinedAt?: string;
+    /** The plan whose limits apply: the assigned plan while it applies, otherwise the Free plan. */
+    plan?: AdminCoachPlanDto;
+    /** The coach's status. */
+    status?: AdminCoachStatus;
+    /** What the coach pays per billing period (plan price plus a paid second-role add-on); null unless paying. */
+    priceMinorUnits?: number | undefined;
+    /** Currency of PriceMinorUnits; null unless paying. */
+    currency?: string | undefined;
+    /** Billing cadence of PriceMinorUnits; null unless paying. */
+    billingInterval?: BillingInterval | undefined;
+    /** End of the current paid period; null unless the coach is paying. */
+    currentPeriodEndsAt?: string | undefined;
+    /** When the plan was given for free; null unless the gift is in force. */
+    givenFreeAt?: string | undefined;
+    /** End of the gift; null unless the gift is in force, and null when it has no end. */
+    givenFreeUntil?: string | undefined;
+    /** True when the renewal is cancelled. */
+    cancelAtPeriodEnd?: boolean;
+    /** Why the last payment failed. Always null: there is no payment provider yet. */
+    failureDetail?: string | undefined;
+    /** Active clients: distinct clients with a link that is not ended. */
+    clientsUsed?: number;
+    /** The plan's client limit; null means unlimited. */
+    clientsMax?: number | undefined;
+    /** Newest first. Holds the admin and coach actions on the subscription and account, not payments. */
+    history?: AdminCoachHistoryEntryDto[];
+}
+
+/** One history entry. Carries no IP address and no raw audit values. */
+export interface AdminCoachHistoryEntryDto {
+    /** When it happened (UTC). */
+    occurredAt?: string;
+    /** What happened. */
+    kind?: AdminCoachHistoryKind;
+    /** True when the coach did it themselves. */
+    byCoach?: boolean;
+    /** Display name of the admin who did it; null for the coach's own actions and for Joined. */
+    actorName?: string | undefined;
+    /** The admin's reason, when one was given. */
+    reason?: string | undefined;
+    /** The plan involved, when the entry has one. */
+    planCode?: string | undefined;
+    /** The date the entry ends or runs to (gift end, account end, paid period end), when it has one. */
+    until?: string | undefined;
+    /** The role involved (Trainer, Nutritionist, Client), for role entries. */
+    role?: string | undefined;
+}
+
+/** What happened in one entry of a coach's history. */
+export enum AdminCoachHistoryKind {
+    Joined = "Joined",
+    GivenFree = "GivenFree",
+    PlanAssigned = "PlanAssigned",
+    RenewalCancelled = "RenewalCancelled",
+    AccountDisabled = "AccountDisabled",
+    AccountKept = "AccountKept",
+    RoleAdded = "RoleAdded",
+    RoleRemoved = "RoleRemoved",
+}
+
+/** Request for one coach's admin detail. */
+export interface GetAdminCoachRequest {
+}
+
+/** Outcome of disabling a coach account as an admin. */
+export interface DisableCoachAccountByAdminResponse {
+    /** The coach's user id. */
+    coachId?: string;
+    /** When the coach account stops being active (UTC). At or before now means it already ended. */
+    activeUntil?: string;
+    /** Coach roles removed by this call; empty while the disable is only pending. */
+    rolesRemoved?: string[];
+}
+
+/** Request for disabling a coach's account as an admin. */
+export interface DisableCoachAccountByAdminRequest {
+    /** Why the account is disabled, at most 300 characters. Stored in the coach's history. */
+    reason: string;
+}
+
+/** The coach's subscription after the renewal was cancelled. */
+export interface CancelCoachRenewalResponse {
+    /** The coach's user id. */
+    coachId?: string;
+    /** When the paid period, and so the plan, ends; null when unknown. */
+    currentPeriodEndsAt?: string | undefined;
+    /** True when the renewal was already cancelled, so this call changed nothing and wrote no history entry. */
+    alreadyCancelled?: boolean;
+}
+
+/** Request for cancelling a coach's renewal. */
+export interface CancelCoachRenewalRequest {
+    /** Why the renewal is cancelled, at most 300 characters. Stored in the coach's history. */
+    reason: string;
 }
 
 export class ApiException extends Error {

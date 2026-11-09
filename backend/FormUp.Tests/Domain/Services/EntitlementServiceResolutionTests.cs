@@ -44,7 +44,8 @@ public class EntitlementServiceResolutionTests
         SubscriptionStatus status,
         long profileId = ProfileId,
         DateTimeOffset? freeUntil = null,
-        bool paysSecondRoleAddOn = false) => new()
+        bool paysSecondRoleAddOn = false,
+        DateTimeOffset? givenFreeAt = null) => new()
     {
         ProfessionalProfileId = profileId,
         SubscriptionPlanId = plan.Id,
@@ -52,6 +53,7 @@ public class EntitlementServiceResolutionTests
         SubscriptionPlan = plan,
         Status = status,
         FreeUntil = freeUntil,
+        GivenFreeAt = givenFreeAt,
         PaysSecondRoleAddOn = paysSecondRoleAddOn,
     };
 
@@ -144,6 +146,27 @@ public class EntitlementServiceResolutionTests
         var entitlements = await service.GetEntitlementsAsync(ProfileId, TestContext.Current.CancellationToken);
 
         entitlements.CanSendQuestionnaires.Should().Be(keepsPlan);
+    }
+
+    [Theory]
+    [InlineData(null, SubscriptionStatus.Active, true)]
+    [InlineData(null, SubscriptionStatus.Canceled, true)]
+    [InlineData(1, SubscriptionStatus.Active, true)]
+    [InlineData(-1, SubscriptionStatus.Active, false)]
+    [InlineData(-1, SubscriptionStatus.PastDue, false)]
+    public async Task GetEntitlementsAsync_GivenFreePlan_AppliesUntilItsEndWhateverTheStatus(
+        int? daysFromNow, SubscriptionStatus status, bool keepsPlan)
+    {
+        var free = Plan(1, "free");
+        var pro = Plan(2, "pro", canSendQuestionnaires: true, maxActiveClients: 30);
+        var gift = Subscription(
+            pro, status, freeUntil: daysFromNow is { } days ? Now.AddDays(days) : null, givenFreeAt: Now.AddDays(-10));
+        var service = CreateService([free, pro], [gift]);
+
+        var entitlements = await service.GetEntitlementsAsync(ProfileId, TestContext.Current.CancellationToken);
+
+        entitlements.CanSendQuestionnaires.Should().Be(keepsPlan);
+        entitlements.MaxActiveClients.Should().Be(keepsPlan ? 30 : null);
     }
 
     [Theory]

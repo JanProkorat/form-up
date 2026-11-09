@@ -3,13 +3,8 @@ using FormUp.Application.Domain.Enums;
 using System.Security.Claims;
 using FastEndpoints;
 using FormUp.Application.Domain.Constants;
-using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Extensions;
-using FormUp.Application.Domain.Interfaces;
 using FormUp.Application.Domain.Services;
-using FormUp.Application.Infrastructure.Data;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 
 namespace FormUp.Application.Features.Users.DisableCoachAccount;
 
@@ -17,20 +12,9 @@ namespace FormUp.Application.Features.Users.DisableCoachAccount;
 /// Disables the caller's coach account: it stays active until the paid period ends, or ends at once
 /// when there is no paid period.
 /// </summary>
-/// <param name="userManager">ASP.NET Identity user manager.</param>
-/// <param name="db">Database context.</param>
-/// <param name="coachRoleStatus">Resolves which coach roles are active.</param>
-/// <param name="coachRoleRemover">Removes the coach roles when the account ends now.</param>
-/// <param name="audit">Audit logging service.</param>
-/// <param name="timeProvider">Clock.</param>
+/// <param name="disabler">Disables the account; shared with the admin action.</param>
 [RemovedCoachRole(RemovedCoachRoleMode.Exempt, Reason = "Account lifecycle action that must stay reachable after every role is removed.")]
-internal sealed class DisableCoachAccountEndpoint(
-    UserManager<ApplicationUser> userManager,
-    IApplicationDbContext db,
-    ICoachRoleStatus coachRoleStatus,
-    ICoachRoleRemover coachRoleRemover,
-    IAuditService audit,
-    TimeProvider timeProvider) : EndpointWithoutRequest<DisableCoachAccountResponse>
+internal sealed class DisableCoachAccountEndpoint(CoachAccountDisabler disabler) : EndpointWithoutRequest<DisableCoachAccountResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -56,68 +40,19 @@ internal sealed class DisableCoachAccountEndpoint(
             return;
         }
 
-        var user = await userManager.FindByIdAsync(userId.ToString());
-        var profile = await db.ProfessionalProfiles.FirstOrDefaultAsync(p => p.UserId == userId, ct);
+        var result = await disabler.DisableAsync(
+            userId, userId, reason: null, HttpContext.Connection.RemoteIpAddress?.ToString(), ct);
 
-        if (user is null || profile is null)
+        if (result is null)
         {
             this.ThrowErrorWithCode(ErrorCodes.NoActiveCoachRole, "You have no active coach role.");
             return;
         }
-
-        var activeRoles = await coachRoleStatus.GetActiveRolesAsync(user, profile, ct);
-
-        if (activeRoles.Count == 0)
-        {
-            this.ThrowErrorWithCode(ErrorCodes.NoActiveCoachRole, "You have no active coach role.");
-            return;
-        }
-
-        var now = timeProvider.GetUtcNow().UtcDateTime;
-
-        if (profile.CoachAccountActiveUntil is { } pendingUntil && pendingUntil > now)
-        {
-            await Send.OkAsync(new DisableCoachAccountResponse { ActiveUntil = pendingUntil }, ct);
-            return;
-        }
-
-        var subscription = await db.CoachSubscriptions
-            .FirstOrDefaultAsync(cs => cs.ProfessionalProfileId == profile.Id, ct);
-
-        // A date that already passed (the sweeper has not run yet) resolves to now and ends the account.
-        var activeUntil = profile.CoachAccountActiveUntil is { } passed
-            ? passed
-            : CoachAccountActiveUntilResolver.Resolve(subscription, now);
-
-        profile.CoachAccountActiveUntil = activeUntil;
-
-        if (subscription is not null)
-        {
-            subscription.CancelAtPeriodEnd = true;
-        }
-
-        await db.SaveChangesAsync(ct);
-
-        IReadOnlyList<string> rolesRemoved = [];
-
-        if (activeUntil <= now)
-        {
-            rolesRemoved = await coachRoleRemover.RemoveAsync(user, profile.Id, activeRoles, now, ct);
-        }
-
-        await audit.LogAsync(
-            userId,
-            "DisableCoachAccount",
-            nameof(ApplicationUser),
-            userId,
-            HttpContext.Connection.RemoteIpAddress?.ToString(),
-            newValues: $"{{\"activeUntil\":\"{activeUntil:O}\"}}",
-            ct: ct);
 
         await Send.OkAsync(new DisableCoachAccountResponse
         {
-            ActiveUntil = activeUntil,
-            RolesRemoved = rolesRemoved.ToList(),
+            ActiveUntil = result.ActiveUntil,
+            RolesRemoved = result.RolesRemoved.ToList(),
         }, ct);
     }
 }

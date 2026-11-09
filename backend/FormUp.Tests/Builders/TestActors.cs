@@ -46,6 +46,11 @@ public static class TestActors
     public static ActorBuilder Client(FitnessApiFactory factory) => new(factory, [UserRole.Client]);
 
     /// <summary>
+    /// Builds an <see cref="UserRole.Admin"/> actor (no professional profile).
+    /// </summary>
+    public static ActorBuilder Admin(FitnessApiFactory factory) => new(factory, [UserRole.Admin]);
+
+    /// <summary>
     /// Builds a professional actor holding an arbitrary set of global roles — needed for
     /// dual-role escalation cases (a caller holding both Trainer and Nutritionist).
     /// </summary>

@@ -3311,6 +3311,7 @@
     "FREE_PLAN_LOCKED": "Der Plan Free lässt sich so nicht ändern: Sein Preis bleibt bei 0 und er wird immer angeboten.",
     "SUBSCRIPTION_PLAN_CODE_ALREADY_EXISTS": "Ein Plan mit diesem Code existiert bereits.",
     "SUBSCRIPTION_PLAN_NOT_FOUND": "Dieser Plan existiert nicht mehr.",
+    "NO_RENEWING_SUBSCRIPTION": "Dieser Trainer hat keinen sich verlängernden bezahlten Plan, daher gibt es keine Verlängerung zu kündigen.",
     "SECOND_ROLE_OPTION_INVALID": "Wählen Sie entweder ein kostenpflichtiges Zusatzangebot für die zweite Rolle oder die zweite Rolle im Preis inklusive.",
     "PAYMENTS_NOT_ENTITLED": "Zahlungen sind im Tarif nicht enthalten.",
     "BANK_ACCOUNT_NOT_SET": "Vor einer Zahlungsanforderung muss in den Einstellungen ein Bankkonto hinterlegt sein.",
@@ -6440,6 +6441,147 @@
         "note": "Notiz",
         "notePlaceholder": "Zum Beispiel Knieverletzung"
       }
+    }
+  },
+  "adminCoaches": {
+    "title": "Trainer",
+    "subtitle": "Pläne und Zahlungen aller Trainerkonten. Die Daten ihrer Kunden bleiben privat.",
+    "loadError": "Die Trainer konnten nicht geladen werden.",
+    "retry": "Erneut versuchen",
+    "empty": "Kein Trainer passt.",
+    "search": "Trainer suchen",
+    "stats": {
+      "paying": "Zahlende Trainer",
+      "noPlans": "Noch keine zahlenden Trainer",
+      "revenue": "Monatlicher Umsatz",
+      "revenueNote": "Nur zahlende Trainer",
+      "failed": "Zahlung fehlgeschlagen",
+      "failedNote": "Zählen weiterhin als zahlend",
+      "free": "Kostenlos und geschenkt",
+      "freeNote": "Nicht im Umsatz enthalten"
+    },
+    "filters": {
+      "label": "Trainer nach Status filtern",
+      "All": "Alle",
+      "Paying": "Zahlend",
+      "PaymentFailed": "Zahlung fehlgeschlagen",
+      "Cancelling": "Wird gekündigt",
+      "Free": "Kostenlos",
+      "GivenFree": "Geschenkt"
+    },
+    "status": {
+      "Paying": "Aktiv",
+      "PaymentFailed": "Zahlung fehlgeschlagen",
+      "Cancelling": "Wird gekündigt",
+      "Free": "Kostenlos",
+      "GivenFree": "Geschenkt",
+      "cancellingOn": "Endet {{date}}"
+    },
+    "roles": {
+      "Trainer": "Trainer",
+      "Nutritionist": "Ernährungsberater"
+    },
+    "table": {
+      "coach": "Trainer",
+      "roles": "Rollen",
+      "plan": "Plan",
+      "status": "Status",
+      "clients": "Kunden",
+      "promotion": "Aktion",
+      "renewsEnds": "Verlängerung / Ende",
+      "clientsOf": "{{used}} / {{max}}",
+      "renews": "Verlängert am {{date}}",
+      "ends": "Endet am {{date}}",
+      "until": "Bis {{date}}",
+      "noEnd": "Ohne Ende"
+    },
+    "drawer": {
+      "titleFallback": "Trainer",
+      "loading": "Wird geladen...",
+      "loadError": "Dieser Trainer konnte nicht geladen werden.",
+      "joined": "seit {{date}}",
+      "plan": "Plan",
+      "perMonth": "{{price}} / Monat",
+      "perYear": "{{price}} / Jahr",
+      "renews": "Verlängert sich am {{date}}.",
+      "endsOn": "Der bezahlte Plan läuft bis {{date}}, danach wechselt der Trainer auf Kostenlos.",
+      "givenUntil": "Kostenlos geschenkt bis {{date}}.",
+      "givenNoEnd": "Kostenlos geschenkt, ohne Enddatum.",
+      "clients": "Kunden",
+      "clientsOf": "{{used}} von {{max}}",
+      "clientsUnlimited": "{{used}}, unbegrenzt",
+      "actions": "Aktionen",
+      "privacy": "Namen und Daten der Kunden sehen Administratoren nicht. Nur Zahlen.",
+      "openInStripe": "In Stripe öffnen"
+    },
+    "actions": {
+      "reason": "Grund",
+      "confirm": "Ja, bestätigen",
+      "giveFree": {
+        "title": "Plan kostenlos schenken",
+        "description": "Wählen Sie den Plan, bis wann und warum. Wird als „Geschenkt“ angezeigt.",
+        "plan": "Plan",
+        "planPlaceholder": "Plan wählen",
+        "until": "Bis",
+        "noEnd": "Ohne Enddatum",
+        "button": "Kostenlos schenken",
+        "success": "Der Plan wurde kostenlos geschenkt.",
+        "error": "Der Plan konnte nicht kostenlos geschenkt werden."
+      },
+      "promotion": {
+        "title": "Aktion anwenden",
+        "description": "Nur für diesen Trainer, z. B. nach einem Supportfall.",
+        "button": "Anwenden"
+      },
+      "cancelRenewal": {
+        "title": "Verlängerung kündigen",
+        "description": "Endet mit dem bezahlten Monat. Pläne laufen bis zum Ende.",
+        "button": "Verlängerung kündigen",
+        "none": "Dieser Trainer hat keinen sich verlängernden bezahlten Plan.",
+        "already": "Die Verlängerung ist bereits gekündigt.",
+        "success": "Die Verlängerung wurde gekündigt.",
+        "alreadySuccess": "Die Verlängerung war bereits gekündigt.",
+        "error": "Die Verlängerung konnte nicht gekündigt werden."
+      },
+      "disable": {
+        "title": "Trainerkonto deaktivieren",
+        "description": "Entfernt alle Rollen. Entspricht der eigenen Schaltfläche Deaktivieren des Trainers.",
+        "button": "Deaktivieren",
+        "confirm": "Dadurch werden alle Rollen des Trainers entfernt. Möchten Sie fortfahren?",
+        "success": "Das Trainerkonto wurde deaktiviert.",
+        "error": "Das Trainerkonto konnte nicht deaktiviert werden."
+      }
+    },
+    "history": {
+      "title": "Verlauf",
+      "empty": "Noch nichts aufgezeichnet.",
+      "byCoach": "Vom Trainer",
+      "byAdmin": "Von {{name}}",
+      "reason": "Grund: {{reason}}",
+      "kind": {
+        "joined": "Registriert",
+        "givenFree_until": "Plan {{plan}} kostenlos geschenkt bis {{date}}",
+        "givenFree_plain": "Plan {{plan}} kostenlos geschenkt, ohne Enddatum",
+        "planAssigned": "Plan geändert auf {{plan}}",
+        "renewalCancelled_until": "Verlängerung gekündigt, Plan endet am {{date}}",
+        "renewalCancelled_plain": "Verlängerung gekündigt",
+        "accountDisabled_until": "Konto deaktiviert, aktiv bis {{date}}",
+        "accountDisabled_plain": "Konto deaktiviert",
+        "accountKept": "Konto behalten",
+        "roleAdded": "Rolle hinzugefügt: {{role}}",
+        "roleRemoved": "Rolle entfernt: {{role}}",
+        "unknown": "Aktualisiert"
+      }
+    },
+    "validation": {
+      "planRequired": "Wählen Sie einen Plan.",
+      "dateRequired": "Geben Sie das Enddatum an oder wählen Sie Ohne Enddatum.",
+      "dateFuture": "Das Enddatum muss in der Zukunft liegen.",
+      "reasonRequired": "Geben Sie einen Grund an.",
+      "reasonTooLong": "Der Grund darf höchstens 300 Zeichen lang sein."
+    },
+    "errors": {
+      "noActiveRole": "Dieser Trainer hat keine aktive Trainerrolle, daher gibt es nichts zu deaktivieren."
     }
   },
   "adminPlans": {

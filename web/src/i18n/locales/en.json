@@ -3312,6 +3312,7 @@
     "FREE_PLAN_LOCKED": "The Free plan cannot be changed this way: its price stays at 0 and it is always offered.",
     "SUBSCRIPTION_PLAN_CODE_ALREADY_EXISTS": "A plan with this code already exists.",
     "SUBSCRIPTION_PLAN_NOT_FOUND": "This plan no longer exists.",
+    "NO_RENEWING_SUBSCRIPTION": "This coach has no renewing paid plan, so there is no renewal to cancel.",
     "SECOND_ROLE_OPTION_INVALID": "Choose either a paid second-role add-on or the second role included in the price.",
     "PAYMENTS_NOT_ENTITLED": "Payments aren't part of your plan.",
     "BANK_ACCOUNT_NOT_SET": "Add your bank account in Settings before you request a payment.",
@@ -6441,6 +6442,147 @@
         "note": "Note",
         "notePlaceholder": "For example, knee injury"
       }
+    }
+  },
+  "adminCoaches": {
+    "title": "Coaches",
+    "subtitle": "Plans and payments of every coach account. Their clients' data stays private.",
+    "loadError": "Could not load the coaches.",
+    "retry": "Try again",
+    "empty": "No coaches match.",
+    "search": "Search coaches",
+    "stats": {
+      "paying": "Paying coaches",
+      "noPlans": "No paying coaches yet",
+      "revenue": "Monthly revenue",
+      "revenueNote": "Paying coaches only",
+      "failed": "Payment failed",
+      "failedNote": "Still counted as paying",
+      "free": "Free and given free",
+      "freeNote": "Not counted in revenue"
+    },
+    "filters": {
+      "label": "Filter coaches by status",
+      "All": "All",
+      "Paying": "Paying",
+      "PaymentFailed": "Payment failed",
+      "Cancelling": "Cancelling",
+      "Free": "Free",
+      "GivenFree": "Given free"
+    },
+    "status": {
+      "Paying": "Active",
+      "PaymentFailed": "Payment failed",
+      "Cancelling": "Cancelling",
+      "Free": "Free",
+      "GivenFree": "Given free",
+      "cancellingOn": "Cancels {{date}}"
+    },
+    "roles": {
+      "Trainer": "Trainer",
+      "Nutritionist": "Nutritionist"
+    },
+    "table": {
+      "coach": "Coach",
+      "roles": "Roles",
+      "plan": "Plan",
+      "status": "Status",
+      "clients": "Clients",
+      "promotion": "Promotion",
+      "renewsEnds": "Renews / ends",
+      "clientsOf": "{{used}} / {{max}}",
+      "renews": "Renews {{date}}",
+      "ends": "Ends {{date}}",
+      "until": "Until {{date}}",
+      "noEnd": "No end"
+    },
+    "drawer": {
+      "titleFallback": "Coach",
+      "loading": "Loading...",
+      "loadError": "Could not load this coach.",
+      "joined": "joined {{date}}",
+      "plan": "Plan",
+      "perMonth": "{{price}} / month",
+      "perYear": "{{price}} / year",
+      "renews": "Renews on {{date}}.",
+      "endsOn": "The paid plan runs until {{date}}, then the coach drops to Free.",
+      "givenUntil": "Given for free until {{date}}.",
+      "givenNoEnd": "Given for free, with no end date.",
+      "clients": "Clients",
+      "clientsOf": "{{used}} of {{max}}",
+      "clientsUnlimited": "{{used}}, unlimited",
+      "actions": "Actions",
+      "privacy": "Client names and data aren't shown to admins. Counts only.",
+      "openInStripe": "Open in Stripe"
+    },
+    "actions": {
+      "reason": "Reason",
+      "confirm": "Yes, confirm",
+      "giveFree": {
+        "title": "Give a plan for free",
+        "description": "Pick the plan, until when and why. Shows as \"Given free\".",
+        "plan": "Plan",
+        "planPlaceholder": "Choose a plan",
+        "until": "Until",
+        "noEnd": "No end date",
+        "button": "Give for free",
+        "success": "The plan was given for free.",
+        "error": "Could not give the plan for free."
+      },
+      "promotion": {
+        "title": "Apply a promotion",
+        "description": "Only for this coach, e.g. after a support issue.",
+        "button": "Apply"
+      },
+      "cancelRenewal": {
+        "title": "Cancel renewal",
+        "description": "Stops at the end of the paid month. Plans run to the end.",
+        "button": "Cancel renewal",
+        "none": "This coach has no renewing paid plan.",
+        "already": "The renewal is already cancelled.",
+        "success": "The renewal was cancelled.",
+        "alreadySuccess": "The renewal was already cancelled.",
+        "error": "Could not cancel the renewal."
+      },
+      "disable": {
+        "title": "Disable coach account",
+        "description": "Removes all roles. Same as the coach's own Disable button.",
+        "button": "Disable",
+        "confirm": "This removes all of the coach's roles. Do you want to continue?",
+        "success": "The coach account was disabled.",
+        "error": "Could not disable the coach account."
+      }
+    },
+    "history": {
+      "title": "History",
+      "empty": "Nothing recorded yet.",
+      "byCoach": "By the coach",
+      "byAdmin": "By {{name}}",
+      "reason": "reason: {{reason}}",
+      "kind": {
+        "joined": "Joined",
+        "givenFree_until": "Given {{plan}} for free until {{date}}",
+        "givenFree_plain": "Given {{plan}} for free, no end date",
+        "planAssigned": "Plan changed to {{plan}}",
+        "renewalCancelled_until": "Renewal cancelled, plan ends {{date}}",
+        "renewalCancelled_plain": "Renewal cancelled",
+        "accountDisabled_until": "Account disabled, active until {{date}}",
+        "accountDisabled_plain": "Account disabled",
+        "accountKept": "Account kept",
+        "roleAdded": "Role added: {{role}}",
+        "roleRemoved": "Role removed: {{role}}",
+        "unknown": "Updated"
+      }
+    },
+    "validation": {
+      "planRequired": "Choose a plan.",
+      "dateRequired": "Pick the end date, or tick No end date.",
+      "dateFuture": "The end date must be in the future.",
+      "reasonRequired": "Write a reason.",
+      "reasonTooLong": "The reason can be at most 300 characters."
+    },
+    "errors": {
+      "noActiveRole": "This coach has no active coach role, so there is nothing to disable."
     }
   },
   "adminPlans": {
