@@ -7,7 +7,7 @@ import { Button } from '@/components/Button';
 import { Text } from '@/components/Text';
 import { SentCard } from '@/components/photoRequest/SentCard';
 import { coachLabel } from '@/components/photoRequest/format';
-import { useLeaveRequest, usePhotoRequest, useRequestCoach, useRequestId } from '@/components/photoRequest/hooks';
+import { useBackToToday, usePhotoRequest, useRequestCoach, useRequestId } from '@/components/photoRequest/hooks';
 import { closedRoute, readPositiveInt } from '@/components/photoRequest/model';
 import { FlowFrame } from '@/components/questionnaire/FlowFrame';
 import { useTheme } from '@/theme';
@@ -20,7 +20,7 @@ export default function PhotoRequestSentScreen() {
   const theme = useTheme();
   const styles = makeStyles(theme);
   const id = useRequestId();
-  const leave = useLeaveRequest();
+  const backToToday = useBackToToday();
   const params = useLocalSearchParams<{ count?: string | string[]; at?: string | string[] }>();
   const coach = useRequestCoach(usePhotoRequest(id).data);
 
@@ -34,9 +34,9 @@ export default function PhotoRequestSentScreen() {
 
   return (
     <FlowFrame
-      header={{ onClose: leave }}
+      header={{ onClose: backToToday }}
       contentStyle={styles.content}
-      footer={<Button label={t('photoRequest.actions.backToToday')} onPress={leave} />}
+      footer={<Button label={t('photoRequest.actions.backToToday')} onPress={backToToday} />}
     >
       <Stack.Screen options={{ gestureEnabled: false }} />
       <View style={styles.hero}>

@@ -3,33 +3,48 @@ import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
 
-import type { PendingDiaryRequest } from '@/api/questionnaires';
 import { Text } from '@/components/Text';
-import { daysLabel, formatRequestDay, pendingCoachLabel } from '@/components/photoRequest/format';
-import { introRoute, requestDays, requestEndsAt, requestMode } from '@/components/photoRequest/model';
+import { coachLabel, daysLabel, formatRequestDay, pendingCoachLabel } from '@/components/photoRequest/format';
+import { useRequestCoach } from '@/components/photoRequest/hooks';
+import { flowRoute, introRoute, requestDays, requestEndsAt, requestMode } from '@/components/photoRequest/model';
+import type { BannerRequest } from '@/components/photoRequest/model';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
-type PhotoRequestBannerProps = { item: PendingDiaryRequest };
+type PhotoRequestBannerProps = { entry: BannerRequest };
 
-/** A pending photo request on Today: who asks, how often, and an Open button that leads to the intro. */
-export function PhotoRequestBanner({ item }: PhotoRequestBannerProps) {
+/** An open photo request on Today: who asks, where it stands, and an Open button that leads to the right screen. */
+export function PhotoRequestBanner({ entry }: PhotoRequestBannerProps) {
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const theme = useTheme();
   const styles = makeStyles(theme);
-  const id = item.requestPublicId;
+  const coach = useRequestCoach(entry.kind === 'pending' ? undefined : entry.request);
+
+  const id = entry.kind === 'pending' ? entry.item.requestPublicId : entry.request.id;
   if (!id) return null;
 
-  const name = pendingCoachLabel(t, item);
-  const endsAt = requestEndsAt(item);
-  const hint =
-    requestMode(item) === 'everyDay'
-      ? t('photoRequest.banner.everyDayHint', {
-          days: daysLabel(t, requestDays(item)),
-          date: formatRequestDay(i18n.language, endsAt ?? undefined),
-        })
-      : t('photoRequest.banner.onceHint');
+  const name = entry.kind === 'pending' ? pendingCoachLabel(t, entry.item) : coachLabel(t, coach);
+  let hint: string;
+  let route = introRoute(id);
+  if (entry.kind === 'pending') {
+    hint =
+      requestMode(entry.item) === 'everyDay'
+        ? t('photoRequest.banner.everyDayHint', {
+            days: daysLabel(t, requestDays(entry.item)),
+            date: formatRequestDay(i18n.language, requestEndsAt(entry.item) ?? undefined),
+          })
+        : t('photoRequest.banner.onceHint');
+  } else if (entry.kind === 'running') {
+    hint = t(entry.sentToday ? 'photoRequest.step.runningSentHint' : 'photoRequest.step.runningHint', {
+      day: entry.day,
+      total: entry.total,
+    });
+    route = flowRoute(id, 'everyDay');
+  } else {
+    hint = t('photoRequest.banner.onceHint');
+    route = flowRoute(id, 'once');
+  }
 
   return (
     <View style={styles.banner}>
@@ -47,7 +62,7 @@ export function PhotoRequestBanner({ item }: PhotoRequestBannerProps) {
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={t('photoRequest.banner.openLabel', { name })}
-        onPress={() => router.push(introRoute(id))}
+        onPress={() => router.push(route)}
         style={styles.action}
       >
         <Text variant="labelStrong" color="onPrimary">

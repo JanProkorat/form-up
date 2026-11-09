@@ -331,3 +331,50 @@ export function photoStatusFor({
     .find((request) => requestMode(request) === 'once');
   return sent ? { kind: 'onceSent', id: sent.id } : null;
 }
+
+/** Where tapping a request on Today leads: the intro while pending, else the screen that adds the photos. */
+export function statusRoute(status: PhotoStatus): PhotoRoute | null {
+  switch (status.kind) {
+    case 'pending':
+      return introRoute(status.id);
+    case 'running':
+      return flowRoute(status.id, 'everyDay');
+    case 'onceOpen':
+      return flowRoute(status.id, 'once');
+    case 'onceSent':
+      return null;
+  }
+}
+
+/** One open request on Today's banner list. */
+export type BannerRequest =
+  | { kind: 'pending'; item: PendingDiaryRequest }
+  | { kind: 'running'; request: PhotoRequest; day: number; total: number; sentToday: boolean }
+  | { kind: 'onceOpen'; request: PhotoRequest };
+
+/**
+ * Every photo request the client can still act on: pending ones, then accepted or in-progress ones (an every-day
+ * request until it ends). Completed one-time requests and ended every-day requests are left out.
+ */
+export function bannerRequests(
+  pending: readonly PendingDiaryRequest[] | undefined,
+  lists: PhotoRequestLists | undefined,
+  months: readonly PhotoMonth[] | undefined,
+  now: number = Date.now(),
+): BannerRequest[] {
+  const waiting = answerablePending(pending, now);
+  const pendingIds = new Set(waiting.map((item) => item.requestPublicId?.toLowerCase()));
+  const result: BannerRequest[] = waiting.map((item) => ({ kind: 'pending', item }));
+  const open = oldestFirst(lists?.open ?? []).filter(
+    (request) => isAnswerable(request, now) && !pendingIds.has(request.id.toLowerCase()),
+  );
+  for (const request of open) {
+    if (requestMode(request) === 'everyDay') {
+      const { day, total } = requestDay(request, now);
+      result.push({ kind: 'running', request, day, total, sentToday: sentToday(months, request, now) });
+    } else {
+      result.push({ kind: 'onceOpen', request });
+    }
+  }
+  return result;
+}

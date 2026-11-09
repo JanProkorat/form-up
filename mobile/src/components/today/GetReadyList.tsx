@@ -3,6 +3,9 @@ import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
+import type { Collaboration } from '@/api/collaborations';
+import { usePhotoStatus } from '@/components/photoRequest/hooks';
+import { statusRoute } from '@/components/photoRequest/model';
 import { AddMeasurementSheet } from '@/components/measurements/AddMeasurementSheet';
 import { firstName } from '@/components/invites/format';
 import { Text } from '@/components/Text';
@@ -26,6 +29,34 @@ type GetReadyListProps = {
   blocks: readonly AreaBlock[];
   covering: readonly CoveredCollaboration[];
 };
+
+type PhotosRowProps = {
+  done: boolean;
+  collaboration: Collaboration;
+  onlyCollaboration: boolean;
+  name: string;
+};
+
+/** The starting-photos row: opens the coach's open photo request, or the photo library when there is none. */
+function PhotosRow({ done, collaboration, onlyCollaboration, name }: PhotosRowProps) {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const status = usePhotoStatus(collaboration, onlyCollaboration);
+  const route = status ? statusRoute(status) : null;
+  return (
+    <GetReadyRow
+      done={done}
+      title={t('today.getReady.photos')}
+      hint={t('today.getReady.photosHint', { name })}
+      action={{
+        label: t('today.getReady.addPhotos'),
+        onPress: () => (route ? router.push(route) : router.push('/profile/photos')),
+        tone: 'primary',
+        symbol: 'photo.badge.plus',
+      }}
+    />
+  );
+}
 
 /** What the client can still do before a plan starts; only shown while an area has not started. */
 export function GetReadyList({ blocks, covering }: GetReadyListProps) {
@@ -102,17 +133,12 @@ export function GetReadyList({ blocks, covering }: GetReadyListProps) {
         );
       case 'photos':
         return (
-          <GetReadyRow
+          <PhotosRow
             key={row.key}
             done={row.done}
-            title={t('today.getReady.photos')}
-            hint={t('today.getReady.photosHint', { name: coachName(row) })}
-            action={{
-              label: t('today.getReady.addPhotos'),
-              onPress: () => router.push('/profile/photos'),
-              tone: 'primary',
-              symbol: 'photo.badge.plus',
-            }}
+            collaboration={row.collaboration}
+            onlyCollaboration={covering.length === 1}
+            name={coachName(row)}
           />
         );
     }
