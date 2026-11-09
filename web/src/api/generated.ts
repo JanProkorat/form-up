@@ -20,7 +20,7 @@ export class ApiClient {
 
         this.instance = instance || axios.create();
 
-        this.baseUrl = baseUrl ?? "https://localhost:5011";
+        this.baseUrl = baseUrl ?? "https://localhost:5001";
 
     }
 
@@ -2296,7 +2296,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("The subscription does not include plans (SUBSCRIPTION_REQUIRED)", status, _responseText, _headers);
+            return throwException("The subscription does not include plans (SUBSCRIPTION_REQUIRED), or the client is over the Free plan\'s client limit (CLIENT_OVER_PLAN_LIMIT)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -2501,7 +2501,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("The subscription does not include plans (SUBSCRIPTION_REQUIRED), or a removed coach role", status, _responseText, _headers);
+            return throwException("The subscription does not include plans (SUBSCRIPTION_REQUIRED), a removed coach role, or the client is over the Free plan\'s client limit and the plan\'s last published week has ended or the start date changed (CLIENT_OVER_PLAN_LIMIT)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -2696,7 +2696,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("The client is over the Free plan\'s client limit and the plan\'s last published week has ended (CLIENT_OVER_PLAN_LIMIT)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -2767,7 +2767,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("The client is over the Free plan\'s client limit and the plan\'s last published week has ended (CLIENT_OVER_PLAN_LIMIT)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -2839,7 +2839,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("The subscription does not include plans (SUBSCRIPTION_REQUIRED)", status, _responseText, _headers);
+            return throwException("The subscription does not include plans (SUBSCRIPTION_REQUIRED), or the client is over the Free plan\'s client limit (CLIENT_OVER_PLAN_LIMIT)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -2907,7 +2907,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("The client is over the Free plan\'s client limit and the plan\'s last published week has ended (CLIENT_OVER_PLAN_LIMIT)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -3061,7 +3061,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("The subscription does not include plans (SUBSCRIPTION_REQUIRED)", status, _responseText, _headers);
+            return throwException("The subscription does not include plans (SUBSCRIPTION_REQUIRED), or the client is over the Free plan\'s client limit (CLIENT_OVER_PLAN_LIMIT)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -10441,7 +10441,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("The subscription does not include plans (SUBSCRIPTION_REQUIRED)", status, _responseText, _headers);
+            return throwException("The subscription does not include plans (SUBSCRIPTION_REQUIRED), or the client is over the Free plan\'s client limit (CLIENT_OVER_PLAN_LIMIT)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -10650,7 +10650,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("The subscription does not include plans (SUBSCRIPTION_REQUIRED)", status, _responseText, _headers);
+            return throwException("The subscription does not include plans (SUBSCRIPTION_REQUIRED), or the client is over the Free plan\'s client limit and the plan\'s last published week has ended or the start date changed (CLIENT_OVER_PLAN_LIMIT)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -10846,7 +10846,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("The subscription does not include plans (SUBSCRIPTION_REQUIRED)", status, _responseText, _headers);
+            return throwException("The subscription does not include plans (SUBSCRIPTION_REQUIRED), or the client is over the Free plan\'s client limit (CLIENT_OVER_PLAN_LIMIT)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -10914,7 +10914,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("The client is over the Free plan\'s client limit and the plan\'s last published week has ended (CLIENT_OVER_PLAN_LIMIT)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -11068,7 +11068,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("The caller\'s Nutritionist coach role was removed, or the subscription does not include plans (SUBSCRIPTION_REQUIRED)", status, _responseText, _headers);
+            return throwException("The caller\'s Nutritionist coach role was removed, the subscription does not include plans (SUBSCRIPTION_REQUIRED), or the client is over the Free plan\'s client limit (CLIENT_OVER_PLAN_LIMIT)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -11143,7 +11143,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("The subscription does not include plans (SUBSCRIPTION_REQUIRED)", status, _responseText, _headers);
+            return throwException("The subscription does not include plans (SUBSCRIPTION_REQUIRED), or the target client is over the Free plan\'s client limit (CLIENT_OVER_PLAN_LIMIT)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -14567,6 +14567,133 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Choose the clients a lapsed plan keeps
+     * @return The choice was saved
+     */
+    setKeepClientsEndpoint(setKeepClientsRequest: SetKeepClientsRequest, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/users/me/subscription/keep-clients";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(setKeepClientsRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSetKeepClientsEndpoint(_response);
+        });
+    }
+
+    protected processSetKeepClientsEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid body, a duplicate id, or the wrong number of clients (KEEP_CLIENTS_COUNT_INVALID)", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * List the clients a lapsed plan keeps
+     * @return The live clients and the cap
+     */
+    getKeepClientsEndpoint(signal?: AbortSignal): Promise<GetKeepClientsResponse> {
+        let url_ = this.baseUrl + "/users/me/subscription/keep-clients";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetKeepClientsEndpoint(_response);
+        });
+    }
+
+    protected processGetKeepClientsEndpoint(response: AxiosResponse): Promise<GetKeepClientsResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetKeepClientsResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetKeepClientsResponse>(null as any);
     }
 
     /**
@@ -23092,7 +23219,20 @@ export interface GetMySubscriptionResponse {
     cancelAtPeriodEnd?: boolean;
     /** While now is before this instant the assigned plan's features apply whatever the status is. */
     freeUntil?: string | undefined;
-    /** Distinct active clients across all the coach's roles. */
+    /** True when the paid plan has lapsed (Canceled or Incomplete with no free-features deadline in force). The plan
+fields then describe the Free plan and ActiveClientCount is the number of kept clients. */
+    isLapsed?: boolean;
+    /** Czech name of the plan that lapsed; null unless IsLapsed. */
+    lapsedPlanNameCs?: string | undefined;
+    /** English name of the plan that lapsed; null unless IsLapsed. */
+    lapsedPlanNameEn?: string | undefined;
+    /** German name of the plan that lapsed; null unless IsLapsed. */
+    lapsedPlanNameDe?: string | undefined;
+    /** When the lapsed plan ended (the period end), if known; null unless IsLapsed. */
+    endedAt?: string | undefined;
+    /** Live clients above the Free plan's cap; zero unless IsLapsed. */
+    overCapClientCount?: number;
+    /** Distinct active clients across all the coach's roles; the kept clients while lapsed. */
     activeClientCount?: number;
     /** Active-client limit that applies now; null means unlimited. */
     clientLimit?: number | undefined;
@@ -24769,7 +24909,7 @@ hover popover. Omits any domain the link does not grant. */
     activePlans?: ClientActivePlanDto[];
 }
 
-/** Derived status of a client on the trainer's clients list. Never stored — computed per request from the link's IsActive flag plus whether an in-window Active plan exists in a domain the link grants (see GetClientsEndpoint). */
+/** Derived status of a client on the trainer's clients list. Never stored — computed per request from the link's ConnectionState plus whether an in-window Active plan exists in a domain the link grants (see GetClientsEndpoint). */
 export enum ClientListStatus {
     Active = "Active",
     Paused = "Paused",
@@ -28890,6 +29030,12 @@ export interface CreateCoachDiscountRequest {
 export interface ArchiveCoachDiscountRequest {
 }
 
+/** The clients a lapsed coach chooses to keep on the Free plan. */
+export interface SetKeepClientsRequest {
+    /** Public ids of the clients to keep: unique, and as many as the Free plan's cap allows (or all clients when fewer). */
+    clientIds: string[];
+}
+
 /** The coach's subscription as it now stands. */
 export interface SetCoachSubscriptionResponse {
     /** The coach's user id. */
@@ -28914,6 +29060,47 @@ export interface SetCoachSubscriptionRequest {
     freeUntil?: string | undefined;
     /** True when the coach pays for the second-role add-on. */
     paysSecondRoleAddOn?: boolean;
+}
+
+/** The caller's live clients after a paid plan lapsed, with which ones the Free plan keeps. */
+export interface GetKeepClientsResponse {
+    /** How many clients the Free plan keeps; null means unlimited. */
+    cap?: number | undefined;
+    /** The caller's live clients, one entry per client even when linked in both roles. */
+    clients?: KeepClientDto[];
+}
+
+/** One live client of a lapsed coach. */
+export interface KeepClientDto {
+    /** Public id of the client's profile; the id the keep-clients save expects. */
+    clientId?: string;
+    /** The client's first name. */
+    firstName?: string;
+    /** The client's last name. */
+    lastName?: string;
+    /** The coach roles the client is linked under. */
+    roles?: UserRole[];
+    /** True when the Free plan keeps this client; false when the client is over the cap. */
+    isKept?: boolean;
+    /** Last day of the last published week across the caller's plans for this client; null when none is published. */
+    publishedWeeksEnd?: string | undefined;
+    /** What happens to the client from now on. */
+    afterLapse?: KeepClientAfterLapse;
+}
+
+/** Defines the available roles within Form Up. */
+export enum UserRole {
+    Admin = "Admin",
+    Trainer = "Trainer",
+    Nutritionist = "Nutritionist",
+    Client = "Client",
+}
+
+/** What a lapsed coach can still do for a client. */
+export enum KeepClientAfterLapse {
+    FullAccess = "FullAccess",
+    RunsUntilEndThenReadOnly = "RunsUntilEndThenReadOnly",
+    ReadOnly = "ReadOnly",
 }
 
 /** A coach package as shown to its owner — reused by the list, get, create and update actions. */
@@ -29231,6 +29418,9 @@ compatibility with consumers that still reference the singular session. */
     questionnaireResponseId?: string | undefined;
     /** When this plan was marked as completed, if applicable. */
     dateCompleted?: string | undefined;
+    /** Last day of the plan's last published week, set only when the plan's coach no longer has a plan that covers
+this client: after it the plan is read-only. Null otherwise. */
+    runsUntil?: string | undefined;
     /** Per-exercise muscle groups, keyed by SessionExercise.ExerciseExternalId.
 Empty when an exercise no longer exists in the database. Populated by
 looking up Exercise documents for every exercise referenced by today's
@@ -29397,6 +29587,9 @@ export interface GetFullTrainingPlanResponse {
     questionnaireResponseId?: string | undefined;
     /** When this plan was marked as completed, if applicable. */
     dateCompleted?: string | undefined;
+    /** Last day of the plan's last published week, set only when the plan's coach no longer has a plan that covers
+this client: after it the plan is read-only. Null otherwise. */
+    runsUntil?: string | undefined;
     /** Published weeks with sessions and completion state. */
     weeks?: WeekDto[];
 }
@@ -30498,6 +30691,9 @@ export interface GetWeekPlanResponse {
     days?: PlanDay[];
     /** Global daily nutrition targets for the plan. */
     globalSettings?: GlobalNutritionSettings | undefined;
+    /** Last day of the plan's last published week, set only when the plan's coach no longer has a plan that covers
+this client: after it the plan is read-only. Null otherwise. */
+    runsUntil?: string | undefined;
 }
 
 /** The meal log of one plan week: eaten state and photos per meal per day. */
@@ -30580,6 +30776,9 @@ export interface GetTodayPlanResponse {
     globalSettings?: GlobalNutritionSettings | undefined;
     /** Optional nutritionist note for today's plan day. */
     dayNote?: string | undefined;
+    /** Last day of the plan's last published week, set only when the plan's coach no longer has a plan that covers
+this client: after it the plan is read-only. Null otherwise. */
+    runsUntil?: string | undefined;
 }
 
 /** Response model for the client's meal log for today. */
@@ -30745,6 +30944,9 @@ export interface GetFullPlanResponse {
     publishedWeekCount?: number;
     /** Total number of weeks in the plan (including draft). */
     totalWeeks?: number;
+    /** Last day of the plan's last published week, set only when the plan's coach no longer has a plan that covers
+this client: after it the plan is read-only. Null otherwise. */
+    runsUntil?: string | undefined;
     /** Current week number (null if plan is upcoming). */
     currentWeek?: number | undefined;
     /** Current day of week 1-7 (null if plan is upcoming). */
