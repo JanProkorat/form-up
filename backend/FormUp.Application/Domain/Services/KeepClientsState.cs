@@ -16,6 +16,12 @@ public sealed record KeepClientsState(
     IReadOnlyList<long> OverCapClientProfileIds,
     bool IsPlanChoiceRequired = false)
 {
+    /// <summary>
+    /// True when the coach has a kept-clients choice to make or change: a lapsed paid plan, or an explicit Free plan with
+    /// live clients over the cap.
+    /// </summary>
+    public bool CanChooseKeptClients => IsLapsed || OverCapClientProfileIds.Count > 0;
+
     /// <summary>The state of a coach whose plan has not lapsed: nobody is over the cap.</summary>
     public static KeepClientsState NotLapsed { get; } = new(false, null, [], []);
 }

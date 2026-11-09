@@ -48,7 +48,6 @@ public class PlanChoiceWriteGateTests(FitnessApiFactory factory)
     [InlineData(UserRole.Trainer, "POST", "/trainer/pending-invites")]
     [InlineData(UserRole.Trainer, "PUT", "/users/me/subscription/keep-clients")]
     [InlineData(UserRole.Trainer, "POST", "/conversations")]
-    [InlineData(UserRole.Trainer, "POST", "/client/notifications/read-all")]
     public async Task BlockedWrite_CoachWithEndedGift_Returns403PlanChoiceRequired_EvenWithAnEmptyBody(
         UserRole role, string method, string route)
     {
@@ -186,17 +185,27 @@ public class PlanChoiceWriteGateTests(FitnessApiFactory factory)
         await AssertNotRefusedByGateAsync(response);
     }
 
+    [Theory]
+    [InlineData("/client/notifications/read-all")]
+    [InlineData("/client/notifications/{id}/read")]
+    public async Task NotificationRead_PureCoachWithEndedGift_IsNotRefusedByTheGate(string route)
+    {
+        var coach = await EndedGiftCoachAsync();
+
+        var response = await coach.Http.PostAsync(route.Replace("{id}", Guid.NewGuid().ToString()), null, Ct);
+
+        await AssertNotRefusedByGateAsync(response);
+    }
+
     [Fact]
     public async Task BlockedWrite_CoachWhoIsAlsoAClient_KeepsTheClientSide()
     {
         var dual = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Client).CreateAsync(Ct);
         await CoachSubscriptionBuilder.SubscribeWithEndedGiftAsync(factory, dual);
 
-        var clientSide = await dual.Http.PostAsync("/client/notifications/read-all", null, Ct);
         var clientOnlyWrite = await dual.Http.PostAsJsonAsync("/client/push-token", new { }, Ct);
         var coachSide = await dual.Http.PostAsJsonAsync("/training/plans", new { }, Ct);
 
-        clientSide.IsSuccessStatusCode.Should().BeTrue("the dual-role caller acts as a client on an endpoint that allows Client");
         await AssertNotRefusedByGateAsync(clientOnlyWrite);
         await AssertPlanChoiceRequiredAsync(coachSide);
     }

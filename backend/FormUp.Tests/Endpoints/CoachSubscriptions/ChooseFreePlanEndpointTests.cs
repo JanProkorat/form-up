@@ -304,4 +304,64 @@ public class ChooseFreePlanEndpointTests(FitnessApiFactory factory)
         (await refused.Content.ReadAsStringAsync(Ct)).Should().Contain(ErrorCodes.ClientOverPlanLimit);
         allowed.StatusCode.Should().Be(HttpStatusCode.Created);
     }
+
+    private static async Task<HashSet<Guid>> KeptClientIdsAsync(Actor coach)
+    {
+        var response = await coach.Http.GetAsync("/users/me/subscription/keep-clients", Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        return JsonDocument.Parse(await response.Content.ReadAsStringAsync(Ct)).RootElement.GetProperty("clients").EnumerateArray()
+            .Where(client => client.GetProperty("isKept").GetBoolean())
+            .Select(client => client.GetProperty("clientId").GetGuid())
+            .ToHashSet();
+    }
+
+    [Fact]
+    public async Task KeepClients_OnTheFreePlanOverTheCap_CanBeRepickedAfterChoosingFree()
+    {
+        var (coach, clients) = await EndedGiftCoachAsync(30, 20, 10);
+        (await ChooseAsync(coach, clients[1].PublicId, clients[2].PublicId)).StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        (await KeptClientIdsAsync(coach)).Should().BeEquivalentTo([clients[1].PublicId, clients[2].PublicId]);
+
+        var repick = await coach.Http.PutAsJsonAsync(
+            "/users/me/subscription/keep-clients", new { ClientIds = new[] { clients[0].PublicId, clients[1].PublicId } }, Ct);
+
+        repick.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        var states = await LinkStatesAsync(coach);
+        states[clients[0].PublicId].Should().Be(ConnectionState.FreePlanKept);
+        states[clients[1].PublicId].Should().Be(ConnectionState.FreePlanKept);
+        states[clients[2].PublicId].Should().Be(ConnectionState.FreePlanReleased);
+        (await KeptClientIdsAsync(coach)).Should().BeEquivalentTo([clients[0].PublicId, clients[1].PublicId]);
+    }
+
+    [Fact]
+    public async Task KeepClients_OnTheFreePlanOverTheCap_RejectsAWrongNumberOfClients()
+    {
+        var (coach, clients) = await EndedGiftCoachAsync(30, 20, 10);
+        (await ChooseAsync(coach, clients[1].PublicId, clients[2].PublicId)).StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        var response = await coach.Http.PutAsJsonAsync(
+            "/users/me/subscription/keep-clients", new { ClientIds = new[] { clients[0].PublicId } }, Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await response.Content.ReadAsStringAsync(Ct)).Should().Contain(ErrorCodes.KeepClientsCountInvalid);
+    }
+
+    [Fact]
+    public async Task KeepClients_OnTheFreePlanWithinTheCap_StillReturns409()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, SubscriptionPlanCodes.Free);
+        var clients = await TestActors.LinkClientsAsync(factory, coach, UserRole.Trainer, 30, 20);
+
+        var get = await coach.Http.GetAsync("/users/me/subscription/keep-clients", Ct);
+        var put = await coach.Http.PutAsJsonAsync(
+            "/users/me/subscription/keep-clients", new { ClientIds = clients.Select(client => client.PublicId).ToArray() }, Ct);
+
+        get.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        put.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await put.Content.ReadAsStringAsync(Ct)).Should().Contain(ErrorCodes.SubscriptionNotLapsed);
+    }
 }

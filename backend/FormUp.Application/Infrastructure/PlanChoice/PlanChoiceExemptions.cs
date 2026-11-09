@@ -1,3 +1,5 @@
+using FormUp.Application.Features.Client.Notifications.MarkAllRead;
+using FormUp.Application.Features.Client.Notifications.MarkRead;
 using FormUp.Application.Features.CoachSubscriptions.ChooseFreePlan;
 using FormUp.Application.Features.Messaging.ArchiveConversation;
 using FormUp.Application.Features.Messaging.GenerateChatImageUploadUrl;
@@ -18,7 +20,7 @@ namespace FormUp.Application.Infrastructure.PlanChoice;
 
 /// <summary>
 /// The one list of writes a coach may still make while a plan choice is required: choosing a plan, replying in
-/// existing chats, and account housekeeping. Every other write is refused by <see cref="PlanChoiceWriteGateMiddleware"/>.
+/// existing chats, marking notifications read, and account housekeeping. Every other write is refused by <see cref="PlanChoiceWriteGateMiddleware"/>.
 /// Starting a new conversation, keep-clients and every coach feature stay refused. The list is pinned by an
 /// architecture test; add to it only on purpose.
 /// </summary>
@@ -28,6 +30,8 @@ public static class PlanChoiceExemptions
     public static IReadOnlySet<Type> Endpoints { get; } = new HashSet<Type>
     {
         typeof(ChooseFreePlanEndpoint),
+        typeof(MarkAllReadEndpoint),
+        typeof(MarkReadEndpoint),
         typeof(SendMessageEndpoint),
         typeof(MarkConversationReadEndpoint),
         typeof(GenerateChatImageUploadUrlEndpoint),
