@@ -216,6 +216,29 @@ public static class EntitlementGateExtensions
             ? PlanRunsUntilResolver.Resolve(startDate, publishedWeekNumbers)
             : null;
 
+    /// <summary>
+    /// Answers 403 <see cref="ErrorCodes.PlanChoiceRequired"/> as the same coded ProblemDetails
+    /// <see cref="EndpointErrorExtensions.SendProblemAsync"/> writes, for a caller that has no endpoint instance
+    /// (the global write gate). Does not throw.
+    /// </summary>
+    /// <param name="http">The request context.</param>
+    /// <param name="ct">Cancellation token.</param>
+    public static async Task RespondPlanChoiceRequiredAsync(this HttpContext http, CancellationToken ct)
+    {
+        var problem = new Microsoft.AspNetCore.Mvc.ProblemDetails
+        {
+            Status = StatusCodes.Status403Forbidden,
+            Title = "The coach's free plan ended; choose a plan before making changes.",
+            Type = "https://tools.ietf.org/html/rfc7807",
+            Instance = http.Request.Path,
+            Extensions = { ["errorCode"] = ErrorCodes.PlanChoiceRequired },
+        };
+
+        http.Response.StatusCode = StatusCodes.Status403Forbidden;
+        http.Response.ContentType = "application/problem+json";
+        await http.Response.WriteAsJsonAsync(problem, ct);
+    }
+
     private static async Task<bool> RespondClientOverPlanLimitAsync(this IEndpoint endpoint, CancellationToken ct)
     {
         await endpoint.SendProblemAsync(

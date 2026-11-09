@@ -624,6 +624,12 @@ public static class ErrorCodes
     /// <summary>The coach's paid plan has not lapsed, so there is no kept-clients choice to make.</summary>
     public const string SubscriptionNotLapsed = "SUBSCRIPTION_NOT_LAPSED";
 
+    /// <summary>The coach's admin-given free plan ended, so every write except choosing a plan is refused until they choose one.</summary>
+    public const string PlanChoiceRequired = "PLAN_CHOICE_REQUIRED";
+
+    /// <summary>The coach has no ended free plan waiting for a choice, so there is nothing to choose.</summary>
+    public const string PlanChoiceNotRequired = "PLAN_CHOICE_NOT_REQUIRED";
+
     /// <summary>The coach has no paying subscription whose renewal could be cancelled (no row, Free plan, a gift, or a plan that no longer applies).</summary>
     public const string NoRenewingSubscription = "NO_RENEWING_SUBSCRIPTION";
 

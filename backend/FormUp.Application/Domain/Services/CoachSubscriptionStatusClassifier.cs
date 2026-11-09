@@ -39,6 +39,16 @@ public static class CoachSubscriptionStatusClassifier
     }
 
     /// <summary>
+    /// Whether the coach must choose a plan: an admin-given plan whose end has passed. Separate from
+    /// <see cref="PlanApplies"/>, which still reads such a plan as no longer applying.
+    /// </summary>
+    /// <param name="givenFreeAt">When the plan was given for free, or null.</param>
+    /// <param name="freeUntil">End of the gift, or null for none.</param>
+    /// <param name="now">Current time.</param>
+    public static bool IsPlanChoiceRequired(DateTimeOffset? givenFreeAt, DateTimeOffset? freeUntil, DateTimeOffset now) =>
+        givenFreeAt is not null && freeUntil is not null && now >= freeUntil;
+
+    /// <summary>
     /// The predicate selecting the coaches of a filter bucket.
     /// </summary>
     /// <param name="filter">The bucket.</param>

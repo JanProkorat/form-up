@@ -1194,6 +1194,24 @@ public static class CoachSubscriptionBuilder
     }
 
     /// <summary>
+    /// Subscribes the coach to a plan an admin gave for free that ended <paramref name="endedDaysAgo"/> days ago
+    /// and was never replaced, so the coach must choose a plan.
+    /// </summary>
+    /// <param name="factory">The test host.</param>
+    /// <param name="coach">The coach to subscribe.</param>
+    /// <param name="planCode">Code of the given plan.</param>
+    /// <param name="endedDaysAgo">How long ago the gift ended.</param>
+    public static Task SubscribeWithEndedGiftAsync(
+        FitnessApiFactory factory, Actor coach, string planCode = "pro", int endedDaysAgo = 1) =>
+        SubscribeToPlanAsync(
+            factory,
+            coach,
+            planCode,
+            SubscriptionStatus.Active,
+            freeUntil: DateTimeOffset.UtcNow.AddDays(-endedDaysAgo),
+            givenFreeAt: DateTimeOffset.UtcNow.AddDays(-endedDaysAgo - 30));
+
+    /// <summary>
     /// Writes a plan with the given check-in flags and a subscription of the coach to it.
     /// </summary>
     /// <param name="factory">The test host.</param>

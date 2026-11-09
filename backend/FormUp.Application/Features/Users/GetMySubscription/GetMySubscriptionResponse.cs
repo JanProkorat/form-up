@@ -50,7 +50,22 @@ public class GetMySubscriptionResponse
     /// <summary>When the lapsed plan ended (the period end), if known; null unless <see cref="IsLapsed"/>.</summary>
     public DateTimeOffset? EndedAt { get; set; }
 
-    /// <summary>Live clients above the Free plan's cap; zero unless <see cref="IsLapsed"/>.</summary>
+    /// <summary>
+    /// True when an admin-given plan has ended and the coach has not chosen a plan yet. The plan fields still describe
+    /// the ended plan. Never true together with <see cref="IsLapsed"/>.
+    /// </summary>
+    public bool PlanChoiceRequired { get; set; }
+
+    /// <summary>Czech name of the ended given plan; null unless <see cref="PlanChoiceRequired"/>.</summary>
+    public string? EndedPlanNameCs { get; set; }
+
+    /// <summary>English name of the ended given plan; null unless <see cref="PlanChoiceRequired"/>.</summary>
+    public string? EndedPlanNameEn { get; set; }
+
+    /// <summary>German name of the ended given plan; null unless <see cref="PlanChoiceRequired"/>.</summary>
+    public string? EndedPlanNameDe { get; set; }
+
+    /// <summary>Live clients above the Free plan's cap; zero unless <see cref="IsLapsed"/> or the coach is on an explicit Free plan with clients over the cap.</summary>
     public int OverCapClientCount { get; set; }
 
     /// <summary>Distinct active clients across all the coach's roles; the kept clients while lapsed.</summary>

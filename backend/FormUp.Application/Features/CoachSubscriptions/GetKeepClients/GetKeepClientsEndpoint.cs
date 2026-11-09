@@ -35,12 +35,13 @@ internal sealed class GetKeepClientsEndpoint(
         {
             s.Summary = "List the clients a lapsed plan keeps";
             s.Description = "The caller's live clients with their roles, the end of their published weeks, whether the Free plan " +
-                            "keeps them and what happens to them after, plus the cap. Only while the paid plan has lapsed.";
+                            "keeps them and what happens to them after, plus the cap. Only while the paid plan has lapsed or a plan choice is required " +
+                            "(then the rows show what the Free plan would keep).";
             s.Response<GetKeepClientsResponse>(StatusCodes.Status200OK, "The live clients and the cap");
             s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
             s.Response(StatusCodes.Status403Forbidden, "The caller is not a trainer or nutritionist, or the coach role was removed");
             s.Response(StatusCodes.Status404NotFound, "The caller has no professional profile");
-            s.Response(StatusCodes.Status409Conflict, "The paid plan has not lapsed (SUBSCRIPTION_NOT_LAPSED)");
+            s.Response(StatusCodes.Status409Conflict, "The paid plan has not lapsed and no plan choice is required (SUBSCRIPTION_NOT_LAPSED)");
         });
     }
 
@@ -67,7 +68,11 @@ internal sealed class GetKeepClientsEndpoint(
 
         var state = await entitlementService.GetKeepClientsStateAsync(profileId.Value, ct);
 
-        if (!state.IsLapsed)
+        if (state.IsPlanChoiceRequired)
+        {
+            state = await entitlementService.GetFreePlanKeepSplitAsync(profileId.Value, ct);
+        }
+        else if (!state.IsLapsed)
         {
             await this.SendProblemAsync(
                 StatusCodes.Status409Conflict, ErrorCodes.SubscriptionNotLapsed, "The subscription has not lapsed.", ct);
