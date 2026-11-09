@@ -89,7 +89,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
     items: [
       { to: '/admin/plans', labelKey: 'sidebar.adminPlans', Icon: Layers },
       { to: '/admin/promotions', labelKey: 'sidebar.adminPromotions', Icon: Tag, disabled: true },
-      { to: '/admin/coaches', labelKey: 'sidebar.adminCoaches', Icon: Users, disabled: true },
+      { to: '/admin/coaches', labelKey: 'sidebar.adminCoaches', Icon: Users },
     ],
   },
 ];

@@ -3430,6 +3430,7 @@
     "FREE_PLAN_LOCKED": "Plán Free nejde takto změnit: jeho cena zůstává 0 a vždy se nabízí.",
     "SUBSCRIPTION_PLAN_CODE_ALREADY_EXISTS": "Plán s tímto kódem už existuje.",
     "SUBSCRIPTION_PLAN_NOT_FOUND": "Tento plán už neexistuje.",
+    "NO_RENEWING_SUBSCRIPTION": "Tento trenér nemá žádný obnovující se placený plán, takže není co rušit.",
     "SECOND_ROLE_OPTION_INVALID": "Zvolte buď placený doplněk druhé role, nebo druhou roli v ceně.",
     "PAYMENTS_NOT_ENTITLED": "Platby nejsou součástí vašeho tarifu.",
     "BANK_ACCOUNT_NOT_SET": "Než vyžádáte platbu, doplňte v Nastavení bankovní účet.",
@@ -6662,6 +6663,147 @@
         "note": "Poznámka",
         "notePlaceholder": "Například zranění kolene"
       }
+    }
+  },
+  "adminCoaches": {
+    "title": "Trenéři",
+    "subtitle": "Plány a platby každého trenérského účtu. Data jejich klientů zůstávají soukromá.",
+    "loadError": "Trenéry se nepodařilo načíst.",
+    "retry": "Zkusit znovu",
+    "empty": "Žádný trenér neodpovídá.",
+    "search": "Hledat trenéry",
+    "stats": {
+      "paying": "Platící trenéři",
+      "noPlans": "Zatím žádní platící trenéři",
+      "revenue": "Měsíční příjem",
+      "revenueNote": "Jen platící trenéři",
+      "failed": "Platba selhala",
+      "failedNote": "Stále se počítají jako platící",
+      "free": "Zdarma a darované",
+      "freeNote": "Nezapočítává se do příjmu"
+    },
+    "filters": {
+      "label": "Filtrovat trenéry podle stavu",
+      "All": "Všichni",
+      "Paying": "Platící",
+      "PaymentFailed": "Platba selhala",
+      "Cancelling": "Ruší se",
+      "Free": "Zdarma",
+      "GivenFree": "Darováno"
+    },
+    "status": {
+      "Paying": "Aktivní",
+      "PaymentFailed": "Platba selhala",
+      "Cancelling": "Ruší se",
+      "Free": "Zdarma",
+      "GivenFree": "Darováno",
+      "cancellingOn": "Končí {{date}}"
+    },
+    "roles": {
+      "Trainer": "Trenér",
+      "Nutritionist": "Nutriční poradce"
+    },
+    "table": {
+      "coach": "Trenér",
+      "roles": "Role",
+      "plan": "Plán",
+      "status": "Stav",
+      "clients": "Klienti",
+      "promotion": "Akce",
+      "renewsEnds": "Obnova / konec",
+      "clientsOf": "{{used}} / {{max}}",
+      "renews": "Obnoví se {{date}}",
+      "ends": "Končí {{date}}",
+      "until": "Do {{date}}",
+      "noEnd": "Bez konce"
+    },
+    "drawer": {
+      "titleFallback": "Trenér",
+      "loading": "Načítání...",
+      "loadError": "Tohoto trenéra se nepodařilo načíst.",
+      "joined": "od {{date}}",
+      "plan": "Plán",
+      "perMonth": "{{price}} / měsíc",
+      "perYear": "{{price}} / rok",
+      "renews": "Obnoví se {{date}}.",
+      "endsOn": "Placený plán běží do {{date}}, poté trenér přejde na Zdarma.",
+      "givenUntil": "Darováno zdarma do {{date}}.",
+      "givenNoEnd": "Darováno zdarma, bez data konce.",
+      "clients": "Klienti",
+      "clientsOf": "{{used}} z {{max}}",
+      "clientsUnlimited": "{{used}}, neomezeně",
+      "actions": "Akce",
+      "privacy": "Jména a data klientů administrátoři nevidí. Jen počty.",
+      "openInStripe": "Otevřít ve Stripe"
+    },
+    "actions": {
+      "reason": "Důvod",
+      "confirm": "Ano, potvrdit",
+      "giveFree": {
+        "title": "Darovat plán zdarma",
+        "description": "Vyberte plán, do kdy a proč. Zobrazí se jako „Darováno“.",
+        "plan": "Plán",
+        "planPlaceholder": "Vyberte plán",
+        "until": "Do",
+        "noEnd": "Bez data konce",
+        "button": "Darovat zdarma",
+        "success": "Plán byl darován zdarma.",
+        "error": "Plán se nepodařilo darovat zdarma."
+      },
+      "promotion": {
+        "title": "Použít akci",
+        "description": "Jen pro tohoto trenéra, např. po problému s podporou.",
+        "button": "Použít"
+      },
+      "cancelRenewal": {
+        "title": "Zrušit obnovu",
+        "description": "Skončí na konci zaplaceného měsíce. Plány doběhnou do konce.",
+        "button": "Zrušit obnovu",
+        "none": "Tento trenér nemá žádný obnovující se placený plán.",
+        "already": "Obnova už je zrušená.",
+        "success": "Obnova byla zrušena.",
+        "alreadySuccess": "Obnova už byla zrušená.",
+        "error": "Obnovu se nepodařilo zrušit."
+      },
+      "disable": {
+        "title": "Deaktivovat trenérský účet",
+        "description": "Odebere všechny role. Stejné jako vlastní tlačítko Deaktivovat u trenéra.",
+        "button": "Deaktivovat",
+        "confirm": "Tím se trenérovi odeberou všechny role. Chcete pokračovat?",
+        "success": "Trenérský účet byl deaktivován.",
+        "error": "Trenérský účet se nepodařilo deaktivovat."
+      }
+    },
+    "history": {
+      "title": "Historie",
+      "empty": "Zatím nic nezaznamenáno.",
+      "byCoach": "Provedl trenér",
+      "byAdmin": "Provedl {{name}}",
+      "reason": "důvod: {{reason}}",
+      "kind": {
+        "joined": "Registrace",
+        "givenFree_until": "Darován plán {{plan}} zdarma do {{date}}",
+        "givenFree_plain": "Darován plán {{plan}} zdarma, bez data konce",
+        "planAssigned": "Plán změněn na {{plan}}",
+        "renewalCancelled_until": "Obnova zrušena, plán končí {{date}}",
+        "renewalCancelled_plain": "Obnova zrušena",
+        "accountDisabled_until": "Účet deaktivován, aktivní do {{date}}",
+        "accountDisabled_plain": "Účet deaktivován",
+        "accountKept": "Účet ponechán",
+        "roleAdded": "Role přidána: {{role}}",
+        "roleRemoved": "Role odebrána: {{role}}",
+        "unknown": "Upraveno"
+      }
+    },
+    "validation": {
+      "planRequired": "Vyberte plán.",
+      "dateRequired": "Zadejte datum konce, nebo zaškrtněte Bez data konce.",
+      "dateFuture": "Datum konce musí být v budoucnu.",
+      "reasonRequired": "Napište důvod.",
+      "reasonTooLong": "Důvod může mít nejvýše 300 znaků."
+    },
+    "errors": {
+      "noActiveRole": "Tento trenér nemá žádnou aktivní trenérskou roli, takže není co deaktivovat."
     }
   },
   "adminPlans": {
