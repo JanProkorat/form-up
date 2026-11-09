@@ -357,7 +357,7 @@ function RequestForm({ clientId, name, coachName, plans, locale, onClose, onCrea
           )}
           {frequency === 'once' && (
             <p className="text-meta text-muted-foreground">
-              {t('clientDetail.photos.requestDrawer.dueByHelp', { date: endsLabel })}
+              {t('clientDetail.photos.requestDrawer.onceHelp', { name })}
             </p>
           )}
 
