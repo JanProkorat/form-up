@@ -8,6 +8,7 @@ using FormUp.Application.Domain.Enums;
 using FormUp.Application.Infrastructure.Data.MongoDb;
 using FormUp.Tests.Builders;
 using FormUp.Tests.Endpoints.NutritionPlans;
+using FormUp.Tests.Endpoints.TrainingPlans;
 using FormUp.Tests.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -159,6 +160,73 @@ public class OverCapIntegrationTests(FitnessApiFactory factory)
         var plan = await GetFullPlanAsync(world.OverCapClient);
 
         plan.GetProperty("runsUntil").GetString().Should().Be(DateOnly.FromDateTime(ThisMonday().AddDays(6)).ToString("yyyy-MM-dd"));
+    }
+
+    /// <summary>Seeds a running, published plan of the right kind for the endpoint and returns the route that reads it.</summary>
+    private async Task<string> SeedPlanForAsync(string endpoint, Guid coachUserId, Guid clientUserId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        if (endpoint.StartsWith("training", StringComparison.Ordinal))
+        {
+            var training = TrainingPlanTestHelpers.CreatePlan(
+                trainerId: coachUserId, clientId: clientUserId, status: TrainingPlanStatus.Active);
+            training.StartDate = ThisMonday();
+            training.Weeks[0].Status = WeekStatus.Published;
+            training.Weeks[0].DatePublished = DateTime.UtcNow;
+            await mongo.TrainingPlans.InsertOneAsync(training, cancellationToken: Ct);
+
+            return endpoint == "training-full"
+                ? $"/client/training/plans/{training.ExternalId}"
+                : "/client/training/plan/today";
+        }
+
+        var nutrition = PlanTestHelpers.CreatePlan(
+            nutritionistId: coachUserId, clientId: clientUserId, status: NutritionPlanStatus.Active);
+        nutrition.StartDate = ThisMonday();
+        nutrition.Weeks[0].Status = WeekStatus.Published;
+        nutrition.Weeks[0].DatePublished = DateTime.UtcNow;
+        await mongo.NutritionPlans.InsertOneAsync(nutrition, cancellationToken: Ct);
+
+        return endpoint switch
+        {
+            "nutrition-today" => "/client/nutrition/plan/today",
+            "nutrition-week" => "/client/nutrition/plan/week",
+            _ => $"/client/nutrition/plans/{nutrition.ExternalId}",
+        };
+    }
+
+    [Theory]
+    [InlineData("nutrition-today", true)]
+    [InlineData("nutrition-today", false)]
+    [InlineData("nutrition-week", true)]
+    [InlineData("nutrition-week", false)]
+    [InlineData("nutrition-by-id", true)]
+    [InlineData("nutrition-by-id", false)]
+    [InlineData("training-full", true)]
+    [InlineData("training-full", false)]
+    [InlineData("training-today", true)]
+    [InlineData("training-today", false)]
+    public async Task ClientPlanRead_FillsRunsUntilOnlyForAnOverCapClient(string endpoint, bool overCap)
+    {
+        var world = await LapsedCoachAsync(endpoint.StartsWith("training", StringComparison.Ordinal) ? UserRole.Trainer : UserRole.Nutritionist);
+        var client = overCap ? world.OverCapClient : world.KeptClient;
+        var route = await SeedPlanForAsync(endpoint, world.Coach.UserId, client.UserId);
+
+        var response = await client.Http.GetAsync(route, Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var runsUntil = JsonDocument.Parse(await response.Content.ReadAsStringAsync(Ct)).RootElement.GetProperty("runsUntil");
+
+        if (overCap)
+        {
+            runsUntil.GetString().Should().Be(DateOnly.FromDateTime(ThisMonday().AddDays(6)).ToString("yyyy-MM-dd"));
+        }
+        else
+        {
+            runsUntil.ValueKind.Should().Be(JsonValueKind.Null);
+        }
     }
 
     [Fact]
