@@ -10,9 +10,11 @@ import {
   fetchPhotoRequest,
   fetchPhotoRequestLists,
   photoRequestQueryKey,
+  submitPhotoRequest,
 } from '@/api/photoRequests';
 import type { PhotoRequest } from '@/api/photoRequests';
-import { PHOTOS_QUERY_KEY } from '@/api/photos';
+import { PHOTOS_QUERY_KEY, uploadRequestPhoto } from '@/api/photos';
+import type { PickedPhoto, RequestPhotoTarget } from '@/api/photos';
 import { PENDING_QUESTIONNAIRES_QUERY_KEY } from '@/api/questionnaires';
 import { getErrorStatus } from '@/api/errors';
 import { parseCoachRoles } from '@/components/invites/format';
@@ -80,8 +82,10 @@ export function usePhotoStatus(collaboration: Collaboration | undefined, onlyCol
 export type RequestCoach = { name: string; first: string; role: CoachRole | undefined };
 
 /**
- * The coach behind a request. The request only carries the coach's user id, so a collaboration is found by
- * that id, then by the pending list's name for the same request, then as the only collaboration the client has.
+ * The coach behind a request: the name and role the request itself carries. A request without them (the role is
+ * null for one sent with an invite) falls back to the matching collaboration and the pending list, and an older
+ * response without a coach profile id is matched by user id, then by the pending list's name, then as the only
+ * collaboration the client has.
  */
 export function useRequestCoach(request: PhotoRequest | undefined): RequestCoach | null {
   const { data: collaborations } = useCollaborations();
@@ -90,13 +94,23 @@ export function useRequestCoach(request: PhotoRequest | undefined): RequestCoach
 
   const fromPending = pending?.diaryRequests.find((item) => item.requestPublicId === request.id);
   const list = collaborations ?? [];
-  const collaboration =
-    list.find((entry) => entry.professionalPublicId === request.professionalId) ??
-    (fromPending ? list.find((entry) => entry.professionalName === fromPending.professionalName) : undefined) ??
-    (list.length === 1 ? list[0] : undefined);
+  const publicId = request.professionalPublicId?.toLowerCase();
+  const collaboration = publicId
+    ? list.find((entry) => entry.professionalPublicId?.toLowerCase() === publicId)
+    : (list.find((entry) => entry.professionalPublicId === request.professionalId) ??
+      (fromPending ? list.find((entry) => entry.professionalName === fromPending.professionalName) : undefined) ??
+      (list.length === 1 ? list[0] : undefined));
 
-  const name = (collaboration?.professionalName ?? fromPending?.professionalName ?? '').trim();
-  const role = asCoachRole(fromPending?.professionalRole) ?? parseCoachRoles(collaboration?.role)[0];
+  const name = (
+    request.professionalName ??
+    collaboration?.professionalName ??
+    fromPending?.professionalName ??
+    ''
+  ).trim();
+  const role =
+    asCoachRole(request.professionalRole) ??
+    asCoachRole(fromPending?.professionalRole) ??
+    parseCoachRoles(collaboration?.role)[0];
   if (name === '' && role === undefined) return null;
   return { name, first: name.split(/\s+/)[0] ?? '', role };
 }
@@ -116,6 +130,19 @@ export function useRefreshPhotoRequests() {
 
 export function useAcceptPhotoRequest() {
   return useMutation({ mutationFn: (id: string) => acceptPhotoRequest(id) });
+}
+
+/** Uploads one picked photo to a request. The photo is on the request as soon as this succeeds. */
+export function useUploadRequestPhoto() {
+  return useMutation({
+    mutationFn: ({ photo, target }: { photo: PickedPhoto; target: RequestPhotoTarget }) =>
+      uploadRequestPhoto(photo, target),
+  });
+}
+
+/** Sends the request's uploaded photos to the coach and completes the request. */
+export function useSubmitPhotoRequest() {
+  return useMutation({ mutationFn: (id: string) => submitPhotoRequest(id) });
 }
 
 export function useDismissPhotoRequest() {

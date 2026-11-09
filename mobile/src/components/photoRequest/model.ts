@@ -95,12 +95,26 @@ export type PhotoRoute = {
     | '/photo-request/[id]'
     | '/photo-request/[id]/once'
     | '/photo-request/[id]/daily'
-    | '/photo-request/[id]/closed';
-  params: { id: string };
+    | '/photo-request/[id]/closed'
+    | '/photo-request/[id]/sent';
+  params: { id: string; count?: string; at?: string };
 };
 
 export const introRoute = (id: string): PhotoRoute => ({ pathname: '/photo-request/[id]', params: { id } });
 export const closedRoute = (id: string): PhotoRoute => ({ pathname: '/photo-request/[id]/closed', params: { id } });
+
+/** The one-time request's confirmation; the count and send time travel as params because nothing stores them. */
+export const sentRoute = (id: string, count: number, at: number = Date.now()): PhotoRoute => ({
+  pathname: '/photo-request/[id]/sent',
+  params: { id, count: String(count), at: String(at) },
+});
+
+/** A positive whole number from a route param; anything else is missing. */
+export function readPositiveInt(value: string | string[] | undefined): number | null {
+  const single = Array.isArray(value) ? value[0] : value;
+  const parsed = single !== undefined && /^\d+$/.test(single) ? Number(single) : Number.NaN;
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+}
 
 /** Where adding photos happens once the request is accepted. */
 export const flowRoute = (id: string, mode: RequestMode | null): PhotoRoute => ({
@@ -128,16 +142,23 @@ export const answerablePending = (
 ): PendingDiaryRequest[] =>
   oldestFirst((items ?? []).filter((item) => Boolean(item.requestPublicId) && !hasEnded(item, now)));
 
+const sameId = (a: string | undefined, b: string | undefined): boolean =>
+  a !== undefined && b !== undefined && a.toLowerCase() === b.toLowerCase();
+
 /**
- * Whether a non-pending request belongs to this coach. The request carries the coach's user id while a
- * collaboration carries the profile id, so they only match by id when the backend ever aligns them; a lone
- * collaboration owns every request.
+ * Whether a non-pending request belongs to this coach. A request carries the coach's profile id as
+ * `professionalPublicId`, the same id a collaboration has. Without it (an older response) the request only has the
+ * coach's user id, which matches a collaboration only if the backend ever aligns them, so a lone collaboration
+ * owns every request.
  */
 export const belongsToCollaboration = (
   request: PhotoRequest,
   collaboration: Collaboration,
   onlyCollaboration: boolean,
-): boolean => onlyCollaboration || request.professionalId === collaboration.professionalPublicId;
+): boolean => {
+  if (request.professionalPublicId) return sameId(request.professionalPublicId, collaboration.professionalPublicId);
+  return onlyCollaboration || request.professionalId === collaboration.professionalPublicId;
+};
 
 /** The oldest pending request from this coach; an unmatched one belongs to the only coach. */
 export function pendingFor(
