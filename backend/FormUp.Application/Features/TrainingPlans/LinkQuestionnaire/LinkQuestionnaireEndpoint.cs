@@ -36,6 +36,8 @@ public class LinkTrainingQuestionnaireEndpoint(
         {
             s.Summary = "Link questionnaire to training plan";
             s.Description = "Links a submitted questionnaire response to a plan, or unlinks by passing null.";
+            s.Responses[StatusCodes.Status403Forbidden] =
+                "The client is over the Free plan's client limit and the plan's last published week has ended (CLIENT_OVER_PLAN_LIMIT)";
         });
     }
 
@@ -135,12 +137,21 @@ public class LinkTrainingQuestionnaireEndpoint(
         var capabilities = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
             trainerId, plan.ClientId, ct);
 
-        if (capabilities is { CanViewTrainingPlans: true })
+        if (capabilities is not { CanViewTrainingPlans: true })
         {
-            return true;
+            await Send.NotFoundAsync(ct);
+            return false;
         }
 
-        await Send.NotFoundAsync(ct);
-        return false;
+        // A client over the Free plan's cap stays editable only until the last published week ends.
+        var overCapAccess = await this.RespondIfClientOverPlanLimitAfterRunsUntilAsync(
+            db,
+            trainerId,
+            plan.ClientId,
+            PlanRunsUntilResolver.Resolve(
+                plan.StartDate, plan.Weeks.Where(w => w.Status == WeekStatus.Published).Select(w => w.WeekNumber)),
+            ct);
+
+        return overCapAccess != OverCapEditAccess.Refused;
     }
 }

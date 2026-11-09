@@ -36,6 +36,8 @@ import RecipesPage from '@/pages/RecipesPage';
 import PlanTemplatesPage from '@/pages/PlanTemplatesPage';
 import PlanTemplateEditorPage from '@/pages/PlanTemplateEditorPage';
 import ClientPlanEditorPage from '@/pages/ClientPlanEditorPage';
+import LapseKeepClientsPage from '@/pages/LapseKeepClientsPage';
+import { KEEP_CLIENTS_PATH } from '@/components/subscription/planLinks';
 import ProfilePage from '@/pages/ProfilePage';
 import SettingsPage from '@/pages/SettingsPage';
 import NotFoundPage from '@/pages/NotFoundPage';
@@ -104,6 +106,9 @@ const router = createBrowserRouter(
           </Route>
           <Route element={<RoleGuard allowedRoles={['Admin']} />}>
             <Route path="/admin/plans" element={<AdminPlansPage />} />
+          </Route>
+          <Route element={<RoleGuard allowedRoles={['Trainer', 'Nutritionist']} />}>
+            <Route path={KEEP_CLIENTS_PATH} element={<LapseKeepClientsPage />} />
           </Route>
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/settings" element={<SettingsPage />} />

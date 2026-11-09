@@ -201,6 +201,7 @@ public sealed class LinkBuilder(FitnessApiFactory factory, long professionalProf
 {
     private UserRole _professionalRole = UserRole.Trainer;
     private bool _isActive = true;
+    private ConnectionState? _state;
     private bool _canViewNutritionPlans = true;
     private bool _canViewTrainingPlans = true;
     private DateTime _dateCreated = DateTime.UtcNow;
@@ -233,6 +234,11 @@ public sealed class LinkBuilder(FitnessApiFactory factory, long professionalProf
     /// Marks the link inactive (defaults to active).
     /// </summary>
     public LinkBuilder Inactive() { _isActive = false; return this; }
+
+    /// <summary>
+    /// Sets the link's exact connection state (defaults to <see cref="ConnectionState.Connected"/>).
+    /// </summary>
+    public LinkBuilder WithState(ConnectionState state) { _state = state; return this; }
 
     /// <summary>
     /// Overrides the link's creation timestamp (defaults to now).
@@ -268,7 +274,7 @@ public sealed class LinkBuilder(FitnessApiFactory factory, long professionalProf
             ProfessionalProfileId = professionalProfileId,
             ClientProfileId = clientProfileId,
             ProfessionalRole = _professionalRole,
-            ConnectionState = _isActive ? ConnectionState.Connected : ConnectionState.Ended,
+            ConnectionState = _state ?? (_isActive ? ConnectionState.Connected : ConnectionState.Ended),
             CanViewNutritionPlans = _canViewNutritionPlans,
             CanViewTrainingPlans = _canViewTrainingPlans,
             DateCreated = _dateCreated,

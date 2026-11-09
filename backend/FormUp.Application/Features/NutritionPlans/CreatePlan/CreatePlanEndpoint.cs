@@ -47,7 +47,8 @@ public class CreatePlanEndpoint(
             s.Responses[StatusCodes.Status400BadRequest] = "Invalid request, or the questionnaire response is not found or not submitted";
             s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
             s.Responses[StatusCodes.Status403Forbidden] =
-                "The caller's Nutritionist coach role was removed, or the subscription does not include plans (SUBSCRIPTION_REQUIRED)";
+                "The caller's Nutritionist coach role was removed, the subscription does not include plans (SUBSCRIPTION_REQUIRED), " +
+                "or the client is over the Free plan's client limit (CLIENT_OVER_PLAN_LIMIT)";
             s.Responses[StatusCodes.Status404NotFound] = "Client not found, or not accessible to the caller";
             s.Responses[StatusCodes.Status409Conflict] = "The start date window overlaps another plan of the client (PLAN_OVERLAP)";
         });
@@ -97,6 +98,11 @@ public class CreatePlanEndpoint(
         }
 
         var clientUserId = clientProfile.UserId;
+
+        if (await this.RespondIfClientOverPlanLimitAsync(db, nutritionistId, clientUserId, ct))
+        {
+            return;
+        }
 
         // Validate questionnaire response link if provided
         if (req.QuestionnaireResponseId.HasValue)

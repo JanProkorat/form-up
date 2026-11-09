@@ -125,6 +125,110 @@ public static class EntitlementGateExtensions
         return true;
     }
 
+    /// <summary>
+    /// Answers 403 <see cref="ErrorCodes.ClientOverPlanLimit"/> when the coach's paid plan has lapsed and the
+    /// client is over the Free plan's cap. For actions that are always refused for such a client.
+    /// </summary>
+    /// <param name="endpoint">The endpoint instance.</param>
+    /// <param name="db">Application database context.</param>
+    /// <param name="coachUserId">The caller's <c>ApplicationUser.Id</c>.</param>
+    /// <param name="clientUserId">The client's <c>ApplicationUser.Id</c> (what Mongo plans store as ClientId).</param>
+    /// <param name="ct">Cancellation token.</param>
+    public static async Task<bool> RespondIfClientOverPlanLimitAsync(
+        this IEndpoint endpoint, IApplicationDbContext db, Guid coachUserId, Guid clientUserId, CancellationToken ct)
+    {
+        var overCap = await endpoint.ResolveEntitlementService(db).IsClientOverCapAsync(coachUserId, clientUserId, ct);
+
+        return overCap && await endpoint.RespondClientOverPlanLimitAsync(ct);
+    }
+
+    /// <summary>
+    /// Same as the overload taking the client's user id, for a caller that holds the client's profile id.
+    /// </summary>
+    /// <param name="endpoint">The endpoint instance.</param>
+    /// <param name="db">Application database context.</param>
+    /// <param name="coachUserId">The caller's <c>ApplicationUser.Id</c>.</param>
+    /// <param name="clientProfileId">The client's <c>ClientProfile.Id</c>.</param>
+    /// <param name="ct">Cancellation token.</param>
+    public static async Task<bool> RespondIfClientOverPlanLimitAsync(
+        this IEndpoint endpoint, IApplicationDbContext db, Guid coachUserId, long clientProfileId, CancellationToken ct)
+    {
+        var overCap = await endpoint.ResolveEntitlementService(db).IsClientOverCapAsync(coachUserId, clientProfileId, ct);
+
+        return overCap && await endpoint.RespondClientOverPlanLimitAsync(ct);
+    }
+
+    /// <summary>
+    /// For actions on an existing plan that stay allowed until its last published week has ended. Answers
+    /// 403 <see cref="ErrorCodes.ClientOverPlanLimit"/> when the client is over the Free plan's cap and
+    /// <paramref name="runsUntil"/> is null (no published week) or already past.
+    /// </summary>
+    /// <param name="endpoint">The endpoint instance.</param>
+    /// <param name="db">Application database context.</param>
+    /// <param name="coachUserId">The caller's <c>ApplicationUser.Id</c>.</param>
+    /// <param name="clientUserId">The client's <c>ApplicationUser.Id</c> (what Mongo plans store as ClientId).</param>
+    /// <param name="runsUntil">Last day of the plan's last published week, or null when none is published.</param>
+    /// <param name="ct">Cancellation token.</param>
+    public static async Task<OverCapEditAccess> RespondIfClientOverPlanLimitAfterRunsUntilAsync(
+        this IEndpoint endpoint,
+        IApplicationDbContext db,
+        Guid coachUserId,
+        Guid clientUserId,
+        DateOnly? runsUntil,
+        CancellationToken ct)
+    {
+        if (!await endpoint.ResolveEntitlementService(db).IsClientOverCapAsync(coachUserId, clientUserId, ct))
+        {
+            return OverCapEditAccess.Unrestricted;
+        }
+
+        var today = DateOnly.FromDateTime(endpoint.ResolveTimeProvider().GetUtcNow().UtcDateTime);
+
+        if (runsUntil is { } lastDay && today <= lastDay)
+        {
+            return OverCapEditAccess.WindowOpen;
+        }
+
+        await endpoint.RespondClientOverPlanLimitAsync(ct);
+        return OverCapEditAccess.Refused;
+    }
+
+    /// <summary>
+    /// The last day a plan's published weeks cover, for a client who is over the lapsed coach's Free plan cap; null
+    /// when the client is not over the cap (or no week is published), so the client app shows no end-of-plan notice.
+    /// </summary>
+    /// <param name="endpoint">The endpoint instance.</param>
+    /// <param name="db">Application database context.</param>
+    /// <param name="coachUserId">The plan author's <c>ApplicationUser.Id</c>.</param>
+    /// <param name="clientUserId">The client's <c>ApplicationUser.Id</c> (what Mongo plans store as ClientId).</param>
+    /// <param name="startDate">The plan's start date.</param>
+    /// <param name="publishedWeekNumbers">Week numbers whose own status is Published.</param>
+    /// <param name="ct">Cancellation token.</param>
+    public static async Task<DateOnly?> ResolveRunsUntilForOverCapClientAsync(
+        this IEndpoint endpoint,
+        IApplicationDbContext db,
+        Guid coachUserId,
+        Guid clientUserId,
+        DateTime? startDate,
+        IEnumerable<int> publishedWeekNumbers,
+        CancellationToken ct) =>
+        await endpoint.ResolveEntitlementService(db).IsClientOverCapAsync(coachUserId, clientUserId, ct)
+            ? PlanRunsUntilResolver.Resolve(startDate, publishedWeekNumbers)
+            : null;
+
+    private static async Task<bool> RespondClientOverPlanLimitAsync(this IEndpoint endpoint, CancellationToken ct)
+    {
+        await endpoint.SendProblemAsync(
+            StatusCodes.Status403Forbidden,
+            ErrorCodes.ClientOverPlanLimit,
+            "The client is over the Free plan's client limit, so this action is not available.",
+            ct);
+        return true;
+    }
+
+    private static TimeProvider ResolveTimeProvider(this IEndpoint endpoint) =>
+        endpoint.HttpContext.RequestServices?.GetService<TimeProvider>() ?? TimeProvider.System;
+
     private static async Task<bool> RespondIfNotEntitledAsync(
         this IEndpoint endpoint, bool entitled, string detail, CancellationToken ct)
     {

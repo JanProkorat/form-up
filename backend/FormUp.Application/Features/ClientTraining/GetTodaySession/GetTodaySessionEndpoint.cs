@@ -73,6 +73,7 @@ public class GetTodaySessionEndpoint(
     internal static readonly ProjectionDefinition<TrainingPlan> LightPlanProjection = Builders<TrainingPlan>.Projection.Combine(
         Builders<TrainingPlan>.Projection.Include(p => p.ExternalId),
         Builders<TrainingPlan>.Projection.Include(p => p.ClientId),
+        Builders<TrainingPlan>.Projection.Include(p => p.TrainerId),
         Builders<TrainingPlan>.Projection.Include(p => p.Name),
         Builders<TrainingPlan>.Projection.Include(p => p.Status),
         Builders<TrainingPlan>.Projection.Include(p => p.StartDate),
@@ -156,7 +157,14 @@ public class GetTodaySessionEndpoint(
             TotalWeeks = plan.Weeks.Count,
             Status = plan.Status.ToString(),
             QuestionnaireResponseId = plan.QuestionnaireResponseId,
-            DateCompleted = plan.DateCompleted
+            DateCompleted = plan.DateCompleted,
+            RunsUntil = await this.ResolveRunsUntilForOverCapClientAsync(
+                db,
+                plan.TrainerId,
+                clientId,
+                plan.StartDate,
+                plan.Weeks.Where(w => w.Status == WeekStatus.Published).Select(w => w.WeekNumber),
+                ct),
         };
 
         if (plan.Weeks.Count == 0)

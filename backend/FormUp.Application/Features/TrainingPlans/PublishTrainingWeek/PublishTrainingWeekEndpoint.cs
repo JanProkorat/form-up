@@ -44,7 +44,8 @@ public class PublishTrainingWeekEndpoint(
             s.Summary = "Publish a week of a training plan";
             s.Description = "Sets the week's status to Published. Archives other Active training plans for the same client whose date window overlaps this plan's. " +
                             "Clears any stale Editing lock docs for the week's sessions.";
-            s.Responses[StatusCodes.Status403Forbidden] = "The subscription does not include plans (SUBSCRIPTION_REQUIRED)";
+            s.Responses[StatusCodes.Status403Forbidden] =
+                "The subscription does not include plans (SUBSCRIPTION_REQUIRED), or the client is over the Free plan's client limit (CLIENT_OVER_PLAN_LIMIT)";
         });
     }
 
@@ -82,9 +83,15 @@ public class PublishTrainingWeekEndpoint(
             }
 
             // The subscription gate comes after the lookup, so a missing or foreign plan still answers 404.
-            return !await this.RespondIfFeatureNotEntitledAsync(
-                db, trainerId, entitlements => entitlements.CanCreatePlans,
-                "The current subscription does not include publishing plans.", authorizeCt);
+            if (await this.RespondIfFeatureNotEntitledAsync(
+                    db, trainerId, entitlements => entitlements.CanCreatePlans,
+                    "The current subscription does not include publishing plans.", authorizeCt))
+            {
+                return false;
+            }
+
+            // A client over the Free plan's cap after a lapse gets no new published weeks.
+            return !await this.RespondIfClientOverPlanLimitAsync(db, trainerId, plan.ClientId, authorizeCt);
         }
 
         Task<bool> Validate(TrainingPlan plan, CancellationToken validateCt)

@@ -615,6 +615,15 @@ public static class ErrorCodes
     /// <summary>The coach is at the active-client limit of the current subscription.</summary>
     public const string ClientLimitReached = "CLIENT_LIMIT_REACHED";
 
+    /// <summary>The client is over the Free plan's client cap after the coach's paid plan lapsed, so the action is refused.</summary>
+    public const string ClientOverPlanLimit = "CLIENT_OVER_PLAN_LIMIT";
+
+    /// <summary>The kept-clients choice has a duplicate id or the wrong number of clients.</summary>
+    public const string KeepClientsCountInvalid = "KEEP_CLIENTS_COUNT_INVALID";
+
+    /// <summary>The coach's paid plan has not lapsed, so there is no kept-clients choice to make.</summary>
+    public const string SubscriptionNotLapsed = "SUBSCRIPTION_NOT_LAPSED";
+
     /// <summary>The IBAN is malformed or fails the mod-97 check.</summary>
     public const string InvalidIban = "INVALID_IBAN";
 

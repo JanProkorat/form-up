@@ -53,7 +53,8 @@ public class InstantiateTrainingPlanTemplateEndpoint(
         {
             s.Summary = "Instantiate a training plan template";
             s.Description = "Creates a new Draft client plan from a template, every week Draft.";
-            s.Responses[StatusCodes.Status403Forbidden] = "The subscription does not include plans (SUBSCRIPTION_REQUIRED)";
+            s.Responses[StatusCodes.Status403Forbidden] =
+                "The subscription does not include plans (SUBSCRIPTION_REQUIRED), or the client is over the Free plan's client limit (CLIENT_OVER_PLAN_LIMIT)";
         });
     }
 
@@ -112,6 +113,11 @@ public class InstantiateTrainingPlanTemplateEndpoint(
         }
 
         var clientUserId = clientProfile.UserId;
+
+        if (await this.RespondIfClientOverPlanLimitAsync(db, trainerId, clientUserId, ct))
+        {
+            return;
+        }
 
         if (req.StartDate.HasValue)
         {

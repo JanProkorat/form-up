@@ -1,0 +1,138 @@
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { Info } from 'lucide-react';
+import KeepClientsTable from '@/components/subscription/KeepClientsTable';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useKeepClients, useSetKeepClients, useSubscription } from '@/hooks/useSubscriptionQueries';
+import { showApiError, showSuccess } from '@/lib/api-errors';
+import { isSubscriptionNotLapsed } from '@/lib/subscriptionErrors';
+
+/** Lapsed coach: pick which clients the Free plan keeps; the others keep their published weeks, then go read-only. */
+export default function LapseKeepClientsPage() {
+  const { t, i18n } = useTranslation();
+  const subscription = useSubscription();
+  const keepQuery = useKeepClients(subscription.isCoach);
+  const saveMutation = useSetKeepClients();
+  // null = untouched: the selection is whatever the server currently keeps.
+  const [choice, setChoice] = useState<ReadonlySet<string> | null>(null);
+
+  const clients = keepQuery.data?.clients ?? [];
+  const cap = keepQuery.data?.cap ?? null;
+  // Fewer clients than the cap means everyone is kept; no cap means the same.
+  const required = cap === null ? clients.length : Math.min(cap, clients.length);
+  const serverKept = new Set(clients.filter((client) => client.isKept).map((client) => client.clientId ?? ''));
+  const selected = choice ?? serverKept;
+  const full = selected.size >= required;
+  const ready = selected.size === required;
+
+  const toggle = (clientId: string) => {
+    const next = new Set(selected);
+    if (next.has(clientId)) {
+      next.delete(clientId);
+    } else if (next.size < required) {
+      next.add(clientId);
+    }
+    setChoice(next);
+  };
+
+  const save = () => {
+    saveMutation.mutate([...selected], {
+      onSuccess: () => {
+        setChoice(null);
+        showSuccess('subscription.lapse.saveSuccess');
+      },
+      onError: (error) => showApiError(error, 'subscription.lapse.saveError'),
+    });
+  };
+
+  const plan = subscription.lapsedPlanName || subscription.planName;
+  const endedAt = subscription.data?.endedAt;
+  const endedOn = endedAt ? new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' }).format(new Date(endedAt)) : null;
+  const notLapsed = keepQuery.isError && isSubscriptionNotLapsed(keepQuery.error);
+  const showBanner = subscription.isLapsed && plan !== '';
+
+  return (
+    <div className="flex h-full flex-col gap-4.5">
+      {showBanner && (
+        <div role="status" className="flex flex-wrap items-center gap-3.5 rounded-xl bg-training-soft px-4 py-3.5">
+          <Info className="size-4.5 shrink-0 text-training-ink" aria-hidden="true" />
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <span className="text-copy font-semibold text-ink">
+              {endedOn
+                ? t('subscription.lapse.bannerTitle', { plan, date: endedOn })
+                : t('subscription.lapse.bannerTitleNoDate', { plan })}
+            </span>
+            {cap !== null && (
+              <span className="text-body text-ink-2">{t('subscription.lapse.bannerBody', { count: cap })}</span>
+            )}
+          </div>
+          {/* Resubscribing needs the billing integration, which does not exist yet. */}
+          <Button type="button" variant="outline" size="lg" className="ml-auto px-3.5 font-semibold" disabled>
+            {t('subscription.lapse.resubscribe')}
+          </Button>
+        </div>
+      )}
+
+      {notLapsed ? (
+        <div className="flex flex-col items-start gap-3">
+          <p className="text-copy text-muted-foreground">{t('subscription.lapse.notLapsed')}</p>
+          <Button asChild variant="outline" size="lg" className="px-3.5 font-semibold">
+            <Link to="/clients">{t('subscription.lapse.backToClients')}</Link>
+          </Button>
+        </div>
+      ) : keepQuery.isError ? (
+        <div role="alert" className="flex flex-col items-start gap-3">
+          <p className="text-copy text-error">{t('subscription.lapse.loadError')}</p>
+          <Button type="button" variant="outline" size="lg" className="px-3.5 font-semibold" onClick={() => void keepQuery.refetch()}>
+            {t('subscription.lapse.retry')}
+          </Button>
+        </div>
+      ) : keepQuery.isPending ? (
+        <Skeleton className="h-64 w-full rounded-2xl" />
+      ) : (
+        <>
+          <div className="flex flex-col gap-1.5">
+            <h1 className="text-display font-semibold text-ink">{t('subscription.lapse.title', { count: required })}</h1>
+            <p className="text-copy text-muted-foreground">{t('subscription.lapse.subtitle')}</p>
+          </div>
+
+          {clients.length === 0 ? (
+            <p className="text-copy text-muted-foreground">{t('subscription.lapse.noClients')}</p>
+          ) : (
+            <>
+              <div className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-line bg-card shadow-panel">
+                <div className="min-h-0 overflow-y-auto [&_[data-slot=table-container]]:overflow-visible">
+                  <KeepClientsTable
+                    clients={clients}
+                    selected={selected}
+                    full={full}
+                    disabled={saveMutation.isPending}
+                    onToggle={toggle}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="font-semibold text-ink" aria-live="polite">
+                  {t('subscription.lapse.selected', { count: selected.size, cap: required })}
+                </span>
+                <span className="text-body text-muted-foreground">{t('subscription.lapse.changeLater')}</span>
+                <Button
+                  type="button"
+                  size="lg"
+                  className="ml-auto px-3.5 font-semibold"
+                  disabled={!ready || saveMutation.isPending}
+                  onClick={save}
+                >
+                  {t('subscription.lapse.save', { count: required })}
+                </Button>
+              </div>
+            </>
+          )}
+        </>
+      )}
+    </div>
+  );
+}

@@ -32,7 +32,28 @@ public class GetMySubscriptionResponse
     /// <summary>While now is before this instant the assigned plan's features apply whatever the status is.</summary>
     public DateTimeOffset? FreeUntil { get; set; }
 
-    /// <summary>Distinct active clients across all the coach's roles.</summary>
+    /// <summary>
+    /// True when the paid plan has lapsed (Canceled or Incomplete with no free-features deadline in force). The plan
+    /// fields then describe the Free plan and <see cref="ActiveClientCount"/> is the number of kept clients.
+    /// </summary>
+    public bool IsLapsed { get; set; }
+
+    /// <summary>Czech name of the plan that lapsed; null unless <see cref="IsLapsed"/>.</summary>
+    public string? LapsedPlanNameCs { get; set; }
+
+    /// <summary>English name of the plan that lapsed; null unless <see cref="IsLapsed"/>.</summary>
+    public string? LapsedPlanNameEn { get; set; }
+
+    /// <summary>German name of the plan that lapsed; null unless <see cref="IsLapsed"/>.</summary>
+    public string? LapsedPlanNameDe { get; set; }
+
+    /// <summary>When the lapsed plan ended (the period end), if known; null unless <see cref="IsLapsed"/>.</summary>
+    public DateTimeOffset? EndedAt { get; set; }
+
+    /// <summary>Live clients above the Free plan's cap; zero unless <see cref="IsLapsed"/>.</summary>
+    public int OverCapClientCount { get; set; }
+
+    /// <summary>Distinct active clients across all the coach's roles; the kept clients while lapsed.</summary>
     public int ActiveClientCount { get; set; }
 
     /// <summary>Active-client limit that applies now; null means unlimited.</summary>

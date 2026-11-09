@@ -83,6 +83,14 @@ internal sealed class GetClientNutritionPlanEndpoint(IMongoContext mongo, IAppli
             response.CurrentDayOfWeek = null;
         }
 
+        response.RunsUntil = await this.ResolveRunsUntilForOverCapClientAsync(
+            db,
+            plan.NutritionistId,
+            clientId,
+            plan.StartDate,
+            plan.Weeks.Where(w => w.Status == WeekStatus.Published).Select(w => w.WeekNumber),
+            ct);
+
         await Send.OkAsync(response, ct);
     }
 }

@@ -104,6 +104,59 @@ public class SetCoachSubscriptionEndpointTests(FitnessApiFactory factory)
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
+    private async Task<(Actor Coach, long KeptLinkId, long ReleasedLinkId)> LapsedCoachWithChoiceAsync()
+    {
+        var coach = await CreateCoachAsync();
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, "pro", SubscriptionStatus.Canceled);
+        var kept = await TestActors.Client(factory).CreateAsync(Ct);
+        var released = await TestActors.Client(factory).CreateAsync(Ct);
+        var keptLinkId = await TestActors.Link(factory, coach, kept).WithState(ConnectionState.FreePlanKept).CreateAsync(Ct);
+        var releasedLinkId = await TestActors.Link(factory, coach, released).WithState(ConnectionState.FreePlanReleased).CreateAsync(Ct);
+
+        return (coach, keptLinkId, releasedLinkId);
+    }
+
+    private async Task<List<ConnectionState>> LinkStatesAsync(params long[] linkIds)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        return await db.ClientProfessionalLinks.AsNoTracking()
+            .Where(link => linkIds.Contains(link.Id))
+            .Select(link => link.ConnectionState)
+            .ToListAsync(Ct);
+    }
+
+    [Theory]
+    [InlineData(SubscriptionStatus.Active)]
+    [InlineData(SubscriptionStatus.Trialing)]
+    [InlineData(SubscriptionStatus.PastDue)]
+    public async Task Put_BackOnAPaidPlan_ResetsTheKeptAndReleasedClientsToConnected(SubscriptionStatus status)
+    {
+        var admin = await TestHelpers.RegisterAdminAsync(factory, Ct);
+        var (coach, keptLinkId, releasedLinkId) = await LapsedCoachWithChoiceAsync();
+
+        var response = await admin.PutAsJsonAsync($"/admin/coaches/{coach.UserId}/subscription", Body("pro", status), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await LinkStatesAsync(keptLinkId, releasedLinkId)).Should().OnlyContain(state => state == ConnectionState.Connected);
+    }
+
+    [Theory]
+    [InlineData("pro", SubscriptionStatus.Canceled)]
+    [InlineData("free", SubscriptionStatus.Active)]
+    public async Task Put_StillLapsedOrOnFree_KeepsTheChoice(string planCode, SubscriptionStatus status)
+    {
+        var admin = await TestHelpers.RegisterAdminAsync(factory, Ct);
+        var (coach, keptLinkId, releasedLinkId) = await LapsedCoachWithChoiceAsync();
+
+        var response = await admin.PutAsJsonAsync($"/admin/coaches/{coach.UserId}/subscription", Body(planCode, status), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await LinkStatesAsync(keptLinkId)).Should().Equal(ConnectionState.FreePlanKept);
+        (await LinkStatesAsync(releasedLinkId)).Should().Equal(ConnectionState.FreePlanReleased);
+    }
+
     private async Task<string> CreateInactivePlanAsync()
     {
         using var scope = factory.Services.CreateScope();

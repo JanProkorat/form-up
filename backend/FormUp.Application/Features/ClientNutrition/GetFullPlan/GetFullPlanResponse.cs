@@ -36,6 +36,12 @@ public class GetFullPlanResponse
     /// <summary>Total number of weeks in the plan (including draft).</summary>
     public int TotalWeeks { get; set; }
 
+    /// <summary>
+    /// Last day of the plan's last published week, set only when the plan's coach no longer has a plan that covers
+    /// this client: after it the plan is read-only. Null otherwise.
+    /// </summary>
+    public DateOnly? RunsUntil { get; set; }
+
     /// <summary>Current week number (null if plan is upcoming).</summary>
     public int? CurrentWeek { get; set; }
 

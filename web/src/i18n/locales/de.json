@@ -289,7 +289,44 @@
       "plan": "Tarif {{plan}}",
       "usage": "{{used}} von {{limit}} Klienten",
       "unlimited": "Klienten: {{count}} · ohne Limit",
-      "aria": "Tarif {{plan}}, {{detail}}. Tarif und Abrechnung öffnen"
+      "aria": "Tarif {{plan}}, {{detail}}. Tarif und Abrechnung öffnen",
+      "ariaLapsed": "Tarif {{plan}}, {{detail}}. Klienten zum Behalten auswählen"
+    },
+    "lapse": {
+      "bannerTitle": "Ihr Tarif {{plan}} endete am {{date}}",
+      "bannerTitleNoDate": "Ihr Tarif {{plan}} ist beendet",
+      "bannerBody_one": "Sie nutzen jetzt den kostenlosen Tarif: {{count}} aktiver Klient, beide Rollen.",
+      "bannerBody_other": "Sie nutzen jetzt den kostenlosen Tarif: {{count}} aktive Klienten, beide Rollen.",
+      "resubscribe": "Erneut abonnieren",
+      "title_one": "Wählen Sie {{count}} Klienten zum Behalten aus",
+      "title_other": "Wählen Sie {{count}} Klienten zum Behalten aus",
+      "subtitle": "Bei diesen bleibt alles wie bisher. Die übrigen behalten die bereits veröffentlichten Wochen, danach sind ihre Pläne nur noch lesbar.",
+      "table": {
+        "keep": "Behalten",
+        "client": "Klient",
+        "roles": "Rollen",
+        "publishedEnd": "Veröffentlichte Wochen bis",
+        "after": "Danach"
+      },
+      "keepAria": "{{name}} behalten",
+      "notPublished": "Nicht veröffentlicht",
+      "after": {
+        "fullAccess": "Bleibt aktiv",
+        "runsUntil": "Nur lesbar ab {{date}}",
+        "runsUntilNoDate": "Nur lesbar nach den veröffentlichten Wochen",
+        "readOnly": "Jetzt nur lesbar"
+      },
+      "selected": "{{count}} von {{cap}} ausgewählt",
+      "changeLater": "Sie können Ihre Auswahl hier später ändern.",
+      "save_one": "Diesen Klienten behalten",
+      "save_other": "Diese {{count}} behalten",
+      "saveSuccess": "Ihre Auswahl ist gespeichert",
+      "saveError": "Die Auswahl konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.",
+      "loadError": "Die Klienten konnten nicht geladen werden.",
+      "retry": "Erneut versuchen",
+      "notLapsed": "Ihr Tarif ist nicht abgelaufen, daher gibt es nichts auszuwählen.",
+      "backToClients": "Zurück zu den Klienten",
+      "noClients": "Sie haben keine Klienten, aus denen Sie auswählen könnten."
     },
     "plan": {
       "title": "Tarif und Abrechnung",
@@ -341,6 +378,7 @@
     "profile": "Ihr Profil",
     "settings": "Einstellungen",
     "planBilling": "Tarif und Abrechnung",
+    "keepClients": "Klienten zum Behalten wählen",
     "language": "Sprache",
     "theme": "Design",
     "languages": {
@@ -3321,6 +3359,9 @@
     "AUTOMATION_CHECK_IN_FIELDS_NOT_ALLOWED": "Wochentag, Antwortfenster und Erinnerung gehören nur zu Regeln für den wöchentlichen Check-in.",
     "SUBSCRIPTION_REQUIRED": "Das ist in Ihrem Tarif nicht enthalten.",
     "CLIENT_LIMIT_REACHED": "Ihr Tarif ist voll. Es ist kein Platz für einen weiteren Klienten.",
+    "CLIENT_OVER_PLAN_LIMIT": "Dieser Klient liegt über dem Limit Ihres kostenlosen Tarifs, daher können Sie seinen Plan nicht ändern. Wählen Sie im Kontomenü die Klienten aus, die Sie behalten.",
+    "KEEP_CLIENTS_COUNT_INVALID": "Wählen Sie genau so viele Klienten aus, wie Ihr kostenloser Tarif umfasst.",
+    "SUBSCRIPTION_NOT_LAPSED": "Ihr Tarif ist nicht abgelaufen, daher gibt es nichts auszuwählen.",
     "CHECK_IN_ANSWER_WINDOW_CLOSED": "Die Zeit zum Beantworten dieses Check-ins ist abgelaufen.",
     "INVALID_CREDENTIALS": "Ungültige E-Mail oder Passwort.",
     "ACCOUNT_DEACTIVATED": "Ihr Konto wurde deaktiviert.",

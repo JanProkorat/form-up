@@ -1,3 +1,6 @@
+/** Route of the lapsed coach's "keep these clients" screen. */
+export const KEEP_CLIENTS_PATH = '/plan/keep-clients';
+
 /** Anchor id of the Plan and billing section on the Settings page. */
 export const PLAN_BILLING_ANCHOR = 'plan-billing';
 
