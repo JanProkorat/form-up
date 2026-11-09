@@ -95,6 +95,15 @@ public class GetFullPlanEndpoint(IMongoContext mongo, IApplicationDbContext db, 
                 Builders<MealLog>.Filter.Eq(m => m.PlanId, plan.ExternalId)))
             .ToListAsync(ct);
 
-        await Send.OkAsync(GetFullPlanResponse.FromPlan(plan, todayLocalUtc, MealLogMerger.MergeForPlan(mealRows, plan)), ct);
+        var response = GetFullPlanResponse.FromPlan(plan, todayLocalUtc, MealLogMerger.MergeForPlan(mealRows, plan));
+        response.RunsUntil = await this.ResolveRunsUntilForOverCapClientAsync(
+            db,
+            plan.NutritionistId,
+            clientId,
+            plan.StartDate,
+            plan.Weeks.Where(w => w.Status == WeekStatus.Published).Select(w => w.WeekNumber),
+            ct);
+
+        await Send.OkAsync(response, ct);
     }
 }

@@ -8,6 +8,7 @@ using FormUp.Application.Domain.Interfaces;
 using FormUp.Application.Features.TrainingPlans.UnlockTrainingSession;
 using FormUp.Application.Infrastructure.Data.MongoDb;
 using FormUp.Application.Infrastructure.Services;
+using FormUp.Tests.Builders;
 using FormUp.Tests.Endpoints;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
@@ -147,7 +148,7 @@ public class UnlockSessionFinishedGuardTests
         var ep = Factory.Create<UnlockTrainingSessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, DefaultOptions(), notifier,
+            new MockDbBuilder().Build(), mongo, lockService, DefaultOptions(), notifier,
             EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         // Act
@@ -188,7 +189,7 @@ public class UnlockSessionFinishedGuardTests
         var ep = Factory.Create<UnlockTrainingSessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, DefaultOptions(), notifier,
+            new MockDbBuilder().Build(), mongo, lockService, DefaultOptions(), notifier,
             EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         // Act
@@ -227,7 +228,7 @@ public class UnlockSessionFinishedGuardTests
         var ep = Factory.Create<UnlockTrainingSessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(otherTrainer, AppRoles.Trainer))),
-            mongo, Substitute.For<ISessionLockService>(), DefaultOptions(), Substitute.For<IRealtimeNotifier>(),
+            new MockDbBuilder().Build(), mongo, Substitute.For<ISessionLockService>(), DefaultOptions(), Substitute.For<IRealtimeNotifier>(),
             EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         // Act
@@ -303,7 +304,7 @@ public class UnlockSessionFinishedGuardTests
         var ep = Factory.Create<UnlockTrainingSessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, DefaultOptions(), notifier,
+            new MockDbBuilder().Build(), mongo, lockService, DefaultOptions(), notifier,
             EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         // Act
@@ -371,7 +372,7 @@ public class UnlockSessionFinishedGuardTests
         var ep = Factory.Create<UnlockTrainingSessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, DefaultOptions(), notifier,
+            new MockDbBuilder().Build(), mongo, lockService, DefaultOptions(), notifier,
             EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         // Act
@@ -462,7 +463,7 @@ public class UnlockSessionFinishedGuardTests
         var ep = Factory.Create<UnlockTrainingSessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, DefaultOptions(), notifier,
+            new MockDbBuilder().Build(), mongo, lockService, DefaultOptions(), notifier,
             EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         // Act
@@ -543,7 +544,7 @@ public class UnlockSessionFinishedGuardTests
         var ep = Factory.Create<UnlockTrainingSessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, DefaultOptions(), notifier,
+            new MockDbBuilder().Build(), mongo, lockService, DefaultOptions(), notifier,
             EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         // Act

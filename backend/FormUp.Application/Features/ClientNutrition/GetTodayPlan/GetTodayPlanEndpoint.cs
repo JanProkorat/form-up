@@ -51,6 +51,7 @@ public class GetTodayPlanEndpoint(IMongoContext mongo, IApplicationDbContext db,
         Builders<Domain.Documents.NutritionPlan>.Projection.Combine(
             Builders<Domain.Documents.NutritionPlan>.Projection.Include(p => p.ExternalId),
             Builders<Domain.Documents.NutritionPlan>.Projection.Include(p => p.ClientId),
+            Builders<Domain.Documents.NutritionPlan>.Projection.Include(p => p.NutritionistId),
             Builders<Domain.Documents.NutritionPlan>.Projection.Include(p => p.Name),
             Builders<Domain.Documents.NutritionPlan>.Projection.Include(p => p.Version),
             Builders<Domain.Documents.NutritionPlan>.Projection.Include(p => p.Status),
@@ -192,6 +193,8 @@ public class GetTodayPlanEndpoint(IMongoContext mongo, IApplicationDbContext db,
             DayTotals = day.DayTotals,
             GlobalSettings = plan.GlobalSettings,
             DayNote = day.Note,
+            RunsUntil = await this.ResolveRunsUntilForOverCapClientAsync(
+                db, plan.NutritionistId, clientId, plan.StartDate, publishedWeeks.Select(w => w.WeekNumber), ct),
         }, ct);
     }
 

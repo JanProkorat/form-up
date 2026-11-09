@@ -1,6 +1,7 @@
 using FastEndpoints;
 using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Entities;
+using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Extensions;
 using FormUp.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -83,6 +84,22 @@ internal sealed class SetCoachSubscriptionEndpoint(IApplicationDbContext db)
         subscription.Status = req.Status;
         subscription.FreeUntil = req.FreeUntil;
         subscription.PaysSecondRoleAddOn = req.PaysSecondRoleAddOn;
+
+        // Back on a paid plan: the kept/released choice made while lapsed no longer applies.
+        if (req.PlanCode != SubscriptionPlanCodes.Free
+            && req.Status is SubscriptionStatus.Active or SubscriptionStatus.Trialing or SubscriptionStatus.PastDue)
+        {
+            var lapseLinks = await db.ClientProfessionalLinks
+                .Where(link => link.ProfessionalProfileId == profileId
+                               && (link.ConnectionState == ConnectionState.FreePlanKept
+                                   || link.ConnectionState == ConnectionState.FreePlanReleased))
+                .ToListAsync(ct);
+
+            foreach (var link in lapseLinks)
+            {
+                link.ConnectionState = ConnectionState.Connected;
+            }
+        }
 
         await db.SaveChangesAsync(ct);
 

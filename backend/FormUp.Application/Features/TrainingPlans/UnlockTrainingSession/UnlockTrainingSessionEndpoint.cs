@@ -6,6 +6,8 @@ using FormUp.Application.Domain.Documents;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Extensions;
 using FormUp.Application.Domain.Interfaces;
+using FormUp.Application.Domain.Services;
+using FormUp.Application.Infrastructure.Data;
 using FormUp.Application.Infrastructure.Data.MongoDb;
 using FormUp.Application.Infrastructure.Services;
 using Microsoft.Extensions.Options;
@@ -21,6 +23,7 @@ namespace FormUp.Application.Features.TrainingPlans.UnlockTrainingSession;
 /// </summary>
 [RemovedCoachRole(AppRoles.Trainer, RemovedCoachRoleMode.WhilePlanInProgress)]
 public class UnlockTrainingSessionEndpoint(
+    IApplicationDbContext db,
     IMongoContext mongo,
     ISessionLockService lockService,
     IOptions<TrainingLockOptions> lockOptions,
@@ -38,6 +41,8 @@ public class UnlockTrainingSessionEndpoint(
             s.Summary = "Unlock a training session for editing";
             s.Description = "Acquires an Editing lock on the session. " +
                             "Returns 409 if the session is currently Live (client is training).";
+            s.Responses[StatusCodes.Status403Forbidden] =
+                "The client is over the Free plan's client limit and the plan's last published week has ended (CLIENT_OVER_PLAN_LIMIT)";
         });
     }
 
@@ -58,6 +63,20 @@ public class UnlockTrainingSessionEndpoint(
         var plan = await this.LoadOwnedTrainingPlanIfAllowedAsync(mongo, linkAuthorizationService, req.PlanId, trainerId, ct);
 
         if (plan is null)
+        {
+            return;
+        }
+
+        // A client over the Free plan's cap stays editable only until the last published week ends.
+        var overCapAccess = await this.RespondIfClientOverPlanLimitAfterRunsUntilAsync(
+            db,
+            trainerId,
+            plan.ClientId,
+            PlanRunsUntilResolver.Resolve(
+                plan.StartDate, plan.Weeks.Where(w => w.Status == WeekStatus.Published).Select(w => w.WeekNumber)),
+            ct);
+
+        if (overCapAccess == OverCapEditAccess.Refused)
         {
             return;
         }

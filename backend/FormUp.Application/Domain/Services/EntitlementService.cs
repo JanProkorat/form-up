@@ -149,6 +149,86 @@ public class EntitlementService
         return await CanAddClientAsync(professionalProfileId, ct);
     }
 
+    /// <summary>
+    /// Resolves whether the professional's paid plan has lapsed and, when it has, which live clients the
+    /// Free plan keeps and which are over its cap. The cap is the Free plan's own limit, read from the data.
+    /// </summary>
+    /// <param name="professionalProfileId">The professional's <c>ProfessionalProfile.Id</c>.</param>
+    /// <param name="ct">Cancellation token.</param>
+    public async Task<KeepClientsState> GetKeepClientsStateAsync(long professionalProfileId, CancellationToken ct)
+    {
+        var row = await db.CoachSubscriptions
+            .AsNoTracking()
+            .Where(cs => cs.ProfessionalProfileId == professionalProfileId)
+            .Select(cs => new { cs.Status, cs.FreeUntil })
+            .FirstOrDefaultAsync(ct);
+
+        if (row is null || !IsLapsed(row.Status, row.FreeUntil))
+        {
+            return KeepClientsState.NotLapsed;
+        }
+
+        var free = await LoadFreePlanAsync(ct);
+        var links = await db.ClientProfessionalLinks
+            .AsNoTracking()
+            .Where(cpl => cpl.ProfessionalProfileId == professionalProfileId && cpl.ConnectionState != ConnectionState.Ended)
+            .Select(cpl => new KeepLinkRow(cpl.Id, cpl.ClientProfileId, cpl.ConnectionState, cpl.ActivatedAtUtc, cpl.DateCreated))
+            .ToListAsync(ct);
+
+        // A missing Free plan fails closed: nobody fits under a cap of zero.
+        return CoachKeepClientsResolver.Resolve(links, free is null ? 0 : free.MaxActiveClients);
+    }
+
+    /// <summary>
+    /// Whether the user's professional plan has lapsed and the given client is over the Free plan's cap.
+    /// Always false for a user with no professional profile or a client with no profile.
+    /// </summary>
+    /// <param name="coachUserId">The coach's <c>ApplicationUser.Id</c>.</param>
+    /// <param name="clientUserId">The client's <c>ApplicationUser.Id</c> (what Mongo plans store as ClientId).</param>
+    /// <param name="ct">Cancellation token.</param>
+    public async Task<bool> IsClientOverCapAsync(Guid coachUserId, Guid clientUserId, CancellationToken ct)
+    {
+        var overCap = await GetOverCapClientProfileIdsAsync(coachUserId, ct);
+
+        if (overCap.Count == 0)
+        {
+            return false;
+        }
+
+        var clientProfileId = await db.ClientProfiles
+            .AsNoTracking()
+            .Where(cp => cp.UserId == clientUserId)
+            .Select(cp => (long?)cp.Id)
+            .FirstOrDefaultAsync(ct);
+
+        return clientProfileId is { } id && overCap.Contains(id);
+    }
+
+    /// <summary>
+    /// Same as the overload taking the client's user id, for a caller that holds the client's profile id.
+    /// </summary>
+    /// <param name="coachUserId">The coach's <c>ApplicationUser.Id</c>.</param>
+    /// <param name="clientProfileId">The client's <c>ClientProfile.Id</c>.</param>
+    /// <param name="ct">Cancellation token.</param>
+    public async Task<bool> IsClientOverCapAsync(Guid coachUserId, long clientProfileId, CancellationToken ct) =>
+        (await GetOverCapClientProfileIdsAsync(coachUserId, ct)).Contains(clientProfileId);
+
+    private async Task<IReadOnlyList<long>> GetOverCapClientProfileIdsAsync(Guid coachUserId, CancellationToken ct)
+    {
+        var professionalProfileId = await FindProfileIdAsync(coachUserId, ct);
+
+        if (professionalProfileId is null)
+        {
+            return [];
+        }
+
+        return (await GetKeepClientsStateAsync(professionalProfileId.Value, ct)).OverCapClientProfileIds;
+    }
+
+    private bool IsLapsed(SubscriptionStatus status, DateTimeOffset? freeUntil) =>
+        status is SubscriptionStatus.Canceled or SubscriptionStatus.Incomplete
+        && !(timeProvider.GetUtcNow() < freeUntil);
+
     private async Task<long?> FindProfileIdAsync(Guid userId, CancellationToken ct) =>
         await db.ProfessionalProfiles
             .AsNoTracking()

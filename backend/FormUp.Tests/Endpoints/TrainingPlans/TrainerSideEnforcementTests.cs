@@ -299,7 +299,7 @@ public class TrainerSideEnforcementTests
         var ep = Factory.Create<UnlockTrainingSessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, DefaultOptions(), Substitute.For<IRealtimeNotifier>(),
+            new MockDbBuilder().Build(), mongo, lockService, DefaultOptions(), Substitute.For<IRealtimeNotifier>(),
             EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         // Act
@@ -326,7 +326,7 @@ public class TrainerSideEnforcementTests
         var ep = Factory.Create<UnlockTrainingSessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, DefaultOptions(), Substitute.For<IRealtimeNotifier>(),
+            new MockDbBuilder().Build(), mongo, lockService, DefaultOptions(), Substitute.For<IRealtimeNotifier>(),
             EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         // Act
@@ -362,7 +362,7 @@ public class TrainerSideEnforcementTests
         var ep = Factory.Create<UnlockTrainingSessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, DefaultOptions(), Substitute.For<IRealtimeNotifier>(),
+            new MockDbBuilder().Build(), mongo, lockService, DefaultOptions(), Substitute.For<IRealtimeNotifier>(),
             TrainingPlanTestHelpers.CreateDenyingLinkAuthorizationService());
 
         await ep.HandleAsync(
@@ -394,7 +394,7 @@ public class TrainerSideEnforcementTests
         var ep = Factory.Create<UnlockTrainingSessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, DefaultOptions(), Substitute.For<IRealtimeNotifier>(),
+            new MockDbBuilder().Build(), mongo, lockService, DefaultOptions(), Substitute.For<IRealtimeNotifier>(),
             EndpointTestHelpers.CreateGrantingLinkAuthorizationService(
                 canViewNutritionPlans: true, canViewTrainingPlans: false));
 
@@ -646,7 +646,7 @@ public class TrainerSideEnforcementTests
         var ep = Factory.Create<RelockTrainingSessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, Substitute.For<IRealtimeNotifier>(),
+            new MockDbBuilder().Build(), mongo, lockService, Substitute.For<IRealtimeNotifier>(),
             EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         // Act
@@ -672,7 +672,7 @@ public class TrainerSideEnforcementTests
         var ep = Factory.Create<RelockTrainingSessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, Substitute.For<IRealtimeNotifier>(),
+            new MockDbBuilder().Build(), mongo, lockService, Substitute.For<IRealtimeNotifier>(),
             EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         // Act
@@ -704,7 +704,7 @@ public class TrainerSideEnforcementTests
         var ep = Factory.Create<RelockTrainingSessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, Substitute.For<IRealtimeNotifier>(),
+            new MockDbBuilder().Build(), mongo, lockService, Substitute.For<IRealtimeNotifier>(),
             TrainingPlanTestHelpers.CreateDenyingLinkAuthorizationService());
 
         await ep.HandleAsync(
@@ -734,7 +734,7 @@ public class TrainerSideEnforcementTests
         var ep = Factory.Create<RelockTrainingSessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, Substitute.For<IRealtimeNotifier>(),
+            new MockDbBuilder().Build(), mongo, lockService, Substitute.For<IRealtimeNotifier>(),
             EndpointTestHelpers.CreateGrantingLinkAuthorizationService(
                 canViewNutritionPlans: true, canViewTrainingPlans: false));
 

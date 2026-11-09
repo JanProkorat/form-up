@@ -14,4 +14,14 @@ public enum ConnectionState
     /// The collaboration has ended.
     /// </summary>
     Ended = 1,
+
+    /// <summary>
+    /// The collaboration is live and the coach chose to keep this client after their paid plan lapsed.
+    /// </summary>
+    FreePlanKept = 2,
+
+    /// <summary>
+    /// The collaboration is live but the coach chose to release this client after their paid plan lapsed.
+    /// </summary>
+    FreePlanReleased = 3,
 }

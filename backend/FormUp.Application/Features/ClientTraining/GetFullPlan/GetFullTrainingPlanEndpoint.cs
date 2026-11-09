@@ -551,6 +551,8 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
             PublishedWeekCount = publishedWeeks.Count,
             QuestionnaireResponseId = plan.QuestionnaireResponseId,
             DateCompleted = plan.DateCompleted,
+            RunsUntil = await this.ResolveRunsUntilForOverCapClientAsync(
+                db, plan.TrainerId, clientId, plan.StartDate, publishedWeeks.Select(w => w.WeekNumber), ct),
             Weeks = weekDtos
         }, ct);
     }

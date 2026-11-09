@@ -51,7 +51,9 @@ public class UpdateTrainingPlanEndpoint(
             s.Description = "Replaces the plan's name, description, and all weeks/sessions/exercises/sets. " +
                             "Per-week publish status is preserved. Uses optimistic concurrency via version field. " +
                             "Published sessions with content changes require an active Editing lock.";
-            s.Responses[StatusCodes.Status403Forbidden] = "The subscription does not include plans (SUBSCRIPTION_REQUIRED), or a removed coach role";
+            s.Responses[StatusCodes.Status403Forbidden] =
+                "The subscription does not include plans (SUBSCRIPTION_REQUIRED), a removed coach role, or the client is over the " +
+                "Free plan's client limit and the plan's last published week has ended or the start date changed (CLIENT_OVER_PLAN_LIMIT)";
         });
     }
 
@@ -85,6 +87,31 @@ public class UpdateTrainingPlanEndpoint(
             (plan, authorizeCt) => AuthorizeAsync(plan, trainerId, authorizeCt),
             async (plan, mutateCt) =>
             {
+                // A client over the Free plan's cap keeps the published weeks they have: the plan stays editable
+                // until the last of them ends, but not in a way that pushes that end out.
+                var overCapAccess = await this.RespondIfClientOverPlanLimitAfterRunsUntilAsync(
+                    db,
+                    trainerId,
+                    plan.ClientId,
+                    PlanRunsUntilResolver.Resolve(
+                        plan.StartDate, plan.Weeks.Where(w => w.Status == WeekStatus.Published).Select(w => w.WeekNumber)),
+                    mutateCt);
+
+                if (overCapAccess == OverCapEditAccess.Refused)
+                {
+                    return false;
+                }
+
+                if (overCapAccess == OverCapEditAccess.WindowOpen && req.StartDate?.Date != plan.StartDate?.Date)
+                {
+                    await this.SendProblemAsync(
+                        StatusCodes.Status403Forbidden,
+                        ErrorCodes.ClientOverPlanLimit,
+                        "The start date of a plan cannot change while its client is over the Free plan's client limit.",
+                        mutateCt);
+                    return false;
+                }
+
                 // A removed role may finish its in-progress plans but not push their end date out.
                 if (HttpContext.Items.ContainsKey(RemovedCoachRoleMiddleware.RoleRemovedItemKey)
                     && plan.StartDate.HasValue

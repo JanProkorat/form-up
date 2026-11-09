@@ -24,7 +24,9 @@ internal sealed class GetMySubscriptionEndpoint(IApplicationDbContext db, Entitl
         {
             s.Summary = "Get my coach subscription";
             s.Description = "The caller's plan, status, active-client usage and limit, second-role state, monthly price lines and the " +
-                            "feature flags that currently apply. A coach with no subscription is shown on the Free plan with no status.";
+                            "feature flags that currently apply. A coach with no subscription is shown on the Free plan with no status. When the paid " +
+                            "plan has lapsed the plan fields read as Free, the lapsed plan's names and end date are returned separately, " +
+                            "the active-client count is the kept clients and the over-cap count is reported.";
             s.Responses[StatusCodes.Status200OK] = "The caller's subscription block";
             s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
             s.Responses[StatusCodes.Status404NotFound] = "The caller has no professional profile, or the Free plan is missing";
@@ -62,7 +64,17 @@ internal sealed class GetMySubscriptionEndpoint(IApplicationDbContext db, Entitl
 
         var entitlements = await entitlementService.GetEntitlementsAsync(profileId.Value, ct);
 
-        response.ActiveClientCount = await entitlementService.GetActiveClientCountAsync(profileId.Value, ct);
+        var keepState = await entitlementService.GetKeepClientsStateAsync(profileId.Value, ct);
+
+        if (keepState.IsLapsed)
+        {
+            await ApplyLapseAsync(response, keepState, ct);
+        }
+        else
+        {
+            response.ActiveClientCount = await entitlementService.GetActiveClientCountAsync(profileId.Value, ct);
+        }
+
         response.ClientLimit = entitlements.MaxActiveClients;
         response.SecondRole = await entitlementService.GetSecondRoleStateAsync(profileId.Value, ct);
         response.Features = new SubscriptionFeaturesDto
@@ -76,6 +88,45 @@ internal sealed class GetMySubscriptionEndpoint(IApplicationDbContext db, Entitl
         };
 
         await Send.OkAsync(response, ct);
+    }
+
+    /// <summary>
+    /// A lapsed plan reads as the Free plan: the plan that ended moves to the lapsed fields, the kept clients are the
+    /// active clients and the rest are over the cap. Without a Free plan row the plan fields stay as they were.
+    /// </summary>
+    private async Task ApplyLapseAsync(GetMySubscriptionResponse response, KeepClientsState keepState, CancellationToken ct)
+    {
+        response.IsLapsed = true;
+        response.LapsedPlanNameCs = response.NameCs;
+        response.LapsedPlanNameEn = response.NameEn;
+        response.LapsedPlanNameDe = response.NameDe;
+        response.EndedAt = response.CurrentPeriodEndsAt;
+        response.ActiveClientCount = keepState.KeptClientProfileIds.Count;
+        response.OverCapClientCount = keepState.OverCapClientProfileIds.Count;
+
+        var free = await db.SubscriptionPlans
+            .AsNoTracking()
+            .Where(p => p.Code == SubscriptionPlanCodes.Free)
+            .FirstOrDefaultAsync(ct);
+
+        if (free is null)
+        {
+            return;
+        }
+
+        response.PlanCode = free.Code;
+        response.NameCs = free.NameCs;
+        response.NameEn = free.NameEn;
+        response.NameDe = free.NameDe;
+        response.PriceLines =
+        [
+            new SubscriptionPriceLineDto
+            {
+                Kind = SubscriptionPriceLineKind.Plan,
+                AmountMinorUnits = free.PriceMinorUnits,
+                Currency = free.Currency,
+            },
+        ];
     }
 
     /// <summary>

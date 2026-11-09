@@ -51,4 +51,10 @@ public class GetTodayPlanResponse
     /// Optional nutritionist note for today's plan day.
     /// </summary>
     public string? DayNote { get; set; }
+
+    /// <summary>
+    /// Last day of the plan's last published week, set only when the plan's coach no longer has a plan that covers
+    /// this client: after it the plan is read-only. Null otherwise.
+    /// </summary>
+    public DateOnly? RunsUntil { get; set; }
 }
