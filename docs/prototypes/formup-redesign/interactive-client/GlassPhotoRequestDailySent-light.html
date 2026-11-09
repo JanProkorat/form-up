@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PhotoRequestDailySent · today&#x27;s photos sent · light · Form Up prototype</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500;600;700&amp;family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#141414}a:hover{color:#3A3835}
+</style>
+
+<style>
+html,body{margin:0}
+body{overflow-x:hidden}
+body.fu-device{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#E4E1DC}
+body.fu-device.fu-dark{background:#1C1C1F}
+.fu-hot{cursor:pointer}
+body.fu-show .fu-hot{outline:2px solid rgba(37,99,235,.75);outline-offset:1px}
+#fu-bar{position:fixed;right:16px;bottom:16px;z-index:9999;display:flex;gap:6px;align-items:center;padding:6px;border-radius:14px;background:rgba(20,20,20,.88);color:#fff;font:600 12px system-ui,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+#fu-bar a,#fu-bar button,#fu-bar select{height:30px;padding:0 10px;border-radius:9px;border:0;background:rgba(255,255,255,.12);color:#fff;font:inherit;text-decoration:none;display:flex;align-items:center;cursor:pointer}
+#fu-bar .on{background:#fff;color:#141414}
+</style>
+<script>
+(function(){
+  var FLOW = {"Today": "GlassToday", "Training": "GlassTrainingWeek", "Nutrition": "GlassNutrition", "*Messages": "GlassMessagesList"}, PAGE = "GlassPhotoRequestDailySent", THEME = "light", PAGES = [["GlassLaunchQuiet", "Launch · light"], ["GlassLogin", "Login · light"], ["GlassRegister", "Register · light"], ["GlassRegisterEmailSteps", "Register · check email, change email, email verified · light"], ["GlassOnboardingGoal", "OnboardingGoal · light"], ["GlassOnboardingBasics", "OnboardingBasics · light"], ["GlassOnboardingLifestyle", "OnboardingLifestyle · light"], ["GlassOnboardingTraining", "OnboardingTraining · light"], ["GlassOnboardingEating", "OnboardingEating · light"], ["GlassOnboardingEatingSheet", "OnboardingEating · add sheet · light"], ["GlassOnboardingMotivation", "OnboardingMotivation · light"], ["GlassTodayNoCoach", "TodayNoCoach · light"], ["GlassCoachSearch", "CoachSearch · list and searching · light"], ["GlassCoachProfile", "CoachProfile · top and scrolled · light"], ["GlassRequestSheet", "RequestSheet · light"], ["GlassNotificationsInvite", "NotificationsInvite · light"], ["GlassInviteDetail", "InviteDetail · light"], ["GlassPackageProposal", "PackageProposal · light"], ["GlassToday", "Today · light"], ["GlassTodayV1", "Today · v1 (check-in only) · light"], ["GlassNotifications", "Notifications · light"], ["GlassTrainingWeek", "TrainingWeek · light"], ["GlassSessionDetail", "SessionDetail · light"], ["GlassWorkout", "Workout · light"], ["GlassSessionMixed", "SessionMixed · light"], ["GlassAmrap", "Amrap · light"], ["GlassEmom", "Emom · light"], ["GlassTabata", "Tabata · light"], ["GlassForTime", "ForTime · light"], ["GlassDoneStrength", "DoneStrength · light"], ["GlassDoneAmrap", "DoneAmrap · light"], ["GlassDoneTabata", "DoneTabata · light"], ["GlassSessionSummary", "SessionSummary · light"], ["GlassNutrition", "Nutrition · light"], ["GlassEmptyStates", "Empty & waiting states · Nutrition and Training tabs · light"], ["GlassMealDetail", "MealDetail · light"], ["GlassShoppingList", "ShoppingList · light"], ["GlassNutritionOffPlan", "NutritionOffPlan · food eaten outside the plan · light"], ["GlassNutritionAddFood", "Nutrition · add food outside the plan · search, then amount · light"], ["GlassNutritionNotes", "NutritionCoachNotes · coach note for the day and for a meal · light"], ["GlassTodayNotes", "TodayCoachNotes · coach note for the day and for a meal, full scroll · light"], ["GlassMessagesList", "MessagesList · light"], ["GlassChat", "Chat · light"], ["GlassMessagesListInvite", "MessagesList · new invite · light"], ["GlassChatInvite", "ChatInvite · light"], ["GlassChatInviteStates", "ChatInvite states · light"], ["GlassProfile", "Profile · light"], ["GlassMyJourney", "MyJourney · light"], ["GlassPlanSummary", "PlanSummary · light"], ["GlassMeasurements", "Measurements · light"], ["GlassPhotos", "Photos · light"], ["GlassCheckIn", "CheckIn · light"], ["GlassSettings", "Settings · light"], ["GlassMeasurementsAddSheet", "Measurements · add sheet · light"], ["GlassCheckInHistory", "CheckInHistory · light"], ["GlassEditProfile", "EditProfile · light"], ["GlassEditProfileInfo", "EditProfile · my info, both parts · light"], ["GlassTrainingPlan", "TrainingPlan · light"], ["GlassTrainingWeekDetail", "TrainingWeekDetail · light"], ["GlassNutritionPlan", "NutritionPlan · light"], ["GlassNutritionPlanWeek", "NutritionPlanWeek · one week of the plan, by day · light"], ["GlassMealPhotoViewer", "MealPhotoViewer · meal photo full screen · light"], ["GlassNutritionPlans", "NutritionPlans · all plans, opened from the calendar icon · light"], ["GlassNutritionPlanNotStarted", "NutritionPlan · a plan that has not started yet · light"], ["GlassRecipesPlan", "RecipesPlan · light"], ["GlassRecipesAll", "RecipesAll · light"], ["GlassRecipeDetail", "RecipeDetail · light"], ["GlassCookingSteps", "CookingSteps · light"], ["GlassIngredientDetail", "IngredientDetail · light"], ["GlassWorkoutsPlan", "WorkoutsPlan · light"], ["GlassWorkoutsAll", "WorkoutsAll · light"], ["GlassWorkoutDetail", "WorkoutDetail · light"], ["GlassExerciseDetail", "ExerciseDetail · light"], ["GlassPayment", "Payments · light"], ["GlassCoachPlanEnded", "CoachPlanEnded · light"], ["GlassTodayNoCoachInvite", "TodayNoCoach · invite in its slot · light (full scroll)"], ["GlassTodayNoPlan", "TodayNoPlan · nothing optional set up · light"], ["GlassTodayNoPlanFull", "TodayNoPlan · everything set up · light (full scroll)"], ["GlassTodayNoCoachInviteBoth", "TodayNoCoach · one coach invites for training + nutrition · light (full scroll)"], ["GlassTodayNoPlanBoth", "TodayNoPlan · one coach building both plans · light"], ["GlassTodayUpcomingVariants", "Today before a plan · numbered variants 1a–5, composed from Today blocks · light"], ["GlassTodayBlocks", "Today blocks · one block per plan state, composed into Today · light"], ["GlassNutritionPlanWeekMore", "NutritionPlanWeek · week at a glance + recipes today, full scroll · light"], ["GlassOfflineNutrition", "OfflineNutrition · offline, entries not synced yet · light"], ["GlassOfflineSynced", "OfflineSynced · back online, compact sync card · light"], ["GlassOfflineShopping", "OfflineShopping · item ticked offline · light"], ["GlassOfflineMeasurements", "OfflineMeasurements · measurement added offline · light"], ["GlassOfflineSyncedSheet", "OfflineSyncedSheet · sync details sheet · light"], ["GlassOfflineNotSaved", "OfflineNotSaved · screen opened offline before it was saved · light"], ["GlassTodayQuestionnaireBanner", "TodayQuestionnaireBanner · coach sent a form, plans running · banner opens it · light"], ["GlassTodayNoPlanQuestionnaire", "TodayNoPlan · plans in preparation, questionnaire still to fill · Fill in on the timeline row (full scroll) · light"], ["GlassQuestionnaireIntro", "QuestionnaireIntro · who asks, sections · light"], ["GlassQuestionnaireStep1", "Questionnaire 1 of 3 · multiple + single choice · light"], ["GlassQuestionnaireStep2", "Questionnaire 2 of 3 · number, smiley scale, stars · light"], ["GlassQuestionnaireStep3", "Questionnaire 3 of 3 · short text · light"], ["GlassQuestionnaireReview", "QuestionnaireReview · check all answers, edit a section, then send · light"], ["GlassQuestionnaireSent", "QuestionnaireSent · answers sent to the coach · light"], ["GlassTodayPhotoRequestBanner", "TodayPhotoRequestBanner · every-day request on Today · light"], ["GlassPhotoRequest", "PhotoRequest · every day: who asks, how long, reminder · Start or Not now · light"], ["GlassPhotoRequestDecline", "PhotoRequestDecline · Not now → optional reason (both types) · light"], ["GlassPhotoRequestDaily", "PhotoRequestDaily · day 3 of 7, one missed day, nothing yet today · light"], ["GlassPhotoRequestDailyAdd", "PhotoRequestDailyAdd · today's photos, a note per photo, send · light"], ["GlassPhotoRequestDailySent", "PhotoRequestDailySent · today's photos sent · light"], ["GlassPhotoRequestDailyDone", "PhotoRequestDailyDone · today sent, notes under each photo, add more · light"], ["GlassTodayPhotoRequestOnceBanner", "TodayPhotoRequestOnceBanner · one-time request on Today · light"], ["GlassPhotoRequestOnceIntro", "PhotoRequestOnceIntro · once: who asks, until when · Add photos or Not now · light"], ["GlassPhotoRequestOnce", "PhotoRequestOnce · all photos at once, a note per photo, send · light"], ["GlassPhotoRequestOnceSent", "PhotoRequestOnceSent · photos sent, request done · light"], ["GlassPhotoRequestClosed", "PhotoRequestClosed · cancelled, ended or declined request opened from a notification (both types) · light"], ["GlassTodayNoPlanPhotoOnce", "TodayNoPlan · one-time photo request still to send · Add opens the request · light (full scroll)"], ["GlassTodayNoPlanPhotoDaily", "TodayNoPlan · every-day request, nothing yet today · Add opens the day view · light (full scroll)"], ["GlassTodayNoPlanPhotoOnceSent", "TodayNoPlan · one-time photos sent · row ticked like Questionnaire sent · light (full scroll)"], ["GlassTodayNoPlanPhotoDailySent", "TodayNoPlan · every-day request, today sent · View opens the day view · light (full scroll)"], ["GlassTodayColourCurrent", "Today colour · 0 · current (unchanged copy) · light"], ["GlassTodayColourWash", "Today colour · A · soft module-colour wash, stronger header band · light"], ["GlassTodayColourBorder", "Today colour · B · module-colour border and glow · light"], ["GlassTodayColourProgress", "Today colour · C · colour follows progress: thicker bars, eaten rows tinted · light"], ["GlassTodayColourBackground", "Today colour · D · warm tinted screen, white cards · light"], ["GlassTodayColourHeader", "Today colour · E · module-colour header band only, white card body · light"]], DEVICE = true;
+  function key(el){ return (el.getAttribute('aria-label') || el.getAttribute('title') || el.textContent || '').replace(/\s+/g,' ').trim(); }
+  function target(el){
+    // Exact keys win over ^prefix and *contains keys; a null target marks a label as not clickable.
+    var k = key(el), m;
+    if (Object.prototype.hasOwnProperty.call(FLOW, k)) return FLOW[k];
+    for (m in FLOW){ var c = m[0], v = m.slice(1); if (c === '^' ? k.indexOf(v) === 0 : c === '*' ? k.indexOf(v) >= 0 : false) return FLOW[m]; }
+    return null;
+  }
+  function go(page, theme){ location.href = page + '-' + (theme || THEME) + '.html'; }
+  function fit(){
+    // Boards are fixed-size frames. Web: zoom to the window width, page in the board's colour.
+    // Phone: centre the frame, zoomed to fit the window, on a neutral backdrop.
+    var board = document.body.firstElementChild;
+    if (!board || board.id === 'fu-bar') return;
+    if (!board.dataset.w){
+      board.dataset.w = board.offsetWidth; board.dataset.h = board.offsetHeight;
+      if (DEVICE){
+        document.body.classList.add('fu-device'); if (THEME === 'dark') document.body.classList.add('fu-dark');
+        board.style.borderRadius = '48px'; board.style.boxShadow = '0 30px 80px rgba(0,0,0,.28), 0 0 0 10px #0B0B0C';
+      } else {
+        document.body.style.background = getComputedStyle(board).backgroundColor;
+      }
+    }
+    var root = document.documentElement;
+    board.style.zoom = DEVICE ? Math.min((root.clientHeight - 64) / board.dataset.h, (root.clientWidth - 64) / board.dataset.w)
+                              : root.clientWidth / board.dataset.w;
+  }
+  window.addEventListener('resize', fit);
+  document.addEventListener('DOMContentLoaded', function(){
+    fit();
+    document.querySelectorAll('a,button,tr,[role=tab],[role=radio]').forEach(function(el){ if (target(el)) el.classList.add('fu-hot'); });
+    var bar = document.createElement('div'); bar.id = 'fu-bar';
+    var opts = PAGES.map(function(p){ return '<option value="'+p[0]+'"'+(p[0]===PAGE?' selected':'')+'>'+p[1]+'</option>'; }).join('');
+    bar.innerHTML = '<select aria-label="Jump to screen">'+opts+'</select>'
+      + '<button data-t="light" class="'+(THEME==='light'?'on':'')+'">Light</button><button data-t="dark" class="'+(THEME==='dark'?'on':'')+'">Dark</button>'
+      + '<button data-h="1" title="Show clickable areas (H)">Hotspots</button><a href="../index.html">All screens</a>';
+    document.body.appendChild(bar);
+    bar.querySelector('select').addEventListener('change', function(e){ go(e.target.value); });
+    bar.querySelectorAll('[data-t]').forEach(function(b){ b.addEventListener('click', function(){ go(PAGE, b.getAttribute('data-t')); }); });
+    bar.querySelector('[data-h]').addEventListener('click', function(){ document.body.classList.toggle('fu-show'); });
+  });
+  document.addEventListener('keydown', function(e){ if (e.key === 'h' || e.key === 'H') document.body.classList.toggle('fu-show'); });
+  document.addEventListener('click', function(e){
+    if (e.target.closest && e.target.closest('#fu-bar')) return;
+    var el = e.target.closest ? e.target.closest('a,button,tr,[role=tab],[role=radio]') : null;
+    if (!el) return;
+    e.preventDefault();
+    var t = target(el);
+    if (t) go(t); else if (el.tagName !== 'TR' && !document.body.classList.contains('fu-show')) { document.body.classList.add('fu-show'); setTimeout(function(){ document.body.classList.remove('fu-show'); }, 600); }
+  }, true);
+})();
+</script>
+
+</head>
+<body>
+<div style="position: relative; width: 390px; height: 844px; background: #FFFFFF; font-family: 'DM Sans', sans-serif; color: #141414; overflow: hidden">
+<div style="position: absolute; top: 190px; left: 0; right: 0; padding: 0 28px; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center"><span style="width: 72px; height: 72px; border-radius: 36px; background: #8CC152; color: #141414; display: flex; align-items: center; justify-content: center"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span><h1 style="margin: 6px 0 0; font-family: 'Outfit', sans-serif; font-size: 28px; line-height: 1.15; font-weight: 600; letter-spacing: -0.015em">Today’s photos are in</h1><p style="margin: 0; font-size: 15px; line-height: 1.5; color: #3A3835">Martin sees them now. We’ll remind you tomorrow at noon if you haven’t added any yet.</p></div><a href="GlassPhotoRequestDailyDoneLight.dc.html" style="position: absolute; top: 440px; left: 16px; right: 16px; border-radius: 20px; background: #FFFFFF; border: 1px solid rgba(20,20,20,0.06); box-shadow: 0 1px 2px rgba(0,0,0,0.04); padding: 14px 16px; display: flex; align-items: center; gap: 12px; color: #141414; text-decoration: none"><span style="width: 38px; height: 38px; flex-shrink: 0; border-radius: 19px; background: #FBE7E5; color: #D2342A; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3.5l1.5-2.5h6L16.5 8H20v11H4z"></path><circle cx="12" cy="13.2" r="3.4"></circle></svg></span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600">Photo request</span><span style="font-size: 12px; color: #6B6863">2 new · day 3 of 7 · today at 08:12</span></span><span style="margin-left: auto; display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; color: #3A3835">View<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></span></a><div style="position: absolute; top: 30px; left: 16px; right: 16px; height: 40px; display: flex; justify-content: flex-end"><button aria-label="Close" style="position: relative; width: 40px; height: 40px; border-radius: 20px; background: rgba(255,255,255,0.58); -webkit-backdrop-filter: blur(22px) saturate(180%); backdrop-filter: blur(22px) saturate(180%); border: 1px solid rgba(255,255,255,0.85); box-shadow: 0 10px 30px rgba(0,0,0,0.14), 0 1px 3px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9); color: #141414; display: flex; align-items: center; justify-content: center; padding: 0; text-decoration: none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg></button></div><button style="position: absolute; left: 20px; right: 20px; bottom: 34px; height: 52px; border-radius: 26px; border: none; font: 600 16px 'DM Sans', sans-serif; display: flex; align-items: center; justify-content: center; gap: 8px; background: #141414; color: #FFFFFF; box-shadow: 0 8px 24px rgba(0,0,0,0.18); text-decoration: none">Back to Today</button>
+</div>
+</body>
+</html>
