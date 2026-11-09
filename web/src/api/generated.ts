@@ -14963,7 +14963,7 @@ export class ApiClient {
 
         } else if (status === 409) {
             const _responseText = response.data;
-            return throwException("The paid plan has not lapsed (SUBSCRIPTION_NOT_LAPSED)", status, _responseText, _headers);
+            return throwException("The paid plan has not lapsed and the Free plan is within its cap (SUBSCRIPTION_NOT_LAPSED)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -15031,7 +15031,7 @@ export class ApiClient {
 
         } else if (status === 409) {
             const _responseText = response.data;
-            return throwException("The paid plan has not lapsed (SUBSCRIPTION_NOT_LAPSED)", status, _responseText, _headers);
+            return throwException("The paid plan has not lapsed, the Free plan is within its cap and no plan choice is required (SUBSCRIPTION_NOT_LAPSED)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -15117,6 +15117,141 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<SetCoachSubscriptionResponse>(null as any);
+    }
+
+    /**
+     * List the plans a coach can choose
+     * @return The active plans, cheapest first
+     */
+    getCoachPlansEndpoint(signal?: AbortSignal): Promise<GetCoachPlansResponse> {
+        let url_ = this.baseUrl + "/users/me/subscription/plans";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetCoachPlansEndpoint(_response);
+        });
+    }
+
+    protected processGetCoachPlansEndpoint(response: AxiosResponse): Promise<GetCoachPlansResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetCoachPlansResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The caller is not a trainer or nutritionist", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetCoachPlansResponse>(null as any);
+    }
+
+    /**
+     * Choose the Free plan after a given plan ended
+     * @return The Free plan was chosen
+     */
+    chooseFreePlanEndpoint(chooseFreePlanRequest: ChooseFreePlanRequest, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/users/me/subscription/choose-free";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(chooseFreePlanRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processChooseFreePlanEndpoint(_response);
+        });
+    }
+
+    protected processChooseFreePlanEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid body, a duplicate id, or the wrong number of clients to keep (KEEP_CLIENTS_COUNT_INVALID)", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The caller is not a trainer or nutritionist, or the coach role was removed", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("The caller has no professional profile, the Free plan is missing, or an id is not one of the caller\'s live clients", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("No ended given plan is waiting for a choice (PLAN_CHOICE_NOT_REQUIRED)", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
     }
 
     /**
@@ -24140,7 +24275,16 @@ fields then describe the Free plan and ActiveClientCount is the number of kept c
     lapsedPlanNameDe?: string | undefined;
     /** When the lapsed plan ended (the period end), if known; null unless IsLapsed. */
     endedAt?: string | undefined;
-    /** Live clients above the Free plan's cap; zero unless IsLapsed. */
+    /** True when an admin-given plan has ended and the coach has not chosen a plan yet. The plan fields still describe
+the ended plan. Never true together with IsLapsed. */
+    planChoiceRequired?: boolean;
+    /** Czech name of the ended given plan; null unless PlanChoiceRequired. */
+    endedPlanNameCs?: string | undefined;
+    /** English name of the ended given plan; null unless PlanChoiceRequired. */
+    endedPlanNameEn?: string | undefined;
+    /** German name of the ended given plan; null unless PlanChoiceRequired. */
+    endedPlanNameDe?: string | undefined;
+    /** Live clients above the Free plan's cap; zero unless IsLapsed or the coach is on an explicit Free plan with clients over the cap. */
     overCapClientCount?: number;
     /** Distinct active clients across all the coach's roles; the kept clients while lapsed. */
     activeClientCount?: number;
@@ -30011,6 +30155,55 @@ export enum KeepClientAfterLapse {
     FullAccess = "FullAccess",
     RunsUntilEndThenReadOnly = "RunsUntilEndThenReadOnly",
     ReadOnly = "ReadOnly",
+}
+
+/** The subscription plans a coach can choose between. */
+export interface GetCoachPlansResponse {
+    /** Active plans, cheapest first. */
+    plans?: CoachPlanDto[];
+}
+
+/** One plan a coach can choose: names, current price, client cap and feature flags. */
+export interface CoachPlanDto {
+    /** Stable code of the plan. */
+    code?: string;
+    /** Czech plan name. */
+    nameCs?: string;
+    /** English plan name. */
+    nameEn?: string;
+    /** German plan name. */
+    nameDe?: string;
+    /** Current price per billing interval, in the smallest unit of Currency. */
+    priceMinorUnits?: number;
+    /** Current price of the second-role add-on in the same unit; null when both roles are included. */
+    secondRoleAddOnPriceMinorUnits?: number | undefined;
+    /** ISO 4217 currency code. */
+    currency?: string;
+    /** How often the plan is billed. */
+    billingInterval?: BillingInterval;
+    /** Active-client cap; null means unlimited. */
+    maxActiveClients?: number | undefined;
+    /** True when the plan covers both professional roles at no extra charge. */
+    bothRolesIncluded?: boolean;
+    /** Creating, editing and publishing plans. */
+    canCreatePlans?: boolean;
+    /** Messaging clients. */
+    canMessage?: boolean;
+    /** Sending questionnaires and forms. */
+    canSendQuestionnaires?: boolean;
+    /** Weekly check-ins. */
+    canUseWeeklyCheckIns?: boolean;
+    /** Per-client check-in configuration. */
+    canUsePerClientCheckInConfig?: boolean;
+    /** The payments feature. */
+    canUsePayments?: boolean;
+}
+
+/** The coach's choice of the Free plan after an admin-given plan ended. */
+export interface ChooseFreePlanRequest {
+    /** Public ids of the clients to keep on the Free plan: unique, and exactly as many as the Free plan's cap.
+Required when the coach has more live clients than the cap; ignored otherwise. */
+    keepClientIds: string[];
 }
 
 /** A coach package as shown to its owner — reused by the list, get, create and update actions. */
