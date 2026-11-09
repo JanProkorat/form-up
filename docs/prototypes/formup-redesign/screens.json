@@ -1836,38 +1836,134 @@
   "h": 844
  },
  {
-  "html": "mobile-light/17-01-today-colour-current.html",
-  "png": "mobile-light/17-01-today-colour-current.png",
+  "html": "mobile-light/17-01-today-photo-request-banner.html",
+  "png": "mobile-light/17-01-today-photo-request-banner.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-light/17-02-today-colour-wash.html",
-  "png": "mobile-light/17-02-today-colour-wash.png",
+  "html": "mobile-light/17-02-photo-request.html",
+  "png": "mobile-light/17-02-photo-request.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-light/17-03-today-colour-border.html",
-  "png": "mobile-light/17-03-today-colour-border.png",
+  "html": "mobile-light/17-03-photo-request-decline.html",
+  "png": "mobile-light/17-03-photo-request-decline.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-light/17-04-today-colour-progress.html",
-  "png": "mobile-light/17-04-today-colour-progress.png",
+  "html": "mobile-light/17-04-photo-request-daily.html",
+  "png": "mobile-light/17-04-photo-request-daily.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-light/17-05-today-colour-background.html",
-  "png": "mobile-light/17-05-today-colour-background.png",
+  "html": "mobile-light/17-05-photo-request-daily-add.html",
+  "png": "mobile-light/17-05-photo-request-daily-add.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-light/17-06-today-colour-header.html",
-  "png": "mobile-light/17-06-today-colour-header.png",
+  "html": "mobile-light/17-06-photo-request-daily-sent.html",
+  "png": "mobile-light/17-06-photo-request-daily-sent.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/17-07-photo-request-daily-done.html",
+  "png": "mobile-light/17-07-photo-request-daily-done.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/18-01-today-photo-request-once-banner.html",
+  "png": "mobile-light/18-01-today-photo-request-once-banner.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/18-02-photo-request-once-intro.html",
+  "png": "mobile-light/18-02-photo-request-once-intro.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/18-03-photo-request-once.html",
+  "png": "mobile-light/18-03-photo-request-once.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/18-04-photo-request-once-sent.html",
+  "png": "mobile-light/18-04-photo-request-once-sent.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/18-05-photo-request-closed.html",
+  "png": "mobile-light/18-05-photo-request-closed.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/19-01-today-no-plan-photo-once.html",
+  "png": "mobile-light/19-01-today-no-plan-photo-once.png",
+  "w": 390,
+  "h": 960
+ },
+ {
+  "html": "mobile-light/19-02-today-no-plan-photo-daily.html",
+  "png": "mobile-light/19-02-today-no-plan-photo-daily.png",
+  "w": 390,
+  "h": 960
+ },
+ {
+  "html": "mobile-light/19-03-today-no-plan-photo-once-sent.html",
+  "png": "mobile-light/19-03-today-no-plan-photo-once-sent.png",
+  "w": 390,
+  "h": 960
+ },
+ {
+  "html": "mobile-light/19-04-today-no-plan-photo-daily-sent.html",
+  "png": "mobile-light/19-04-today-no-plan-photo-daily-sent.png",
+  "w": 390,
+  "h": 960
+ },
+ {
+  "html": "mobile-light/20-01-today-colour-current.html",
+  "png": "mobile-light/20-01-today-colour-current.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/20-02-today-colour-wash.html",
+  "png": "mobile-light/20-02-today-colour-wash.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/20-03-today-colour-border.html",
+  "png": "mobile-light/20-03-today-colour-border.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/20-04-today-colour-progress.html",
+  "png": "mobile-light/20-04-today-colour-progress.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/20-05-today-colour-background.html",
+  "png": "mobile-light/20-05-today-colour-background.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/20-06-today-colour-header.html",
+  "png": "mobile-light/20-06-today-colour-header.png",
   "w": 390,
   "h": 844
  },
@@ -2452,6 +2548,102 @@
   "png": "mobile-dark/18-08-questionnaire-sent.png",
   "w": 390,
   "h": 844
+ },
+ {
+  "html": "mobile-dark/19-01-today-photo-request-banner.html",
+  "png": "mobile-dark/19-01-today-photo-request-banner.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/19-02-photo-request.html",
+  "png": "mobile-dark/19-02-photo-request.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/19-03-photo-request-decline.html",
+  "png": "mobile-dark/19-03-photo-request-decline.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/19-04-photo-request-daily.html",
+  "png": "mobile-dark/19-04-photo-request-daily.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/19-05-photo-request-daily-add.html",
+  "png": "mobile-dark/19-05-photo-request-daily-add.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/19-06-photo-request-daily-sent.html",
+  "png": "mobile-dark/19-06-photo-request-daily-sent.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/19-07-photo-request-daily-done.html",
+  "png": "mobile-dark/19-07-photo-request-daily-done.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/20-01-today-photo-request-once-banner.html",
+  "png": "mobile-dark/20-01-today-photo-request-once-banner.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/20-02-photo-request-once-intro.html",
+  "png": "mobile-dark/20-02-photo-request-once-intro.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/20-03-photo-request-once.html",
+  "png": "mobile-dark/20-03-photo-request-once.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/20-04-photo-request-once-sent.html",
+  "png": "mobile-dark/20-04-photo-request-once-sent.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/20-05-photo-request-closed.html",
+  "png": "mobile-dark/20-05-photo-request-closed.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/21-01-today-no-plan-photo-once.html",
+  "png": "mobile-dark/21-01-today-no-plan-photo-once.png",
+  "w": 390,
+  "h": 960
+ },
+ {
+  "html": "mobile-dark/21-02-today-no-plan-photo-daily.html",
+  "png": "mobile-dark/21-02-today-no-plan-photo-daily.png",
+  "w": 390,
+  "h": 960
+ },
+ {
+  "html": "mobile-dark/21-03-today-no-plan-photo-once-sent.html",
+  "png": "mobile-dark/21-03-today-no-plan-photo-once-sent.png",
+  "w": 390,
+  "h": 960
+ },
+ {
+  "html": "mobile-dark/21-04-today-no-plan-photo-daily-sent.html",
+  "png": "mobile-dark/21-04-today-no-plan-photo-daily-sent.png",
+  "w": 390,
+  "h": 960
  },
  {
   "html": "coach-light/01-01-coach-setup.html",
