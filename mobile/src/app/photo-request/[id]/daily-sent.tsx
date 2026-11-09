@@ -13,7 +13,7 @@ import {
   useRequestCoach,
   useRequestId,
 } from '@/components/photoRequest/hooks';
-import { closedRoute, isAnswerable, readPositiveInt, requestDay } from '@/components/photoRequest/model';
+import { closedRoute, flowRoute, isAnswerable, readPositiveInt, requestDay } from '@/components/photoRequest/model';
 import { FlowFrame } from '@/components/questionnaire/FlowFrame';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
@@ -68,7 +68,7 @@ export default function PhotoRequestDailySentScreen() {
             : t('photoRequest.sent.cardMeta', { count, time })
         }
         actionLabel={t('photoRequest.sent.view')}
-        onPress={() => router.push('/profile/photos')}
+        onPress={() => router.replace(flowRoute(id, 'everyDay'))}
       />
     </FlowFrame>
   );

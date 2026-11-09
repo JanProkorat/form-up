@@ -14,6 +14,7 @@ import type { DetailRow } from '@/components/photoRequest/DetailRows';
 import { RequestMessage } from '@/components/photoRequest/RequestMessage';
 import { coachLabel, formatRequestDay, modeLabel } from '@/components/photoRequest/format';
 import {
+  useBackToToday,
   useLeaveRequest,
   usePhotoRequest,
   useRequestCoach,
@@ -49,6 +50,7 @@ export default function PhotoRequestClosedScreen() {
   const styles = makeStyles(theme);
   const id = useRequestId();
   const leave = useLeaveRequest();
+  const backToToday = useBackToToday();
   const query = usePhotoRequest(id);
   const coach = useRequestCoach(query.data);
 
@@ -93,9 +95,9 @@ export default function PhotoRequestClosedScreen() {
 
   return (
     <FlowFrame
-      header={{ onClose: leave }}
+      header={{ onClose: backToToday }}
       contentStyle={styles.content}
-      footer={<Button label={t('photoRequest.actions.backToToday')} onPress={leave} />}
+      footer={<Button label={t('photoRequest.actions.backToToday')} onPress={backToToday} />}
     >
       <View style={styles.hero}>
         <View style={styles.seal} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
