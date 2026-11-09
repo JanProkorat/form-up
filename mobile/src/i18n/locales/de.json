@@ -1888,5 +1888,95 @@
         "body": "Sie haben dieses Formular bereits gesendet."
       }
     }
+  },
+  "photoRequest": {
+    "coachFallback": {
+      "Trainer": "Ihr Trainer",
+      "Nutritionist": "Ihr Ernährungsberater",
+      "other": "Ihr Coach"
+    },
+    "title": "{{name}} bittet um Fortschrittsfotos",
+    "days_one": "{{count}} Tag",
+    "days_other": "{{count}} Tage",
+    "subtitle": {
+      "everyDay": "Täglich ein Fotosatz, insgesamt {{days}}. Nur Sie und {{name}} sehen die Fotos.",
+      "once": "Ein Fotosatz, gemeinsam gesendet, sobald Sie bereit sind. Nur Sie und {{name}} sehen ihn."
+    },
+    "note": "Notiz von {{name}}",
+    "rows": {
+      "howOften": "Wie oft",
+      "everyDay": "Jeden Tag",
+      "once": "Einmal",
+      "until": "Bis",
+      "untilValue": "{{date}} · {{days}}",
+      "deadline": "Frist",
+      "noDeadline": "Keine, senden Sie, wenn Sie bereit sind",
+      "reminder": "Erinnerung",
+      "reminderValue": "Mittags, falls noch kein Foto vorliegt",
+      "showsWith": "Erscheint bei",
+      "asked": "Angefragt",
+      "status": "Status"
+    },
+    "actions": {
+      "start": "Starten",
+      "addPhotos": "Fotos hinzufügen",
+      "notNow": "Jetzt nicht",
+      "backToToday": "Zurück zu Heute",
+      "close": "Schließen",
+      "retry": "Erneut versuchen"
+    },
+    "banner": {
+      "open": "Öffnen",
+      "openLabel": "Fotoanfrage von {{name}} öffnen",
+      "everyDayHint": "Jeden Tag, {{days}}, bis {{date}}",
+      "onceHint": "Einmal, sobald Sie bereit sind"
+    },
+    "step": {
+      "everyDayTitle": "Täglich ein Foto senden",
+      "everyDayPendingHint": "Jeden Tag, {{days}}",
+      "runningHint": "Tag {{day}} von {{total}} · heute noch nichts",
+      "runningSentHint": "Tag {{day}} von {{total}} · heutige Fotos gesendet",
+      "onceTitle": "Fotos senden",
+      "oncePendingHint": "Einmal · sobald Sie bereit sind",
+      "onceSent": "Fotos gesendet",
+      "add": "Hinzufügen",
+      "view": "Ansehen"
+    },
+    "decline": {
+      "title": "Diese Anfrage ablehnen?",
+      "body": "{{name}} sieht, dass Sie die Anfrage abgelehnt haben. Eine neue Anfrage ist später möglich.",
+      "reasonLabel": "Sagen Sie, warum (optional)",
+      "counter": "{{used}} / {{max}}",
+      "submit": "Anfrage ablehnen",
+      "keep": "Behalten",
+      "errors": {
+        "invalidReason": "Die Begründung ist zu lang. Verwenden Sie höchstens 500 Zeichen.",
+        "network": "Der Server ist nicht erreichbar. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+        "generic": "Die Anfrage konnte nicht abgelehnt werden. Bitte versuchen Sie es erneut."
+      }
+    },
+    "closed": {
+      "title": "Diese Anfrage ist geschlossen",
+      "reason": {
+        "cancelled": "Die Anfrage wurde am {{date}} abgebrochen. Sie müssen nichts senden.",
+        "ended": "Sie endete am {{date}}. Sie müssen nichts senden.",
+        "declined": "Sie haben sie am {{date}} abgelehnt. {{name}} kann eine neue Anfrage senden.",
+        "completed": "Sie haben die Fotos zu dieser Anfrage bereits gesendet.",
+        "notFound": "Wir finden diese Anfrage nicht. Möglicherweise wurde sie abgebrochen."
+      },
+      "status": {
+        "cancelled": "Abgebrochen von {{name}}",
+        "ended": "Beendet am {{date}}",
+        "declined": "Von Ihnen abgelehnt",
+        "completed": "Fotos gesendet"
+      }
+    },
+    "errors": {
+      "load": "Diese Anfrage konnte nicht geladen werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+      "accept": "Die Anfrage konnte nicht gestartet werden. Bitte versuchen Sie es erneut.",
+      "network": "Der Server ist nicht erreichbar. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut."
+    },
+    "loading": "Wird geladen",
+    "placeholder": "Das Hinzufügen von Fotos folgt in Kürze."
   }
 }

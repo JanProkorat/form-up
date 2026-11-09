@@ -1888,5 +1888,95 @@
         "body": "You have already sent this form."
       }
     }
+  },
+  "photoRequest": {
+    "coachFallback": {
+      "Trainer": "Your trainer",
+      "Nutritionist": "Your nutritionist",
+      "other": "Your coach"
+    },
+    "title": "{{name}} asks for progress photos",
+    "days_one": "{{count}} day",
+    "days_other": "{{count}} days",
+    "subtitle": {
+      "everyDay": "One photo set a day, {{days}} in all. Only you and {{name}} see them.",
+      "once": "One set of photos, sent together whenever you are ready. Only you and {{name}} see them."
+    },
+    "note": "{{name}}'s note",
+    "rows": {
+      "howOften": "How often",
+      "everyDay": "Every day",
+      "once": "Once",
+      "until": "Until",
+      "untilValue": "{{date}} · {{days}}",
+      "deadline": "Deadline",
+      "noDeadline": "None, send when ready",
+      "reminder": "Reminder",
+      "reminderValue": "At noon, if no photo yet",
+      "showsWith": "Shows with",
+      "asked": "Asked",
+      "status": "Status"
+    },
+    "actions": {
+      "start": "Start",
+      "addPhotos": "Add photos",
+      "notNow": "Not now",
+      "backToToday": "Back to Today",
+      "close": "Close",
+      "retry": "Try again"
+    },
+    "banner": {
+      "open": "Open",
+      "openLabel": "Open the photo request from {{name}}",
+      "everyDayHint": "Every day for {{days}}, until {{date}}",
+      "onceHint": "Once, whenever you are ready"
+    },
+    "step": {
+      "everyDayTitle": "Send {{name}} a photo every day",
+      "everyDayPendingHint": "Every day for {{days}}",
+      "runningHint": "Day {{day}} of {{total}} · nothing yet today",
+      "runningSentHint": "Day {{day}} of {{total}} · today's photos sent",
+      "onceTitle": "Send {{name}} your photos",
+      "oncePendingHint": "Once · whenever you're ready",
+      "onceSent": "Photos sent",
+      "add": "Add",
+      "view": "View"
+    },
+    "decline": {
+      "title": "Decline {{name}}'s request?",
+      "body": "{{name}} sees that you declined. They can send a new request later.",
+      "reasonLabel": "Tell {{name}} why (optional)",
+      "counter": "{{used}} / {{max}}",
+      "submit": "Decline request",
+      "keep": "Keep it",
+      "errors": {
+        "invalidReason": "That reason is too long. Keep it to 500 characters.",
+        "network": "Can't reach the server. Check your connection and try again.",
+        "generic": "Couldn't decline the request. Please try again."
+      }
+    },
+    "closed": {
+      "title": "This request is closed",
+      "reason": {
+        "cancelled": "{{name}} cancelled it on {{date}}. You don't need to send anything.",
+        "ended": "It ended on {{date}}. You don't need to send anything.",
+        "declined": "You declined it on {{date}}. {{name}} can send a new request.",
+        "completed": "You already sent your photos for this request.",
+        "notFound": "We can't find this request. It may have been cancelled."
+      },
+      "status": {
+        "cancelled": "Cancelled by {{name}}",
+        "ended": "Ended {{date}}",
+        "declined": "You declined it",
+        "completed": "Photos sent"
+      }
+    },
+    "errors": {
+      "load": "Can't load this request. Check your connection and try again.",
+      "accept": "Couldn't start the request. Please try again.",
+      "network": "Can't reach the server. Check your connection and try again."
+    },
+    "loading": "Loading",
+    "placeholder": "Adding photos is coming soon."
   }
 }

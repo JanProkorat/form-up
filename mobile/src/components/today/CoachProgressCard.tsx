@@ -7,6 +7,7 @@ import type { Collaboration } from '@/api/collaborations';
 import { LinkCapabilityScope } from '@/api/generated';
 import type { PendingItems, PendingQuestionnaire, SubmittedByCoach } from '@/api/questionnaires';
 import { Chip } from '@/components/Chip';
+import { usePhotoStatus } from '@/components/photoRequest/hooks';
 import { firstName, initials } from '@/components/invites/format';
 import { Text } from '@/components/Text';
 import { useConversations } from '@/hooks/useConversations';
@@ -17,7 +18,7 @@ import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
 import type { CoachRole } from './collaborationRoles';
-import { firstPaymentStep, findConversation, hasPhotoRequest, paymentPhase, photoStep } from './coachSteps';
+import { firstPaymentStep, findConversation, paymentPhase, photoStep } from './coachSteps';
 import type { Step } from './coachSteps';
 import { fillRoute, questionCountHint, questionnaireStepTitle } from './pendingForms';
 import { roleLook } from './roleLook';
@@ -89,8 +90,9 @@ export function CoachProgressCard({
   const perRole = new Map<CoachRole, QuestionnaireStatus>(
     single ? [] : covered.map((role) => [role, questionnaireStatus(pending, submitted, linkId, role)]),
   );
-  const photoRequested = hasPhotoRequest(pending, collaboration, onlyCollaboration);
-  let waiting = (generic.pending ? 1 : 0) + (photoRequested ? 1 : 0);
+  const photoStatus = usePhotoStatus(collaboration, onlyCollaboration);
+  const photoOpen = photoStatus !== null && photoStatus.kind !== 'onceSent';
+  let waiting = (generic.pending ? 1 : 0) + (photoOpen ? 1 : 0);
   let questionnaireOpen = generic.pending !== undefined;
   for (const status of perRole.values()) {
     if (status.pending) {
@@ -156,7 +158,7 @@ export function CoachProgressCard({
       }),
     );
   }
-  if (photoRequested) steps.push(photoStep(t, first, () => router.push('/profile/photos')));
+  if (photoStatus) steps.push(photoStep(t, photoStatus, first, (route) => router.push(route)));
   for (const role of unpublished) {
     const look = roleLook(theme, role);
     const status = perRole.get(role);

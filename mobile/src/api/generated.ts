@@ -718,7 +718,7 @@ export class ApiClient {
 
     /**
      * Update current user time zone
-     * @return No Content
+     * @return Time zone updated
      */
     updateTimeZoneEndpoint(updateTimeZoneRequest: UpdateTimeZoneRequest, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/users/me/timezone";
@@ -757,7 +757,7 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 204) {
+        if (status === 200) {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
 
@@ -766,11 +766,15 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid request, or INVALID_TIME_ZONE", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("User not found", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -781,7 +785,7 @@ export class ApiClient {
 
     /**
      * Update current user profile
-     * @return No Content
+     * @return Profile updated
      */
     updateProfileEndpoint(updateProfileRequest: UpdateProfileRequest, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/users/me";
@@ -820,7 +824,7 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 204) {
+        if (status === 200) {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
 
@@ -829,11 +833,15 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid request", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("User not found", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -1332,6 +1340,201 @@ export class ApiClient {
     }
 
     /**
+     * Turn a notification email back on from its link
+     * @return The email is on; returns the account email and the event
+     */
+    emailLinkTurnOnEndpoint(emailLinkTurnOnRequest: EmailLinkTurnOnRequest, signal?: AbortSignal): Promise<EmailLinkTurnOnResponse> {
+        let url_ = this.baseUrl + "/users/email-links/turn-on";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(emailLinkTurnOnRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processEmailLinkTurnOnEndpoint(_response);
+        });
+    }
+
+    protected processEmailLinkTurnOnEndpoint(response: AxiosResponse): Promise<EmailLinkTurnOnResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<EmailLinkTurnOnResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Tampered, expired or unknown link, or the account no longer exists (EMAIL_LINK_INVALID)", status, _responseText, _headers, result400);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<EmailLinkTurnOnResponse>(null as any);
+    }
+
+    /**
+     * Turn off a notification email from its link
+     * @return The email is off; returns the account email and the event
+     */
+    emailLinkTurnOffEndpoint(emailLinkTurnOffRequest: EmailLinkTurnOffRequest, signal?: AbortSignal): Promise<EmailLinkTurnOffResponse> {
+        let url_ = this.baseUrl + "/users/email-links/turn-off";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(emailLinkTurnOffRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processEmailLinkTurnOffEndpoint(_response);
+        });
+    }
+
+    protected processEmailLinkTurnOffEndpoint(response: AxiosResponse): Promise<EmailLinkTurnOffResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<EmailLinkTurnOffResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Tampered, expired or unknown link, or the account no longer exists (EMAIL_LINK_INVALID)", status, _responseText, _headers, result400);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<EmailLinkTurnOffResponse>(null as any);
+    }
+
+    /**
+     * One-click unsubscribe from a notification email
+     * @param token The token from the List-Unsubscribe link's query string.
+     * @return The email is off
+     */
+    emailLinkOneClickEndpoint(token: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/users/email-links/one-click?";
+        if (token === undefined || token === null)
+            throw new globalThis.Error("The parameter 'token' must be defined and cannot be null.");
+        else
+            url_ += "token=" + encodeURIComponent("" + token) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processEmailLinkOneClickEndpoint(_response);
+        });
+    }
+
+    protected processEmailLinkOneClickEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            return throwException("Tampered, expired or unknown link, or the account no longer exists; no body", status, _responseText, _headers);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Disable my coach account
      * @return Date the account stops being active and the roles removed by this call
      */
@@ -1450,6 +1653,14 @@ export class ApiClient {
         } else if (status === 401) {
             const _responseText = response.data;
             return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("User no longer exists", status, _responseText, _headers);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -2980,7 +3191,7 @@ export class ApiClient {
 
     /**
      * Update professional profile
-     * @return No Content
+     * @return Profile updated
      */
     updateProfessionalProfileEndpoint(updateProfessionalProfileRequest: UpdateProfessionalProfileRequest, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/trainer/profile";
@@ -3019,7 +3230,7 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 204) {
+        if (status === 200) {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
 
@@ -3028,15 +3239,19 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid request", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("The caller is not a trainer or nutritionist", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Professional profile not found", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -3183,7 +3398,7 @@ export class ApiClient {
     /**
      * Update client data
      * @param clientId Client profile public ID (route parameter).
-     * @return Success
+     * @return Client data updated
      */
     updateClientDataEndpoint(clientId: string, updateClientDataRequest: UpdateClientDataRequest, signal?: AbortSignal): Promise<UpdateClientDataResponse> {
         let url_ = this.baseUrl + "/trainer/clients/{clientId}";
@@ -3242,11 +3457,11 @@ export class ApiClient {
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("Request carries nutrition targets but the link has no nutrition capability", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -3717,6 +3932,82 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Check whether an invitee's profession slot is taken
+     * @param email Query parameter — the invitee's email address.
+     * @return Per-profession slot occupancy
+     */
+    checkPendingInviteSlotEndpoint(email: string, signal?: AbortSignal): Promise<CheckPendingInviteSlotResponse> {
+        let url_ = this.baseUrl + "/trainer/pending-invites/slot-check?";
+        if (email === undefined || email === null)
+            throw new globalThis.Error("The parameter 'email' must be defined and cannot be null.");
+        else
+            url_ += "email=" + encodeURIComponent("" + email) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCheckPendingInviteSlotEndpoint(_response);
+        });
+    }
+
+    protected processCheckPendingInviteSlotEndpoint(response: AxiosResponse): Promise<CheckPendingInviteSlotResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<CheckPendingInviteSlotResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Missing, malformed or too long email", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Too many slot checks", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<CheckPendingInviteSlotResponse>(null as any);
     }
 
     /**
@@ -7044,6 +7335,14 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
 
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Recipe not found", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("RECIPE_VERSION_CONFLICT \u2014 the images changed concurrently", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -9498,6 +9797,14 @@ export class ApiClient {
             result400 = JSON.parse(resultData400);
             return throwException("Unknown, expired or already used token (BANK_ACCOUNT_UNDO_INVALID)", status, _responseText, _headers, result400);
 
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("The account was changed again afterwards (BANK_ACCOUNT_UNDO_SUPERSEDED)", status, _responseText, _headers);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -9546,6 +9853,13 @@ export class ApiClient {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
 
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("The account has a password and uses it instead (REAUTH_CODE_NOT_AVAILABLE)", status, _responseText, _headers, result400);
+
         } else if (status === 401) {
             const _responseText = response.data;
             return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
@@ -9553,6 +9867,14 @@ export class ApiClient {
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("The subscription does not include payments (PAYMENTS_NOT_ENTITLED)", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("The caller has no professional profile or account", status, _responseText, _headers);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -9688,6 +10010,14 @@ export class ApiClient {
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("The subscription does not include payments (PAYMENTS_NOT_ENTITLED)", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("The caller has no professional profile or account", status, _responseText, _headers);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -10272,7 +10602,7 @@ export class ApiClient {
     /**
      * Full-state update of a nutrition plan
      * @param planId The plan's public identifier (route parameter).
-     * @return Success
+     * @return Updated plan
      */
     updatePlanEndpoint(planId: string, updatePlanRequest: UpdatePlanRequest, signal?: AbortSignal): Promise<GetPlanResponse> {
         let url_ = this.baseUrl + "/nutrition/plans/{planId}";
@@ -10331,7 +10661,7 @@ export class ApiClient {
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
@@ -13000,6 +13330,14 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
 
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Food not found or soft-deleted", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("FOOD_IMAGES_CONFLICT \u2014 the images changed concurrently", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -14593,7 +14931,7 @@ export class ApiClient {
      * Save photos / note for a training session diary entry
      * @param sessionId The unique identifier of the training session whose photos/note are being saved.
     Sourced from the route segment {SessionId}.
-     * @return No Content
+     * @return Photos saved
      */
     saveSessionPhotosEndpoint(sessionId: string, saveSessionPhotosRequest: SaveSessionPhotosRequest, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/client/training/log/sessions/{sessionId}/photos";
@@ -14644,7 +14982,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid request, or a photo URL is not a blob URL from this session\'s upload folder (INVALID_BLOB_URL)", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -16307,6 +16645,10 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
 
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("The diary request is not Accepted/InProgress, or its window has expired (PHOTO_DIARY_REQUEST_EXPIRED); one-time requests never expire", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -16605,10 +16947,7 @@ export class ApiClient {
 
         } else if (status === 400) {
             const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("Invalid request, or blob URL not under the caller\'s unlinked prefix", status, _responseText, _headers, result400);
+            return throwException("Invalid request, or blob URL not under the caller\'s unlinked prefix", status, _responseText, _headers);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -16617,6 +16956,14 @@ export class ApiClient {
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Caller has no client profile, or the diary request is unknown or not the caller\'s", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("The diary request is not Accepted/InProgress (PHOTO_DIARY_REQUEST_INVALID_STATUS), or its window has expired (PHOTO_DIARY_REQUEST_EXPIRED)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -16910,6 +17257,18 @@ export class ApiClient {
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("The subscription does not include payments (PAYMENTS_NOT_ENTITLED), or the coach role was removed", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("No live link to the client (and no ended one with a payment assignment), or the payment is not this client\'s payment with this coach", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("The payment is already paid (PAYMENT_ALREADY_PAID) or waived (PAYMENT_ALREADY_WAIVED), the coach has no bank account (BANK_ACCOUNT_NOT_SET), or no variable symbol is left (PAYMENT_VARIABLE_SYMBOL_EXHAUSTED)", status, _responseText, _headers);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("The payment was requested a minute ago, or the client got ten requests in the last hour (PAYMENT_REQUEST_RATE_LIMITED)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -17572,7 +17931,7 @@ export class ApiClient {
     /**
      * Log a meal as eaten
      * @param mealId The unique identifier of the meal to log as eaten.
-     * @return Meal logged; syncConflict flags a collision with a plan change, and mealLogged is false when the meal left the plan
+     * @return Meal logged; syncConflict flags a collision with a plan change; a meal that left the plan is still logged from the items the client saw, and mealLogged is false only when it left the plan and the request carried no seen items
      */
     logMealEatenEndpoint(mealId: string, logMealEatenRequest: LogMealEatenRequest, signal?: AbortSignal): Promise<LogMealEatenResponse> {
         let url_ = this.baseUrl + "/client/nutrition/log/meals/{mealId}/eaten";
@@ -17868,7 +18227,7 @@ export class ApiClient {
 
     /**
      * Save plan-level day photos / note for today
-     * @return No Content
+     * @return Photos saved
      */
     saveDayPhotosEndpoint(saveDayPhotosRequest: SaveDayPhotosRequest, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/client/nutrition/log/day/photos";
@@ -17916,7 +18275,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid request, or a photo URL is not a blob URL from this plan\'s upload folder (INVALID_BLOB_URL)", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -19320,7 +19679,7 @@ export class ApiClient {
 
     /**
      * Register push token
-     * @return No Content
+     * @return Token registered
      */
     registerPushTokenEndpoint(registerPushTokenRequest: RegisterPushTokenRequest, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/client/push-token";
@@ -19380,21 +19739,20 @@ export class ApiClient {
 
     /**
      * Remove push token
-     * @param token The Expo push token to remove, sent as a query parameter.
      * @return Token removed or not present
      */
-    removePushTokenEndpoint(token: string, signal?: AbortSignal): Promise<void> {
-        let url_ = this.baseUrl + "/client/push-token?";
-        if (token === undefined || token === null)
-            throw new globalThis.Error("The parameter 'token' must be defined and cannot be null.");
-        else
-            url_ += "token=" + encodeURIComponent("" + token) + "&";
+    removePushTokenAnonymousEndpoint(removePushTokenAnonymousRequest: RemovePushTokenAnonymousRequest, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/client/push-token/remove";
         url_ = url_.replace(/[?&]$/, "");
 
+        const content_ = JSON.stringify(removePushTokenAnonymousRequest);
+
         let options_: AxiosRequestConfig = {
-            method: "DELETE",
+            data: content_,
+            method: "POST",
             url: url_,
             headers: {
+                "Content-Type": "application/json",
             },
             signal
         };
@@ -19406,11 +19764,11 @@ export class ApiClient {
                 throw _error;
             }
         }).then((_response: AxiosResponse) => {
-            return this.processRemovePushTokenEndpoint(_response);
+            return this.processRemovePushTokenAnonymousEndpoint(_response);
         });
     }
 
-    protected processRemovePushTokenEndpoint(response: AxiosResponse): Promise<void> {
+    protected processRemovePushTokenAnonymousEndpoint(response: AxiosResponse): Promise<void> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -19424,13 +19782,16 @@ export class ApiClient {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
 
-        } else if (status === 401) {
+        } else if (status === 400) {
             const _responseText = response.data;
-            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Token is empty, too long or not an Expo push token", status, _responseText, _headers, result400);
 
-        } else if (status === 403) {
+        } else if (status === 429) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -21369,6 +21730,17 @@ export class ApiClient {
             result200 = JSON.parse(resultData200);
             return Promise.resolve<VerifyEmailResponse>(result200);
 
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid, already used or expired verification token", status, _responseText, _headers, result400);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -21420,6 +21792,10 @@ export class ApiClient {
             let resultData200  = _responseText;
             result200 = JSON.parse(resultData200);
             return Promise.resolve<RequestNonceResponse>(result200);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -21482,7 +21858,23 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("idToken or nonce is missing or empty", status, _responseText, _headers, result400);
+            return throwException("idToken or nonce is missing or empty, Roles is invalid (Admin, unknown, or Client combined with a coach role), a coach sends healthDataConsent, or a new Client account lacks healthDataConsent=true. The nonce is already consumed by the time the consent check runs, so the client must request a new nonce to retry", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Google ID token is invalid, expired, has wrong audience, or the nonce is invalid/consumed/expired", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Account is deactivated", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("Email belongs to an existing password-only account (social_email_conflict)", status, _responseText, _headers);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -21545,7 +21937,27 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("identityToken or nonce is missing or empty", status, _responseText, _headers, result400);
+            return throwException("identityToken or nonce is missing or empty, Roles is invalid (Admin, unknown, or Client combined with a coach role), a coach sends healthDataConsent, or a new Client account lacks healthDataConsent=true. The nonce is already consumed by the time the consent check runs, so the client must request a new nonce to retry", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Apple identity token is invalid, expired, has wrong audience, email is explicitly unverified, or the nonce is invalid/consumed/expired", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Account is deactivated", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("Email belongs to an existing password-only account (social_email_conflict)", status, _responseText, _headers);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            return throwException("No Apple account link exists and token carries no email \u2014 cannot provision", status, _responseText, _headers);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -21556,7 +21968,7 @@ export class ApiClient {
 
     /**
      * Reset password
-     * @return No Content
+     * @return Password reset; all sessions revoked
      */
     resetPasswordEndpoint(resetPasswordRequest: ResetPasswordRequest, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/auth/password/reset";
@@ -21595,7 +22007,7 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 204) {
+        if (status === 200) {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
 
@@ -21606,6 +22018,10 @@ export class ApiClient {
             result400 = JSON.parse(resultData400);
             return throwException("Invalid input, or invalid/expired reset request", status, _responseText, _headers, result400);
 
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -21615,7 +22031,7 @@ export class ApiClient {
 
     /**
      * Request password reset
-     * @return No Content
+     * @return Reset link sent (or send failure logged)
      */
     requestPasswordResetEndpoint(requestPasswordResetRequest: RequestPasswordResetRequest, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/auth/password/reset";
@@ -21654,7 +22070,7 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 204) {
+        if (status === 200) {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
 
@@ -21663,7 +22079,15 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("No account uses this email", status, _responseText, _headers);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -21780,6 +22204,10 @@ export class ApiClient {
             result400 = JSON.parse(resultData400);
             return throwException("Validation error", status, _responseText, _headers, result400);
 
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -21789,7 +22217,7 @@ export class ApiClient {
 
     /**
      * Refresh access token
-     * @return Success
+     * @return New access and refresh token pair
      */
     refreshTokenEndpoint(refreshTokenRequest: RefreshTokenRequest, signal?: AbortSignal): Promise<RefreshTokenResponse> {
         let url_ = this.baseUrl + "/auth/refresh";
@@ -21841,7 +22269,11 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid input, or an invalid, expired or reused refresh token", status, _responseText, _headers, result400);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -21908,7 +22340,7 @@ export class ApiClient {
 
     /**
      * Authenticate user
-     * @return Success
+     * @return Login successful
      */
     loginEndpoint(loginRequest: LoginRequest, signal?: AbortSignal): Promise<LoginResponse> {
         let url_ = this.baseUrl + "/auth/login";
@@ -21960,7 +22392,11 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid input, wrong credentials (INVALID_CREDENTIALS) or a deactivated account (ACCOUNT_DEACTIVATED)", status, _responseText, _headers, result400);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -22029,6 +22465,14 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Caller\'s account no longer exists", status, _responseText, _headers);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -22038,7 +22482,7 @@ export class ApiClient {
 
     /**
      * Resend verification email (anonymous)
-     * @return Success
+     * @return Generic confirmation, whatever the account state
      */
     anonymousResendVerificationEndpoint(anonymousResendVerificationRequest: AnonymousResendVerificationRequest, signal?: AbortSignal): Promise<AnonymousResendVerificationResponse> {
         let url_ = this.baseUrl + "/auth/resend-verification/anonymous";
@@ -22090,7 +22534,11 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid request", status, _responseText, _headers, result400);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -22686,6 +23134,38 @@ export interface GetMyCoachRolesResponse {
     coachAccountActiveUntil?: string | undefined;
     /** When the account would stop being active if disabled now (UTC); at or before now means at once. */
     activeUntilIfDisabled?: string | undefined;
+}
+
+/** The email switch that was turned back on. */
+export interface EmailLinkTurnOnResponse {
+    /** Email address of the account the link belongs to. */
+    email?: string;
+    /** The notification event whose email is now on. */
+    event?: NotificationEvent;
+}
+
+/** Request for turning a notification email back on from the link in that email. */
+export interface EmailLinkTurnOnRequest {
+    /** The token from the emailed link. */
+    token: string;
+}
+
+/** The email switch that was turned off. */
+export interface EmailLinkTurnOffResponse {
+    /** Email address of the account the link belongs to. */
+    email?: string;
+    /** The notification event whose email is now off. */
+    event?: NotificationEvent;
+}
+
+/** Request for turning off one notification email from the link in that email. */
+export interface EmailLinkTurnOffRequest {
+    /** The token from the emailed link. */
+    token: string;
+}
+
+/** Request for the RFC 8058 one-click unsubscribe post a mail client sends for a notification email. */
+export interface EmailLinkOneClickRequest {
 }
 
 /** Outcome of disabling the caller's coach account. */
@@ -23784,6 +24264,18 @@ export enum LinkCapabilityScope {
     TrainingOnly = "TrainingOnly",
 }
 
+/** Which of the caller's professions already have another professional on the invitee. */
+export interface CheckPendingInviteSlotResponse {
+    /** True when the caller holds the Nutritionist role and another professional occupies the invitee's nutrition slot. */
+    nutritionTaken?: boolean;
+    /** True when the caller holds the Trainer role and another professional occupies the invitee's training slot. */
+    trainingTaken?: boolean;
+}
+
+/** Query for the live profession-slot check of an invitee email. */
+export interface CheckPendingInviteSlotRequest {
+}
+
 /** Combined list of a client's nutrition and training plans returned by GET /trainer/clients/{clientId}/plans. */
 export interface ListClientPlansResponse {
     /** All plans (nutrition + training) across all statuses, newest first. */
@@ -24396,7 +24888,7 @@ export interface OfflineSyncConflictDto {
     mealId?: string;
     /** Meal kind at sync time. */
     mealKind?: MealKind;
-    /** False when the meal had left the plan, so no meal log was written. */
+    /** False when the meal had left the plan and the client sent no seen items, so no meal log was written. */
     mealLogged?: boolean;
     /** When the client performed the action offline (UTC). */
     occurredAt?: string;
@@ -24433,6 +24925,8 @@ export enum MealKind {
 
 /** One meal item as the client saw it. */
 export interface SeenMealItemDto {
+    /** Plan item id of the item; matches the item tags on the plan's meal lock. */
+    itemId?: string;
     /** Whether the item was a food or a recipe. */
     kind?: SeenMealItemKind;
     /** Public id of the food or recipe. */
@@ -24443,6 +24937,14 @@ export interface SeenMealItemDto {
     amount?: number;
     /** Energy the client showed, in kcal. */
     kcal?: number;
+    /** Protein the client showed, in grams. */
+    protein?: number;
+    /** Carbohydrates the client showed, in grams. */
+    carbs?: number;
+    /** Fat the client showed, in grams. */
+    fat?: number;
+    /** Fibre the client showed, in grams. */
+    fibre?: number;
 }
 
 /** What a seen meal item referred to. */
@@ -26288,9 +26790,9 @@ export interface PhotoDiaryRequestSummary {
     completedAt?: string | undefined;
     createdAt?: string;
     updatedAt?: string;
-    /** End of the open window (CreatedAt + DurationDays). */
-    endsAt?: string;
-    /** True while the request is Pending/Accepted/InProgress and before EndsAt. */
+    /** End of the open window (CreatedAt + DurationDays); null for a one-time (Bulk) request, which never expires. */
+    endsAt?: string | undefined;
+    /** True while the request is Pending/Accepted/InProgress and has not reached EndsAt. */
     isOpen?: boolean;
 }
 
@@ -26539,10 +27041,10 @@ export interface NutritionPlanTemplateDetailDto {
     weeks?: TemplateWeek[];
     /** Number of weeks, server-computed from Weeks. */
     weekCount?: number;
-    /** Most common meal count over the template's non-empty days (days with at least one meal,
-across all weeks); ties resolve to the smaller count. Null when no day has a meal. */
+    /** Most common meal count (empty rows included) over days with at least one food or recipe;
+ties go to the smaller count. Null when no day has a food or recipe. */
     mealsPerDay?: number | undefined;
-    /** Average kcal per non-empty day, in whole kcal. Null when no day has a meal. */
+    /** Average kcal per day with at least one food or recipe, rounded to whole kcal. Null when no such day. */
     avgKcalPerDay?: number | undefined;
     /** Who can read this entry besides its owner. */
     visibility?: LibraryVisibility;
@@ -26796,10 +27298,10 @@ export interface NutritionPlanTemplateSummaryDto {
     dietaryStyle?: DietaryStyle | undefined;
     /** Number of weeks, server-computed from the template's week tree. */
     weekCount?: number;
-    /** Most common meal count over the template's non-empty days (days with at least one meal,
-across all weeks); ties resolve to the smaller count. Null when no day has a meal. */
+    /** Most common meal count (empty rows included) over days with at least one food or recipe;
+ties go to the smaller count. Null when no day has a food or recipe. */
     mealsPerDay?: number | undefined;
-    /** Average kcal per non-empty day, in whole kcal. Null when no day has a meal. */
+    /** Average kcal per day with at least one food or recipe, rounded to whole kcal. Null when no such day. */
     avgKcalPerDay?: number | undefined;
     /** Number of the caller's own Active plans instantiated from this template; other
 nutritionists' usage is never counted. */
@@ -26927,6 +27429,11 @@ are absent (equivalent to not-touched / no badge).
 Populated by the endpoint after loading the plan. Ownership is guaranteed by the
 plan ownership gate above the MealLog query — filtering by PlanId is safe. */
     mealLogs?: MealEatenStatusDto[];
+    /** The client's local calendar date today, the cut-off after which a day is locked.
+Populated by the get endpoint only. */
+    clientToday?: string;
+    /** One lock verdict per stored meal. Populated by the get endpoint only. */
+    mealLocks?: MealLockDto[];
     /** Supplement recommendations attached to this plan. */
     supplements?: SupplementDto[];
 }
@@ -26969,6 +27476,97 @@ export enum MealEatenState {
     Eaten = "Eaten",
 }
 
+/** Whether the coach may edit one stored plan meal, and why not. */
+export interface MealLockDto {
+    /** The MealId this verdict belongs to. */
+    mealId?: string;
+    /** Week the meal sits in. */
+    weekNumber?: number;
+    /** Day of the week the meal sits in (1 = Monday). */
+    dayOfWeek?: number;
+    /** Calendar date of the slot; null when the plan has no start date. */
+    date?: string | undefined;
+    /** Whether the meal may not be changed, moved or deleted. */
+    isLocked?: boolean;
+    /** Why the meal is locked, or Open. */
+    lockState?: MealLockState;
+    /** Ids of the meal's items the client ate. */
+    eatenItemIds?: string[];
+    /** Items as they stood when first eaten. Set only for a locked meal that has a snapshot. */
+    eatenSnapshot?: EatenMealItem[] | undefined;
+    /** True for a meal the client ate that the coach has since removed from the plan. It is not in
+Weeks; it is placed by WeekNumber, DayOfWeek and MealKind. */
+    isRemovedFromPlan?: boolean;
+    /** Kind of the meal; for a removed meal, the kind stored when it was logged. */
+    mealKind?: MealKind;
+    /** The offline-sync conflict behind this meal; null when it was not eaten offline against a changed plan. */
+    conflict?: MealLockConflictDto | undefined;
+}
+
+/** Why a plan meal can or cannot be edited by the coach. */
+export enum MealLockState {
+    Open = "Open",
+    Eaten = "Eaten",
+    PartlyEaten = "PartlyEaten",
+    Missed = "Missed",
+}
+
+/** One food or recipe of a meal as it stood when the client first ate from it, kept on a MealLog. Nutrients are the item's total contribution (amount already applied). */
+export interface EatenMealItem {
+    /** Plan item id (MealFood.ItemId / MealRecipe.ItemId). */
+    itemId?: string;
+    /** Whether the item is a food or a recipe. */
+    kind?: SeenMealItemKind;
+    /** Id of the food or recipe the item referred to. */
+    refId?: string;
+    /** Display name. */
+    name?: string;
+    /** Grams for a food, servings for a recipe. */
+    amount?: number;
+    /** Energy in kcal. */
+    kcal?: number;
+    /** Protein in grams. */
+    protein?: number;
+    /** Carbohydrates in grams. */
+    carbs?: number;
+    /** Fat in grams. */
+    fat?: number;
+    /** Dietary fibre in grams. */
+    fibre?: number;
+}
+
+/** The offline-sync conflict behind a locked meal: the client ate one version of the meal while the coach's plan moved on to another. */
+export interface MealLockConflictDto {
+    /** Public id of the conflict; the id the review endpoints take. */
+    conflictId?: string;
+    /** Why the client's action collided with the plan. */
+    kind?: OfflineSyncConflictKind;
+    /** The plan version the client ate (the one it saw offline). */
+    basedOnPlanVersion?: number;
+    /** The coach's current plan version. */
+    currentPlanVersion?: number;
+    /** Whether a coach has marked the conflict reviewed. */
+    reviewed?: boolean;
+    /** Per-item differences between the eaten snapshot and the coach's meal, computed on the server.
+Empty when the client sent no seen items. */
+    itemTags?: MealItemConflictTagDto[];
+}
+
+/** One item whose eaten version differs from the coach's current meal. */
+export interface MealItemConflictTagDto {
+    /** The plan item id the tag belongs to. */
+    itemId?: string;
+    /** How the item differs: changed, added by the coach, or removed by the coach. */
+    tag?: MealItemConflictTag;
+}
+
+/** How one meal item differs between what the client ate and the coach's current meal. */
+export enum MealItemConflictTag {
+    Changed = "Changed",
+    Added = "Added",
+    Removed = "Removed",
+}
+
 /** A supplement entry in a nutrition plan response DTO. */
 export interface SupplementDto {
     /** Stable public identifier for the supplement. */
@@ -27003,6 +27601,10 @@ When set, read sites prefer this value over the client's onboarding baseline. */
     /** Optional target body weight in kilograms for this plan period.
 Must be greater than zero when provided. */
     targetWeightKg?: number | undefined;
+    /** When true, locked meals (eaten, partly eaten, or on a day before the client's today) and every
+past day's meals are kept as stored, incoming meals on past days are dropped, and the rest of the
+payload is applied without a lock conflict. Used when a template is applied in the browser. */
+    preserveLockedMeals?: boolean;
 }
 
 /** Represents a single week submitted in a full-state plan update. */
@@ -29261,6 +29863,9 @@ export interface FinalizeUnlinkedPhotoRequest {
     description?: string | undefined;
     /** When the photo was taken. Defaults to UtcNow when not provided. */
     takenAt?: string | undefined;
+    /** Optional diary request ID. When set, the photo answers that request; the same rules apply as
+for a plan photo (owned by the caller, Accepted or InProgress, not past its end date). */
+    diaryRequestId?: string | undefined;
 }
 
 /** Request model for finalizing a plan photo upload by inserting a PlanPhoto row. The caller must have already uploaded the photo to blob storage using the URL from POST /client/plans/{planId}/photos/upload-url. */
@@ -29771,7 +30376,8 @@ at most 5 minutes ahead and 7 days back. */
 export interface LogMealEatenResponse {
     /** Human-readable confirmation. */
     message?: string;
-    /** False only when the meal is no longer in the plan, so no meal log was written. */
+    /** False only when the meal is no longer in the plan and the request carried no seen items,
+so no meal log was written. */
     mealLogged?: boolean;
     /** True when the action collided with a plan change the coach made. */
     syncConflict?: boolean;
@@ -29800,6 +30406,8 @@ at most 5 minutes ahead and 7 days back. */
 
 /** One meal item as the client saw it when it queued the request. */
 export interface SeenMealItemRequest {
+    /** Plan item id of the item. */
+    itemId?: string;
     /** Whether the item is a food or a recipe. */
     kind?: SeenMealItemKind;
     /** Public id of the food or recipe. */
@@ -29810,6 +30418,14 @@ export interface SeenMealItemRequest {
     amount?: number;
     /** Energy shown to the client, in kcal. */
     kcal?: number;
+    /** Protein shown to the client, in grams. */
+    protein?: number;
+    /** Carbohydrates shown to the client, in grams. */
+    carbs?: number;
+    /** Fat shown to the client, in grams. */
+    fat?: number;
+    /** Fibre shown to the client, in grams. */
+    fibre?: number;
 }
 
 /** Response model for the client's active nutrition plan for the current week. */
@@ -30372,8 +30988,10 @@ export interface RegisterPushTokenRequest {
     platform?: string;
 }
 
-/** Request for removing a push token. */
-export interface RemovePushTokenRequest {
+/** Request for removing a push token by value. */
+export interface RemovePushTokenAnonymousRequest {
+    /** The Expo push token to remove, sent in the JSON body. */
+    token: string;
 }
 
 /** Response model containing a client's weekly progress overview. */
@@ -31294,6 +31912,12 @@ export interface GoogleSocialLoginRequest {
 The client must pass the same raw value that was embedded in the Google sign-in flow
 (Google embeds the raw nonce directly in the id_token's nonce field — no hashing). */
     nonce: string;
+    /** Roles requested for a brand-new account: Trainer, Nutritionist or Client (never combined with a coach role).
+Empty or absent means Client. Ignored when the Google identity is already linked to an account. */
+    roles?: string[];
+    /** Art. 9 health-data consent. Must be true when a new Client account is created and
+must be absent for a coach sign-up. Ignored when the Google identity is already linked. */
+    healthDataConsent?: boolean | undefined;
 }
 
 /** Response returned on a successful Apple Sign-In. Identical shape to Google Social Login response. */
@@ -31328,6 +31952,12 @@ Apple does not re-send this on subsequent authentications. */
 The client must pass the same raw value that was embedded in the Apple sign-in flow
 (Apple hashes it before embedding: SHA-256(nonce) appears in the id_token's nonce claim). */
     nonce: string;
+    /** Roles requested for a brand-new account: Trainer, Nutritionist or Client (never combined with a coach role).
+Empty or absent means Client. Ignored when the Apple identity is already linked to an account. */
+    roles?: string[];
+    /** Art. 9 health-data consent. Must be true when a new Client account is created and
+must be absent for a coach sign-up. Ignored when the Apple identity is already linked. */
+    healthDataConsent?: boolean | undefined;
 }
 
 /** Request model for completing a password reset using a token. */

@@ -8,12 +8,12 @@ import { useTranslation } from 'react-i18next';
 import type { Collaboration } from '@/api/collaborations';
 import { Text } from '@/components/Text';
 import { firstName } from '@/components/invites/format';
-import { firstPaymentStep, hasPhotoRequest, paymentPhase, photoStep } from '@/components/today/coachSteps';
+import { usePhotoStatus } from '@/components/photoRequest/hooks';
+import { firstPaymentStep, paymentPhase, photoStep } from '@/components/today/coachSteps';
 import type { Step } from '@/components/today/coachSteps';
 import { TimelineStep } from '@/components/today/TimelineStep';
 import { useClientRecipes } from '@/hooks/useClientRecipes';
 import { usePaymentsEnabled } from '@/hooks/usePaymentsEnabled';
-import { usePendingQuestionnaires } from '@/hooks/usePendingQuestionnaires';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
@@ -53,7 +53,7 @@ export function GetReady({ planId, collaboration, onlyCollaboration }: GetReadyP
   const router = useRouter();
   const theme = useTheme();
   const styles = makeStyles(theme);
-  const { data: pending } = usePendingQuestionnaires();
+  const photoStatus = usePhotoStatus(collaboration, onlyCollaboration);
   const { enabled: paymentsEnabled } = usePaymentsEnabled();
   const recipes = useClientRecipes(planId, Boolean(planId));
 
@@ -71,8 +71,8 @@ export function GetReady({ planId, collaboration, onlyCollaboration }: GetReadyP
       }),
     );
   }
-  if (collaboration && hasPhotoRequest(pending, collaboration, onlyCollaboration)) {
-    steps.push(photoStep(t, first, () => router.push('/profile/photos')));
+  if (photoStatus) {
+    steps.push(photoStep(t, photoStatus, first, (route) => router.push(route)));
   }
 
   const recipeCount = recipes.data?.total;

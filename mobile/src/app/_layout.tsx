@@ -67,6 +67,7 @@ function AppStack({ phase, onRetry }: { phase: ReturnType<typeof useAuthPhase>['
         <Stack.Screen name="nutrition/recipe/[recipeId]" />
         <Stack.Screen name="nutrition/shopping-list" />
         <Stack.Screen name="questionnaire/[linkPublicId]" />
+        <Stack.Screen name="photo-request/[id]" />
         <Stack.Screen
           name="notifications"
           options={{ presentation: 'transparentModal', animation: 'fade' }}
