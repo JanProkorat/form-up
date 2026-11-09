@@ -68,8 +68,15 @@ public class CoachSubscription : TimestampableEntity
 
     /// <summary>
     /// While the clock is before this instant, the assigned plan's features apply whatever the status is.
+    /// For a gift (<see cref="GivenFreeAt"/> set) it is the end of the gift instead; null means no end.
     /// </summary>
     public DateTimeOffset? FreeUntil { get; set; }
+
+    /// <summary>
+    /// When an admin gave the assigned plan to the coach for free; null when the plan is not a gift. While set,
+    /// the plan applies only until <see cref="FreeUntil"/> (no end when that is null), whatever the status is.
+    /// </summary>
+    public DateTimeOffset? GivenFreeAt { get; set; }
 
     /// <summary>
     /// When the current billing period ends.

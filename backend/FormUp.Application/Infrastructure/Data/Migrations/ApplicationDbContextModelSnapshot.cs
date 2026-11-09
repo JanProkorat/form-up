@@ -2148,6 +2148,10 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("free_until");
 
+                    b.Property<DateTimeOffset?>("GivenFreeAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("given_free_at");
+
                     b.Property<bool>("PaysSecondRoleAddOn")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")

@@ -624,6 +624,9 @@ public static class ErrorCodes
     /// <summary>The coach's paid plan has not lapsed, so there is no kept-clients choice to make.</summary>
     public const string SubscriptionNotLapsed = "SUBSCRIPTION_NOT_LAPSED";
 
+    /// <summary>The coach has no paying subscription whose renewal could be cancelled (no row, Free plan, a gift, or a plan that no longer applies).</summary>
+    public const string NoRenewingSubscription = "NO_RENEWING_SUBSCRIPTION";
+
     /// <summary>The IBAN is malformed or fails the mod-97 check.</summary>
     public const string InvalidIban = "INVALID_IBAN";
 

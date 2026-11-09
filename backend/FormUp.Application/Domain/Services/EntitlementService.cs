@@ -13,7 +13,9 @@ namespace FormUp.Application.Domain.Services;
 /// <remarks>
 /// A professional with no subscription row gets the Free plan's entitlements. While the clock is before
 /// <see cref="Entities.CoachSubscription.FreeUntil"/>, or while the status is Trialing, Active or PastDue,
-/// the assigned plan's own flags apply; Canceled and Incomplete fall back to the Free plan. When the
+/// the assigned plan's own flags apply; Canceled and Incomplete fall back to the Free plan. A plan given for
+/// free (<see cref="Entities.CoachSubscription.GivenFreeAt"/> set) applies only until its end, whatever the
+/// status, and then resolves like a lapsed paid plan. When the
 /// Free plan row itself is missing the service logs an error and resolves to
 /// <see cref="CoachEntitlements.Locked"/> (fail closed).
 /// </remarks>
@@ -160,10 +162,10 @@ public class EntitlementService
         var row = await db.CoachSubscriptions
             .AsNoTracking()
             .Where(cs => cs.ProfessionalProfileId == professionalProfileId)
-            .Select(cs => new { cs.Status, cs.FreeUntil })
+            .Select(cs => new { cs.Status, cs.FreeUntil, cs.GivenFreeAt })
             .FirstOrDefaultAsync(ct);
 
-        if (row is null || !IsLapsed(row.Status, row.FreeUntil))
+        if (row is null || !IsLapsed(row.Status, row.FreeUntil, row.GivenFreeAt))
         {
             return KeepClientsState.NotLapsed;
         }
@@ -225,9 +227,8 @@ public class EntitlementService
         return (await GetKeepClientsStateAsync(professionalProfileId.Value, ct)).OverCapClientProfileIds;
     }
 
-    private bool IsLapsed(SubscriptionStatus status, DateTimeOffset? freeUntil) =>
-        status is SubscriptionStatus.Canceled or SubscriptionStatus.Incomplete
-        && !(timeProvider.GetUtcNow() < freeUntil);
+    private bool IsLapsed(SubscriptionStatus status, DateTimeOffset? freeUntil, DateTimeOffset? givenFreeAt) =>
+        !CoachSubscriptionStatusClassifier.PlanApplies(status, freeUntil, givenFreeAt, timeProvider.GetUtcNow());
 
     private async Task<long?> FindProfileIdAsync(Guid userId, CancellationToken ct) =>
         await db.ProfessionalProfiles
@@ -267,8 +268,7 @@ public class EntitlementService
     }
 
     private bool PlanApplies(SubscriptionRow row) =>
-        timeProvider.GetUtcNow() < row.FreeUntil
-        || row.Status is SubscriptionStatus.Trialing or SubscriptionStatus.Active or SubscriptionStatus.PastDue;
+        CoachSubscriptionStatusClassifier.PlanApplies(row.Status, row.FreeUntil, row.GivenFreeAt, timeProvider.GetUtcNow());
 
     private async Task<PlanFlags?> LoadFreePlanAsync(CancellationToken ct)
     {
@@ -311,6 +311,7 @@ public class EntitlementService
             cs.ProfessionalProfileId,
             cs.Status,
             cs.FreeUntil,
+            cs.GivenFreeAt,
             cs.PaysSecondRoleAddOn,
             new PlanFlags(
                 cs.SubscriptionPlan.CanCreatePlans,
@@ -346,6 +347,7 @@ public class EntitlementService
         long ProfessionalProfileId,
         SubscriptionStatus Status,
         DateTimeOffset? FreeUntil,
+        DateTimeOffset? GivenFreeAt,
         bool PaysSecondRoleAddOn,
         PlanFlags Plan);
 
