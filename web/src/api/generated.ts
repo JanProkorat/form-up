@@ -16647,7 +16647,7 @@ export class ApiClient {
 
         } else if (status === 409) {
             const _responseText = response.data;
-            return throwException("The diary request is not Accepted/InProgress, or its window has expired (PHOTO_DIARY_REQUEST_EXPIRED)", status, _responseText, _headers);
+            return throwException("The diary request is not Accepted/InProgress, or its window has expired (PHOTO_DIARY_REQUEST_EXPIRED); one-time requests never expire", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -16947,10 +16947,7 @@ export class ApiClient {
 
         } else if (status === 400) {
             const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("Invalid request, or blob URL not under the caller\'s unlinked prefix", status, _responseText, _headers, result400);
+            return throwException("Invalid request, or blob URL not under the caller\'s unlinked prefix", status, _responseText, _headers);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -16959,6 +16956,14 @@ export class ApiClient {
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Caller has no client profile, or the diary request is unknown or not the caller\'s", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("The diary request is not Accepted/InProgress (PHOTO_DIARY_REQUEST_INVALID_STATUS), or its window has expired (PHOTO_DIARY_REQUEST_EXPIRED)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -22783,20 +22788,27 @@ export interface CreateWorkoutTemplateSetRequest {
     restSeconds?: number | undefined;
 }
 
+/** RFC7807 compatible problem details/ error response class. this can be used by configuring startup like so: app.UseFastEndpoints(c => c.Errors.UseProblemDetails()) */
 export interface ProblemDetails {
     type?: string;
     title?: string;
     status?: number;
     instance?: string;
     traceId?: string;
+    /** the details of the error */
     detail?: string | undefined;
     errors?: ProblemDetails_Error[];
 }
 
+/** the error details object */
 export interface ProblemDetails_Error {
+    /** the name of the error or property of the dto that caused the error */
     name?: string;
+    /** the reason for the error */
     reason?: string;
+    /** the code of the error */
     code?: string | undefined;
+    /** the severity of the error */
     severity?: string | undefined;
 }
 
@@ -26778,9 +26790,9 @@ export interface PhotoDiaryRequestSummary {
     completedAt?: string | undefined;
     createdAt?: string;
     updatedAt?: string;
-    /** End of the open window (CreatedAt + DurationDays). */
-    endsAt?: string;
-    /** True while the request is Pending/Accepted/InProgress and before EndsAt. */
+    /** End of the open window (CreatedAt + DurationDays); null for a one-time (Bulk) request, which never expires. */
+    endsAt?: string | undefined;
+    /** True while the request is Pending/Accepted/InProgress and has not reached EndsAt. */
     isOpen?: boolean;
 }
 
@@ -29851,6 +29863,9 @@ export interface FinalizeUnlinkedPhotoRequest {
     description?: string | undefined;
     /** When the photo was taken. Defaults to UtcNow when not provided. */
     takenAt?: string | undefined;
+    /** Optional diary request ID. When set, the photo answers that request; the same rules apply as
+for a plan photo (owned by the caller, Accepted or InProgress, not past its end date). */
+    diaryRequestId?: string | undefined;
 }
 
 /** Request model for finalizing a plan photo upload by inserting a PlanPhoto row. The caller must have already uploaded the photo to blob storage using the URL from POST /client/plans/{planId}/photos/upload-url. */

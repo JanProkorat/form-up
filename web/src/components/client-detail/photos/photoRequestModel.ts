@@ -28,9 +28,9 @@ function parse(iso: string | undefined): Date | undefined {
   return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
-/** The form preview's end of the window: now + days (one day for "once"), the server's formula. */
-export function previewEndsAt(frequency: RequestFrequency, days: number, now: Date = new Date()): Date {
-  return new Date(now.getTime() + (frequency === 'once' ? 1 : days) * DAY_MS);
+/** The form preview's end of the window: now + days, the server's formula. A one-time request has none. */
+export function previewEndsAt(frequency: RequestFrequency, days: number, now: Date = new Date()): Date | undefined {
+  return frequency === 'once' ? undefined : new Date(now.getTime() + days * DAY_MS);
 }
 
 /** "Tue 20 Oct" in the coach's local time. */
