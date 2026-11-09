@@ -21,7 +21,7 @@ public class EntitlementServiceKeepClientsTests
     private readonly Guid _coachUserId = Guid.NewGuid();
 
     private static CoachSubscription Subscription(
-        SubscriptionStatus status, DateTimeOffset? freeUntil = null) => new()
+        SubscriptionStatus status, DateTimeOffset? freeUntil = null, DateTimeOffset? givenFreeAt = null) => new()
     {
         ProfessionalProfileId = CoachProfileId,
         SubscriptionPlanId = 9,
@@ -38,6 +38,7 @@ public class EntitlementServiceKeepClientsTests
         },
         Status = status,
         FreeUntil = freeUntil,
+        GivenFreeAt = givenFreeAt,
     };
 
     private static SubscriptionPlan FreePlan(int? maxActiveClients) => new()
@@ -97,6 +98,23 @@ public class EntitlementServiceKeepClientsTests
         state.Cap.Should().Be(2);
         state.KeptClientProfileIds.Should().BeEquivalentTo([1L, 2L]);
         state.OverCapClientProfileIds.Should().Equal(3L);
+    }
+
+    [Theory]
+    [InlineData(-1, true)]
+    [InlineData(1, false)]
+    [InlineData(null, false)]
+    public async Task GetKeepClientsState_GivenFreePlan_IsLapsedOnlyOnceTheGiftEnded(int? daysFromNow, bool lapsed)
+    {
+        var gift = Subscription(
+            SubscriptionStatus.Active,
+            freeUntil: daysFromNow is { } days ? Now.AddDays(days) : null,
+            givenFreeAt: Now.AddDays(-10));
+        var service = CreateService(gift);
+
+        var state = await service.GetKeepClientsStateAsync(CoachProfileId, TestContext.Current.CancellationToken);
+
+        state.IsLapsed.Should().Be(lapsed, "an expired gift resolves like a lapsed paid plan even though its status is Active");
     }
 
     [Fact]

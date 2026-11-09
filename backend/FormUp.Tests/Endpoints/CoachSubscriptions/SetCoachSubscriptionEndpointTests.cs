@@ -157,6 +157,30 @@ public class SetCoachSubscriptionEndpointTests(FitnessApiFactory factory)
         (await LinkStatesAsync(releasedLinkId)).Should().Equal(ConnectionState.FreePlanReleased);
     }
 
+    [Fact]
+    public async Task Put_OnAGivenFreeCoach_EndsTheGift_AndRecordsWhoAssignedWhat()
+    {
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await CreateCoachAsync();
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(
+            factory, coach, "pro", givenFreeAt: DateTimeOffset.UtcNow.AddDays(-2), freeUntil: DateTimeOffset.UtcNow.AddDays(20));
+
+        var response = await admin.Http.PutAsJsonAsync($"/admin/coaches/{coach.UserId}/subscription", Body("pro"), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        (await db.CoachSubscriptions.AsNoTracking()
+            .Where(cs => cs.ProfessionalProfileId == coach.ProfileId)
+            .Select(cs => cs.GivenFreeAt)
+            .SingleAsync(Ct)).Should().BeNull("an explicit assignment ends the gift");
+
+        var audit = await db.AuditLogs.AsNoTracking()
+            .SingleAsync(a => a.EntityId == coach.UserId && a.Action == "SetCoachSubscription", Ct);
+        audit.UserId.Should().Be(admin.UserId);
+        audit.NewValues.Should().Contain("\"planCode\":\"pro\"");
+    }
+
     private async Task<string> CreateInactivePlanAsync()
     {
         using var scope = factory.Services.CreateScope();
