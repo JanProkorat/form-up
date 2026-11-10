@@ -26,7 +26,10 @@ internal sealed class GetMySubscriptionEndpoint(IApplicationDbContext db, Entitl
             s.Description = "The caller's plan, status, active-client usage and limit, second-role state, monthly price lines and the " +
                             "feature flags that currently apply. A coach with no subscription is shown on the Free plan with no status. When the paid " +
                             "plan has lapsed the plan fields read as Free, the lapsed plan's names and end date are returned separately, " +
-                            "the active-client count is the kept clients and the over-cap count is reported.";
+                            "the active-client count is the kept clients and the over-cap count is reported. When an admin-given plan has ended and no plan " +
+                            "was chosen yet, planChoiceRequired is true (never together with isLapsed), the plan fields still describe the ended plan " +
+                            "and its names are repeated as the ended-plan names. A coach on an explicit Free plan with clients over the cap gets the " +
+                            "kept count and the over-cap count too.";
             s.Response<GetMySubscriptionResponse>(StatusCodes.Status200OK, "The caller's subscription block");
             s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
             s.Response(StatusCodes.Status403Forbidden, "The caller is not a trainer or nutritionist");
@@ -71,9 +74,22 @@ internal sealed class GetMySubscriptionEndpoint(IApplicationDbContext db, Entitl
         {
             await ApplyLapseAsync(response, keepState, ct);
         }
+        else if (keepState.OverCapClientProfileIds.Count > 0)
+        {
+            response.ActiveClientCount = keepState.KeptClientProfileIds.Count;
+            response.OverCapClientCount = keepState.OverCapClientProfileIds.Count;
+        }
         else
         {
             response.ActiveClientCount = await entitlementService.GetActiveClientCountAsync(profileId.Value, ct);
+        }
+
+        if (keepState.IsPlanChoiceRequired)
+        {
+            response.PlanChoiceRequired = true;
+            response.EndedPlanNameCs = response.NameCs;
+            response.EndedPlanNameEn = response.NameEn;
+            response.EndedPlanNameDe = response.NameDe;
         }
 
         response.ClientLimit = entitlements.MaxActiveClients;

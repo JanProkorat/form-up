@@ -152,9 +152,9 @@ public class EntitlementServiceResolutionTests
     [InlineData(null, SubscriptionStatus.Active, true)]
     [InlineData(null, SubscriptionStatus.Canceled, true)]
     [InlineData(1, SubscriptionStatus.Active, true)]
-    [InlineData(-1, SubscriptionStatus.Active, false)]
-    [InlineData(-1, SubscriptionStatus.PastDue, false)]
-    public async Task GetEntitlementsAsync_GivenFreePlan_AppliesUntilItsEndWhateverTheStatus(
+    [InlineData(-1, SubscriptionStatus.Active, true)]
+    [InlineData(-1, SubscriptionStatus.PastDue, true)]
+    public async Task GetEntitlementsAsync_GivenFreePlan_KeepsItsFlagsForReadsWhileAPlanChoiceIsPending(
         int? daysFromNow, SubscriptionStatus status, bool keepsPlan)
     {
         var free = Plan(1, "free");

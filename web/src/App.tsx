@@ -38,7 +38,9 @@ import PlanTemplatesPage from '@/pages/PlanTemplatesPage';
 import PlanTemplateEditorPage from '@/pages/PlanTemplateEditorPage';
 import ClientPlanEditorPage from '@/pages/ClientPlanEditorPage';
 import LapseKeepClientsPage from '@/pages/LapseKeepClientsPage';
-import { KEEP_CLIENTS_PATH } from '@/components/subscription/planLinks';
+import PlanChoicePage from '@/pages/PlanChoicePage';
+import PlanChoiceGuard from '@/routes/PlanChoiceGuard';
+import { KEEP_CLIENTS_PATH, PLAN_CHOICE_PATH } from '@/components/subscription/planLinks';
 import ProfilePage from '@/pages/ProfilePage';
 import SettingsPage from '@/pages/SettingsPage';
 import NotFoundPage from '@/pages/NotFoundPage';
@@ -87,6 +89,11 @@ const router = createBrowserRouter(
       <Route path="/download-app" element={<DownloadAppPage />} />
 
       <Route element={<ProtectedRoute />}>
+       {/* Keeps a coach with an ended given plan on the picker; the picker route itself is full screen, no AppShell. */}
+       <Route element={<PlanChoiceGuard />}>
+        <Route element={<RoleGuard allowedRoles={['Trainer', 'Nutritionist']} />}>
+          <Route path={PLAN_CHOICE_PATH} element={<PlanChoicePage />} />
+        </Route>
         <Route element={<AppShell />}>
           <Route path="/clients" element={<ClientsPage />} />
           <Route path="/clients/:clientId" element={<ClientDetailPage />}>
@@ -123,6 +130,7 @@ const router = createBrowserRouter(
             <Route path="/clients/:clientId/nutrition/plans/:planId" element={<ClientPlanEditorPage />} />
           </Route>
         </Route>
+       </Route>
       </Route>
 
       <Route path="*" element={<NotFoundPage />} />

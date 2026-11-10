@@ -28,7 +28,7 @@ internal sealed class SetKeepClientsEndpoint(IApplicationDbContext db, Entitleme
         {
             s.Summary = "Choose the clients a lapsed plan keeps";
             s.Description = "Marks exactly min(cap, live clients) of the caller's live clients as kept and releases the rest. " +
-                            "Can be changed any time while the plan stays lapsed.";
+                            "Can be changed any time while the plan stays lapsed or the Free plan stays over its cap.";
             s.Response(StatusCodes.Status204NoContent, "The choice was saved");
             s.Response<ProblemDetails>(StatusCodes.Status400BadRequest,
                 "Invalid body, a duplicate id, or the wrong number of clients (KEEP_CLIENTS_COUNT_INVALID)");
@@ -36,7 +36,7 @@ internal sealed class SetKeepClientsEndpoint(IApplicationDbContext db, Entitleme
             s.Response(StatusCodes.Status403Forbidden, "The caller is not a trainer or nutritionist, or the coach role was removed");
             s.Response(StatusCodes.Status404NotFound,
                 "The caller has no professional profile, or an id is not one of the caller's live clients");
-            s.Response(StatusCodes.Status409Conflict, "The paid plan has not lapsed (SUBSCRIPTION_NOT_LAPSED)");
+            s.Response(StatusCodes.Status409Conflict, "The paid plan has not lapsed and the Free plan is within its cap (SUBSCRIPTION_NOT_LAPSED)");
         });
     }
 
@@ -63,7 +63,7 @@ internal sealed class SetKeepClientsEndpoint(IApplicationDbContext db, Entitleme
 
         var state = await entitlementService.GetKeepClientsStateAsync(profileId.Value, ct);
 
-        if (!state.IsLapsed)
+        if (!state.CanChooseKeptClients)
         {
             await this.SendProblemAsync(
                 StatusCodes.Status409Conflict, ErrorCodes.SubscriptionNotLapsed, "The subscription has not lapsed.", ct);

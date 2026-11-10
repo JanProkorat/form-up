@@ -104,7 +104,7 @@ public class EntitlementServiceKeepClientsTests
     [InlineData(-1, true)]
     [InlineData(1, false)]
     [InlineData(null, false)]
-    public async Task GetKeepClientsState_GivenFreePlan_IsLapsedOnlyOnceTheGiftEnded(int? daysFromNow, bool lapsed)
+    public async Task GetKeepClientsState_GivenFreePlan_IsAPlanChoiceOnceTheGiftEnded_NeverALapse(int? daysFromNow, bool planChoice)
     {
         var gift = Subscription(
             SubscriptionStatus.Active,
@@ -114,7 +114,14 @@ public class EntitlementServiceKeepClientsTests
 
         var state = await service.GetKeepClientsStateAsync(CoachProfileId, TestContext.Current.CancellationToken);
 
-        state.IsLapsed.Should().Be(lapsed, "an expired gift resolves like a lapsed paid plan even though its status is Active");
+        state.IsLapsed.Should().BeFalse();
+        state.IsPlanChoiceRequired.Should().Be(planChoice);
+        state.OverCapClientProfileIds.Should().BeEmpty("nobody is over the cap while a plan choice is pending");
+
+        if (planChoice)
+        {
+            state.Cap.Should().Be(2, "the picker needs the Free plan's cap");
+        }
     }
 
     [Fact]

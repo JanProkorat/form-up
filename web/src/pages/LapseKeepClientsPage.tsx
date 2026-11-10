@@ -52,6 +52,7 @@ export default function LapseKeepClientsPage() {
   const endedOn = endedAt ? new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' }).format(new Date(endedAt)) : null;
   const notLapsed = keepQuery.isError && isSubscriptionNotLapsed(keepQuery.error);
   const showBanner = subscription.isLapsed && plan !== '';
+  const showOverCapBanner = !subscription.isLapsed && subscription.overCapClientCount > 0 && cap !== null;
 
   return (
     <div className="flex h-full flex-col gap-4.5">
@@ -72,6 +73,15 @@ export default function LapseKeepClientsPage() {
           <Button type="button" variant="outline" size="lg" className="ml-auto px-3.5 font-semibold" disabled>
             {t('subscription.lapse.resubscribe')}
           </Button>
+        </div>
+      )}
+
+      {showOverCapBanner && (
+        <div role="status" className="flex items-center gap-3.5 rounded-xl bg-training-soft px-4 py-3.5">
+          <Info className="size-4.5 shrink-0 text-training-ink" aria-hidden="true" />
+          <span className="text-copy font-semibold text-ink">
+            {t('subscription.lapse.overCapBanner', { count: cap })}
+          </span>
         </div>
       )}
 

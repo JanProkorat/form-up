@@ -15,7 +15,8 @@ namespace FormUp.Application.Domain.Services;
 /// <see cref="Entities.CoachSubscription.FreeUntil"/>, or while the status is Trialing, Active or PastDue,
 /// the assigned plan's own flags apply; Canceled and Incomplete fall back to the Free plan. A plan given for
 /// free (<see cref="Entities.CoachSubscription.GivenFreeAt"/> set) applies only until its end, whatever the
-/// status, and then resolves like a lapsed paid plan. When the
+/// status. After its end the coach must choose a plan; until they do, reads keep resolving to the ended plan's
+/// own flags and nobody is over the cap. When the
 /// Free plan row itself is missing the service logs an error and resolves to
 /// <see cref="CoachEntitlements.Locked"/> (fail closed).
 /// </remarks>
@@ -87,7 +88,7 @@ public class EntitlementService
             .ToListAsync(ct);
 
         var rowsByProfile = rows.ToDictionary(row => row.ProfessionalProfileId);
-        var needsFree = professionalProfileIds.Any(id => !rowsByProfile.TryGetValue(id, out var row) || !PlanApplies(row));
+        var needsFree = professionalProfileIds.Any(id => !rowsByProfile.TryGetValue(id, out var row) || !UsesAssignedPlan(row));
         var free = needsFree ? await LoadFreePlanAsync(ct) : null;
 
         return professionalProfileIds
@@ -152,8 +153,29 @@ public class EntitlementService
     }
 
     /// <summary>
-    /// Resolves whether the professional's paid plan has lapsed and, when it has, which live clients the
-    /// Free plan keeps and which are over its cap. The cap is the Free plan's own limit, read from the data.
+    /// Whether the user is a coach whose admin-given plan has ended and who has not chosen a plan yet.
+    /// A single query; false for a user with no professional profile or subscription.
+    /// </summary>
+    /// <param name="userId">The caller's <c>ApplicationUser.Id</c>.</param>
+    /// <param name="ct">Cancellation token.</param>
+    public async Task<bool> IsPlanChoiceRequiredForUserAsync(Guid userId, CancellationToken ct)
+    {
+        var row = await db.CoachSubscriptions
+            .AsNoTracking()
+            .Where(cs => cs.ProfessionalProfile.UserId == userId)
+            .Select(cs => new { cs.GivenFreeAt, cs.FreeUntil })
+            .FirstOrDefaultAsync(ct);
+
+        return row is not null
+               && CoachSubscriptionStatusClassifier.IsPlanChoiceRequired(row.GivenFreeAt, row.FreeUntil, timeProvider.GetUtcNow());
+    }
+
+    /// <summary>
+    /// Resolves whether the professional's paid plan has lapsed, whether an ended gift waits for a plan choice,
+    /// and which live clients the Free plan keeps and which are over its cap. The cap is the Free plan's own
+    /// limit, read from the data. An explicit Free plan with more live clients than the cap behaves like a lapse
+    /// for the over-cap clients but is not <see cref="KeepClientsState.IsLapsed"/>. While a plan choice is
+    /// required nobody is over the cap.
     /// </summary>
     /// <param name="professionalProfileId">The professional's <c>ProfessionalProfile.Id</c>.</param>
     /// <param name="ct">Cancellation token.</param>
@@ -162,14 +184,48 @@ public class EntitlementService
         var row = await db.CoachSubscriptions
             .AsNoTracking()
             .Where(cs => cs.ProfessionalProfileId == professionalProfileId)
-            .Select(cs => new { cs.Status, cs.FreeUntil, cs.GivenFreeAt })
+            .Select(cs => new { cs.Status, cs.FreeUntil, cs.GivenFreeAt, PlanCode = cs.SubscriptionPlan != null ? cs.SubscriptionPlan.Code : null })
             .FirstOrDefaultAsync(ct);
 
-        if (row is null || !IsLapsed(row.Status, row.FreeUntil, row.GivenFreeAt))
+        if (row is null)
         {
             return KeepClientsState.NotLapsed;
         }
 
+        if (CoachSubscriptionStatusClassifier.IsPlanChoiceRequired(row.GivenFreeAt, row.FreeUntil, timeProvider.GetUtcNow()))
+        {
+            var freePlan = await LoadFreePlanAsync(ct);
+
+            return KeepClientsState.NotLapsed with
+            {
+                IsPlanChoiceRequired = true,
+                Cap = freePlan is null ? 0 : freePlan.MaxActiveClients,
+            };
+        }
+
+        if (IsLapsed(row.Status, row.FreeUntil, row.GivenFreeAt))
+        {
+            return await GetFreePlanKeepSplitAsync(professionalProfileId, ct);
+        }
+
+        if (row.PlanCode != SubscriptionPlanCodes.Free)
+        {
+            return KeepClientsState.NotLapsed;
+        }
+
+        var split = await GetFreePlanKeepSplitAsync(professionalProfileId, ct);
+
+        return split.OverCapClientProfileIds.Count == 0 ? KeepClientsState.NotLapsed : split with { IsLapsed = false };
+    }
+
+    /// <summary>
+    /// Splits the professional's live clients into those the Free plan keeps and those over its cap, whatever the
+    /// professional's own plan is. The cap is the Free plan's own limit, read from the data.
+    /// </summary>
+    /// <param name="professionalProfileId">The professional's <c>ProfessionalProfile.Id</c>.</param>
+    /// <param name="ct">Cancellation token.</param>
+    public async Task<KeepClientsState> GetFreePlanKeepSplitAsync(long professionalProfileId, CancellationToken ct)
+    {
         var free = await LoadFreePlanAsync(ct);
         var links = await db.ClientProfessionalLinks
             .AsNoTracking()
@@ -250,14 +306,14 @@ public class EntitlementService
                 .FirstOrDefaultAsync(ct);
         }
 
-        var free = row is not null && PlanApplies(row) ? null : await LoadFreePlanAsync(ct);
+        var free = row is not null && UsesAssignedPlan(row) ? null : await LoadFreePlanAsync(ct);
 
         return Resolve(row, free);
     }
 
     private Resolution Resolve(SubscriptionRow? row, PlanFlags? free)
     {
-        if (row is not null && PlanApplies(row))
+        if (row is not null && UsesAssignedPlan(row))
         {
             return new Resolution(row.Plan.ToEntitlements(), row.Plan.BothRolesIncluded, row.PaysSecondRoleAddOn);
         }
@@ -269,6 +325,10 @@ public class EntitlementService
 
     private bool PlanApplies(SubscriptionRow row) =>
         CoachSubscriptionStatusClassifier.PlanApplies(row.Status, row.FreeUntil, row.GivenFreeAt, timeProvider.GetUtcNow());
+
+    private bool UsesAssignedPlan(SubscriptionRow row) =>
+        PlanApplies(row)
+        || CoachSubscriptionStatusClassifier.IsPlanChoiceRequired(row.GivenFreeAt, row.FreeUntil, timeProvider.GetUtcNow());
 
     private async Task<PlanFlags?> LoadFreePlanAsync(CancellationToken ct)
     {

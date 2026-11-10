@@ -292,9 +292,43 @@
       "aria": "Tarif {{plan}}, {{detail}}. Tarif und Abrechnung öffnen",
       "ariaLapsed": "Tarif {{plan}}, {{detail}}. Klienten zum Behalten auswählen"
     },
+    "planChoice": {
+      "bannerTitle": "Ihr kostenloser Tarif {{plan}} endete am {{date}}. Wählen Sie einen Tarif, um fortzufahren.",
+      "bannerTitleNoDate": "Ihr kostenloser Tarif {{plan}} ist beendet. Wählen Sie einen Tarif, um fortzufahren.",
+      "title": "Wählen Sie Ihren Tarif",
+      "subtitle": "Ihre Klienten nutzen die App immer kostenlos.",
+      "loadError": "Die Tarife konnten nicht geladen werden. Bitte versuchen Sie es erneut.",
+      "chooseError": "Der Tarif konnte nicht gewechselt werden. Bitte versuchen Sie es erneut.",
+      "header": {
+        "nav": "Konto",
+        "messages": "Nachrichten",
+        "settings": "Einstellungen"
+      },
+      "card": {
+        "choose": "{{plan}} wählen",
+        "soon": "Bald verfügbar",
+        "per": {
+          "month": "/ Monat",
+          "year": "/ Jahr"
+        },
+        "bothRoles": "Beide Rollen inklusive",
+        "secondRoleAddOn": "Zweite Rolle +{{amount}}",
+        "unlimitedClients": "Keine Klientenbegrenzung",
+        "clientCap_one": "Bis zu {{count}} Klient",
+        "clientCap_other": "Bis zu {{count}} Klienten",
+        "notIncluded": "Nicht enthalten:"
+      },
+      "keep": {
+        "back": "Zurück zu den Tarifen",
+        "confirm_one": "Zu Free wechseln und diesen Klienten behalten",
+        "confirm_other": "Zu Free wechseln und diese {{count}} behalten"
+      }
+    },
     "lapse": {
       "bannerTitle": "Ihr Tarif {{plan}} endete am {{date}}",
       "bannerTitleNoDate": "Ihr Tarif {{plan}} ist beendet",
+      "overCapBanner_one": "Sie nutzen den kostenlosen Tarif mit mehr Klienten, als er erlaubt. Wählen Sie, welcher {{count}} Klient voll aktiv bleibt.",
+      "overCapBanner_other": "Sie nutzen den kostenlosen Tarif mit mehr Klienten, als er erlaubt. Wählen Sie, welche {{count}} Klienten voll aktiv bleiben.",
       "bannerBody_one": "Sie nutzen jetzt den kostenlosen Tarif: {{count}} aktiver Klient, beide Rollen.",
       "bannerBody_other": "Sie nutzen jetzt den kostenlosen Tarif: {{count}} aktive Klienten, beide Rollen.",
       "resubscribe": "Erneut abonnieren",
@@ -3363,6 +3397,8 @@
     "CLIENT_OVER_PLAN_LIMIT": "Dieser Klient liegt über dem Limit Ihres kostenlosen Tarifs, daher können Sie seinen Plan nicht ändern. Wählen Sie im Kontomenü die Klienten aus, die Sie behalten.",
     "KEEP_CLIENTS_COUNT_INVALID": "Wählen Sie genau so viele Klienten aus, wie Ihr kostenloser Tarif umfasst.",
     "SUBSCRIPTION_NOT_LAPSED": "Ihr Tarif ist nicht abgelaufen, daher gibt es nichts auszuwählen.",
+    "PLAN_CHOICE_REQUIRED": "Ihr kostenloser Tarif ist beendet. Wählen Sie einen Tarif, um fortzufahren.",
+    "PLAN_CHOICE_NOT_REQUIRED": "Sie haben bereits einen Tarif gewählt.",
     "CHECK_IN_ANSWER_WINDOW_CLOSED": "Die Zeit zum Beantworten dieses Check-ins ist abgelaufen.",
     "INVALID_CREDENTIALS": "Ungültige E-Mail oder Passwort.",
     "ACCOUNT_DEACTIVATED": "Ihr Konto wurde deaktiviert.",

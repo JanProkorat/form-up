@@ -521,6 +521,8 @@ app.UseRateLimiter();
 // Read-only gate after a coach role is removed (see RemovedCoachRoleAttribute); needs the resolved
 // endpoint and the authenticated user, so it sits after authorization and before the endpoint runs.
 app.UseMiddleware<RemovedCoachRoleMiddleware>();
+// Refuses coach writes while an ended given plan awaits a plan choice; same placement and reason as the gate above.
+app.UseMiddleware<FormUp.Application.Infrastructure.PlanChoice.PlanChoiceWriteGateMiddleware>();
 // NOTE: ResetTestStateEndpoint is always registered in the route table.
 // The single gate (Testing:Enabled=true) is enforced at request time inside
 // the endpoint's HandleAsync. This avoids a process-wide static route table

@@ -292,6 +292,42 @@
       "aria": "Tarif {{plan}}, {{detail}}. Otevřít tarif a platby",
       "ariaLapsed": "Tarif {{plan}}, {{detail}}. Vybrat klienty k ponechání"
     },
+    "planChoice": {
+      "bannerTitle": "Váš bezplatný tarif {{plan}} skončil {{date}}. Pro pokračování si vyberte tarif.",
+      "bannerTitleNoDate": "Váš bezplatný tarif {{plan}} skončil. Pro pokračování si vyberte tarif.",
+      "title": "Vyberte si tarif",
+      "subtitle": "Vaši klienti aplikaci používají vždy zdarma.",
+      "loadError": "Tarify se nepodařilo načíst. Zkuste to prosím znovu.",
+      "chooseError": "Tarif se nepodařilo změnit. Zkuste to prosím znovu.",
+      "header": {
+        "nav": "Účet",
+        "messages": "Zprávy",
+        "settings": "Nastavení"
+      },
+      "card": {
+        "choose": "Vybrat {{plan}}",
+        "soon": "Brzy k dispozici",
+        "per": {
+          "month": "/ měsíc",
+          "year": "/ rok"
+        },
+        "bothRoles": "Obě role v ceně",
+        "secondRoleAddOn": "Druhá role +{{amount}}",
+        "unlimitedClients": "Bez limitu klientů",
+        "clientCap_one": "Až {{count}} klient",
+        "clientCap_few": "Až {{count}} klienti",
+        "clientCap_many": "Až {{count}} klienta",
+        "clientCap_other": "Až {{count}} klientů",
+        "notIncluded": "Není v ceně:"
+      },
+      "keep": {
+        "back": "Zpět na tarify",
+        "confirm_one": "Přejít na Free a ponechat tohoto klienta",
+        "confirm_few": "Přejít na Free a ponechat tyto {{count}}",
+        "confirm_many": "Přejít na Free a ponechat těchto {{count}}",
+        "confirm_other": "Přejít na Free a ponechat těchto {{count}}"
+      }
+    },
     "lapse": {
       "bannerTitle": "Váš tarif {{plan}} skončil {{date}}",
       "bannerTitleNoDate": "Váš tarif {{plan}} skončil",
@@ -299,6 +335,10 @@
       "bannerBody_few": "Teď jste na bezplatném tarifu: {{count}} aktivní klienti, v obou rolích.",
       "bannerBody_many": "Teď jste na bezplatném tarifu: {{count}} aktivního klienta, v obou rolích.",
       "bannerBody_other": "Teď jste na bezplatném tarifu: {{count}} aktivních klientů, v obou rolích.",
+      "overCapBanner_one": "Jste na bezplatném tarifu a máte víc klientů, než povoluje. Vyberte, který {{count}} klient zůstane plně aktivní.",
+      "overCapBanner_few": "Jste na bezplatném tarifu a máte víc klientů, než povoluje. Vyberte, kteří {{count}} klienti zůstanou plně aktivní.",
+      "overCapBanner_many": "Jste na bezplatném tarifu a máte víc klientů, než povoluje. Vyberte, kterých {{count}} klienta zůstane plně aktivních.",
+      "overCapBanner_other": "Jste na bezplatném tarifu a máte víc klientů, než povoluje. Vyberte, kterých {{count}} klientů zůstane plně aktivních.",
       "resubscribe": "Obnovit předplatné",
       "title_one": "Vyberte {{count}} klienta k ponechání",
       "title_few": "Vyberte {{count}} klienty k ponechání",
@@ -3482,6 +3522,8 @@
     "CLIENT_OVER_PLAN_LIMIT": "Tento klient je nad limitem vašeho bezplatného tarifu, takže jeho plán nemůžete měnit. Klienty k ponechání vyberete v nabídce účtu.",
     "KEEP_CLIENTS_COUNT_INVALID": "Vyberte přesně tolik klientů, kolik váš bezplatný tarif zahrnuje.",
     "SUBSCRIPTION_NOT_LAPSED": "Váš tarif neskončil, není tedy co vybírat.",
+    "PLAN_CHOICE_REQUIRED": "Váš bezplatný tarif skončil. Pro pokračování si vyberte tarif.",
+    "PLAN_CHOICE_NOT_REQUIRED": "Tarif už máte vybraný.",
     "CHECK_IN_ANSWER_WINDOW_CLOSED": "Čas na odpověď na tento check-in už vypršel.",
     "INVALID_CREDENTIALS": "Neplatný email nebo heslo.",
     "ACCOUNT_DEACTIVATED": "Váš účet byl deaktivován.",
