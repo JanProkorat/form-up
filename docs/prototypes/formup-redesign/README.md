@@ -15,7 +15,10 @@ The old combined canvas (<https://claude.ai/artifact/HFzM8WqykBxJvkLdiqU85h>) is
 frozen and no longer updated.
 
 **Snapshot of web portal 1794226496-cc4b, client app 1794307123-abc5 and coach app
-1794226497-216b, exported 2026-11-10 (#2056).** This was a full re-sync: boards the
+1794226497-216b, exported 2026-11-10 (#2056).** Partial update on 2026-11-10 (#2065):
+`PageAdminCoachProfile`, `PageAdminCoachDialogs` and `PageAdminCoaches` taken from web
+portal 1794314120-6fd1 and `PageAdminCoachDrawer` removed; other web boards are still
+from 1794226496-cc4b, and PNGs for the new boards are not rendered yet. The #2056 export was a full re-sync: boards the
 canvases had folded into combined boards (e.g. the `PageReset*` steps into
 `PageResetPasswordFlow`, the settings dialogs into `PageDialogs`) are gone, and the
 clickable prototypes link to the combined board instead. The concepts and logo boards
