@@ -235,6 +235,8 @@ const makeStyles = (theme: Theme) =>
   StyleSheet.create({
     content: {
       gap: theme.spacing.xxl,
+      // Room under the taller coach header; FlowFrame's own top padding is spacing.xs.
+      paddingTop: theme.spacing.xxxl,
     },
     intro: {
       gap: theme.spacing.xs,
