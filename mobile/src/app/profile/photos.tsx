@@ -37,6 +37,8 @@ const LIBRARY_OPTIONS: ImagePicker.ImagePickerOptions = {
   allowsMultipleSelection: true,
   selectionLimit: MAX_LIBRARY_SELECTION,
   orderedSelection: true,
+  // iOS hands back HEIC by default, which the coach's browser cannot show; this asks for JPEG.
+  preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
 };
 
 type FailureKey = 'tooLarge' | 'unsupportedType' | 'upload';

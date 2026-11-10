@@ -11,6 +11,8 @@ const OPTIONS: ImagePicker.ImagePickerOptions = {
   mediaTypes: ['images'],
   quality: PICK_QUALITY,
   allowsMultipleSelection: false,
+  // iOS hands back HEIC by default, which the coach's browser cannot show; this asks for JPEG.
+  preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
 };
 
 /** Takes a photo with the camera or picks one from the library; `denied` means camera access was refused. */
