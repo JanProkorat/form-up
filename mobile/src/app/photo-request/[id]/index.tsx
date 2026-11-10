@@ -162,7 +162,7 @@ export default function PhotoRequestScreen() {
   return (
     <>
       <FlowFrame
-        header={{ onClose: leave }}
+        header={{ onBack: leave, title: t('photoRequest.once.title') }}
         contentStyle={styles.content}
         footer={
           <>
