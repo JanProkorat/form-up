@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import type { ProgressPhoto } from '@/api/photos';
 import { Text } from '@/components/Text';
-import { dayGroupTitle, formatRequestDay } from '@/components/photoRequest/format';
+import { formatRequestDay } from '@/components/photoRequest/format';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
@@ -14,7 +14,7 @@ type DayPhotoGalleryProps = {
   onOpen: (photo: ProgressPhoto) => void;
 };
 
-/** One day's photos under "date · count": large portrait photos, each with its note over a dark scrim. */
+/** One day's photos: large portrait photos, each with its note over a dark scrim. */
 export function DayPhotoGallery({ date, photos, onOpen }: DayPhotoGalleryProps) {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
@@ -23,9 +23,6 @@ export function DayPhotoGallery({ date, photos, onOpen }: DayPhotoGalleryProps) 
 
   return (
     <View style={styles.group}>
-      <Text variant="captionStrong" color="muted" accessibilityRole="header">
-        {dayGroupTitle(t, i18n.language, date, photos.length)}
-      </Text>
       {photos.map((photo, index) => {
         const note = photo.description?.trim();
         const label = [t('photos.viewer.position', { index: index + 1, count: photos.length }), dateLabel, note]
@@ -57,7 +54,7 @@ export function DayPhotoGallery({ date, photos, onOpen }: DayPhotoGalleryProps) 
 const makeStyles = (theme: Theme) =>
   StyleSheet.create({
     group: {
-      gap: theme.spacing.md,
+      gap: theme.spacing.xl,
     },
     photo: {
       width: '100%',

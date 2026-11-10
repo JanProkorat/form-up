@@ -350,24 +350,26 @@ export default function PhotoRequestDailyScreen() {
       onError: () => Alert.alert(t('photos.errors.delete')),
     });
   };
-  const pastPage = (
-    <Card style={styles.photos}>
-      {photos.isPending ? (
-        waiting
-      ) : photos.isError ? (
-        photosError
-      ) : group && shownCell ? (
-        <DayPhotoGallery date={shownCell.date} photos={group.photos} onOpen={(photo) => setViewerId(photo.id)} />
-      ) : (
-        <View style={styles.missed}>
-          <SymbolView name="camera" weight="medium" tintColor={theme.colors.muted} size={theme.sizes.paymentGlyph} />
-          <Text variant="label" color="muted" style={styles.centered}>
-            {t('photoRequest.daily.missedDay', { date: shownCell ? formatRequestDay(i18n.language, shownCell.date) : '' })}
-          </Text>
-        </View>
-      )}
-    </Card>
-  );
+  // The photos sit directly in the page, without a card or heading: the strip already says which day it is.
+  const pastPage =
+    !photos.isPending && !photos.isError && group && shownCell ? (
+      <DayPhotoGallery date={shownCell.date} photos={group.photos} onOpen={(photo) => setViewerId(photo.id)} />
+    ) : (
+      <Card style={styles.photos}>
+        {photos.isPending ? (
+          waiting
+        ) : photos.isError ? (
+          photosError
+        ) : (
+          <View style={styles.missed}>
+            <SymbolView name="camera" weight="medium" tintColor={theme.colors.muted} size={theme.sizes.paymentGlyph} />
+            <Text variant="label" color="muted" style={styles.centered}>
+              {t('photoRequest.daily.missedDay', { date: shownCell ? formatRequestDay(i18n.language, shownCell.date) : '' })}
+            </Text>
+          </View>
+        )}
+      </Card>
+    );
 
   return (
     <>

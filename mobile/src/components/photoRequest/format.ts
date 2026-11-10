@@ -21,11 +21,6 @@ export function formatClock(language: string, value: Date): string {
 export const dayLetter = (language: string, value: Date): string =>
   value.toLocaleDateString(language, { weekday: 'narrow' });
 
-/** "Wed 14 Oct · 1 photo": the heading of one day's photos. */
-export function dayGroupTitle(t: TFunction, language: string, date: Date, count: number): string {
-  return `${formatRequestDay(language, date)} · ${t('photoRequest.daily.photoCount', { count })}`;
-}
-
 /** "7 days" with the language's plural form. */
 export const daysLabel = (t: TFunction, count: number): string => t('photoRequest.days', { count });
 

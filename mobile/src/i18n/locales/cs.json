@@ -2118,10 +2118,6 @@
       "reminder": "Připomenutí ve 12:00",
       "sentAt": "Odesláno v {{time}}",
       "photosError": "Fotky se nepodařilo načíst. Zkontrolujte připojení a zkuste to znovu.",
-      "photoCount_one": "{{count}} fotka",
-      "photoCount_few": "{{count}} fotky",
-      "photoCount_many": "{{count}} fotky",
-      "photoCount_other": "{{count}} fotek",
       "sent": {
         "title": "Dnešní fotky dorazily",
         "body": "{{name}} je teď uvidí. Pokud do zítřejšího poledne nic nepřidáte, připomeneme vám to.",
