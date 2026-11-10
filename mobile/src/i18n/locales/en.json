@@ -502,7 +502,8 @@
       "deleteTitle": "Delete this photo?",
       "deleteBody": "This can't be undone.",
       "deleteConfirm": "Delete",
-      "toggleHint": "Tap to hide or show the controls and text"
+      "toggleHint": "Tap to hide or show the controls and text",
+      "position": "Photo {{index}} of {{count}}"
     },
     "permission": {
       "title": "Camera access is off",

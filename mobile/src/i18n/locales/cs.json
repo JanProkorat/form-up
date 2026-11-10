@@ -520,7 +520,8 @@
       "deleteTitle": "Smazat tuto fotku?",
       "deleteBody": "Tuto akci nejde vrátit zpět.",
       "deleteConfirm": "Smazat",
-      "toggleHint": "Klepnutím skryjete nebo zobrazíte tlačítka a texty"
+      "toggleHint": "Klepnutím skryjete nebo zobrazíte tlačítka a texty",
+      "position": "Fotka {{index}} z {{count}}"
     },
     "permission": {
       "title": "Přístup k fotoaparátu je vypnutý",

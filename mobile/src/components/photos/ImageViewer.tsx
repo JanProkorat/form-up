@@ -1,11 +1,15 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { AccessibilityInfo, Animated, Modal, Pressable, StatusBar, StyleSheet, View } from 'react-native';
+import { GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
+import Reanimated from 'react-native-reanimated';
 import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GlassButton } from '@/components/profile/GlassButton';
+import { useHorizontalSwipe } from '@/hooks/useHorizontalSwipe';
+import type { SwipeDirection } from '@/hooks/useHorizontalSwipe';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 import { imageViewerMotion } from '@/theme/motion';
@@ -22,16 +26,35 @@ type ImageViewerProps = {
   caption?: ReactNode;
   /** Set to let a tap on the image hide every control and show the photo alone on black; this is its accessibility hint. */
   immersiveHint?: string;
+  /** Set to let a sideways swipe on the image move to the neighbouring image; `contentKey` changes with the image. */
+  pager?: {
+    onSwipe: (direction: SwipeDirection) => void;
+    canPrevious: boolean;
+    canNext: boolean;
+    contentKey: string;
+  };
 };
 
+const ignoreSwipe = () => undefined;
+
 /** Full-screen image, scaled to fit, with a close button. */
-export function ImageViewer({ uri, imageLabel, closeLabel, onClose, actions, caption, immersiveHint }: ImageViewerProps) {
+export function ImageViewer({
+  uri,
+  imageLabel,
+  closeLabel,
+  onClose,
+  actions,
+  caption,
+  immersiveHint,
+  pager,
+}: ImageViewerProps) {
   const theme = useTheme();
   const styles = makeStyles(theme);
 
   return (
     <Modal visible={uri !== null} animationType="fade" onRequestClose={onClose}>
-      <View style={styles.root}>
+      {/* A Modal is its own native root, so gestures inside it need their own root view. */}
+      <GestureHandlerRootView style={styles.root}>
         {uri ? (
           <ViewerBody
             uri={uri}
@@ -41,9 +64,10 @@ export function ImageViewer({ uri, imageLabel, closeLabel, onClose, actions, cap
             actions={actions}
             caption={caption}
             immersiveHint={immersiveHint}
+            pager={pager}
           />
         ) : null}
-      </View>
+      </GestureHandlerRootView>
     </Modal>
   );
 }
@@ -57,6 +81,7 @@ function ViewerBody({
   actions,
   caption,
   immersiveHint,
+  pager,
 }: Omit<ImageViewerProps, 'uri'> & { uri: string }) {
   const theme = useTheme();
   const styles = makeStyles(theme);
@@ -78,25 +103,41 @@ function ViewerBody({
     });
   };
 
-  const image = <Image source={{ uri }} style={styles.image} contentFit="contain" accessibilityLabel={imageLabel} />;
+  const swipe = useHorizontalSwipe({
+    onSwipe: pager?.onSwipe ?? ignoreSwipe,
+    canGoPrevious: pager?.canPrevious ?? false,
+    canGoNext: pager?.canNext ?? false,
+    contentKey: pager?.contentKey ?? uri,
+  });
+
+  const picture = <Image source={{ uri }} style={styles.image} contentFit="contain" accessibilityLabel={imageLabel} />;
+  const tappable = immersiveHint ? (
+    <Pressable
+      accessibilityRole="imagebutton"
+      accessibilityLabel={imageLabel}
+      accessibilityHint={immersiveHint}
+      onPress={toggle}
+      style={styles.image}
+    >
+      {picture}
+    </Pressable>
+  ) : (
+    picture
+  );
+  // The image slides out and the next one slides in; the controls stay put and change with the image.
+  const image = pager ? (
+    <GestureDetector gesture={swipe.gesture}>
+      <Reanimated.View style={[styles.image, swipe.style]}>{tappable}</Reanimated.View>
+    </GestureDetector>
+  ) : (
+    tappable
+  );
 
   return (
     <>
       {immersiveHint ? <StatusBar hidden={immersive} animated /> : null}
       <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.blackout, { opacity: blackout }]} />
-      {immersiveHint ? (
-        <Pressable
-          accessibilityRole="imagebutton"
-          accessibilityLabel={imageLabel}
-          accessibilityHint={immersiveHint}
-          onPress={toggle}
-          style={styles.image}
-        >
-          {image}
-        </Pressable>
-      ) : (
-        image
-      )}
+      {image}
       <Animated.View
         pointerEvents={immersive ? 'none' : 'box-none'}
         accessibilityElementsHidden={immersive}
