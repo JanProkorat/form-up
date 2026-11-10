@@ -501,7 +501,8 @@
       "delete": "Foto löschen",
       "deleteTitle": "Dieses Foto löschen?",
       "deleteBody": "Das kann nicht rückgängig gemacht werden.",
-      "deleteConfirm": "Löschen"
+      "deleteConfirm": "Löschen",
+      "toggleHint": "Tippen Sie, um Schaltflächen und Texte aus- oder einzublenden"
     },
     "permission": {
       "title": "Kamerazugriff ist ausgeschaltet",

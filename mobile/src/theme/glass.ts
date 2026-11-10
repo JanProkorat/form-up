@@ -18,7 +18,14 @@ export type GlassSheet = {
   handleHeight: number;
 };
 
+/** Full-screen image viewer. */
+export type GlassViewer = {
+  /** Background once the controls are hidden: the photo alone on black, in both colour schemes. */
+  immersive: string;
+};
+
 export type Glass = {
+  viewer: GlassViewer;
   /** Tab bars, headers and sheets. */
   bar: GlassBlur;
   /** Round controls floating over imagery, such as an overlay back button. */
@@ -29,6 +36,7 @@ export type Glass = {
 };
 
 export const glass: Glass = {
+  viewer: { immersive: '#000000' },
   bar: { blur: 22, saturate: 1.8, intensity: 50 },
   control: { blur: 18, saturate: 1, intensity: 41 },
   badge: { blur: 16, saturate: 1, intensity: 36 },

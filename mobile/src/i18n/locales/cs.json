@@ -519,7 +519,8 @@
       "delete": "Smazat fotku",
       "deleteTitle": "Smazat tuto fotku?",
       "deleteBody": "Tuto akci nejde vrátit zpět.",
-      "deleteConfirm": "Smazat"
+      "deleteConfirm": "Smazat",
+      "toggleHint": "Klepnutím skryjete nebo zobrazíte tlačítka a texty"
     },
     "permission": {
       "title": "Přístup k fotoaparátu je vypnutý",
