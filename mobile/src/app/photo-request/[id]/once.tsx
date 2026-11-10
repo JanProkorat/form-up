@@ -174,7 +174,7 @@ export default function PhotoRequestOnceScreen() {
 
   return (
     <FlowFrame
-      header={{ onClose: leave }}
+      header={{ onBack: leave, title: t('photoRequest.once.title') }}
       contentStyle={styles.content}
       footer={
         <>
@@ -198,9 +198,6 @@ export default function PhotoRequestOnceScreen() {
         </>
       }
     >
-      <Text variant="title" accessibilityRole="header">
-        {t('photoRequest.once.title')}
-      </Text>
       {message ? (
         <Card style={styles.note}>
           <Text variant="captionStrong" color="muted">
