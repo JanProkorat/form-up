@@ -30161,14 +30161,6 @@ export interface KeepClientDto {
     afterLapse?: KeepClientAfterLapse;
 }
 
-/** Defines the available roles within Form Up. */
-export enum UserRole {
-    Admin = "Admin",
-    Trainer = "Trainer",
-    Nutritionist = "Nutritionist",
-    Client = "Client",
-}
-
 /** What a lapsed coach can still do for a client. */
 export enum KeepClientAfterLapse {
     FullAccess = "FullAccess",
@@ -32550,6 +32542,8 @@ Nutrition plans only; null without a StartDate or when no meals are planned yet.
     professionalName?: string | undefined;
     /** "Trainer" for training plans, "Nutritionist" for nutrition plans. */
     professionalRole?: string;
+    /** Last day the published weeks cover. Filled only when the client is over the lapsed coach's Free plan cap; null otherwise. */
+    runsUntil?: string | undefined;
 }
 
 /** Optional query parameters for filtering client plans. */
