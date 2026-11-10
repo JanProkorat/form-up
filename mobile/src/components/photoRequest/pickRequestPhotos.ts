@@ -38,6 +38,8 @@ export async function pickRequestPhotos(source: RequestPhotoSource, room: number
           allowsMultipleSelection: true,
           selectionLimit: Math.max(room, 1),
           orderedSelection: true,
+          // iOS hands back HEIC by default, which the coach's browser cannot show; this asks for JPEG.
+          preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
         });
 
   if (result.canceled || result.assets.length === 0) return { kind: 'cancelled' };
