@@ -1596,6 +1596,18 @@
   "h": 872
  },
  {
+  "html": "mobile-light/07-12-photo-viewer.html",
+  "png": "mobile-light/07-12-photo-viewer.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/07-13-photo-viewer-immersive.html",
+  "png": "mobile-light/07-13-photo-viewer-immersive.png",
+  "w": 390,
+  "h": 844
+ },
+ {
   "html": "mobile-light/08-01-training-plan.html",
   "png": "mobile-light/08-01-training-plan.png",
   "w": 390,
@@ -1860,20 +1872,26 @@
   "h": 844
  },
  {
-  "html": "mobile-light/17-05-photo-request-daily-add.html",
-  "png": "mobile-light/17-05-photo-request-daily-add.png",
+  "html": "mobile-light/17-05-photo-request-daily-past.html",
+  "png": "mobile-light/17-05-photo-request-daily-past.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-light/17-06-photo-request-daily-sent.html",
-  "png": "mobile-light/17-06-photo-request-daily-sent.png",
+  "html": "mobile-light/17-06-photo-request-daily-new.html",
+  "png": "mobile-light/17-06-photo-request-daily-new.png",
   "w": 390,
-  "h": 844
+  "h": 1180
  },
  {
   "html": "mobile-light/17-07-photo-request-daily-done.html",
   "png": "mobile-light/17-07-photo-request-daily-done.png",
+  "w": 390,
+  "h": 1180
+ },
+ {
+  "html": "mobile-light/17-08-photo-request-daily-sent.html",
+  "png": "mobile-light/17-08-photo-request-daily-sent.png",
   "w": 390,
   "h": 844
  },
@@ -2310,6 +2328,18 @@
   "h": 872
  },
  {
+  "html": "mobile-dark/08-12-photo-viewer.html",
+  "png": "mobile-dark/08-12-photo-viewer.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/08-13-photo-viewer-immersive.html",
+  "png": "mobile-dark/08-13-photo-viewer-immersive.png",
+  "w": 390,
+  "h": 844
+ },
+ {
   "html": "mobile-dark/09-01-training-plan.html",
   "png": "mobile-dark/09-01-training-plan.png",
   "w": 390,
@@ -2574,20 +2604,26 @@
   "h": 844
  },
  {
-  "html": "mobile-dark/19-05-photo-request-daily-add.html",
-  "png": "mobile-dark/19-05-photo-request-daily-add.png",
+  "html": "mobile-dark/19-05-photo-request-daily-past.html",
+  "png": "mobile-dark/19-05-photo-request-daily-past.png",
   "w": 390,
   "h": 844
  },
  {
-  "html": "mobile-dark/19-06-photo-request-daily-sent.html",
-  "png": "mobile-dark/19-06-photo-request-daily-sent.png",
+  "html": "mobile-dark/19-06-photo-request-daily-new.html",
+  "png": "mobile-dark/19-06-photo-request-daily-new.png",
   "w": 390,
-  "h": 844
+  "h": 1180
  },
  {
   "html": "mobile-dark/19-07-photo-request-daily-done.html",
   "png": "mobile-dark/19-07-photo-request-daily-done.png",
+  "w": 390,
+  "h": 1180
+ },
+ {
+  "html": "mobile-dark/19-08-photo-request-daily-sent.html",
+  "png": "mobile-dark/19-08-photo-request-daily-sent.png",
   "w": 390,
   "h": 844
  },
