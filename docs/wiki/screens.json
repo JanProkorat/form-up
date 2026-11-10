@@ -2554,20 +2554,23 @@
         "mobile/src/api/profile.ts",
         "mobile/src/components/BackButton.tsx",
         "mobile/src/components/Button.tsx",
+        "mobile/src/components/OfflineBanner.tsx",
         "mobile/src/components/Screen.tsx",
         "mobile/src/components/ScreenHeader.tsx",
+        "mobile/src/components/TabBarCollapse.tsx",
         "mobile/src/components/Text.tsx",
-        "mobile/src/components/photos/MonthSection.tsx",
         "mobile/src/components/photos/ImageViewer.tsx",
+        "mobile/src/components/photos/MonthSection.tsx",
         "mobile/src/components/photos/PhotoViewer.tsx",
         "mobile/src/components/photos/format.ts",
         "mobile/src/components/profile/GlassButton.tsx",
         "mobile/src/hooks/useDeletePhoto.ts",
+        "mobile/src/hooks/useHorizontalSwipe.ts",
         "mobile/src/hooks/usePhotos.ts",
         "mobile/src/hooks/useProfile.ts",
         "mobile/src/hooks/useProfileSummary.ts",
         "mobile/src/hooks/useUploadPhoto.ts",
-        "mobile/src/components/OfflineBanner.tsx"
+        "mobile/src/lib/queryState.ts"
       ],
       "endpoints": [
         "GET /client/me/photos",
@@ -3168,55 +3171,6 @@
         "mobile/src/components/invites/format.ts",
         "mobile/src/components/photoRequest/DayPhotoGroup.tsx",
         "mobile/src/components/photoRequest/DayStrip.tsx",
-        "mobile/src/components/photoRequest/RequestMessage.tsx",
-        "mobile/src/components/photoRequest/format.ts",
-        "mobile/src/components/photoRequest/hooks.ts",
-        "mobile/src/components/photoRequest/model.ts",
-        "mobile/src/components/questionnaire/FlowFrame.tsx",
-        "mobile/src/components/questionnaire/FlowHeader.tsx",
-        "mobile/src/components/today/collaborationRoles.ts",
-        "mobile/src/components/today/pendingForms.ts",
-        "mobile/src/hooks/useCollaborations.ts",
-        "mobile/src/hooks/usePendingQuestionnaires.ts",
-        "mobile/src/hooks/usePhotos.ts"
-      ],
-      "endpoints": [
-        "GET /client/photo-diary-requests/{id}",
-        "GET /client/me/photos",
-        "GET /client/collaborations",
-        "GET /client/questionnaires/pending"
-      ],
-      "board": "GlassPhotoRequestDaily",
-      "shots": [
-        { "name": "default", "steps": "accepted every-day photo request a few days in, with photos sent on earlier days; tap its step on Today" },
-        { "name": "done", "steps": "every-day request with today's photos already sent (board GlassPhotoRequestDailyDone)" }
-      ],
-      "notionPageId": null
-    },
-    {
-      "id": "client.photo-request.daily-add",
-      "app": "client",
-      "area": "Photo request",
-      "title": "Every-day photo request: add photos",
-      "route": "/photo-request/[id]/daily-add",
-      "roles": ["Client"],
-      "files": [
-        "mobile/src/app/photo-request/*/daily-add.tsx",
-        "mobile/src/app/photo-request/*/_layout.tsx",
-        "mobile/src/api/checkIns.ts",
-        "mobile/src/api/collaborations.ts",
-        "mobile/src/api/errors.ts",
-        "mobile/src/api/invites.ts",
-        "mobile/src/api/photoRequests.ts",
-        "mobile/src/api/photos.ts",
-        "mobile/src/api/plans.ts",
-        "mobile/src/api/questionnaires.ts",
-        "mobile/src/components/BackButton.tsx",
-        "mobile/src/components/Button.tsx",
-        "mobile/src/components/Card.tsx",
-        "mobile/src/components/Text.tsx",
-        "mobile/src/components/checkIns/model.ts",
-        "mobile/src/components/invites/format.ts",
         "mobile/src/components/photoRequest/PhotoNoteRow.tsx",
         "mobile/src/components/photoRequest/RequestMessage.tsx",
         "mobile/src/components/photoRequest/format.ts",
@@ -3228,21 +3182,24 @@
         "mobile/src/components/today/collaborationRoles.ts",
         "mobile/src/components/today/pendingForms.ts",
         "mobile/src/hooks/useCollaborations.ts",
+        "mobile/src/hooks/useHorizontalSwipe.ts",
         "mobile/src/hooks/usePendingQuestionnaires.ts",
         "mobile/src/hooks/usePhotos.ts"
       ],
       "endpoints": [
         "GET /client/photo-diary-requests/{id}",
+        "GET /client/me/photos",
+        "GET /client/collaborations",
+        "GET /client/questionnaires/pending",
         "POST /client/photos/upload-url",
         "POST /client/photos",
         "POST /client/plans/{planId}/photos/upload-url",
-        "POST /client/plans/{planId}/photos",
-        "GET /client/collaborations",
-        "GET /client/questionnaires/pending"
+        "POST /client/plans/{planId}/photos"
       ],
-      "board": "GlassPhotoRequestDailyAdd",
+      "board": "GlassPhotoRequestDaily",
       "shots": [
-        { "name": "default", "steps": "on a running every-day request with nothing sent today, tap Add today's photos and pick a photo" }
+        { "name": "default", "steps": "accepted every-day photo request a few days in, with photos sent on earlier days; tap its step on Today" },
+        { "name": "done", "steps": "every-day request with today's photos already sent (board GlassPhotoRequestDailyDone)" }
       ],
       "notionPageId": null
     },
