@@ -516,7 +516,7 @@
       "batchFailed_one": "{{count}} Foto konnte nicht hinzugefügt werden",
       "batchFailed_other": "{{count}} Fotos konnten nicht hinzugefügt werden",
       "tooLarge": "Dieses Foto ist größer als 5 MB. Wählen Sie ein kleineres.",
-      "unsupportedType": "Dieser Dateityp wird nicht unterstützt. Verwenden Sie ein JPEG-, PNG-, WebP- oder HEIC-Foto.",
+      "unsupportedType": "Dieser Dateityp wird nicht unterstützt. Verwenden Sie ein JPEG-, PNG- oder WebP-Foto.",
       "upload": "Der Upload ist fehlgeschlagen. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
       "delete": "Das Foto konnte nicht gelöscht werden. Versuchen Sie es erneut."
     }
@@ -1649,7 +1649,7 @@
       "errors": {
         "title": "Das Foto wurde nicht hinzugefügt",
         "tooLarge": "Das Foto ist zu groß. Wählen Sie eines unter 5 MB.",
-        "unsupportedType": "Dieses Fotoformat wird nicht unterstützt. Verwenden Sie JPEG, PNG, WebP oder HEIC.",
+        "unsupportedType": "Dieses Fotoformat wird nicht unterstützt. Verwenden Sie JPEG, PNG oder WebP.",
         "upload": "Der Upload ist fehlgeschlagen. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
         "future": "Zu einem Tag, der noch nicht gekommen ist, können Sie kein Foto hinzufügen."
       }
@@ -2000,7 +2000,7 @@
         "network": "Der Server ist nicht erreichbar. Prüfen Sie Ihre Verbindung und senden Sie erneut.",
         "submit": "Ihre Fotos sind hochgeladen, aber noch nicht gesendet. Bitte versuchen Sie es erneut.",
         "tooLarge": "Dieses Foto ist größer als 5 MB. Entfernen Sie es und wählen Sie ein kleineres.",
-        "unsupportedType": "Dieser Dateityp wird nicht unterstützt. Verwenden Sie ein JPEG-, PNG-, WebP- oder HEIC-Foto.",
+        "unsupportedType": "Dieser Dateityp wird nicht unterstützt. Verwenden Sie ein JPEG-, PNG- oder WebP-Foto.",
         "unreadable": "Das Foto konnte nicht gelesen werden. Entfernen Sie es und wählen Sie es erneut aus.",
         "rejected": "Dieses Foto oder seine Notiz wurde abgelehnt. Entfernen Sie es oder kürzen Sie die Notiz.",
         "upload": "Das Hochladen ist fehlgeschlagen. Senden Sie erneut, um es noch einmal zu versuchen."
@@ -2026,16 +2026,12 @@
         "missed": "{{date}}, kein Foto"
       },
       "dayToday": "Heute, {{date}}",
-      "today": "Heute",
+      "pageLabel": "Tag {{day}} von {{total}}, {{date}}",
+      "missedDay": "Am {{date}} haben Sie keine Fotos gesendet.",
       "todaysPhotos": "Heutige Fotos",
       "reminder": "Erinnerung um 12:00",
       "sentAt": "Gesendet um {{time}}",
-      "none": "Heute noch kein Foto",
-      "addToday": "Heutige Fotos hinzufügen",
-      "addMore": "Weitere Fotos hinzufügen",
-      "coachSays": "{{name}}:",
-      "earlier": "Früher",
-      "earlierError": "Ihre früheren Fotos konnten nicht geladen werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+      "photosError": "Ihre Fotos konnten nicht geladen werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
       "photoCount_one": "{{count}} Foto",
       "photoCount_other": "{{count}} Fotos",
       "noNote": "Keine Notiz",

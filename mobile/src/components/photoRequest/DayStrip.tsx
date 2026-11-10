@@ -1,4 +1,4 @@
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
 
@@ -12,10 +12,14 @@ const DAYS_PER_ROW = 7;
 
 type DayStripProps = {
   cells: readonly DayCell[];
+  /** The day being shown; it gets the ring. */
+  selected: number;
+  /** Called with the tapped day. Days still to come are not tappable. */
+  onSelect: (day: number) => void;
 };
 
-/** One dot per day of an every-day request: sent, missed, today or still to come. */
-export function DayStrip({ cells }: DayStripProps) {
+/** One dot per day of an every-day request: sent, missed, today or still to come. Tapping a day opens it. */
+export function DayStrip({ cells, selected, onSelect }: DayStripProps) {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
   const styles = makeStyles(theme);
@@ -30,20 +34,26 @@ export function DayStrip({ cells }: DayStripProps) {
             : cell.isToday
               ? t('photoRequest.daily.dayToday', { date })
               : date;
+        const isSelected = cell.day === selected;
+        const open = cell.state !== 'upcoming';
         return (
           <View key={cell.day} style={styles.cell}>
             <Text variant={cell.isToday ? 'captionStrong' : 'caption'} color={cell.isToday ? 'ink' : 'muted'}>
               {dayLetter(i18n.language, cell.date)}
             </Text>
-            <View
-              accessible
+            <Pressable
+              accessibilityRole="button"
               accessibilityLabel={label}
+              accessibilityState={{ selected: isSelected, disabled: !open }}
+              disabled={!open}
+              hitSlop={theme.spacing.xxs}
+              onPress={() => onSelect(cell.day)}
               style={[
                 styles.dot,
                 cell.state === 'sent' ? styles.dotSent : null,
                 cell.state === 'missed' ? styles.dotMissed : null,
                 cell.state === 'upcoming' || cell.state === 'unknown' ? styles.dotQuiet : null,
-                cell.isToday && cell.state !== 'sent' ? styles.dotToday : null,
+                isSelected ? styles.dotSelected : null,
               ]}
             >
               {cell.state === 'sent' ? (
@@ -57,7 +67,7 @@ export function DayStrip({ cells }: DayStripProps) {
                   {cell.date.getDate()}
                 </Text>
               )}
-            </View>
+            </Pressable>
           </View>
         );
       })}
@@ -95,8 +105,9 @@ const makeStyles = (theme: Theme) =>
     dotQuiet: {
       backgroundColor: theme.colors.quietPill,
     },
-    dotToday: {
+    dotSelected: {
       borderWidth: theme.sizes.selectionRing,
+      borderStyle: 'solid',
       borderColor: theme.colors.ink,
     },
   });

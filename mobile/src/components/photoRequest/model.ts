@@ -192,15 +192,11 @@ export type PhotoRoute = {
     | '/photo-request/[id]'
     | '/photo-request/[id]/once'
     | '/photo-request/[id]/daily'
-    | '/photo-request/[id]/daily-add'
     | '/photo-request/[id]/daily-sent'
     | '/photo-request/[id]/closed'
     | '/photo-request/[id]/sent';
   params: { id: string; count?: string; at?: string };
 };
-
-/** Where today's photos of an every-day request are picked and sent. */
-export const dailyAddRoute = (id: string): PhotoRoute => ({ pathname: '/photo-request/[id]/daily-add', params: { id } });
 
 /** The every-day confirmation; the count and send time travel as params because nothing stores them. */
 export const dailySentRoute = (id: string, count: number, at: number = Date.now()): PhotoRoute => ({

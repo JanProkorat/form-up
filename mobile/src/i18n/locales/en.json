@@ -516,7 +516,7 @@
       "batchFailed_one": "{{count}} photo couldn't be added",
       "batchFailed_other": "{{count}} photos couldn't be added",
       "tooLarge": "This photo is larger than 5 MB. Choose a smaller one.",
-      "unsupportedType": "This file type isn't supported. Use a JPEG, PNG, WebP or HEIC photo.",
+      "unsupportedType": "This file type isn't supported. Use a JPEG, PNG or WebP photo.",
       "upload": "The upload failed. Check your connection and try again.",
       "delete": "Couldn't delete the photo. Try again."
     }
@@ -1649,7 +1649,7 @@
       "errors": {
         "title": "The photo was not added",
         "tooLarge": "The photo is too large. Choose one under 5 MB.",
-        "unsupportedType": "This photo format is not supported. Use JPEG, PNG, WebP or HEIC.",
+        "unsupportedType": "This photo format is not supported. Use JPEG, PNG or WebP.",
         "upload": "The upload failed. Check your connection and try again.",
         "future": "You cannot add a photo to a day that has not come yet."
       }
@@ -2000,7 +2000,7 @@
         "network": "Can't reach the server. Check your connection and send again.",
         "submit": "Your photos are uploaded but not sent yet. Try again.",
         "tooLarge": "This photo is larger than 5 MB. Remove it and choose a smaller one.",
-        "unsupportedType": "This file type isn't supported. Use a JPEG, PNG, WebP or HEIC photo.",
+        "unsupportedType": "This file type isn't supported. Use a JPEG, PNG or WebP photo.",
         "unreadable": "Couldn't read this photo. Remove it and pick it again.",
         "rejected": "This photo or its note was refused. Remove it or shorten the note.",
         "upload": "The upload failed. Send again to retry."
@@ -2026,16 +2026,12 @@
         "missed": "{{date}}, no photo"
       },
       "dayToday": "Today, {{date}}",
-      "today": "Today",
+      "pageLabel": "Day {{day}} of {{total}}, {{date}}",
+      "missedDay": "You didn't send any photos on {{date}}.",
       "todaysPhotos": "Today's photos",
       "reminder": "Reminder at 12:00",
       "sentAt": "Sent at {{time}}",
-      "none": "No photo yet today",
-      "addToday": "Add today's photos",
-      "addMore": "Add more photos",
-      "coachSays": "{{name}}:",
-      "earlier": "Earlier",
-      "earlierError": "Can't load your earlier photos. Check your connection and try again.",
+      "photosError": "Can't load your photos. Check your connection and try again.",
       "photoCount_one": "{{count}} photo",
       "photoCount_other": "{{count}} photos",
       "noNote": "No note",

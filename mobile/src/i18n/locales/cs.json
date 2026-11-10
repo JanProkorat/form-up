@@ -536,7 +536,7 @@
       "batchFailed_many": "Nenahrálo se {{count}} fotky",
       "batchFailed_other": "Nenahrálo se {{count}} fotek",
       "tooLarge": "Tato fotka je větší než 5 MB. Vyberte menší.",
-      "unsupportedType": "Tento typ souboru není podporovaný. Použijte fotku JPEG, PNG, WebP nebo HEIC.",
+      "unsupportedType": "Tento typ souboru není podporovaný. Použijte fotku JPEG, PNG nebo WebP.",
       "upload": "Nahrání se nezdařilo. Zkontrolujte připojení a zkuste to znovu.",
       "delete": "Fotku se nepodařilo smazat. Zkuste to znovu."
     }
@@ -1714,7 +1714,7 @@
       "errors": {
         "title": "Fotku se nepodařilo přidat",
         "tooLarge": "Fotka je příliš velká. Vyberte fotku do 5 MB.",
-        "unsupportedType": "Tento formát fotky není podporován. Použijte JPEG, PNG, WebP nebo HEIC.",
+        "unsupportedType": "Tento formát fotky není podporován. Použijte JPEG, PNG nebo WebP.",
         "upload": "Nahrání se nezdařilo. Zkontrolujte připojení a zkuste to znovu.",
         "future": "Fotku nelze přidat k dni, který ještě nenastal."
       }
@@ -2079,7 +2079,7 @@
         "network": "Server není dostupný. Zkontrolujte připojení a odešlete znovu.",
         "submit": "Fotky jsou nahrané, ale ještě neodeslané. Zkuste to znovu.",
         "tooLarge": "Tato fotka je větší než 5 MB. Odeberte ji a vyberte menší.",
-        "unsupportedType": "Tento typ souboru není podporován. Použijte fotku JPEG, PNG, WebP nebo HEIC.",
+        "unsupportedType": "Tento typ souboru není podporován. Použijte fotku JPEG, PNG nebo WebP.",
         "unreadable": "Fotku se nepodařilo přečíst. Odeberte ji a vyberte znovu.",
         "rejected": "Tato fotka nebo její poznámka byla odmítnuta. Odeberte ji nebo poznámku zkraťte.",
         "upload": "Nahrání se nezdařilo. Odešlete znovu a zkuste to."
@@ -2111,16 +2111,12 @@
         "missed": "{{date}}, bez fotky"
       },
       "dayToday": "Dnes, {{date}}",
-      "today": "Dnes",
+      "pageLabel": "Den {{day}} z {{total}}, {{date}}",
+      "missedDay": "{{date}} jste neodeslali žádné fotky.",
       "todaysPhotos": "Dnešní fotky",
       "reminder": "Připomenutí ve 12:00",
       "sentAt": "Odesláno v {{time}}",
-      "none": "Dnes zatím žádná fotka",
-      "addToday": "Přidat dnešní fotky",
-      "addMore": "Přidat další fotky",
-      "coachSays": "{{name}}:",
-      "earlier": "Dříve",
-      "earlierError": "Dřívější fotky se nepodařilo načíst. Zkontrolujte připojení a zkuste to znovu.",
+      "photosError": "Fotky se nepodařilo načíst. Zkontrolujte připojení a zkuste to znovu.",
       "photoCount_one": "{{count}} fotka",
       "photoCount_few": "{{count}} fotky",
       "photoCount_many": "{{count}} fotky",
