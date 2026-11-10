@@ -28,7 +28,7 @@ import {
   useRequestProgress,
   useUploadRequestPhoto,
 } from '@/components/photoRequest/hooks';
-import { closedRoute, dailySentRoute, flowRoute, isAnswerable, requestMode } from '@/components/photoRequest/model';
+import { closedRoute, dailySentRoute, flowRoute, groupSends, isAnswerable, requestMode } from '@/components/photoRequest/model';
 import { MAX_REQUEST_PHOTOS, pickRequestPhotos } from '@/components/photoRequest/pickRequestPhotos';
 import type { RequestPhotoSource } from '@/components/photoRequest/pickRequestPhotos';
 import { PhotoViewer } from '@/components/photos/PhotoViewer';
@@ -117,7 +117,9 @@ export default function PhotoRequestDailyScreen() {
   const name = coachLabel(t, coach);
   const message = current.message?.trim();
   const isToday = shown === progress.day;
-  const sentRows = progress.today.photos;
+  // Today's photos in sends, newest first; the viewer follows the same order.
+  const todaySends = groupSends(progress.today.photos);
+  const sentRows = todaySends.flatMap((send) => send.photos);
   const pending = rows.filter((row) => row.status !== 'done');
   const busy = sending || picking;
   const full = sentRows.length + rows.length >= MAX_REQUEST_PHOTOS;
@@ -320,16 +322,18 @@ export default function PhotoRequestDailyScreen() {
           ) : null}
         </Card>
       ) : null}
-      {sentRows.length > 0 && shownCell ? (
-        <View style={styles.sent}>
-          {progress.sentAt ? (
-            <Text variant="caption" color="muted">
-              {t('photoRequest.daily.sentAt', { time: formatClock(i18n.language, progress.sentAt) })}
-            </Text>
-          ) : null}
-          <DayPhotoGallery date={shownCell.date} photos={sentRows} onOpen={(photo) => setViewerId(photo.id)} />
-        </View>
-      ) : null}
+      {shownCell
+        ? todaySends.map((send) => (
+            <View key={send.photos[0]?.id} style={styles.sent}>
+              {send.sentAt ? (
+                <Text variant="caption" color="muted">
+                  {t('photoRequest.daily.sentAt', { time: formatClock(i18n.language, send.sentAt) })}
+                </Text>
+              ) : null}
+              <DayPhotoGallery date={shownCell.date} photos={send.photos} onOpen={(photo) => setViewerId(photo.id)} />
+            </View>
+          ))
+        : null}
     </>
   );
 
