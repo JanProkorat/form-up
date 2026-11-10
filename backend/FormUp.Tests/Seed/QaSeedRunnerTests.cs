@@ -5,6 +5,7 @@ using FluentAssertions;
 using FormUp.Application.Domain.Documents;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Interfaces;
+using FormUp.Application.Domain.Services;
 using FormUp.Application.Features.TrainingPlans.GetTrainingPlan;
 using FormUp.Application.Features.Questionnaires.GetClientResponses;
 using FormUp.Application.Infrastructure.Data;
@@ -505,8 +506,25 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory)
 
         // Total links: 2 trainer↔client (#474) + 1 nutritionist↔client (#720) + 1 qa.trainer↔client3 (#1095)
         // + 1 ended qa.trainer↔former-client (#1101) + 1 qa.coach↔QA Duo (#1311)
-        // + 1 live qa.trainer↔QA Ending.
-        (await db.ClientProfessionalLinks.CountAsync(ct)).Should().Be(7, "no duplicate links on re-seed");
+        // + 1 live qa.trainer↔QA Ending + (cap + 1) links for each of the two cap coaches.
+        var freeCap = await FreePlanCapAsync(db, ct);
+        (await db.ClientProfessionalLinks.CountAsync(ct))
+            .Should().Be(7 + 2 * (freeCap + 1), "no duplicate links on re-seed");
+
+        // Cap coaches: one user, subscription and over-cap plan each, nothing doubled on re-seed.
+        var capCoachIds = new[] { QaSeedRunner.LapsedCoachUserId, QaSeedRunner.GiftCoachUserId };
+        (await db.Users.CountAsync(u => capCoachIds.Contains(u.Id), ct)).Should().Be(2);
+        (await db.CoachSubscriptions.CountAsync(cs => capCoachIds.Contains(cs.ProfessionalProfile.UserId), ct))
+            .Should().Be(2, "one subscription row per cap coach on re-seed");
+        (await db.Users.CountAsync(
+                u => u.Email!.StartsWith("qa.lapsed.client") || u.Email!.StartsWith("qa.gift.client"), ct))
+            .Should().Be(2 * (freeCap + 1), "cap+1 clients per cap coach, none duplicated");
+        (await mongo.TrainingPlans.CountDocumentsAsync(
+                Builders<TrainingPlan>.Filter.In(
+                    p => p.ClientId,
+                    new[] { QaSeedRunner.LapsedClientUserId(freeCap + 1), QaSeedRunner.GiftClientUserId(freeCap + 1) }),
+                cancellationToken: ct))
+            .Should().Be(2, "one over-cap plan per cap coach on re-seed");
 
         var nutritionPlan = await mongo.NutritionPlans
             .Find(p => p.ExternalId == QaSeedRunner.QaNutritionPlanExternalId)
@@ -554,8 +572,10 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory)
         // Both trainer↔client links are seeded outside the Rich guard (so both
         // pairs are available for auth in any seed mode). Minimal mode creates
         // both links but no plans/foods/blobs.
+        // The two cap coaches' links (cap + 1 each) are seeded in both kinds as well.
         (await db.ClientProfessionalLinks.CountAsync(ct))
-            .Should().Be(2, "both trainer↔client links are part of the minimal fixture (#474 adds a second pair)");
+            .Should().Be(2 + 2 * ((await FreePlanCapAsync(db, ct)) + 1),
+                "both trainer↔client links (#474) plus the cap coaches' links are part of the minimal fixture");
 
         // Rich fixtures must be absent.
         (await mongo.TrainingPlans.CountDocumentsAsync(
@@ -1109,6 +1129,162 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory)
             s.Status.Should().Be(SubscriptionStatus.Active);
             s.PriceIsOpen.Should().BeTrue();
         });
+    }
+
+    private static async Task<int> FreePlanCapAsync(ApplicationDbContext db, CancellationToken ct) =>
+        await db.SubscriptionPlans
+            .Where(p => p.Code == "free")
+            .Select(p => p.MaxActiveClients!.Value)
+            .SingleAsync(ct);
+
+    [Fact]
+    public async Task SeedAsync_LapsedCoach_IsCanceledOnAPaidPlanAndResolvesWithOneOverCapClient()
+    {
+        await _factory.EnsureDefaultSeedAsync();
+        var ct = TestContext.Current.CancellationToken;
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var cap = await FreePlanCapAsync(db, ct);
+
+        var row = await db.CoachSubscriptions
+            .AsNoTracking()
+            .Where(cs => cs.ProfessionalProfile.UserId == QaSeedRunner.LapsedCoachUserId)
+            .Select(cs => new
+            {
+                cs.Status,
+                cs.GivenFreeAt,
+                cs.FreeUntil,
+                PlanCode = cs.SubscriptionPlan.Code,
+                PriceIsOpen = cs.SubscriptionPlanPrice.ValidTo == null
+                    && cs.SubscriptionPlanPrice.SubscriptionPlanId == cs.SubscriptionPlanId,
+                cs.ProfessionalProfile.ShowInSearch,
+            })
+            .SingleAsync(ct);
+
+        row.PlanCode.Should().NotBe("free").And.NotBe("studio");
+        row.PriceIsOpen.Should().BeTrue();
+        row.Status.Should().Be(SubscriptionStatus.Canceled);
+        row.GivenFreeAt.Should().BeNull();
+        (row.FreeUntil is null || row.FreeUntil < DateTimeOffset.UtcNow).Should().BeTrue("a future FreeUntil would keep the plan in force");
+        row.ShowInSearch.Should().BeFalse();
+
+        var profileId = await db.ProfessionalProfiles
+            .Where(p => p.UserId == QaSeedRunner.LapsedCoachUserId).Select(p => p.Id).SingleAsync(ct);
+        var links = await db.ClientProfessionalLinks
+            .Where(l => l.ProfessionalProfileId == profileId)
+            .OrderBy(l => l.ActivatedAtUtc)
+            .Select(l => new { l.ConnectionState, l.ClientProfile.UserId, l.ClientProfileId })
+            .ToListAsync(ct);
+        links.Should().HaveCount(cap + 1);
+        links.Should().AllSatisfy(l => l.ConnectionState.Should().Be(ConnectionState.Connected));
+
+        var state = await scope.ServiceProvider.GetRequiredService<EntitlementService>()
+            .GetKeepClientsStateAsync(profileId, ct);
+
+        state.IsLapsed.Should().BeTrue();
+        state.IsPlanChoiceRequired.Should().BeFalse();
+        state.Cap.Should().Be(cap);
+        state.KeptClientProfileIds.Should().BeEquivalentTo(links.Take(cap).Select(l => l.ClientProfileId));
+        state.OverCapClientProfileIds.Should().Equal(links[cap].ClientProfileId);
+        links[cap].UserId.Should().Be(QaSeedRunner.LapsedClientUserId(cap + 1), "the newest client is the over-cap one");
+    }
+
+    [Fact]
+    public async Task SeedAsync_GiftCoach_HasAnEndedGiftAndResolvesAsPlanChoiceRequired()
+    {
+        await _factory.EnsureDefaultSeedAsync();
+        var ct = TestContext.Current.CancellationToken;
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var cap = await FreePlanCapAsync(db, ct);
+
+        var row = await db.CoachSubscriptions
+            .AsNoTracking()
+            .Where(cs => cs.ProfessionalProfile.UserId == QaSeedRunner.GiftCoachUserId)
+            .Select(cs => new
+            {
+                cs.GivenFreeAt,
+                cs.FreeUntil,
+                PlanCode = cs.SubscriptionPlan.Code,
+                PriceIsOpen = cs.SubscriptionPlanPrice.ValidTo == null
+                    && cs.SubscriptionPlanPrice.SubscriptionPlanId == cs.SubscriptionPlanId,
+                cs.ProfessionalProfile.ShowInSearch,
+            })
+            .SingleAsync(ct);
+
+        row.PlanCode.Should().NotBe("free").And.NotBe("studio");
+        row.PriceIsOpen.Should().BeTrue();
+        row.GivenFreeAt.Should().NotBeNull();
+        row.FreeUntil.Should().BeBefore(DateTimeOffset.UtcNow);
+        row.ShowInSearch.Should().BeFalse();
+
+        var profileId = await db.ProfessionalProfiles
+            .Where(p => p.UserId == QaSeedRunner.GiftCoachUserId).Select(p => p.Id).SingleAsync(ct);
+        (await db.ClientProfessionalLinks.CountAsync(
+                l => l.ProfessionalProfileId == profileId && l.ConnectionState == ConnectionState.Connected, ct))
+            .Should().Be(cap + 1);
+
+        var state = await scope.ServiceProvider.GetRequiredService<EntitlementService>()
+            .GetKeepClientsStateAsync(profileId, ct);
+
+        state.IsPlanChoiceRequired.Should().BeTrue();
+        state.Cap.Should().Be(cap);
+        state.OverCapClientProfileIds.Should().BeEmpty("nobody is over the cap while a plan choice is pending");
+    }
+
+    [Fact]
+    public async Task SeedAsync_CapCoachesOverCapClients_EachHaveAPublishedWeek_LapsedOneAlreadyEnded()
+    {
+        await _factory.EnsureDefaultSeedAsync();
+        var ct = TestContext.Current.CancellationToken;
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+        var cap = await FreePlanCapAsync(db, ct);
+
+        var lapsedPlan = await mongo.TrainingPlans
+            .Find(p => p.ClientId == QaSeedRunner.LapsedClientUserId(cap + 1)).SingleAsync(ct);
+        var giftPlan = await mongo.TrainingPlans
+            .Find(p => p.ClientId == QaSeedRunner.GiftClientUserId(cap + 1)).SingleAsync(ct);
+
+        lapsedPlan.TrainerId.Should().Be(QaSeedRunner.LapsedCoachUserId);
+        giftPlan.TrainerId.Should().Be(QaSeedRunner.GiftCoachUserId);
+
+        foreach (var plan in new[] { lapsedPlan, giftPlan })
+        {
+            plan.Weeks.Should().Contain(w => w.Status == WeekStatus.Published);
+        }
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        PlanRunsUntilResolver.Resolve(
+                lapsedPlan.StartDate, lapsedPlan.Weeks.Where(w => w.Status == WeekStatus.Published).Select(w => w.WeekNumber))
+            .Should().BeBefore(today, "the lapsed over-cap client's last published week has already ended");
+        PlanRunsUntilResolver.Resolve(
+                giftPlan.StartDate, giftPlan.Weeks.Where(w => w.Status == WeekStatus.Published).Select(w => w.WeekNumber))
+            .Should().BeOnOrAfter(today, "the gift coach's over-cap client still has a running week");
+    }
+
+    [Fact]
+    public async Task SeedAsync_ExistingCoaches_StayOnStudio_AndCapCoachesAreNotInTheirList()
+    {
+        await _factory.EnsureDefaultSeedAsync();
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var capCoachIds = new[] { QaSeedRunner.LapsedCoachUserId, QaSeedRunner.GiftCoachUserId };
+
+        var studioCoachIds = await db.CoachSubscriptions
+            .AsNoTracking()
+            .Where(cs => cs.SubscriptionPlan.Code == "studio")
+            .Select(cs => cs.ProfessionalProfile.UserId)
+            .ToListAsync(TestContext.Current.CancellationToken);
+
+        studioCoachIds.Should().NotIntersectWith(capCoachIds);
+        studioCoachIds.Should().BeEquivalentTo(
+            [QaSeedRunner.TrainerUserId, QaSeedRunner.NutriUserId, QaSeedRunner.Trainer2UserId, QaSeedRunner.CoachUserId]);
     }
 
     private static DateTime ThisMonday()
