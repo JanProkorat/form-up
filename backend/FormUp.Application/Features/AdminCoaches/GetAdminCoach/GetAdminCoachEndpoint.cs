@@ -30,6 +30,7 @@ internal sealed class GetAdminCoachEndpoint(
     [
         AdminCoachAuditActions.GivePlanFree,
         AdminCoachAuditActions.CancelRenewal,
+        AdminCoachAuditActions.EndPlan,
         AdminCoachAuditActions.AssignSubscription,
         CoachAccountDisabler.SelfAuditAction,
         CoachAccountDisabler.AdminAuditAction,
@@ -107,6 +108,8 @@ internal sealed class GetAdminCoachEndpoint(
             FailureDetail = null,
             ClientsUsed = clientsUsed,
             ClientsMax = maxActiveClients,
+            CanEndPlanNow = paying || givenFree,
+            FreePlanMaxActiveClients = free is null ? 0 : free.MaxActiveClients,
             History = await LoadHistoryAsync(coach, ct),
         }, ct);
     }
@@ -176,6 +179,7 @@ internal sealed class GetAdminCoachEndpoint(
         AdminCoachAuditActions.GivePlanFree => AdminCoachHistoryKind.GivenFree,
         AdminCoachAuditActions.AssignSubscription => AdminCoachHistoryKind.PlanAssigned,
         AdminCoachAuditActions.CancelRenewal => AdminCoachHistoryKind.RenewalCancelled,
+        AdminCoachAuditActions.EndPlan => AdminCoachHistoryKind.PlanEnded,
         CoachAccountDisabler.SelfAuditAction or CoachAccountDisabler.AdminAuditAction => AdminCoachHistoryKind.AccountDisabled,
         AdminCoachAuditActions.KeepAccount => AdminCoachHistoryKind.AccountKept,
         AdminCoachAuditActions.AddRole => AdminCoachHistoryKind.RoleAdded,

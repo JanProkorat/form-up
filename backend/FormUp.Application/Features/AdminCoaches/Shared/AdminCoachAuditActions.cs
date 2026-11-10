@@ -12,6 +12,9 @@ internal static class AdminCoachAuditActions
     /// <summary>An admin cancelled the coach's renewal.</summary>
     public const string CancelRenewal = "AdminCancelCoachRenewal";
 
+    /// <summary>An admin ended the coach's paid or given plan at once.</summary>
+    public const string EndPlan = "AdminEndCoachPlan";
+
     /// <summary>An admin assigned the coach's subscription (written by the subscription endpoint).</summary>
     public const string AssignSubscription = "SetCoachSubscription";
 

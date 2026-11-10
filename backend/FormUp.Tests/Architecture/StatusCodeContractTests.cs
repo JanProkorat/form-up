@@ -54,6 +54,7 @@ public class StatusCodeContractTests(FitnessApiFactory factory)
     [InlineData("get", "/admin/coaches/{coachId}", "200,401,403,404", true, Absent)]
     [InlineData("post", "/admin/coaches/{coachId}/give-free", "200,400,401,403,404", true, Body)]
     [InlineData("post", "/admin/coaches/{coachId}/cancel-renewal", "200,400,401,403,404,409", true, Body)]
+    [InlineData("post", "/admin/coaches/{coachId}/end-plan", "200,400,401,403,404,409", true, Body)]
     [InlineData("post", "/admin/coaches/{coachId}/disable", "200,400,401,403,404", true, Body)]
     public async Task Swagger_Operation_DeclaresExactlyTheStatusCodesItCanReturn(
         string method, string route, string expected, bool typedSuccess, string badRequest)

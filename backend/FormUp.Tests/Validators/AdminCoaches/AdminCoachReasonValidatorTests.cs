@@ -3,6 +3,7 @@ using FluentValidation.TestHelper;
 using FormUp.Application.Domain.Constants;
 using FormUp.Application.Features.AdminCoaches.CancelCoachRenewal;
 using FormUp.Application.Features.AdminCoaches.DisableCoachAccountByAdmin;
+using FormUp.Application.Features.AdminCoaches.EndCoachPlan;
 using FormUp.Application.Features.AdminCoaches.ListAdminCoaches;
 using FormUp.Application.Domain.Enums;
 
@@ -32,6 +33,30 @@ public class AdminCoachReasonValidatorTests
         {
             CoachId = Guid.NewGuid(),
             Reason = new string('x', CancelCoachRenewalValidator.MaxReasonLength + 1),
+        });
+
+        result.Errors.Should().Contain(error => error.ErrorCode == ErrorCodes.OutOfRange);
+    }
+
+    [Theory]
+    [InlineData("", false)]
+    [InlineData("   ", false)]
+    [InlineData("customer asked", true)]
+    public void EndPlan_Reason_MustBePresent(string reason, bool valid)
+    {
+        var result = new EndCoachPlanValidator().TestValidate(
+            new EndCoachPlanRequest { CoachId = Guid.NewGuid(), Reason = reason });
+
+        result.IsValid.Should().Be(valid);
+    }
+
+    [Fact]
+    public void EndPlan_ReasonOverTheLimit_Fails()
+    {
+        var result = new EndCoachPlanValidator().TestValidate(new EndCoachPlanRequest
+        {
+            CoachId = Guid.NewGuid(),
+            Reason = new string('x', EndCoachPlanValidator.MaxReasonLength + 1),
         });
 
         result.Errors.Should().Contain(error => error.ErrorCode == ErrorCodes.OutOfRange);

@@ -60,6 +60,12 @@ public class GetAdminCoachResponse
     /// <summary>The plan's client limit; null means unlimited.</summary>
     public int? ClientsMax { get; set; }
 
+    /// <summary>True when an admin can end the plan now: the coach pays, or has a gift in force.</summary>
+    public bool CanEndPlanNow { get; set; }
+
+    /// <summary>The Free plan's client limit, to show what ending the plan leaves; null means unlimited.</summary>
+    public int? FreePlanMaxActiveClients { get; set; }
+
     /// <summary>Newest first. Holds the admin and coach actions on the subscription and account, not payments.</summary>
     public List<AdminCoachHistoryEntryDto> History { get; set; } = [];
 }

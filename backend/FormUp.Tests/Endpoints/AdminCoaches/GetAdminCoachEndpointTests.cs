@@ -82,6 +82,45 @@ public class GetAdminCoachEndpointTests(FitnessApiFactory factory)
         detail.History.Should().ContainSingle(entry => entry.Kind == AdminCoachHistoryKind.Joined);
     }
 
+    [Theory]
+    [InlineData("paying", true)]
+    [InlineData("failed", true)]
+    [InlineData("gift", true)]
+    [InlineData("canceled", false)]
+    [InlineData("free", false)]
+    [InlineData("none", false)]
+    public async Task Get_ReportsWhetherThePlanCanBeEndedNow_AndTheFreePlanCap(string state, bool canEnd)
+    {
+        await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var plan = await PaidPlanBuilder.CreateAsync(factory);
+
+        switch (state)
+        {
+            case "paying":
+                await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, plan);
+                break;
+            case "failed":
+                await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, plan, SubscriptionStatus.PastDue);
+                break;
+            case "gift":
+                await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, plan, givenFreeAt: DateTimeOffset.UtcNow);
+                break;
+            case "canceled":
+                await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, plan, SubscriptionStatus.Canceled);
+                break;
+            case "free":
+                await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, "free");
+                break;
+        }
+
+        var detail = await GetAsync(admin, coach.UserId);
+
+        detail.CanEndPlanNow.Should().Be(canEnd);
+        detail.FreePlanMaxActiveClients.Should().Be(2);
+    }
+
     [Fact]
     public async Task Get_AfterAdminAndCoachActions_ListsThemNewestFirstWithTheActorAndReason()
     {
