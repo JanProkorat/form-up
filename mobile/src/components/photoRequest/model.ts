@@ -357,7 +357,10 @@ export function photoStatusFor({
   return sent ? { kind: 'onceSent', id: sent.id } : null;
 }
 
-/** Where tapping a request on Today leads: the intro while pending, else the screen that adds the photos. */
+/**
+ * Where tapping a request on Today leads: the intro for a one-time request (pending or accepted), the day view for a
+ * running every-day request.
+ */
 export function statusRoute(status: PhotoStatus): PhotoRoute | null {
   switch (status.kind) {
     case 'pending':
@@ -365,7 +368,7 @@ export function statusRoute(status: PhotoStatus): PhotoRoute | null {
     case 'running':
       return flowRoute(status.id, 'everyDay');
     case 'onceOpen':
-      return flowRoute(status.id, 'once');
+      return introRoute(status.id);
     case 'onceSent':
       return null;
   }
