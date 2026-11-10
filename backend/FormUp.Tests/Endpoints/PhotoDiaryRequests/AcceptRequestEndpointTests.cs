@@ -271,6 +271,29 @@ public class AcceptRequestEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task Accept_BulkRequestCreatedTwoDaysAgo_Returns200_BecauseOneTimeRequestsNeverExpire()
+    {
+        var (_, profId) = await SetupProfessionalAsync();
+        var (http, clientId, _) = await SetupClientAsync();
+
+        var linkId = await InsertLinkAsync(clientId, profId);
+        var requestId = await InsertPendingDiaryRequestViaLinkAsync(
+            profId, linkId, mode: PhotoDiaryMode.Bulk, durationDays: 1, createdAt: DateTimeOffset.UtcNow.AddDays(-2));
+
+        var response = await http.PostAsJsonAsync(
+            $"/client/photo-diary-requests/{requestId}/accept",
+            new { },
+            TestContext.Current.CancellationToken);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var persisted = await db.PhotoDiaryRequests
+            .FirstAsync(r => r.Id == requestId, TestContext.Current.CancellationToken);
+        persisted.Status.Should().Be(PhotoDiaryStatus.Accepted);
+    }
+
+    [Fact]
     public async Task Accept_ViaPendingInvite_Returns200_AndTransitions()
     {
         // Invite-routed requests (LinkId null, PendingInviteId set) must remain

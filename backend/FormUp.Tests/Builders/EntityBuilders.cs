@@ -76,6 +76,76 @@ public static class EntityBuilder
     /// Creates a new <see cref="QuestionnaireResponseBuilder"/>.
     /// </summary>
     public static QuestionnaireResponseBuilder QuestionnaireResponse => new();
+
+    /// <summary>
+    /// Creates a new <see cref="PhotoDiaryRequestBuilder"/>.
+    /// </summary>
+    public static PhotoDiaryRequestBuilder PhotoDiaryRequest => new();
+}
+
+/// <summary>
+/// Builder for <see cref="PhotoDiaryRequest"/> test entities (an Accepted every-day request by default).
+/// </summary>
+public class PhotoDiaryRequestBuilder
+{
+    private Guid _professionalId = Guid.NewGuid();
+    private long? _linkId;
+    private PhotoDiaryMode? _mode = PhotoDiaryMode.Workflow;
+    private PhotoDiaryStatus _status = PhotoDiaryStatus.Accepted;
+    private int? _durationDays;
+    private DateTimeOffset _createdAt = DateTimeOffset.UtcNow;
+
+    /// <summary>
+    /// Sets the requesting coach (<c>ApplicationUser.Id</c>) and the link the request is attached to.
+    /// </summary>
+    public PhotoDiaryRequestBuilder OnLink(Guid professionalUserId, long linkId)
+    {
+        _professionalId = professionalUserId;
+        _linkId = linkId;
+        return this;
+    }
+
+    /// <summary>
+    /// Sets the upload mode. A Bulk request defaults to one day, like the create endpoint stores it.
+    /// </summary>
+    public PhotoDiaryRequestBuilder WithMode(PhotoDiaryMode? mode) { _mode = mode; return this; }
+
+    /// <summary>
+    /// Sets the lifecycle status.
+    /// </summary>
+    public PhotoDiaryRequestBuilder WithStatus(PhotoDiaryStatus status) { _status = status; return this; }
+
+    /// <summary>
+    /// Sets the open window length in days.
+    /// </summary>
+    public PhotoDiaryRequestBuilder WithDurationDays(int days) { _durationDays = days; return this; }
+
+    /// <summary>
+    /// Sets when the request was created (UTC).
+    /// </summary>
+    public PhotoDiaryRequestBuilder CreatedAt(DateTimeOffset createdAt) { _createdAt = createdAt; return this; }
+
+    /// <summary>
+    /// Builds the <see cref="PhotoDiaryRequest"/> instance.
+    /// </summary>
+    public PhotoDiaryRequest Build()
+    {
+        var accepted = _status is PhotoDiaryStatus.Accepted or PhotoDiaryStatus.InProgress or PhotoDiaryStatus.Completed;
+        return new()
+        {
+            Id = Guid.NewGuid(),
+            ProfessionalId = _professionalId,
+            LinkId = _linkId,
+            Mode = _mode,
+            DurationDays = _durationDays ?? (_mode == PhotoDiaryMode.Bulk ? 1 : 7),
+            Status = _status,
+            AcceptedAt = accepted ? _createdAt : null,
+            CompletedAt = _status == PhotoDiaryStatus.Completed ? _createdAt : null,
+            DismissReason = _status == PhotoDiaryStatus.Dismissed ? "No thanks" : null,
+            CreatedAt = _createdAt,
+            UpdatedAt = _createdAt,
+        };
+    }
 }
 
 /// <summary>

@@ -4331,6 +4331,7 @@
     "justNow": "Právě teď",
     "reviewInClients": "Zobrazit v Klientech",
     "seeInClientActivity": "Zobrazit v aktivitě klienta",
+    "seePhotos": "Zobrazit fotky",
     "markRead": "Označit jako přečtené",
     "markAllReadShort": "Označit vše",
     "unreadCount": "nepřečtených: {{count}}"
@@ -4623,9 +4624,9 @@
         "days_many": "{{count}} dne",
         "days_other": "{{count}} dní",
         "untilHelp": "Do {{date}} · {{min}} až {{max}} dní",
-        "dueByHelp": "Termín do {{date}}",
+        "onceHelp": "Bez termínu, {{name}} nahraje fotky, až bude připraven(a)",
         "reminderDaily": "Pokud {{name}} ještě nenahraje fotku, dostane každý den v poledne připomenutí. Žádost se po posledním dni sama uzavře.",
-        "reminderOnce": "{{name}} má na nahrání fotek jeden den. Poté se žádost sama uzavře.",
+        "reminderOnce": "{{name}} nemá žádný termín. Žádost zůstane otevřená, dokud fotky nenahraje nebo ji nezrušíte.",
         "optional": "nepovinné",
         "footnote": "{{name}} může žádost přijmout nebo odmítnout",
         "submit": "Odeslat žádost",
@@ -4660,7 +4661,7 @@
         "preview": {
           "heading": "Co uvidí {{name}}",
           "title": "{{name}} žádá o fotky pokroku",
-          "once": "Jednou, do {{date}}",
+          "once": "Jednou, kdykoli budete připraven(a)",
           "daily": "Každý den do {{date}}"
         },
         "status": {
@@ -4669,8 +4670,8 @@
           "frequency": "Jak často",
           "sent": "Odesláno",
           "until": "Do",
-          "dueBy": "Termín do",
           "note": "Žádost se na konci lhůty sama uzavře. Když ji zrušíte, {{name}} už nebude vyzýván(a).",
+          "noteOnce": "Žádost zůstane otevřená, dokud {{name}} fotky nenahraje. Když ji zrušíte, {{name}} už nebude vyzýván(a).",
           "values": {
             "Pending": "Čeká na odpověď klienta {{name}}",
             "Accepted": "{{name}} žádost přijal(a)",

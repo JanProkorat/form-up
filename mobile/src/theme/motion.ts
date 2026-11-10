@@ -48,6 +48,11 @@ export const requestSheetMotion = {
   backdropDuration: 220,
 } as const;
 
+/** Image viewer: ms the controls and the black background take to fade when a tap on the photo toggles them. */
+export const imageViewerMotion = {
+  fadeDuration: 200,
+} as const;
+
 /** Inline date picker in the add-measurement sheet: ms for its fade and for the content below it moving. */
 export const measuredAtPickerMotion = {
   enterDuration: 240,

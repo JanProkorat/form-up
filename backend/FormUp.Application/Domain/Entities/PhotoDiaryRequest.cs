@@ -113,14 +113,22 @@ public class PhotoDiaryRequest
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 
     /// <summary>
-    /// End of the open window: <c>CreatedAt + DurationDays</c>. Compute in memory — not part of any EF query.
+    /// End of the open window: <c>CreatedAt + DurationDays</c>, or null for a one-time
+    /// (<see cref="PhotoDiaryMode.Bulk"/>) request, which stays open until the client submits or
+    /// dismisses it or the coach cancels it. Compute in memory — not part of any EF query.
     /// </summary>
-    public DateTimeOffset EndsAt => CreatedAt.AddDays(DurationDays);
+    public DateTimeOffset? EndsAt => Mode == PhotoDiaryMode.Bulk ? null : CreatedAt.AddDays(DurationDays);
 
     /// <summary>
-    /// True while the request is Pending, Accepted or InProgress and <paramref name="now"/> is before <see cref="EndsAt"/>.
+    /// True when the request has an end date and <paramref name="now"/> is at or past it.
+    /// A one-time request never expires.
     /// </summary>
-    public bool IsOpenAt(DateTimeOffset now) => IsOpenStatus(Status) && now < EndsAt;
+    public bool IsExpiredAt(DateTimeOffset now) => EndsAt is { } endsAt && now >= endsAt;
+
+    /// <summary>
+    /// True while the request is Pending, Accepted or InProgress and has not reached <see cref="EndsAt"/>.
+    /// </summary>
+    public bool IsOpenAt(DateTimeOffset now) => IsOpenStatus(Status) && !IsExpiredAt(now);
 
     /// <summary>
     /// True for the statuses in which a request can still be open (Pending, Accepted, InProgress).

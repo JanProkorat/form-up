@@ -1209,70 +1209,6 @@ export class ApiClient {
     }
 
     /**
-     * Get my coach subscription
-     * @return The caller's subscription block
-     */
-    getMySubscriptionEndpoint(signal?: AbortSignal): Promise<GetMySubscriptionResponse> {
-        let url_ = this.baseUrl + "/users/me/subscription";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetMySubscriptionEndpoint(_response);
-        });
-    }
-
-    protected processGetMySubscriptionEndpoint(response: AxiosResponse): Promise<GetMySubscriptionResponse> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<GetMySubscriptionResponse>(result200);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("The caller is not a trainer or nutritionist", status, _responseText, _headers);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("The caller has no professional profile, or the Free plan is missing", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<GetMySubscriptionResponse>(null as any);
-    }
-
-    /**
      * List my coach roles
      * @return Active coach roles with counts
      */
@@ -1334,7 +1270,7 @@ export class ApiClient {
 
     /**
      * Add a professional role
-     * @return The role was added; fresh tokens with the updated roles
+     * @return Success
      */
     addRoleEndpoint(addRoleRequest: AddRoleRequest, signal?: AbortSignal): Promise<AddRoleResponse> {
         let url_ = this.baseUrl + "/users/me/roles";
@@ -1386,15 +1322,15 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Invalid caller identity, the role is not self-assignable, or the caller already has the role (ROLE_ALREADY_ASSIGNED)", status, _responseText, _headers, result400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+            return throwException("Unauthorized", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("The subscription does not cover a second professional role (SUBSCRIPTION_REQUIRED)", status, _responseText, _headers);
+            return throwException("Forbidden", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -2269,7 +2205,7 @@ export class ApiClient {
     /**
      * Instantiate a training plan template
      * @param templateId The template's public identifier (route parameter).
-     * @return The new Draft plan
+     * @return Success
      */
     instantiateTrainingPlanTemplateEndpoint(templateId: string, instantiateTrainingPlanTemplateRequest: InstantiateTrainingPlanTemplateRequest, signal?: AbortSignal): Promise<InstantiateTrainingPlanTemplateResponse> {
         let url_ = this.baseUrl + "/training/plan-templates/{templateId}/instantiate";
@@ -2312,35 +2248,27 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 201) {
+        if (status === 200) {
             const _responseText = response.data;
-            let result201: any = null;
-            let resultData201  = _responseText;
-            result201 = JSON.parse(resultData201);
-            return Promise.resolve<InstantiateTrainingPlanTemplateResponse>(result201);
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<InstantiateTrainingPlanTemplateResponse>(result200);
 
         } else if (status === 400) {
             const _responseText = response.data;
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Invalid request", status, _responseText, _headers, result400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+            return throwException("Unauthorized", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("The subscription does not include plans (SUBSCRIPTION_REQUIRED), or the client is over the Free plan\'s client limit (CLIENT_OVER_PLAN_LIMIT)", status, _responseText, _headers);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("Template or client not found, or not accessible to the caller", status, _responseText, _headers);
-
-        } else if (status === 409) {
-            const _responseText = response.data;
-            return throwException("The start date window overlaps another plan of the client (PLAN_OVERLAP)", status, _responseText, _headers);
+            return throwException("Forbidden", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -2482,7 +2410,7 @@ export class ApiClient {
     /**
      * Full-state update of a training plan
      * @param planId The plan's public identifier (route parameter).
-     * @return Updated plan
+     * @return Success
      */
     updateTrainingPlanEndpoint(planId: string, updateTrainingPlanRequest: UpdateTrainingPlanRequest, signal?: AbortSignal): Promise<GetTrainingPlanResponse> {
         let url_ = this.baseUrl + "/training/plans/{planId}";
@@ -2537,23 +2465,15 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Invalid request, or a published week was removed or the start date is invalid", status, _responseText, _headers, result400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+            return throwException("Unauthorized", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("The subscription does not include plans (SUBSCRIPTION_REQUIRED), a removed coach role, or the client is over the Free plan\'s client limit and the plan\'s last published week has ended or the start date changed (CLIENT_OVER_PLAN_LIMIT)", status, _responseText, _headers);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("Plan not found, or not editable by the caller", status, _responseText, _headers);
-
-        } else if (status === 409) {
-            const _responseText = response.data;
-            return throwException("PLAN_VERSION_CONFLICT, SESSION_LOCKED (a published session with content changes needs an Editing lock) or WORKOUT_ALREADY_COMPLETED", status, _responseText, _headers);
+            return throwException("Forbidden", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -2690,7 +2610,7 @@ export class ApiClient {
      * Unlock a training session for editing
      * @param planId Training plan identifier.
      * @param sessionId Session identifier to unlock for editing.
-     * @return Editing lock acquired
+     * @return No Content
      */
     unlockTrainingSessionEndpoint(planId: string, sessionId: string, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/training/plans/{planId}/sessions/{sessionId}/unlock";
@@ -2740,23 +2660,15 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Invalid request", status, _responseText, _headers, result400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+            return throwException("Unauthorized", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("The client is over the Free plan\'s client limit and the plan\'s last published week has ended (CLIENT_OVER_PLAN_LIMIT)", status, _responseText, _headers);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("Plan or session not found, or not editable by the caller", status, _responseText, _headers);
-
-        } else if (status === 409) {
-            const _responseText = response.data;
-            return throwException("The session was already completed (SESSION_ALREADY_COMPLETED) or is locked (session_locked)", status, _responseText, _headers);
+            return throwException("Forbidden", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -2769,7 +2681,7 @@ export class ApiClient {
      * Relock a training session (release the Editing lock)
      * @param planId Training plan identifier.
      * @param sessionId Session identifier to relock.
-     * @return Lock released (or already released)
+     * @return No Content
      */
     relockTrainingSessionEndpoint(planId: string, sessionId: string, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/training/plans/{planId}/sessions/{sessionId}/relock";
@@ -2819,19 +2731,15 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Invalid request", status, _responseText, _headers, result400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+            return throwException("Unauthorized", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("The client is over the Free plan\'s client limit and the plan\'s last published week has ended (CLIENT_OVER_PLAN_LIMIT)", status, _responseText, _headers);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("Plan or session not found, or not editable by the caller", status, _responseText, _headers);
+            return throwException("Forbidden", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -2844,7 +2752,7 @@ export class ApiClient {
      * Publish a week of a training plan
      * @param planId Plan identifier.
      * @param weekNumber Week number to publish.
-     * @return The plan with the week published
+     * @return Success
      */
     publishTrainingWeekEndpoint(planId: string, weekNumber: number, publishTrainingWeekRequest: PublishTrainingWeekRequest, signal?: AbortSignal): Promise<GetTrainingPlanResponse> {
         let url_ = this.baseUrl + "/training/plans/{planId}/weeks/{weekNumber}/publish";
@@ -2897,28 +2805,13 @@ export class ApiClient {
             result200 = JSON.parse(resultData200);
             return Promise.resolve<GetTrainingPlanResponse>(result200);
 
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("The week is missing or already published, or the start date is unset or the week starts in the past", status, _responseText, _headers, result400);
-
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+            return throwException("Unauthorized", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("The subscription does not include plans (SUBSCRIPTION_REQUIRED), or the client is over the Free plan\'s client limit (CLIENT_OVER_PLAN_LIMIT)", status, _responseText, _headers);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("Plan not found, or not editable by the caller", status, _responseText, _headers);
-
-        } else if (status === 409) {
-            const _responseText = response.data;
-            return throwException("The plan was changed concurrently (PLAN_VERSION_CONFLICT)", status, _responseText, _headers);
+            return throwException("Forbidden", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -2930,7 +2823,7 @@ export class ApiClient {
     /**
      * Link questionnaire to training plan
      * @param planId Plan identifier.
-     * @return The updated plan
+     * @return Success
      */
     linkTrainingQuestionnaireEndpoint(planId: string, linkTrainingQuestionnaireRequest: LinkTrainingQuestionnaireRequest, signal?: AbortSignal): Promise<GetTrainingPlanResponse> {
         let url_ = this.baseUrl + "/training/plans/{planId}/link-questionnaire";
@@ -2980,28 +2873,13 @@ export class ApiClient {
             result200 = JSON.parse(resultData200);
             return Promise.resolve<GetTrainingPlanResponse>(result200);
 
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("The plan is not Draft or Active, or the questionnaire response is not found or not submitted", status, _responseText, _headers, result400);
-
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+            return throwException("Unauthorized", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("The client is over the Free plan\'s client limit and the plan\'s last published week has ended (CLIENT_OVER_PLAN_LIMIT)", status, _responseText, _headers);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("Plan not found, or not editable by the caller", status, _responseText, _headers);
-
-        } else if (status === 409) {
-            const _responseText = response.data;
-            return throwException("The plan was changed concurrently (PLAN_VERSION_CONFLICT)", status, _responseText, _headers);
+            return throwException("Forbidden", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -3095,7 +2973,7 @@ export class ApiClient {
 
     /**
      * Create a training plan
-     * @return The new Draft plan
+     * @return Success
      */
     createTrainingPlanEndpoint(createTrainingPlanRequest: CreateTrainingPlanRequest, signal?: AbortSignal): Promise<TrainingPlanSummaryDto> {
         let url_ = this.baseUrl + "/training/plans";
@@ -3135,35 +3013,27 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 201) {
+        if (status === 200) {
             const _responseText = response.data;
-            let result201: any = null;
-            let resultData201  = _responseText;
-            result201 = JSON.parse(resultData201);
-            return Promise.resolve<TrainingPlanSummaryDto>(result201);
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<TrainingPlanSummaryDto>(result200);
 
         } else if (status === 400) {
             const _responseText = response.data;
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Invalid request, or the questionnaire response is not found or not submitted", status, _responseText, _headers, result400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+            return throwException("Unauthorized", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("The subscription does not include plans (SUBSCRIPTION_REQUIRED), or the client is over the Free plan\'s client limit (CLIENT_OVER_PLAN_LIMIT)", status, _responseText, _headers);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("Client not found, or not accessible to the caller", status, _responseText, _headers);
-
-        } else if (status === 409) {
-            const _responseText = response.data;
-            return throwException("The start date window overlaps another plan of the client (PLAN_OVERLAP)", status, _responseText, _headers);
+            return throwException("Forbidden", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -3657,10 +3527,6 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("Active link grants neither nutrition nor training visibility", status, _responseText, _headers);
 
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("Client unknown, or the caller has no active link to it", status, _responseText, _headers);
-
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -3816,7 +3682,7 @@ export class ApiClient {
 
     /**
      * Replace a pending questionnaire
-     * @return Questionnaire replaced
+     * @return No Content
      */
     replaceQuestionnaireEndpoint(clientPublicId: string, replaceQuestionnaireRequest: ReplaceQuestionnaireRequest, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/trainer/clients/{clientPublicId}/replace-questionnaire";
@@ -3862,24 +3728,13 @@ export class ApiClient {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
 
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("No pending questionnaire for the client, the questionnaire is unknown, or a check-in form was sent as a questionnaire (CHECK_IN_FORM_NOT_SENDABLE)", status, _responseText, _headers, result400);
-
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+            return throwException("Unauthorized", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("The subscription does not include questionnaires (SUBSCRIPTION_REQUIRED), or a removed coach role", status, _responseText, _headers);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("Professional profile or client not found, or the caller has no live link to the client", status, _responseText, _headers);
+            return throwException("Forbidden", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -3950,7 +3805,7 @@ export class ApiClient {
 
     /**
      * Create a pending invitation
-     * @return The pending invitation
+     * @return Success
      */
     createPendingInviteEndpoint(createPendingInviteRequest: CreatePendingInviteRequest, signal?: AbortSignal): Promise<CreatePendingInviteResponse> {
         let url_ = this.baseUrl + "/trainer/pending-invites";
@@ -4006,23 +3861,11 @@ export class ApiClient {
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+            return throwException("Unauthorized", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("The coach role was removed, the subscription does not include payments (PAYMENTS_NOT_ENTITLED), or the active-client limit is reached (CLIENT_LIMIT_REACHED).", status, _responseText, _headers);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("The package or discount is unknown or belongs to another coach.", status, _responseText, _headers);
-
-        } else if (status === 409) {
-            const _responseText = response.data;
-            return throwException("A duplicate invite exists, or the package is archived (PACKAGE_ARCHIVED), the discount is archived (DISCOUNT_ARCHIVED) or does not apply to the package (DISCOUNT_PACKAGE_INVALID).", status, _responseText, _headers);
-
-        } else if (status === 429) {
-            const _responseText = response.data;
-            return throwException("Too many open pending invites (TOO_MANY_PENDING_INVITES), or the invite rate limit was exceeded", status, _responseText, _headers);
+            return throwException("The coach role was removed, or the subscription does not include payments (PAYMENTS_NOT_ENTITLED).", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -4351,10 +4194,6 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
 
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("Professional profile not found", status, _responseText, _headers);
-
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -4491,7 +4330,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Invalid query parameters", status, _responseText, _headers, result400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -4500,10 +4339,6 @@ export class ApiClient {
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("The link grants no nutrition or training access to the caller", status, _responseText, _headers);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("Client not found, or not linked to the caller", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -5032,7 +4867,7 @@ export class ApiClient {
     /**
      * Accept a client request
      * @param publicId Public identifier of the client request (from route).
-     * @return Request accepted
+     * @return No Content
      */
     acceptClientRequestEndpoint(publicId: string, acceptClientRequestRequest: AcceptClientRequestRequest, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/trainer/client-requests/{publicId}/accept";
@@ -5083,15 +4918,15 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("The request is unknown or already processed (CLIENT_REQUEST_NOT_FOUND), or another coded refusal such as PROFESSION_ALREADY_OCCUPIED", status, _responseText, _headers, result400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+            return throwException("Unauthorized", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("The coach role was removed, or the coach is at the active-client limit (CLIENT_LIMIT_REACHED)", status, _responseText, _headers);
+            return throwException("Forbidden", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -5460,7 +5295,7 @@ export class ApiClient {
     /**
      * Assign a questionnaire to a client
      * @param clientPublicId Public identifier of the client (from route).
-     * @return Questionnaire assigned
+     * @return No Content
      */
     assignQuestionnaireEndpoint(clientPublicId: string, assignQuestionnaireRequest: AssignQuestionnaireRequest, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/trainer/clients/{clientPublicId}/assign-questionnaire";
@@ -5506,20 +5341,13 @@ export class ApiClient {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
 
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("The profile, client, link or questionnaire is unknown, or a check-in form was sent as a questionnaire (CHECK_IN_FORM_NOT_SENDABLE)", status, _responseText, _headers, result400);
-
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+            return throwException("Unauthorized", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("The subscription does not include questionnaires (SUBSCRIPTION_REQUIRED), or a removed coach role", status, _responseText, _headers);
+            return throwException("Forbidden", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -5596,14 +5424,6 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("Caller is not an Admin", status, _responseText, _headers);
 
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("No plan with this Code", status, _responseText, _headers);
-
-        } else if (status === 409) {
-            const _responseText = response.data;
-            return throwException("The Free plan cannot be repriced or deactivated", status, _responseText, _headers);
-
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -5661,7 +5481,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Invalid plan code", status, _responseText, _headers, result400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -5670,14 +5490,6 @@ export class ApiClient {
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("Caller is not an Admin", status, _responseText, _headers);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("No plan with this Code", status, _responseText, _headers);
-
-        } else if (status === 409) {
-            const _responseText = response.data;
-            return throwException("The Free plan cannot be deactivated", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -5809,10 +5621,6 @@ export class ApiClient {
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("Caller is not an Admin", status, _responseText, _headers);
-
-        } else if (status === 409) {
-            const _responseText = response.data;
-            return throwException("A plan with this Code already exists", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -7742,14 +7550,6 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("The response belongs to another client", status, _responseText, _headers);
 
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("Unknown response, or one outside the current collaboration", status, _responseText, _headers);
-
-        } else if (status === 409) {
-            const _responseText = response.data;
-            return throwException("The response has already been submitted, or it is a check-in past its answer window (CHECK_IN_ANSWER_WINDOW_CLOSED)", status, _responseText, _headers);
-
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -7955,7 +7755,7 @@ export class ApiClient {
 
     /**
      * Submit questionnaire response
-     * @return Response submitted
+     * @return No Content
      */
     submitResponseEndpoint(responsePublicId: string, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/client/questionnaire/response/{responsePublicId}/submit";
@@ -7993,16 +7793,9 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 200) {
+        if (status === 204) {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("A required question has no answer (QUESTIONNAIRE_REQUIRED_ANSWER_MISSING)", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -8011,14 +7804,6 @@ export class ApiClient {
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("The response belongs to another client", status, _responseText, _headers);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("Unknown response, or one outside the current collaboration", status, _responseText, _headers);
-
-        } else if (status === 409) {
-            const _responseText = response.data;
-            return throwException("The response is not open for submission, or it is a check-in past its answer window (CHECK_IN_ANSWER_WINDOW_CLOSED)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -8652,19 +8437,11 @@ export class ApiClient {
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+            return throwException("Unauthorized", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("No matching questionnaire, response or active link", status, _responseText, _headers);
-
-        } else if (status === 409) {
-            const _responseText = response.data;
-            return throwException("The response is a check-in past its answer window (CHECK_IN_ANSWER_WINDOW_CLOSED)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -8789,10 +8566,6 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
 
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("Unknown client, or the caller has no live link to it", status, _responseText, _headers);
-
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -8856,10 +8629,6 @@ export class ApiClient {
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("Unknown questionnaire, no client profile, or no active link to its owner", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -9415,19 +9184,11 @@ export class ApiClient {
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+            return throwException("Unauthorized", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("Link, invite or plan not found, or not the caller\'s", status, _responseText, _headers);
-
-        } else if (status === 409) {
-            const _responseText = response.data;
-            return throwException("The caller already has an open request for this client", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -10632,7 +10393,7 @@ export class ApiClient {
     /**
      * Instantiate a nutrition plan template
      * @param templateId The template's public identifier (route parameter).
-     * @return The new Draft plan
+     * @return Created
      */
     instantiateTemplateEndpoint(templateId: string, instantiateNutritionPlanTemplateRequest: InstantiateNutritionPlanTemplateRequest, signal?: AbortSignal): Promise<InstantiateNutritionPlanTemplateResponse> {
         let url_ = this.baseUrl + "/nutrition/plan-templates/{templateId}/instantiate";
@@ -10687,23 +10448,15 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Invalid request", status, _responseText, _headers, result400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+            return throwException("Unauthorized", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("The subscription does not include plans (SUBSCRIPTION_REQUIRED), or the client is over the Free plan\'s client limit (CLIENT_OVER_PLAN_LIMIT)", status, _responseText, _headers);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("Template or client not found, or not accessible to the caller", status, _responseText, _headers);
-
-        } else if (status === 409) {
-            const _responseText = response.data;
-            return throwException("The start date window overlaps another plan of the client (PLAN_OVERLAP)", status, _responseText, _headers);
+            return throwException("Forbidden", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -10904,7 +10657,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Invalid request, or a published week was removed or the start date is invalid", status, _responseText, _headers, result400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -10912,15 +10665,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("The subscription does not include plans (SUBSCRIPTION_REQUIRED), or the client is over the Free plan\'s client limit and the plan\'s last published week has ended or the start date changed (CLIENT_OVER_PLAN_LIMIT)", status, _responseText, _headers);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("Plan not found, or not editable by the caller", status, _responseText, _headers);
-
-        } else if (status === 409) {
-            const _responseText = response.data;
-            return throwException("PLAN_VERSION_CONFLICT, MEAL_LOCKED or PAST_DAY_LOCKED. Lock responses (MEAL_LOCKED, PAST_DAY_LOCKED) also carry the rejected meal as top-level mealId (null when the request sent none), weekNumber and dayOfWeek", status, _responseText, _headers);
+            return throwException("Forbidden", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -11057,7 +10802,7 @@ export class ApiClient {
      * Publish a week of a nutrition plan
      * @param planId Plan identifier.
      * @param weekNumber Week number to publish.
-     * @return The plan with the week published
+     * @return Success
      */
     publishWeekEndpoint(planId: string, weekNumber: number, publishWeekRequest: PublishWeekRequest, signal?: AbortSignal): Promise<GetPlanResponse> {
         let url_ = this.baseUrl + "/nutrition/plans/{planId}/weeks/{weekNumber}/publish";
@@ -11110,28 +10855,13 @@ export class ApiClient {
             result200 = JSON.parse(resultData200);
             return Promise.resolve<GetPlanResponse>(result200);
 
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("The week is missing or already published, or the start date is unset or the week starts in the past", status, _responseText, _headers, result400);
-
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+            return throwException("Unauthorized", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("The subscription does not include plans (SUBSCRIPTION_REQUIRED), or the client is over the Free plan\'s client limit (CLIENT_OVER_PLAN_LIMIT)", status, _responseText, _headers);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("Plan not found, or not editable by the caller", status, _responseText, _headers);
-
-        } else if (status === 409) {
-            const _responseText = response.data;
-            return throwException("The plan was changed concurrently (PLAN_VERSION_CONFLICT)", status, _responseText, _headers);
+            return throwException("Forbidden", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -11143,7 +10873,7 @@ export class ApiClient {
     /**
      * Link questionnaire to nutrition plan
      * @param planId Plan identifier.
-     * @return The updated plan
+     * @return Success
      */
     linkQuestionnaireEndpoint(planId: string, linkNutritionQuestionnaireRequest: LinkNutritionQuestionnaireRequest, signal?: AbortSignal): Promise<GetPlanResponse> {
         let url_ = this.baseUrl + "/nutrition/plans/{planId}/link-questionnaire";
@@ -11193,28 +10923,13 @@ export class ApiClient {
             result200 = JSON.parse(resultData200);
             return Promise.resolve<GetPlanResponse>(result200);
 
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("The plan is not Draft or Active, or the questionnaire response is not found or not submitted", status, _responseText, _headers, result400);
-
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+            return throwException("Unauthorized", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("The client is over the Free plan\'s client limit and the plan\'s last published week has ended (CLIENT_OVER_PLAN_LIMIT)", status, _responseText, _headers);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("Plan not found, or not editable by the caller", status, _responseText, _headers);
-
-        } else if (status === 409) {
-            const _responseText = response.data;
-            return throwException("The plan was changed concurrently (PLAN_VERSION_CONFLICT)", status, _responseText, _headers);
+            return throwException("Forbidden", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -11368,15 +11083,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("The caller\'s Nutritionist coach role was removed, the subscription does not include plans (SUBSCRIPTION_REQUIRED), or the client is over the Free plan\'s client limit (CLIENT_OVER_PLAN_LIMIT)", status, _responseText, _headers);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("Client not found, or not accessible to the caller", status, _responseText, _headers);
-
-        } else if (status === 409) {
-            const _responseText = response.data;
-            return throwException("The start date window overlaps another plan of the client (PLAN_OVERLAP)", status, _responseText, _headers);
+            return throwException("The caller\'s Nutritionist coach role was removed", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -11451,15 +11158,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("The subscription does not include plans (SUBSCRIPTION_REQUIRED), or the target client is over the Free plan\'s client limit (CLIENT_OVER_PLAN_LIMIT)", status, _responseText, _headers);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("Source plan or target client not found, or not accessible to the caller", status, _responseText, _headers);
-
-        } else if (status === 409) {
-            const _responseText = response.data;
-            return throwException("The start date window overlaps another plan of the target client (PLAN_OVERLAP)", status, _responseText, _headers);
+            return throwException("Forbidden", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -11811,10 +11510,6 @@ export class ApiClient {
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("Caller is a professional with no ProfessionalProfile.", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -14898,363 +14593,6 @@ export class ApiClient {
     }
 
     /**
-     * Choose the clients a lapsed plan keeps
-     * @return The choice was saved
-     */
-    setKeepClientsEndpoint(setKeepClientsRequest: SetKeepClientsRequest, signal?: AbortSignal): Promise<void> {
-        let url_ = this.baseUrl + "/users/me/subscription/keep-clients";
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(setKeepClientsRequest);
-
-        let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "PUT",
-            url: url_,
-            headers: {
-                "Content-Type": "application/json",
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processSetKeepClientsEndpoint(_response);
-        });
-    }
-
-    protected processSetKeepClientsEndpoint(response: AxiosResponse): Promise<void> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 204) {
-            const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("Invalid body, a duplicate id, or the wrong number of clients (KEEP_CLIENTS_COUNT_INVALID)", status, _responseText, _headers, result400);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("The caller is not a trainer or nutritionist, or the coach role was removed", status, _responseText, _headers);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("The caller has no professional profile, or an id is not one of the caller\'s live clients", status, _responseText, _headers);
-
-        } else if (status === 409) {
-            const _responseText = response.data;
-            return throwException("The paid plan has not lapsed and the Free plan is within its cap (SUBSCRIPTION_NOT_LAPSED)", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<void>(null as any);
-    }
-
-    /**
-     * List the clients a lapsed plan keeps
-     * @return The live clients and the cap
-     */
-    getKeepClientsEndpoint(signal?: AbortSignal): Promise<GetKeepClientsResponse> {
-        let url_ = this.baseUrl + "/users/me/subscription/keep-clients";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetKeepClientsEndpoint(_response);
-        });
-    }
-
-    protected processGetKeepClientsEndpoint(response: AxiosResponse): Promise<GetKeepClientsResponse> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<GetKeepClientsResponse>(result200);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("The caller is not a trainer or nutritionist, or the coach role was removed", status, _responseText, _headers);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("The caller has no professional profile", status, _responseText, _headers);
-
-        } else if (status === 409) {
-            const _responseText = response.data;
-            return throwException("The paid plan has not lapsed, the Free plan is within its cap and no plan choice is required (SUBSCRIPTION_NOT_LAPSED)", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<GetKeepClientsResponse>(null as any);
-    }
-
-    /**
-     * Assign a coach's subscription
-     * @param coachId Route parameter — the coach's user id; matches {CoachId} in the route exactly.
-     * @return The subscription as it now stands
-     */
-    setCoachSubscriptionEndpoint(coachId: string, setCoachSubscriptionRequest: SetCoachSubscriptionRequest, signal?: AbortSignal): Promise<SetCoachSubscriptionResponse> {
-        let url_ = this.baseUrl + "/admin/coaches/{coachId}/subscription";
-        if (coachId === undefined || coachId === null)
-            throw new globalThis.Error("The parameter 'coachId' must be defined.");
-        url_ = url_.replace("{coachId}", encodeURIComponent("" + coachId));
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(setCoachSubscriptionRequest);
-
-        let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "PUT",
-            url: url_,
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processSetCoachSubscriptionEndpoint(_response);
-        });
-    }
-
-    protected processSetCoachSubscriptionEndpoint(response: AxiosResponse): Promise<SetCoachSubscriptionResponse> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<SetCoachSubscriptionResponse>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("Invalid request body", status, _responseText, _headers, result400);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Missing or invalid credentials", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Caller is not an Admin", status, _responseText, _headers);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("The coach (user with a professional profile) or the plan code is unknown (PROFESSIONAL_NOT_FOUND, SUBSCRIPTION_PLAN_NOT_FOUND)", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<SetCoachSubscriptionResponse>(null as any);
-    }
-
-    /**
-     * List the plans a coach can choose
-     * @return The active plans, cheapest first
-     */
-    getCoachPlansEndpoint(signal?: AbortSignal): Promise<GetCoachPlansResponse> {
-        let url_ = this.baseUrl + "/users/me/subscription/plans";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetCoachPlansEndpoint(_response);
-        });
-    }
-
-    protected processGetCoachPlansEndpoint(response: AxiosResponse): Promise<GetCoachPlansResponse> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<GetCoachPlansResponse>(result200);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("The caller is not a trainer or nutritionist", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<GetCoachPlansResponse>(null as any);
-    }
-
-    /**
-     * Choose the Free plan after a given plan ended
-     * @return The Free plan was chosen
-     */
-    chooseFreePlanEndpoint(chooseFreePlanRequest: ChooseFreePlanRequest, signal?: AbortSignal): Promise<void> {
-        let url_ = this.baseUrl + "/users/me/subscription/choose-free";
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(chooseFreePlanRequest);
-
-        let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "POST",
-            url: url_,
-            headers: {
-                "Content-Type": "application/json",
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processChooseFreePlanEndpoint(_response);
-        });
-    }
-
-    protected processChooseFreePlanEndpoint(response: AxiosResponse): Promise<void> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 204) {
-            const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("Invalid body, a duplicate id, or the wrong number of clients to keep (KEEP_CLIENTS_COUNT_INVALID)", status, _responseText, _headers, result400);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("The caller is not a trainer or nutritionist, or the coach role was removed", status, _responseText, _headers);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("The caller has no professional profile, the Free plan is missing, or an id is not one of the caller\'s live clients", status, _responseText, _headers);
-
-        } else if (status === 409) {
-            const _responseText = response.data;
-            return throwException("No ended given plan is waiting for a choice (PLAN_CHOICE_NOT_REQUIRED)", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<void>(null as any);
-    }
-
-    /**
      * Update a package
      * @param packageId Route parameter — public id of the package.
      * @return Updated package
@@ -16602,10 +15940,6 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
 
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("Client not found, caller has no active link to the client, or one or more tags were not found", status, _responseText, _headers);
-
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -16802,7 +16136,7 @@ export class ApiClient {
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+            return throwException("Unauthorized", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
@@ -17039,28 +16373,13 @@ export class ApiClient {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
 
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("The client already has an active professional in this profession (PROFESSION_ALREADY_OCCUPIED)", status, _responseText, _headers, result400);
-
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+            return throwException("Unauthorized", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("The coach role was removed (COACH_ROLE_REMOVED), or the coach is at the active-client limit (CLIENT_LIMIT_REACHED)", status, _responseText, _headers);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("The request is unknown or not the caller\'s (CLIENT_REQUEST_NOT_FOUND)", status, _responseText, _headers);
-
-        } else if (status === 409) {
-            const _responseText = response.data;
-            return throwException("The request has no open proposal (CLIENT_REQUEST_INVALID_STATE)", status, _responseText, _headers);
+            return throwException("The coach role was removed (COACH_ROLE_REMOVED)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -17328,7 +16647,7 @@ export class ApiClient {
 
         } else if (status === 409) {
             const _responseText = response.data;
-            return throwException("The diary request is not Accepted/InProgress, or its window has expired (PHOTO_DIARY_REQUEST_EXPIRED)", status, _responseText, _headers);
+            return throwException("The diary request is not Accepted/InProgress, or its window has expired (PHOTO_DIARY_REQUEST_EXPIRED); one-time requests never expire", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -17628,10 +16947,7 @@ export class ApiClient {
 
         } else if (status === 400) {
             const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("Invalid request, or blob URL not under the caller\'s unlinked prefix", status, _responseText, _headers, result400);
+            return throwException("Invalid request, or blob URL not under the caller\'s unlinked prefix", status, _responseText, _headers);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -17640,6 +16956,14 @@ export class ApiClient {
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Caller has no client profile, or the diary request is unknown or not the caller\'s", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("The diary request is not Accepted/InProgress (PHOTO_DIARY_REQUEST_INVALID_STATUS), or its window has expired (PHOTO_DIARY_REQUEST_EXPIRED)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -18441,10 +17765,6 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
 
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("No client profile, or the meal is not in the client\'s current plan, or (errorCode MEAL_ITEM_NOT_FOUND) the item is not in the meal", status, _responseText, _headers);
-
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -18523,10 +17843,6 @@ export class ApiClient {
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("No client profile, or the meal is not in the client\'s current plan, or (errorCode MEAL_ITEM_NOT_FOUND) the item is not in the meal", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -18679,10 +17995,6 @@ export class ApiClient {
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("No such meal in the client\'s plans", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -19562,10 +18874,6 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
 
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("Client profile or active plan with a published week not found", status, _responseText, _headers);
-
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -19636,10 +18944,6 @@ export class ApiClient {
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("Plan not found, not owned by the caller, not Active or Completed, or without a published week", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -20969,14 +20273,6 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
 
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("No client profile", status, _responseText, _headers);
-
-        } else if (status === 409) {
-            const _responseText = response.data;
-            return throwException("Onboarding not completed (ONBOARDING_NOT_COMPLETED)", status, _responseText, _headers);
-
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -21406,7 +20702,7 @@ export class ApiClient {
 
     /**
      * Accept a pending invite
-     * @return Invite accepted
+     * @return No Content
      */
     acceptClientInviteEndpoint(id: string, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/client/invites/{id}/accept";
@@ -21448,28 +20744,13 @@ export class ApiClient {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
 
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("The profession slot is already taken (PROFESSION_ALREADY_OCCUPIED)", status, _responseText, _headers, result400);
-
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+            return throwException("Unauthorized", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("The coach role was removed, or the coach is at the active-client limit (CLIENT_LIMIT_REACHED)", status, _responseText, _headers);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("Invite not found, not addressed to the caller, or the caller is a coach", status, _responseText, _headers);
-
-        } else if (status === 409) {
-            const _responseText = response.data;
-            return throwException("The invite has expired (INVITE_EXPIRED)", status, _responseText, _headers);
+            return throwException("Forbidden", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -22186,10 +21467,6 @@ export class ApiClient {
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("The live link grants no access", status, _responseText, _headers);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("Client not found, or the caller has no live link to them", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -23272,7 +22549,7 @@ export class ApiClient {
 
     /**
      * Accept a trainer invitation
-     * @return Invitation accepted
+     * @return Success
      */
     acceptInvitationEndpoint(acceptInvitationRequest: AcceptInvitationRequest, signal?: AbortSignal): Promise<AcceptInvitationResponse> {
         let url_ = this.baseUrl + "/auth/invite/accept";
@@ -23324,418 +22601,21 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Invalid, used or expired token, or the profession slot is already taken (PROFESSION_ALREADY_OCCUPIED)", status, _responseText, _headers, result400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+            return throwException("Unauthorized", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("The coach role was removed, or the coach is at the active-client limit (CLIENT_LIMIT_REACHED)", status, _responseText, _headers);
+            return throwException("Forbidden", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<AcceptInvitationResponse>(null as any);
-    }
-
-    /**
-     * List coaches
-     * @param page Page number (1-based). Defaults to 1.
-     * @param pageSize Number of rows per page, 1 to 100. Defaults to 20.
-     * @param status Status bucket to list. Defaults to every coach.
-     * @param search (optional) Optional search by coach name or email.
-     * @return A page of coaches and the stats
-     */
-    listAdminCoachesEndpoint(page: number, pageSize: number, status: AdminCoachStatusFilter, search?: string | null | undefined, signal?: AbortSignal): Promise<ListAdminCoachesResponse> {
-        let url_ = this.baseUrl + "/admin/coaches?";
-        if (page === undefined || page === null)
-            throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
-        else
-            url_ += "page=" + encodeURIComponent("" + page) + "&";
-        if (pageSize === undefined || pageSize === null)
-            throw new globalThis.Error("The parameter 'pageSize' must be defined and cannot be null.");
-        else
-            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
-        if (status === undefined || status === null)
-            throw new globalThis.Error("The parameter 'status' must be defined and cannot be null.");
-        else
-            url_ += "status=" + encodeURIComponent("" + status) + "&";
-        if (search !== undefined && search !== null)
-            url_ += "search=" + encodeURIComponent("" + search) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processListAdminCoachesEndpoint(_response);
-        });
-    }
-
-    protected processListAdminCoachesEndpoint(response: AxiosResponse): Promise<ListAdminCoachesResponse> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<ListAdminCoachesResponse>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("Invalid paging, status filter or search", status, _responseText, _headers, result400);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Missing or invalid credentials", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Caller is not an Admin", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<ListAdminCoachesResponse>(null as any);
-    }
-
-    /**
-     * Give a coach a plan for free
-     * @param coachId Route parameter — the coach's user id; matches {CoachId} in the route exactly.
-     * @return The gift as it now stands
-     */
-    giveCoachPlanFreeEndpoint(coachId: string, giveCoachPlanFreeRequest: GiveCoachPlanFreeRequest, signal?: AbortSignal): Promise<GiveCoachPlanFreeResponse> {
-        let url_ = this.baseUrl + "/admin/coaches/{coachId}/give-free";
-        if (coachId === undefined || coachId === null)
-            throw new globalThis.Error("The parameter 'coachId' must be defined.");
-        url_ = url_.replace("{coachId}", encodeURIComponent("" + coachId));
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(giveCoachPlanFreeRequest);
-
-        let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "POST",
-            url: url_,
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGiveCoachPlanFreeEndpoint(_response);
-        });
-    }
-
-    protected processGiveCoachPlanFreeEndpoint(response: AxiosResponse): Promise<GiveCoachPlanFreeResponse> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<GiveCoachPlanFreeResponse>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("Invalid request body", status, _responseText, _headers, result400);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Missing or invalid credentials", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Caller is not an Admin", status, _responseText, _headers);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("The coach or the plan code is unknown (PROFESSIONAL_NOT_FOUND, SUBSCRIPTION_PLAN_NOT_FOUND)", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<GiveCoachPlanFreeResponse>(null as any);
-    }
-
-    /**
-     * Get a coach
-     * @param coachId Route parameter — the coach's user id; matches {CoachId} in the route exactly.
-     * @return The coach
-     */
-    getAdminCoachEndpoint(coachId: string, signal?: AbortSignal): Promise<GetAdminCoachResponse> {
-        let url_ = this.baseUrl + "/admin/coaches/{coachId}";
-        if (coachId === undefined || coachId === null)
-            throw new globalThis.Error("The parameter 'coachId' must be defined.");
-        url_ = url_.replace("{coachId}", encodeURIComponent("" + coachId));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetAdminCoachEndpoint(_response);
-        });
-    }
-
-    protected processGetAdminCoachEndpoint(response: AxiosResponse): Promise<GetAdminCoachResponse> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<GetAdminCoachResponse>(result200);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Missing or invalid credentials", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Caller is not an Admin", status, _responseText, _headers);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("The coach is unknown (PROFESSIONAL_NOT_FOUND)", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<GetAdminCoachResponse>(null as any);
-    }
-
-    /**
-     * Disable a coach's account
-     * @param coachId Route parameter — the coach's user id; matches {CoachId} in the route exactly.
-     * @return Date the account stops being active and the roles removed by this call
-     */
-    disableCoachAccountByAdminEndpoint(coachId: string, disableCoachAccountByAdminRequest: DisableCoachAccountByAdminRequest, signal?: AbortSignal): Promise<DisableCoachAccountByAdminResponse> {
-        let url_ = this.baseUrl + "/admin/coaches/{coachId}/disable";
-        if (coachId === undefined || coachId === null)
-            throw new globalThis.Error("The parameter 'coachId' must be defined.");
-        url_ = url_.replace("{coachId}", encodeURIComponent("" + coachId));
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(disableCoachAccountByAdminRequest);
-
-        let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "POST",
-            url: url_,
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processDisableCoachAccountByAdminEndpoint(_response);
-        });
-    }
-
-    protected processDisableCoachAccountByAdminEndpoint(response: AxiosResponse): Promise<DisableCoachAccountByAdminResponse> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<DisableCoachAccountByAdminResponse>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("Invalid request body, or the coach has no active coach role (NO_ACTIVE_COACH_ROLE)", status, _responseText, _headers, result400);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Missing or invalid credentials", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Caller is not an Admin", status, _responseText, _headers);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("The coach is unknown (PROFESSIONAL_NOT_FOUND)", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<DisableCoachAccountByAdminResponse>(null as any);
-    }
-
-    /**
-     * Cancel a coach's renewal
-     * @param coachId Route parameter — the coach's user id; matches {CoachId} in the route exactly.
-     * @return The renewal is cancelled
-     */
-    cancelCoachRenewalEndpoint(coachId: string, cancelCoachRenewalRequest: CancelCoachRenewalRequest, signal?: AbortSignal): Promise<CancelCoachRenewalResponse> {
-        let url_ = this.baseUrl + "/admin/coaches/{coachId}/cancel-renewal";
-        if (coachId === undefined || coachId === null)
-            throw new globalThis.Error("The parameter 'coachId' must be defined.");
-        url_ = url_.replace("{coachId}", encodeURIComponent("" + coachId));
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(cancelCoachRenewalRequest);
-
-        let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "POST",
-            url: url_,
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processCancelCoachRenewalEndpoint(_response);
-        });
-    }
-
-    protected processCancelCoachRenewalEndpoint(response: AxiosResponse): Promise<CancelCoachRenewalResponse> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<CancelCoachRenewalResponse>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("Invalid request body", status, _responseText, _headers, result400);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Missing or invalid credentials", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Caller is not an Admin", status, _responseText, _headers);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            return throwException("The coach is unknown (PROFESSIONAL_NOT_FOUND)", status, _responseText, _headers);
-
-        } else if (status === 409) {
-            const _responseText = response.data;
-            let result409: any = null;
-            let resultData409  = _responseText;
-            result409 = JSON.parse(resultData409);
-            return throwException("Nothing renews: no subscription, the Free plan, a given-free plan, or a plan that no longer applies (NO_RENEWING_SUBSCRIPTION)", status, _responseText, _headers, result409);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<CancelCoachRenewalResponse>(null as any);
     }
 }
 
@@ -24244,106 +23124,6 @@ Empty for non-client users. */
 export interface GetNotificationPreferencesResponse {
     /** One entry per notification event. */
     preferences?: NotificationPreferenceDto[];
-}
-
-/** The caller's coach subscription: plan, standing, client usage, second-role state, monthly price and the feature flags that currently apply. */
-export interface GetMySubscriptionResponse {
-    /** Code of the plan the subscription is on (the Free plan when the coach has no subscription). */
-    planCode?: string;
-    /** Czech plan name. */
-    nameCs?: string;
-    /** English plan name. */
-    nameEn?: string;
-    /** German plan name. */
-    nameDe?: string;
-    /** Subscription status, or null when the coach has no subscription and is on Free by default. */
-    status?: SubscriptionStatus | undefined;
-    /** When the current billing period ends, if known. */
-    currentPeriodEndsAt?: string | undefined;
-    /** True when the subscription will not renew. */
-    cancelAtPeriodEnd?: boolean;
-    /** While now is before this instant the assigned plan's features apply whatever the status is. */
-    freeUntil?: string | undefined;
-    /** True when the paid plan has lapsed (Canceled or Incomplete with no free-features deadline in force). The plan
-fields then describe the Free plan and ActiveClientCount is the number of kept clients. */
-    isLapsed?: boolean;
-    /** Czech name of the plan that lapsed; null unless IsLapsed. */
-    lapsedPlanNameCs?: string | undefined;
-    /** English name of the plan that lapsed; null unless IsLapsed. */
-    lapsedPlanNameEn?: string | undefined;
-    /** German name of the plan that lapsed; null unless IsLapsed. */
-    lapsedPlanNameDe?: string | undefined;
-    /** When the lapsed plan ended (the period end), if known; null unless IsLapsed. */
-    endedAt?: string | undefined;
-    /** True when an admin-given plan has ended and the coach has not chosen a plan yet. The plan fields still describe
-the ended plan. Never true together with IsLapsed. */
-    planChoiceRequired?: boolean;
-    /** Czech name of the ended given plan; null unless PlanChoiceRequired. */
-    endedPlanNameCs?: string | undefined;
-    /** English name of the ended given plan; null unless PlanChoiceRequired. */
-    endedPlanNameEn?: string | undefined;
-    /** German name of the ended given plan; null unless PlanChoiceRequired. */
-    endedPlanNameDe?: string | undefined;
-    /** Live clients above the Free plan's cap; zero unless IsLapsed or the coach is on an explicit Free plan with clients over the cap. */
-    overCapClientCount?: number;
-    /** Distinct active clients across all the coach's roles; the kept clients while lapsed. */
-    activeClientCount?: number;
-    /** Active-client limit that applies now; null means unlimited. */
-    clientLimit?: number | undefined;
-    /** Whether a second professional role is included, paid for as an add-on, or not available. */
-    secondRole?: SecondRoleState;
-    /** Monthly price lines: the plan, plus the second-role add-on when it is paid. */
-    priceLines?: SubscriptionPriceLineDto[];
-    /** The feature flags that currently apply. */
-    features?: SubscriptionFeaturesDto;
-}
-
-/** Lifecycle status of a coach's subscription. */
-export enum SubscriptionStatus {
-    Trialing = "Trialing",
-    Active = "Active",
-    PastDue = "PastDue",
-    Canceled = "Canceled",
-    Incomplete = "Incomplete",
-}
-
-/** Whether a coach may hold a second professional role under their current subscription. */
-export enum SecondRoleState {
-    Included = "Included",
-    PaidAddOn = "PaidAddOn",
-    NotAvailable = "NotAvailable",
-}
-
-/** One line of the monthly price. */
-export interface SubscriptionPriceLineDto {
-    /** What the line charges for. */
-    kind?: SubscriptionPriceLineKind;
-    /** Amount in the smallest unit of Currency. */
-    amountMinorUnits?: number;
-    /** ISO 4217 currency code. */
-    currency?: string;
-}
-
-/** What a SubscriptionPriceLineDto charges for. */
-export enum SubscriptionPriceLineKind {
-    Plan = "Plan",
-    SecondRoleAddOn = "SecondRoleAddOn",
-}
-
-/** The resolved feature flags of the coach's subscription. */
-export interface SubscriptionFeaturesDto {
-    /** Creating, editing and publishing plans. */
-    canCreatePlans?: boolean;
-    /** Messaging clients. */
-    canMessage?: boolean;
-    /** Sending questionnaires and forms. */
-    canSendQuestionnaires?: boolean;
-    /** Weekly check-ins. */
-    canUseWeeklyCheckIns?: boolean;
-    /** Per-client check-in configuration. */
-    canUsePerClientCheckInConfig?: boolean;
-    /** The payments feature. */
-    canUsePayments?: boolean;
 }
 
 /** The caller's active coach roles with client counts. */
@@ -25963,7 +24743,7 @@ hover popover. Omits any domain the link does not grant. */
     activePlans?: ClientActivePlanDto[];
 }
 
-/** Derived status of a client on the trainer's clients list. Never stored — computed per request from the link's ConnectionState plus whether an in-window Active plan exists in a domain the link grants (see GetClientsEndpoint). */
+/** Derived status of a client on the trainer's clients list. Never stored — computed per request from the link's IsActive flag plus whether an in-window Active plan exists in a domain the link grants (see GetClientsEndpoint). */
 export enum ClientListStatus {
     Active = "Active",
     Paused = "Paused",
@@ -26538,8 +25318,8 @@ export interface SubscriptionPlanDto {
     nameEn?: string;
     /** German plan name. */
     nameDe?: string;
-    /** True when the plan covers both professional roles at no extra charge. */
-    bothRolesIncluded?: boolean;
+    /** Which professional role(s) this plan applies to. */
+    applicableRoles?: ApplicableRoles;
     /** Whether the plan allows creating nutrition/training plans. */
     canCreatePlans?: boolean;
     /** Whether the plan allows messaging clients. */
@@ -26554,21 +25334,23 @@ export interface SubscriptionPlanDto {
     canUsePayments?: boolean;
     /** Maximum number of active clients allowed under this plan. Null means unlimited. */
     maxActiveClients?: number | undefined;
-    /** Current plan price, expressed in the smallest unit of Currency. */
+    /** Plan price, expressed in the smallest unit of Currency. */
     priceMinorUnits?: number;
-    /** Current price of the second-role add-on. Null when both roles are included. */
-    secondRoleAddOnPriceMinorUnits?: number | undefined;
-    /** ISO 4217 currency code for the prices. */
+    /** ISO 4217 currency code for PriceMinorUnits. */
     currency?: string;
     /** Billing cadence for this plan. */
     billingInterval?: BillingInterval;
-    /** External payment-provider price identifier of the current price, once billing integration ships. */
+    /** External payment-provider price identifier, once billing integration ships. */
     externalPriceId?: string | undefined;
     /** Whether the plan is currently offered/selectable. */
     isActive?: boolean;
-    /** Number of coaches with a live subscription (trialing, active or past due) on this plan.
-Coaches without a subscription row are not counted. */
-    coachCount?: number;
+}
+
+/** Which professional role(s) a SubscriptionPlan applies to. */
+export enum ApplicableRoles {
+    Trainer = "Trainer",
+    Nutritionist = "Nutritionist",
+    Both = "Both",
 }
 
 /** Billing cadence for a SubscriptionPlan. */
@@ -26585,14 +25367,8 @@ export interface UpdateSubscriptionPlanRequest {
     nameEn: string;
     /** German plan name. */
     nameDe: string;
-    /** True when the plan covers both professional roles at no extra charge. Required; exactly
-one of this and SecondRoleAddOnPriceMinorUnits must be set. */
-    bothRolesIncluded: boolean;
-    /** Price of the second-role add-on. Must be positive; omit when both roles are included. */
-    secondRoleAddOnPriceMinorUnits?: number | undefined;
-    /** When the price changes, mark every coach currently on the plan to move to the new price
-at their next renewal. Defaults to false: coaches keep the price row they pay. */
-    moveExistingCoachesAtNextRenewal?: boolean;
+    /** Which professional role(s) this plan applies to. */
+    applicableRoles?: ApplicableRoles;
     /** Whether the plan allows creating nutrition/training plans. Required. */
     canCreatePlans: boolean;
     /** Whether the plan allows messaging clients. Required. */
@@ -26650,11 +25426,8 @@ export interface CreateSubscriptionPlanRequest {
     nameEn: string;
     /** German plan name. */
     nameDe: string;
-    /** True when the plan covers both professional roles at no extra charge. Exactly one of this
-and SecondRoleAddOnPriceMinorUnits must be set. */
-    bothRolesIncluded?: boolean;
-    /** Price of the second-role add-on. Must be positive; omit when both roles are included. */
-    secondRoleAddOnPriceMinorUnits?: number | undefined;
+    /** Which professional role(s) this plan applies to. */
+    applicableRoles?: ApplicableRoles;
     /** Whether the plan allows creating nutrition/training plans. */
     canCreatePlans?: boolean;
     /** Whether the plan allows messaging clients. */
@@ -28017,9 +26790,9 @@ export interface PhotoDiaryRequestSummary {
     completedAt?: string | undefined;
     createdAt?: string;
     updatedAt?: string;
-    /** End of the open window (CreatedAt + DurationDays). */
-    endsAt?: string;
-    /** True while the request is Pending/Accepted/InProgress and before EndsAt. */
+    /** End of the open window (CreatedAt + DurationDays); null for a one-time (Bulk) request, which never expires. */
+    endsAt?: string | undefined;
+    /** True while the request is Pending/Accepted/InProgress and has not reached EndsAt. */
     isOpen?: boolean;
 }
 
@@ -28036,6 +26809,12 @@ export interface ListClientRequestsResponse {
 export interface ClientPhotoDiaryRequestSummary {
     id?: string;
     professionalId?: string;
+    /** Public id of the coach's professional profile, as in the collaborations list. */
+    professionalPublicId?: string;
+    /** The coach's full name. */
+    professionalName?: string;
+    /** The role the coach holds in the link; null when the request was sent with an invite. */
+    professionalRole?: UserRole | undefined;
     linkId?: number | undefined;
     pendingInviteId?: number | undefined;
     planId?: string | undefined;
@@ -28049,6 +26828,14 @@ export interface ClientPhotoDiaryRequestSummary {
     completedAt?: string | undefined;
     createdAt?: string;
     updatedAt?: string;
+}
+
+/** Defines the available roles within Form Up. */
+export enum UserRole {
+    Admin = "Admin",
+    Trainer = "Trainer",
+    Nutritionist = "Nutritionist",
+    Client = "Client",
 }
 
 /** Query parameters for the client's photo diary request list. */
@@ -30084,128 +28871,6 @@ export interface CreateCoachDiscountRequest {
 export interface ArchiveCoachDiscountRequest {
 }
 
-/** The clients a lapsed coach chooses to keep on the Free plan. */
-export interface SetKeepClientsRequest {
-    /** Public ids of the clients to keep: unique, and as many as the Free plan's cap allows (or all clients when fewer). */
-    clientIds: string[];
-}
-
-/** The coach's subscription as it now stands. */
-export interface SetCoachSubscriptionResponse {
-    /** The coach's user id. */
-    coachId?: string;
-    /** Code of the assigned plan. */
-    planCode?: string;
-    /** Status now set. */
-    status?: SubscriptionStatus;
-    /** The free-features deadline, or null. */
-    freeUntil?: string | undefined;
-    /** True when the coach pays for the second-role add-on. */
-    paysSecondRoleAddOn?: boolean;
-}
-
-/** Request for assigning a coach's subscription. */
-export interface SetCoachSubscriptionRequest {
-    /** Code of the plan to assign. An inactive plan may be assigned. */
-    planCode: string;
-    /** Status to set. */
-    status?: SubscriptionStatus;
-    /** While now is before this instant the assigned plan's features apply whatever the status is. */
-    freeUntil?: string | undefined;
-    /** True when the coach pays for the second-role add-on. */
-    paysSecondRoleAddOn?: boolean;
-}
-
-/** The caller's live clients after a paid plan lapsed, with which ones the Free plan keeps. */
-export interface GetKeepClientsResponse {
-    /** How many clients the Free plan keeps; null means unlimited. */
-    cap?: number | undefined;
-    /** The caller's live clients, one entry per client even when linked in both roles. */
-    clients?: KeepClientDto[];
-}
-
-/** One live client of a lapsed coach. */
-export interface KeepClientDto {
-    /** Public id of the client's profile; the id the keep-clients save expects. */
-    clientId?: string;
-    /** The client's first name. */
-    firstName?: string;
-    /** The client's last name. */
-    lastName?: string;
-    /** The coach roles the client is linked under. */
-    roles?: UserRole[];
-    /** True when the Free plan keeps this client; false when the client is over the cap. */
-    isKept?: boolean;
-    /** Last day of the last published week across the caller's plans for this client; null when none is published. */
-    publishedWeeksEnd?: string | undefined;
-    /** What happens to the client from now on. */
-    afterLapse?: KeepClientAfterLapse;
-}
-
-/** Defines the available roles within Form Up. */
-export enum UserRole {
-    Admin = "Admin",
-    Trainer = "Trainer",
-    Nutritionist = "Nutritionist",
-    Client = "Client",
-}
-
-/** What a lapsed coach can still do for a client. */
-export enum KeepClientAfterLapse {
-    FullAccess = "FullAccess",
-    RunsUntilEndThenReadOnly = "RunsUntilEndThenReadOnly",
-    ReadOnly = "ReadOnly",
-}
-
-/** The subscription plans a coach can choose between. */
-export interface GetCoachPlansResponse {
-    /** Active plans, cheapest first. */
-    plans?: CoachPlanDto[];
-}
-
-/** One plan a coach can choose: names, current price, client cap and feature flags. */
-export interface CoachPlanDto {
-    /** Stable code of the plan. */
-    code?: string;
-    /** Czech plan name. */
-    nameCs?: string;
-    /** English plan name. */
-    nameEn?: string;
-    /** German plan name. */
-    nameDe?: string;
-    /** Current price per billing interval, in the smallest unit of Currency. */
-    priceMinorUnits?: number;
-    /** Current price of the second-role add-on in the same unit; null when both roles are included. */
-    secondRoleAddOnPriceMinorUnits?: number | undefined;
-    /** ISO 4217 currency code. */
-    currency?: string;
-    /** How often the plan is billed. */
-    billingInterval?: BillingInterval;
-    /** Active-client cap; null means unlimited. */
-    maxActiveClients?: number | undefined;
-    /** True when the plan covers both professional roles at no extra charge. */
-    bothRolesIncluded?: boolean;
-    /** Creating, editing and publishing plans. */
-    canCreatePlans?: boolean;
-    /** Messaging clients. */
-    canMessage?: boolean;
-    /** Sending questionnaires and forms. */
-    canSendQuestionnaires?: boolean;
-    /** Weekly check-ins. */
-    canUseWeeklyCheckIns?: boolean;
-    /** Per-client check-in configuration. */
-    canUsePerClientCheckInConfig?: boolean;
-    /** The payments feature. */
-    canUsePayments?: boolean;
-}
-
-/** The coach's choice of the Free plan after an admin-given plan ended. */
-export interface ChooseFreePlanRequest {
-    /** Public ids of the clients to keep on the Free plan: unique, and exactly as many as the Free plan's cap.
-Required when the coach has more live clients than the cap; ignored otherwise. */
-    keepClientIds: string[];
-}
-
 /** A coach package as shown to its owner — reused by the list, get, create and update actions. */
 export interface CoachPackageDto {
     /** Public id of the package. */
@@ -30521,9 +29186,6 @@ compatibility with consumers that still reference the singular session. */
     questionnaireResponseId?: string | undefined;
     /** When this plan was marked as completed, if applicable. */
     dateCompleted?: string | undefined;
-    /** Last day of the plan's last published week, set only when the plan's coach no longer has a plan that covers
-this client: after it the plan is read-only. Null otherwise. */
-    runsUntil?: string | undefined;
     /** Per-exercise muscle groups, keyed by SessionExercise.ExerciseExternalId.
 Empty when an exercise no longer exists in the database. Populated by
 looking up Exercise documents for every exercise referenced by today's
@@ -30690,9 +29352,6 @@ export interface GetFullTrainingPlanResponse {
     questionnaireResponseId?: string | undefined;
     /** When this plan was marked as completed, if applicable. */
     dateCompleted?: string | undefined;
-    /** Last day of the plan's last published week, set only when the plan's coach no longer has a plan that covers
-this client: after it the plan is read-only. Null otherwise. */
-    runsUntil?: string | undefined;
     /** Published weeks with sessions and completion state. */
     weeks?: WeekDto[];
 }
@@ -31218,6 +29877,9 @@ export interface FinalizeUnlinkedPhotoRequest {
     description?: string | undefined;
     /** When the photo was taken. Defaults to UtcNow when not provided. */
     takenAt?: string | undefined;
+    /** Optional diary request ID. When set, the photo answers that request; the same rules apply as
+for a plan photo (owned by the caller, Accepted or InProgress, not past its end date). */
+    diaryRequestId?: string | undefined;
 }
 
 /** Request model for finalizing a plan photo upload by inserting a PlanPhoto row. The caller must have already uploaded the photo to blob storage using the URL from POST /client/plans/{planId}/photos/upload-url. */
@@ -31794,9 +30456,6 @@ export interface GetWeekPlanResponse {
     days?: PlanDay[];
     /** Global daily nutrition targets for the plan. */
     globalSettings?: GlobalNutritionSettings | undefined;
-    /** Last day of the plan's last published week, set only when the plan's coach no longer has a plan that covers
-this client: after it the plan is read-only. Null otherwise. */
-    runsUntil?: string | undefined;
 }
 
 /** The meal log of one plan week: eaten state and photos per meal per day. */
@@ -31879,9 +30538,6 @@ export interface GetTodayPlanResponse {
     globalSettings?: GlobalNutritionSettings | undefined;
     /** Optional nutritionist note for today's plan day. */
     dayNote?: string | undefined;
-    /** Last day of the plan's last published week, set only when the plan's coach no longer has a plan that covers
-this client: after it the plan is read-only. Null otherwise. */
-    runsUntil?: string | undefined;
 }
 
 /** Response model for the client's meal log for today. */
@@ -32047,9 +30703,6 @@ export interface GetFullPlanResponse {
     publishedWeekCount?: number;
     /** Total number of weeks in the plan (including draft). */
     totalWeeks?: number;
-    /** Last day of the plan's last published week, set only when the plan's coach no longer has a plan that covers
-this client: after it the plan is read-only. Null otherwise. */
-    runsUntil?: string | undefined;
     /** Current week number (null if plan is upcoming). */
     currentWeek?: number | undefined;
     /** Current day of week 1-7 (null if plan is upcoming). */
@@ -32528,8 +31181,6 @@ Nutrition plans only; null without a StartDate or when no meals are planned yet.
     professionalName?: string | undefined;
     /** "Trainer" for training plans, "Nutritionist" for nutrition plans. */
     professionalRole?: string;
-    /** Last day the published weeks cover. Filled only when the client is over the lapsed coach's Free plan cap; null otherwise. */
-    runsUntil?: string | undefined;
 }
 
 /** Optional query parameters for filtering client plans. */
@@ -33452,242 +32103,6 @@ export interface AcceptInvitationResponse {
 export interface AcceptInvitationRequest {
     /** The one-time invitation token received from the trainer. */
     token: string;
-}
-
-/** One page of coaches plus the stats over all coaches. */
-export interface ListAdminCoachesResponse {
-    /** Counts and revenue over every coach, independent of the filter, search and page. */
-    stats?: AdminCoachStatsDto;
-    /** The rows of the requested page. */
-    items?: AdminCoachRowDto[];
-}
-
-/** Counts and revenue over every coach. Paying, Free and Given free add up to All; Payment failed and Cancelling are already part of Paying. */
-export interface AdminCoachStatsDto {
-    /** Every coach. */
-    allCount?: number;
-    /** Coaches paying for a paid plan, including those whose payment failed or whose renewal is cancelled. */
-    payingCount?: number;
-    /** Paying coaches whose last payment failed. */
-    paymentFailedCount?: number;
-    /** Paying coaches whose renewal is cancelled. */
-    cancellingCount?: number;
-    /** Coaches on the Free plan or on a plan that no longer applies. */
-    freeCount?: number;
-    /** Coaches an admin gave a plan for free, gift still in force. */
-    givenFreeCount?: number;
-    /** Paying coaches per plan. */
-    payingByPlan?: AdminCoachPlanCountDto[];
-    /** Monthly revenue of the paying coaches, one entry per currency. Each coach counts at the price row they pay
-plus the second-role add-on they pay; annual plans count a twelfth. Free, given-free and trialing coaches add nothing. */
-    monthlyRevenue?: AdminCoachRevenueDto[];
-}
-
-/** Number of paying coaches on a plan. */
-export interface AdminCoachPlanCountDto {
-    /** The plan. */
-    plan?: AdminCoachPlanDto;
-    /** Paying coaches on it. */
-    count?: number;
-}
-
-/** A subscription plan as an admin sees it on a coach. */
-export interface AdminCoachPlanDto {
-    /** Stable plan code, e.g. pro. */
-    code?: string;
-    /** Czech plan name. */
-    nameCs?: string;
-    /** English plan name. */
-    nameEn?: string;
-    /** German plan name. */
-    nameDe?: string;
-}
-
-/** Monthly revenue in one currency. */
-export interface AdminCoachRevenueDto {
-    /** ISO 4217 currency code. */
-    currency?: string;
-    /** Amount in the smallest unit of the currency. */
-    amountMinorUnits?: number;
-}
-
-/** One coach row. Never carries anything about the coach's clients except counts. */
-export interface AdminCoachRowDto {
-    /** The coach's user id; the route parameter of the coach actions. */
-    coachId?: string;
-    /** The coach's name. */
-    name?: string;
-    /** The coach's email. */
-    email?: string | undefined;
-    /** Active coach roles (Trainer, Nutritionist); empty once every role was removed. */
-    roles?: string[];
-    /** The plan whose limits apply: the assigned plan while it applies, otherwise the Free plan. */
-    plan?: AdminCoachPlanDto;
-    /** The coach's status. */
-    status?: AdminCoachStatus;
-    /** Active clients: distinct clients with a link that is not ended. */
-    clientsUsed?: number;
-    /** The plan's client limit; null means unlimited. */
-    clientsMax?: number | undefined;
-    /** Promotion applied to the coach. Always null until promotions exist. */
-    promotion?: string | undefined;
-    /** End of the current paid period (renewal, or end when cancelling); null unless the coach is paying. */
-    currentPeriodEndsAt?: string | undefined;
-    /** End of the gift; null unless the plan is given free, and null when the gift has no end. */
-    givenFreeUntil?: string | undefined;
-}
-
-/** The one status an admin sees on a coach: the most specific of the filter buckets. */
-export enum AdminCoachStatus {
-    Paying = "Paying",
-    PaymentFailed = "PaymentFailed",
-    Cancelling = "Cancelling",
-    Free = "Free",
-    GivenFree = "GivenFree",
-}
-
-/** Query for the admin coaches list. */
-export interface ListAdminCoachesRequest {
-}
-
-/** Filter of the admin coaches list. Paying, Free and GivenFree split every coach exactly once; PaymentFailed and Cancelling are subsets of Paying. */
-export enum AdminCoachStatusFilter {
-    All = "All",
-    Paying = "Paying",
-    PaymentFailed = "PaymentFailed",
-    Cancelling = "Cancelling",
-    Free = "Free",
-    GivenFree = "GivenFree",
-}
-
-/** The coach's plan after it was given for free. */
-export interface GiveCoachPlanFreeResponse {
-    /** The coach's user id. */
-    coachId?: string;
-    /** Code of the plan given. */
-    planCode?: string;
-    /** When the plan was given. */
-    givenFreeAt?: string;
-    /** When the gift ends; null means it has no end. */
-    freeUntil?: string | undefined;
-}
-
-/** Request for giving a coach a paid plan for free. */
-export interface GiveCoachPlanFreeRequest {
-    /** Code of the plan to give. Must not be the Free plan. */
-    planCode: string;
-    /** When the gift ends; null means it has no end. Must be in the future. */
-    freeUntil?: string | undefined;
-    /** Why the plan is given, at most 300 characters. Stored in the coach's history. */
-    reason: string;
-}
-
-/** One coach as the admin drawer shows them: plan card, clients bar and history. Never carries anything about the coach's clients except counts. */
-export interface GetAdminCoachResponse {
-    /** The coach's user id. */
-    coachId?: string;
-    /** The coach's name. */
-    name?: string;
-    /** The coach's email. */
-    email?: string | undefined;
-    /** Active coach roles (Trainer, Nutritionist). */
-    roles?: string[];
-    /** When the coach joined (UTC). */
-    joinedAt?: string;
-    /** The plan whose limits apply: the assigned plan while it applies, otherwise the Free plan. */
-    plan?: AdminCoachPlanDto;
-    /** The coach's status. */
-    status?: AdminCoachStatus;
-    /** What the coach pays per billing period (plan price plus a paid second-role add-on); null unless paying. */
-    priceMinorUnits?: number | undefined;
-    /** Currency of PriceMinorUnits; null unless paying. */
-    currency?: string | undefined;
-    /** Billing cadence of PriceMinorUnits; null unless paying. */
-    billingInterval?: BillingInterval | undefined;
-    /** End of the current paid period; null unless the coach is paying. */
-    currentPeriodEndsAt?: string | undefined;
-    /** When the plan was given for free; null unless the gift is in force. */
-    givenFreeAt?: string | undefined;
-    /** End of the gift; null unless the gift is in force, and null when it has no end. */
-    givenFreeUntil?: string | undefined;
-    /** True when the renewal is cancelled. */
-    cancelAtPeriodEnd?: boolean;
-    /** Why the last payment failed. Always null: there is no payment provider yet. */
-    failureDetail?: string | undefined;
-    /** Active clients: distinct clients with a link that is not ended. */
-    clientsUsed?: number;
-    /** The plan's client limit; null means unlimited. */
-    clientsMax?: number | undefined;
-    /** Newest first. Holds the admin and coach actions on the subscription and account, not payments. */
-    history?: AdminCoachHistoryEntryDto[];
-}
-
-/** One history entry. Carries no IP address and no raw audit values. */
-export interface AdminCoachHistoryEntryDto {
-    /** When it happened (UTC). */
-    occurredAt?: string;
-    /** What happened. */
-    kind?: AdminCoachHistoryKind;
-    /** True when the coach did it themselves. */
-    byCoach?: boolean;
-    /** Display name of the admin who did it; null for the coach's own actions and for Joined. */
-    actorName?: string | undefined;
-    /** The admin's reason, when one was given. */
-    reason?: string | undefined;
-    /** The plan involved, when the entry has one. */
-    planCode?: string | undefined;
-    /** The date the entry ends or runs to (gift end, account end, paid period end), when it has one. */
-    until?: string | undefined;
-    /** The role involved (Trainer, Nutritionist, Client), for role entries. */
-    role?: string | undefined;
-}
-
-/** What happened in one entry of a coach's history. */
-export enum AdminCoachHistoryKind {
-    Joined = "Joined",
-    GivenFree = "GivenFree",
-    PlanAssigned = "PlanAssigned",
-    RenewalCancelled = "RenewalCancelled",
-    AccountDisabled = "AccountDisabled",
-    AccountKept = "AccountKept",
-    RoleAdded = "RoleAdded",
-    RoleRemoved = "RoleRemoved",
-}
-
-/** Request for one coach's admin detail. */
-export interface GetAdminCoachRequest {
-}
-
-/** Outcome of disabling a coach account as an admin. */
-export interface DisableCoachAccountByAdminResponse {
-    /** The coach's user id. */
-    coachId?: string;
-    /** When the coach account stops being active (UTC). At or before now means it already ended. */
-    activeUntil?: string;
-    /** Coach roles removed by this call; empty while the disable is only pending. */
-    rolesRemoved?: string[];
-}
-
-/** Request for disabling a coach's account as an admin. */
-export interface DisableCoachAccountByAdminRequest {
-    /** Why the account is disabled, at most 300 characters. Stored in the coach's history. */
-    reason: string;
-}
-
-/** The coach's subscription after the renewal was cancelled. */
-export interface CancelCoachRenewalResponse {
-    /** The coach's user id. */
-    coachId?: string;
-    /** When the paid period, and so the plan, ends; null when unknown. */
-    currentPeriodEndsAt?: string | undefined;
-    /** True when the renewal was already cancelled, so this call changed nothing and wrote no history entry. */
-    alreadyCancelled?: boolean;
-}
-
-/** Request for cancelling a coach's renewal. */
-export interface CancelCoachRenewalRequest {
-    /** Why the renewal is cancelled, at most 300 characters. Stored in the coach's history. */
-    reason: string;
 }
 
 export class ApiException extends Error {

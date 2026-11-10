@@ -506,7 +506,9 @@
       "delete": "Delete photo",
       "deleteTitle": "Delete this photo?",
       "deleteBody": "This can't be undone.",
-      "deleteConfirm": "Delete"
+      "deleteConfirm": "Delete",
+      "toggleHint": "Tap to hide or show the controls and text",
+      "position": "Photo {{index}} of {{count}}"
     },
     "permission": {
       "title": "Camera access is off",
@@ -520,7 +522,7 @@
       "batchFailed_one": "{{count}} photo couldn't be added",
       "batchFailed_other": "{{count}} photos couldn't be added",
       "tooLarge": "This photo is larger than 5 MB. Choose a smaller one.",
-      "unsupportedType": "This file type isn't supported. Use a JPEG, PNG, WebP or HEIC photo.",
+      "unsupportedType": "This file type isn't supported. Use a JPEG, PNG or WebP photo.",
       "upload": "The upload failed. Check your connection and try again.",
       "delete": "Couldn't delete the photo. Try again."
     }
@@ -1653,7 +1655,7 @@
       "errors": {
         "title": "The photo was not added",
         "tooLarge": "The photo is too large. Choose one under 5 MB.",
-        "unsupportedType": "This photo format is not supported. Use JPEG, PNG, WebP or HEIC.",
+        "unsupportedType": "This photo format is not supported. Use JPEG, PNG or WebP.",
         "upload": "The upload failed. Check your connection and try again.",
         "future": "You cannot add a photo to a day that has not come yet."
       }
@@ -1891,6 +1893,160 @@
       "alreadySent": {
         "title": "Already sent",
         "body": "You have already sent this form."
+      }
+    }
+  },
+  "photoRequest": {
+    "coachFallback": {
+      "Trainer": "Your trainer",
+      "Nutritionist": "Your nutritionist",
+      "other": "Your coach"
+    },
+    "title": "{{name}} asks for progress photos",
+    "days_one": "{{count}} day",
+    "days_other": "{{count}} days",
+    "subtitle": {
+      "everyDay": "One photo set a day, {{days}} in all. Only you and {{name}} see them.",
+      "once": "One set of photos, sent together whenever you are ready. Only you and {{name}} see them."
+    },
+    "note": "{{name}}'s note",
+    "rows": {
+      "howOften": "How often",
+      "everyDay": "Every day",
+      "once": "Once",
+      "until": "Until",
+      "untilValue": "{{date}} · {{days}}",
+      "deadline": "Deadline",
+      "noDeadline": "None, send when ready",
+      "reminder": "Reminder",
+      "reminderValue": "At noon, if no photo yet",
+      "showsWith": "Shows with",
+      "asked": "Asked",
+      "status": "Status"
+    },
+    "actions": {
+      "start": "Start",
+      "addPhotos": "Add photos",
+      "notNow": "Not now",
+      "backToToday": "Back to Today",
+      "continue": "Continue",
+      "close": "Close",
+      "retry": "Try again"
+    },
+    "banner": {
+      "open": "Open",
+      "openLabel": "Open the photo request from {{name}}",
+      "everyDayHint": "Every day for {{days}}, until {{date}}",
+      "onceHint": "Once, whenever you are ready"
+    },
+    "step": {
+      "everyDayTitle": "Send {{name}} a photo every day",
+      "everyDayPendingHint": "Every day for {{days}}",
+      "runningHint": "Day {{day}} of {{total}} · nothing yet today",
+      "runningSentHint": "Day {{day}} of {{total}} · today's photos sent",
+      "onceTitle": "Send {{name}} your photos",
+      "oncePendingHint": "Once · whenever you're ready",
+      "onceSent": "Photos sent",
+      "add": "Add",
+      "view": "View"
+    },
+    "decline": {
+      "title": "Decline {{name}}'s request?",
+      "body": "{{name}} sees that you declined. They can send a new request later.",
+      "reasonLabel": "Tell {{name}} why (optional)",
+      "counter": "{{used}} / {{max}}",
+      "submit": "Decline request",
+      "close": "Close",
+      "errors": {
+        "invalidReason": "That reason is too long. Keep it to 500 characters.",
+        "network": "Can't reach the server. Check your connection and try again.",
+        "generic": "Couldn't decline the request. Please try again."
+      }
+    },
+    "closed": {
+      "title": "This request is closed",
+      "reason": {
+        "cancelled": "{{name}} cancelled it on {{date}}. You don't need to send anything.",
+        "ended": "It ended on {{date}}. You don't need to send anything.",
+        "declined": "You declined it on {{date}}. {{name}} can send a new request.",
+        "completed": "You already sent your photos for this request.",
+        "notFound": "We can't find this request. It may have been cancelled."
+      },
+      "status": {
+        "cancelled": "Cancelled by {{name}}",
+        "ended": "Ended {{date}}",
+        "declined": "You declined it",
+        "completed": "Photos sent"
+      }
+    },
+    "errors": {
+      "load": "Can't load this request. Check your connection and try again.",
+      "accept": "Couldn't start the request. Please try again.",
+      "network": "Can't reach the server. Check your connection and try again."
+    },
+    "loading": "Loading",
+    "once": {
+      "title": "Progress photos",
+      "yourPhotos": "Your photos",
+      "added_one": "{{count}} added",
+      "added_other": "{{count}} added",
+      "empty": "Add the photos {{name}} asked for. You can write a note on each one.",
+      "addMore": "Add more photos",
+      "alreadySent": "Already sent",
+      "noteLabel": "Note",
+      "optional": "(optional)",
+      "notePlaceholder": "What should {{name}} notice?",
+      "photoLabel": "Photo {{position}}",
+      "removeLabel": "Remove photo {{position}}",
+      "uploaded": "Photo {{position}} sent",
+      "send_one": "Send {{count}} photo to {{name}}",
+      "send_other": "Send {{count}} photos to {{name}}",
+      "sendNone": "Send photos to {{name}}",
+      "sending": "Sending…",
+      "errors": {
+        "someFailed": "Some photos didn't go through. Fix or remove them, then send again. Photos already sent stay on the request.",
+        "network": "Can't reach the server. Check your connection and send again.",
+        "submit": "Your photos are uploaded but not sent yet. Try again.",
+        "tooLarge": "This photo is larger than 5 MB. Remove it and choose a smaller one.",
+        "unsupportedType": "This file type isn't supported. Use a JPEG, PNG or WebP photo.",
+        "unreadable": "Couldn't read this photo. Remove it and pick it again.",
+        "rejected": "This photo or its note was refused. Remove it or shorten the note.",
+        "upload": "The upload failed. Send again to retry."
+      }
+    },
+    "sent": {
+      "title": "Sent to {{name}}",
+      "body": "{{name}} sees them now. This request is done.",
+      "cardTitle": "Progress photos",
+      "cardMeta_one": "{{count}} new · today at {{time}}",
+      "cardMeta_other": "{{count}} new · today at {{time}}",
+      "view": "View"
+    },
+    "daily": {
+      "title": "Progress photos",
+      "dayOf": "Day {{day}} of {{total}}",
+      "sentDays_one": "{{count}} day sent",
+      "sentDays_other": "{{count}} days sent",
+      "missedDays_one": "{{count}} missed",
+      "missedDays_other": "{{count}} missed",
+      "day": {
+        "sent": "{{date}}, sent",
+        "missed": "{{date}}, no photo"
+      },
+      "dayToday": "Today, {{date}}",
+      "pageLabel": "Day {{day}} of {{total}}, {{date}}",
+      "missedDay": "You didn't send any photos on {{date}}.",
+      "todaysPhotos": "Today's photos",
+      "reminder": "Reminder at 12:00",
+      "sentAt": "Sent at {{time}}",
+      "photosError": "Can't load your photos. Check your connection and try again.",
+      "sent": {
+        "title": "Today's photos are in",
+        "body": "{{name}} sees them now. We'll remind you tomorrow at noon if you haven't added any yet.",
+        "bodyLast": "{{name}} sees them now. That was the last day of this request.",
+        "cardTitle": "Progress photos",
+        "cardMeta_one": "{{count}} new · day {{day}} of {{total}} · today at {{time}}",
+        "cardMeta_other": "{{count}} new · day {{day}} of {{total}} · today at {{time}}"
       }
     }
   }

@@ -9,6 +9,15 @@ public class ClientPhotoDiaryRequestSummary
 {
     public Guid Id { get; set; }
     public Guid ProfessionalId { get; set; }
+
+    /// <summary>Public id of the coach's professional profile, as in the collaborations list.</summary>
+    public Guid ProfessionalPublicId { get; set; }
+
+    /// <summary>The coach's full name.</summary>
+    public string ProfessionalName { get; set; } = string.Empty;
+
+    /// <summary>The role the coach holds in the link; null when the request was sent with an invite.</summary>
+    public UserRole? ProfessionalRole { get; set; }
     public long? LinkId { get; set; }
     public long? PendingInviteId { get; set; }
     public Guid? PlanId { get; set; }

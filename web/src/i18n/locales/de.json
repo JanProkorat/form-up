@@ -4200,6 +4200,7 @@
     "justNow": "Gerade eben",
     "reviewInClients": "In Kunden ansehen",
     "seeInClientActivity": "In der Klientenaktivität ansehen",
+    "seePhotos": "Fotos ansehen",
     "markRead": "Als gelesen markieren",
     "markAllReadShort": "Alle gelesen",
     "unreadCount": "{{count}} ungelesen"
@@ -4482,9 +4483,9 @@
         "days_one": "{{count}} Tag",
         "days_other": "{{count}} Tage",
         "untilHelp": "Bis {{date}} · {{min}} bis {{max}} Tage",
-        "dueByHelp": "Fällig bis {{date}}",
+        "onceHelp": "Ohne Enddatum. {{name}} lädt Fotos hoch, sobald es passt",
         "reminderDaily": "{{name}} erhält jeden Tag um 12 Uhr eine Erinnerung, solange noch kein Foto hochgeladen wurde. Die Anfrage endet nach dem letzten Tag von selbst.",
-        "reminderOnce": "{{name}} hat einen Tag Zeit, Fotos hochzuladen. Danach endet die Anfrage von selbst.",
+        "reminderOnce": "{{name}} hat keine Frist. Die Anfrage bleibt offen, bis Fotos hochgeladen werden oder Sie sie abbrechen.",
         "optional": "optional",
         "footnote": "{{name}} kann annehmen oder ablehnen",
         "submit": "Anfrage senden",
@@ -4519,7 +4520,7 @@
         "preview": {
           "heading": "Das sieht {{name}}",
           "title": "{{name}} bittet um Fortschrittsfotos",
-          "once": "Einmal, fällig bis {{date}}",
+          "once": "Einmal, wann immer Sie bereit sind",
           "daily": "Jeden Tag bis {{date}}"
         },
         "status": {
@@ -4528,8 +4529,8 @@
           "frequency": "Wie oft",
           "sent": "Gesendet",
           "until": "Bis",
-          "dueBy": "Fällig bis",
           "note": "Die Anfrage endet am Ende des Zeitraums von selbst. Wenn Sie sie abbrechen, wird {{name}} nicht mehr gefragt.",
+          "noteOnce": "Die Anfrage bleibt offen, bis {{name}} Fotos hochlädt. Wenn Sie sie abbrechen, wird {{name}} nicht mehr gefragt.",
           "values": {
             "Pending": "Wartet auf die Antwort von {{name}}",
             "Accepted": "{{name}} hat angenommen",

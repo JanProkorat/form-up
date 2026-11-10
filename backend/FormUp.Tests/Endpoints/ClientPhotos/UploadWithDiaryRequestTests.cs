@@ -752,7 +752,6 @@ public class UploadWithDiaryRequestTests(FitnessApiFactory factory)
     [Theory]
     [InlineData(PhotoDiaryStatus.Accepted, PhotoDiaryMode.Workflow)]
     [InlineData(PhotoDiaryStatus.InProgress, PhotoDiaryMode.Workflow)]
-    [InlineData(PhotoDiaryStatus.Accepted, PhotoDiaryMode.Bulk)]
     public async Task Upload_AgainstExpiredRequest_Returns409Expired_NoPhoto_StatusUnchanged(
         PhotoDiaryStatus status,
         PhotoDiaryMode mode)
@@ -779,6 +778,23 @@ public class UploadWithDiaryRequestTests(FitnessApiFactory factory)
                 .Where(r => r.Id == requestId).Select(r => r.Status)
                 .FirstAsync(TestContext.Current.CancellationToken))
             .Should().Be(status, "the rejected upload must not transition the request");
+    }
+
+    [Fact]
+    public async Task Upload_AgainstOldAcceptedBulkRequest_Returns201_BecauseOneTimeRequestsNeverExpire()
+    {
+        var (_, profId, _) = await SetupProfessionalAsync();
+        var (clientHttp, clientId, _) = await SetupClientAsync();
+        var linkId = await InsertLinkAsync(clientId, profId);
+        var (planId, requestId) = await SeedExpiredRequestAsync(
+            clientId, profId, linkId, PhotoDiaryStatus.Accepted, PhotoDiaryMode.Bulk);
+
+        var response = await clientHttp.PostAsJsonAsync(
+            $"/client/plans/{planId}/photos",
+            BuildUploadBody(planId, requestId),
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
     }
 
     [Fact]

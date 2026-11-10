@@ -506,7 +506,9 @@
       "delete": "Foto löschen",
       "deleteTitle": "Dieses Foto löschen?",
       "deleteBody": "Das kann nicht rückgängig gemacht werden.",
-      "deleteConfirm": "Löschen"
+      "deleteConfirm": "Löschen",
+      "toggleHint": "Tippen Sie, um Schaltflächen und Texte aus- oder einzublenden",
+      "position": "Foto {{index}} von {{count}}"
     },
     "permission": {
       "title": "Kamerazugriff ist ausgeschaltet",
@@ -520,7 +522,7 @@
       "batchFailed_one": "{{count}} Foto konnte nicht hinzugefügt werden",
       "batchFailed_other": "{{count}} Fotos konnten nicht hinzugefügt werden",
       "tooLarge": "Dieses Foto ist größer als 5 MB. Wählen Sie ein kleineres.",
-      "unsupportedType": "Dieser Dateityp wird nicht unterstützt. Verwenden Sie ein JPEG-, PNG-, WebP- oder HEIC-Foto.",
+      "unsupportedType": "Dieser Dateityp wird nicht unterstützt. Verwenden Sie ein JPEG-, PNG- oder WebP-Foto.",
       "upload": "Der Upload ist fehlgeschlagen. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
       "delete": "Das Foto konnte nicht gelöscht werden. Versuchen Sie es erneut."
     }
@@ -1653,7 +1655,7 @@
       "errors": {
         "title": "Das Foto wurde nicht hinzugefügt",
         "tooLarge": "Das Foto ist zu groß. Wählen Sie eines unter 5 MB.",
-        "unsupportedType": "Dieses Fotoformat wird nicht unterstützt. Verwenden Sie JPEG, PNG, WebP oder HEIC.",
+        "unsupportedType": "Dieses Fotoformat wird nicht unterstützt. Verwenden Sie JPEG, PNG oder WebP.",
         "upload": "Der Upload ist fehlgeschlagen. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
         "future": "Zu einem Tag, der noch nicht gekommen ist, können Sie kein Foto hinzufügen."
       }
@@ -1891,6 +1893,160 @@
       "alreadySent": {
         "title": "Bereits gesendet",
         "body": "Sie haben dieses Formular bereits gesendet."
+      }
+    }
+  },
+  "photoRequest": {
+    "coachFallback": {
+      "Trainer": "Ihr Trainer",
+      "Nutritionist": "Ihr Ernährungsberater",
+      "other": "Ihr Coach"
+    },
+    "title": "{{name}} bittet um Fortschrittsfotos",
+    "days_one": "{{count}} Tag",
+    "days_other": "{{count}} Tage",
+    "subtitle": {
+      "everyDay": "Täglich ein Fotosatz, insgesamt {{days}}. Nur Sie und {{name}} sehen die Fotos.",
+      "once": "Ein Fotosatz, gemeinsam gesendet, sobald Sie bereit sind. Nur Sie und {{name}} sehen ihn."
+    },
+    "note": "Notiz von {{name}}",
+    "rows": {
+      "howOften": "Wie oft",
+      "everyDay": "Jeden Tag",
+      "once": "Einmal",
+      "until": "Bis",
+      "untilValue": "{{date}} · {{days}}",
+      "deadline": "Frist",
+      "noDeadline": "Keine, senden Sie, wenn Sie bereit sind",
+      "reminder": "Erinnerung",
+      "reminderValue": "Mittags, falls noch kein Foto vorliegt",
+      "showsWith": "Erscheint bei",
+      "asked": "Angefragt",
+      "status": "Status"
+    },
+    "actions": {
+      "start": "Starten",
+      "addPhotos": "Fotos hinzufügen",
+      "notNow": "Jetzt nicht",
+      "backToToday": "Zurück zu Heute",
+      "continue": "Weiter",
+      "close": "Schließen",
+      "retry": "Erneut versuchen"
+    },
+    "banner": {
+      "open": "Öffnen",
+      "openLabel": "Fotoanfrage von {{name}} öffnen",
+      "everyDayHint": "Jeden Tag, {{days}}, bis {{date}}",
+      "onceHint": "Einmal, sobald Sie bereit sind"
+    },
+    "step": {
+      "everyDayTitle": "Täglich ein Foto senden",
+      "everyDayPendingHint": "Jeden Tag, {{days}}",
+      "runningHint": "Tag {{day}} von {{total}} · heute noch nichts",
+      "runningSentHint": "Tag {{day}} von {{total}} · heutige Fotos gesendet",
+      "onceTitle": "Fotos senden",
+      "oncePendingHint": "Einmal · sobald Sie bereit sind",
+      "onceSent": "Fotos gesendet",
+      "add": "Hinzufügen",
+      "view": "Ansehen"
+    },
+    "decline": {
+      "title": "Diese Anfrage ablehnen?",
+      "body": "{{name}} sieht, dass Sie die Anfrage abgelehnt haben. Eine neue Anfrage ist später möglich.",
+      "reasonLabel": "Sagen Sie, warum (optional)",
+      "counter": "{{used}} / {{max}}",
+      "submit": "Anfrage ablehnen",
+      "close": "Schließen",
+      "errors": {
+        "invalidReason": "Die Begründung ist zu lang. Verwenden Sie höchstens 500 Zeichen.",
+        "network": "Der Server ist nicht erreichbar. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+        "generic": "Die Anfrage konnte nicht abgelehnt werden. Bitte versuchen Sie es erneut."
+      }
+    },
+    "closed": {
+      "title": "Diese Anfrage ist geschlossen",
+      "reason": {
+        "cancelled": "Die Anfrage wurde am {{date}} abgebrochen. Sie müssen nichts senden.",
+        "ended": "Sie endete am {{date}}. Sie müssen nichts senden.",
+        "declined": "Sie haben sie am {{date}} abgelehnt. {{name}} kann eine neue Anfrage senden.",
+        "completed": "Sie haben die Fotos zu dieser Anfrage bereits gesendet.",
+        "notFound": "Wir finden diese Anfrage nicht. Möglicherweise wurde sie abgebrochen."
+      },
+      "status": {
+        "cancelled": "Abgebrochen von {{name}}",
+        "ended": "Beendet am {{date}}",
+        "declined": "Von Ihnen abgelehnt",
+        "completed": "Fotos gesendet"
+      }
+    },
+    "errors": {
+      "load": "Diese Anfrage konnte nicht geladen werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+      "accept": "Die Anfrage konnte nicht gestartet werden. Bitte versuchen Sie es erneut.",
+      "network": "Der Server ist nicht erreichbar. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut."
+    },
+    "loading": "Wird geladen",
+    "once": {
+      "title": "Fortschrittsfotos",
+      "yourPhotos": "Ihre Fotos",
+      "added_one": "{{count}} hinzugefügt",
+      "added_other": "{{count}} hinzugefügt",
+      "empty": "Fügen Sie die Fotos hinzu, um die {{name}} bittet. Zu jedem können Sie eine Notiz schreiben.",
+      "addMore": "Weitere Fotos hinzufügen",
+      "alreadySent": "Bereits gesendet",
+      "noteLabel": "Notiz",
+      "optional": "(optional)",
+      "notePlaceholder": "Was soll {{name}} auffallen?",
+      "photoLabel": "Foto {{position}}",
+      "removeLabel": "Foto {{position}} entfernen",
+      "uploaded": "Foto {{position}} gesendet",
+      "send_one": "{{count}} Foto an {{name}} senden",
+      "send_other": "{{count}} Fotos an {{name}} senden",
+      "sendNone": "Fotos an {{name}} senden",
+      "sending": "Wird gesendet…",
+      "errors": {
+        "someFailed": "Einige Fotos sind nicht angekommen. Korrigieren oder entfernen Sie sie und senden Sie erneut. Bereits gesendete Fotos bleiben bei der Anfrage.",
+        "network": "Der Server ist nicht erreichbar. Prüfen Sie Ihre Verbindung und senden Sie erneut.",
+        "submit": "Ihre Fotos sind hochgeladen, aber noch nicht gesendet. Bitte versuchen Sie es erneut.",
+        "tooLarge": "Dieses Foto ist größer als 5 MB. Entfernen Sie es und wählen Sie ein kleineres.",
+        "unsupportedType": "Dieser Dateityp wird nicht unterstützt. Verwenden Sie ein JPEG-, PNG- oder WebP-Foto.",
+        "unreadable": "Das Foto konnte nicht gelesen werden. Entfernen Sie es und wählen Sie es erneut aus.",
+        "rejected": "Dieses Foto oder seine Notiz wurde abgelehnt. Entfernen Sie es oder kürzen Sie die Notiz.",
+        "upload": "Das Hochladen ist fehlgeschlagen. Senden Sie erneut, um es noch einmal zu versuchen."
+      }
+    },
+    "sent": {
+      "title": "An {{name}} gesendet",
+      "body": "{{name}} sieht sie jetzt. Diese Anfrage ist erledigt.",
+      "cardTitle": "Fortschrittsfotos",
+      "cardMeta_one": "{{count}} neu · heute um {{time}}",
+      "cardMeta_other": "{{count}} neu · heute um {{time}}",
+      "view": "Ansehen"
+    },
+    "daily": {
+      "title": "Fortschrittsfotos",
+      "dayOf": "Tag {{day}} von {{total}}",
+      "sentDays_one": "{{count}} Tag gesendet",
+      "sentDays_other": "{{count}} Tage gesendet",
+      "missedDays_one": "{{count}} Tag verpasst",
+      "missedDays_other": "{{count}} Tage verpasst",
+      "day": {
+        "sent": "{{date}}, gesendet",
+        "missed": "{{date}}, kein Foto"
+      },
+      "dayToday": "Heute, {{date}}",
+      "pageLabel": "Tag {{day}} von {{total}}, {{date}}",
+      "missedDay": "Am {{date}} haben Sie keine Fotos gesendet.",
+      "todaysPhotos": "Heutige Fotos",
+      "reminder": "Erinnerung um 12:00",
+      "sentAt": "Gesendet um {{time}}",
+      "photosError": "Ihre Fotos konnten nicht geladen werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+      "sent": {
+        "title": "Die heutigen Fotos sind angekommen",
+        "body": "{{name}} sieht sie jetzt. Wir erinnern Sie morgen um die Mittagszeit, falls Sie noch keine hinzugefügt haben.",
+        "bodyLast": "{{name}} sieht sie jetzt. Das war der letzte Tag dieser Anfrage.",
+        "cardTitle": "Fortschrittsfotos",
+        "cardMeta_one": "{{count}} neu · Tag {{day}} von {{total}} · heute um {{time}}",
+        "cardMeta_other": "{{count}} neu · Tag {{day}} von {{total}} · heute um {{time}}"
       }
     }
   }

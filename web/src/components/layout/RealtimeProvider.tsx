@@ -237,6 +237,24 @@ function CoachRealtimeSync() {
     void queryClient.invalidateQueries({ queryKey: subscriptionKeys.mine });
   }, [queryClient]);
 
+  // Photo events carry no client id, so the client photo lists and request status refresh by prefix.
+  const invalidatePhotos = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: ['client-photos'] });
+    void queryClient.invalidateQueries({ queryKey: ['photo-diary-requests'] });
+  }, [queryClient]);
+
+  // A submitted request also stores a coach notification.
+  const invalidatePhotosSubmitted = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    invalidatePhotos();
+  }, [queryClient, invalidatePhotos]);
+
+  // After a reconnect any missed event may have changed these lists too.
+  const resync = useCallback(() => {
+    invalidateAll();
+    invalidatePhotosSubmitted();
+  }, [invalidateAll, invalidatePhotosSubmitted]);
+
   const handlers = useMemo(
     () => ({
       ...Object.fromEntries(COOPERATION_EVENTS.map((event) => [event, invalidateAll])),
@@ -245,10 +263,20 @@ function CoachRealtimeSync() {
       offlinesyncconflict: invalidateConflicts,
       questionnairesubmitted: invalidateForms,
       checkinmissed: invalidateForms,
+      photodiarysubmitted: invalidatePhotosSubmitted,
+      photodiaryphotouploaded: invalidatePhotos,
     }),
-    [invalidateAll, invalidateInbox, invalidateConflicts, invalidateForms, invalidateSubscription],
+    [
+      invalidateAll,
+      invalidateInbox,
+      invalidateConflicts,
+      invalidateForms,
+      invalidateSubscription,
+      invalidatePhotosSubmitted,
+      invalidatePhotos,
+    ],
   );
-  useSignalR(handlers, invalidateAll);
+  useSignalR(handlers, resync);
 
   return null;
 }

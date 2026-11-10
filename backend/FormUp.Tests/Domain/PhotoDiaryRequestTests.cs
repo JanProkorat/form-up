@@ -2,6 +2,7 @@ using FluentAssertions;
 using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Infrastructure.Data;
+using FormUp.Tests.Builders;
 using FormUp.Tests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -441,6 +442,32 @@ public class PhotoDiaryRequestTests(PhotoDiaryRequestContainerFixture containerF
 
         request.Status = PhotoDiaryStatus.Cancelled;
         request.IsOpenAt(created).Should().BeFalse();
+    }
+
+    [Fact]
+    public void EndsAt_BulkRequest_IsNull_AndStaysOpenUntilItsStatusCloses()
+    {
+        var created = new DateTimeOffset(2026, 10, 1, 8, 0, 0, TimeSpan.Zero);
+        var request = EntityBuilder.PhotoDiaryRequest
+            .WithMode(PhotoDiaryMode.Bulk).WithStatus(PhotoDiaryStatus.Accepted).CreatedAt(created).Build();
+
+        request.EndsAt.Should().BeNull();
+        request.IsExpiredAt(created.AddYears(1)).Should().BeFalse();
+        request.IsOpenAt(created.AddDays(30)).Should().BeTrue();
+
+        request.Status = PhotoDiaryStatus.Completed;
+        request.IsOpenAt(created).Should().BeFalse();
+    }
+
+    [Fact]
+    public void EndsAt_LegacyRowWithoutMode_KeepsCreatedAtPlusDurationDays()
+    {
+        var created = new DateTimeOffset(2026, 10, 1, 8, 0, 0, TimeSpan.Zero);
+        var request = EntityBuilder.PhotoDiaryRequest
+            .WithMode(null).WithStatus(PhotoDiaryStatus.Pending).CreatedAt(created).Build();
+
+        request.EndsAt.Should().Be(created.AddDays(7));
+        request.IsExpiredAt(created.AddDays(7)).Should().BeTrue();
     }
 
     [Fact]

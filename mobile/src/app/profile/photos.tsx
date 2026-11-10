@@ -37,6 +37,8 @@ const LIBRARY_OPTIONS: ImagePicker.ImagePickerOptions = {
   allowsMultipleSelection: true,
   selectionLimit: MAX_LIBRARY_SELECTION,
   orderedSelection: true,
+  // iOS hands back HEIC by default, which the coach's browser cannot show; this asks for JPEG.
+  preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
 };
 
 type FailureKey = 'tooLarge' | 'unsupportedType' | 'upload';
@@ -66,11 +68,12 @@ export default function ProgressPhotosScreen() {
   const months = photosQuery.data ?? [];
   const shownCount = months.reduce((total, month) => total + month.photos.length, 0);
   const count = summaryQuery.data?.progressPhotoCount ?? shownCount;
-  const selected = months.flatMap((month) => month.photos).find((photo) => photo.id === selectedId) ?? null;
-  const isOwnPhoto =
-    selected?.uploadedByUserId !== undefined &&
+  // The viewer swipes through every photo in the order the gallery shows them, months newest first.
+  const gallery = months.flatMap((month) => month.photos);
+  const isOwnPhoto = (photo: ProgressPhoto) =>
+    photo.uploadedByUserId !== undefined &&
     profile?.userId !== undefined &&
-    selected.uploadedByUserId.toLowerCase() === profile.userId.toLowerCase();
+    photo.uploadedByUserId.toLowerCase() === profile.userId.toLowerCase();
 
   const submitBatch = async (photos: PickedPhoto[]) => {
     const failures: FailureKey[] = [];
@@ -130,8 +133,11 @@ export default function ProgressPhotosScreen() {
   };
 
   const deleteSelected = (photo: ProgressPhoto) => {
+    // After a delete the viewer moves to the next photo, or the previous one at the end, and closes when none is left.
+    const at = gallery.findIndex((item) => item.id === photo.id);
+    const neighbour = gallery[at + 1] ?? gallery[at - 1];
     remove.mutate(photo.id, {
-      onSuccess: () => setSelectedId(null),
+      onSuccess: () => setSelectedId(neighbour?.id ?? null),
       onError: () => Alert.alert(t('photos.errors.delete')),
     });
   };
@@ -197,9 +203,11 @@ export default function ProgressPhotosScreen() {
       </View>
 
       <PhotoViewer
-        photo={selected}
+        photos={gallery}
+        selectedId={selectedId}
         canDelete={isOwnPhoto}
         deleting={remove.isPending}
+        onSelect={setSelectedId}
         onClose={() => setSelectedId(null)}
         onDelete={deleteSelected}
       />

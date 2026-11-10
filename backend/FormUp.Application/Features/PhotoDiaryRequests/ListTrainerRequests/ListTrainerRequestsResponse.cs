@@ -24,10 +24,10 @@ public class PhotoDiaryRequestSummary
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 
-    /// <summary>End of the open window (<c>CreatedAt + DurationDays</c>).</summary>
-    public DateTimeOffset EndsAt { get; set; }
+    /// <summary>End of the open window (<c>CreatedAt + DurationDays</c>); null for a one-time (Bulk) request, which never expires.</summary>
+    public DateTimeOffset? EndsAt { get; set; }
 
-    /// <summary>True while the request is Pending/Accepted/InProgress and before <see cref="EndsAt"/>.</summary>
+    /// <summary>True while the request is Pending/Accepted/InProgress and has not reached <see cref="EndsAt"/>.</summary>
     public bool IsOpen { get; set; }
 }
 

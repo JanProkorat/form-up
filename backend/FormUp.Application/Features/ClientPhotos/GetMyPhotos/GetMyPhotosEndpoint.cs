@@ -112,6 +112,7 @@ public class GetMyPhotosEndpoint(IApplicationDbContext db, IBlobStorageService b
                     TakenAt = p.TakenAt,
                     UploadedByUserId = p.UploadedByUserId,
                     UploadedAt = p.DateCreated,
+                    DiaryRequestId = p.DiaryRequestId,
                 })
                 .ToListAsync(ct);
 
@@ -163,6 +164,7 @@ public class GetMyPhotosEndpoint(IApplicationDbContext db, IBlobStorageService b
                     TakenAt = p.TakenAt,
                     UploadedByUserId = p.UploadedByUserId,
                     UploadedAt = p.DateCreated,
+                    DiaryRequestId = p.DiaryRequestId,
                 })
                 .ToListAsync(ct);
 

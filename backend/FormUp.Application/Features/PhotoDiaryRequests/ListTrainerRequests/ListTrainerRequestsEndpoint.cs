@@ -84,8 +84,8 @@ public class ListTrainerRequestsEndpoint(IApplicationDbContext db, TimeProvider 
 
         foreach (var item in items)
         {
-            item.EndsAt = item.CreatedAt.AddDays(item.DurationDays);
-            item.IsOpen = PhotoDiaryRequest.IsOpenStatus(item.Status) && now < item.EndsAt;
+            item.EndsAt = item.Mode == PhotoDiaryMode.Bulk ? null : item.CreatedAt.AddDays(item.DurationDays);
+            item.IsOpen = PhotoDiaryRequest.IsOpenStatus(item.Status) && (item.EndsAt is null || now < item.EndsAt);
         }
 
         await Send.OkAsync(new ListTrainerRequestsResponse { Items = items }, ct);

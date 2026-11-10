@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { SymbolView } from 'expo-symbols';
@@ -11,13 +12,18 @@ import type { Theme } from '@/theme';
 type FlowHeaderProps = {
   /** Omit on the first screen: the slot stays empty so the layout does not shift. */
   onBack?: () => void;
-  onClose: () => void;
+  /** Omit for a header with a back button only: the right slot stays empty so the title stays centred. */
+  onClose?: () => void;
   /** Omit on Intro and Sent: only the close button shows. */
   progress?: { label: string; fraction: number };
+  /** A centred screen title in place of the progress. */
+  title?: string;
+  /** Custom content for the centre, in place of the progress or title. */
+  center?: ReactNode;
 };
 
-/** Back button, progress label with a thin bar, and the close button. */
-export function FlowHeader({ onBack, onClose, progress }: FlowHeaderProps) {
+/** Back button, progress label with a thin bar or a centred title, and the close button. */
+export function FlowHeader({ onBack, onClose, progress, title, center }: FlowHeaderProps) {
   const { t } = useTranslation();
   const theme = useTheme();
   const styles = makeStyles(theme);
@@ -45,23 +51,31 @@ export function FlowHeader({ onBack, onClose, progress }: FlowHeaderProps) {
             </View>
           </View>
         ) : null}
+        {center}
+        {title ? (
+          <Text variant="headerTitle" accessibilityRole="header" numberOfLines={1} style={styles.title}>
+            {title}
+          </Text>
+        ) : null}
       </View>
       <View style={styles.side}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('questionnaireFill.close')}
-          onPress={onClose}
-          style={styles.close}
-        >
-          <BlurView intensity={theme.glass.control.intensity} tint={tint} style={styles.blur}>
-            <SymbolView
-              name="xmark"
-              weight="medium"
-              tintColor={theme.colors.ink}
-              size={theme.sizes.backIcon}
-            />
-          </BlurView>
-        </Pressable>
+        {onClose ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('questionnaireFill.close')}
+            onPress={onClose}
+            style={styles.close}
+          >
+            <BlurView intensity={theme.glass.control.intensity} tint={tint} style={styles.blur}>
+              <SymbolView
+                name="xmark"
+                weight="medium"
+                tintColor={theme.colors.ink}
+                size={theme.sizes.backIcon}
+              />
+            </BlurView>
+          </Pressable>
+        ) : null}
       </View>
     </View>
   );
@@ -81,6 +95,9 @@ const makeStyles = (theme: Theme) =>
     center: {
       flex: 1,
       paddingHorizontal: theme.spacing.xxxl,
+    },
+    title: {
+      textAlign: 'center',
     },
     progress: {
       alignItems: 'center',
