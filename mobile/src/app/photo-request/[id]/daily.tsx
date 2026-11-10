@@ -249,6 +249,15 @@ export default function PhotoRequestDailyScreen() {
     </View>
   );
 
+  const addIcon = picking ? (
+    <ActivityIndicator color={theme.colors.onPrimary} />
+  ) : (
+    <SymbolView name="photo.badge.plus" weight="medium" tintColor={theme.colors.onPrimary} size={theme.sizes.rowGlyph} />
+  );
+  const addLabel = t(sentRows.length > 0 ? 'photoRequest.once.addMore' : 'photoRequest.actions.addPhotos');
+  // Without new photos the card only explains; with them it holds just those, with a small add button.
+  const showPhotosCard = rows.length > 0 || sentRows.length === 0;
+
   const todayPage = (
     <>
       {message ? (
@@ -261,82 +270,71 @@ export default function PhotoRequestDailyScreen() {
           </Text>
         </Card>
       ) : null}
-      <Card style={styles.photos}>
-        <View style={styles.heading}>
-          <Text variant="subtitle" accessibilityRole="header">
-            {t('photoRequest.daily.todaysPhotos')}
-          </Text>
-          {progress.sentToday && progress.sentAt ? (
+      {sentRows.length > 0 && shownCell ? (
+        <View style={styles.sent}>
+          {progress.sentAt ? (
             <Text variant="caption" color="muted">
               {t('photoRequest.daily.sentAt', { time: formatClock(i18n.language, progress.sentAt) })}
             </Text>
-          ) : showReminder ? (
-            <Text variant="caption" color="muted">
-              {t('photoRequest.daily.reminder')}
+          ) : null}
+          <DayPhotoGallery date={shownCell.date} photos={sentRows} onOpen={(photo) => setViewerId(photo.id)} />
+        </View>
+      ) : null}
+      {showPhotosCard ? (
+        <Card style={styles.photos}>
+          <View style={styles.heading}>
+            <Text variant="subtitle" accessibilityRole="header">
+              {t('photoRequest.daily.todaysPhotos')}
+            </Text>
+            {showReminder ? (
+              <Text variant="caption" color="muted">
+                {t('photoRequest.daily.reminder')}
+              </Text>
+            ) : null}
+          </View>
+          {photosError}
+          {photos.isPending ? waiting : null}
+          {rows.length === 0 && !photos.isPending && !photos.isError ? (
+            <Text variant="body" color="muted">
+              {t('photoRequest.once.empty', { name })}
             </Text>
           ) : null}
-        </View>
-        {photosError}
-        {photos.isPending ? waiting : null}
-        {sentRows.length === 0 && rows.length === 0 && !photos.isPending && !photos.isError ? (
-          <Text variant="body" color="muted">
-            {t('photoRequest.once.empty', { name })}
-          </Text>
-        ) : null}
-        {sentRows.length > 0 || rows.length > 0 ? (
-          <View>
-            {sentRows.map((photo, index) => (
-              <View key={photo.id} style={index > 0 ? styles.divider : undefined}>
-                <PhotoNoteRow
-                  uri={photo.displayUrl}
-                  position={index + 1}
-                  name={name}
-                  note={photo.description ?? ''}
-                  onChangeNote={() => undefined}
-                  status="done"
-                  editable={false}
-                />
-              </View>
-            ))}
-            {rows.map((row, index) => (
-              <View key={row.key} style={sentRows.length + index > 0 ? styles.divider : undefined}>
-                <PhotoNoteRow
-                  uri={row.photo.uri}
-                  position={sentRows.length + index + 1}
-                  name={name}
-                  note={row.note}
-                  onChangeNote={(note) => patchRow(row.key, { note })}
-                  onRemove={row.status === 'done' ? undefined : () => setRows((list) => list.filter((item) => item.key !== row.key))}
-                  status={row.status}
-                  error={row.failure ? t(`photoRequest.once.errors.${row.failure}`) : undefined}
-                  editable={!sending}
-                />
-              </View>
-            ))}
-          </View>
-        ) : null}
-        {full ? null : (
-          <Button
-            label={t(sentRows.length + rows.length === 0 ? 'photoRequest.actions.addPhotos' : 'photoRequest.once.addMore')}
-            onPress={askSource}
-            disabled={busy}
-            size={sentRows.length + rows.length === 0 ? 'large' : 'small'}
-            style={sentRows.length + rows.length === 0 ? undefined : styles.addMore}
-            icon={
-              picking ? (
-                <ActivityIndicator color={theme.colors.onPrimary} />
-              ) : (
-                <SymbolView name="photo.badge.plus" weight="medium" tintColor={theme.colors.onPrimary} size={theme.sizes.rowGlyph} />
-              )
-            }
-          />
-        )}
-      </Card>
+          {rows.length > 0 ? (
+            <View>
+              {rows.map((row, index) => (
+                <View key={row.key} style={index > 0 ? styles.divider : undefined}>
+                  <PhotoNoteRow
+                    uri={row.photo.uri}
+                    position={index + 1}
+                    name={name}
+                    note={row.note}
+                    onChangeNote={(note) => patchRow(row.key, { note })}
+                    onRemove={row.status === 'done' ? undefined : () => setRows((list) => list.filter((item) => item.key !== row.key))}
+                    status={row.status}
+                    error={row.failure ? t(`photoRequest.once.errors.${row.failure}`) : undefined}
+                    editable={!sending}
+                  />
+                </View>
+              ))}
+            </View>
+          ) : null}
+          {rows.length > 0 && !full ? (
+            <Button
+              label={t('photoRequest.once.addMore')}
+              onPress={askSource}
+              disabled={busy}
+              size="small"
+              style={styles.addMore}
+              icon={addIcon}
+            />
+          ) : null}
+        </Card>
+      ) : null}
     </>
   );
 
   const group = progress.earlier.find((item) => item.day === shown);
-  const dayPhotos: readonly ProgressPhoto[] = group?.photos ?? [];
+  const dayPhotos: readonly ProgressPhoto[] = isToday ? sentRows : (group?.photos ?? []);
   const isOwnPhoto = (photo: ProgressPhoto) =>
     photo.uploadedByUserId !== undefined &&
     profile?.userId !== undefined &&
@@ -384,18 +382,22 @@ export default function PhotoRequestDailyScreen() {
                 {notice}
               </Text>
             ) : null}
-            <Button
-              label={sending ? t('photoRequest.once.sending') : sendLabel}
-              onPress={() => void send()}
-              disabled={busy || pending.length === 0}
-              icon={
-                sending ? (
-                  <ActivityIndicator color={theme.colors.onPrimary} />
-                ) : (
-                  <SymbolView name="arrow.up" weight="semibold" tintColor={theme.colors.onPrimary} size={theme.sizes.rowGlyph} />
-                )
-              }
-            />
+            {rows.length > 0 ? (
+              <Button
+                label={sending ? t('photoRequest.once.sending') : sendLabel}
+                onPress={() => void send()}
+                disabled={busy || pending.length === 0}
+                icon={
+                  sending ? (
+                    <ActivityIndicator color={theme.colors.onPrimary} />
+                  ) : (
+                    <SymbolView name="arrow.up" weight="semibold" tintColor={theme.colors.onPrimary} size={theme.sizes.rowGlyph} />
+                  )
+                }
+              />
+            ) : full ? null : (
+              <Button label={addLabel} onPress={askSource} disabled={busy} icon={addIcon} />
+            )}
           </>
         ) : null
       }
@@ -465,6 +467,9 @@ const makeStyles = (theme: Theme) =>
     aside: {
       flexShrink: 1,
       textAlign: 'right',
+    },
+    sent: {
+      gap: theme.spacing.md,
     },
     divider: {
       borderTopWidth: theme.sizes.border,
