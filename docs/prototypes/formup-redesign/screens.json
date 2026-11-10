@@ -1596,6 +1596,18 @@
   "h": 872
  },
  {
+  "html": "mobile-light/07-12-photo-viewer.html",
+  "png": "mobile-light/07-12-photo-viewer.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-light/07-13-photo-viewer-immersive.html",
+  "png": "mobile-light/07-13-photo-viewer-immersive.png",
+  "w": 390,
+  "h": 844
+ },
+ {
   "html": "mobile-light/08-01-training-plan.html",
   "png": "mobile-light/08-01-training-plan.png",
   "w": 390,
@@ -2314,6 +2326,18 @@
   "png": "mobile-dark/08-11-edit-profile-info.png",
   "w": 840,
   "h": 872
+ },
+ {
+  "html": "mobile-dark/08-12-photo-viewer.html",
+  "png": "mobile-dark/08-12-photo-viewer.png",
+  "w": 390,
+  "h": 844
+ },
+ {
+  "html": "mobile-dark/08-13-photo-viewer-immersive.html",
+  "png": "mobile-dark/08-13-photo-viewer-immersive.png",
+  "w": 390,
+  "h": 844
  },
  {
   "html": "mobile-dark/09-01-training-plan.html",

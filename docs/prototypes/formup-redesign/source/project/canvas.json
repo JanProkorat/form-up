@@ -2896,6 +2896,38 @@
    "x": 2820,
    "y": 14918
   },
+  "GlassPhotoViewerLight.dc.html": {
+   "x": 5170,
+   "y": 14918,
+   "w": 390,
+   "h": 844,
+   "page": "glass",
+   "title": "PhotoViewer · Progress photos: note and date under the photo, swipe between photos, delete own · light"
+  },
+  "GlassPhotoViewerDark.dc.html": {
+   "x": 5170,
+   "y": 15882,
+   "w": 390,
+   "h": 844,
+   "page": "glass",
+   "title": "PhotoViewer · Progress photos: note and date under the photo, swipe between photos, delete own · dark"
+  },
+  "GlassPhotoViewerImmersiveLight.dc.html": {
+   "x": 5640,
+   "y": 14918,
+   "w": 390,
+   "h": 844,
+   "page": "glass",
+   "title": "PhotoViewerImmersive · tap the photo: black, no labels or controls; tap again to bring them back · light"
+  },
+  "GlassPhotoViewerImmersiveDark.dc.html": {
+   "x": 5640,
+   "y": 15882,
+   "w": 390,
+   "h": 844,
+   "page": "glass",
+   "title": "PhotoViewerImmersive · tap the photo: black, no labels or controls; tap again to bring them back · dark"
+  },
   "GlassMealPhotoViewerDark.dc.html": {
    "h": 844,
    "page": "glass",
@@ -5079,6 +5111,10 @@
   "GlassPhotoRequestDailyPastDark.dc.html",
   "GlassPhotoRequestDailyNewLight.dc.html",
   "GlassPhotoRequestDailyNewDark.dc.html",
+  "GlassPhotoViewerLight.dc.html",
+  "GlassPhotoViewerDark.dc.html",
+  "GlassPhotoViewerImmersiveLight.dc.html",
+  "GlassPhotoViewerImmersiveDark.dc.html",
   "CoachTodayLight.dc.html",
   "CoachClientsLight.dc.html",
   "CoachClientDetailLight.dc.html",
