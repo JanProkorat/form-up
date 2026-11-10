@@ -6,11 +6,12 @@ import { useTranslation } from 'react-i18next';
 
 import { classifyPhotoRequestError, classifyPhotoUploadError } from '@/api/photoRequests';
 import type { PhotoUploadFailureKind } from '@/api/photoRequests';
-import type { PickedPhoto } from '@/api/photos';
+import type { PickedPhoto, ProgressPhoto } from '@/api/photos';
 import { getErrorStatus } from '@/api/errors';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Text } from '@/components/Text';
+import { DayPhotoGallery } from '@/components/photoRequest/DayPhotoGallery';
 import { PhotoNoteRow } from '@/components/photoRequest/PhotoNoteRow';
 import type { PhotoRowStatus } from '@/components/photoRequest/PhotoNoteRow';
 import { RequestMessage } from '@/components/photoRequest/RequestMessage';
@@ -27,7 +28,10 @@ import {
 import { closedRoute, flowRoute, isAnswerable, requestMode, requestPhotos, sentRoute } from '@/components/photoRequest/model';
 import { MAX_REQUEST_PHOTOS, pickRequestPhotos } from '@/components/photoRequest/pickRequestPhotos';
 import type { RequestPhotoSource } from '@/components/photoRequest/pickRequestPhotos';
+import { PhotoViewer } from '@/components/photos/PhotoViewer';
 import { FlowFrame } from '@/components/questionnaire/FlowFrame';
+import { useDeletePhoto } from '@/hooks/useDeletePhoto';
+import { useProfile } from '@/hooks/useProfile';
 import { usePhotos } from '@/hooks/usePhotos';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
@@ -59,9 +63,11 @@ export default function PhotoRequestOnceScreen() {
   const [picking, setPicking] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const nextKey = useRef(1);
-  // The photos already on the request, read fresh on every visit, so coming back shows them as done.
+  // The photos already on the request, read fresh on every visit, so coming back shows them as sent.
   const photos = usePhotos({ fresh: true });
-  const [seeded, setSeeded] = useState(false);
+  const [viewerId, setViewerId] = useState<string | null>(null);
+  const { data: profile } = useProfile();
+  const remove = useDeletePhoto();
 
   if (query.isPending) return <RequestMessage kind="loading" onClose={leave} />;
 
@@ -79,25 +85,27 @@ export default function PhotoRequestOnceScreen() {
   const mode = requestMode(current);
   if (mode !== 'once') return <Redirect href={flowRoute(current.id, mode)} />;
 
-  if (!seeded) {
-    if (photos.isFetching) return <RequestMessage kind="loading" onClose={leave} />;
-    // Once only: later refetches must not add the photos sent from this screen a second time. A failed list
-    // seeds nothing, so the client can still add photos. Server rows get negative keys, picked ones count up.
-    setSeeded(true);
-    setRows(
-      requestPhotos(photos.data, current.id).map<PhotoRow>((photo, index) => ({
-        key: -(index + 1),
-        photo: { uri: photo.displayUrl },
-        note: photo.description ?? '',
-        status: 'done',
-      })),
-    );
-  }
-
   const name = coachLabel(t, coach);
   const message = current.message?.trim();
   const busy = sending || picking;
-  const full = rows.length >= MAX_REQUEST_PHOTOS;
+  const sentRows = requestPhotos(photos.data, current.id);
+  const pending = rows.filter((row) => row.status !== 'done');
+  const full = sentRows.length + rows.length >= MAX_REQUEST_PHOTOS;
+  // Sending also submits the request, so photos already on it are enough to send even with nothing new picked.
+  const canSend = rows.length > 0 || sentRows.length > 0;
+  const isOwnPhoto = (photo: ProgressPhoto) =>
+    photo.uploadedByUserId !== undefined &&
+    profile?.userId !== undefined &&
+    photo.uploadedByUserId.toLowerCase() === profile.userId.toLowerCase();
+  const deleteViewed = (photo: ProgressPhoto) => {
+    // After a delete the viewer moves to the next photo, or the previous one, and closes when none is left.
+    const at = sentRows.findIndex((item) => item.id === photo.id);
+    const neighbour = sentRows[at + 1] ?? sentRows[at - 1];
+    remove.mutate(photo.id, {
+      onSuccess: () => setViewerId(neighbour?.id ?? null),
+      onError: () => Alert.alert(t('photos.errors.delete')),
+    });
+  };
 
   const patchRow = (key: number, patch: Partial<Omit<PhotoRow, 'key' | 'photo'>>) =>
     setRows((list) => list.map((row) => (row.key === key ? { ...row, ...patch } : row)));
@@ -111,7 +119,7 @@ export default function PhotoRequestOnceScreen() {
   const pick = async (source: RequestPhotoSource) => {
     setPicking(true);
     try {
-      const result = await pickRequestPhotos(source, MAX_REQUEST_PHOTOS - rows.length);
+      const result = await pickRequestPhotos(source, MAX_REQUEST_PHOTOS - sentRows.length - rows.length);
       if (result.kind === 'denied') {
         Alert.alert(t('photos.permission.title'), t('photos.permission.body'), [
           { text: t('photos.cancel'), style: 'cancel' },
@@ -119,7 +127,7 @@ export default function PhotoRequestOnceScreen() {
         ]);
       } else if (result.kind === 'picked') {
         const added = result.photos.map<PhotoRow>((photo) => ({ key: nextKey.current++, photo, note: '', status: 'idle' }));
-        setRows((list) => [...list, ...added].slice(0, MAX_REQUEST_PHOTOS));
+        setRows((list) => [...list, ...added].slice(0, Math.max(MAX_REQUEST_PHOTOS - sentRows.length, 0)));
         setNotice(null);
       }
     } finally {
@@ -136,13 +144,14 @@ export default function PhotoRequestOnceScreen() {
   };
 
   const send = async () => {
-    if (busy || rows.length === 0) return;
+    if (busy || !canSend) return;
     setSending(true);
     setNotice(null);
     try {
       // Every photo that uploads is on the request at once, so only the rows not done yet are sent again.
       let failed = false;
-      for (const row of rows.filter((item) => item.status !== 'done')) {
+      let offline = false;
+      for (const row of pending) {
         patchRow(row.key, { status: 'uploading', failure: undefined });
         try {
           await upload.mutateAsync({
@@ -159,13 +168,21 @@ export default function PhotoRequestOnceScreen() {
           patchRow(row.key, { status: 'failed', failure });
           failed = true;
           // The connection is down: the rest would fail the same way.
-          if (failure === 'network') break;
+          if (failure === 'network') {
+            offline = true;
+            break;
+          }
         }
       }
       // Rows left untouched by a stop are idle again.
       setRows((list) => list.map((row) => (row.status === 'uploading' ? { ...row, status: 'idle' } : row)));
       if (failed) {
         setNotice(t('photoRequest.once.errors.someFailed'));
+        if (!offline) {
+          // The photos that went through now come from the request's own list, so they leave the picked rows.
+          await refresh(current.id);
+          setRows((list) => list.filter((row) => row.status !== 'done'));
+        }
         return;
       }
 
@@ -181,7 +198,7 @@ export default function PhotoRequestOnceScreen() {
         return;
       }
       // Leave first: refreshing the request here would show the completed request as closed.
-      router.replace(sentRoute(current.id, rows.length));
+      router.replace(sentRoute(current.id, sentRows.length + rows.length));
       void refresh(current.id);
     } finally {
       setSending(false);
@@ -189,9 +206,17 @@ export default function PhotoRequestOnceScreen() {
   };
 
   const sendLabel =
-    rows.length === 0 ? t('photoRequest.once.sendNone', { name }) : t('photoRequest.once.send', { count: rows.length, name });
+    pending.length === 0 ? t('photoRequest.once.sendNone', { name }) : t('photoRequest.once.send', { count: pending.length, name });
+  const addIcon = picking ? (
+    <ActivityIndicator color={theme.colors.onPrimary} />
+  ) : (
+    <SymbolView name="photo.badge.plus" weight="medium" tintColor={theme.colors.onPrimary} size={theme.sizes.rowGlyph} />
+  );
+  // Picked photos, or photos already on the request, make the footer Send; with neither it adds the first photos.
+  const footerSends = canSend;
 
   return (
+    <>
     <FlowFrame
       header={{ onBack: leave, title: t('photoRequest.once.title') }}
       contentStyle={styles.content}
@@ -202,18 +227,22 @@ export default function PhotoRequestOnceScreen() {
               {notice}
             </Text>
           ) : null}
-          <Button
-            label={sending ? t('photoRequest.once.sending') : sendLabel}
-            onPress={() => void send()}
-            disabled={busy || rows.length === 0}
-            icon={
-              sending ? (
-                <ActivityIndicator color={theme.colors.onPrimary} />
-              ) : (
-                <SymbolView name="arrow.up" weight="semibold" tintColor={theme.colors.onPrimary} size={theme.sizes.rowGlyph} />
-              )
-            }
-          />
+          {footerSends ? (
+            <Button
+              label={sending ? t('photoRequest.once.sending') : sendLabel}
+              onPress={() => void send()}
+              disabled={busy || !canSend}
+              icon={
+                sending ? (
+                  <ActivityIndicator color={theme.colors.onPrimary} />
+                ) : (
+                  <SymbolView name="arrow.up" weight="semibold" tintColor={theme.colors.onPrimary} size={theme.sizes.rowGlyph} />
+                )
+              }
+            />
+          ) : (
+            <Button label={t('photoRequest.actions.addPhotos')} onPress={askSource} disabled={busy} icon={addIcon} />
+          )}
         </>
       }
     >
@@ -226,6 +255,14 @@ export default function PhotoRequestOnceScreen() {
             {message}
           </Text>
         </Card>
+      ) : null}
+      {sentRows.length > 0 ? (
+        <View style={styles.sent}>
+          <Text variant="caption" color="muted">
+            {t('photoRequest.once.alreadySent')}
+          </Text>
+          <DayPhotoGallery photos={sentRows} onOpen={(photo) => setViewerId(photo.id)} />
+        </View>
       ) : null}
       <Card style={styles.photos}>
         <View style={styles.heading}>
@@ -261,24 +298,29 @@ export default function PhotoRequestOnceScreen() {
             ))}
           </View>
         )}
-        {full ? null : (
+        {/* With nothing picked and nothing sent the footer adds the first photos; otherwise the card does. */}
+        {full || !footerSends ? null : (
           <Button
-            label={t(rows.length === 0 ? 'photoRequest.actions.addPhotos' : 'photoRequest.once.addMore')}
+            label={t('photoRequest.once.addMore')}
             onPress={askSource}
             disabled={busy}
-            size={rows.length === 0 ? 'large' : 'small'}
-            style={rows.length === 0 ? undefined : styles.addMore}
-            icon={
-              picking ? (
-                <ActivityIndicator color={theme.colors.onPrimary} />
-              ) : (
-                <SymbolView name="photo.badge.plus" weight="medium" tintColor={theme.colors.onPrimary} size={theme.sizes.rowGlyph} />
-              )
-            }
+            size="small"
+            style={styles.addMore}
+            icon={addIcon}
           />
         )}
       </Card>
     </FlowFrame>
+    <PhotoViewer
+      photos={sentRows}
+      selectedId={viewerId}
+      canDelete={isOwnPhoto}
+      deleting={remove.isPending}
+      onSelect={setViewerId}
+      onClose={() => setViewerId(null)}
+      onDelete={deleteViewed}
+    />
+    </>
   );
 }
 
@@ -301,6 +343,9 @@ const makeStyles = (theme: Theme) =>
       flexDirection: 'row',
       alignItems: 'baseline',
       justifyContent: 'space-between',
+    },
+    sent: {
+      gap: theme.spacing.md,
     },
     divider: {
       borderTopWidth: theme.sizes.border,

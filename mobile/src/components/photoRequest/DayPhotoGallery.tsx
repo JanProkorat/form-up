@@ -11,7 +11,8 @@ import type { Theme } from '@/theme';
 const COLUMNS = 2;
 
 type DayPhotoGalleryProps = {
-  date: Date;
+  /** The day all the photos belong to; each photo's own date is used when omitted. */
+  date?: Date;
   photos: readonly ProgressPhoto[];
   onOpen: (photo: ProgressPhoto) => void;
 };
@@ -21,12 +22,12 @@ export function DayPhotoGallery({ date, photos, onOpen }: DayPhotoGalleryProps) 
   const { t, i18n } = useTranslation();
   const theme = useTheme();
   const styles = makeStyles(theme);
-  const dateLabel = formatRequestDay(i18n.language, date);
 
   return (
     <View style={styles.group}>
       {photos.map((photo, index) => {
         const note = photo.description?.trim();
+        const dateLabel = formatRequestDay(i18n.language, date ?? photo.takenAt);
         const label = [t('photos.viewer.position', { index: index + 1, count: photos.length }), dateLabel, note]
           .filter(Boolean)
           .join(', ');

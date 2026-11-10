@@ -1986,6 +1986,7 @@
       "added_other": "{{count}} hinzugefügt",
       "empty": "Fügen Sie die Fotos hinzu, um die {{name}} bittet. Zu jedem können Sie eine Notiz schreiben.",
       "addMore": "Weitere Fotos hinzufügen",
+      "alreadySent": "Bereits gesendet",
       "noteLabel": "Notiz",
       "optional": "(optional)",
       "notePlaceholder": "Was soll {{name}} auffallen?",

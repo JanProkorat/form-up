@@ -1986,6 +1986,7 @@
       "added_other": "{{count}} added",
       "empty": "Add the photos {{name}} asked for. You can write a note on each one.",
       "addMore": "Add more photos",
+      "alreadySent": "Already sent",
       "noteLabel": "Note",
       "optional": "(optional)",
       "notePlaceholder": "What should {{name}} notice?",

@@ -2063,6 +2063,7 @@
       "added_other": "{{count}} přidáno",
       "empty": "Přidejte fotky, o které {{name}} žádá. Ke každé můžete napsat poznámku.",
       "addMore": "Přidat další fotky",
+      "alreadySent": "Již odesláno",
       "noteLabel": "Poznámka",
       "optional": "(nepovinná)",
       "notePlaceholder": "Na co upozornit?",
