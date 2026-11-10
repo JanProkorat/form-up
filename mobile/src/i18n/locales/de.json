@@ -1948,7 +1948,7 @@
       "reasonLabel": "Sagen Sie, warum (optional)",
       "counter": "{{used}} / {{max}}",
       "submit": "Anfrage ablehnen",
-      "keep": "Behalten",
+      "close": "Schließen",
       "errors": {
         "invalidReason": "Die Begründung ist zu lang. Verwenden Sie höchstens 500 Zeichen.",
         "network": "Der Server ist nicht erreichbar. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",

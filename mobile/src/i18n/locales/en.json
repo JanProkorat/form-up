@@ -1948,7 +1948,7 @@
       "reasonLabel": "Tell {{name}} why (optional)",
       "counter": "{{used}} / {{max}}",
       "submit": "Decline request",
-      "keep": "Keep it",
+      "close": "Close",
       "errors": {
         "invalidReason": "That reason is too long. Keep it to 500 characters.",
         "network": "Can't reach the server. Check your connection and try again.",

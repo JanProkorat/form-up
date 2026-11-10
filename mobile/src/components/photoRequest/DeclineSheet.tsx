@@ -1,5 +1,17 @@
-import { useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  AccessibilityInfo,
+  Animated,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  TextInput,
+  useWindowDimensions,
+  View,
+} from 'react-native';
+import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { EdgeInsets } from 'react-native-safe-area-context';
@@ -9,6 +21,7 @@ import { Button } from '@/components/Button';
 import { Text } from '@/components/Text';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
+import { requestSheetMotion, sheetDragMotion } from '@/theme/motion';
 
 type DeclineSheetProps = {
   visible: boolean;
@@ -21,34 +34,119 @@ type DeclineSheetProps = {
   onClose: () => void;
 };
 
-/** Decline sheet: an optional reason, up to 500 characters, then Decline request or Keep it. */
+/**
+ * Decline sheet: an optional reason, up to 500 characters, then Decline request. It closes with the X, a tap
+ * outside it or the Android back button, but not while a decline is being sent. The Modal stays mounted after
+ * `visible` turns false, until the content has slid out.
+ */
 export function DeclineSheet({ visible, ...rest }: DeclineSheetProps) {
+  const [mounted, setMounted] = useState(visible);
+  if (visible && !mounted) setMounted(true);
+  const handleExited = useCallback(() => setMounted(false), []);
+  const requestClose = () => {
+    if (!rest.busy) rest.onClose();
+  };
   return (
-    <Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={rest.onClose}>
-      <SheetContent {...rest} />
+    <Modal visible={mounted} transparent animationType="none" statusBarTranslucent onRequestClose={requestClose}>
+      <SheetContent {...rest} onClose={requestClose} open={visible} onExited={handleExited} />
     </Modal>
   );
 }
 
-function SheetContent({ name, busy, error, onSubmit, onClose }: Omit<DeclineSheetProps, 'visible'>) {
+function SheetContent({
+  name,
+  busy,
+  error,
+  onSubmit,
+  onClose,
+  open,
+  onExited,
+}: Omit<DeclineSheetProps, 'visible'> & {
+  /** False once the parent hides the sheet: the content slides out, then reports `onExited`. */
+  open: boolean;
+  onExited: () => void;
+}) {
   const { t } = useTranslation();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const styles = makeStyles(theme, insets);
+  const { height: windowHeight } = useWindowDimensions();
+  const [translateY] = useState(() => new Animated.Value(windowHeight));
+  const [backdropOpacity] = useState(() => new Animated.Value(0));
   const [reason, setReason] = useState('');
   const label = t('photoRequest.decline.reasonLabel', { name });
 
+  // The sheet slides up while the backdrop fades in, and the reverse on close; Reduce Motion jumps.
+  useEffect(() => {
+    let cancelled = false;
+    void AccessibilityInfo.isReduceMotionEnabled().then((reduced) => {
+      if (cancelled) return;
+      const sheetTarget = open ? 0 : windowHeight;
+      const backdropTarget = open ? 1 : 0;
+      if (reduced) {
+        translateY.setValue(sheetTarget);
+        backdropOpacity.setValue(backdropTarget);
+        if (!open) onExited();
+        return;
+      }
+      Animated.parallel([
+        Animated.spring(translateY, {
+          toValue: sheetTarget,
+          ...sheetDragMotion.spring,
+          overshootClamping: true,
+          useNativeDriver: true,
+        }),
+        Animated.timing(backdropOpacity, {
+          toValue: backdropTarget,
+          duration: requestSheetMotion.backdropDuration,
+          useNativeDriver: true,
+        }),
+      ]).start(({ finished }) => {
+        if (finished && !open) onExited();
+      });
+    });
+    return () => {
+      cancelled = true;
+      translateY.stopAnimation();
+      backdropOpacity.stopAnimation();
+    };
+  }, [open, windowHeight, translateY, backdropOpacity, onExited]);
+
   return (
-    <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <View accessibilityViewIsModal accessibilityLabel={t('photoRequest.decline.title', { name })} style={styles.sheet}>
+    <KeyboardAvoidingView
+      style={styles.root}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      pointerEvents={open ? 'auto' : 'none'}
+    >
+      {/* The dim fades on its own; the Pressable sits behind the sheet, so only taps outside it reach it. */}
+      <Animated.View style={[StyleSheet.absoluteFill, styles.backdrop, { opacity: backdropOpacity }]}>
+        <Pressable accessible={false} onPress={onClose} style={StyleSheet.absoluteFill} />
+      </Animated.View>
+      <Animated.View
+        accessibilityViewIsModal
+        accessibilityLabel={t('photoRequest.decline.title', { name })}
+        style={[styles.sheet, { transform: [{ translateY }] }]}
+      >
         <View style={styles.handle} />
-        <View style={styles.copy}>
-          <Text variant="heading" accessibilityRole="header">
-            {t('photoRequest.decline.title', { name })}
-          </Text>
-          <Text variant="bodyLarge" color="muted">
-            {t('photoRequest.decline.body', { name })}
-          </Text>
+        <View style={styles.header}>
+          <View style={styles.copy}>
+            <Text variant="heading" accessibilityRole="header">
+              {t('photoRequest.decline.title', { name })}
+            </Text>
+            <Text variant="bodyLarge" color="muted">
+              {t('photoRequest.decline.body', { name })}
+            </Text>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('photoRequest.decline.close')}
+            disabled={busy}
+            hitSlop={theme.spacing.xs}
+            onPress={onClose}
+            style={styles.close}
+          >
+            <SymbolView name="xmark" tintColor={theme.colors.ink} size={theme.sizes.sheetCloseGlyph} />
+          </Pressable>
         </View>
         <View style={styles.field}>
           <Text variant="labelStrong">{label}</Text>
@@ -73,12 +171,7 @@ function SheetContent({ name, busy, error, onSubmit, onClose }: Omit<DeclineShee
           </Text>
         ) : null}
         <Button label={t('photoRequest.decline.submit')} onPress={() => onSubmit(reason)} disabled={busy} />
-        <Pressable accessibilityRole="button" disabled={busy} onPress={onClose} style={styles.keep}>
-          <Text variant="bodyStrong" color="ink2">
-            {t('photoRequest.decline.keep')}
-          </Text>
-        </Pressable>
-      </View>
+      </Animated.View>
     </KeyboardAvoidingView>
   );
 }
@@ -88,6 +181,8 @@ const makeStyles = (theme: Theme, insets: EdgeInsets) =>
     root: {
       flex: 1,
       justifyContent: 'flex-end',
+    },
+    backdrop: {
       backgroundColor: theme.glass.sheet.backdrop[theme.scheme],
     },
     sheet: {
@@ -106,8 +201,23 @@ const makeStyles = (theme: Theme, insets: EdgeInsets) =>
       borderRadius: theme.radii.xs,
       backgroundColor: theme.colors.lineStrong,
     },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: theme.spacing.md,
+    },
     copy: {
+      flex: 1,
+      minWidth: 0,
       gap: theme.spacing.xs,
+    },
+    close: {
+      width: theme.sizes.sheetClose,
+      height: theme.sizes.sheetClose,
+      borderRadius: theme.radii.pill,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.colors.lineStrong,
     },
     field: {
       gap: theme.spacing.snug,
@@ -128,10 +238,5 @@ const makeStyles = (theme: Theme, insets: EdgeInsets) =>
     },
     counter: {
       textAlign: 'right',
-    },
-    keep: {
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: theme.sizes.buttonMedium,
     },
   });

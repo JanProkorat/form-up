@@ -2023,7 +2023,7 @@
       "reasonLabel": "Řekněte, proč (nepovinné)",
       "counter": "{{used}} / {{max}}",
       "submit": "Odmítnout žádost",
-      "keep": "Ponechat",
+      "close": "Zavřít",
       "errors": {
         "invalidReason": "Důvod je příliš dlouhý. Použijte nejvýše 500 znaků.",
         "network": "Server není dostupný. Zkontrolujte připojení a zkuste to znovu.",
