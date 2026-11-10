@@ -24,10 +24,11 @@ import {
   useSubmitPhotoRequest,
   useUploadRequestPhoto,
 } from '@/components/photoRequest/hooks';
-import { closedRoute, flowRoute, isAnswerable, requestMode, sentRoute } from '@/components/photoRequest/model';
+import { closedRoute, flowRoute, isAnswerable, requestMode, requestPhotos, sentRoute } from '@/components/photoRequest/model';
 import { MAX_REQUEST_PHOTOS, pickRequestPhotos } from '@/components/photoRequest/pickRequestPhotos';
 import type { RequestPhotoSource } from '@/components/photoRequest/pickRequestPhotos';
 import { FlowFrame } from '@/components/questionnaire/FlowFrame';
+import { usePhotos } from '@/hooks/usePhotos';
 import { useTheme } from '@/theme';
 import type { Theme } from '@/theme';
 
@@ -58,6 +59,9 @@ export default function PhotoRequestOnceScreen() {
   const [picking, setPicking] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const nextKey = useRef(1);
+  // The photos already on the request, read fresh on every visit, so coming back shows them as done.
+  const photos = usePhotos({ fresh: true });
+  const [seeded, setSeeded] = useState(false);
 
   if (query.isPending) return <RequestMessage kind="loading" onClose={leave} />;
 
@@ -74,6 +78,21 @@ export default function PhotoRequestOnceScreen() {
   if (!isAnswerable(current)) return <Redirect href={closedRoute(id)} />;
   const mode = requestMode(current);
   if (mode !== 'once') return <Redirect href={flowRoute(current.id, mode)} />;
+
+  if (!seeded) {
+    if (photos.isFetching) return <RequestMessage kind="loading" onClose={leave} />;
+    // Once only: later refetches must not add the photos sent from this screen a second time. A failed list
+    // seeds nothing, so the client can still add photos. Server rows get negative keys, picked ones count up.
+    setSeeded(true);
+    setRows(
+      requestPhotos(photos.data, current.id).map<PhotoRow>((photo, index) => ({
+        key: -(index + 1),
+        photo: { uri: photo.displayUrl },
+        note: photo.description ?? '',
+        status: 'done',
+      })),
+    );
+  }
 
   const name = coachLabel(t, coach);
   const message = current.message?.trim();
