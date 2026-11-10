@@ -256,14 +256,6 @@ export default function PhotoRequestOnceScreen() {
           </Text>
         </Card>
       ) : null}
-      {sentRows.length > 0 ? (
-        <View style={styles.sent}>
-          <Text variant="caption" color="muted">
-            {t('photoRequest.once.alreadySent')}
-          </Text>
-          <DayPhotoGallery photos={sentRows} onOpen={(photo) => setViewerId(photo.id)} />
-        </View>
-      ) : null}
       <Card style={styles.photos}>
         <View style={styles.heading}>
           <Text variant="subtitle" accessibilityRole="header">
@@ -310,6 +302,14 @@ export default function PhotoRequestOnceScreen() {
           />
         )}
       </Card>
+      {sentRows.length > 0 ? (
+        <View style={styles.sent}>
+          <Text variant="caption" color="muted">
+            {t('photoRequest.once.alreadySent')}
+          </Text>
+          <DayPhotoGallery photos={sentRows} onOpen={(photo) => setViewerId(photo.id)} />
+        </View>
+      ) : null}
     </FlowFrame>
     <PhotoViewer
       photos={sentRows}

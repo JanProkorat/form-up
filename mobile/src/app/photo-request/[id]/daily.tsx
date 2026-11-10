@@ -270,16 +270,6 @@ export default function PhotoRequestDailyScreen() {
           </Text>
         </Card>
       ) : null}
-      {sentRows.length > 0 && shownCell ? (
-        <View style={styles.sent}>
-          {progress.sentAt ? (
-            <Text variant="caption" color="muted">
-              {t('photoRequest.daily.sentAt', { time: formatClock(i18n.language, progress.sentAt) })}
-            </Text>
-          ) : null}
-          <DayPhotoGallery date={shownCell.date} photos={sentRows} onOpen={(photo) => setViewerId(photo.id)} />
-        </View>
-      ) : null}
       {showPhotosCard ? (
         <Card style={styles.photos}>
           <View style={styles.heading}>
@@ -329,6 +319,16 @@ export default function PhotoRequestDailyScreen() {
             />
           ) : null}
         </Card>
+      ) : null}
+      {sentRows.length > 0 && shownCell ? (
+        <View style={styles.sent}>
+          {progress.sentAt ? (
+            <Text variant="caption" color="muted">
+              {t('photoRequest.daily.sentAt', { time: formatClock(i18n.language, progress.sentAt) })}
+            </Text>
+          ) : null}
+          <DayPhotoGallery date={shownCell.date} photos={sentRows} onOpen={(photo) => setViewerId(photo.id)} />
+        </View>
       ) : null}
     </>
   );
