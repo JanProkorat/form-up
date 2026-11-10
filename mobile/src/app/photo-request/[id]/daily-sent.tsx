@@ -44,7 +44,7 @@ export default function PhotoRequestDailySentScreen() {
 
   return (
     <FlowFrame
-      header={{ onClose: backToToday }}
+      header={{}}
       contentStyle={styles.content}
       footer={<Button label={t('photoRequest.actions.backToToday')} onPress={backToToday} />}
     >
