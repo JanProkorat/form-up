@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
@@ -45,12 +44,6 @@ export function PhotoNoteRow({
   const styles = makeStyles(theme);
   const label = t('photoRequest.once.noteLabel');
 
-  // TEMP (#2028 QA, note field cannot be typed in): remove with the onFocus/onBlur/onChangeText logs below.
-  useEffect(() => {
-    console.log(`[note-row ${position}] MOUNT`);
-    return () => console.log(`[note-row ${position}] UNMOUNT`);
-  }, [position]);
-
   return (
     <View style={styles.row}>
       <View style={styles.thumb}>
@@ -95,12 +88,7 @@ export function PhotoNoteRow({
           multiline
           editable={editable && status !== 'done'}
           value={note}
-          onFocus={() => console.log(`[note-row ${position}] focus`)}
-          onBlur={() => console.log(`[note-row ${position}] blur`)}
-          onChangeText={(text) => {
-            console.log(`[note-row ${position}] change ${JSON.stringify(text)} (prop value ${JSON.stringify(note)}, editable ${String(editable)})`);
-            onChangeNote(text);
-          }}
+          onChangeText={onChangeNote}
           maxLength={PHOTO_NOTE_MAX_LENGTH}
           placeholder={t('photoRequest.once.notePlaceholder', { name })}
           placeholderTextColor={theme.colors.muted}
