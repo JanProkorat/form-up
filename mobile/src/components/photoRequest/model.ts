@@ -77,6 +77,35 @@ export function requestPhotos(months: readonly PhotoMonth[] | undefined, request
     .sort((a, b) => uploadTime(a) - uploadTime(b));
 }
 
+/** Photos of one Send go up within seconds, so a longer pause between two photos starts a new send. */
+export const SEND_GAP_MS = 5 * 60 * 1000;
+
+export type PhotoSend = {
+  /** When the newest photo of this send went in; null when no photo carries a time. */
+  sentAt: Date | null;
+  /** The send's photos, oldest first. */
+  photos: ProgressPhoto[];
+};
+
+/** Splits photos into sends by upload time (a gap over SEND_GAP_MS starts a new one), newest send first. */
+export function groupSends(photos: readonly ProgressPhoto[]): PhotoSend[] {
+  const ordered = [...photos].sort((a, b) => uploadTime(a) - uploadTime(b));
+  const sends: PhotoSend[] = [];
+  let previous = Number.NaN;
+  for (const photo of ordered) {
+    const time = uploadTime(photo);
+    const last = sends[sends.length - 1];
+    if (last && !(time - previous > SEND_GAP_MS)) last.photos.push(photo);
+    else sends.push({ sentAt: null, photos: [photo] });
+    previous = time;
+  }
+  for (const send of sends) {
+    const time = uploadTime(send.photos[send.photos.length - 1] as ProgressPhoto);
+    send.sentAt = Number.isFinite(time) ? new Date(time) : null;
+  }
+  return sends.reverse();
+}
+
 /**
  * The request day a photo belongs to: the day of its upload, held between 1 and the total like today's day, so a
  * photo sent in the part of the window that spills into the day after the last one counts for the last day.
@@ -192,15 +221,11 @@ export type PhotoRoute = {
     | '/photo-request/[id]'
     | '/photo-request/[id]/once'
     | '/photo-request/[id]/daily'
-    | '/photo-request/[id]/daily-add'
     | '/photo-request/[id]/daily-sent'
     | '/photo-request/[id]/closed'
     | '/photo-request/[id]/sent';
   params: { id: string; count?: string; at?: string };
 };
-
-/** Where today's photos of an every-day request are picked and sent. */
-export const dailyAddRoute = (id: string): PhotoRoute => ({ pathname: '/photo-request/[id]/daily-add', params: { id } });
 
 /** The every-day confirmation; the count and send time travel as params because nothing stores them. */
 export const dailySentRoute = (id: string, count: number, at: number = Date.now()): PhotoRoute => ({
@@ -332,7 +357,10 @@ export function photoStatusFor({
   return sent ? { kind: 'onceSent', id: sent.id } : null;
 }
 
-/** Where tapping a request on Today leads: the intro while pending, else the screen that adds the photos. */
+/**
+ * Where tapping a request on Today leads: the intro for a one-time request (pending or accepted), the day view for a
+ * running every-day request.
+ */
 export function statusRoute(status: PhotoStatus): PhotoRoute | null {
   switch (status.kind) {
     case 'pending':
@@ -340,7 +368,7 @@ export function statusRoute(status: PhotoStatus): PhotoRoute | null {
     case 'running':
       return flowRoute(status.id, 'everyDay');
     case 'onceOpen':
-      return flowRoute(status.id, 'once');
+      return introRoute(status.id);
     case 'onceSent':
       return null;
   }

@@ -161,7 +161,7 @@ export function photoStep(
         title: onceTitle,
         hint: t('photoRequest.step.oncePendingHint'),
         actionLabel: t('photoRequest.step.add'),
-        onAction: () => onOpen(flowRoute(status.id, 'once')),
+        onAction: () => onOpen(introRoute(status.id)),
         actionTone: 'primary',
       };
     case 'onceSent':

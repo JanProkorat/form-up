@@ -16,7 +16,8 @@ export const PHOTOS_STALE_MS = 5 * 60 * 1000;
 /** Quality below 1 makes the picker re-encode, which keeps camera shots under the size limit. */
 export const PICK_QUALITY = 0.7;
 
-export const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']);
+/** HEIC and HEIF are left out on purpose: the coach's browser cannot show them, so the pickers ask for JPEG. */
+export const ALLOWED_TYPES =new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 /** A photo the screen can show: the fields it relies on are present. */
 export type ProgressPhoto = ClientPhotoResponse & { id: string; displayUrl: string };

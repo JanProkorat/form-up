@@ -89,8 +89,8 @@ export function usePhotoStatus(collaboration: Collaboration | undefined, onlyCol
  * Where an every-day request stands, from the client's photo list. `photos` is the query behind it: while it is
  * pending or failed the progress has no sent or missed days, and the screens show that state themselves.
  */
-export function useRequestProgress(request: PhotoRequest | undefined) {
-  const photos = usePhotos();
+export function useRequestProgress(request: PhotoRequest | undefined, options?: { fresh?: boolean }) {
+  const photos = usePhotos(options);
   const progress = request
     ? requestProgress(request, photos.data ? requestPhotos(photos.data, request.id) : undefined)
     : null;

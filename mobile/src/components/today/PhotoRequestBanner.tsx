@@ -43,7 +43,7 @@ export function PhotoRequestBanner({ entry }: PhotoRequestBannerProps) {
     route = flowRoute(id, 'everyDay');
   } else {
     hint = t('photoRequest.banner.onceHint');
-    route = flowRoute(id, 'once');
+    route = introRoute(id);
   }
 
   return (

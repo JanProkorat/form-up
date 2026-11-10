@@ -1,4 +1,5 @@
 import { StyleSheet, View } from 'react-native';
+import { Stack } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
 
@@ -95,10 +96,11 @@ export default function PhotoRequestClosedScreen() {
 
   return (
     <FlowFrame
-      header={{ onClose: backToToday }}
+      header={{}}
       contentStyle={styles.content}
       footer={<Button label={t('photoRequest.actions.backToToday')} onPress={backToToday} />}
     >
+      <Stack.Screen options={{ gestureEnabled: false }} />
       <View style={styles.hero}>
         <View style={styles.seal} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
           <SymbolView name="nosign" weight="medium" tintColor={theme.colors.ink2} size={theme.sizes.heroGlyph} />

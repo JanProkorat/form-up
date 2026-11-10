@@ -128,7 +128,8 @@ export default function PhotoRequestScreen() {
     try {
       if (pending) await accept.mutateAsync(current.id);
       await refresh(current.id);
-      router.replace(flowRoute(current.id, mode));
+      // Push, not replace: Back from the flow screen returns to this intro.
+      router.push(flowRoute(current.id, mode));
     } catch (error) {
       const failure = classifyPhotoRequestError(error);
       if (failure === 'closed') {
@@ -162,7 +163,7 @@ export default function PhotoRequestScreen() {
   return (
     <>
       <FlowFrame
-        header={{ onClose: leave }}
+        header={{ onBack: leave, center: <CoachHeader coach={coach} compact /> }}
         contentStyle={styles.content}
         footer={
           <>
@@ -187,11 +188,11 @@ export default function PhotoRequestScreen() {
               </Pressable>
             ) : null}
             <Button
-              label={t(everyDay ? 'photoRequest.actions.start' : 'photoRequest.actions.addPhotos')}
+              label={t(!pending ? 'photoRequest.actions.continue' : everyDay ? 'photoRequest.actions.start' : 'photoRequest.actions.addPhotos')}
               onPress={() => void start()}
               disabled={accept.isPending}
               icon={
-                everyDay ? undefined : (
+                everyDay && pending ? undefined : (
                   <SymbolView name="photo.badge.plus" weight="medium" tintColor={theme.colors.onPrimary} size={theme.sizes.rowGlyph} />
                 )
               }
@@ -199,7 +200,6 @@ export default function PhotoRequestScreen() {
           </>
         }
       >
-        <CoachHeader coach={coach} />
         <View style={styles.intro}>
           <Text variant="title" accessibilityRole="header">
             {t('photoRequest.title', { name })}
@@ -236,6 +236,8 @@ const makeStyles = (theme: Theme) =>
   StyleSheet.create({
     content: {
       gap: theme.spacing.xxl,
+      // Room under the taller coach header; FlowFrame's own top padding is spacing.xs.
+      paddingTop: theme.spacing.xxxl,
     },
     intro: {
       gap: theme.spacing.xs,
