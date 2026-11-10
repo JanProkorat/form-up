@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { SymbolView } from 'expo-symbols';
@@ -17,10 +18,12 @@ type FlowHeaderProps = {
   progress?: { label: string; fraction: number };
   /** A centred screen title in place of the progress. */
   title?: string;
+  /** Custom content for the centre, in place of the progress or title. */
+  center?: ReactNode;
 };
 
 /** Back button, progress label with a thin bar or a centred title, and the close button. */
-export function FlowHeader({ onBack, onClose, progress, title }: FlowHeaderProps) {
+export function FlowHeader({ onBack, onClose, progress, title, center }: FlowHeaderProps) {
   const { t } = useTranslation();
   const theme = useTheme();
   const styles = makeStyles(theme);
@@ -48,6 +51,7 @@ export function FlowHeader({ onBack, onClose, progress, title }: FlowHeaderProps
             </View>
           </View>
         ) : null}
+        {center}
         {title ? (
           <Text variant="headerTitle" accessibilityRole="header" numberOfLines={1} style={styles.title}>
             {title}

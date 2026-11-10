@@ -162,7 +162,7 @@ export default function PhotoRequestScreen() {
   return (
     <>
       <FlowFrame
-        header={{ onBack: leave, title: t('photoRequest.once.title') }}
+        header={{ onBack: leave, center: <CoachHeader coach={coach} compact /> }}
         contentStyle={styles.content}
         footer={
           <>
@@ -199,7 +199,6 @@ export default function PhotoRequestScreen() {
           </>
         }
       >
-        <CoachHeader coach={coach} />
         <View style={styles.intro}>
           <Text variant="title" accessibilityRole="header">
             {t('photoRequest.title', { name })}
