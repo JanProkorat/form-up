@@ -2035,7 +2035,6 @@
       "photosError": "Ihre Fotos konnten nicht geladen werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
       "photoCount_one": "{{count}} Foto",
       "photoCount_other": "{{count}} Fotos",
-      "noNote": "Keine Notiz",
       "sent": {
         "title": "Die heutigen Fotos sind angekommen",
         "body": "{{name}} sieht sie jetzt. Wir erinnern Sie morgen um die Mittagszeit, falls Sie noch keine hinzugefügt haben.",

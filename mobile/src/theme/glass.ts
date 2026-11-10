@@ -24,8 +24,16 @@ export type GlassViewer = {
   immersive: string;
 };
 
+/** A note laid over the bottom of a photo. */
+export type GlassPhotoCaption = {
+  /** CSS linear-gradient from clear at the top to dark at the bottom, so white text reads on any photo. */
+  gradient: string;
+  text: string;
+};
+
 export type Glass = {
   viewer: GlassViewer;
+  photoCaption: GlassPhotoCaption;
   /** Tab bars, headers and sheets. */
   bar: GlassBlur;
   /** Round controls floating over imagery, such as an overlay back button. */
@@ -37,6 +45,10 @@ export type Glass = {
 
 export const glass: Glass = {
   viewer: { immersive: '#000000' },
+  photoCaption: {
+    gradient: 'linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,0.72))',
+    text: '#FFFFFF',
+  },
   bar: { blur: 22, saturate: 1.8, intensity: 50 },
   control: { blur: 18, saturate: 1, intensity: 41 },
   badge: { blur: 16, saturate: 1, intensity: 36 },

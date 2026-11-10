@@ -8,12 +8,12 @@ import { useTranslation } from 'react-i18next';
 
 import { classifyPhotoUploadError } from '@/api/photoRequests';
 import type { PhotoUploadFailureKind } from '@/api/photoRequests';
-import type { PickedPhoto } from '@/api/photos';
+import type { PickedPhoto, ProgressPhoto } from '@/api/photos';
 import { getErrorStatus } from '@/api/errors';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Text } from '@/components/Text';
-import { DayPhotoGroup } from '@/components/photoRequest/DayPhotoGroup';
+import { DayPhotoGallery } from '@/components/photoRequest/DayPhotoGallery';
 import { DayStrip } from '@/components/photoRequest/DayStrip';
 import { PhotoNoteRow } from '@/components/photoRequest/PhotoNoteRow';
 import type { PhotoRowStatus } from '@/components/photoRequest/PhotoNoteRow';
@@ -31,7 +31,10 @@ import {
 import { closedRoute, dailySentRoute, flowRoute, isAnswerable, requestMode } from '@/components/photoRequest/model';
 import { MAX_REQUEST_PHOTOS, pickRequestPhotos } from '@/components/photoRequest/pickRequestPhotos';
 import type { RequestPhotoSource } from '@/components/photoRequest/pickRequestPhotos';
+import { PhotoViewer } from '@/components/photos/PhotoViewer';
 import { FlowFrame } from '@/components/questionnaire/FlowFrame';
+import { useDeletePhoto } from '@/hooks/useDeletePhoto';
+import { useProfile } from '@/hooks/useProfile';
 import { useHorizontalSwipe } from '@/hooks/useHorizontalSwipe';
 import type { SwipeDirection } from '@/hooks/useHorizontalSwipe';
 import { useTheme } from '@/theme';
@@ -73,6 +76,10 @@ export default function PhotoRequestDailyScreen() {
   const [notice, setNotice] = useState<string | null>(null);
   const [picked, setPicked] = useState<number | null>(null);
   const nextKey = useRef(1);
+  // The viewer a past day's photo opens, with the same delete rules as Progress photos.
+  const [viewerId, setViewerId] = useState<string | null>(null);
+  const { data: profile } = useProfile();
+  const remove = useDeletePhoto();
   // A tap on the strip jumps several days at once; the slide then lands on this day instead of the next one.
   const jumpTo = useRef<number | null>(null);
 
@@ -329,6 +336,20 @@ export default function PhotoRequestDailyScreen() {
   );
 
   const group = progress.earlier.find((item) => item.day === shown);
+  const dayPhotos: readonly ProgressPhoto[] = group?.photos ?? [];
+  const isOwnPhoto = (photo: ProgressPhoto) =>
+    photo.uploadedByUserId !== undefined &&
+    profile?.userId !== undefined &&
+    photo.uploadedByUserId.toLowerCase() === profile.userId.toLowerCase();
+  const deleteViewed = (photo: ProgressPhoto) => {
+    // After a delete the viewer moves to the next photo of the day, or the previous one, and closes when none is left.
+    const at = dayPhotos.findIndex((item) => item.id === photo.id);
+    const neighbour = dayPhotos[at + 1] ?? dayPhotos[at - 1];
+    remove.mutate(photo.id, {
+      onSuccess: () => setViewerId(neighbour?.id ?? null),
+      onError: () => Alert.alert(t('photos.errors.delete')),
+    });
+  };
   const pastPage = (
     <Card style={styles.photos}>
       {photos.isPending ? (
@@ -336,7 +357,7 @@ export default function PhotoRequestDailyScreen() {
       ) : photos.isError ? (
         photosError
       ) : group && shownCell ? (
-        <DayPhotoGroup date={shownCell.date} photos={group.photos} />
+        <DayPhotoGallery date={shownCell.date} photos={group.photos} onOpen={(photo) => setViewerId(photo.id)} />
       ) : (
         <View style={styles.missed}>
           <SymbolView name="camera" weight="medium" tintColor={theme.colors.muted} size={theme.sizes.paymentGlyph} />
@@ -349,6 +370,7 @@ export default function PhotoRequestDailyScreen() {
   );
 
   return (
+    <>
     <FlowFrame
       header={{ onBack: leave, title: t('photoRequest.daily.title') }}
       contentStyle={styles.content}
@@ -396,6 +418,16 @@ export default function PhotoRequestDailyScreen() {
         </Reanimated.View>
       </GestureDetector>
     </FlowFrame>
+    <PhotoViewer
+      photos={dayPhotos}
+      selectedId={viewerId}
+      canDelete={isOwnPhoto}
+      deleting={remove.isPending}
+      onSelect={setViewerId}
+      onClose={() => setViewerId(null)}
+      onDelete={deleteViewed}
+    />
+    </>
   );
 }
 

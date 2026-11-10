@@ -2035,7 +2035,6 @@
       "photosError": "Can't load your photos. Check your connection and try again.",
       "photoCount_one": "{{count}} photo",
       "photoCount_other": "{{count}} photos",
-      "noNote": "No note",
       "sent": {
         "title": "Today's photos are in",
         "body": "{{name}} sees them now. We'll remind you tomorrow at noon if you haven't added any yet.",

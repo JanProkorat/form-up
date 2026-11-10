@@ -2122,7 +2122,6 @@
       "photoCount_few": "{{count}} fotky",
       "photoCount_many": "{{count}} fotky",
       "photoCount_other": "{{count}} fotek",
-      "noNote": "Bez poznámky",
       "sent": {
         "title": "Dnešní fotky dorazily",
         "body": "{{name}} je teď uvidí. Pokud do zítřejšího poledne nic nepřidáte, připomeneme vám to.",
