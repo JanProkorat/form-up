@@ -519,7 +519,9 @@
       "delete": "Smazat fotku",
       "deleteTitle": "Smazat tuto fotku?",
       "deleteBody": "Tuto akci nejde vrátit zpět.",
-      "deleteConfirm": "Smazat"
+      "deleteConfirm": "Smazat",
+      "toggleHint": "Klepnutím skryjete nebo zobrazíte tlačítka a texty",
+      "position": "Fotka {{index}} z {{count}}"
     },
     "permission": {
       "title": "Přístup k fotoaparátu je vypnutý",
@@ -535,7 +537,7 @@
       "batchFailed_many": "Nenahrálo se {{count}} fotky",
       "batchFailed_other": "Nenahrálo se {{count}} fotek",
       "tooLarge": "Tato fotka je větší než 5 MB. Vyberte menší.",
-      "unsupportedType": "Tento typ souboru není podporovaný. Použijte fotku JPEG, PNG, WebP nebo HEIC.",
+      "unsupportedType": "Tento typ souboru není podporovaný. Použijte fotku JPEG, PNG nebo WebP.",
       "upload": "Nahrání se nezdařilo. Zkontrolujte připojení a zkuste to znovu.",
       "delete": "Fotku se nepodařilo smazat. Zkuste to znovu."
     }
@@ -1713,7 +1715,7 @@
       "errors": {
         "title": "Fotku se nepodařilo přidat",
         "tooLarge": "Fotka je příliš velká. Vyberte fotku do 5 MB.",
-        "unsupportedType": "Tento formát fotky není podporován. Použijte JPEG, PNG, WebP nebo HEIC.",
+        "unsupportedType": "Tento formát fotky není podporován. Použijte JPEG, PNG nebo WebP.",
         "upload": "Nahrání se nezdařilo. Zkontrolujte připojení a zkuste to znovu.",
         "future": "Fotku nelze přidat k dni, který ještě nenastal."
       }
@@ -1959,6 +1961,174 @@
       "alreadySent": {
         "title": "Už odesláno",
         "body": "Tento formulář už jste odeslali."
+      }
+    }
+  },
+  "photoRequest": {
+    "coachFallback": {
+      "Trainer": "Váš trenér",
+      "Nutritionist": "Váš nutriční poradce",
+      "other": "Váš poradce"
+    },
+    "title": "{{name}} žádá o fotky pokroku",
+    "days_one": "{{count}} den",
+    "days_few": "{{count}} dny",
+    "days_many": "{{count}} dne",
+    "days_other": "{{count}} dní",
+    "subtitle": {
+      "everyDay": "Denně jedna sada fotek, celkem {{days}}. Uvidíte je jen vy a {{name}}.",
+      "once": "Jedna sada fotek, odešlete ji najednou, kdykoli budete chtít. Uvidíte ji jen vy a {{name}}."
+    },
+    "note": "Poznámka ({{name}})",
+    "rows": {
+      "howOften": "Jak často",
+      "everyDay": "Každý den",
+      "once": "Jednou",
+      "until": "Do",
+      "untilValue": "{{date}} · {{days}}",
+      "deadline": "Termín",
+      "noDeadline": "Žádný, pošlete, až budete chtít",
+      "reminder": "Připomenutí",
+      "reminderValue": "V poledne, pokud ještě není fotka",
+      "showsWith": "Zobrazí se u",
+      "asked": "Zadáno",
+      "status": "Stav"
+    },
+    "actions": {
+      "start": "Začít",
+      "addPhotos": "Přidat fotky",
+      "notNow": "Teď ne",
+      "backToToday": "Zpět na Dnes",
+      "continue": "Pokračovat",
+      "close": "Zavřít",
+      "retry": "Zkusit znovu"
+    },
+    "banner": {
+      "open": "Otevřít",
+      "openLabel": "Otevřít žádost o fotky od: {{name}}",
+      "everyDayHint": "Každý den, {{days}}, do {{date}}",
+      "onceHint": "Jednou, kdykoli budete chtít"
+    },
+    "step": {
+      "everyDayTitle": "Posílejte fotku každý den",
+      "everyDayPendingHint": "Každý den, {{days}}",
+      "runningHint": "Den {{day}} z {{total}} · dnes zatím nic",
+      "runningSentHint": "Den {{day}} z {{total}} · dnešní fotky odeslány",
+      "onceTitle": "Pošlete fotky",
+      "oncePendingHint": "Jednou · kdykoli budete chtít",
+      "onceSent": "Fotky odeslány",
+      "add": "Přidat",
+      "view": "Zobrazit"
+    },
+    "decline": {
+      "title": "Odmítnout tuto žádost?",
+      "body": "{{name}} uvidí, že jste žádost odmítli. Později může poslat novou.",
+      "reasonLabel": "Řekněte, proč (nepovinné)",
+      "counter": "{{used}} / {{max}}",
+      "submit": "Odmítnout žádost",
+      "close": "Zavřít",
+      "errors": {
+        "invalidReason": "Důvod je příliš dlouhý. Použijte nejvýše 500 znaků.",
+        "network": "Server není dostupný. Zkontrolujte připojení a zkuste to znovu.",
+        "generic": "Žádost se nepodařilo odmítnout. Zkuste to prosím znovu."
+      }
+    },
+    "closed": {
+      "title": "Tato žádost je uzavřena",
+      "reason": {
+        "cancelled": "Žádost byla {{date}} zrušena. Nemusíte nic posílat.",
+        "ended": "Skončila {{date}}. Nemusíte nic posílat.",
+        "declined": "Odmítli jste ji {{date}}. {{name}} může poslat novou žádost.",
+        "completed": "Fotky k této žádosti jste už odeslali.",
+        "notFound": "Tuto žádost se nepodařilo najít. Možná byla zrušena."
+      },
+      "status": {
+        "cancelled": "Zrušeno: {{name}}",
+        "ended": "Skončila {{date}}",
+        "declined": "Odmítli jste ji",
+        "completed": "Fotky odeslány"
+      }
+    },
+    "errors": {
+      "load": "Tuto žádost se nepodařilo načíst. Zkontrolujte připojení a zkuste to znovu.",
+      "accept": "Žádost se nepodařilo zahájit. Zkuste to prosím znovu.",
+      "network": "Server není dostupný. Zkontrolujte připojení a zkuste to znovu."
+    },
+    "loading": "Načítání",
+    "once": {
+      "title": "Fotky pokroku",
+      "yourPhotos": "Vaše fotky",
+      "added_one": "{{count}} přidána",
+      "added_few": "{{count}} přidány",
+      "added_many": "{{count}} přidané",
+      "added_other": "{{count}} přidáno",
+      "empty": "Přidejte fotky, o které {{name}} žádá. Ke každé můžete napsat poznámku.",
+      "addMore": "Přidat další fotky",
+      "alreadySent": "Již odesláno",
+      "noteLabel": "Poznámka",
+      "optional": "(nepovinná)",
+      "notePlaceholder": "Na co upozornit?",
+      "photoLabel": "Fotka {{position}}",
+      "removeLabel": "Odebrat fotku {{position}}",
+      "uploaded": "Fotka {{position}} odeslána",
+      "send_one": "Odeslat {{count}} fotku",
+      "send_few": "Odeslat {{count}} fotky",
+      "send_many": "Odeslat {{count}} fotky",
+      "send_other": "Odeslat {{count}} fotek",
+      "sendNone": "Odeslat fotky",
+      "sending": "Odesílání…",
+      "errors": {
+        "someFailed": "Některé fotky se nepodařilo odeslat. Opravte je nebo odeberte a odešlete znovu. Už odeslané fotky na žádosti zůstávají.",
+        "network": "Server není dostupný. Zkontrolujte připojení a odešlete znovu.",
+        "submit": "Fotky jsou nahrané, ale ještě neodeslané. Zkuste to znovu.",
+        "tooLarge": "Tato fotka je větší než 5 MB. Odeberte ji a vyberte menší.",
+        "unsupportedType": "Tento typ souboru není podporován. Použijte fotku JPEG, PNG nebo WebP.",
+        "unreadable": "Fotku se nepodařilo přečíst. Odeberte ji a vyberte znovu.",
+        "rejected": "Tato fotka nebo její poznámka byla odmítnuta. Odeberte ji nebo poznámku zkraťte.",
+        "upload": "Nahrání se nezdařilo. Odešlete znovu a zkuste to."
+      }
+    },
+    "sent": {
+      "title": "Odesláno",
+      "body": "{{name}} je teď uvidí. Tato žádost je hotová.",
+      "cardTitle": "Fotky pokroku",
+      "cardMeta_one": "{{count}} nová · dnes v {{time}}",
+      "cardMeta_few": "{{count}} nové · dnes v {{time}}",
+      "cardMeta_many": "{{count}} nové · dnes v {{time}}",
+      "cardMeta_other": "{{count}} nových · dnes v {{time}}",
+      "view": "Zobrazit"
+    },
+    "daily": {
+      "title": "Fotky pokroku",
+      "dayOf": "Den {{day}} z {{total}}",
+      "sentDays_one": "{{count}} den odeslán",
+      "sentDays_few": "{{count}} dny odeslány",
+      "sentDays_many": "{{count}} dne odesláno",
+      "sentDays_other": "{{count}} dní odesláno",
+      "missedDays_one": "{{count}} den zmeškán",
+      "missedDays_few": "{{count}} dny zmeškány",
+      "missedDays_many": "{{count}} dne zmeškáno",
+      "missedDays_other": "{{count}} dní zmeškáno",
+      "day": {
+        "sent": "{{date}}, odesláno",
+        "missed": "{{date}}, bez fotky"
+      },
+      "dayToday": "Dnes, {{date}}",
+      "pageLabel": "Den {{day}} z {{total}}, {{date}}",
+      "missedDay": "{{date}} jste neodeslali žádné fotky.",
+      "todaysPhotos": "Dnešní fotky",
+      "reminder": "Připomenutí ve 12:00",
+      "sentAt": "Odesláno v {{time}}",
+      "photosError": "Fotky se nepodařilo načíst. Zkontrolujte připojení a zkuste to znovu.",
+      "sent": {
+        "title": "Dnešní fotky dorazily",
+        "body": "{{name}} je teď uvidí. Pokud do zítřejšího poledne nic nepřidáte, připomeneme vám to.",
+        "bodyLast": "{{name}} je teď uvidí. Byl to poslední den této žádosti.",
+        "cardTitle": "Fotky pokroku",
+        "cardMeta_one": "{{count}} nová · den {{day}} z {{total}} · dnes v {{time}}",
+        "cardMeta_few": "{{count}} nové · den {{day}} z {{total}} · dnes v {{time}}",
+        "cardMeta_many": "{{count}} nové · den {{day}} z {{total}} · dnes v {{time}}",
+        "cardMeta_other": "{{count}} nových · den {{day}} z {{total}} · dnes v {{time}}"
       }
     }
   }

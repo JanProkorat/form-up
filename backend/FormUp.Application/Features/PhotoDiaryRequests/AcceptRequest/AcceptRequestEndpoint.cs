@@ -67,7 +67,7 @@ public class AcceptRequestEndpoint(
 
         // 409 if not Pending, past its end date, or a legacy row without a mode (the coach picks
         // the mode at creation now; accepting a mode-less row would break the mode constraint).
-        if (request.Status != PhotoDiaryStatus.Pending || now >= request.EndsAt || request.Mode is null)
+        if (request.Status != PhotoDiaryStatus.Pending || request.IsExpiredAt(now) || request.Mode is null)
         {
             await this.SendProblemAsync(409, ErrorCodes.PhotoDiaryRequestInvalidStatus,
                 "This request cannot be accepted: it is not Pending, has expired, or has no mode.", ct);

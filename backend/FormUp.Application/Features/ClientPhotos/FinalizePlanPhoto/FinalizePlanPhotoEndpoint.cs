@@ -68,7 +68,7 @@ public class FinalizePlanPhotoEndpoint(
                 + "status. The first photo upload for an Accepted request transitions it to InProgress.";
             s.Response<PlanPhotoResponse>(StatusCodes.Status201Created, "Plan photo finalized");
             s.Response(StatusCodes.Status409Conflict,
-                "The diary request is not Accepted/InProgress, or its window has expired (PHOTO_DIARY_REQUEST_EXPIRED)");
+                "The diary request is not Accepted/InProgress, or its window has expired (PHOTO_DIARY_REQUEST_EXPIRED); one-time requests never expire");
         });
     }
 
@@ -129,33 +129,11 @@ public class FinalizePlanPhotoEndpoint(
         PhotoDiaryRequest? diaryRequest = null;
         if (req.DiaryRequestId.HasValue)
         {
-            diaryRequest = await db.PhotoDiaryRequests
-                .Include(r => r.Link)
-                    .ThenInclude(l => l!.ClientProfile)
-                        .ThenInclude(cp => cp.User)
-                .Include(r => r.PendingInvite)
-                .FirstOrDefaultAsync(r => r.Id == req.DiaryRequestId.Value, ct);
+            diaryRequest = await this.LoadForUploadOrRespondAsync(
+                db, req.DiaryRequestId.Value, callerUserId, emailClaim, DateTimeOffset.UtcNow, ct);
 
-            // 404 if not found or owned by another client — don't leak existence
-            if (diaryRequest is null || !PhotoDiaryRequestOwnership.IsOwnedByClient(diaryRequest, callerUserId, emailClaim))
+            if (diaryRequest is null)
             {
-                await Send.NotFoundAsync(ct);
-                return;
-            }
-
-            // 409 if status is not Accepted or InProgress
-            if (diaryRequest.Status is not (PhotoDiaryStatus.Accepted or PhotoDiaryStatus.InProgress))
-            {
-                await this.SendProblemAsync(409, ErrorCodes.PhotoDiaryRequestInvalidStatus,
-                    "Photos can only be uploaded against diary requests in Accepted or InProgress status.", ct);
-                return;
-            }
-
-            // 409 once the request's window has ended, for every mode
-            if (!diaryRequest.IsOpenAt(DateTimeOffset.UtcNow))
-            {
-                await this.SendProblemAsync(409, ErrorCodes.PhotoDiaryRequestExpired,
-                    "This photo diary request has expired and no longer accepts photos.", ct);
                 return;
             }
         }
@@ -266,7 +244,7 @@ public class FinalizePlanPhotoEndpoint(
         {
             try
             {
-                var clientName = ResolveClientNameFromDiaryRequest(diaryRequest, callerUserId, emailClaim);
+                var clientName = PhotoDiaryRequestUploadGuard.ResolveClientName(diaryRequest, emailClaim);
                 var dayIndex = diaryRequest.AcceptedAt.HasValue
                     ? Math.Max(1, (DateTimeOffset.UtcNow - diaryRequest.AcceptedAt.Value).Days + 1)
                     : 1;
@@ -319,18 +297,4 @@ public class FinalizePlanPhotoEndpoint(
         UploadedByUserId = photo.UploadedByUserId,
         DiaryRequestId = photo.DiaryRequestId
     };
-
-    /// <summary>
-    /// Resolves a display name for the client from the diary request's navigation properties.
-    /// </summary>
-    private static string ResolveClientNameFromDiaryRequest(
-        PhotoDiaryRequest request,
-        Guid callerUserId,
-        string? clientEmail)
-    {
-        if (request.Link?.ClientProfile?.User is { } user)
-            return $"{user.FirstName} {user.LastName}".Trim();
-
-        return clientEmail ?? string.Empty;
-    }
 }

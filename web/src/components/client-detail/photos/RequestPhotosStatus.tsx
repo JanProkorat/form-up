@@ -50,7 +50,7 @@ export function RequestPreviewCard({ coachName, frequency, endsAt, planName, mes
   const date = formatWeekdayDate(endsAt, locale);
   const schedule =
     frequency === 'once'
-      ? t('clientDetail.photos.requestDrawer.preview.once', { date })
+      ? t('clientDetail.photos.requestDrawer.preview.once')
       : t('clientDetail.photos.requestDrawer.preview.daily', { date });
 
   return (
@@ -104,15 +104,20 @@ export default function RequestPhotosStatus({ request, name, coachName, plans, l
           </dd>
           <dt className="text-muted-foreground">{t('clientDetail.photos.requestDrawer.status.sent')}</dt>
           <dd className="font-medium text-ink">{formatDayMonth(request.createdAt, locale)}</dd>
-          <dt className="text-muted-foreground">
-            {frequency === 'once'
-              ? t('clientDetail.photos.requestDrawer.status.dueBy')
-              : t('clientDetail.photos.requestDrawer.status.until')}
-          </dt>
-          <dd className="font-medium text-ink">{formatWeekdayDate(request.endsAt, locale)}</dd>
+          {frequency === 'daily' && (
+            <>
+              <dt className="text-muted-foreground">{t('clientDetail.photos.requestDrawer.status.until')}</dt>
+              <dd className="font-medium text-ink">{formatWeekdayDate(request.endsAt, locale)}</dd>
+            </>
+          )}
         </dl>
         <p className="rounded-field bg-sunken px-3.5 py-3 text-body leading-normal text-ink-2">
-          {t('clientDetail.photos.requestDrawer.status.note', { name })}
+          {t(
+            frequency === 'once'
+              ? 'clientDetail.photos.requestDrawer.status.noteOnce'
+              : 'clientDetail.photos.requestDrawer.status.note',
+            { name },
+          )}
         </p>
       </section>
 

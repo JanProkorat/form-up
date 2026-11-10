@@ -27,4 +27,10 @@ public class FinalizeUnlinkedPhotoRequest
     /// When the photo was taken. Defaults to UtcNow when not provided.
     /// </summary>
     public DateTime? TakenAt { get; set; }
+
+    /// <summary>
+    /// Optional diary request ID. When set, the photo answers that request; the same rules apply as
+    /// for a plan photo (owned by the caller, Accepted or InProgress, not past its end date).
+    /// </summary>
+    public Guid? DiaryRequestId { get; set; }
 }

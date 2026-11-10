@@ -48,7 +48,7 @@ public class GetClientPhotoDiaryRequestEndpointTests(FitnessApiFactory factory)
         return (actor.Http, actor.UserId, actor.Email);
     }
 
-    private async Task<long> InsertLinkAsync(Guid clientUserId, Guid professionalUserId, bool isActive = true)
+    private async Task<long> InsertLinkAsync(Guid clientUserId, Guid professionalUserId, bool isActive = true, UserRole role = UserRole.Nutritionist)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -62,7 +62,7 @@ public class GetClientPhotoDiaryRequestEndpointTests(FitnessApiFactory factory)
         {
             ClientProfileId = clientProfile.Id,
             ProfessionalProfileId = profProfile.Id,
-            ProfessionalRole = UserRole.Nutritionist,
+            ProfessionalRole = role,
             IsActive = isActive,
             CanViewNutritionPlans = true,
             CanViewTrainingPlans = false,
@@ -72,6 +72,17 @@ public class GetClientPhotoDiaryRequestEndpointTests(FitnessApiFactory factory)
         db.ClientProfessionalLinks.Add(link);
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         return link.Id;
+    }
+
+    private async Task<(Guid PublicId, string Name)> GetCoachIdentityAsync(Guid professionalUserId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var coach = await db.ProfessionalProfiles
+            .Where(p => p.UserId == professionalUserId)
+            .Select(p => new { p.PublicId, Name = p.User.FirstName + " " + p.User.LastName })
+            .FirstAsync(TestContext.Current.CancellationToken);
+        return (coach.PublicId, coach.Name);
     }
 
     private async Task<long> InsertPendingInviteAsync(Guid professionalUserId, string inviteeEmail)
@@ -246,7 +257,56 @@ public class GetClientPhotoDiaryRequestEndpointTests(FitnessApiFactory factory)
         body!.Id.Should().Be(requestId);
     }
 
+    [Fact]
+    public async Task Get_LinkRequest_NamesTheCoachWithTheLinkRole()
+    {
+        var (_, profId) = await SetupProfessionalAsync();
+        var (http, clientId, _) = await SetupClientAsync();
+        var linkId = await InsertLinkAsync(clientId, profId, role: UserRole.Nutritionist);
+        var requestId = await InsertDiaryRequestAsync(profId, linkId: linkId);
+        var coach = await GetCoachIdentityAsync(profId);
+
+        var response = await http.GetAsync(
+            $"/client/photo-diary-requests/{requestId}",
+            TestContext.Current.CancellationToken);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<GetResponseBody>(
+            JsonOptions, TestContext.Current.CancellationToken);
+        body!.ProfessionalPublicId.Should().Be(coach.PublicId);
+        body.ProfessionalName.Should().Be(coach.Name);
+        body.ProfessionalRole.Should().Be(UserRole.Nutritionist);
+    }
+
+    [Fact]
+    public async Task Get_InviteRequest_NamesTheCoachWithNullRole()
+    {
+        var (_, profId) = await SetupProfessionalAsync();
+        var (http, _, clientEmail) = await SetupClientAsync();
+        var inviteId = await InsertPendingInviteAsync(profId, clientEmail);
+        var requestId = await InsertDiaryRequestAsync(profId, inviteId: inviteId);
+        var coach = await GetCoachIdentityAsync(profId);
+
+        var response = await http.GetAsync(
+            $"/client/photo-diary-requests/{requestId}",
+            TestContext.Current.CancellationToken);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<GetResponseBody>(
+            JsonOptions, TestContext.Current.CancellationToken);
+        body!.ProfessionalPublicId.Should().Be(coach.PublicId);
+        body.ProfessionalName.Should().Be(coach.Name);
+        body.ProfessionalRole.Should().BeNull();
+    }
+
     // ── Response shape helpers ─────────────────────────────────────────────────
 
-    private record GetResponseBody(Guid Id, Guid ProfessionalId, Guid? PlanId, PhotoDiaryStatus Status);
+    private record GetResponseBody(
+        Guid Id,
+        Guid ProfessionalId,
+        Guid? PlanId,
+        PhotoDiaryStatus Status,
+        Guid ProfessionalPublicId = default,
+        string? ProfessionalName = null,
+        UserRole? ProfessionalRole = null);
 }

@@ -5,6 +5,9 @@ import type { Conversation } from '@/api/conversations';
 import { ClientPaymentStatus } from '@/api/generated';
 import type { CollaborationFirstPaymentDto } from '@/api/generated';
 import type { PendingDiaryRequest, PendingItems } from '@/api/questionnaires';
+import { daysLabel } from '@/components/photoRequest/format';
+import { flowRoute, introRoute } from '@/components/photoRequest/model';
+import type { PhotoRoute, PhotoStatus } from '@/components/photoRequest/model';
 import { formatMoney } from '@/components/payments/format';
 
 import type { StepState } from './TimelineStep';
@@ -60,12 +63,6 @@ export function photoRequestFor(
   );
 }
 
-export const hasPhotoRequest = (
-  pending: PendingItems | undefined,
-  collaboration: Collaboration,
-  onlyCollaboration: boolean,
-): boolean => photoRequestFor(pending, collaboration, onlyCollaboration) !== undefined;
-
 /** First payment of the agreed terms: Upcoming only informs, Requested and Overdue ask the client to pay. */
 export function paymentPhase(firstPayment: CollaborationFirstPaymentDto | undefined): {
   upcoming: boolean;
@@ -117,14 +114,57 @@ export function firstPaymentStep({
   };
 }
 
-/** The open "starting photos" step. */
-export function photoStep(t: TFunction, name: string, onAdd: () => void): Step {
-  return {
-    key: 'photos',
-    state: 'open',
-    title: t('today.progress.photos'),
-    hint: t('today.progress.photosHint', { name }),
-    actionLabel: t('today.progress.photosAdd'),
-    onAction: onAdd,
-  };
+/**
+ * The photo-request step of a coach's progress list: a new request to open, an every-day request to add to or
+ * view, a started one-time request, or a one-time request already sent. `onOpen` receives where to go.
+ */
+export function photoStep(
+  t: TFunction,
+  status: PhotoStatus,
+  name: string,
+  onOpen: (route: PhotoRoute) => void,
+): Step {
+  const everyDayTitle = t('photoRequest.step.everyDayTitle', { name });
+  const onceTitle = t('photoRequest.step.onceTitle', { name });
+
+  switch (status.kind) {
+    case 'pending':
+      return {
+        key: 'photos',
+        state: 'open',
+        title: status.mode === 'everyDay' ? everyDayTitle : onceTitle,
+        hint:
+          status.mode === 'everyDay'
+            ? t('photoRequest.step.everyDayPendingHint', { days: daysLabel(t, status.days) })
+            : t('photoRequest.step.oncePendingHint'),
+        actionLabel: t('photoRequest.step.add'),
+        onAction: () => onOpen(introRoute(status.id)),
+        actionTone: 'primary',
+      };
+    case 'running':
+      return {
+        key: 'photos',
+        state: 'open',
+        title: everyDayTitle,
+        hint: t(status.sentToday ? 'photoRequest.step.runningSentHint' : 'photoRequest.step.runningHint', {
+          day: status.day,
+          total: status.total,
+        }),
+        actionLabel: t(status.sentToday ? 'photoRequest.step.view' : 'photoRequest.step.add'),
+        onAction: () => onOpen(flowRoute(status.id, 'everyDay')),
+        actionTone: 'primary',
+      };
+    case 'onceOpen':
+      return {
+        key: 'photos',
+        state: 'open',
+        title: onceTitle,
+        hint: t('photoRequest.step.oncePendingHint'),
+        actionLabel: t('photoRequest.step.add'),
+        onAction: () => onOpen(introRoute(status.id)),
+        actionTone: 'primary',
+      };
+    case 'onceSent':
+      return { key: 'photos', state: 'done', title: t('photoRequest.step.onceSent') };
+  }
 }

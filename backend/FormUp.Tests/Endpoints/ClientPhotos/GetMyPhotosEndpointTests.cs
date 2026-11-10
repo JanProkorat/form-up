@@ -199,6 +199,50 @@ public class GetMyPhotosEndpointTests
             .Should().Be("https://blob/photo.jpg");
     }
 
+    // ── Diary request link ───────────────────────────────────────────────────
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task HandleAsync_PhotoAnsweringDiaryRequest_ReturnsDiaryRequestId(bool groupByMonth)
+    {
+        var clientProfile = EntityBuilder.ClientProfile
+            .WithUserId(_clientUserId)
+            .WithId(10)
+            .Build();
+
+        var diaryRequestId = Guid.NewGuid();
+        var answer = EntityBuilder.PlanPhoto.ForClient(10, _clientUserId).AnsweringRequest(diaryRequestId).Build();
+        var free = EntityBuilder.PlanPhoto.ForClient(10, _clientUserId).Build();
+
+        var db = new MockDbBuilder()
+            .With(clientProfile)
+            .With(answer)
+            .With(free)
+            .Build();
+
+        var ep = Factory.Create<GetMyPhotosEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_clientUserId, AppRoles.Client))),
+            db,
+            new FakeBlobStorageService());
+
+        await ep.HandleAsync(
+            new GetMyPhotosRequest { GroupByMonth = groupByMonth, Page = 1, PageSize = 20 },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        var photos = groupByMonth
+            ? ep.Response.Groups!.SelectMany(g => g.Photos).ToList()
+            : ep.Response.Photos!;
+
+        photos.Should().HaveCount(2);
+        photos.Single(p => p.Id == answer.PublicId).DiaryRequestId.Should().Be(diaryRequestId);
+        photos.Single(p => p.Id == free.PublicId).DiaryRequestId.Should().BeNull();
+    }
+
     // ── Pagination ────────────────────────────────────────────────────────────
 
     [Fact]

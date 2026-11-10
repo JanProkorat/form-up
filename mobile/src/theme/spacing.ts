@@ -230,4 +230,7 @@ export const sizes = {
   offlineGlyph: 28,
   quietButton: 46,
   quietButtonInset: 28,
+  noteRowThumbWidth: 64,
+  noteRowThumbHeight: 86,
+  noteRowRemove: 24,
 } as const;

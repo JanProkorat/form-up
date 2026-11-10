@@ -590,6 +590,36 @@ public class CreateRequestEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task Create_WhileAnOpenBulkRequestOlderThan24HoursExists_Returns409_AlreadyOpen()
+    {
+        var (http, profId) = await SetupProfessionalAsync();
+        var (_, clientUserId, _) = await SetupClientAsync();
+        var (linkId, clientPublicId) = await InsertLinkAsync(clientUserId, profId);
+
+        var bulk = EntityBuilder.PhotoDiaryRequest
+            .OnLink(profId, linkId)
+            .WithMode(PhotoDiaryMode.Bulk)
+            .WithStatus(PhotoDiaryStatus.Pending)
+            .CreatedAt(DateTimeOffset.UtcNow.AddDays(-3))
+            .Build();
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            db.PhotoDiaryRequests.Add(bulk);
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        var response = await http.PostAsJsonAsync(
+            "/trainer/photo-diary-requests",
+            new { ClientId = clientPublicId, Mode = "Bulk" },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))
+            .Should().Contain("PHOTO_DIARY_REQUEST_ALREADY_OPEN");
+    }
+
+    [Fact]
     public async Task Create_AnotherCoachsOpenRequestForTheSameClient_DoesNotBlock()
     {
         var (http, profId) = await SetupProfessionalAsync();

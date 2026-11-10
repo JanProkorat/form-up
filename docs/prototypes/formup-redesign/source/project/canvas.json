@@ -2896,6 +2896,38 @@
    "x": 2820,
    "y": 14918
   },
+  "GlassPhotoViewerLight.dc.html": {
+   "x": 5170,
+   "y": 14918,
+   "w": 390,
+   "h": 844,
+   "page": "glass",
+   "title": "PhotoViewer · Progress photos: note and date under the photo, swipe between photos, delete own · light"
+  },
+  "GlassPhotoViewerDark.dc.html": {
+   "x": 5170,
+   "y": 15882,
+   "w": 390,
+   "h": 844,
+   "page": "glass",
+   "title": "PhotoViewer · Progress photos: note and date under the photo, swipe between photos, delete own · dark"
+  },
+  "GlassPhotoViewerImmersiveLight.dc.html": {
+   "x": 5640,
+   "y": 14918,
+   "w": 390,
+   "h": 844,
+   "page": "glass",
+   "title": "PhotoViewerImmersive · tap the photo: black, no labels or controls; tap again to bring them back · light"
+  },
+  "GlassPhotoViewerImmersiveDark.dc.html": {
+   "x": 5640,
+   "y": 15882,
+   "w": 390,
+   "h": 844,
+   "page": "glass",
+   "title": "PhotoViewerImmersive · tap the photo: black, no labels or controls; tap again to bring them back · dark"
+  },
   "GlassMealPhotoViewerDark.dc.html": {
    "h": 844,
    "page": "glass",
@@ -3536,13 +3568,285 @@
    "x": 0,
    "y": 37162
   },
+  "GlassTodayPhotoRequestBannerLight.dc.html": {
+   "x": 0,
+   "y": 39802,
+   "w": 390,
+   "h": 844,
+   "page": "glass",
+   "title": "TodayPhotoRequestBanner · every-day request on Today · light"
+  },
+  "GlassTodayPhotoRequestBannerDark.dc.html": {
+   "x": 0,
+   "y": 41102,
+   "w": 390,
+   "h": 844,
+   "page": "glass",
+   "title": "TodayPhotoRequestBanner · every-day request on Today · dark"
+  },
+  "GlassPhotoRequestLight.dc.html": {
+   "x": 470,
+   "y": 39802,
+   "w": 390,
+   "h": 844,
+   "page": "glass",
+   "title": "PhotoRequest · every day: coach in the header, Start or Not now · light"
+  },
+  "GlassPhotoRequestDark.dc.html": {
+   "x": 470,
+   "y": 41102,
+   "w": 390,
+   "h": 844,
+   "page": "glass",
+   "title": "PhotoRequest · every day: coach in the header, Start or Not now · dark"
+  },
+  "GlassPhotoRequestDeclineLight.dc.html": {
+   "x": 940,
+   "y": 39802,
+   "w": 390,
+   "h": 844,
+   "page": "glass",
+   "title": "PhotoRequestDecline · Not now → optional reason, X closes (both types) · light"
+  },
+  "GlassPhotoRequestDeclineDark.dc.html": {
+   "x": 940,
+   "y": 41102,
+   "w": 390,
+   "h": 844,
+   "page": "glass",
+   "title": "PhotoRequestDecline · Not now → optional reason, X closes (both types) · dark"
+  },
+  "GlassPhotoRequestDailyLight.dc.html": {
+   "x": 1410,
+   "y": 39802,
+   "w": 390,
+   "h": 844,
+   "page": "glass",
+   "title": "PhotoRequestDaily · today, nothing yet: note, Today’s photos, Add photos · light"
+  },
+  "GlassPhotoRequestDailyDark.dc.html": {
+   "x": 1410,
+   "y": 41102,
+   "w": 390,
+   "h": 844,
+   "page": "glass",
+   "title": "PhotoRequestDaily · today, nothing yet: note, Today’s photos, Add photos · dark"
+  },
+  "GlassPhotoRequestDailySentLight.dc.html": {
+   "x": 3290,
+   "y": 39802,
+   "w": 390,
+   "h": 844,
+   "page": "glass",
+   "title": "PhotoRequestDailySent · today's photos sent · light"
+  },
+  "GlassPhotoRequestDailySentDark.dc.html": {
+   "x": 3290,
+   "y": 41102,
+   "w": 390,
+   "h": 844,
+   "page": "glass",
+   "title": "PhotoRequestDailySent · today's photos sent · dark"
+  },
+  "GlassPhotoRequestDailyDoneLight.dc.html": {
+   "x": 2820,
+   "y": 39802,
+   "w": 390,
+   "h": 1180,
+   "page": "glass",
+   "title": "PhotoRequestDailyDone · today sent twice, grouped by send time, Add more photos · light"
+  },
+  "GlassPhotoRequestDailyDoneDark.dc.html": {
+   "x": 2820,
+   "y": 41102,
+   "w": 390,
+   "h": 1180,
+   "page": "glass",
+   "title": "PhotoRequestDailyDone · today sent twice, grouped by send time, Add more photos · dark"
+  },
+  "GlassTodayPhotoRequestOnceBannerLight.dc.html": {
+   "x": 0,
+   "y": 42802,
+   "w": 390,
+   "h": 844,
+   "page": "glass",
+   "title": "TodayPhotoRequestOnceBanner · one-time request on Today · light"
+  },
+  "GlassTodayPhotoRequestOnceBannerDark.dc.html": {
+   "x": 0,
+   "y": 43882,
+   "w": 390,
+   "h": 844,
+   "page": "glass",
+   "title": "TodayPhotoRequestOnceBanner · one-time request on Today · dark"
+  },
+  "GlassPhotoRequestOnceIntroLight.dc.html": {
+   "x": 470,
+   "y": 42802,
+   "w": 390,
+   "h": 844,
+   "page": "glass",
+   "title": "PhotoRequestOnceIntro · once: coach in the header, no deadline · light"
+  },
+  "GlassPhotoRequestOnceIntroDark.dc.html": {
+   "x": 470,
+   "y": 43882,
+   "w": 390,
+   "h": 844,
+   "page": "glass",
+   "title": "PhotoRequestOnceIntro · once: coach in the header, no deadline · dark"
+  },
+  "GlassPhotoRequestOnceLight.dc.html": {
+   "x": 940,
+   "y": 42802,
+   "w": 390,
+   "h": 844,
+   "page": "glass",
+   "title": "PhotoRequestOnce · all photos at once, a note per photo, Send · light"
+  },
+  "GlassPhotoRequestOnceDark.dc.html": {
+   "x": 940,
+   "y": 43882,
+   "w": 390,
+   "h": 844,
+   "page": "glass",
+   "title": "PhotoRequestOnce · all photos at once, a note per photo, Send · dark"
+  },
+  "GlassPhotoRequestOnceSentLight.dc.html": {
+   "x": 1410,
+   "y": 42802,
+   "w": 390,
+   "h": 844,
+   "page": "glass",
+   "title": "PhotoRequestOnceSent · photos sent, request done · light"
+  },
+  "GlassPhotoRequestOnceSentDark.dc.html": {
+   "x": 1410,
+   "y": 43882,
+   "w": 390,
+   "h": 844,
+   "page": "glass",
+   "title": "PhotoRequestOnceSent · photos sent, request done · dark"
+  },
+  "GlassTodayNoPlanPhotoOnceLight.dc.html": {
+   "x": 0,
+   "y": 45202,
+   "w": 390,
+   "h": 960,
+   "page": "glass",
+   "title": "TodayNoPlan · one-time photo request still to send · Add opens the request · light (full scroll)"
+  },
+  "GlassTodayNoPlanPhotoOnceDark.dc.html": {
+   "x": 0,
+   "y": 46362,
+   "w": 390,
+   "h": 960,
+   "page": "glass",
+   "title": "TodayNoPlan · one-time photo request still to send · Add opens the request · dark (full scroll)"
+  },
+  "GlassTodayNoPlanPhotoDailyLight.dc.html": {
+   "x": 470,
+   "y": 45202,
+   "w": 390,
+   "h": 960,
+   "page": "glass",
+   "title": "TodayNoPlan · every-day request, nothing yet today · Add opens the day view · light (full scroll)"
+  },
+  "GlassTodayNoPlanPhotoDailyDark.dc.html": {
+   "x": 470,
+   "y": 46362,
+   "w": 390,
+   "h": 960,
+   "page": "glass",
+   "title": "TodayNoPlan · every-day request, nothing yet today · Add opens the day view · dark (full scroll)"
+  },
+  "GlassTodayNoPlanPhotoOnceSentLight.dc.html": {
+   "x": 940,
+   "y": 45202,
+   "w": 390,
+   "h": 960,
+   "page": "glass",
+   "title": "TodayNoPlan · one-time photos sent · row ticked like Questionnaire sent · light (full scroll)"
+  },
+  "GlassTodayNoPlanPhotoOnceSentDark.dc.html": {
+   "x": 940,
+   "y": 46362,
+   "w": 390,
+   "h": 960,
+   "page": "glass",
+   "title": "TodayNoPlan · one-time photos sent · row ticked like Questionnaire sent · dark (full scroll)"
+  },
+  "GlassTodayNoPlanPhotoDailySentLight.dc.html": {
+   "x": 1410,
+   "y": 45202,
+   "w": 390,
+   "h": 960,
+   "page": "glass",
+   "title": "TodayNoPlan · every-day request, today sent · View opens the day view · light (full scroll)"
+  },
+  "GlassTodayNoPlanPhotoDailySentDark.dc.html": {
+   "x": 1410,
+   "y": 46362,
+   "w": 390,
+   "h": 960,
+   "page": "glass",
+   "title": "TodayNoPlan · every-day request, today sent · View opens the day view · dark (full scroll)"
+  },
+  "GlassPhotoRequestClosedLight.dc.html": {
+   "x": 1880,
+   "y": 42802,
+   "w": 390,
+   "h": 844,
+   "page": "glass",
+   "title": "PhotoRequestClosed · cancelled, ended or declined request opened from a notification (both types) · light"
+  },
+  "GlassPhotoRequestClosedDark.dc.html": {
+   "x": 1880,
+   "y": 43882,
+   "w": 390,
+   "h": 844,
+   "page": "glass",
+   "title": "PhotoRequestClosed · cancelled, ended or declined request opened from a notification (both types) · dark"
+  },
+  "GlassPhotoRequestDailyPastLight.dc.html": {
+   "w": 390,
+   "h": 844,
+   "page": "glass",
+   "title": "PhotoRequestDailyPast · a past day (swipe or tap the strip): photos with notes · light",
+   "x": 1880,
+   "y": 39802
+  },
+  "GlassPhotoRequestDailyPastDark.dc.html": {
+   "w": 390,
+   "h": 844,
+   "page": "glass",
+   "title": "PhotoRequestDailyPast · a past day (swipe or tap the strip): photos with notes · dark",
+   "x": 1880,
+   "y": 41102
+  },
+  "GlassPhotoRequestDailyNewLight.dc.html": {
+   "w": 390,
+   "h": 1180,
+   "page": "glass",
+   "title": "PhotoRequestDailyNew · new photos on top, the earlier send below, Send · light",
+   "x": 2350,
+   "y": 39802
+  },
+  "GlassPhotoRequestDailyNewDark.dc.html": {
+   "w": 390,
+   "h": 1180,
+   "page": "glass",
+   "title": "PhotoRequestDailyNew · new photos on top, the earlier send below, Send · dark",
+   "x": 2350,
+   "y": 41102
+  },
   "GlassTodayColourBackgroundLight.dc.html": {
    "h": 844,
    "page": "glass",
    "title": "Today colour · D · warm tinted screen, white cards · light",
    "w": 390,
    "x": 1880,
-   "y": 39802
+   "y": 47922
   },
   "GlassTodayColourBorderLight.dc.html": {
    "h": 844,
@@ -3550,7 +3854,7 @@
    "title": "Today colour · B · module-colour border and glow · light",
    "w": 390,
    "x": 940,
-   "y": 39802
+   "y": 47922
   },
   "GlassTodayColourCurrentLight.dc.html": {
    "h": 844,
@@ -3558,7 +3862,7 @@
    "title": "Today colour · 0 · current (unchanged copy) · light",
    "w": 390,
    "x": 0,
-   "y": 39802
+   "y": 47922
   },
   "GlassTodayColourHeaderLight.dc.html": {
    "h": 844,
@@ -3566,7 +3870,7 @@
    "title": "Today colour · E · module-colour header band only, white card body · light",
    "w": 390,
    "x": 2350,
-   "y": 39802
+   "y": 47922
   },
   "GlassTodayColourProgressLight.dc.html": {
    "h": 844,
@@ -3574,7 +3878,7 @@
    "title": "Today colour · C · colour follows progress: thicker bars, eaten rows tinted · light",
    "w": 390,
    "x": 1410,
-   "y": 39802
+   "y": 47922
   },
   "GlassTodayColourWashLight.dc.html": {
    "h": 844,
@@ -3582,7 +3886,7 @@
    "title": "Today colour · A · soft module-colour wash, stronger header band · light",
    "w": 390,
    "x": 470,
-   "y": 39802
+   "y": 47922
   },
   "CoachSetupDark.dc.html": {
    "h": 844,
@@ -4265,6 +4569,14 @@
    "x": 0,
    "y": 36862
   },
+  "glassPhotoRequest": {
+   "x": 0,
+   "y": 39502,
+   "kind": "title1",
+   "page": "glass",
+   "maxW": 3200,
+   "text": "Photo request · Every day for N days — Today banner, request, decline, today, past day, new photos, today sent, sent  ·  light above, dark below"
+  },
   "glassTodayColour": {
    "kind": "title1",
    "maxW": 2740,
@@ -4272,7 +4584,7 @@
    "text": "Today — more colour: 0 current, A wash, B border, C colour follows progress, D tinted screen, E header band  ·  light",
    "w": 240,
    "x": 0,
-   "y": 39502
+   "y": 47622
   },
   "coachS": {
    "kind": "title1",
@@ -4765,6 +5077,44 @@
   "GlassNutritionNotesDark.dc.html",
   "GlassTodayNotesLight.dc.html",
   "GlassTodayNotesDark.dc.html",
+  "GlassTodayPhotoRequestBannerLight.dc.html",
+  "GlassTodayPhotoRequestBannerDark.dc.html",
+  "GlassPhotoRequestLight.dc.html",
+  "GlassPhotoRequestDark.dc.html",
+  "GlassPhotoRequestDeclineLight.dc.html",
+  "GlassPhotoRequestDeclineDark.dc.html",
+  "GlassPhotoRequestDailyLight.dc.html",
+  "GlassPhotoRequestDailyDark.dc.html",
+  "GlassPhotoRequestDailySentLight.dc.html",
+  "GlassPhotoRequestDailySentDark.dc.html",
+  "GlassPhotoRequestDailyDoneLight.dc.html",
+  "GlassPhotoRequestDailyDoneDark.dc.html",
+  "GlassTodayPhotoRequestOnceBannerLight.dc.html",
+  "GlassTodayPhotoRequestOnceBannerDark.dc.html",
+  "GlassPhotoRequestOnceIntroLight.dc.html",
+  "GlassPhotoRequestOnceIntroDark.dc.html",
+  "GlassPhotoRequestOnceLight.dc.html",
+  "GlassPhotoRequestOnceDark.dc.html",
+  "GlassPhotoRequestOnceSentLight.dc.html",
+  "GlassPhotoRequestOnceSentDark.dc.html",
+  "GlassTodayNoPlanPhotoOnceLight.dc.html",
+  "GlassTodayNoPlanPhotoOnceDark.dc.html",
+  "GlassTodayNoPlanPhotoDailyLight.dc.html",
+  "GlassTodayNoPlanPhotoDailyDark.dc.html",
+  "GlassTodayNoPlanPhotoOnceSentLight.dc.html",
+  "GlassTodayNoPlanPhotoOnceSentDark.dc.html",
+  "GlassTodayNoPlanPhotoDailySentLight.dc.html",
+  "GlassTodayNoPlanPhotoDailySentDark.dc.html",
+  "GlassPhotoRequestClosedLight.dc.html",
+  "GlassPhotoRequestClosedDark.dc.html",
+  "GlassPhotoRequestDailyPastLight.dc.html",
+  "GlassPhotoRequestDailyPastDark.dc.html",
+  "GlassPhotoRequestDailyNewLight.dc.html",
+  "GlassPhotoRequestDailyNewDark.dc.html",
+  "GlassPhotoViewerLight.dc.html",
+  "GlassPhotoViewerDark.dc.html",
+  "GlassPhotoViewerImmersiveLight.dc.html",
+  "GlassPhotoViewerImmersiveDark.dc.html",
   "CoachTodayLight.dc.html",
   "CoachClientsLight.dc.html",
   "CoachClientDetailLight.dc.html",

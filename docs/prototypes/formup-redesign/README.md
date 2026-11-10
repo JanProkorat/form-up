@@ -14,8 +14,8 @@ session can open them; agents read this snapshot):
 The old combined canvas (<https://claude.ai/artifact/HFzM8WqykBxJvkLdiqU85h>) is
 frozen and no longer updated.
 
-**Snapshot of web portal 1793698360-07d3, client app 1793741057-bec0 and coach app
-1793695238-ebef, exported 2026-11-04 (#1946).** This was a full re-sync: boards the
+**Snapshot of web portal 1794226496-cc4b, client app 1794307123-abc5 and coach app
+1794226497-216b, exported 2026-11-10 (#2056).** This was a full re-sync: boards the
 canvases had folded into combined boards (e.g. the `PageReset*` steps into
 `PageResetPasswordFlow`, the settings dialogs into `PageDialogs`) are gone, and the
 clickable prototypes link to the combined board instead. The concepts and logo boards

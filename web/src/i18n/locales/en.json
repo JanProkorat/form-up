@@ -4027,6 +4027,7 @@
     "justNow": "Just now",
     "reviewInClients": "Review in Clients",
     "seeInClientActivity": "See in client activity",
+    "seePhotos": "See photos",
     "markRead": "Mark as read",
     "markAllReadShort": "Mark all read",
     "unreadCount": "{{count}} unread"
@@ -4309,9 +4310,9 @@
         "days_one": "{{count}} day",
         "days_other": "{{count}} days",
         "untilHelp": "Until {{date}} · {{min}} to {{max}} days",
-        "dueByHelp": "Due by {{date}}",
+        "onceHelp": "No end date. {{name}} uploads photos whenever they are ready",
         "reminderDaily": "{{name}} gets a reminder at noon on each day they haven't uploaded a photo yet. The request closes on its own after the last day.",
-        "reminderOnce": "{{name}} has one day to upload photos. The request closes on its own after that.",
+        "reminderOnce": "{{name}} has no deadline. The request stays open until they upload photos or you cancel it.",
         "optional": "optional",
         "footnote": "{{name}} can accept or decline",
         "submit": "Send request",
@@ -4346,7 +4347,7 @@
         "preview": {
           "heading": "What {{name}} sees",
           "title": "{{name}} asks for progress photos",
-          "once": "Once, due by {{date}}",
+          "once": "Once, whenever you are ready",
           "daily": "Every day until {{date}}"
         },
         "status": {
@@ -4355,8 +4356,8 @@
           "frequency": "How often",
           "sent": "Sent",
           "until": "Until",
-          "dueBy": "Due by",
           "note": "The request closes on its own at the end of the window. If you cancel it, {{name}} won't be asked any more.",
+          "noteOnce": "The request stays open until {{name}} uploads photos. If you cancel it, {{name}} won't be asked any more.",
           "values": {
             "Pending": "Waiting for {{name}} to respond",
             "Accepted": "{{name}} accepted",
