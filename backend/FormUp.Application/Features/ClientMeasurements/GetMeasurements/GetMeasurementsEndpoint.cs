@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FormUp.Application.Domain.Constants;
+using FormUp.Application.Domain.Extensions;
 using FormUp.Application.Features.ClientMeasurements.Shared;
 using FormUp.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -52,12 +53,14 @@ public class GetMeasurementsEndpoint(IApplicationDbContext db) : Endpoint<GetMea
 
         if (req.From.HasValue)
         {
-            query = query.Where(m => m.MeasuredAt >= req.From.Value);
+            var fromUtc = req.From.Value.ToUtcKind();
+            query = query.Where(m => m.MeasuredAt >= fromUtc);
         }
 
         if (req.To.HasValue)
         {
-            query = query.Where(m => m.MeasuredAt <= req.To.Value);
+            var toUtc = req.To.Value.ToUtcKind();
+            query = query.Where(m => m.MeasuredAt <= toUtc);
         }
 
         var totalCount = await query.CountAsync(ct);
