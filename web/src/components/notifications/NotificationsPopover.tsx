@@ -1,7 +1,18 @@
 import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Bell, Check, ChevronRight, History, MessageSquare, UserCheck, UserPlus, UserX, type LucideIcon } from 'lucide-react';
+import {
+  Bell,
+  Camera,
+  Check,
+  ChevronRight,
+  History,
+  MessageSquare,
+  UserCheck,
+  UserPlus,
+  UserX,
+  type LucideIcon,
+} from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -24,9 +35,24 @@ const TYPE_ICON: Record<string, LucideIcon> = {
   invitationaccepted: UserCheck,
   invitationdeclined: UserX,
   newmessage: MessageSquare,
+  progressphotossubmitted: Camera,
 };
 
 const OFFLINE_SYNC_CONFLICT_TYPE = 'offlinesyncconflict';
+const PROGRESS_PHOTOS_SUBMITTED_TYPE = 'progressphotossubmitted';
+
+/** Reads the client public id from a `progressphotossubmitted` payload (`clientId`); undefined when absent. */
+function readPhotosClientId(raw: string | null | undefined): string | undefined {
+  if (!raw) return undefined;
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed !== 'object' || parsed === null) return undefined;
+    const value = (parsed as Record<string, unknown>).clientId;
+    return typeof value === 'string' && value.length > 0 ? value : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 /** Up to two initials from a full name, e.g. "Jana Nováková" -> "JN". */
 function nameInitials(name: string | undefined): string {
@@ -87,6 +113,13 @@ export default function NotificationsPopover({ collapsed, rowClassName, label, o
     setOpen(false);
     onNavigate?.();
     navigate(`/clients/${encodeURIComponent(clientPublicId)}`);
+  }
+
+  function seeClientPhotos(item: NotificationDto, clientPublicId: string) {
+    if (!item.read) markRead.mutate(item.id);
+    setOpen(false);
+    onNavigate?.();
+    navigate(`/clients/${encodeURIComponent(clientPublicId)}/photos`);
   }
 
   return (
@@ -164,6 +197,8 @@ export default function NotificationsPopover({ collapsed, rowClassName, label, o
               const isConflict = item.type === OFFLINE_SYNC_CONFLICT_TYPE;
               const conflictPayload = isConflict ? parseOfflineSyncConflictPayload(item.actionPayload) : {};
               const initials = nameInitials(conflictPayload.clientName);
+              const photosClientId =
+                item.type === PROGRESS_PHOTOS_SUBMITTED_TYPE ? readPhotosClientId(item.actionPayload) : undefined;
               return (
                 <li
                   key={item.id}
@@ -211,6 +246,16 @@ export default function NotificationsPopover({ collapsed, rowClassName, label, o
                         className="inline-flex items-center gap-0.5 self-start text-label font-semibold text-foreground underline underline-offset-2"
                       >
                         {t('notifications.seeInClientActivity')}
+                        <ChevronRight className="size-3.5" aria-hidden="true" />
+                      </button>
+                    )}
+                    {item.type === PROGRESS_PHOTOS_SUBMITTED_TYPE && photosClientId && (
+                      <button
+                        type="button"
+                        onClick={() => seeClientPhotos(item, photosClientId)}
+                        className="inline-flex items-center gap-0.5 self-start text-label font-semibold text-foreground underline underline-offset-2"
+                      >
+                        {t('notifications.seePhotos')}
                         <ChevronRight className="size-3.5" aria-hidden="true" />
                       </button>
                     )}
