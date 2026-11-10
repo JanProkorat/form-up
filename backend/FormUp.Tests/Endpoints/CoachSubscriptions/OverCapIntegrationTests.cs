@@ -177,9 +177,12 @@ public class OverCapIntegrationTests(FitnessApiFactory factory)
             training.Weeks[0].DatePublished = DateTime.UtcNow;
             await mongo.TrainingPlans.InsertOneAsync(training, cancellationToken: Ct);
 
-            return endpoint == "training-full"
-                ? $"/client/training/plans/{training.ExternalId}"
-                : "/client/training/plan/today";
+            return endpoint switch
+            {
+                "training-full" => $"/client/training/plans/{training.ExternalId}",
+                "training-list" => "/client/plans",
+                _ => "/client/training/plan/today",
+            };
         }
 
         var nutrition = PlanTestHelpers.CreatePlan(
@@ -193,6 +196,7 @@ public class OverCapIntegrationTests(FitnessApiFactory factory)
         {
             "nutrition-today" => "/client/nutrition/plan/today",
             "nutrition-week" => "/client/nutrition/plan/week",
+            "nutrition-list" => "/client/plans",
             _ => $"/client/nutrition/plans/{nutrition.ExternalId}",
         };
     }
@@ -208,6 +212,10 @@ public class OverCapIntegrationTests(FitnessApiFactory factory)
     [InlineData("training-full", false)]
     [InlineData("training-today", true)]
     [InlineData("training-today", false)]
+    [InlineData("nutrition-list", true)]
+    [InlineData("nutrition-list", false)]
+    [InlineData("training-list", true)]
+    [InlineData("training-list", false)]
     public async Task ClientPlanRead_FillsRunsUntilOnlyForAnOverCapClient(string endpoint, bool overCap)
     {
         var world = await LapsedCoachAsync(endpoint.StartsWith("training", StringComparison.Ordinal) ? UserRole.Trainer : UserRole.Nutritionist);
@@ -217,7 +225,10 @@ public class OverCapIntegrationTests(FitnessApiFactory factory)
         var response = await client.Http.GetAsync(route, Ct);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var runsUntil = JsonDocument.Parse(await response.Content.ReadAsStringAsync(Ct)).RootElement.GetProperty("runsUntil");
+        var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync(Ct)).RootElement;
+        var runsUntil = endpoint.EndsWith("-list", StringComparison.Ordinal)
+            ? body.GetProperty("items")[0].GetProperty("runsUntil")
+            : body.GetProperty("runsUntil");
 
         if (overCap)
         {

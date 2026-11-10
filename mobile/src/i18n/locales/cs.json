@@ -262,6 +262,11 @@
       "title": "Další plán je připraven",
       "subtitle": "{{plan}} · začíná {{when}}"
     },
+    "runsUntil": {
+      "title": "Váš plán platí do {{date}}",
+      "body": "{{name}} teď nepřidává nové týdny. Po {{date}} zůstane váš plán zde k nahlédnutí.",
+      "bodyNoName": "Nové týdny se teď nepřidávají. Po {{date}} zůstane váš plán zde k nahlédnutí."
+    },
     "questionnaire": {
       "title": "Otázky od {{name}}",
       "titleFallback": {

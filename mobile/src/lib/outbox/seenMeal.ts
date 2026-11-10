@@ -1,8 +1,8 @@
 import { SeenMealItemKind } from '@/api/generated';
 import type { PlanMeal, SeenMealItemRequest } from '@/api/generated';
 
-/** A seen item with every field set, as stored on the outbox entry. */
-export type SeenItem = Required<SeenMealItemRequest>;
+/** A seen item with the fields the outbox fills set, as stored on the outbox entry. */
+export type SeenItem = SeenMealItemRequest & Required<Pick<SeenMealItemRequest, 'kind' | 'refId' | 'name' | 'amount' | 'kcal'>>;
 
 // The backend rejects anything beyond these with a 400, and a 400 drops the whole queued write.
 const MAX_ITEMS = 40;

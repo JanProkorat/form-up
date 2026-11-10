@@ -136,7 +136,7 @@ function TodayContent() {
     if (!showsError(plans)) {
       const areaBlocks = selectAreaBlocks(plans.data ?? [], covering, today);
       // Once any area has an Active plan, each area gets its own block instead of the progress card.
-      if (areaBlocks !== null && areaBlocks.some(hasAreaBlock)) {
+      if (areaBlocks !== null && areaBlocks.some((block) => hasAreaBlock(block, today))) {
         return screen(
           <TodayHeader title={t('today.dateTitle')} />,
           <>
@@ -147,7 +147,7 @@ function TodayContent() {
               </>
             ) : null}
             <AreaPaymentDue blocks={areaBlocks} covering={covering} />
-            <AreaBlocks blocks={areaBlocks} today={today} />
+            <AreaBlocks blocks={areaBlocks} covering={covering} today={today} />
             <GetReadyList blocks={areaBlocks} covering={covering} />
             <AddCoachRows blocks={areaBlocks} />
             {/* The stat tiles already offer logging weight and adding photos. */}

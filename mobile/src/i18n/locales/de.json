@@ -256,6 +256,11 @@
       "title": "Der nächste Plan ist bereit",
       "subtitle": "{{plan}} · startet am {{when}}"
     },
+    "runsUntil": {
+      "title": "Ihr Plan läuft bis {{date}}",
+      "body": "{{name}} fügt vorerst keine neuen Wochen hinzu. Nach dem {{date}} bleibt Ihr Plan hier zum Nachschauen erhalten.",
+      "bodyNoName": "Vorerst werden keine neuen Wochen hinzugefügt. Nach dem {{date}} bleibt Ihr Plan hier zum Nachschauen erhalten."
+    },
     "questionnaire": {
       "title": "Fragen von {{name}}",
       "titleFallback": {
