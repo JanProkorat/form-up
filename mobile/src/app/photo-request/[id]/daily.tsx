@@ -69,7 +69,7 @@ export default function PhotoRequestDailyScreen() {
 
   return (
     <FlowFrame
-      header={{ onClose: leave }}
+      header={{ onBack: leave, title: t('photoRequest.daily.title') }}
       contentStyle={styles.content}
       footer={
         <Button
@@ -79,10 +79,6 @@ export default function PhotoRequestDailyScreen() {
         />
       }
     >
-      <Text variant="title" accessibilityRole="header">
-        {t('photoRequest.daily.title')}
-      </Text>
-
       <Card style={styles.card}>
         <View style={styles.heading}>
           <Text variant="subtitle" accessibilityRole="header">
