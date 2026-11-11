@@ -960,6 +960,24 @@
   "h": 1240
  },
  {
+  "html": "web/35-04-page-plan-changed-notice-c.html",
+  "png": "web/35-04-page-plan-changed-notice-c.png",
+  "w": 1440,
+  "h": 1240
+ },
+ {
+  "html": "web/35-05-page-plan-ended-notice-c.html",
+  "png": "web/35-05-page-plan-ended-notice-c.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/35-06-page-plan-notifications-c.html",
+  "png": "web/35-06-page-plan-notifications-c.png",
+  "w": 860,
+  "h": 640
+ },
+ {
   "html": "web/36-01-page-plan-picker-d.html",
   "png": "web/36-01-page-plan-picker-d.png",
   "w": 1440,
@@ -976,6 +994,24 @@
   "png": "web/36-03-page-settings-plan-past-due-d.png",
   "w": 1440,
   "h": 1240
+ },
+ {
+  "html": "web/36-04-page-plan-changed-notice-d.html",
+  "png": "web/36-04-page-plan-changed-notice-d.png",
+  "w": 1440,
+  "h": 1240
+ },
+ {
+  "html": "web/36-05-page-plan-ended-notice-d.html",
+  "png": "web/36-05-page-plan-ended-notice-d.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/36-06-page-plan-notifications-d.html",
+  "png": "web/36-06-page-plan-notifications-d.png",
+  "w": 860,
+  "h": 640
  },
  {
   "html": "web/37-01-page-paywall-feature-c.html",

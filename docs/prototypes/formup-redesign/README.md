@@ -18,7 +18,9 @@ frozen and no longer updated.
 1794226497-216b, exported 2026-11-10 (#2056).** Partial update on 2026-11-10 (#2065):
 `PageAdminCoachProfile`, `PageAdminCoachDialogs` and `PageAdminCoaches` taken from web
 portal 1794314120-6fd1 and `PageAdminCoachDrawer` removed; other web boards are still
-from 1794226496-cc4b, and PNGs for the new boards are not rendered yet. The #2056 export was a full re-sync: boards the
+from 1794226496-cc4b, and PNGs for the new boards are not rendered yet. Partial update on 2026-11-11
+(#2070): `PageAdminCoachDialogs` and `PageAdminCoachProfile` updated and `PagePlanChangedNotice`,
+`PagePlanEndedNotice` and `PagePlanNotifications` added from web portal 1794403060-8947, also without PNGs. The #2056 export was a full re-sync: boards the
 canvases had folded into combined boards (e.g. the `PageReset*` steps into
 `PageResetPasswordFlow`, the settings dialogs into `PageDialogs`) are gone, and the
 clickable prototypes link to the combined board instead. The concepts and logo boards
