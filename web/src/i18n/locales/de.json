@@ -1644,7 +1644,13 @@
       "addStep": "+ Schritt hinzufügen",
       "removeStep": "Schritt {{number}} entfernen",
       "reorderStep": "Schritt {{number}} verschieben",
-      "hint": "Die Schritte werden dem Klienten in der App in dieser Reihenfolge angezeigt.",
+      "titlePlaceholder": "Titel des Schritts (optional)",
+      "titleLabel": "Titel von Schritt {{number}}",
+      "minutesLabel": "Zeit für Schritt {{number}} in Minuten",
+      "minutesUnit": "Min.",
+      "minutesInvalid": "Geben Sie eine ganze Zahl von {{min}} bis {{max}} Minuten ein.",
+      "titleTooLong": "Der Titel darf höchstens {{max}} Zeichen lang sein.",
+      "hint": "Die Schritte werden dem Klienten in der App in dieser Reihenfolge angezeigt. Ein Schritt mit Minuten erhält im Kochmodus der App einen Timer.",
       "times": "Vorbereitung {{prep}} · Kochen {{cook}}"
     },
     "deleteDialog": {

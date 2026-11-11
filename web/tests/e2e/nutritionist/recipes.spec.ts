@@ -214,8 +214,10 @@ test.describe('recipes page', () => {
     await drawer.getByRole('tab', { name: /Preparation/ }).click();
     await drawer.getByRole('button', { name: '+ Add step' }).click();
     await drawer.getByLabel('Step 1', { exact: true }).fill('Wash the apple.');
+    await drawer.getByLabel('Step 1 time in minutes').fill('5');
     await drawer.getByRole('button', { name: '+ Add step' }).click();
     await drawer.getByLabel('Step 2', { exact: true }).fill('Slice and serve.');
+    await drawer.getByLabel('Step 2 title').fill('Serve');
 
     const createResponse = page.waitForResponse(
       (response) => response.url().includes('/recipes') && response.request().method() === 'POST',
@@ -241,6 +243,8 @@ test.describe('recipes page', () => {
       await drawer.getByRole('tab', { name: /Preparation/ }).click();
       await expect(drawer.getByLabel('Step 1', { exact: true })).toHaveValue('Wash the apple.');
       await expect(drawer.getByLabel('Step 2', { exact: true })).toHaveValue('Slice and serve.');
+      await expect(drawer.getByLabel('Step 1 time in minutes')).toHaveValue('5');
+      await expect(drawer.getByLabel('Step 2 title')).toHaveValue('Serve');
 
       // Edit the name.
       await drawer.getByRole('tab', { name: 'Details' }).click();
