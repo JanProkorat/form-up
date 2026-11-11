@@ -22,6 +22,10 @@ clickable prototypes link to the combined board instead. The concepts and logo b
 are not on the new canvases and are kept as they were. If a canvas has moved on,
 re-export before relying on this copy (see Rebuilding).
 
+**Partial update, 2026-11-11 (#2067):** only `PageHomeC` and `PageHomeD` were
+re-exported, from web portal 1794399291-7102. Every other board is still from the
+versions above.
+
 | Path | Contents |
 |---|---|
 | `index.html` | Gallery of every board, grouped by app and module |
