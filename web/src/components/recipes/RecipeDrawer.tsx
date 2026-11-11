@@ -44,8 +44,11 @@ import { showPartialUploadError, uploadStagedPictures, useStagedPictures } from 
 import DeleteRecipeDialog from '@/components/recipes/DeleteRecipeDialog';
 import {
   isValidAmount,
+  isValidMinutesText,
+  isValidStepTitle,
   linesFromRecipe,
   parseAmount,
+  parseMinutes,
   stepsFromRecipe,
   type IngredientLine,
   type StepItem,
@@ -164,6 +167,7 @@ function RecipeForm({ recipe, mode, onClose, onDeleteClick, onBusyChange }: Form
   const [lines, setLines] = useState<IngredientLine[]>(() => (recipe ? linesFromRecipe(recipe) : []));
   const [steps, setSteps] = useState<StepItem[]>(() => (recipe ? stepsFromRecipe(recipe) : []));
   const [showIngredientErrors, setShowIngredientErrors] = useState(false);
+  const [showStepErrors, setShowStepErrors] = useState(false);
 
   const createMutation = useCreateRecipe();
   const updateMutation = useUpdateRecipe();
@@ -256,6 +260,13 @@ function RecipeForm({ recipe, mode, onClose, onDeleteClick, onBusyChange }: Form
       return;
     }
 
+    const stepsValid = steps.every((step) => isValidStepTitle(step.title) && isValidMinutesText(step.minutesText));
+    if (!stepsValid) {
+      setShowStepErrors(true);
+      setTab('preparation');
+      return;
+    }
+
     const content = {
       name: values.name.trim(),
       description: values.description.trim() || undefined,
@@ -267,10 +278,15 @@ function RecipeForm({ recipe, mode, onClose, onDeleteClick, onBusyChange }: Form
       mealTypes: values.mealTypes as RecipeMealType[],
       dietaryPreferences: values.dietaryPreferences as DietaryPreference[],
       steps: steps
-        .filter((step) => step.text.trim() !== '' || step.title)
+        .map((step) => ({
+          title: step.title.trim(),
+          description: step.text.trim(),
+          minutes: parseMinutes(step.minutesText),
+        }))
+        .filter((step) => step.title !== '' || step.description !== '')
         .map((step): RecipeStepDto => {
-          const dto: RecipeStepDto = { description: step.text.trim() };
-          if (step.title) dto.title = step.title;
+          const dto: RecipeStepDto = { description: step.description };
+          if (step.title !== '') dto.title = step.title;
           if (step.minutes !== undefined) dto.minutes = step.minutes;
           return dto;
         }),
@@ -493,7 +509,13 @@ function RecipeForm({ recipe, mode, onClose, onDeleteClick, onBusyChange }: Form
           </TabsContent>
 
           <TabsContent value="preparation" className="flex flex-col overflow-y-auto pb-4">
-            <RecipePreparationTab steps={steps} onStepsChange={setSteps} readOnly={readOnly} timesSummary={timesSummary} />
+            <RecipePreparationTab
+              steps={steps}
+              onStepsChange={setSteps}
+              readOnly={readOnly}
+              timesSummary={timesSummary}
+              showErrors={showStepErrors}
+            />
           </TabsContent>
 
           <TabsContent value="pictures" className="flex flex-col overflow-y-auto pb-4">

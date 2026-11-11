@@ -19,11 +19,38 @@ export interface IngredientLine {
 /** One preparation step; `id` is stable across reorders (drag-and-drop identity). */
 export interface StepItem {
   id: string;
+  /** Step description. */
   text: string;
-  /** Not editable yet; carried through so saving an existing recipe keeps it. */
-  title?: string;
-  /** Not editable yet; carried through so saving an existing recipe keeps it. */
-  minutes?: number;
+  title: string;
+  /** Raw input text so a half-typed number isn't clobbered; parsed on save. */
+  minutesText: string;
+}
+
+export const MAX_STEP_TITLE_LENGTH = 120;
+export const MIN_STEP_MINUTES = 1;
+export const MAX_STEP_MINUTES = 180;
+
+export function newStep(): StepItem {
+  return { id: newKey(), text: '', title: '', minutesText: '' };
+}
+
+/** `undefined` for an empty field; otherwise the typed number (possibly invalid, see isValidMinutesText). */
+export function parseMinutes(minutesText: string): number | undefined {
+  const trimmed = minutesText.trim();
+  return trimmed === '' ? undefined : Number(trimmed);
+}
+
+/** Empty is valid (minutes are optional); otherwise a whole number within the allowed range. */
+export function isValidMinutesText(minutesText: string): boolean {
+  const minutes = parseMinutes(minutesText);
+  return (
+    minutes === undefined || (Number.isInteger(minutes) && minutes >= MIN_STEP_MINUTES && minutes <= MAX_STEP_MINUTES)
+  );
+}
+
+/** The backend measures the raw length, so callers must trim before sending; this checks the trimmed value. */
+export function isValidStepTitle(title: string): boolean {
+  return title.trim().length <= MAX_STEP_TITLE_LENGTH;
 }
 
 export function newKey(): string {
@@ -60,7 +87,7 @@ export function stepsFromRecipe(recipe: GetRecipeResponse): StepItem[] {
   return (recipe.steps ?? []).map((step) => ({
     id: newKey(),
     text: step.description ?? '',
-    title: step.title,
-    minutes: step.minutes,
+    title: step.title ?? '',
+    minutesText: step.minutes === undefined || step.minutes === null ? '' : String(step.minutes),
   }));
 }

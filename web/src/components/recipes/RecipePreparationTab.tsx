@@ -1,19 +1,29 @@
 import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import type * as React from 'react';
 import { useTranslation } from 'react-i18next';
-import { GripVertical, X } from 'lucide-react';
+import { Clock, GripVertical, X } from 'lucide-react';
 import { DragDropProvider } from '@dnd-kit/react';
 import { useSortable } from '@dnd-kit/react/sortable';
 import { move } from '@dnd-kit/helpers';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-import { newKey, type StepItem } from '@/components/recipes/recipe-form-types';
+import {
+  MAX_STEP_MINUTES,
+  MAX_STEP_TITLE_LENGTH,
+  MIN_STEP_MINUTES,
+  isValidMinutesText,
+  isValidStepTitle,
+  newStep,
+  type StepItem,
+} from '@/components/recipes/recipe-form-types';
 
 interface StepRowProps {
   step: StepItem;
   index: number;
   readOnly: boolean;
-  onTextChange: (id: string, text: string) => void;
+  showErrors: boolean;
+  onChange: (id: string, patch: Partial<Omit<StepItem, 'id'>>) => void;
   onRemove: (id: string) => void;
 }
 
@@ -53,9 +63,13 @@ function AutoGrowTextarea(props: Omit<React.ComponentProps<'textarea'>, 'rows' |
 }
 
 /** One draggable step. Declared at module scope so its sortable state survives parent re-renders. */
-function StepRow({ step, index, readOnly, onTextChange, onRemove }: StepRowProps) {
+function StepRow({ step, index, readOnly, showErrors, onChange, onRemove }: StepRowProps) {
   const { t } = useTranslation();
   const { ref, handleRef, isDragging } = useSortable({ id: step.id, index, disabled: readOnly });
+  const number = index + 1;
+  const isBlank = step.title === '' && step.text === '' && step.minutesText === '';
+  const titleInvalid = showErrors && !isValidStepTitle(step.title);
+  const minutesInvalid = showErrors && !isValidMinutesText(step.minutesText);
 
   return (
     <li
@@ -70,29 +84,79 @@ function StepRow({ step, index, readOnly, onTextChange, onRemove }: StepRowProps
           type="button"
           ref={handleRef}
           className="mt-1 cursor-grab text-muted-foreground"
-          aria-label={t('recipes.preparation.reorderStep', { number: index + 1 })}
+          aria-label={t('recipes.preparation.reorderStep', { number })}
         >
           <GripVertical className="size-4" aria-hidden="true" />
         </button>
       )}
       <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-caption font-semibold text-primary-foreground">
-        {index + 1}
+        {number}
       </span>
       {readOnly ? (
-        <p className="flex-1 pt-0.5 text-body whitespace-pre-wrap break-words text-foreground">{step.text}</p>
+        <div className="flex min-w-0 flex-1 flex-col gap-1 pt-0.5">
+          {step.title !== '' && <p className="text-body font-semibold break-words text-foreground">{step.title}</p>}
+          <p className="text-body whitespace-pre-wrap break-words text-foreground">{step.text}</p>
+        </div>
       ) : (
-        <AutoGrowTextarea
-          value={step.text}
-          placeholder={t('recipes.preparation.stepPlaceholder')}
-          aria-label={t('recipes.preparation.stepLabel', { number: index + 1 })}
-          onChange={(event) => onTextChange(step.id, event.target.value)}
-        />
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
+          <Input
+            value={step.title}
+            placeholder={t('recipes.preparation.titlePlaceholder')}
+            aria-label={t('recipes.preparation.titleLabel', { number })}
+            aria-invalid={titleInvalid}
+            onChange={(event) => onChange(step.id, { title: event.target.value })}
+          />
+          <AutoGrowTextarea
+            value={step.text}
+            placeholder={t('recipes.preparation.stepPlaceholder')}
+            aria-label={t('recipes.preparation.stepLabel', { number })}
+            onChange={(event) => onChange(step.id, { text: event.target.value })}
+          />
+          {titleInvalid && (
+            <p className="text-meta text-destructive">
+              {t('recipes.preparation.titleTooLong', { max: MAX_STEP_TITLE_LENGTH })}
+            </p>
+          )}
+          {minutesInvalid && (
+            <p className="text-meta text-destructive">
+              {t('recipes.preparation.minutesInvalid', { min: MIN_STEP_MINUTES, max: MAX_STEP_MINUTES })}
+            </p>
+          )}
+        </div>
+      )}
+      {readOnly ? (
+        step.minutesText !== '' && (
+          <span className="mt-0.5 flex shrink-0 items-center gap-1.5 text-meta text-muted-foreground">
+            <Clock className="size-3.5" aria-hidden="true" />
+            {step.minutesText} {t('recipes.preparation.minutesUnit')}
+          </span>
+        )
+      ) : (
+        <label
+          className={cn(
+            'flex h-10 w-26 shrink-0 items-center gap-1.5 rounded-field border bg-background px-2.5 text-meta text-muted-foreground',
+            isBlank ? 'border-dashed border-border' : 'border-border',
+            minutesInvalid && 'border-destructive',
+          )}
+        >
+          <Clock className="size-3.5 shrink-0" aria-hidden="true" />
+          <input
+            inputMode="numeric"
+            value={step.minutesText}
+            placeholder="–"
+            aria-label={t('recipes.preparation.minutesLabel', { number })}
+            aria-invalid={minutesInvalid}
+            className="w-8 min-w-0 flex-1 border-none bg-transparent p-0 text-right text-body font-semibold text-foreground outline-none placeholder:text-faint"
+            onChange={(event) => onChange(step.id, { minutesText: event.target.value })}
+          />
+          <span>{t('recipes.preparation.minutesUnit')}</span>
+        </label>
       )}
       {!readOnly && (
         <button
           type="button"
           className="mt-1 cursor-pointer text-muted-foreground hover:text-foreground"
-          aria-label={t('recipes.preparation.removeStep', { number: index + 1 })}
+          aria-label={t('recipes.preparation.removeStep', { number })}
           onClick={() => onRemove(step.id)}
         >
           <X className="size-4" aria-hidden="true" />
@@ -108,18 +172,20 @@ interface Props {
   readOnly: boolean;
   /** Prep/cook time summary shown in the footer line, or null when neither is set. */
   timesSummary: string | null;
+  /** Show per-step validation messages (set once a save was blocked). */
+  showErrors: boolean;
 }
 
 /**
- * The recipe drawer's Preparation tab: an ordered list of step text boxes,
- * reorderable by dragging, removable, with "+ Add step" appending a new one.
- * Blank steps are dropped on save, not here.
+ * The recipe drawer's Preparation tab: an ordered list of steps (title,
+ * description, minutes), reorderable by dragging, removable, with "+ Add step"
+ * appending a new one. Blank steps are dropped on save, not here.
  */
-export default function RecipePreparationTab({ steps, onStepsChange, readOnly, timesSummary }: Props) {
+export default function RecipePreparationTab({ steps, onStepsChange, readOnly, timesSummary, showErrors }: Props) {
   const { t } = useTranslation();
 
-  function updateText(id: string, text: string) {
-    onStepsChange(steps.map((step) => (step.id === id ? { ...step, text } : step)));
+  function updateStep(id: string, patch: Partial<Omit<StepItem, 'id'>>) {
+    onStepsChange(steps.map((step) => (step.id === id ? { ...step, ...patch } : step)));
   }
 
   function removeStep(id: string) {
@@ -143,7 +209,8 @@ export default function RecipePreparationTab({ steps, onStepsChange, readOnly, t
               step={step}
               index={index}
               readOnly={readOnly}
-              onTextChange={updateText}
+              showErrors={showErrors}
+              onChange={updateStep}
               onRemove={removeStep}
             />
           ))}
@@ -154,7 +221,7 @@ export default function RecipePreparationTab({ steps, onStepsChange, readOnly, t
         <button
           type="button"
           className="cursor-pointer rounded-md border border-dashed border-border py-2 text-body font-semibold text-primary hover:bg-muted"
-          onClick={() => onStepsChange([...steps, { id: newKey(), text: '' }])}
+          onClick={() => onStepsChange([...steps, newStep()])}
         >
           {t('recipes.preparation.addStep')}
         </button>
