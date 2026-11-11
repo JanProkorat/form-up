@@ -23579,6 +23579,92 @@ export class ApiClient {
     }
 
     /**
+     * End a coach's plan now
+     * @param coachId Route parameter — the coach's user id; matches {CoachId} in the route exactly.
+     * @return The plan that was ended
+     */
+    endCoachPlanEndpoint(coachId: string, endCoachPlanRequest: EndCoachPlanRequest, signal?: AbortSignal): Promise<EndCoachPlanResponse> {
+        let url_ = this.baseUrl + "/admin/coaches/{coachId}/end-plan";
+        if (coachId === undefined || coachId === null)
+            throw new globalThis.Error("The parameter 'coachId' must be defined.");
+        url_ = url_.replace("{coachId}", encodeURIComponent("" + coachId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(endCoachPlanRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processEndCoachPlanEndpoint(_response);
+        });
+    }
+
+    protected processEndCoachPlanEndpoint(response: AxiosResponse): Promise<EndCoachPlanResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<EndCoachPlanResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request body", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Caller is not an Admin", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("The coach is unknown (PROFESSIONAL_NOT_FOUND)", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = JSON.parse(resultData409);
+            return throwException("No plan to end: no subscription, the Free plan, an ended paid plan, or a gift that has expired (NO_PLAN_TO_END)", status, _responseText, _headers, result409);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<EndCoachPlanResponse>(null as any);
+    }
+
+    /**
      * Disable a coach's account
      * @param coachId Route parameter — the coach's user id; matches {CoachId} in the route exactly.
      * @return Date the account stops being active and the roles removed by this call
@@ -33632,6 +33718,10 @@ export interface GetAdminCoachResponse {
     clientsUsed?: number;
     /** The plan's client limit; null means unlimited. */
     clientsMax?: number | undefined;
+    /** True when an admin can end the plan now: the coach pays, or has a gift in force. */
+    canEndPlanNow?: boolean;
+    /** The Free plan's client limit, to show what ending the plan leaves; null means unlimited. */
+    freePlanMaxActiveClients?: number | undefined;
     /** Newest first. Holds the admin and coach actions on the subscription and account, not payments. */
     history?: AdminCoachHistoryEntryDto[];
 }
@@ -33666,10 +33756,27 @@ export enum AdminCoachHistoryKind {
     AccountKept = "AccountKept",
     RoleAdded = "RoleAdded",
     RoleRemoved = "RoleRemoved",
+    PlanEnded = "PlanEnded",
 }
 
 /** Request for one coach's admin detail. */
 export interface GetAdminCoachRequest {
+}
+
+/** What was ended. */
+export interface EndCoachPlanResponse {
+    /** The coach's user id. */
+    coachId?: string;
+    /** Code of the plan that was ended. */
+    planCode?: string;
+    /** True when the ended plan was a gift rather than a paid plan. */
+    wasGivenFree?: boolean;
+}
+
+/** Request for ending a coach's paid or given plan now. */
+export interface EndCoachPlanRequest {
+    /** Why the plan is ended, at most 300 characters. Stored in the coach's history. */
+    reason: string;
 }
 
 /** Outcome of disabling a coach account as an admin. */
