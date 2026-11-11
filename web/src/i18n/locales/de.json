@@ -372,7 +372,7 @@
       "freeUntil": "Inklusive bis {{date}}",
       "setByFormUpUntil": "Bis {{date}} · Von Form Up gesetzt",
       "setByFormUp": "Von Form Up gesetzt",
-      "endedByFormUp": "Form Up hat Ihren Plan {{plan}} beendet. Sie sind jetzt im Plan Kostenlos.",
+      "endedByFormUp": "Form Up hat Ihren Tarif {{plan}} beendet. Sie nutzen jetzt Free.",
       "changePlan": "Tarif ändern",
       "manageBilling": "Abrechnung verwalten",
       "bill": {
@@ -4205,7 +4205,7 @@
     "reviewInClients": "In Kunden ansehen",
     "seeInClientActivity": "In der Klientenaktivität ansehen",
     "seePhotos": "Fotos ansehen",
-    "seeYourPlan": "Ihren Plan ansehen",
+    "seeYourPlan": "Ihren Tarif ansehen",
     "pickClientsToKeep": "Klienten zum Behalten auswählen",
     "markRead": "Als gelesen markieren",
     "markAllReadShort": "Alle gelesen",

@@ -384,7 +384,7 @@
       "freeUntil": "V ceně do {{date}}",
       "setByFormUpUntil": "Do {{date}} · Nastaveno Form Up",
       "setByFormUp": "Nastaveno Form Up",
-      "endedByFormUp": "Form Up ukončil váš plán {{plan}}. Nyní jste na plánu Zdarma.",
+      "endedByFormUp": "Form Up ukončil váš tarif {{plan}}. Nyní jste na tarifu Free.",
       "changePlan": "Změnit tarif",
       "manageBilling": "Spravovat platby",
       "bill": {
@@ -4336,7 +4336,7 @@
     "reviewInClients": "Zobrazit v Klientech",
     "seeInClientActivity": "Zobrazit v aktivitě klienta",
     "seePhotos": "Zobrazit fotky",
-    "seeYourPlan": "Zobrazit váš plán",
+    "seeYourPlan": "Zobrazit váš tarif",
     "pickClientsToKeep": "Vybrat klienty, které si ponecháte",
     "markRead": "Označit jako přečtené",
     "markAllReadShort": "Označit vše",
