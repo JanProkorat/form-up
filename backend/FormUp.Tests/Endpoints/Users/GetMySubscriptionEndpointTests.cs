@@ -37,6 +37,30 @@ public class GetMySubscriptionEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task Get_PlanSetByFormUp_IsFlagged_WhileItApplies()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var plan = await PaidPlanBuilder.CreateAsync(factory);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(
+            factory, coach, plan, givenFreeAt: DateTimeOffset.UtcNow.AddDays(-1), freeUntil: DateTimeOffset.UtcNow.AddDays(10));
+
+        (await GetAsync(coach)).IsSetByFormUp.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Get_PaidPlanOrEndedGift_IsNotFlagged()
+    {
+        var paying = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var ended = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var plan = await PaidPlanBuilder.CreateAsync(factory);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, paying, plan);
+        await CoachSubscriptionBuilder.SubscribeWithEndedGiftAsync(factory, ended, plan);
+
+        (await GetAsync(paying)).IsSetByFormUp.Should().BeFalse();
+        (await GetAsync(ended)).IsSetByFormUp.Should().BeFalse("the gift no longer applies");
+    }
+
+    [Fact]
     public async Task Get_CoachWithoutSubscription_ShowsTheFreePlanWithoutAStatus()
     {
         var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
