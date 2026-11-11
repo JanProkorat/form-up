@@ -20,6 +20,10 @@ export interface IngredientLine {
 export interface StepItem {
   id: string;
   text: string;
+  /** Not editable yet; carried through so saving an existing recipe keeps it. */
+  title?: string;
+  /** Not editable yet; carried through so saving an existing recipe keeps it. */
+  minutes?: number;
 }
 
 export function newKey(): string {
@@ -53,5 +57,10 @@ export function linesFromRecipe(recipe: GetRecipeResponse): IngredientLine[] {
 }
 
 export function stepsFromRecipe(recipe: GetRecipeResponse): StepItem[] {
-  return (recipe.steps ?? []).map((text) => ({ id: newKey(), text }));
+  return (recipe.steps ?? []).map((step) => ({
+    id: newKey(),
+    text: step.description ?? '',
+    title: step.title,
+    minutes: step.minutes,
+  }));
 }

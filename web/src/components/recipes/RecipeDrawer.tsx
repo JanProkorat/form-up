@@ -20,6 +20,7 @@ import {
   RecipeVisibility,
   type CreateRecipeRequest,
   type GetRecipeResponse,
+  type RecipeStepDto,
   type RecipeSummaryDto,
   type UpdateRecipeRequest,
 } from '@/api/recipe-types';
@@ -265,7 +266,14 @@ function RecipeForm({ recipe, mode, onClose, onDeleteClick, onBusyChange }: Form
       difficulty: values.difficulty ? (values.difficulty as RecipeDifficulty) : undefined,
       mealTypes: values.mealTypes as RecipeMealType[],
       dietaryPreferences: values.dietaryPreferences as DietaryPreference[],
-      steps: steps.map((step) => step.text.trim()).filter((text) => text !== ''),
+      steps: steps
+        .filter((step) => step.text.trim() !== '' || step.title)
+        .map((step): RecipeStepDto => {
+          const dto: RecipeStepDto = { description: step.text.trim() };
+          if (step.title) dto.title = step.title;
+          if (step.minutes !== undefined) dto.minutes = step.minutes;
+          return dto;
+        }),
       foods: lines.map((line) => ({
         foodExternalId: line.foodId,
         amountGrams: parseAmount(line.amountText),
