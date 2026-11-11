@@ -13,6 +13,8 @@ interface Props {
   name: string;
   /** Shown under the cards when no plan is chosen yet. */
   error?: string;
+  /** Code of the coach's current plan; its card is highlighted and cannot be picked. */
+  currentCode?: string;
 }
 
 const EDGE_TOLERANCE_PX = 4;
@@ -27,7 +29,7 @@ interface View {
 }
 
 /** Plans as radio cards in one horizontally scrolling, snapping row, with arrows, a counter and a right-edge fade. */
-export default function PlanCarousel({ options, value, onChange, name, error }: Props) {
+export default function PlanCarousel({ options, value, onChange, name, error, currentCode }: Props) {
   const { t } = useTranslation();
   const scroller = useRef<HTMLDivElement>(null);
   const [view, setView] = useState<View>({ from: 1, to: Math.min(options.length, 1), canPrev: false, canNext: false });
@@ -114,6 +116,7 @@ export default function PlanCarousel({ options, value, onChange, name, error }: 
               plan={plan}
               color={color}
               selected={plan.code === value}
+              current={currentCode !== undefined && plan.code === currentCode}
               name={name}
               onSelect={onChange}
             />

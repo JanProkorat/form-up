@@ -30,6 +30,8 @@ interface Props {
   /** The coach's first name, for the summary line. */
   coachFirstName: string;
   plans: SubscriptionPlanDto[];
+  /** Code of the plan the coach has now; it is shown but cannot be picked again. */
+  currentPlanCode?: string;
   /** Gives the plan; resolves true when it succeeded, which closes the dialog. */
   run: (values: { planCode: string; freeUntil: Date | null; reason: string }) => Promise<boolean>;
 }
@@ -49,6 +51,7 @@ function GiveFreeForm({
   coachId,
   coachFirstName,
   plans,
+  currentPlanCode,
   run,
   onClose,
 }: Omit<Props, 'open' | 'onOpenChange'> & { onClose: () => void }) {
@@ -117,6 +120,7 @@ function GiveFreeForm({
           options={options}
           value={planCode}
           name={`give-free-plan-${coachId}`}
+          currentCode={currentPlanCode}
           onChange={(code) => setValue('planCode', code, { shouldValidate: true, shouldDirty: true })}
           error={errors.planCode?.message ? t(errors.planCode.message) : undefined}
         />

@@ -6561,6 +6561,7 @@
       "plan": "Plan",
       "until": "Until",
       "selected": "Selected",
+      "current": "Current plan",
       "perMonth": "/ month",
       "clientsUpTo_one": "Up to {{count}} client",
       "clientsUpTo_other": "Up to {{count}} clients",

@@ -6560,6 +6560,7 @@
       "plan": "Plan",
       "until": "Bis",
       "selected": "Ausgewählt",
+      "current": "Aktueller Plan",
       "perMonth": "/ Monat",
       "clientsUpTo_one": "Bis zu {{count}} Kunde",
       "clientsUpTo_other": "Bis zu {{count}} Kunden",

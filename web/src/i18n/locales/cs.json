@@ -6788,6 +6788,7 @@
       "plan": "Plán",
       "until": "Do",
       "selected": "Vybráno",
+      "current": "Současný plán",
       "perMonth": "/ měsíc",
       "clientsUpTo_one": "Až {{count}} klient",
       "clientsUpTo_few": "Až {{count}} klienti",

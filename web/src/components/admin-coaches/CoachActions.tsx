@@ -239,6 +239,7 @@ export default function CoachActions({ coach, coachId, plans, onGone }: Props) {
         coachId={coachId}
         coachFirstName={firstName}
         plans={plans}
+        currentPlanCode={coach.plan?.code}
         run={({ planCode, freeUntil, reason }) =>
           attempt(
             () =>

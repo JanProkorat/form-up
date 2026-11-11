@@ -9,6 +9,8 @@ interface Props {
   plan: SubscriptionPlanDto;
   color: PlanColor;
   selected: boolean;
+  /** The coach already has this plan: shown highlighted, but it cannot be picked again. */
+  current?: boolean;
   /** Radio group name, shared by every card of one picker. */
   name: string;
   onSelect: (code: string) => void;
@@ -24,18 +26,21 @@ const FEATURES: ReadonlyArray<{ flag: keyof SubscriptionPlanDto; labelKey: strin
 ];
 
 /** One selectable plan in the give-for-free picker: coloured header, regular price, limit and features. */
-export default function AdminPlanCard({ plan, color, selected, name, onSelect }: Props) {
+export default function AdminPlanCard({ plan, color, selected, current = false, name, onSelect }: Props) {
   const { t, i18n } = useTranslation();
   const code = plan.code ?? '';
   const Icon = color.icon;
   const cap = plan.maxActiveClients;
+  const highlighted = selected || current;
 
   return (
     <label
       data-plan-card
+      aria-disabled={current || undefined}
       className={cn(
         'relative flex w-62.5 shrink-0 cursor-pointer snap-start flex-col gap-3 overflow-hidden rounded-xl border border-line bg-card p-4 shadow-panel focus-within:ring-3 focus-within:ring-ring/50',
-        selected && ['border-2 p-[15px]', color.selected],
+        highlighted && ['border-2 p-[15px]', color.selected],
+        current && 'cursor-not-allowed',
       )}
     >
       <span className={cn('-mx-4 -mt-4 flex flex-col gap-2 px-4 py-4', color.band)}>
@@ -44,9 +49,10 @@ export default function AdminPlanCard({ plan, color, selected, name, onSelect }:
             type="radio"
             name={name}
             value={code}
-            checked={selected}
+            checked={selected || current}
+            disabled={current}
             onChange={() => onSelect(code)}
-            className={cn('size-4.5 shrink-0 cursor-pointer', color.accent)}
+            className={cn('size-4.5 shrink-0 cursor-pointer disabled:cursor-not-allowed', color.accent)}
           />
           <span className="font-display text-card-title font-semibold text-ink">{planName(plan, i18n.language)}</span>
           <span
@@ -56,12 +62,12 @@ export default function AdminPlanCard({ plan, color, selected, name, onSelect }:
             <Icon className="size-4" />
           </span>
         </span>
-        {selected && (
+        {highlighted && (
           // A template string, not cn(): twMerge would drop the custom text-meta size next to text-ink.
           <span
             className={`self-start rounded-full border px-2 py-0.5 text-meta font-semibold text-ink ${color.pill}`}
           >
-            {t('adminCoaches.giveFree.selected')}
+            {t(current ? 'adminCoaches.giveFree.current' : 'adminCoaches.giveFree.selected')}
           </span>
         )}
       </span>
