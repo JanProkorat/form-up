@@ -31,6 +31,7 @@ import AutomationsPage from '@/pages/AutomationsPage';
 import PackagesPage from '@/pages/PackagesPage';
 import AdminPlansPage from '@/pages/AdminPlansPage';
 import AdminCoachesPage from '@/pages/AdminCoachesPage';
+import AdminCoachProfilePage from '@/pages/AdminCoachProfilePage';
 import FormBuilderPage from '@/pages/FormBuilderPage';
 import IngredientsPage from '@/pages/IngredientsPage';
 import RecipesPage from '@/pages/RecipesPage';
@@ -115,6 +116,7 @@ const router = createBrowserRouter(
           <Route element={<RoleGuard allowedRoles={['Admin']} />}>
             <Route path="/admin/plans" element={<AdminPlansPage />} />
             <Route path="/admin/coaches" element={<AdminCoachesPage />} />
+            <Route path="/admin/coaches/:coachId" element={<AdminCoachProfilePage />} />
           </Route>
           <Route element={<RoleGuard allowedRoles={['Trainer', 'Nutritionist']} />}>
             <Route path={KEEP_CLIENTS_PATH} element={<LapseKeepClientsPage />} />

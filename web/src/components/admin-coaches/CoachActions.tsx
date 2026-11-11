@@ -1,29 +1,16 @@
 import { useState, type ReactNode } from 'react';
-import { Controller, useForm, useWatch } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
-import { Ban, CalendarX, Gift, Tag } from 'lucide-react';
+import { Ban, CalendarX, Gift, CircleMinus, Tag } from 'lucide-react';
 import { AdminCoachStatus, type GetAdminCoachResponse } from '@/api/admin-coaches';
 import type { SubscriptionPlanDto } from '@/api/admin-subscription-plans';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { SelectChevron, SELECT_CLASS } from '@/components/automations/automationFormParts';
-import { Field } from '@/components/package-catalog/packageFormParts';
-import { planName } from '@/components/admin-plans/planForm';
-import {
-  REASON_MAX,
-  endOfLocalDay,
-  giveFreeSchema,
-  reasonSchema,
-  tomorrowInputValue,
-  type GiveFreeFormValues,
-  type ReasonFormValues,
-} from '@/components/admin-coaches/coachActionForms';
+import GiveFreeDialog from '@/components/admin-coaches/GiveFreeDialog';
+import ReasonDialog, { type TileTone } from '@/components/admin-coaches/ReasonDialog';
+import { coachPlanName, formatCoachDate } from '@/components/admin-coaches/coachFormat';
 import {
   useCancelCoachRenewal,
   useDisableCoachAccount,
+  useEndCoachPlan,
   useGiveCoachPlanFree,
 } from '@/components/admin-coaches/useAdminCoachesQueries';
 import {
@@ -34,344 +21,303 @@ import {
   showError,
   showSuccess,
 } from '@/lib/api-errors';
+import { cn } from '@/lib/utils';
 
 const ERROR_NO_ACTIVE_ROLE = 'NO_ACTIVE_COACH_ROLE';
+const ERROR_NO_PLAN_TO_END = 'NO_PLAN_TO_END';
 const ERROR_PROFESSIONAL_NOT_FOUND = 'PROFESSIONAL_NOT_FOUND';
 
 const errorCodeOf = (error: unknown): string | null => getRfc7807ErrorCode(error) ?? getErrorCode(error);
 
-interface ActionCardProps {
+/** Reports a failed action. The shared apiErrors text for NO_ACTIVE_COACH_ROLE speaks to the coach, so the admin gets its own. */
+function reportFailure(error: unknown, fallbackKey: string, onGone: () => void) {
+  const code = errorCodeOf(error);
+  const status = getErrorStatus(error);
+  if (status === 400 && code === ERROR_NO_ACTIVE_ROLE) {
+    showError('adminCoaches.errors.noActiveRole');
+    return;
+  }
+  if (status === 409 && code === ERROR_NO_PLAN_TO_END) {
+    showError('adminCoaches.errors.noPlanToEnd');
+    return;
+  }
+  showApiError(error, fallbackKey);
+  if (status === 404 && code === ERROR_PROFESSIONAL_NOT_FOUND) {
+    onGone();
+  }
+}
+
+const ROW_TILE_CLASS: Record<'neutral' | 'red', string> = {
+  neutral: 'bg-sunken text-ink-2',
+  red: 'bg-error-soft text-error',
+};
+
+interface RowProps {
+  tone: 'neutral' | 'red';
   icon: ReactNode;
   title: string;
   description: string;
-  children?: ReactNode;
+  /** The button that opens the dialog; replaced by the note when the action is unavailable. */
+  button: ReactNode;
+  /** Why the action is not available right now. */
+  unavailableNote?: string;
 }
 
-function ActionCard({ icon, title, description, children }: ActionCardProps) {
+function ActionRow({ tone, icon, title, description, button, unavailableNote }: RowProps) {
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-line px-4 py-3.5">
-      <div className="flex items-start gap-3">
-        <span className="mt-0.5 text-muted-foreground" aria-hidden="true">
-          {icon}
-        </span>
-        <div className="flex flex-col gap-0.5">
-          <h4 className="text-copy font-semibold text-ink">{title}</h4>
-          <p className="text-body text-muted-foreground">{description}</p>
-        </div>
+    <li className="flex flex-wrap items-center gap-x-4 gap-y-3 border-t border-line py-3.5">
+      <span
+        aria-hidden="true"
+        className={cn('flex size-9 shrink-0 items-center justify-center rounded-field [&_svg]:size-4.5', ROW_TILE_CLASS[tone])}
+      >
+        {icon}
+      </span>
+      <div className="flex min-w-0 flex-1 basis-60 flex-col gap-0.5">
+        <span className="text-copy font-semibold text-ink">{title}</span>
+        <span className="text-body leading-normal text-muted-foreground">{description}</span>
       </div>
-      {children}
-    </div>
+      <div className="ml-auto">
+        {unavailableNote ? (
+          <p className="max-w-60 text-right text-body leading-normal text-muted-foreground">{unavailableNote}</p>
+        ) : (
+          button
+        )}
+      </div>
+    </li>
   );
 }
+
+/** Outline button of an action row; red text for the destructive ones. */
+function RowButton({ danger = false, children, ...props }: { danger?: boolean; children: ReactNode; onClick: () => void }) {
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="lg"
+      className={cn('px-3.5 font-semibold', danger && 'text-error')}
+      {...props}
+    >
+      {children}
+    </Button>
+  );
+}
+
+type DialogName = 'giveFree' | 'cancelRenewal' | 'endPlan' | 'disable';
 
 interface Props {
   coach: GetAdminCoachResponse;
   coachId: string;
   plans: SubscriptionPlanDto[];
-  /** Called when the coach is gone (404), so the drawer can close. */
+  /** Called when the coach is gone (404), so the page can leave. */
   onGone: () => void;
 }
 
-/** Reports a failed action; the shared apiErrors text for NO_ACTIVE_COACH_ROLE speaks to the coach, so the admin gets its own. */
-function reportFailure(error: unknown, fallbackKey: string, onGone: () => void) {
-  if (getErrorStatus(error) === 400 && errorCodeOf(error) === ERROR_NO_ACTIVE_ROLE) {
-    showError('adminCoaches.errors.noActiveRole');
-    return;
-  }
-  showApiError(error, fallbackKey);
-  if (getErrorStatus(error) === 404 && errorCodeOf(error) === ERROR_PROFESSIONAL_NOT_FOUND) {
-    onGone();
-  }
-}
-
-/** The drawer's actions: give a plan free, apply a promotion (not yet), cancel renewal, disable account. */
+/** The profile's actions card. Every action opens a dialog with a required reason; nothing runs from the page itself. */
 export default function CoachActions({ coach, coachId, plans, onGone }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const [open, setOpen] = useState<DialogName | null>(null);
+  const give = useGiveCoachPlanFree(coachId);
+  const cancel = useCancelCoachRenewal(coachId);
+  const endPlan = useEndCoachPlan(coachId);
+  const disable = useDisableCoachAccount(coachId);
+
+  const firstName = (coach.name ?? '').trim().split(/\s+/)[0] ?? '';
+  const planLabel = coachPlanName(coach.plan, i18n.language);
+  const periodEnd = formatCoachDate(coach.currentPeriodEndsAt, i18n.language);
+  const used = coach.clientsUsed ?? 0;
+  const freeMax = coach.freePlanMaxActiveClients ?? null;
+  const overFreeLimit = freeMax !== null && used > freeMax;
+
   const renewing =
     (coach.status === AdminCoachStatus.Paying ||
       coach.status === AdminCoachStatus.PaymentFailed ||
       coach.status === AdminCoachStatus.Cancelling) &&
     coach.currentPeriodEndsAt !== undefined;
-
-  return (
-    <section className="flex flex-col gap-3" aria-labelledby="coach-actions-heading">
-      <h3 id="coach-actions-heading" className="text-copy font-semibold text-ink">
-        {t('adminCoaches.drawer.actions')}
-      </h3>
-      <GiveFreeCard coachId={coachId} plans={plans} onGone={onGone} />
-      <ActionCard
-        icon={<Tag className="size-4" />}
-        title={t('adminCoaches.actions.promotion.title')}
-        description={t('adminCoaches.actions.promotion.description')}
-      >
-        <div>
-          <Button type="button" variant="outline" size="lg" disabled title={t('shell.comingSoon')}>
-            {t('adminCoaches.actions.promotion.button')}
-          </Button>
-        </div>
-      </ActionCard>
-      <CancelRenewalCard coachId={coachId} renewing={renewing} cancelling={coach.cancelAtPeriodEnd === true} onGone={onGone} />
-      <DisableCard coachId={coachId} onGone={onGone} />
-    </section>
-  );
-}
-
-function GiveFreeCard({ coachId, plans, onGone }: { coachId: string; plans: SubscriptionPlanDto[]; onGone: () => void }) {
-  const { t, i18n } = useTranslation();
-  const give = useGiveCoachPlanFree(coachId);
-  const options = plans.filter((plan) => plan.code && plan.code !== 'free' && plan.isActive);
-  const {
-    register,
-    handleSubmit,
-    control,
-    reset,
-    formState: { errors },
-  } = useForm<GiveFreeFormValues>({
-    resolver: zodResolver(giveFreeSchema),
-    defaultValues: { planCode: '', noEnd: false, freeUntil: '', reason: '' },
-  });
-  const noEnd = useWatch({ control, name: 'noEnd' });
-
-  const submit = handleSubmit(async (values) => {
-    const end = values.noEnd ? null : endOfLocalDay(values.freeUntil);
-    try {
-      await give.mutateAsync({
-        planCode: values.planCode,
-        freeUntil: end ? end.toISOString() : undefined,
-        reason: values.reason.trim(),
-      });
-      showSuccess('adminCoaches.actions.giveFree.success');
-      reset();
-    } catch (error) {
-      reportFailure(error, 'adminCoaches.actions.giveFree.error', onGone);
-    }
-  });
-
-  return (
-    <ActionCard
-      icon={<Gift className="size-4" />}
-      title={t('adminCoaches.actions.giveFree.title')}
-      description={t('adminCoaches.actions.giveFree.description')}
-    >
-      <form onSubmit={submit} noValidate className="flex flex-col gap-3">
-        <Field label={t('adminCoaches.actions.giveFree.plan')} error={errors.planCode?.message}>
-          {(fieldControl) => (
-            <div className="relative">
-              <select {...register('planCode')} className={SELECT_CLASS} {...fieldControl}>
-                <option value="">{t('adminCoaches.actions.giveFree.planPlaceholder')}</option>
-                {options.map((plan) => (
-                  <option key={plan.code} value={plan.code}>
-                    {planName(plan, i18n.language)}
-                  </option>
-                ))}
-              </select>
-              <SelectChevron />
-            </div>
-          )}
-        </Field>
-        <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2">
-          <Field label={t('adminCoaches.actions.giveFree.until')} error={errors.freeUntil?.message}>
-            {(fieldControl) => (
-              <Input
-                type="date"
-                min={tomorrowInputValue()}
-                disabled={noEnd}
-                className="h-10"
-                {...register('freeUntil')}
-                {...fieldControl}
-              />
-            )}
-          </Field>
-          <div className="flex items-center gap-2.5 sm:pt-8.5">
-            <Controller
-              control={control}
-              name="noEnd"
-              render={({ field }) => (
-                <Checkbox
-                  id={`give-free-no-end-${coachId}`}
-                  checked={field.value}
-                  onCheckedChange={(next) => field.onChange(next === true)}
-                  className="size-4.5"
-                />
-              )}
-            />
-            <label htmlFor={`give-free-no-end-${coachId}`} className="text-copy text-ink">
-              {t('adminCoaches.actions.giveFree.noEnd')}
-            </label>
-          </div>
-        </div>
-        <Field label={t('adminCoaches.actions.reason')} error={errors.reason?.message}>
-          {(fieldControl) => (
-            <Textarea rows={2} maxLength={REASON_MAX} {...register('reason')} {...fieldControl} />
-          )}
-        </Field>
-        <div>
-          <Button type="submit" size="lg" disabled={give.isPending}>
-            {t('adminCoaches.actions.giveFree.button')}
-          </Button>
-        </div>
-      </form>
-    </ActionCard>
-  );
-}
-
-interface ReasonCardProps {
-  icon: ReactNode;
-  title: string;
-  description: string;
-  buttonLabel: string;
-  /** The action runs on a second click, after this question. */
-  confirmText?: string;
-  destructive?: boolean;
-  /** Why the action is not available right now; the form is replaced by this note. */
-  unavailableNote?: string;
-  /** Runs the action; resolves true when it succeeded. */
-  run: (reason: string) => Promise<boolean>;
-}
-
-/** An action that needs only a reason, with an optional confirm step. */
-function ReasonCard({
-  icon,
-  title,
-  description,
-  buttonLabel,
-  confirmText,
-  destructive = false,
-  unavailableNote,
-  run,
-}: ReasonCardProps) {
-  const { t } = useTranslation();
-  const [confirming, setConfirming] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<ReasonFormValues>({ resolver: zodResolver(reasonSchema), defaultValues: { reason: '' } });
-
-  const execute = async (values: ReasonFormValues) => {
-    setBusy(true);
-    const ok = await run(values.reason.trim());
-    setBusy(false);
-    setConfirming(false);
-    if (ok) {
-      reset();
-    }
-  };
-
-  const submit = handleSubmit(async (values) => {
-    if (confirmText && !confirming) {
-      setConfirming(true);
-      return;
-    }
-    await execute(values);
-  });
-
-  return (
-    <ActionCard icon={icon} title={title} description={description}>
-      {unavailableNote ? (
-        <p className="text-body text-muted-foreground">{unavailableNote}</p>
-      ) : (
-        <form onSubmit={submit} noValidate className="flex flex-col gap-3">
-          <Field label={t('adminCoaches.actions.reason')} error={errors.reason?.message}>
-            {(fieldControl) => (
-              <Textarea
-                rows={2}
-                maxLength={REASON_MAX}
-                readOnly={confirming}
-                {...register('reason')}
-                {...fieldControl}
-              />
-            )}
-          </Field>
-          {confirming && confirmText && (
-            <p role="alert" className="rounded-lg bg-error-soft px-3 py-2 text-body text-error">
-              {confirmText}
-            </p>
-          )}
-          <div className="flex items-center gap-2">
-            <Button type="submit" size="lg" variant={destructive ? 'destructive' : 'outline'} disabled={busy}>
-              {confirming ? t('adminCoaches.actions.confirm') : buttonLabel}
-            </Button>
-            {confirming && (
-              <Button type="button" size="lg" variant="ghost" disabled={busy} onClick={() => setConfirming(false)}>
-                {t('common.cancel')}
-              </Button>
-            )}
-          </div>
-        </form>
-      )}
-    </ActionCard>
-  );
-}
-
-function CancelRenewalCard({
-  coachId,
-  renewing,
-  cancelling,
-  onGone,
-}: {
-  coachId: string;
-  renewing: boolean;
-  cancelling: boolean;
-  onGone: () => void;
-}) {
-  const { t } = useTranslation();
-  const cancel = useCancelCoachRenewal(coachId);
-  const note = cancelling
+  const cancelNote = coach.cancelAtPeriodEnd
     ? t('adminCoaches.actions.cancelRenewal.already')
     : renewing
       ? undefined
       : t('adminCoaches.actions.cancelRenewal.none');
+  const endNote = coach.canEndPlanNow === true ? undefined : t('adminCoaches.actions.endPlan.none');
+
+  const close = (name: DialogName) => (next: boolean) => setOpen(next ? name : null);
+
+  /** Runs a mutation, shows the matching toast and tells the dialog whether to close. */
+  const attempt = async (action: () => Promise<unknown>, successKey: string, errorKey: string): Promise<boolean> => {
+    try {
+      await action();
+      showSuccess(successKey);
+      return true;
+    } catch (error) {
+      reportFailure(error, errorKey, onGone);
+      return false;
+    }
+  };
+
+  const reasonDialogProps = (name: Exclude<DialogName, 'giveFree'>, tone: TileTone, icon: ReactNode) => ({
+    open: open === name,
+    onOpenChange: close(name),
+    tone,
+    icon,
+  });
 
   return (
-    <ReasonCard
-      icon={<CalendarX className="size-4" />}
-      title={t('adminCoaches.actions.cancelRenewal.title')}
-      description={t('adminCoaches.actions.cancelRenewal.description')}
-      buttonLabel={t('adminCoaches.actions.cancelRenewal.button')}
-      unavailableNote={note}
-      run={async (reason) => {
-        try {
-          const result = await cancel.mutateAsync(reason);
-          showSuccess(
-            result.alreadyCancelled
-              ? 'adminCoaches.actions.cancelRenewal.alreadySuccess'
-              : 'adminCoaches.actions.cancelRenewal.success',
-          );
-          return true;
-        } catch (error) {
-          reportFailure(error, 'adminCoaches.actions.cancelRenewal.error', onGone);
-          return false;
-        }
-      }}
-    />
-  );
-}
+    <section
+      aria-labelledby="coach-actions-heading"
+      className="flex flex-col rounded-2xl border border-line bg-card px-6 pt-5.5 pb-2 shadow-panel"
+    >
+      <div className="flex flex-col gap-1 pb-3.5">
+        <h2 id="coach-actions-heading" className="text-subhead font-semibold text-ink">
+          {t('adminCoaches.drawer.actions')}
+        </h2>
+        <p className="text-body leading-normal text-muted-foreground">{t('adminCoaches.profile.actionsHint')}</p>
+      </div>
+      <ul className="flex flex-col">
+        <ActionRow
+          tone="neutral"
+          icon={<Gift />}
+          title={t('adminCoaches.actions.giveFree.title')}
+          description={t('adminCoaches.actions.giveFree.description')}
+          button={<RowButton onClick={() => setOpen('giveFree')}>{t('adminCoaches.actions.giveFree.button')}</RowButton>}
+        />
+        <ActionRow
+          tone="neutral"
+          icon={<Tag />}
+          title={t('adminCoaches.actions.promotion.title')}
+          description={t('adminCoaches.actions.promotion.description')}
+          button={
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              className="px-3.5 font-semibold"
+              disabled
+              title={t('shell.comingSoon')}
+            >
+              {t('adminCoaches.actions.promotion.button')}
+            </Button>
+          }
+        />
+        <ActionRow
+          tone="neutral"
+          icon={<CalendarX />}
+          title={t('adminCoaches.actions.cancelRenewal.title')}
+          description={t('adminCoaches.actions.cancelRenewal.description')}
+          unavailableNote={cancelNote}
+          button={
+            <RowButton onClick={() => setOpen('cancelRenewal')}>{t('adminCoaches.actions.cancelRenewal.button')}</RowButton>
+          }
+        />
+        <ActionRow
+          tone="red"
+          icon={<CircleMinus />}
+          title={t('adminCoaches.actions.endPlan.title')}
+          description={t('adminCoaches.actions.endPlan.description')}
+          unavailableNote={endNote}
+          button={
+            <RowButton danger onClick={() => setOpen('endPlan')}>
+              {t('adminCoaches.actions.endPlan.button')}
+            </RowButton>
+          }
+        />
+        <ActionRow
+          tone="red"
+          icon={<Ban />}
+          title={t('adminCoaches.actions.disable.title')}
+          description={t('adminCoaches.actions.disable.description')}
+          button={
+            <RowButton danger onClick={() => setOpen('disable')}>
+              {t('adminCoaches.actions.disable.button')}
+            </RowButton>
+          }
+        />
+      </ul>
 
-function DisableCard({ coachId, onGone }: { coachId: string; onGone: () => void }) {
-  const { t } = useTranslation();
-  const disable = useDisableCoachAccount(coachId);
-
-  return (
-    <ReasonCard
-      icon={<Ban className="size-4" />}
-      title={t('adminCoaches.actions.disable.title')}
-      description={t('adminCoaches.actions.disable.description')}
-      buttonLabel={t('adminCoaches.actions.disable.button')}
-      confirmText={t('adminCoaches.actions.disable.confirm')}
-      destructive
-      run={async (reason) => {
-        try {
-          await disable.mutateAsync(reason);
-          showSuccess('adminCoaches.actions.disable.success');
-          return true;
-        } catch (error) {
-          reportFailure(error, 'adminCoaches.actions.disable.error', onGone);
-          return false;
+      <GiveFreeDialog
+        open={open === 'giveFree'}
+        onOpenChange={close('giveFree')}
+        coachId={coachId}
+        coachFirstName={firstName}
+        plans={plans}
+        run={({ planCode, freeUntil, reason }) =>
+          attempt(
+            () =>
+              give.mutateAsync({
+                planCode,
+                freeUntil: freeUntil ? freeUntil.toISOString() : undefined,
+                reason,
+              }),
+            'adminCoaches.actions.giveFree.success',
+            'adminCoaches.actions.giveFree.error',
+          )
         }
-      }}
-    />
+      />
+
+      <ReasonDialog
+        {...reasonDialogProps('cancelRenewal', 'neutral', <CalendarX />)}
+        title={t('adminCoaches.actions.cancelRenewal.dialogTitle')}
+        description={
+          periodEnd
+            ? t('adminCoaches.actions.cancelRenewal.dialogDescription', { plan: planLabel, date: periodEnd })
+            : t('adminCoaches.actions.cancelRenewal.dialogDescriptionNoDate', { plan: planLabel })
+        }
+        placeholder={t('adminCoaches.actions.cancelRenewal.placeholder')}
+        cancelLabel={t('adminCoaches.actions.cancelRenewal.keep')}
+        confirmLabel={t('adminCoaches.actions.cancelRenewal.button')}
+        run={async (reason) => {
+          try {
+            const result = await cancel.mutateAsync(reason);
+            showSuccess(
+              result.alreadyCancelled
+                ? 'adminCoaches.actions.cancelRenewal.alreadySuccess'
+                : 'adminCoaches.actions.cancelRenewal.success',
+            );
+            return true;
+          } catch (error) {
+            reportFailure(error, 'adminCoaches.actions.cancelRenewal.error', onGone);
+            return false;
+          }
+        }}
+      />
+
+      <ReasonDialog
+        {...reasonDialogProps('endPlan', 'red', <CircleMinus />)}
+        destructive
+        title={t('adminCoaches.actions.endPlan.dialogTitle')}
+        description={t('adminCoaches.actions.endPlan.dialogDescription', { name: firstName, plan: planLabel })}
+        callout={
+          overFreeLimit
+            ? t('adminCoaches.actions.endPlan.callout', { name: firstName, count: used, max: freeMax })
+            : undefined
+        }
+        placeholder={t('adminCoaches.actions.endPlan.placeholder')}
+        cancelLabel={t('adminCoaches.actions.endPlan.cancel')}
+        confirmLabel={t('adminCoaches.actions.endPlan.confirm')}
+        run={(reason) =>
+          attempt(
+            () => endPlan.mutateAsync(reason),
+            'adminCoaches.actions.endPlan.success',
+            'adminCoaches.actions.endPlan.error',
+          )
+        }
+      />
+
+      <ReasonDialog
+        {...reasonDialogProps('disable', 'red', <Ban />)}
+        destructive
+        title={t('adminCoaches.actions.disable.dialogTitle')}
+        description={t('adminCoaches.actions.disable.dialogDescription')}
+        placeholder={t('adminCoaches.actions.disable.placeholder')}
+        cancelLabel={t('common.cancel')}
+        confirmLabel={t('adminCoaches.actions.disable.confirm')}
+        run={(reason) =>
+          attempt(
+            () => disable.mutateAsync(reason),
+            'adminCoaches.actions.disable.success',
+            'adminCoaches.actions.disable.error',
+          )
+        }
+      />
+    </section>
   );
 }

@@ -5,7 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { CELL_CLASS, CELL_TEXT_CLASS, HEAD_CLASS } from '@/components/package-catalog/catalogParts';
 import CoachStatusBadge from '@/components/admin-coaches/CoachStatusBadge';
-import { coachPlanName, formatCoachDate } from '@/components/admin-coaches/coachFormat';
+import { coachInitials, coachPlanName, formatCoachDate } from '@/components/admin-coaches/coachFormat';
 
 const COLUMN_COUNT = 7;
 
@@ -15,17 +15,6 @@ interface Props {
   isError: boolean;
   onRetry: () => void;
   onOpen: (coachId: string) => void;
-}
-
-/** First letters of the first and last word of a name, for the avatar disc. */
-function initials(name: string | undefined): string {
-  const words = (name ?? '').trim().split(/\s+/).filter(Boolean);
-  if (words.length === 0) {
-    return '?';
-  }
-  const first = words[0][0] ?? '';
-  const last = words.length > 1 ? (words[words.length - 1][0] ?? '') : '';
-  return (first + last).toUpperCase();
 }
 
 /** The table of coaches: who, roles, plan, status, clients used of the cap, promotion and renewal. */
@@ -105,7 +94,7 @@ export default function CoachesTable({ coaches, isPending, isError, onRetry, onO
                       aria-hidden="true"
                       className="flex size-9 shrink-0 items-center justify-center rounded-full bg-sunken text-meta font-semibold text-ink-2"
                     >
-                      {initials(name)}
+                      {coachInitials(name)}
                     </span>
                     <div className="flex min-w-0 max-w-64 flex-col">
                       <button

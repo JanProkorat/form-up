@@ -6760,6 +6760,45 @@
       "until": "Do {{date}}",
       "noEnd": "Bez konce"
     },
+    "profile": {
+      "joined": "Registrace {{date}}",
+      "freeNote": "Na plánu Zdarma. Nic se neúčtuje.",
+      "actionsHint": "Každá akce vás požádá o potvrzení a důvod. Obojí se zapíše do historie.",
+      "nextPayment": "Příští platba",
+      "promotion": "Akce",
+      "promotionNone": "Žádná",
+      "promotionNoneNote": "Plná cena",
+      "noValue": "—",
+      "nextNote": {
+        "renews": "Obnoví se",
+        "ends": "Plán končí, bez obnovy",
+        "giftEnds": "Dar končí",
+        "giftNoEnd": "Darováno zdarma",
+        "nothing": "Není co platit"
+      }
+    },
+    "giveFree": {
+      "description": "Trenér {{name}} dostane plán bez placení. Zobrazí se jako „Darováno“ a do jeho konce se nic neúčtuje.",
+      "plan": "Plán",
+      "until": "Zdarma do",
+      "selected": "Vybráno",
+      "perMonthNormally": "/ měsíc běžně",
+      "clientsUpTo_one": "Až {{count}} klient",
+      "clientsUpTo_few": "Až {{count}} klienti",
+      "clientsUpTo_many": "Až {{count}} klienta",
+      "clientsUpTo_other": "Až {{count}} klientů",
+      "clientsUnlimited": "Neomezený počet klientů",
+      "included": " (v ceně)",
+      "notIncluded": " (není v ceně)",
+      "counter": "Plány {{from}}–{{to}} z {{total}}",
+      "previous": "Předchozí plány",
+      "next": "Další plány",
+      "summaryNone": "Vyberte plán, který darujete.",
+      "summaryUntil": "zdarma do {{date}}. Poté si {{name}} vybere plán.",
+      "summaryNoEnd": "zdarma, bez data konce.",
+      "summaryPickDate": "zdarma. Zvolte datum konce.",
+      "confirm": "Darovat {{plan}} zdarma"
+    },
     "drawer": {
       "titleFallback": "Trenér",
       "loading": "Načítání...",
@@ -6781,13 +6820,9 @@
     },
     "actions": {
       "reason": "Důvod",
-      "confirm": "Ano, potvrdit",
       "giveFree": {
         "title": "Darovat plán zdarma",
         "description": "Vyberte plán, do kdy a proč. Zobrazí se jako „Darováno“.",
-        "plan": "Plán",
-        "planPlaceholder": "Vyberte plán",
-        "until": "Do",
         "noEnd": "Bez data konce",
         "button": "Darovat zdarma",
         "success": "Plán byl darován zdarma.",
@@ -6806,15 +6841,40 @@
         "already": "Obnova už je zrušená.",
         "success": "Obnova byla zrušena.",
         "alreadySuccess": "Obnova už byla zrušená.",
-        "error": "Obnovu se nepodařilo zrušit."
+        "error": "Obnovu se nepodařilo zrušit.",
+        "dialogTitle": "Zrušit obnovu?",
+        "dialogDescription": "Plán {{plan}} skončí {{date}}, na konci zaplaceného období. Poté se nic neúčtuje a plány klientů trenéra doběhnou do konce.",
+        "dialogDescriptionNoDate": "Plán {{plan}} skončí na konci zaplaceného období. Poté se nic neúčtuje a plány klientů trenéra doběhnou do konce.",
+        "placeholder": "Proč obnovu rušíte?",
+        "keep": "Ponechat obnovu"
+      },
+      "endPlan": {
+        "title": "Ukončit plán hned",
+        "description": "Přesune trenéra dnes na Zdarma. Při překročení limitu Zdarma si vybere, které klienty si ponechá.",
+        "button": "Ukončit plán",
+        "none": "Tento trenér nemá placený ani darovaný plán, který by šel ukončit.",
+        "success": "Plán byl ukončen.",
+        "error": "Plán se nepodařilo ukončit.",
+        "dialogTitle": "Ukončit plán hned?",
+        "dialogDescription": "Trenér {{name}} dnes přejde z plánu {{plan}} na Zdarma a už se mu nic neúčtuje.",
+        "callout_one": "Trenér {{name}} má {{count}} klienta a Zdarma jich povoluje {{max}}. Při příštím přihlášení bude vybírat, které si ponechá. Plány ostatních klientů doběhnou do posledního zveřejněného týdne.",
+        "callout_few": "Trenér {{name}} má {{count}} klienty a Zdarma jich povoluje {{max}}. Při příštím přihlášení bude vybírat, které si ponechá. Plány ostatních klientů doběhnou do posledního zveřejněného týdne.",
+        "callout_many": "Trenér {{name}} má {{count}} klienta a Zdarma jich povoluje {{max}}. Při příštím přihlášení bude vybírat, které si ponechá. Plány ostatních klientů doběhnou do posledního zveřejněného týdne.",
+        "callout_other": "Trenér {{name}} má {{count}} klientů a Zdarma jich povoluje {{max}}. Při příštím přihlášení bude vybírat, které si ponechá. Plány ostatních klientů doběhnou do posledního zveřejněného týdne.",
+        "placeholder": "Proč plán ukončujete?",
+        "cancel": "Zrušit",
+        "confirm": "Ukončit plán hned"
       },
       "disable": {
         "title": "Deaktivovat trenérský účet",
         "description": "Odebere všechny role. Stejné jako vlastní tlačítko Deaktivovat u trenéra.",
         "button": "Deaktivovat",
-        "confirm": "Tím se trenérovi odeberou všechny role. Chcete pokračovat?",
         "success": "Trenérský účet byl deaktivován.",
-        "error": "Trenérský účet se nepodařilo deaktivovat."
+        "error": "Trenérský účet se nepodařilo deaktivovat.",
+        "dialogTitle": "Deaktivovat trenérský účet?",
+        "dialogDescription": "Role trenéra se odeberou, pokud existuje placené období, tak na jeho konci. Funguje to stejně jako vlastní tlačítko Deaktivovat u trenéra.",
+        "placeholder": "Proč účet deaktivujete?",
+        "confirm": "Deaktivovat účet"
       }
     },
     "history": {
@@ -6828,6 +6888,7 @@
         "givenFree_until": "Darován plán {{plan}} zdarma do {{date}}",
         "givenFree_plain": "Darován plán {{plan}} zdarma, bez data konce",
         "planAssigned": "Plán změněn na {{plan}}",
+        "planEnded": "Plán ukončen: {{plan}}",
         "renewalCancelled_until": "Obnova zrušena, plán končí {{date}}",
         "renewalCancelled_plain": "Obnova zrušena",
         "accountDisabled_until": "Účet deaktivován, aktivní do {{date}}",
@@ -6846,7 +6907,8 @@
       "reasonTooLong": "Důvod může mít nejvýše 300 znaků."
     },
     "errors": {
-      "noActiveRole": "Tento trenér nemá žádnou aktivní trenérskou roli, takže není co deaktivovat."
+      "noActiveRole": "Tento trenér nemá žádnou aktivní trenérskou roli, takže není co deaktivovat.",
+      "noPlanToEnd": "Tento trenér nemá placený ani darovaný plán, který by šel ukončit, takže není co dělat."
     }
   },
   "adminPlans": {

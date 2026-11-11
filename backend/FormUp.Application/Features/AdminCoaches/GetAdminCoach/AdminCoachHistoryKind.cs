@@ -28,4 +28,7 @@ public enum AdminCoachHistoryKind
 
     /// <summary>The coach removed a role.</summary>
     RoleRemoved,
+
+    /// <summary>An admin ended the paid or given plan at once.</summary>
+    PlanEnded,
 }

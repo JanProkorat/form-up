@@ -633,6 +633,9 @@ public static class ErrorCodes
     /// <summary>The coach has no paying subscription whose renewal could be cancelled (no row, Free plan, a gift, or a plan that no longer applies).</summary>
     public const string NoRenewingSubscription = "NO_RENEWING_SUBSCRIPTION";
 
+    /// <summary>The coach has no paid or given plan in force to end (no row, Free plan, ended paid plan, or a gift that has expired).</summary>
+    public const string NoPlanToEnd = "NO_PLAN_TO_END";
+
     /// <summary>The IBAN is malformed or fails the mod-97 check.</summary>
     public const string InvalidIban = "INVALID_IBAN";
 

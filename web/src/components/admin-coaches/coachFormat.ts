@@ -46,3 +46,14 @@ export const STATUS_BADGE_CLASS: Record<AdminCoachStatus, string> = {
 
 /** Whether the role string is one the portal has a label for. */
 export const KNOWN_ROLES = ['Trainer', 'Nutritionist'] as const;
+
+/** First letters of the first and last word of a name, for an avatar disc. */
+export function coachInitials(name: string | undefined): string {
+  const words = (name ?? '').trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) {
+    return '?';
+  }
+  const first = words[0][0] ?? '';
+  const last = words.length > 1 ? (words[words.length - 1][0] ?? '') : '';
+  return (first + last).toUpperCase();
+}

@@ -6532,6 +6532,43 @@
       "until": "Bis {{date}}",
       "noEnd": "Ohne Ende"
     },
+    "profile": {
+      "joined": "Registriert am {{date}}",
+      "freeNote": "Im Plan Kostenlos. Es wird nichts abgerechnet.",
+      "actionsHint": "Jede Aktion verlangt Ihre Bestätigung und einen Grund. Beides landet im Verlauf.",
+      "nextPayment": "Nächste Zahlung",
+      "promotion": "Aktion",
+      "promotionNone": "Keine",
+      "promotionNoneNote": "Voller Preis",
+      "noValue": "—",
+      "nextNote": {
+        "renews": "Verlängert sich",
+        "ends": "Plan endet, keine Verlängerung",
+        "giftEnds": "Geschenk endet",
+        "giftNoEnd": "Kostenlos geschenkt",
+        "nothing": "Nichts zu zahlen"
+      }
+    },
+    "giveFree": {
+      "description": "{{name}} erhält den Plan ohne zu zahlen. Er wird als „Geschenkt“ angezeigt, und bis zu seinem Ende wird nichts abgerechnet.",
+      "plan": "Plan",
+      "until": "Kostenlos bis",
+      "selected": "Ausgewählt",
+      "perMonthNormally": "/ Monat regulär",
+      "clientsUpTo_one": "Bis zu {{count}} Kunde",
+      "clientsUpTo_other": "Bis zu {{count}} Kunden",
+      "clientsUnlimited": "Unbegrenzt viele Kunden",
+      "included": " (enthalten)",
+      "notIncluded": " (nicht enthalten)",
+      "counter": "Pläne {{from}}–{{to}} von {{total}}",
+      "previous": "Vorherige Pläne",
+      "next": "Nächste Pläne",
+      "summaryNone": "Wählen Sie einen Plan zum Schenken.",
+      "summaryUntil": "kostenlos bis {{date}}. Danach wählt {{name}} einen Plan.",
+      "summaryNoEnd": "kostenlos, ohne Enddatum.",
+      "summaryPickDate": "kostenlos. Wählen Sie das Enddatum.",
+      "confirm": "{{plan}} kostenlos schenken"
+    },
     "drawer": {
       "titleFallback": "Trainer",
       "loading": "Wird geladen...",
@@ -6553,13 +6590,9 @@
     },
     "actions": {
       "reason": "Grund",
-      "confirm": "Ja, bestätigen",
       "giveFree": {
         "title": "Plan kostenlos schenken",
         "description": "Wählen Sie den Plan, bis wann und warum. Wird als „Geschenkt“ angezeigt.",
-        "plan": "Plan",
-        "planPlaceholder": "Plan wählen",
-        "until": "Bis",
         "noEnd": "Ohne Enddatum",
         "button": "Kostenlos schenken",
         "success": "Der Plan wurde kostenlos geschenkt.",
@@ -6578,15 +6611,38 @@
         "already": "Die Verlängerung ist bereits gekündigt.",
         "success": "Die Verlängerung wurde gekündigt.",
         "alreadySuccess": "Die Verlängerung war bereits gekündigt.",
-        "error": "Die Verlängerung konnte nicht gekündigt werden."
+        "error": "Die Verlängerung konnte nicht gekündigt werden.",
+        "dialogTitle": "Verlängerung kündigen?",
+        "dialogDescription": "Der Plan {{plan}} endet am {{date}}, am Ende des bezahlten Zeitraums. Danach wird nichts mehr abgerechnet, und die Pläne der Kunden des Trainers laufen bis zum Ende.",
+        "dialogDescriptionNoDate": "Der Plan {{plan}} endet am Ende des bezahlten Zeitraums. Danach wird nichts mehr abgerechnet, und die Pläne der Kunden des Trainers laufen bis zum Ende.",
+        "placeholder": "Warum kündigen Sie die Verlängerung?",
+        "keep": "Verlängerung behalten"
+      },
+      "endPlan": {
+        "title": "Plan jetzt beenden",
+        "description": "Setzt den Trainer heute auf Kostenlos. Über dem Limit von Kostenlos wählt er, welche Kunden er behält.",
+        "button": "Plan beenden",
+        "none": "Dieser Trainer hat keinen bezahlten oder geschenkten Plan, der beendet werden könnte.",
+        "success": "Der Plan wurde beendet.",
+        "error": "Der Plan konnte nicht beendet werden.",
+        "dialogTitle": "Plan jetzt beenden?",
+        "dialogDescription": "{{name}} wechselt heute vom Plan {{plan}} auf Kostenlos und wird nicht mehr belastet.",
+        "callout_one": "{{name}} hat {{count}} Kunde und Kostenlos erlaubt {{max}}. Bei der nächsten Anmeldung wählt der Trainer aus, welche er behält. Die Pläne der übrigen Kunden laufen bis zur letzten veröffentlichten Woche.",
+        "callout_other": "{{name}} hat {{count}} Kunden und Kostenlos erlaubt {{max}}. Bei der nächsten Anmeldung wählt der Trainer aus, welche er behält. Die Pläne der übrigen Kunden laufen bis zur letzten veröffentlichten Woche.",
+        "placeholder": "Warum beenden Sie den Plan?",
+        "cancel": "Abbrechen",
+        "confirm": "Plan jetzt beenden"
       },
       "disable": {
         "title": "Trainerkonto deaktivieren",
         "description": "Entfernt alle Rollen. Entspricht der eigenen Schaltfläche Deaktivieren des Trainers.",
         "button": "Deaktivieren",
-        "confirm": "Dadurch werden alle Rollen des Trainers entfernt. Möchten Sie fortfahren?",
         "success": "Das Trainerkonto wurde deaktiviert.",
-        "error": "Das Trainerkonto konnte nicht deaktiviert werden."
+        "error": "Das Trainerkonto konnte nicht deaktiviert werden.",
+        "dialogTitle": "Trainerkonto deaktivieren?",
+        "dialogDescription": "Die Rollen des Trainers werden entfernt, bei einem bezahlten Zeitraum an dessen Ende. Es funktioniert wie die eigene Schaltfläche Deaktivieren des Trainers.",
+        "placeholder": "Warum deaktivieren Sie das Konto?",
+        "confirm": "Konto deaktivieren"
       }
     },
     "history": {
@@ -6600,6 +6656,7 @@
         "givenFree_until": "Plan {{plan}} kostenlos geschenkt bis {{date}}",
         "givenFree_plain": "Plan {{plan}} kostenlos geschenkt, ohne Enddatum",
         "planAssigned": "Plan geändert auf {{plan}}",
+        "planEnded": "Plan beendet: {{plan}}",
         "renewalCancelled_until": "Verlängerung gekündigt, Plan endet am {{date}}",
         "renewalCancelled_plain": "Verlängerung gekündigt",
         "accountDisabled_until": "Konto deaktiviert, aktiv bis {{date}}",
@@ -6618,7 +6675,8 @@
       "reasonTooLong": "Der Grund darf höchstens 300 Zeichen lang sein."
     },
     "errors": {
-      "noActiveRole": "Dieser Trainer hat keine aktive Trainerrolle, daher gibt es nichts zu deaktivieren."
+      "noActiveRole": "Dieser Trainer hat keine aktive Trainerrolle, daher gibt es nichts zu deaktivieren.",
+      "noPlanToEnd": "Dieser Trainer hat keinen bezahlten oder geschenkten Plan, der beendet werden könnte, daher gibt es nichts zu tun."
     }
   },
   "adminPlans": {
