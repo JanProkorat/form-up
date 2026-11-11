@@ -18,6 +18,7 @@ import { RecipeIngredients } from '@/components/nutrition/recipe/RecipeIngredien
 import { RecipeMacros } from '@/components/nutrition/recipe/RecipeMacros';
 import type { MacroBasis } from '@/components/nutrition/recipe/RecipeMacros';
 import { RecipeSteps } from '@/components/nutrition/recipe/RecipeSteps';
+import { canCook, normalizeSteps } from '@/components/nutrition/recipe/steps';
 import { Text } from '@/components/Text';
 import { useRecipeDetail } from '@/hooks/useRecipeDetail';
 import { isOfflineEmpty } from '@/lib/queryState';
@@ -83,7 +84,7 @@ function RecipeDetailContent({ recipe, planServings, mealId, itemId }: RecipeDet
   const [portions, setPortions] = useState(planServings ?? baseServings);
   const [basis, setBasis] = useState<MacroBasis>('portion');
 
-  const steps = (recipe.steps ?? []).filter((step) => step.trim().length > 0);
+  const steps = normalizeSteps(recipe.steps);
   const foods = recipe.foods ?? [];
   const perPortion = scaleMacros(macrosOf(recipe.totalNutrients), 1 / baseServings);
   const minutes = (recipe.prepTimeMinutes ?? 0) + (recipe.cookTimeMinutes ?? 0);
@@ -151,7 +152,21 @@ function RecipeDetailContent({ recipe, planServings, mealId, itemId }: RecipeDet
         </DetailCard>
       ) : null}
 
-      {steps.length > 0 ? <RecipeSteps steps={steps} /> : null}
+      {steps.length > 0 ? (
+        <RecipeSteps
+          steps={steps}
+          totalMinutes={minutes}
+          onCookMode={
+            canCook(steps) && recipe.recipeId
+              ? () =>
+                  router.push({
+                    pathname: '/nutrition/cook/[recipeId]',
+                    params: { recipeId: recipe.recipeId ?? '', portions: String(portions) },
+                  })
+              : undefined
+          }
+        />
+      ) : null}
     </DetailLayout>
   );
 }
