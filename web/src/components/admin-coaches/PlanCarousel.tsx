@@ -83,18 +83,24 @@ export default function PlanCarousel({ options, value, onChange, name, error }: 
   };
 
   return (
-    <fieldset className="relative m-0 flex min-w-0 flex-col gap-2.5 border-none p-0">
-      <legend className="pb-2.5 text-meta font-semibold text-ink-2">{t('adminCoaches.giveFree.plan')}</legend>
-      <div className="absolute -top-2 right-0 flex items-center gap-2">
-        <span className="text-meta text-muted-foreground" aria-live="polite">
-          {t('adminCoaches.giveFree.counter', { from: view.from, to: view.to, total: options.length })}
+    <fieldset className="m-0 flex min-w-0 flex-col gap-2.5 border-none p-0">
+      {/* A legend renders outside the fieldset's content box, so the visible label shares a normal row with the arrows. */}
+      <legend className="sr-only">{t('adminCoaches.giveFree.plan')}</legend>
+      <div className="flex items-center justify-between gap-3">
+        <span aria-hidden="true" className="text-meta font-semibold text-ink-2">
+          {t('adminCoaches.giveFree.plan')}
         </span>
-        <CarouselArrow label={t('adminCoaches.giveFree.previous')} disabled={!view.canPrev} onClick={() => page(-1)}>
-          <ChevronLeft className="size-4" />
-        </CarouselArrow>
-        <CarouselArrow label={t('adminCoaches.giveFree.next')} disabled={!view.canNext} onClick={() => page(1)}>
-          <ChevronRight className="size-4" />
-        </CarouselArrow>
+        <div className="flex items-center gap-2">
+          <span className="text-meta text-muted-foreground" aria-live="polite">
+            {t('adminCoaches.giveFree.counter', { from: view.from, to: view.to, total: options.length })}
+          </span>
+          <CarouselArrow label={t('adminCoaches.giveFree.previous')} disabled={!view.canPrev} onClick={() => page(-1)}>
+            <ChevronLeft className="size-4" />
+          </CarouselArrow>
+          <CarouselArrow label={t('adminCoaches.giveFree.next')} disabled={!view.canNext} onClick={() => page(1)}>
+            <ChevronRight className="size-4" />
+          </CarouselArrow>
+        </div>
       </div>
       <div className="relative">
         <div
