@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Search } from 'lucide-react';
 import { AdminCoachStatusFilter, COACHES_PAGE_SIZE } from '@/api/admin-coaches';
 import { Input } from '@/components/ui/input';
 import Pagination from '@/components/library/Pagination';
-import CoachDrawer from '@/components/admin-coaches/CoachDrawer';
 import CoachStats from '@/components/admin-coaches/CoachStats';
 import CoachesTable from '@/components/admin-coaches/CoachesTable';
 import { useAdminCoaches } from '@/components/admin-coaches/useAdminCoachesQueries';
@@ -21,14 +21,14 @@ const FILTERS: readonly AdminCoachStatusFilter[] = [
   AdminCoachStatusFilter.GivenFree,
 ];
 
-/** Form Up admin → Coaches: stats, filters and a table of every coach account, with a drawer per coach. */
+/** Form Up admin → Coaches: stats, filters and a table of every coach account, and a profile page per coach. */
 export default function AdminCoachesPage() {
   const { t } = useTranslation();
   const [status, setStatus] = useState<AdminCoachStatusFilter>(AdminCoachStatusFilter.All);
   const [searchText, setSearchText] = useState('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
-  const [openCoachId, setOpenCoachId] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
@@ -116,7 +116,7 @@ export default function AdminCoachesPage() {
             isPending={coachesQuery.isPending}
             isError={coachesQuery.isError}
             onRetry={() => void coachesQuery.refetch()}
-            onOpen={setOpenCoachId}
+            onOpen={(coachId) => navigate(`/admin/coaches/${coachId}`)}
           />
         </div>
         <Pagination
@@ -127,8 +127,6 @@ export default function AdminCoachesPage() {
           onPageChange={setPage}
         />
       </div>
-
-      <CoachDrawer coachId={openCoachId} onClose={() => setOpenCoachId(null)} />
     </div>
   );
 }

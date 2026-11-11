@@ -6533,6 +6533,43 @@
       "until": "Until {{date}}",
       "noEnd": "No end"
     },
+    "profile": {
+      "joined": "Joined {{date}}",
+      "freeNote": "On the Free plan. Nothing is billed.",
+      "actionsHint": "Each action asks you to confirm it and give a reason. Both go into the history.",
+      "nextPayment": "Next payment",
+      "promotion": "Promotion",
+      "promotionNone": "None",
+      "promotionNoneNote": "Full price",
+      "noValue": "—",
+      "nextNote": {
+        "renews": "Renews",
+        "ends": "Plan ends, no renewal",
+        "giftEnds": "Gift ends",
+        "giftNoEnd": "Given free",
+        "nothing": "Nothing to pay"
+      }
+    },
+    "giveFree": {
+      "description": "Gives {{name}} the plan without paying. It shows as “Given free”, and nothing is billed until it ends.",
+      "plan": "Plan",
+      "until": "Free until",
+      "selected": "Selected",
+      "perMonthNormally": "/ month normally",
+      "clientsUpTo_one": "Up to {{count}} client",
+      "clientsUpTo_other": "Up to {{count}} clients",
+      "clientsUnlimited": "Unlimited clients",
+      "included": " (included)",
+      "notIncluded": " (not included)",
+      "counter": "Plans {{from}}–{{to}} of {{total}}",
+      "previous": "Previous plans",
+      "next": "Next plans",
+      "summaryNone": "Choose a plan to give.",
+      "summaryUntil": "free until {{date}}. Then {{name}} chooses a plan.",
+      "summaryNoEnd": "free, with no end date.",
+      "summaryPickDate": "free. Pick the end date.",
+      "confirm": "Give {{plan}} for free"
+    },
     "drawer": {
       "titleFallback": "Coach",
       "loading": "Loading...",
@@ -6554,13 +6591,9 @@
     },
     "actions": {
       "reason": "Reason",
-      "confirm": "Yes, confirm",
       "giveFree": {
         "title": "Give a plan for free",
         "description": "Pick the plan, until when and why. Shows as \"Given free\".",
-        "plan": "Plan",
-        "planPlaceholder": "Choose a plan",
-        "until": "Until",
         "noEnd": "No end date",
         "button": "Give for free",
         "success": "The plan was given for free.",
@@ -6579,15 +6612,38 @@
         "already": "The renewal is already cancelled.",
         "success": "The renewal was cancelled.",
         "alreadySuccess": "The renewal was already cancelled.",
-        "error": "Could not cancel the renewal."
+        "error": "Could not cancel the renewal.",
+        "dialogTitle": "Cancel renewal?",
+        "dialogDescription": "The {{plan}} plan stops on {{date}}, at the end of the paid period. Nothing is charged after that, and the coach's clients' plans run to the end.",
+        "dialogDescriptionNoDate": "The {{plan}} plan stops at the end of the paid period. Nothing is charged after that, and the coach's clients' plans run to the end.",
+        "placeholder": "Why are you cancelling it?",
+        "keep": "Keep renewal"
+      },
+      "endPlan": {
+        "title": "End plan now",
+        "description": "Moves the coach to Free today. Over the Free limit, they pick which clients to keep.",
+        "button": "End plan",
+        "none": "This coach has no paid or given plan to end.",
+        "success": "The plan was ended.",
+        "error": "Could not end the plan.",
+        "dialogTitle": "End plan now?",
+        "dialogDescription": "{{name}} moves from {{plan}} to Free today and isn't charged again.",
+        "callout_one": "{{name}} has {{count}} client and Free allows {{max}}. Next time they sign in, they pick which to keep. The other clients' plans run until their last published week.",
+        "callout_other": "{{name}} has {{count}} clients and Free allows {{max}}. Next time they sign in, they pick which to keep. The other clients' plans run until their last published week.",
+        "placeholder": "Why are you ending the plan?",
+        "cancel": "Cancel",
+        "confirm": "End plan now"
       },
       "disable": {
         "title": "Disable coach account",
         "description": "Removes all roles. Same as the coach's own Disable button.",
         "button": "Disable",
-        "confirm": "This removes all of the coach's roles. Do you want to continue?",
         "success": "The coach account was disabled.",
-        "error": "Could not disable the coach account."
+        "error": "Could not disable the coach account.",
+        "dialogTitle": "Disable coach account?",
+        "dialogDescription": "The coach's roles are removed, at the end of the paid period if there is one. It works the same as the coach's own Disable button.",
+        "placeholder": "Why are you disabling the account?",
+        "confirm": "Disable account"
       }
     },
     "history": {
@@ -6601,6 +6657,7 @@
         "givenFree_until": "Given {{plan}} for free until {{date}}",
         "givenFree_plain": "Given {{plan}} for free, no end date",
         "planAssigned": "Plan changed to {{plan}}",
+        "planEnded": "Plan ended: {{plan}}",
         "renewalCancelled_until": "Renewal cancelled, plan ends {{date}}",
         "renewalCancelled_plain": "Renewal cancelled",
         "accountDisabled_until": "Account disabled, active until {{date}}",
@@ -6619,7 +6676,8 @@
       "reasonTooLong": "The reason can be at most 300 characters."
     },
     "errors": {
-      "noActiveRole": "This coach has no active coach role, so there is nothing to disable."
+      "noActiveRole": "This coach has no active coach role, so there is nothing to disable.",
+      "noPlanToEnd": "This coach has no paid or given plan to end, so there is nothing to do."
     }
   },
   "adminPlans": {

@@ -19,6 +19,7 @@ import type {
   AdminCoachStatsDto,
   CancelCoachRenewalResponse,
   DisableCoachAccountByAdminResponse,
+  EndCoachPlanResponse,
   GetAdminCoachResponse,
   GiveCoachPlanFreeRequest,
   GiveCoachPlanFreeResponse,
@@ -33,6 +34,7 @@ export type {
   AdminCoachStatsDto,
   CancelCoachRenewalResponse,
   DisableCoachAccountByAdminResponse,
+  EndCoachPlanResponse,
   GetAdminCoachResponse,
   GiveCoachPlanFreeRequest,
   GiveCoachPlanFreeResponse,
@@ -95,4 +97,9 @@ export async function disableCoachAccount(
   reason: string,
 ): Promise<DisableCoachAccountByAdminResponse> {
   return apiClient.disableCoachAccountByAdminEndpoint(coachId, { reason });
+}
+
+/** Ends the coach's paid or given plan now via POST /admin/coaches/{coachId}/end-plan. */
+export async function endCoachPlan(coachId: string, reason: string): Promise<EndCoachPlanResponse> {
+  return apiClient.endCoachPlanEndpoint(coachId, { reason });
 }

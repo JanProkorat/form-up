@@ -5,6 +5,7 @@ import {
   adminCoachesListKey,
   cancelCoachRenewal,
   disableCoachAccount,
+  endCoachPlan,
   getAdminCoach,
   getAdminCoaches,
   giveCoachPlanFree,
@@ -22,7 +23,7 @@ export function useAdminCoaches(query: AdminCoachesQuery) {
   });
 }
 
-/** The coach shown in the drawer; idle until a coach is picked. */
+/** The coach shown on the profile page; idle until a coach id is known. */
 export function useAdminCoach(coachId: string | null) {
   return useQuery({
     queryKey: adminCoachDetailKey(coachId ?? ''),
@@ -50,6 +51,14 @@ export function useCancelCoachRenewal(coachId: string) {
   const refetch = useRefetchCoaches();
   return useMutation({
     mutationFn: (reason: string) => cancelCoachRenewal(coachId, reason),
+    onSettled: () => refetch(),
+  });
+}
+
+export function useEndCoachPlan(coachId: string) {
+  const refetch = useRefetchCoaches();
+  return useMutation({
+    mutationFn: (reason: string) => endCoachPlan(coachId, reason),
     onSettled: () => refetch(),
   });
 }
