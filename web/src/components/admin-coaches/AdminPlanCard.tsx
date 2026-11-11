@@ -70,7 +70,7 @@ export default function AdminPlanCard({ plan, color, selected, name, onSelect }:
         <span className="font-display text-stat font-semibold text-ink">
           {formatPlanMoney(plan.priceMinorUnits ?? 0, plan.currency, i18n.language)}
         </span>
-        <span className="text-body text-muted-foreground">{t('adminCoaches.giveFree.perMonthNormally')}</span>
+        <span className="text-body text-muted-foreground">{t('adminCoaches.giveFree.perMonth')}</span>
       </span>
 
       <span className="flex flex-col gap-2 border-t border-line pt-3">

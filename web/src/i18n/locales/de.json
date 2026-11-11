@@ -370,6 +370,9 @@
       "renews": "Monatlich · Verlängerung am {{date}}",
       "ends": "Endet am {{date}}",
       "freeUntil": "Inklusive bis {{date}}",
+      "setByFormUpUntil": "Bis {{date}} · Von Form Up gesetzt",
+      "setByFormUp": "Von Form Up gesetzt",
+      "endedByFormUp": "Form Up hat Ihren Plan {{plan}} beendet. Sie sind jetzt im Plan Kostenlos.",
       "changePlan": "Tarif ändern",
       "manageBilling": "Abrechnung verwalten",
       "bill": {
@@ -4202,6 +4205,8 @@
     "reviewInClients": "In Kunden ansehen",
     "seeInClientActivity": "In der Klientenaktivität ansehen",
     "seePhotos": "Fotos ansehen",
+    "seeYourPlan": "Ihren Plan ansehen",
+    "pickClientsToKeep": "Klienten zum Behalten auswählen",
     "markRead": "Als gelesen markieren",
     "markAllReadShort": "Alle gelesen",
     "unreadCount": "{{count}} ungelesen"
@@ -6495,7 +6500,7 @@
       "revenueNote": "Nur zahlende Trainer",
       "failed": "Zahlung fehlgeschlagen",
       "failedNote": "Zählen weiterhin als zahlend",
-      "free": "Kostenlos und geschenkt",
+      "free": "Kostenlos und von Form Up gesetzt",
       "freeNote": "Nicht im Umsatz enthalten"
     },
     "filters": {
@@ -6505,14 +6510,14 @@
       "PaymentFailed": "Zahlung fehlgeschlagen",
       "Cancelling": "Wird gekündigt",
       "Free": "Kostenlos",
-      "GivenFree": "Geschenkt"
+      "GivenFree": "Von Form Up gesetzt"
     },
     "status": {
       "Paying": "Aktiv",
       "PaymentFailed": "Zahlung fehlgeschlagen",
       "Cancelling": "Wird gekündigt",
       "Free": "Kostenlos",
-      "GivenFree": "Geschenkt",
+      "GivenFree": "Von Form Up gesetzt",
       "cancellingOn": "Endet {{date}}"
     },
     "roles": {
@@ -6545,17 +6550,17 @@
       "nextNote": {
         "renews": "Verlängert sich",
         "ends": "Plan endet, keine Verlängerung",
-        "giftEnds": "Geschenk endet",
-        "giftNoEnd": "Kostenlos geschenkt",
+        "giftEnds": "Plan endet",
+        "giftNoEnd": "Von Form Up gesetzt",
         "nothing": "Nichts zu zahlen"
       }
     },
     "giveFree": {
-      "description": "{{name}} erhält den Plan ohne zu zahlen. Er wird als „Geschenkt“ angezeigt, und bis zu seinem Ende wird nichts abgerechnet.",
+      "description": "Der neue Plan gilt sofort, und das geöffnete Portal von {{name}} aktualisiert sich ohne Neuladen. Ohne Enddatum läuft er nie ab.",
       "plan": "Plan",
-      "until": "Kostenlos bis",
+      "until": "Bis",
       "selected": "Ausgewählt",
-      "perMonthNormally": "/ Monat regulär",
+      "perMonth": "/ Monat",
       "clientsUpTo_one": "Bis zu {{count}} Kunde",
       "clientsUpTo_other": "Bis zu {{count}} Kunden",
       "clientsUnlimited": "Unbegrenzt viele Kunden",
@@ -6564,11 +6569,11 @@
       "counter": "Pläne {{from}}–{{to}} von {{total}}",
       "previous": "Vorherige Pläne",
       "next": "Nächste Pläne",
-      "summaryNone": "Wählen Sie einen Plan zum Schenken.",
-      "summaryUntil": "kostenlos bis {{date}}. Danach wählt {{name}} einen Plan.",
-      "summaryNoEnd": "kostenlos, ohne Enddatum.",
-      "summaryPickDate": "kostenlos. Wählen Sie das Enddatum.",
-      "confirm": "{{plan}} kostenlos schenken"
+      "summaryNone": "Wählen Sie einen Plan.",
+      "summaryUntil": "ab heute bis {{date}}. Danach wählt {{name}} einen Plan.",
+      "summaryNoEnd": "ab heute, ohne Enddatum.",
+      "summaryPickDate": "ab heute. Wählen Sie das Enddatum.",
+      "confirm": "Auf {{plan}} wechseln"
     },
     "drawer": {
       "titleFallback": "Trainer",
@@ -6580,8 +6585,8 @@
       "perYear": "{{price}} / Jahr",
       "renews": "Verlängert sich am {{date}}.",
       "endsOn": "Der bezahlte Plan läuft bis {{date}}, danach wechselt der Trainer auf Kostenlos.",
-      "givenUntil": "Kostenlos geschenkt bis {{date}}.",
-      "givenNoEnd": "Kostenlos geschenkt, ohne Enddatum.",
+      "givenUntil": "Von Form Up gesetzt bis {{date}}.",
+      "givenNoEnd": "Von Form Up gesetzt, ohne Enddatum.",
       "clients": "Kunden",
       "clientsOf": "{{used}} von {{max}}",
       "clientsUnlimited": "{{used}}, unbegrenzt",
@@ -6592,12 +6597,12 @@
     "actions": {
       "reason": "Grund",
       "giveFree": {
-        "title": "Plan kostenlos schenken",
-        "description": "Wählen Sie den Plan, bis wann und warum. Wird als „Geschenkt“ angezeigt.",
+        "title": "Plan ändern",
+        "description": "Wählen Sie den Plan, bis wann und warum. Gilt sofort.",
         "noEnd": "Ohne Enddatum",
-        "button": "Kostenlos schenken",
-        "success": "Der Plan wurde kostenlos geschenkt.",
-        "error": "Der Plan konnte nicht kostenlos geschenkt werden."
+        "button": "Plan ändern",
+        "success": "Der Plan wurde geändert.",
+        "error": "Der Plan konnte nicht geändert werden."
       },
       "promotion": {
         "title": "Aktion anwenden",
@@ -6654,8 +6659,8 @@
       "reason": "Grund: {{reason}}",
       "kind": {
         "joined": "Registriert",
-        "givenFree_until": "Plan {{plan}} kostenlos geschenkt bis {{date}}",
-        "givenFree_plain": "Plan {{plan}} kostenlos geschenkt, ohne Enddatum",
+        "givenFree_until": "Auf Plan {{plan}} geändert bis {{date}}",
+        "givenFree_plain": "Auf Plan {{plan}} geändert, ohne Enddatum",
         "planAssigned": "Plan geändert auf {{plan}}",
         "planEnded": "Plan beendet: {{plan}}",
         "renewalCancelled_until": "Verlängerung gekündigt, Plan endet am {{date}}",

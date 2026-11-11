@@ -382,6 +382,9 @@
       "renews": "Měsíčně · Obnovení {{date}}",
       "ends": "Končí {{date}}",
       "freeUntil": "V ceně do {{date}}",
+      "setByFormUpUntil": "Do {{date}} · Nastaveno Form Up",
+      "setByFormUp": "Nastaveno Form Up",
+      "endedByFormUp": "Form Up ukončil váš plán {{plan}}. Nyní jste na plánu Zdarma.",
       "changePlan": "Změnit tarif",
       "manageBilling": "Spravovat platby",
       "bill": {
@@ -4333,6 +4336,8 @@
     "reviewInClients": "Zobrazit v Klientech",
     "seeInClientActivity": "Zobrazit v aktivitě klienta",
     "seePhotos": "Zobrazit fotky",
+    "seeYourPlan": "Zobrazit váš plán",
+    "pickClientsToKeep": "Vybrat klienty, které si ponecháte",
     "markRead": "Označit jako přečtené",
     "markAllReadShort": "Označit vše",
     "unreadCount": "nepřečtených: {{count}}"
@@ -6723,7 +6728,7 @@
       "revenueNote": "Jen platící trenéři",
       "failed": "Platba selhala",
       "failedNote": "Stále se počítají jako platící",
-      "free": "Zdarma a darované",
+      "free": "Zdarma a nastavené Form Up",
       "freeNote": "Nezapočítává se do příjmu"
     },
     "filters": {
@@ -6733,14 +6738,14 @@
       "PaymentFailed": "Platba selhala",
       "Cancelling": "Ruší se",
       "Free": "Zdarma",
-      "GivenFree": "Darováno"
+      "GivenFree": "Nastaveno Form Up"
     },
     "status": {
       "Paying": "Aktivní",
       "PaymentFailed": "Platba selhala",
       "Cancelling": "Ruší se",
       "Free": "Zdarma",
-      "GivenFree": "Darováno",
+      "GivenFree": "Nastaveno Form Up",
       "cancellingOn": "Končí {{date}}"
     },
     "roles": {
@@ -6773,17 +6778,17 @@
       "nextNote": {
         "renews": "Obnoví se",
         "ends": "Plán končí, bez obnovy",
-        "giftEnds": "Dar končí",
-        "giftNoEnd": "Darováno zdarma",
+        "giftEnds": "Plán končí",
+        "giftNoEnd": "Nastaveno Form Up",
         "nothing": "Není co platit"
       }
     },
     "giveFree": {
-      "description": "Trenér {{name}} dostane plán bez placení. Zobrazí se jako „Darováno“ a do jeho konce se nic neúčtuje.",
+      "description": "Nový plán platí hned a otevřený portál trenéra {{name}} se aktualizuje bez obnovení stránky. Bez data konce nikdy nevyprší.",
       "plan": "Plán",
-      "until": "Zdarma do",
+      "until": "Do",
       "selected": "Vybráno",
-      "perMonthNormally": "/ měsíc běžně",
+      "perMonth": "/ měsíc",
       "clientsUpTo_one": "Až {{count}} klient",
       "clientsUpTo_few": "Až {{count}} klienti",
       "clientsUpTo_many": "Až {{count}} klienta",
@@ -6794,11 +6799,11 @@
       "counter": "Plány {{from}}–{{to}} z {{total}}",
       "previous": "Předchozí plány",
       "next": "Další plány",
-      "summaryNone": "Vyberte plán, který darujete.",
-      "summaryUntil": "zdarma do {{date}}. Poté si {{name}} vybere plán.",
-      "summaryNoEnd": "zdarma, bez data konce.",
-      "summaryPickDate": "zdarma. Zvolte datum konce.",
-      "confirm": "Darovat {{plan}} zdarma"
+      "summaryNone": "Vyberte plán.",
+      "summaryUntil": "od dneška do {{date}}. Poté si {{name}} vybere plán.",
+      "summaryNoEnd": "od dneška, bez data konce.",
+      "summaryPickDate": "od dneška. Zvolte datum konce.",
+      "confirm": "Změnit na {{plan}}"
     },
     "drawer": {
       "titleFallback": "Trenér",
@@ -6810,8 +6815,8 @@
       "perYear": "{{price}} / rok",
       "renews": "Obnoví se {{date}}.",
       "endsOn": "Placený plán běží do {{date}}, poté trenér přejde na Zdarma.",
-      "givenUntil": "Darováno zdarma do {{date}}.",
-      "givenNoEnd": "Darováno zdarma, bez data konce.",
+      "givenUntil": "Nastaveno Form Up do {{date}}.",
+      "givenNoEnd": "Nastaveno Form Up, bez data konce.",
       "clients": "Klienti",
       "clientsOf": "{{used}} z {{max}}",
       "clientsUnlimited": "{{used}}, neomezeně",
@@ -6822,12 +6827,12 @@
     "actions": {
       "reason": "Důvod",
       "giveFree": {
-        "title": "Darovat plán zdarma",
-        "description": "Vyberte plán, do kdy a proč. Zobrazí se jako „Darováno“.",
+        "title": "Změnit plán",
+        "description": "Vyberte plán, do kdy a proč. Platí hned.",
         "noEnd": "Bez data konce",
-        "button": "Darovat zdarma",
-        "success": "Plán byl darován zdarma.",
-        "error": "Plán se nepodařilo darovat zdarma."
+        "button": "Změnit plán",
+        "success": "Plán byl změněn.",
+        "error": "Plán se nepodařilo změnit."
       },
       "promotion": {
         "title": "Použít akci",
@@ -6886,8 +6891,8 @@
       "reason": "důvod: {{reason}}",
       "kind": {
         "joined": "Registrace",
-        "givenFree_until": "Darován plán {{plan}} zdarma do {{date}}",
-        "givenFree_plain": "Darován plán {{plan}} zdarma, bez data konce",
+        "givenFree_until": "Změněno na {{plan}} do {{date}}",
+        "givenFree_plain": "Změněno na {{plan}}, bez data konce",
         "planAssigned": "Plán změněn na {{plan}}",
         "planEnded": "Plán ukončen: {{plan}}",
         "renewalCancelled_until": "Obnova zrušena, plán končí {{date}}",
