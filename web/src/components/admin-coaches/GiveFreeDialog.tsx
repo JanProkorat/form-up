@@ -38,7 +38,7 @@ interface Props {
 export default function GiveFreeDialog({ open, onOpenChange, ...rest }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="gap-0 overflow-hidden bg-card bg-dialog-glow p-0 sm:max-w-220">
+      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-220">
         <GiveFreeForm onClose={() => onOpenChange(false)} {...rest} />
       </DialogContent>
     </Dialog>

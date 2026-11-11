@@ -1414,15 +1414,6 @@
     radial-gradient(520px 260px at 100% 40%, var(--gf-page-glow-fresh), transparent 70%);
 }
 
-/* Dialog glow (PageAdminCoachDialogs boards): the portal page glow's warm and fresh washes, scaled
-   to the top edge of a wide dialog. */
-@utility bg-dialog-glow {
-  background-repeat: no-repeat;
-  background-image:
-    radial-gradient(460px 200px at 100% 0%, var(--gf-page-glow-warm), transparent 70%),
-    radial-gradient(380px 170px at 60% 0%, var(--gf-page-glow-fresh), transparent 70%);
-}
-
 /* Same three --gf-hero-* patches as the top of home-page-wash, positioned in percent so they track
    the viewport-high register page instead of a long scrolling one. */
 @utility register-page-wash {
