@@ -40,6 +40,7 @@ public static class NotificationTemplates
     public const string InvitationCancelledAutoBySibling = "autoCancelledBySibling";
     public const string QuestionnaireAssignedRevoked = "revoked";
     public const string MeasurementRequestedWithMessage = "withMessage";
+    public const string CoachPlanNoDate = "noDate";
 
     // language -> "Type" or "Type:variant" -> Template
     private static readonly Dictionary<string, Dictionary<string, Template>> Templates = new()
@@ -141,6 +142,17 @@ public static class NotificationTemplates
                 new("Progress photos submitted", "The photos from {clientName} are ready to view."),
             [Key(NotificationType.WorkoutFinished)] =
                 new("Workout finished", "{clientName} · {sessionName}"),
+
+            [Key(NotificationType.CoachPlanChanged)] =
+                new("Form Up changed your plan to {planName}", "Until {date}."),
+            [Key(NotificationType.CoachPlanChanged, CoachPlanNoDate)] =
+                new("Form Up changed your plan to {planName}", string.Empty),
+            [Key(NotificationType.CoachPlanEnded)] =
+                new("Form Up ended your {planName} plan", "You're on Free now."),
+            [Key(NotificationType.CoachPlanRenewalCancelled)] =
+                new("Your {planName} plan won't renew", "It runs until {date}."),
+            [Key(NotificationType.CoachPlanRenewalCancelled, CoachPlanNoDate)] =
+                new("Your {planName} plan won't renew", string.Empty),
         },
         ["cs"] = new()
         {
@@ -235,6 +247,17 @@ public static class NotificationTemplates
                 new("Odeslané fotky pokroku", "Fotky od {clientName} jsou připravené k zobrazení."),
             [Key(NotificationType.WorkoutFinished)] =
                 new("Dokončený trénink", "{clientName} · {sessionName}"),
+
+            [Key(NotificationType.CoachPlanChanged)] =
+                new("Form Up změnil váš tarif na {planName}", "Do {date}."),
+            [Key(NotificationType.CoachPlanChanged, CoachPlanNoDate)] =
+                new("Form Up změnil váš tarif na {planName}", string.Empty),
+            [Key(NotificationType.CoachPlanEnded)] =
+                new("Form Up ukončil váš tarif {planName}", "Nyní jste na tarifu Free."),
+            [Key(NotificationType.CoachPlanRenewalCancelled)] =
+                new("Váš tarif {planName} se neprodlouží", "Platí do {date}."),
+            [Key(NotificationType.CoachPlanRenewalCancelled, CoachPlanNoDate)] =
+                new("Váš tarif {planName} se neprodlouží", string.Empty),
         },
         ["de"] = new()
         {
@@ -329,6 +352,17 @@ public static class NotificationTemplates
                 new("Fortschrittsfotos eingereicht", "Die Fotos von {clientName} liegen zur Ansicht bereit."),
             [Key(NotificationType.WorkoutFinished)] =
                 new("Training beendet", "{clientName} · {sessionName}"),
+
+            [Key(NotificationType.CoachPlanChanged)] =
+                new("Form Up hat Ihren Tarif auf {planName} umgestellt", "Bis {date}."),
+            [Key(NotificationType.CoachPlanChanged, CoachPlanNoDate)] =
+                new("Form Up hat Ihren Tarif auf {planName} umgestellt", string.Empty),
+            [Key(NotificationType.CoachPlanEnded)] =
+                new("Form Up hat Ihren Tarif {planName} beendet", "Sie nutzen jetzt Free."),
+            [Key(NotificationType.CoachPlanRenewalCancelled)] =
+                new("Ihr Tarif {planName} wird nicht verlängert", "Er läuft bis {date}."),
+            [Key(NotificationType.CoachPlanRenewalCancelled, CoachPlanNoDate)] =
+                new("Ihr Tarif {planName} wird nicht verlängert", string.Empty),
         },
     };
 

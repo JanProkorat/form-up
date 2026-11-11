@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
-import { Gift } from 'lucide-react';
+import { Repeat } from 'lucide-react';
 import type { SubscriptionPlanDto } from '@/api/admin-subscription-plans';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -101,7 +101,7 @@ function GiveFreeForm({
     <form onSubmit={submit} noValidate className="flex flex-col">
       <div className="flex items-center gap-3.5 px-6 pt-5.5 pr-14">
         <DialogIconTile tone="orange">
-          <Gift />
+          <Repeat />
         </DialogIconTile>
         <DialogTitle className="font-display text-panel-title leading-snug">
           {t('adminCoaches.actions.giveFree.title')}
@@ -176,7 +176,7 @@ function GiveFreeForm({
           {t('common.cancel')}
         </Button>
         <Button type="submit" size="lg" disabled={isSubmitting}>
-          <Gift aria-hidden="true" />
+          <Repeat aria-hidden="true" />
           {chosen
             ? t('adminCoaches.giveFree.confirm', { plan: chosenName })
             : t('adminCoaches.actions.giveFree.button')}

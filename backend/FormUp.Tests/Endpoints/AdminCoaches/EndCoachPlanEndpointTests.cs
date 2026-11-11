@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using FormUp.Application.Domain.Interfaces;
 using FluentAssertions;
 using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Entities;
@@ -290,6 +291,70 @@ public class EndCoachPlanEndpointTests(FitnessApiFactory factory)
         response.StatusCode.Should().Be(HttpStatusCode.Conflict);
         (await response.Content.ReadAsStringAsync(Ct)).Should().Contain(ErrorCodes.NoPlanToEnd);
         (await ReadSubscriptionAsync(coach.ProfileId)).GivenFreeAt.Should().NotBeNull("the coach still has to choose a plan");
+    }
+
+    private FakeRealtimeNotifier Notifier => factory.Services.GetRequiredService<FakeRealtimeNotifier>();
+
+    private async Task<List<Notification>> NotificationsAsync(Guid coachId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        return await db.Notifications.AsNoTracking()
+            .Where(n => n.RecipientUserId == coachId && n.Type == NotificationType.CoachPlanEnded)
+            .ToListAsync(Ct);
+    }
+
+    [Fact]
+    public async Task End_PayingCoach_NotifiesOnlyThatCoach_WithTheEndedEvent()
+    {
+        await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var plan = await PaidPlanBuilder.CreateAsync(factory);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, plan);
+
+        (await EndAsync(admin, coach.UserId)).StatusCode.Should().Be(HttpStatusCode.OK);
+
+        (await NotificationsAsync(coach.UserId)).Should().ContainSingle().Which.Body.Should().Be("You're on Free now.");
+        var calls = Notifier.Calls.Where(c => c.UserId == coach.UserId).ToList();
+        calls.Select(c => c.EventType).Should().Equal("newnotification", "subscriptionchanged");
+        using var doc = JsonDocument.Parse(JsonSerializer.Serialize(calls[1].Payload));
+        doc.RootElement.GetProperty("action").GetString().Should().Be("ended");
+        doc.RootElement.GetProperty("until").ValueKind.Should().Be(JsonValueKind.Null);
+        Notifier.Calls.Where(c => c.UserId == admin.UserId).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task End_WhenTheHubThrows_StillReturns200_AndTheEndPersists()
+    {
+        await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var plan = await PaidPlanBuilder.CreateAsync(factory);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, plan);
+        Notifier.SimulateThrowOnNextCall();
+
+        var response = await EndAsync(admin, coach.UserId);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await ReadSubscriptionAsync(coach.ProfileId)).Status.Should().Be(SubscriptionStatus.Canceled);
+    }
+
+    [Fact]
+    public async Task End_Rejected_SendsNothing()
+    {
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var other = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var unknown = Guid.NewGuid();
+
+        (await EndAsync(admin, coach.UserId)).StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await EndAsync(admin, unknown)).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await EndAsync(other, coach.UserId)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+
+        (await NotificationsAsync(coach.UserId)).Should().BeEmpty();
+        Notifier.Calls.Where(c => c.UserId == coach.UserId || c.UserId == unknown).Should().BeEmpty();
     }
 
     [Fact]

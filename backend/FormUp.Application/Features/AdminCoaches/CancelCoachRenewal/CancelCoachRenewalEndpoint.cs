@@ -18,7 +18,16 @@ namespace FormUp.Application.Features.AdminCoaches.CancelCoachRenewal;
 /// <param name="db">Application database context.</param>
 /// <param name="audit">Audit logging service.</param>
 /// <param name="timeProvider">Clock.</param>
-internal sealed class CancelCoachRenewalEndpoint(IApplicationDbContext db, IAuditService audit, TimeProvider timeProvider)
+/// <param name="notifications">Notification service.</param>
+/// <param name="notifier">Realtime notifier.</param>
+/// <param name="logger">Logger.</param>
+internal sealed class CancelCoachRenewalEndpoint(
+    IApplicationDbContext db,
+    IAuditService audit,
+    TimeProvider timeProvider,
+    INotificationService notifications,
+    IRealtimeNotifier notifier,
+    ILogger<CancelCoachRenewalEndpoint> logger)
     : Endpoint<CancelCoachRenewalRequest, CancelCoachRenewalResponse>
 {
     /// <inheritdoc />
@@ -96,6 +105,10 @@ internal sealed class CancelCoachRenewalEndpoint(IApplicationDbContext db, IAudi
                 HttpContext.Connection.RemoteIpAddress?.ToString(),
                 newValues: AuditPayload.WithReason(fields, req.Reason.Trim()),
                 ct: ct);
+
+            await CoachPlanNotifier.TryNotifyAsync(
+                db, notifications, notifier, logger, req.CoachId, subscription.SubscriptionPlanId,
+                CoachPlanChangeAction.RenewalCancelled, subscription.CurrentPeriodEndsAt, ct);
 
             await Send.OkAsync(new CancelCoachRenewalResponse
             {

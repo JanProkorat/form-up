@@ -23432,9 +23432,9 @@ export class ApiClient {
     }
 
     /**
-     * Give a coach a plan for free
+     * Change a coach's plan
      * @param coachId Route parameter — the coach's user id; matches {CoachId} in the route exactly.
-     * @return The gift as it now stands
+     * @return The plan as it now stands
      */
     giveCoachPlanFreeEndpoint(coachId: string, giveCoachPlanFreeRequest: GiveCoachPlanFreeRequest, signal?: AbortSignal): Promise<GiveCoachPlanFreeResponse> {
         let url_ = this.baseUrl + "/admin/coaches/{coachId}/give-free";
@@ -24355,6 +24355,8 @@ export interface GetMySubscriptionResponse {
     cancelAtPeriodEnd?: boolean;
     /** While now is before this instant the assigned plan's features apply whatever the status is. */
     freeUntil?: string | undefined;
+    /** True when an admin set the plan (given free) and it still applies. */
+    isSetByFormUp?: boolean;
     /** True when the paid plan has lapsed (Canceled or Incomplete with no free-features deadline in force). The plan
 fields then describe the Free plan and ActiveClientCount is the number of kept clients. */
     isLapsed?: boolean;

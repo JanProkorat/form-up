@@ -65,7 +65,13 @@ export default function PlanBillingCard() {
     periodEnd
       ? t(data?.cancelAtPeriodEnd ? 'subscription.plan.ends' : 'subscription.plan.renews', { date: periodEnd })
       : null,
-    freeUntil ? t('subscription.plan.freeUntil', { date: freeUntil }) : null,
+    data?.isSetByFormUp
+      ? freeUntil
+        ? t('subscription.plan.setByFormUpUntil', { date: freeUntil })
+        : t('subscription.plan.setByFormUp')
+      : freeUntil
+        ? t('subscription.plan.freeUntil', { date: freeUntil })
+        : null,
   ]
     .filter(Boolean)
     .join(' · ');

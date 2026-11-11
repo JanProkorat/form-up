@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Ban, CalendarX, Gift, CircleMinus, Tag } from 'lucide-react';
+import { Ban, CalendarX, Repeat, CircleMinus, Tag } from 'lucide-react';
 import { AdminCoachStatus, type GetAdminCoachResponse } from '@/api/admin-coaches';
 import type { SubscriptionPlanDto } from '@/api/admin-subscription-plans';
 import { Button } from '@/components/ui/button';
@@ -175,7 +175,7 @@ export default function CoachActions({ coach, coachId, plans, onGone }: Props) {
       <ul className="flex flex-col">
         <ActionRow
           tone="neutral"
-          icon={<Gift />}
+          icon={<Repeat />}
           title={t('adminCoaches.actions.giveFree.title')}
           description={t('adminCoaches.actions.giveFree.description')}
           button={<RowButton onClick={() => setOpen('giveFree')}>{t('adminCoaches.actions.giveFree.button')}</RowButton>}

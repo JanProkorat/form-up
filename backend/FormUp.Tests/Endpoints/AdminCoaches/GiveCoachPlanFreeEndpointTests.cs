@@ -4,6 +4,7 @@ using System.Text.Json;
 using FluentAssertions;
 using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
+using FormUp.Application.Domain.Interfaces;
 using FormUp.Application.Features.AdminCoaches.GiveCoachPlanFree;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Tests.Builders;
@@ -148,6 +149,84 @@ public class GiveCoachPlanFreeEndpointTests(FitnessApiFactory factory)
 
         using var first = JsonDocument.Parse(rows.Single(row => row.NewValues!.Contains("forged")).NewValues!);
         first.RootElement.GetProperty("reason").GetString().Should().Be(forged);
+    }
+
+    private FakeRealtimeNotifier Notifier => factory.Services.GetRequiredService<FakeRealtimeNotifier>();
+
+    private async Task<List<Notification>> NotificationsAsync(Guid coachId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        return await db.Notifications.AsNoTracking()
+            .Where(n => n.RecipientUserId == coachId && n.Type == NotificationType.CoachPlanChanged)
+            .ToListAsync(Ct);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Give_NotifiesOnlyThatCoach_WithTheChangedEvent(bool dated)
+    {
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var plan = await PaidPlanBuilder.CreateAsync(factory);
+
+        var response = await admin.Http.PostAsJsonAsync(
+            $"/admin/coaches/{coach.UserId}/give-free", Body(plan, dated ? DateTimeOffset.UtcNow.AddDays(45) : null), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var row = (await NotificationsAsync(coach.UserId)).Should().ContainSingle().Subject;
+
+        if (dated)
+        {
+            row.Body.Should().StartWith("Until ");
+        }
+        else
+        {
+            row.Body.Should().BeEmpty();
+        }
+
+        var calls = Notifier.Calls.Where(c => c.UserId == coach.UserId).ToList();
+        calls.Select(c => c.EventType).Should().Equal("newnotification", "subscriptionchanged");
+        using var doc = JsonDocument.Parse(JsonSerializer.Serialize(calls[1].Payload));
+        doc.RootElement.GetProperty("action").GetString().Should().Be("changed");
+        doc.RootElement.GetProperty("until").ValueKind.Should().Be(dated ? JsonValueKind.String : JsonValueKind.Null);
+        doc.RootElement.GetProperty("planNameCs").GetString().Should().NotBeNullOrEmpty();
+        doc.RootElement.GetProperty("planNameDe").GetString().Should().NotBeNullOrEmpty();
+        Notifier.Calls.Where(c => c.UserId == admin.UserId).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Give_WhenTheHubThrows_StillReturns200_AndTheChangePersists()
+    {
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var plan = await PaidPlanBuilder.CreateAsync(factory);
+        Notifier.SimulateThrowOnNextCall();
+
+        var response = await admin.Http.PostAsJsonAsync($"/admin/coaches/{coach.UserId}/give-free", Body(plan, null), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await ReadSubscriptionAsync(coach.ProfileId)).SubscriptionPlan.Code.Should().Be(plan);
+    }
+
+    [Fact]
+    public async Task Give_Rejected_SendsNothing()
+    {
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var other = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var plan = await PaidPlanBuilder.CreateAsync(factory);
+        var unknown = Guid.NewGuid();
+
+        (await admin.Http.PostAsJsonAsync($"/admin/coaches/{unknown}/give-free", Body(plan, null), Ct))
+            .StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await other.Http.PostAsJsonAsync($"/admin/coaches/{coach.UserId}/give-free", Body(plan, null), Ct))
+            .StatusCode.Should().Be(HttpStatusCode.Forbidden);
+
+        (await NotificationsAsync(coach.UserId)).Should().BeEmpty();
+        Notifier.Calls.Where(c => c.UserId == coach.UserId || c.UserId == unknown).Should().BeEmpty();
     }
 
     [Fact]

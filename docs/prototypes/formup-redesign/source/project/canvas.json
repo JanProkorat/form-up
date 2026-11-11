@@ -4159,6 +4159,54 @@
       "h": 900,
       "page": "web",
       "title": "D · Admin · Coach action dialogs"
+    },
+    "PagePlanChangedNoticeC.dc.html": {
+      "h": 1240,
+      "page": "web",
+      "title": "C · Settings · Plan changed by Form Up",
+      "w": 1440,
+      "x": 4560,
+      "y": 61052
+    },
+    "PagePlanChangedNoticeD.dc.html": {
+      "h": 1240,
+      "page": "web",
+      "title": "D · Settings · Plan changed by Form Up",
+      "w": 1440,
+      "x": 4560,
+      "y": 62412
+    },
+    "PagePlanEndedNoticeC.dc.html": {
+      "h": 900,
+      "page": "web",
+      "title": "C · Clients · Plan ended by Form Up (toast)",
+      "w": 1440,
+      "x": 6080,
+      "y": 61052
+    },
+    "PagePlanEndedNoticeD.dc.html": {
+      "h": 900,
+      "page": "web",
+      "title": "D · Clients · Plan ended by Form Up (toast)",
+      "w": 1440,
+      "x": 6080,
+      "y": 62412
+    },
+    "PagePlanNotificationsC.dc.html": {
+      "h": 640,
+      "page": "web",
+      "title": "C · Notifications · Plan changes",
+      "w": 860,
+      "x": 7600,
+      "y": 61052
+    },
+    "PagePlanNotificationsD.dc.html": {
+      "h": 640,
+      "page": "web",
+      "title": "D · Notifications · Plan changes",
+      "w": 860,
+      "x": 7600,
+      "y": 62412
     }
   },
   "notes": {
@@ -4838,7 +4886,13 @@
     "PageSettingsPlanC.dc.html",
     "PageSettingsPlanD.dc.html",
     "PageSettingsPlanPastDueC.dc.html",
+    "PagePlanChangedNoticeC.dc.html",
+    "PagePlanEndedNoticeC.dc.html",
+    "PagePlanNotificationsC.dc.html",
     "PageSettingsPlanPastDueD.dc.html",
+    "PagePlanChangedNoticeD.dc.html",
+    "PagePlanEndedNoticeD.dc.html",
+    "PagePlanNotificationsD.dc.html",
     "PagePaywallFeatureC.dc.html",
     "PagePaywallFeatureD.dc.html",
     "PageLapseKeepClientsC.dc.html",

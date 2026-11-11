@@ -370,6 +370,9 @@
       "renews": "Monthly · Renews {{date}}",
       "ends": "Ends {{date}}",
       "freeUntil": "Included until {{date}}",
+      "setByFormUpUntil": "Until {{date}} · Set by Form Up",
+      "setByFormUp": "Set by Form Up",
+      "endedByFormUp": "Form Up ended your {{plan}} plan. You're on Free now.",
       "changePlan": "Change plan",
       "manageBilling": "Manage billing",
       "bill": {
@@ -4203,6 +4206,8 @@
     "reviewInClients": "Review in Clients",
     "seeInClientActivity": "See in client activity",
     "seePhotos": "See photos",
+    "seeYourPlan": "See your plan",
+    "pickClientsToKeep": "Pick the clients to keep",
     "markRead": "Mark as read",
     "markAllReadShort": "Mark all read",
     "unreadCount": "{{count}} unread"
@@ -6496,7 +6501,7 @@
       "revenueNote": "Paying coaches only",
       "failed": "Payment failed",
       "failedNote": "Still counted as paying",
-      "free": "Free and given free",
+      "free": "Free and set by Form Up",
       "freeNote": "Not counted in revenue"
     },
     "filters": {
@@ -6506,14 +6511,14 @@
       "PaymentFailed": "Payment failed",
       "Cancelling": "Cancelling",
       "Free": "Free",
-      "GivenFree": "Given free"
+      "GivenFree": "Set by Form Up"
     },
     "status": {
       "Paying": "Active",
       "PaymentFailed": "Payment failed",
       "Cancelling": "Cancelling",
       "Free": "Free",
-      "GivenFree": "Given free",
+      "GivenFree": "Set by Form Up",
       "cancellingOn": "Cancels {{date}}"
     },
     "roles": {
@@ -6546,17 +6551,17 @@
       "nextNote": {
         "renews": "Renews",
         "ends": "Plan ends, no renewal",
-        "giftEnds": "Gift ends",
-        "giftNoEnd": "Given free",
+        "giftEnds": "Plan ends",
+        "giftNoEnd": "Set by Form Up",
         "nothing": "Nothing to pay"
       }
     },
     "giveFree": {
-      "description": "Gives {{name}} the plan without paying. It shows as “Given free”, and nothing is billed until it ends.",
+      "description": "The new plan applies right away and {{name}}'s open portal updates without a reload. Without an end date it never expires.",
       "plan": "Plan",
-      "until": "Free until",
+      "until": "Until",
       "selected": "Selected",
-      "perMonthNormally": "/ month normally",
+      "perMonth": "/ month",
       "clientsUpTo_one": "Up to {{count}} client",
       "clientsUpTo_other": "Up to {{count}} clients",
       "clientsUnlimited": "Unlimited clients",
@@ -6565,11 +6570,11 @@
       "counter": "Plans {{from}}–{{to}} of {{total}}",
       "previous": "Previous plans",
       "next": "Next plans",
-      "summaryNone": "Choose a plan to give.",
-      "summaryUntil": "free until {{date}}. Then {{name}} chooses a plan.",
-      "summaryNoEnd": "free, with no end date.",
-      "summaryPickDate": "free. Pick the end date.",
-      "confirm": "Give {{plan}} for free"
+      "summaryNone": "Choose a plan.",
+      "summaryUntil": "from today until {{date}}. Then {{name}} chooses a plan.",
+      "summaryNoEnd": "from today, with no end date.",
+      "summaryPickDate": "from today. Pick the end date.",
+      "confirm": "Change to {{plan}}"
     },
     "drawer": {
       "titleFallback": "Coach",
@@ -6581,8 +6586,8 @@
       "perYear": "{{price}} / year",
       "renews": "Renews on {{date}}.",
       "endsOn": "The paid plan runs until {{date}}, then the coach drops to Free.",
-      "givenUntil": "Given for free until {{date}}.",
-      "givenNoEnd": "Given for free, with no end date.",
+      "givenUntil": "Set by Form Up until {{date}}.",
+      "givenNoEnd": "Set by Form Up, with no end date.",
       "clients": "Clients",
       "clientsOf": "{{used}} of {{max}}",
       "clientsUnlimited": "{{used}}, unlimited",
@@ -6593,12 +6598,12 @@
     "actions": {
       "reason": "Reason",
       "giveFree": {
-        "title": "Give a plan for free",
-        "description": "Pick the plan, until when and why. Shows as \"Given free\".",
+        "title": "Change plan",
+        "description": "Pick the plan, until when and why. Applies right away.",
         "noEnd": "No end date",
-        "button": "Give for free",
-        "success": "The plan was given for free.",
-        "error": "Could not give the plan for free."
+        "button": "Change plan",
+        "success": "The plan was changed.",
+        "error": "Could not change the plan."
       },
       "promotion": {
         "title": "Apply a promotion",
@@ -6655,8 +6660,8 @@
       "reason": "reason: {{reason}}",
       "kind": {
         "joined": "Joined",
-        "givenFree_until": "Given {{plan}} for free until {{date}}",
-        "givenFree_plain": "Given {{plan}} for free, no end date",
+        "givenFree_until": "Changed to {{plan}} until {{date}}",
+        "givenFree_plain": "Changed to {{plan}}, no end date",
         "planAssigned": "Plan changed to {{plan}}",
         "planEnded": "Plan ended: {{plan}}",
         "renewalCancelled_until": "Renewal cancelled, plan ends {{date}}",

@@ -18,7 +18,16 @@ namespace FormUp.Application.Features.AdminCoaches.EndCoachPlan;
 /// <param name="db">Application database context.</param>
 /// <param name="audit">Audit logging service.</param>
 /// <param name="timeProvider">Clock.</param>
-internal sealed class EndCoachPlanEndpoint(IApplicationDbContext db, IAuditService audit, TimeProvider timeProvider)
+/// <param name="notifications">Notification service.</param>
+/// <param name="notifier">Realtime notifier.</param>
+/// <param name="logger">Logger.</param>
+internal sealed class EndCoachPlanEndpoint(
+    IApplicationDbContext db,
+    IAuditService audit,
+    TimeProvider timeProvider,
+    INotificationService notifications,
+    IRealtimeNotifier notifier,
+    ILogger<EndCoachPlanEndpoint> logger)
     : Endpoint<EndCoachPlanRequest, EndCoachPlanResponse>
 {
     /// <inheritdoc />
@@ -114,6 +123,10 @@ internal sealed class EndCoachPlanEndpoint(IApplicationDbContext db, IAuditServi
             HttpContext.Connection.RemoteIpAddress?.ToString(),
             newValues: AuditPayload.WithReason(fields, req.Reason.Trim()),
             ct: ct);
+
+        await CoachPlanNotifier.TryNotifyAsync(
+            db, notifications, notifier, logger, req.CoachId, subscription.SubscriptionPlanId,
+            CoachPlanChangeAction.Ended, null, ct);
 
         await Send.OkAsync(new EndCoachPlanResponse
         {
