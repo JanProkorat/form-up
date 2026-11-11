@@ -7,7 +7,7 @@ import type { SubscriptionPlanDto } from '@/api/admin-subscription-plans';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Textarea } from '@/components/ui/textarea';
 import { Field } from '@/components/package-catalog/packageFormParts';
 import { planName } from '@/components/admin-plans/planForm';
@@ -38,7 +38,7 @@ interface Props {
 export default function GiveFreeDialog({ open, onOpenChange, ...rest }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="gap-0 overflow-hidden bg-card bg-dialog-glow p-0 sm:max-w-220">
+      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-220">
         <GiveFreeForm onClose={() => onOpenChange(false)} {...rest} />
       </DialogContent>
     </Dialog>
@@ -125,13 +125,18 @@ function GiveFreeForm({
           <div className="flex flex-col gap-2">
             <Field label={t('adminCoaches.giveFree.until')} error={errors.freeUntil?.message}>
               {(fieldControl) => (
-                <Input
-                  type="date"
-                  min={tomorrowInputValue()}
-                  disabled={noEnd}
-                  className="h-10"
-                  {...register('freeUntil')}
-                  {...fieldControl}
+                <Controller
+                  control={control}
+                  name="freeUntil"
+                  render={({ field }) => (
+                    <DatePicker
+                      value={field.value}
+                      onChange={field.onChange}
+                      min={tomorrowInputValue()}
+                      disabled={noEnd}
+                      {...fieldControl}
+                    />
+                  )}
                 />
               )}
             </Field>
