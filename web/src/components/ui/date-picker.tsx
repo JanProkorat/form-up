@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DayPicker } from 'react-day-picker';
 import { cs, de, enGB, type Locale } from 'date-fns/locale';
-import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
@@ -40,27 +40,46 @@ export function DatePicker({ value, onChange, min, disabled, id, className, ...a
   const language = i18n.language.slice(0, 2);
   const locale = LOCALES[language] ?? enGB;
 
+  const canClear = Boolean(selected) && !disabled;
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button
-          id={id}
-          type="button"
-          disabled={disabled}
-          {...aria}
-          className={cn(
-            'flex h-10 w-full cursor-pointer items-center gap-2 rounded-field border border-input bg-background px-3 text-left text-body text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive',
-            className,
-          )}
-        >
-          <span className={cn('min-w-0 flex-1 truncate', !selected && 'text-muted-foreground')}>
-            {selected
-              ? new Intl.DateTimeFormat(i18n.language, { day: 'numeric', month: 'long', year: 'numeric' }).format(selected)
-              : t('common.datePicker.placeholder')}
-          </span>
-          <CalendarDays className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-        </button>
-      </PopoverTrigger>
+      <div className={cn('relative w-full', className)}>
+        <PopoverTrigger asChild>
+          <button
+            id={id}
+            type="button"
+            disabled={disabled}
+            {...aria}
+            className={cn(
+              'flex h-10 w-full cursor-pointer items-center gap-2 rounded-field border border-input bg-background px-3 text-left text-body text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive',
+              canClear && 'pr-17',
+            )}
+          >
+            <span className={cn('min-w-0 flex-1 truncate', !selected && 'text-muted-foreground')}>
+              {selected
+                ? new Intl.DateTimeFormat(i18n.language, { day: 'numeric', month: 'long', year: 'numeric' }).format(selected)
+                : t('common.datePicker.placeholder')}
+            </span>
+            <CalendarDays
+              className={cn('size-4 shrink-0 text-muted-foreground', canClear && 'absolute right-3')}
+              aria-hidden="true"
+            />
+          </button>
+        </PopoverTrigger>
+        {/* Sibling of the trigger, not inside it: a button may not contain another button. */}
+        {canClear && (
+          <button
+            type="button"
+            aria-label={t('common.datePicker.clear')}
+            title={t('common.datePicker.clear')}
+            onClick={() => onChange('')}
+            className="absolute top-1/2 right-9 flex size-6 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full text-muted-foreground outline-none hover:bg-muted hover:text-ink focus-visible:ring-3 focus-visible:ring-ring/50"
+          >
+            <X className="size-3.5" aria-hidden="true" />
+          </button>
+        )}
+      </div>
       <PopoverContent align="start" sideOffset={6} className="w-auto rounded-xl border-line bg-card p-3">
         <DayPicker
           mode="single"

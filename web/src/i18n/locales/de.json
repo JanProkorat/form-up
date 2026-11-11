@@ -8,7 +8,7 @@
     "publish": "Veröffentlichen",
     "publishNoStartDate": "Legen Sie das Startdatum des Plans fest, bevor Sie veröffentlichen.",
     "cancel": "Abbrechen",
-    "datePicker": { "placeholder": "Datum wählen", "previousMonth": "Vorheriger Monat", "nextMonth": "Nächster Monat" },
+    "datePicker": { "placeholder": "Datum wählen", "clear": "Datum löschen", "previousMonth": "Vorheriger Monat", "nextMonth": "Nächster Monat" },
     "close": "Schließen",
     "optional": "optional",
     "send": "Senden",
