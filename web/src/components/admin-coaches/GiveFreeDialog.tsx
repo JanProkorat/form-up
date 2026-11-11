@@ -30,7 +30,7 @@ interface Props {
   /** The coach's first name, for the summary line. */
   coachFirstName: string;
   plans: SubscriptionPlanDto[];
-  /** Code of the plan the coach has now; it is shown but cannot be picked again. */
+  /** Code of the plan the coach has now; picking it again only changes the end date. */
   currentPlanCode?: string;
   /** Gives the plan; resolves true when it succeeded, which closes the dialog. */
   run: (values: { planCode: string; freeUntil: Date | null; reason: string }) => Promise<boolean>;
@@ -70,6 +70,7 @@ function GiveFreeForm({
   const [planCode, noEnd, freeUntil] = useWatch({ control, name: ['planCode', 'noEnd', 'freeUntil'] });
   const chosen = options.find((option) => option.plan.code === planCode);
   const chosenName = chosen ? planName(chosen.plan, i18n.language) : '';
+  const keepsPlan = chosen !== undefined && chosen.plan.code === currentPlanCode;
   const untilText = noEnd ? '' : formatCoachDate(endOfLocalDay(freeUntil)?.toISOString(), i18n.language);
 
   const submit = handleSubmit(async (values) => {
@@ -87,11 +88,9 @@ function GiveFreeForm({
     if (!chosen) {
       return <span>{t('adminCoaches.giveFree.summaryNone')}</span>;
     }
-    const key = noEnd
-      ? 'adminCoaches.giveFree.summaryNoEnd'
-      : untilText
-        ? 'adminCoaches.giveFree.summaryUntil'
-        : 'adminCoaches.giveFree.summaryPickDate';
+    // Picking the plan the coach already has only moves its end date.
+    const prefix = keepsPlan ? 'adminCoaches.giveFree.keep' : 'adminCoaches.giveFree.summary';
+    const key = noEnd ? `${prefix}NoEnd` : untilText ? `${prefix}Until` : `${prefix}PickDate`;
     return (
       <span>
         <strong className="font-semibold text-ink">{chosenName}</strong>{' '}
@@ -181,9 +180,11 @@ function GiveFreeForm({
         </Button>
         <Button type="submit" size="lg" disabled={isSubmitting}>
           <Repeat aria-hidden="true" />
-          {chosen
-            ? t('adminCoaches.giveFree.confirm', { plan: chosenName })
-            : t('adminCoaches.actions.giveFree.button')}
+          {keepsPlan
+            ? t('adminCoaches.giveFree.confirmKeep')
+            : chosen
+              ? t('adminCoaches.giveFree.confirm', { plan: chosenName })
+              : t('adminCoaches.actions.giveFree.button')}
         </Button>
       </div>
     </form>

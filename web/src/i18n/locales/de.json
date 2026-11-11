@@ -6574,7 +6574,11 @@
       "summaryUntil": "ab heute bis {{date}}. Danach wählt {{name}} einen Plan.",
       "summaryNoEnd": "ab heute, ohne Enddatum.",
       "summaryPickDate": "ab heute. Wählen Sie das Enddatum.",
-      "confirm": "Auf {{plan}} wechseln"
+      "confirm": "Auf {{plan}} wechseln",
+      "keepUntil": "bleibt, neu bis {{date}}. Danach wählt {{name}} einen Plan.",
+      "keepNoEnd": "bleibt, jetzt ohne Enddatum.",
+      "keepPickDate": "bleibt. Wählen Sie das neue Enddatum.",
+      "confirmKeep": "Enddatum ändern"
     },
     "drawer": {
       "titleFallback": "Trainer",

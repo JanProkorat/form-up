@@ -6804,7 +6804,11 @@
       "summaryUntil": "od dneška do {{date}}. Poté si {{name}} vybere plán.",
       "summaryNoEnd": "od dneška, bez data konce.",
       "summaryPickDate": "od dneška. Zvolte datum konce.",
-      "confirm": "Změnit na {{plan}}"
+      "confirm": "Změnit na {{plan}}",
+      "keepUntil": "zůstává, nově do {{date}}. Poté si {{name}} vybere plán.",
+      "keepNoEnd": "zůstává, nově bez data konce.",
+      "keepPickDate": "zůstává. Zvolte nové datum konce.",
+      "confirmKeep": "Změnit datum konce"
     },
     "drawer": {
       "titleFallback": "Trenér",

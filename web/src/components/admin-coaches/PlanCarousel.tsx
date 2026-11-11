@@ -13,7 +13,7 @@ interface Props {
   name: string;
   /** Shown under the cards when no plan is chosen yet. */
   error?: string;
-  /** Code of the coach's current plan; its card is highlighted and cannot be picked. */
+  /** Code of the coach's current plan; its card is highlighted and labelled. */
   currentCode?: string;
 }
 
