@@ -94,7 +94,7 @@ async function createRecipeViaApi(
         mealTypes: ['Lunch'],
         dietaryPreferences: body.dietaryPreferences,
         foods: [{ foodExternalId: foodId, amountGrams: 100 }],
-        steps: ['Mix.'],
+        steps: [{ description: 'Mix.' }],
       },
       headers: { Authorization: `Bearer ${accessToken}` },
     });

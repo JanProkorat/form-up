@@ -89,13 +89,21 @@ public static class RecipeContent
             .ToList();
 
     /// <summary>
-    /// Trims each step and drops blank ones. Returns <see langword="null"/> when nothing is left.
+    /// Trims each step's title and description (a blank title becomes null) and drops null steps and
+    /// steps with neither a title nor a description, keeping minutes and order.
+    /// Returns <see langword="null"/> when nothing is left.
     /// </summary>
-    public static List<string>? NormalizeSteps(List<string>? steps)
+    public static List<RecipeStep>? NormalizeSteps(List<RecipeStepDto>? steps)
     {
         var cleaned = steps?
-            .Select(step => step?.Trim() ?? string.Empty)
-            .Where(step => step.Length > 0)
+            .Where(step => step is not null
+                && (!string.IsNullOrWhiteSpace(step.Title) || !string.IsNullOrWhiteSpace(step.Description)))
+            .Select(step => new RecipeStep
+            {
+                Title = string.IsNullOrWhiteSpace(step.Title) ? null : step.Title.Trim(),
+                Description = step.Description?.Trim() ?? string.Empty,
+                Minutes = step.Minutes
+            })
             .ToList();
 
         return cleaned is { Count: > 0 } ? cleaned : null;
