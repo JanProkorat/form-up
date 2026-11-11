@@ -1665,7 +1665,7 @@
   "html": "mobile-light/09-03-recipe-detail.html",
   "png": "mobile-light/09-03-recipe-detail.png",
   "w": 390,
-  "h": 844
+  "h": 1280
  },
  {
   "html": "mobile-light/09-04-cooking-steps.html",
@@ -2397,7 +2397,7 @@
   "html": "mobile-dark/10-03-recipe-detail.html",
   "png": "mobile-dark/10-03-recipe-detail.png",
   "w": 390,
-  "h": 844
+  "h": 1280
  },
  {
   "html": "mobile-dark/10-04-cooking-steps.html",
