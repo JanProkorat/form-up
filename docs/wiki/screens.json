@@ -2192,6 +2192,7 @@
         "mobile/src/components/nutrition/recipe/RecipeIngredients.tsx",
         "mobile/src/components/nutrition/recipe/RecipeMacros.tsx",
         "mobile/src/components/nutrition/recipe/RecipeSteps.tsx",
+        "mobile/src/components/nutrition/recipe/steps.ts",
         "mobile/src/hooks/useRecipeDetail.ts",
         "mobile/src/components/OfflineBanner.tsx",
         "mobile/src/components/nutrition/meal/MarkEatenButton.tsx",
@@ -2209,6 +2210,38 @@
       "board": "GlassRecipeDetail",
       "shots": [
         { "name": "default", "steps": "on the recipes screen, tap the first recipe" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "client.nutrition.cook-mode",
+      "app": "client",
+      "area": "Nutrition",
+      "title": "Cook mode",
+      "route": "/nutrition/cook/:recipeId",
+      "roles": ["Client"],
+      "files": [
+        "mobile/src/app/nutrition/cook/*.tsx",
+        "mobile/src/api/errors.ts",
+        "mobile/src/api/nutrition.ts",
+        "mobile/src/components/BackButton.tsx",
+        "mobile/src/components/Button.tsx",
+        "mobile/src/components/Text.tsx",
+        "mobile/src/components/nutrition/meal/DetailState.tsx",
+        "mobile/src/components/nutrition/meal/format.ts",
+        "mobile/src/components/nutrition/recipe/cook/CookStepCard.tsx",
+        "mobile/src/components/nutrition/recipe/cook/StepTimerPill.tsx",
+        "mobile/src/components/nutrition/recipe/steps.ts",
+        "mobile/src/hooks/useRecipeDetail.ts",
+        "mobile/src/hooks/useStepTimers.ts",
+        "mobile/src/lib/queryState.ts"
+      ],
+      "endpoints": [
+        "GET /client/recipes/{recipeId}"
+      ],
+      "board": "GlassCookingSteps",
+      "shots": [
+        { "name": "default", "steps": "on the recipes screen, tap a recipe with two or more steps, then tap Cook mode in the steps card" }
       ],
       "notionPageId": null
     },
