@@ -8,6 +8,7 @@
     "publish": "Publikovat",
     "publishNoStartDate": "Před publikováním nastavte datum začátku plánu.",
     "cancel": "Zrušit",
+    "datePicker": { "placeholder": "Vyberte datum", "previousMonth": "Předchozí měsíc", "nextMonth": "Další měsíc" },
     "close": "Zavřít",
     "optional": "volitelné",
     "send": "Odeslat",
