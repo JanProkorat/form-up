@@ -12,7 +12,9 @@ namespace FormUp.Application.Features.Users.GetMySubscription;
 /// </summary>
 /// <param name="db">Application database context.</param>
 /// <param name="entitlementService">Resolves entitlements, client usage and the second-role state.</param>
-internal sealed class GetMySubscriptionEndpoint(IApplicationDbContext db, EntitlementService entitlementService)
+/// <param name="timeProvider">Clock.</param>
+internal sealed class GetMySubscriptionEndpoint(
+    IApplicationDbContext db, EntitlementService entitlementService, TimeProvider timeProvider)
     : EndpointWithoutRequest<GetMySubscriptionResponse>
 {
     /// <inheritdoc />
@@ -164,6 +166,7 @@ internal sealed class GetMySubscriptionEndpoint(IApplicationDbContext db, Entitl
                 cs.CurrentPeriodEndsAt,
                 cs.CancelAtPeriodEnd,
                 cs.FreeUntil,
+                cs.GivenFreeAt,
                 cs.PaysSecondRoleAddOn,
                 cs.SubscriptionPlanPrice.PriceMinorUnits,
                 cs.SubscriptionPlanPrice.SecondRoleAddOnPriceMinorUnits,
@@ -183,6 +186,9 @@ internal sealed class GetMySubscriptionEndpoint(IApplicationDbContext db, Entitl
                 CurrentPeriodEndsAt = subscription.CurrentPeriodEndsAt,
                 CancelAtPeriodEnd = subscription.CancelAtPeriodEnd,
                 FreeUntil = subscription.FreeUntil,
+                IsSetByFormUp = subscription.GivenFreeAt is not null
+                    && CoachSubscriptionStatusClassifier.PlanApplies(
+                        subscription.Status, subscription.FreeUntil, subscription.GivenFreeAt, timeProvider.GetUtcNow()),
                 PriceLines =
                 [
                     new SubscriptionPriceLineDto

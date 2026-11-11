@@ -99,5 +99,14 @@ public enum NotificationType
     ProgressPhotosSubmitted,
 
     /// <summary>A client finished a plan workout; delivered to the plan's author.</summary>
-    WorkoutFinished
+    WorkoutFinished,
+
+    /// <summary>An admin changed the coach's plan; delivered to the coach.</summary>
+    CoachPlanChanged,
+
+    /// <summary>An admin ended the coach's plan now; delivered to the coach.</summary>
+    CoachPlanEnded,
+
+    /// <summary>An admin cancelled the renewal of the coach's plan; delivered to the coach.</summary>
+    CoachPlanRenewalCancelled
 }

@@ -32,6 +32,9 @@ public class GetMySubscriptionResponse
     /// <summary>While now is before this instant the assigned plan's features apply whatever the status is.</summary>
     public DateTimeOffset? FreeUntil { get; set; }
 
+    /// <summary>True when an admin set the plan (given free) and it still applies.</summary>
+    public bool IsSetByFormUp { get; set; }
+
     /// <summary>
     /// True when the paid plan has lapsed (Canceled or Incomplete with no free-features deadline in force). The plan
     /// fields then describe the Free plan and <see cref="ActiveClientCount"/> is the number of kept clients.
