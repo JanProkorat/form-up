@@ -49,10 +49,10 @@ public class CreateRecipeRequest
     public List<DietaryPreference> DietaryPreferences { get; set; } = [];
 
     /// <summary>
-    /// Ordered preparation steps (list order is step order). Blank steps are dropped; at most 50,
-    /// each at most 2000 characters.
+    /// Ordered preparation steps (list order is step order). Steps with blank text are dropped; at most 50,
+    /// each text at most 2000 characters, optional minutes 1 to 180.
     /// </summary>
-    public List<string>? Steps { get; set; }
+    public List<RecipeStepDto>? Steps { get; set; }
 
     /// <summary>Optional tip or note.</summary>
     public string? Note { get; set; }

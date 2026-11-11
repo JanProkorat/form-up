@@ -1,6 +1,9 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using FluentAssertions;
+using FormUp.Tests.Builders;
+using FormUp.Application.Domain.Documents;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Application.Infrastructure.Data.MongoDb;
@@ -94,6 +97,70 @@ public class UpdateRecipeEndpointIntegrationTests(FitnessApiFactory factory)
         var body = await response.Content.ReadFromJsonAsync<RecipeVersionRef>(cancellationToken: ct);
         body!.Version.Should().Be(2,
             "the version field is stored for the first time on this write and bumped to 2");
+    }
+
+    [Fact]
+    public async Task HandleAsync_StepsWithMinutes_RoundTripsAndOutOfRangeMinutesReturns400()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var coach = await TestActors.Nutritionist(factory).CreateAsync(ct);
+        var foodId = Guid.NewGuid();
+        using (var scope = factory.Services.CreateScope())
+        {
+            var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+            await mongo.Foods.InsertOneAsync(new Food
+            {
+                ExternalId = foodId,
+                Name = $"Steps Test Food {foodId:N}",
+                NutritionistId = coach.UserId,
+                Visibility = FoodVisibility.Private,
+                NutrientValue = new NutrientValue { Kcal = 100, Protein = 20, Carbs = 0, Fat = 2 },
+                DateCreated = DateTime.UtcNow
+            }, cancellationToken: ct);
+        }
+
+        var created = await coach.Http.PostAsJsonAsync("/recipes", new
+        {
+            Name = "Steps Update Recipe",
+            MealTypes = new[] { "Lunch" },
+            Foods = new[] { new { FoodExternalId = foodId, AmountGrams = 100m } }
+        }, ct);
+        created.StatusCode.Should().Be(HttpStatusCode.Created);
+        var createdBody = await created.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct);
+        var recipeId = createdBody.GetProperty("recipeId").GetGuid();
+        var version = createdBody.GetProperty("version").GetInt32();
+
+        var updated = await coach.Http.PutAsJsonAsync($"/recipes/{recipeId}", new
+        {
+            Version = version,
+            Name = "Steps Update Recipe",
+            MealTypes = new[] { "Lunch" },
+            Steps = new[]
+            {
+                new { Text = " Boil ", Minutes = (int?)12 },
+                new { Text = "Serve", Minutes = (int?)null }
+            },
+            Foods = new[] { new { FoodExternalId = foodId, AmountGrams = 100m } }
+        }, ct);
+
+        updated.StatusCode.Should().Be(HttpStatusCode.OK);
+        var steps = (await updated.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct))
+            .GetProperty("steps").EnumerateArray().ToList();
+        steps.Should().HaveCount(2);
+        steps[0].GetProperty("text").GetString().Should().Be("Boil");
+        steps[0].GetProperty("minutes").GetInt32().Should().Be(12);
+        steps[1].GetProperty("text").GetString().Should().Be("Serve");
+
+        var invalid = await coach.Http.PutAsJsonAsync($"/recipes/{recipeId}", new
+        {
+            Version = version + 1,
+            Name = "Steps Update Recipe",
+            MealTypes = new[] { "Lunch" },
+            Steps = new[] { new { Text = "Boil", Minutes = (int?)181 } },
+            Foods = new[] { new { FoodExternalId = foodId, AmountGrams = 100m } }
+        }, ct);
+
+        invalid.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     private record RecipeVersionRef(int Version);

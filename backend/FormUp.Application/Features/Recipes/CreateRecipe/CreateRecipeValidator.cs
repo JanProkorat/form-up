@@ -45,8 +45,12 @@ public class CreateRecipeValidator : Validator<CreateRecipeRequest>
             .WithMessage("A recipe can have at most 50 steps.");
 
         RuleForEach(x => x.Steps)
-            .Must(step => step is null || step.Length <= 2000)
+            .Must(step => step is null || (step.Text ?? string.Empty).Length <= 2000)
             .WithMessage("A step can be at most 2000 characters.");
+
+        RuleForEach(x => x.Steps)
+            .Must(step => step is null || step.Minutes is null or >= 1 and <= 180)
+            .WithMessage("Step minutes must be between 1 and 180.");
 
         RuleFor(x => x.Foods)
             .NotEmpty()

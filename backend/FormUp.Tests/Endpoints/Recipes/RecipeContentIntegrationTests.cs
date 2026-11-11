@@ -71,7 +71,13 @@ public class RecipeContentIntegrationTests(FitnessApiFactory factory)
             CookTimeMinutes = 25,
             MealTypes = new[] { "Dinner" },
             DietaryPreferences = new[] { "Vegetarian" },
-            Steps = new[] { "  Chop  ", "", "   ", "Cook" },
+            Steps = new[]
+            {
+                new { Text = "  Chop  ", Minutes = (int?)null },
+                new { Text = "", Minutes = (int?)5 },
+                new { Text = "   ", Minutes = (int?)null },
+                new { Text = "Cook", Minutes = (int?)20 }
+            },
             Foods = new[] { new { FoodExternalId = foodId, AmountGrams = 100m } }
         }, Ct);
 
@@ -82,7 +88,7 @@ public class RecipeContentIntegrationTests(FitnessApiFactory factory)
         body.GetProperty("cookTimeMinutes").GetInt32().Should().Be(25);
         body.GetProperty("mealTypes").EnumerateArray().Select(e => e.GetString()).Should().Equal("Dinner");
         body.GetProperty("dietaryPreferences").EnumerateArray().Select(e => e.GetString()).Should().Equal("Vegetarian");
-        body.GetProperty("steps").EnumerateArray().Select(e => e.GetString()).Should().Equal("Chop", "Cook");
+        AssertSteps(body, ("Chop", null), ("Cook", 20));
         body.GetProperty("allergens").EnumerateArray().Select(e => e.GetString()).Should().BeEquivalentTo("Gluten", "Milk");
         body.GetProperty("visibility").GetString().Should().Be("Private");
         body.GetProperty("isSystem").GetBoolean().Should().BeFalse();
@@ -90,6 +96,42 @@ public class RecipeContentIntegrationTests(FitnessApiFactory factory)
         var fetched = await ReadJsonAsync(await coach.Http.GetAsync($"/recipes/{body.GetProperty("recipeId").GetGuid()}", Ct));
         fetched.GetProperty("allergens").EnumerateArray().Select(e => e.GetString()).Should().BeEquivalentTo("Gluten", "Milk");
         fetched.GetProperty("servings").GetInt32().Should().Be(4);
+        AssertSteps(fetched, ("Chop", null), ("Cook", 20));
+    }
+
+    [Fact]
+    public async Task Create_StepsWithoutMinutes_RoundTripsTextOnly()
+    {
+        var coach = await TestActors.Nutritionist(factory).CreateAsync(Ct);
+        var foodId = await InsertFoodAsync(coach.UserId, FoodVisibility.Private);
+
+        var response = await coach.Http.PostAsJsonAsync("/recipes", new
+        {
+            Name = "No Minutes Recipe",
+            MealTypes = new[] { "Dinner" },
+            Steps = new[] { new { Text = "Mix" }, new { Text = "Serve" } },
+            Foods = new[] { new { FoodExternalId = foodId, AmountGrams = 100m } }
+        }, Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var created = await ReadJsonAsync(response);
+        AssertSteps(created, ("Mix", null), ("Serve", null));
+
+        var fetched = await ReadJsonAsync(await coach.Http.GetAsync($"/recipes/{created.GetProperty("recipeId").GetGuid()}", Ct));
+        AssertSteps(fetched, ("Mix", null), ("Serve", null));
+    }
+
+    private static void AssertSteps(JsonElement body, params (string Text, int? Minutes)[] expected)
+    {
+        var actual = body.GetProperty("steps").EnumerateArray()
+            .Select(step => (
+                Text: step.GetProperty("text").GetString(),
+                Minutes: step.TryGetProperty("minutes", out var minutes) && minutes.ValueKind == JsonValueKind.Number
+                    ? minutes.GetInt32()
+                    : (int?)null))
+            .ToList();
+
+        actual.Should().Equal(expected.Select(step => ((string?)step.Text, step.Minutes)));
     }
 
     [Fact]

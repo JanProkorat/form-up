@@ -87,7 +87,9 @@ public static class RecipeSeedData
                 Name = entry.Name,
                 Description = entry.Description,
                 PrepTimeMinutes = entry.PrepMinutes,
-                Steps = entry.Steps is { Count: > 0 } ? entry.Steps : null,
+                Steps = entry.Steps is { Count: > 0 }
+                    ? entry.Steps.Select(text => new RecipeStep { Text = text, Minutes = null }).ToList()
+                    : null,
                 Note = string.IsNullOrWhiteSpace(entry.Note) ? null : entry.Note,
                 Servings = entry.Servings ?? 1,
                 Foods = mealFoods,

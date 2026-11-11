@@ -74,15 +74,41 @@ public class UpdateRecipeValidatorTests
     public void Steps_OverCountOrLength_FailsValidation()
     {
         var tooMany = ValidRequest();
-        tooMany.Steps = Enumerable.Repeat("step", 51).ToList();
+        tooMany.Steps = Enumerable.Range(0, 51).Select(_ => new RecipeStepDto { Text = "step" }).ToList();
         var tooLong = ValidRequest();
-        tooLong.Steps = [new string('x', 2001)];
+        tooLong.Steps = [new RecipeStepDto { Text = new string('x', 2001) }];
         var atLimit = ValidRequest();
-        atLimit.Steps = Enumerable.Repeat(new string('x', 2000), 50).ToList();
+        atLimit.Steps = Enumerable.Range(0, 50).Select(_ => new RecipeStepDto { Text = new string('x', 2000) }).ToList();
 
         _validator.TestValidate(tooMany).IsValid.Should().BeFalse();
         _validator.TestValidate(tooLong).IsValid.Should().BeFalse();
         _validator.TestValidate(atLimit).IsValid.Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData(null, true)]
+    [InlineData(0, false)]
+    [InlineData(1, true)]
+    [InlineData(180, true)]
+    [InlineData(181, false)]
+    public void StepMinutes_Bounds_AreOneToOneEighty(int? minutes, bool expectedValid)
+    {
+        var req = ValidRequest();
+        req.Steps = [new RecipeStepDto { Text = "Cook", Minutes = minutes }];
+
+        _validator.TestValidate(req).IsValid.Should().Be(expectedValid);
+    }
+
+    [Fact]
+    public void Steps_NullElement_DoesNotThrow()
+    {
+        var req = ValidRequest();
+        req.Steps = [null!, new RecipeStepDto { Text = "Cook" }];
+
+        var act = () => _validator.TestValidate(req);
+
+        act.Should().NotThrow();
+        _validator.TestValidate(req).IsValid.Should().BeTrue();
     }
 
     [Fact]
