@@ -6561,6 +6561,7 @@
       "plan": "Plan",
       "until": "Until",
       "selected": "Selected",
+      "current": "Current plan",
       "perMonth": "/ month",
       "clientsUpTo_one": "Up to {{count}} client",
       "clientsUpTo_other": "Up to {{count}} clients",
@@ -6574,7 +6575,11 @@
       "summaryUntil": "from today until {{date}}. Then {{name}} chooses a plan.",
       "summaryNoEnd": "from today, with no end date.",
       "summaryPickDate": "from today. Pick the end date.",
-      "confirm": "Change to {{plan}}"
+      "confirm": "Change to {{plan}}",
+      "keepUntil": "stays, now until {{date}}. Then {{name}} chooses a plan.",
+      "keepNoEnd": "stays, now with no end date.",
+      "keepPickDate": "stays. Pick the new end date.",
+      "confirmKeep": "Change end date"
     },
     "drawer": {
       "titleFallback": "Coach",
