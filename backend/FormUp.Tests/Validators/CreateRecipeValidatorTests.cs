@@ -61,9 +61,9 @@ public class CreateRecipeValidatorTests
     public void Steps_OverCountOrLength_FailsValidation()
     {
         var tooMany = ValidRequest();
-        tooMany.Steps = Enumerable.Range(0, 51).Select(_ => new RecipeStepDto { Text = "step" }).ToList();
+        tooMany.Steps = Enumerable.Range(0, 51).Select(_ => new RecipeStepDto { Description = "step" }).ToList();
         var tooLong = ValidRequest();
-        tooLong.Steps = [new RecipeStepDto { Text = new string('x', 2001) }];
+        tooLong.Steps = [new RecipeStepDto { Description = new string('x', 2001) }];
 
         _validator.TestValidate(tooMany).IsValid.Should().BeFalse();
         _validator.TestValidate(tooLong).IsValid.Should().BeFalse();
@@ -78,16 +78,36 @@ public class CreateRecipeValidatorTests
     public void StepMinutes_Bounds_AreOneToOneEighty(int? minutes, bool expectedValid)
     {
         var req = ValidRequest();
-        req.Steps = [new RecipeStepDto { Text = "Cook", Minutes = minutes }];
+        req.Steps = [new RecipeStepDto { Description = "Cook", Minutes = minutes }];
 
         _validator.TestValidate(req).IsValid.Should().Be(expectedValid);
+    }
+
+    [Theory]
+    [InlineData(120, true)]
+    [InlineData(121, false)]
+    public void StepTitle_Length_IsAtMostOneTwenty(int length, bool expectedValid)
+    {
+        var req = ValidRequest();
+        req.Steps = [new RecipeStepDto { Title = new string('t', length), Description = "Cook" }];
+
+        _validator.TestValidate(req).IsValid.Should().Be(expectedValid);
+    }
+
+    [Fact]
+    public void Steps_TitleOnlyAndDescriptionOnly_AreValid()
+    {
+        var req = ValidRequest();
+        req.Steps = [new RecipeStepDto { Title = "Prep" }, new RecipeStepDto { Description = "Cook" }];
+
+        _validator.TestValidate(req).IsValid.Should().BeTrue();
     }
 
     [Fact]
     public void Steps_NullElement_DoesNotThrow()
     {
         var req = ValidRequest();
-        req.Steps = [null!, new RecipeStepDto { Text = "Cook" }];
+        req.Steps = [null!, new RecipeStepDto { Description = "Cook" }];
 
         var act = () => _validator.TestValidate(req);
 

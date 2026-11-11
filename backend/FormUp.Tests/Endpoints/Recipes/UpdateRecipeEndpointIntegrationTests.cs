@@ -137,8 +137,8 @@ public class UpdateRecipeEndpointIntegrationTests(FitnessApiFactory factory)
             MealTypes = new[] { "Lunch" },
             Steps = new[]
             {
-                new { Text = " Boil ", Minutes = (int?)12 },
-                new { Text = "Serve", Minutes = (int?)null }
+                new { Title = (string?)" Boil ", Description = " Boil the pasta ", Minutes = (int?)12 },
+                new { Title = (string?)null, Description = "Serve", Minutes = (int?)null }
             },
             Foods = new[] { new { FoodExternalId = foodId, AmountGrams = 100m } }
         }, ct);
@@ -147,16 +147,17 @@ public class UpdateRecipeEndpointIntegrationTests(FitnessApiFactory factory)
         var steps = (await updated.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct))
             .GetProperty("steps").EnumerateArray().ToList();
         steps.Should().HaveCount(2);
-        steps[0].GetProperty("text").GetString().Should().Be("Boil");
+        steps[0].GetProperty("title").GetString().Should().Be("Boil");
+        steps[0].GetProperty("description").GetString().Should().Be("Boil the pasta");
         steps[0].GetProperty("minutes").GetInt32().Should().Be(12);
-        steps[1].GetProperty("text").GetString().Should().Be("Serve");
+        steps[1].GetProperty("description").GetString().Should().Be("Serve");
 
         var invalid = await coach.Http.PutAsJsonAsync($"/recipes/{recipeId}", new
         {
             Version = version + 1,
             Name = "Steps Update Recipe",
             MealTypes = new[] { "Lunch" },
-            Steps = new[] { new { Text = "Boil", Minutes = (int?)181 } },
+            Steps = new[] { new { Description = "Boil", Minutes = (int?)181 } },
             Foods = new[] { new { FoodExternalId = foodId, AmountGrams = 100m } }
         }, ct);
 

@@ -128,7 +128,7 @@ public class GetRecipeResponse
     public List<FoodTagDto> Tags { get; set; } = [];
 
     private static List<RecipeStepDto>? ToStepDtos(List<RecipeStep>? steps) =>
-        steps?.Select(step => new RecipeStepDto { Text = step.Text, Minutes = step.Minutes }).ToList();
+        steps?.Select(step => new RecipeStepDto { Title = step.Title, Description = step.Description, Minutes = step.Minutes }).ToList();
 
     /// <summary>
     /// Maps a <see cref="Recipe"/> document to a <see cref="GetRecipeResponse"/>.
