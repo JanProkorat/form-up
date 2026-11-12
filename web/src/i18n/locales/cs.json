@@ -421,7 +421,7 @@
       "titleOutside_other": "{{count}} klientů je mimo tarif.",
       "detailTitle": "{{name}} je mimo váš tarif {{plan}}.",
       "body": "Plány klientů mimo tarif doběhnou do posledního zveřejněného týdne, pak budou jen ke čtení.",
-      "upgrade": "Vyšší tarif",
+      "upgrade": "Zvýšit plán",
       "showClients": "Zobrazit tyto klienty",
       "pickClient": "Vybrat klienta na volné místo",
       "pendingTitle_one": "Tarif {{plan}} zahrnuje {{count}} klienta. Zatím jste nepotvrdili, kterého.",
