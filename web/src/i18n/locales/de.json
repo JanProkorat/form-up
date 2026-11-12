@@ -4454,7 +4454,11 @@
   "clientDetail": {
     "outsidePlanPaywall": {
       "title": "Einen neuen Plan für {{name}} erstellen Sie mit einem höheren Tarif",
-      "body": "{{name}} liegt außerhalb Ihres Tarifs {{plan}}. Nach dem Upgrade können Sie wieder Pläne erstellen und veröffentlichen."
+      "body": "{{name}} liegt außerhalb Ihres Tarifs {{plan}}. Nach dem Upgrade können Sie wieder neue Pläne erstellen und veröffentlichen.",
+      "lead": "Klienten bleiben dort, wo ihr nächster Plan immer bereitliegt. Lassen Sie sie nicht warten.",
+      "benefit1": "{{name}} bekommt sofort einen neuen Plan, ohne Unterbrechung der Zusammenarbeit.",
+      "benefit2": "Platz für die nächsten Klienten, die zu Ihnen kommen.",
+      "benefit3": "Höhere Tarife schalten weitere Werkzeuge für die Arbeit mit Klienten frei."
     },
     "automations": {
       "introBefore": "Regeln von Ihrer Seite ",

@@ -1,9 +1,11 @@
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { Lock } from 'lucide-react';
+import { Check, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PLAN_BILLING_PATH } from '@/components/subscription/planLinks';
 import { useSubscription } from '@/hooks/useSubscriptionQueries';
+
+const BENEFIT_KEYS = ['benefit1', 'benefit2', 'benefit3'] as const;
 
 interface Props {
   firstName: string;
@@ -34,6 +36,15 @@ export default function OutsidePlanPaywall({ firstName }: Props) {
       <p className="max-w-xl text-copy text-muted-foreground">
         {t('clientDetail.outsidePlanPaywall.body', { name: firstName, plan: planName })}
       </p>
+      <p className="max-w-xl text-copy font-semibold text-ink">{t('clientDetail.outsidePlanPaywall.lead')}</p>
+      <ul className="flex flex-col gap-2.5">
+        {BENEFIT_KEYS.map((key) => (
+          <li key={key} className="flex gap-2.5 text-copy text-ink-2">
+            <Check className="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />
+            {t(`clientDetail.outsidePlanPaywall.${key}`, { name: firstName })}
+          </li>
+        ))}
+      </ul>
       <div className="flex justify-end border-t border-border pt-4">
         <Button asChild size="lg" className="px-3.5 font-semibold">
           <Link to={PLAN_BILLING_PATH}>{t('subscription.outsidePlan.upgrade')}</Link>

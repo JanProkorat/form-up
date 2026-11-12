@@ -4455,7 +4455,11 @@
   "clientDetail": {
     "outsidePlanPaywall": {
       "title": "Create a new plan for {{name}} on a higher plan",
-      "body": "{{name}} is outside your {{plan}} plan. Upgrade to build and publish plans for them again."
+      "body": "{{name}} is outside your {{plan}} plan. Upgrade to build and publish new plans again.",
+      "lead": "Clients stay where their next plan is always ready. Don't keep them waiting.",
+      "benefit1": "{{name}} gets a new plan right away, with no break in your work together.",
+      "benefit2": "Room for the next clients who come to you.",
+      "benefit3": "Higher plans also unlock more tools for working with clients."
     },
     "automations": {
       "introBefore": "Rules from your ",

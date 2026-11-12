@@ -4611,7 +4611,11 @@
   "clientDetail": {
     "outsidePlanPaywall": {
       "title": "Nový plán pro klienta {{name}} vytvoříte ve vyšším tarifu",
-      "body": "{{name}} je mimo váš tarif {{plan}}. Po zvýšení plánu mu můžete znovu sestavovat a zveřejňovat plány."
+      "body": "{{name}} je mimo váš tarif {{plan}}. Po zvýšení plánu půjde znovu sestavovat a zveřejňovat nové plány.",
+      "lead": "Klienti zůstávají tam, kde mají plán stále připravený. Nenechte je čekat.",
+      "benefit1": "{{name}} dostane nový plán hned, bez přerušení spolupráce.",
+      "benefit2": "Místo pro další klienty, kteří k vám přijdou.",
+      "benefit3": "Vyšší tarify odemykají i další nástroje pro práci s klienty."
     },
     "automations": {
       "introBefore": "Pravidla ze stránky ",
