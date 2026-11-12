@@ -783,14 +783,20 @@
       "all": "Vše",
       "active": "Aktivní",
       "paused": "Bez plánu",
+      "outsidePlan": "Mimo tarif",
       "archived": "Archivovaní",
       "pending": "Čekající"
     },
     "searchPlaceholder": "Hledat klienty...",
     "filterMenu": {
       "label": "Filtr",
-      "endingSoon": "Plány brzy končí",
-      "outsidePlan": "Mimo tarif",
+      "plansGroup": "Plány",
+      "plans": {
+        "all": "Všechny plány",
+        "active": "Aktivní plány",
+        "none": "Bez plánu",
+        "endingSoon": "Plány brzy končí"
+      },
       "clearAll": "Zrušit filtry",
       "remove": "Odebrat filtr {{name}}"
     },

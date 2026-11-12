@@ -5,22 +5,23 @@ import { cn } from '@/lib/utils';
 
 interface Props {
   status?: ClientListStatus;
+  /** Clients list rows: Active reads "Active plans" and Paused "No plan" (the Filter menu's plan options). */
+  planLabels?: boolean;
 }
 
 /**
  * Status pill for a clients-list row: neutral outline pill, an ink dot for
  * Active and a grey dot for Paused/Archived (PageClients board). Labels reuse
- * the tab labels (`clients.tabs.*`) rather than duplicating the same words
- * under a second key — a client's status IS the tab it belongs to.
+ * the tab labels (`clients.tabs.*`), or the plan option labels with `planLabels`.
  */
-export default function ClientStatusBadge({ status }: Props) {
+export default function ClientStatusBadge({ status, planLabels = false }: Props) {
   const { t } = useTranslation();
 
   const label =
     status === ClientListStatus.Active
-      ? t('clients.tabs.active')
+      ? t(planLabels ? 'clients.filterMenu.plans.active' : 'clients.tabs.active')
       : status === ClientListStatus.Paused
-        ? t('clients.tabs.paused')
+        ? t(planLabels ? 'clients.filterMenu.plans.none' : 'clients.tabs.paused')
         : status === ClientListStatus.Archived
           ? t('clients.tabs.archived')
           : null;

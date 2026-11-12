@@ -735,14 +735,20 @@
       "all": "All",
       "active": "Active",
       "paused": "No plan",
+      "outsidePlan": "Outside plan",
       "archived": "Archived",
       "pending": "Pending"
     },
     "searchPlaceholder": "Search clients...",
     "filterMenu": {
       "label": "Filter",
-      "endingSoon": "Plans ending soon",
-      "outsidePlan": "Outside plan",
+      "plansGroup": "Plans",
+      "plans": {
+        "all": "All plans",
+        "active": "Active plans",
+        "none": "No plan",
+        "endingSoon": "Plans ending soon"
+      },
       "clearAll": "Clear filters",
       "remove": "Remove filter {{name}}"
     },

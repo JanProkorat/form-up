@@ -1,55 +1,54 @@
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, Clock, Filter, Lock, X, type LucideIcon } from 'lucide-react';
+import { ChevronDown, Filter, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import type { ClientListFlag } from '@/hooks/useClientListParams';
+import { ClientPlanFilter, type ClientPlanCounts } from '@/api/generated';
 import { cn } from '@/lib/utils';
 
-interface FlagDefinition {
-  flag: ClientListFlag;
-  icon: LucideIcon;
+/** The "All plans" choice; the radio group needs a string value for it. */
+const ALL_PLANS = 'All';
+
+interface PlanOption {
+  value: ClientPlanFilter | typeof ALL_PLANS;
   labelKey: string;
+  count: (counts: ClientPlanCounts | undefined) => number | undefined;
 }
 
-const FLAGS: readonly FlagDefinition[] = [
-  { flag: 'endingSoon', icon: Clock, labelKey: 'clients.filterMenu.endingSoon' },
-  { flag: 'outsidePlan', icon: Lock, labelKey: 'clients.filterMenu.outsidePlan' },
+const PLAN_OPTIONS: readonly PlanOption[] = [
+  { value: ALL_PLANS, labelKey: 'clients.filterMenu.plans.all', count: (c) => c?.all },
+  { value: ClientPlanFilter.Active, labelKey: 'clients.filterMenu.plans.active', count: (c) => c?.active },
+  { value: ClientPlanFilter.None, labelKey: 'clients.filterMenu.plans.none', count: (c) => c?.none },
+  { value: ClientPlanFilter.EndingSoon, labelKey: 'clients.filterMenu.plans.endingSoon', count: (c) => c?.endingSoon },
 ];
 
-type FlagState = Record<ClientListFlag, boolean>;
-type FlagCounts = Partial<Record<ClientListFlag, number>>;
-
-interface MenuProps {
-  active: FlagState;
-  /** Per-flag counts; a flag whose count is 0 is disabled unless it is on, and "outsidePlan" is hidden at 0. */
-  counts: FlagCounts;
-  /** Hides the "Outside plan" row (the Archived tab: the backend rejects the pair). */
-  outsidePlanAvailable: boolean;
-  onToggle: (flag: ClientListFlag, on: boolean) => void;
+function labelKeyFor(plan: ClientPlanFilter): string {
+  return PLAN_OPTIONS.find((option) => option.value === plan)?.labelKey ?? '';
 }
 
-function isRowShown(flag: ClientListFlag, props: MenuProps): boolean {
-  if (flag !== 'outsidePlan') {
-    return true;
-  }
-  return props.outsidePlanAvailable && ((props.counts.outsidePlan ?? 0) > 0 || props.active.outsidePlan);
+interface MenuProps {
+  /** The chosen plan; null is "All plans". */
+  plan: ClientPlanFilter | null;
+  /** Counts for the selected tab before the plan filter. An option at 0 is disabled unless chosen. */
+  counts: ClientPlanCounts | undefined;
+  onChange: (plan: ClientPlanFilter | null) => void;
 }
 
 /**
- * The "Filter" dropdown after the tag button: one checkbox row per independent flag
- * (Plans ending soon, Outside plan), each with an icon and its count. With a flag on,
- * the trigger inverts and shows how many are on.
+ * The "Filter" dropdown after the tag button: one single-choice "Plans" group
+ * (All plans, Active plans, No plan, Plans ending soon), each with its count. Choosing
+ * anything but "All plans" inverts the trigger and shows a "1" badge; the menu closes
+ * on every choice.
  */
-export default function ClientFilterMenu(props: MenuProps) {
+export default function ClientFilterMenu({ plan, counts, onChange }: MenuProps) {
   const { t } = useTranslation();
-  const { active, onToggle } = props;
-  const activeCount = FLAGS.filter(({ flag }) => active[flag]).length;
-  const isActive = activeCount > 0;
+  const isActive = plan !== null;
 
   return (
     <DropdownMenu>
@@ -66,79 +65,74 @@ export default function ClientFilterMenu(props: MenuProps) {
           {t('clients.filterMenu.label')}
           {isActive && (
             <span className="inline-flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-primary-foreground px-1.25 text-label font-bold text-primary">
-              {activeCount}
+              1
             </span>
           )}
           <ChevronDown className="size-4" aria-hidden="true" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-64" aria-label={t('clients.filterMenu.label')}>
-        {FLAGS.filter(({ flag }) => isRowShown(flag, props)).map(({ flag, icon: Icon, labelKey }) => {
-          const checked = active[flag];
-          const count = props.counts[flag];
-          return (
-            <DropdownMenuCheckboxItem
-              key={flag}
-              checked={checked}
-              disabled={count === 0 && !checked}
-              // Keep the menu open so both flags can be switched in one go.
-              onSelect={(event) => event.preventDefault()}
-              onCheckedChange={(on) => onToggle(flag, on === true)}
-              className="gap-2.5 py-2 text-body font-medium"
-            >
-              <Icon className="size-3.5 text-muted-foreground" aria-hidden="true" />
-              {t(labelKey)}
-              {typeof count === 'number' && (
-                <span className="ml-auto text-caption font-semibold text-muted-foreground">{count}</span>
-              )}
-            </DropdownMenuCheckboxItem>
-          );
-        })}
+        <DropdownMenuLabel className="text-label font-bold tracking-label text-muted-foreground uppercase">
+          {t('clients.filterMenu.plansGroup')}
+        </DropdownMenuLabel>
+        <DropdownMenuRadioGroup
+          value={plan ?? ALL_PLANS}
+          onValueChange={(value) => onChange(value === ALL_PLANS ? null : (value as ClientPlanFilter))}
+        >
+          {PLAN_OPTIONS.map(({ value, labelKey, count: countOf }) => {
+            const chosen = (plan ?? ALL_PLANS) === value;
+            const count = countOf(counts);
+            return (
+              <DropdownMenuRadioItem
+                key={value}
+                value={value}
+                disabled={count === 0 && !chosen}
+                className="gap-2.5 py-2 text-body font-medium"
+              >
+                {t(labelKey)}
+                {typeof count === 'number' && (
+                  <span className="ml-auto text-caption font-semibold text-muted-foreground">{count}</span>
+                )}
+              </DropdownMenuRadioItem>
+            );
+          })}
+        </DropdownMenuRadioGroup>
       </DropdownMenuContent>
     </DropdownMenu>
   );
 }
 
 interface ActiveFiltersProps {
-  active: FlagState;
-  onRemove: (flag: ClientListFlag) => void;
-  onClearAll: () => void;
+  plan: ClientPlanFilter | null;
+  onRemove: () => void;
 }
 
-/** One removable chip per flag that is on, plus a "Clear filters" link. Renders nothing with no flag on. */
-export function ClientActiveFilters({ active, onRemove, onClearAll }: ActiveFiltersProps) {
+/** The removable chip for the chosen plan plus a "Clear filters" link. Renders nothing on "All plans". */
+export function ClientActiveFilters({ plan, onRemove }: ActiveFiltersProps) {
   const { t } = useTranslation();
-  const on = FLAGS.filter(({ flag }) => active[flag]);
 
-  if (on.length === 0) {
+  if (plan === null) {
     return null;
   }
 
+  const name = t(labelKeyFor(plan));
+
   return (
     <div className="flex flex-wrap items-center gap-2.5">
-      {on.map(({ flag, icon: Icon, labelKey }) => {
-        const name = t(labelKey);
-        return (
-          <span
-            key={flag}
-            className="inline-flex h-7 items-center gap-1.5 rounded-full bg-line py-0 pr-1.5 pl-2.5 text-caption font-semibold text-ink"
-          >
-            <Icon className="size-3" aria-hidden="true" />
-            {name}
-            <button
-              type="button"
-              aria-label={t('clients.filterMenu.remove', { name })}
-              onClick={() => onRemove(flag)}
-              className="flex size-4.5 items-center justify-center rounded-full text-muted-foreground hover:text-ink focus-visible:outline-2 focus-visible:outline-ring"
-            >
-              <X className="size-3" aria-hidden="true" />
-            </button>
-          </span>
-        );
-      })}
+      <span className="inline-flex h-7 items-center gap-1.5 rounded-full bg-line py-0 pr-1.5 pl-2.5 text-caption font-semibold text-ink">
+        {name}
+        <button
+          type="button"
+          aria-label={t('clients.filterMenu.remove', { name })}
+          onClick={onRemove}
+          className="flex size-4.5 items-center justify-center rounded-full text-muted-foreground hover:text-ink focus-visible:outline-2 focus-visible:outline-ring"
+        >
+          <X className="size-3" aria-hidden="true" />
+        </button>
+      </span>
       <button
         type="button"
-        onClick={onClearAll}
+        onClick={onRemove}
         className="text-caption font-semibold text-muted-foreground hover:text-ink"
       >
         {t('clients.filterMenu.clearAll')}

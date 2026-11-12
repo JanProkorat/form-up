@@ -1,5 +1,5 @@
 /**
- * #1066 — Clients list page regression smoke (tab switch, the Filter menu, the
+ * #1066 — Clients list page regression smoke (tab switch, the Filter menu, legacy URLs, the
  * invite flow). Path is deliberately under trainer/ — every project in
  * playwright.config.ts matches a role subfolder via testMatch, so a spec at
  * the e2e/ root is collected by no project and silently never runs (see
@@ -52,46 +52,70 @@ test.describe('clients list page', () => {
   });
 
   test('switching tabs updates the URL and the active tab', async ({ page }) => {
-    await expect(page.getByRole('tab', { name: /^All/ })).toHaveAttribute('data-state', 'active');
-    const pausedTab = page.getByRole('tab', { name: /No plan/ });
-    await pausedTab.click();
+    await expect(page.getByRole('tab', { name: /^Active/ })).toHaveAttribute('data-state', 'active');
+    const allTab = page.getByRole('tab', { name: /^All/ });
+    await allTab.click();
     await page.waitForLoadState('networkidle');
 
-    await expect(page).toHaveURL(/tab=Paused/);
-    await expect(pausedTab).toHaveAttribute('data-state', 'active');
+    await expect(page).toHaveURL(/tab=All/);
+    await expect(allTab).toHaveAttribute('data-state', 'active');
 
     // Table settles into either rows or the empty state — never stuck loading.
     await expect(page.getByText('Loading', { exact: false })).toHaveCount(0);
   });
 
-  test('the Filter menu toggles Plans ending soon, which lands in the URL and as a removable chip', async ({ page }) => {
+  test('the Filter menu picks one plan, which lands in the URL and as a removable chip', async ({ page }) => {
     // The old chip row (All / Ending soon) is gone; the filter lives in one menu.
     await expect(page.getByRole('button', { name: /Ending soon/ })).toHaveCount(0);
 
     await page.getByRole('button', { name: /^Filter/ }).click();
-    // A zero count disables the row, which the fixture may produce.
-    const endingSoon = page.getByRole('menuitemcheckbox', { name: /Plans ending soon/ });
-    await expect(endingSoon).toBeVisible();
+    const allPlans = page.getByRole('menuitemradio', { name: /^All plans/ });
+    await expect(allPlans).toHaveAttribute('aria-checked', 'true');
+    await expect(page.getByRole('menuitemradio')).toHaveCount(4);
+
+    // A zero count disables the option, which the fixture may produce for "Active plans".
+    const activePlans = page.getByRole('menuitemradio', { name: /^Active plans/ });
     test.skip(
-      (await endingSoon.getAttribute('data-disabled')) !== null,
-      'No client is ending soon on this fixture, so the menu row is disabled',
+      (await activePlans.getAttribute('data-disabled')) !== null,
+      'No client has a current plan on this fixture, so the menu option is disabled',
     );
-    await endingSoon.click();
+    await activePlans.click();
     await page.waitForLoadState('networkidle');
 
-    await expect(page).toHaveURL(/endingSoon=1/);
-    await expect(endingSoon).toHaveAttribute('aria-checked', 'true');
+    // A single choice closes the menu.
+    await expect(page.getByRole('menuitemradio')).toHaveCount(0);
+    await expect(page).toHaveURL(/plan=Active/);
+    await expect(page.getByRole('button', { name: /^Filter/ })).toContainText('1');
 
-    // The menu stays open; close it, then remove the flag through its chip.
-    await page.keyboard.press('Escape');
-    await page.getByRole('button', { name: 'Remove filter Plans ending soon' }).click();
-    await expect(page).not.toHaveURL(/endingSoon/);
+    // Switching tab keeps the plan choice.
+    await page.getByRole('tab', { name: /^All/ }).click();
+    await expect(page).toHaveURL(/plan=Active/);
+
+    await page.getByRole('button', { name: 'Remove filter Active plans' }).click();
+    await expect(page).not.toHaveURL(/plan=/);
   });
 
-  test('a legacy ?tab=OutsidePlan or ?chip= URL falls back to the default tab', async ({ page }) => {
-    await page.goto('/clients?tab=OutsidePlan&chip=EndingSoon');
-    await expect(page.getByRole('tab', { name: /^All/ })).toHaveAttribute('data-state', 'active');
+  test('the Filter menu and its chip are hidden on the Pending tab', async ({ page }) => {
+    await page.goto('/clients?tab=Pending&plan=Active');
+    await expect(page.getByRole('tab', { name: /^Pending/ })).toHaveAttribute('data-state', 'active');
+    await expect(page.getByRole('button', { name: /^Filter/ })).toHaveCount(0);
     await expect(page.getByRole('button', { name: /Remove filter/ })).toHaveCount(0);
+  });
+
+  test('legacy ?tab=Paused, ?chip=, ?endingSoon= and ?outsidePlan= URLs fall back to the default tab with no plan', async ({
+    page,
+  }) => {
+    for (const query of ['tab=Paused', 'chip=EndingSoon', 'endingSoon=1', 'outsidePlan=1', 'tab=Paused&chip=EndingSoon']) {
+      await page.goto(`/clients?${query}`);
+      await expect(page.getByRole('tab', { name: /^Active/ })).toHaveAttribute('data-state', 'active');
+      await expect(page.getByRole('button', { name: /Remove filter/ })).toHaveCount(0);
+    }
+  });
+
+  test('a valid ?tab=Archived&plan=None URL opens that tab with the plan chip', async ({ page }) => {
+    await page.goto('/clients?tab=Archived&plan=None');
+    await expect(page.getByRole('tab', { name: /^Archived/ })).toHaveAttribute('data-state', 'active');
+    await expect(page.getByRole('button', { name: 'Remove filter No plan' })).toBeVisible();
   });
 
   test('inviting a new client sends the invite and closes the drawer', async ({ page }) => {

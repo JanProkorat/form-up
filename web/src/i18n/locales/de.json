@@ -735,14 +735,20 @@
       "all": "Alle",
       "active": "Aktiv",
       "paused": "Ohne Plan",
+      "outsidePlan": "Außerhalb des Tarifs",
       "archived": "Archiviert",
       "pending": "Ausstehend"
     },
     "searchPlaceholder": "Klienten suchen...",
     "filterMenu": {
       "label": "Filter",
-      "endingSoon": "Pläne enden bald",
-      "outsidePlan": "Außerhalb des Tarifs",
+      "plansGroup": "Pläne",
+      "plans": {
+        "all": "Alle Pläne",
+        "active": "Aktive Pläne",
+        "none": "Ohne Plan",
+        "endingSoon": "Pläne enden bald"
+      },
       "clearAll": "Filter zurücksetzen",
       "remove": "Filter {{name}} entfernen"
     },
