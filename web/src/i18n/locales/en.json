@@ -388,7 +388,7 @@
       "titleOutside_one": "{{count}} client is outside your plan.",
       "titleOutside_other": "{{count}} clients are outside your plan.",
       "detailTitle": "{{name}} is outside your {{plan}} plan.",
-      "body": "Their plans run until the last published week, then become read-only.",
+      "body": "Plans of clients outside your plan run until the last published week, then become read-only.",
       "upgrade": "Higher plan",
       "pickClient": "Choose a client for the free slot"
     },
@@ -746,7 +746,7 @@
     },
     "outsidePlan": {
       "chip": "Outside plan",
-      "tooltip": "Their plans run until the last published week, then become read-only."
+      "tooltip": "This client's plans run until the last published week, then become read-only."
     },
     "tagFilter": {
       "label": "Select tags",

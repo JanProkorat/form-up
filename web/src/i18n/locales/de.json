@@ -388,7 +388,7 @@
       "titleOutside_one": "{{count}} Klient liegt außerhalb des Tarifs.",
       "titleOutside_other": "{{count}} Klienten liegen außerhalb des Tarifs.",
       "detailTitle": "{{name}} liegt außerhalb Ihres Tarifs {{plan}}.",
-      "body": "Ihre Pläne laufen bis zur letzten veröffentlichten Woche weiter und sind danach nur noch lesbar.",
+      "body": "Die Pläne von Klienten außerhalb Ihres Tarifs laufen bis zur letzten veröffentlichten Woche weiter und sind danach nur noch lesbar.",
       "upgrade": "Höherer Tarif",
       "pickClient": "Klienten für den freien Platz wählen"
     },
@@ -746,7 +746,7 @@
     },
     "outsidePlan": {
       "chip": "Außerhalb des Tarifs",
-      "tooltip": "Ihre Pläne laufen bis zur letzten veröffentlichten Woche weiter und sind danach nur noch lesbar."
+      "tooltip": "Die Pläne dieses Klienten laufen bis zur letzten veröffentlichten Woche weiter und sind danach nur noch lesbar."
     },
     "tagFilter": {
       "label": "Tags auswählen",

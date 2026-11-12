@@ -416,7 +416,7 @@
       "titleOutside_many": "{{count}} klienta je mimo tarif.",
       "titleOutside_other": "{{count}} klientů je mimo tarif.",
       "detailTitle": "{{name}} je mimo váš tarif {{plan}}.",
-      "body": "Jejich plány doběhnou do posledního zveřejněného týdne, pak budou jen ke čtení.",
+      "body": "Plány klientů mimo tarif doběhnou do posledního zveřejněného týdne, pak budou jen ke čtení.",
       "upgrade": "Vyšší tarif",
       "pickClient": "Vybrat klienta na volné místo"
     },
@@ -794,7 +794,7 @@
     },
     "outsidePlan": {
       "chip": "Mimo tarif",
-      "tooltip": "Jejich plány doběhnou do posledního zveřejněného týdne, pak budou jen ke čtení."
+      "tooltip": "Plány tohoto klienta doběhnou do posledního zveřejněného týdne, pak budou jen ke čtení."
     },
     "tagFilter": {
       "label": "Vybrat štítky",
