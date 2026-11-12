@@ -159,7 +159,7 @@ export default function ClientsTable({
                 <TableCell className={CELL_CLASS}>
                   <div className="flex flex-wrap items-center gap-1.5">
                     <ClientStatusBadge status={client.status} planLabels />
-                    {restricted && <OutsidePlanChip />}
+                    {restricted && <OutsidePlanChip readOnlyFrom={client.readOnlyFrom} />}
                   </div>
                 </TableCell>
                 <TableCell className={CELL_CLASS}>

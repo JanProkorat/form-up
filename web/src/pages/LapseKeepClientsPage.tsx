@@ -130,6 +130,12 @@ export default function LapseKeepClientsPage() {
             <p className="text-copy text-muted-foreground">
               {t(locked ? 'subscription.lapse.lockedSubtitle' : 'subscription.lapse.subtitle')}
             </p>
+            {!locked && clients.length > 0 && (
+              <p className="flex w-fit items-center gap-2 rounded-lg bg-sunken px-3 py-2 text-body text-muted-foreground">
+                <Info className="size-4 shrink-0" aria-hidden="true" />
+                {t('subscription.lapse.preselectedHint', { count: required })}
+              </p>
+            )}
           </div>
 
           {clients.length === 0 ? (

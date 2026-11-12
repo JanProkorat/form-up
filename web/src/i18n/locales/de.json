@@ -367,6 +367,8 @@
       },
       "selected": "{{count}} von {{cap}} ausgewählt",
       "changeLater": "Sie können Ihre Auswahl hier später ändern.",
+      "preselectedHint_one": "Wir haben den {{count}} Klienten vorausgewählt, mit dem Sie am längsten zusammenarbeiten. Sie können die Auswahl ändern.",
+      "preselectedHint_other": "Wir haben die {{count}} Klienten vorausgewählt, mit denen Sie am längsten zusammenarbeiten. Sie können die Auswahl ändern.",
       "save_one": "Diesen Klienten behalten",
       "save_other": "Diese {{count}} behalten",
       "saveSuccess": "Ihre Auswahl ist gespeichert",
@@ -391,7 +393,11 @@
       "body": "Die Pläne von Klienten außerhalb Ihres Tarifs laufen bis zur letzten veröffentlichten Woche weiter und sind danach nur noch lesbar.",
       "upgrade": "Höherer Tarif",
       "showClients": "Diese Klienten anzeigen",
-      "pickClient": "Klienten für den freien Platz wählen"
+      "pickClient": "Klienten für den freien Platz wählen",
+      "pendingTitle_one": "Ihr Tarif {{plan}} umfasst {{count}} Klienten. Sie haben noch nicht bestätigt, welche.",
+      "pendingTitle_other": "Ihr Tarif {{plan}} umfasst {{count}} Klienten. Sie haben noch nicht bestätigt, welche.",
+      "pendingBody": "Bis dahin behalten Sie die Klienten, mit denen Sie am längsten zusammenarbeiten. Die anderen behalten ihre veröffentlichten Wochen, danach sind sie nur lesbar.",
+      "chooseClients": "Klienten auswählen"
     },
     "plan": {
       "title": "Tarif und Abrechnung",
@@ -754,6 +760,8 @@
     },
     "outsidePlan": {
       "chip": "Außerhalb des Tarifs",
+      "readOnlyFrom": "Nur lesbar ab {{date}}",
+      "readOnlyTooltip": "Außerhalb Ihres Tarifs. Veröffentlichte Wochen laufen bis {{date}}, danach sind die Pläne nur lesbar.",
       "tooltip": "Die Pläne dieses Klienten laufen bis zur letzten veröffentlichten Woche weiter und sind danach nur noch lesbar."
     },
     "tagFilter": {

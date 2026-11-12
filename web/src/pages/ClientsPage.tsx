@@ -188,7 +188,8 @@ export default function ClientsPage() {
     filters.tab === 'All' && (pendingQuery.isPending || pendingQuery.isError || (pendingQuery.data ?? []).length > 0);
   const tabCounts = clientsQuery.data?.tabCounts;
   const subscription = useSubscription();
-  const showOutsidePlanBanner = subscription.isCoach && subscription.overCapClientCount > 0;
+  const choicePending = subscription.isCoach && subscription.keepClientsChoiceRequired;
+  const showOutsidePlanBanner = subscription.isCoach && (choicePending || subscription.overCapClientCount > 0);
   const hasPlanFilter = filters.plan !== null;
   const hasActiveFilter = filters.search !== '' || hasPlanFilter || filters.tagIds.length > 0;
   const isOutsidePlanTab = filters.tab === 'OutsidePlan';
@@ -219,6 +220,7 @@ export default function ClientsPage() {
           clientLimit={subscription.clientLimit}
           overCapClientCount={subscription.overCapClientCount}
           freeSlotCount={subscription.freeSlotCount}
+          choicePending={choicePending}
           onShowClients={isOutsidePlanTab ? undefined : () => setTab('OutsidePlan')}
         />
       )}

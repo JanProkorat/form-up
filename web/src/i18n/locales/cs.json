@@ -387,6 +387,10 @@
       },
       "selected": "{{count}} z {{cap}} vybráno",
       "changeLater": "Svůj výběr tu můžete později změnit.",
+      "preselectedHint_one": "Předvybrali jsme {{count}} klienta, se kterým spolupracujete nejdéle. Výběr můžete změnit.",
+      "preselectedHint_few": "Předvybrali jsme {{count}} klienty, se kterými spolupracujete nejdéle. Výběr můžete změnit.",
+      "preselectedHint_many": "Předvybrali jsme {{count}} klienta, se kterými spolupracujete nejdéle. Výběr můžete změnit.",
+      "preselectedHint_other": "Předvybrali jsme {{count}} klientů, se kterými spolupracujete nejdéle. Výběr můžete změnit.",
       "save_one": "Ponechat tohoto klienta",
       "save_few": "Ponechat tyto {{count}}",
       "save_many": "Ponechat těchto {{count}}",
@@ -419,7 +423,13 @@
       "body": "Plány klientů mimo tarif doběhnou do posledního zveřejněného týdne, pak budou jen ke čtení.",
       "upgrade": "Vyšší tarif",
       "showClients": "Zobrazit tyto klienty",
-      "pickClient": "Vybrat klienta na volné místo"
+      "pickClient": "Vybrat klienta na volné místo",
+      "pendingTitle_one": "Tarif {{plan}} zahrnuje {{count}} klienta. Zatím jste nepotvrdili, kterého.",
+      "pendingTitle_few": "Tarif {{plan}} zahrnuje {{count}} klienty. Zatím jste nepotvrdili, které.",
+      "pendingTitle_many": "Tarif {{plan}} zahrnuje {{count}} klienta. Zatím jste nepotvrdili, které.",
+      "pendingTitle_other": "Tarif {{plan}} zahrnuje {{count}} klientů. Zatím jste nepotvrdili, které.",
+      "pendingBody": "Do té doby vám zůstávají klienti, se kterými spolupracujete nejdéle. Ostatním zůstanou zveřejněné týdny, pak budou jen ke čtení.",
+      "chooseClients": "Vybrat klienty"
     },
     "plan": {
       "title": "Tarif a platby",
@@ -802,6 +812,8 @@
     },
     "outsidePlan": {
       "chip": "Mimo tarif",
+      "readOnlyFrom": "Jen ke čtení od {{date}}",
+      "readOnlyTooltip": "Mimo tarif. Zveřejněné týdny běží do {{date}}, pak budou plány jen ke čtení.",
       "tooltip": "Plány tohoto klienta doběhnou do posledního zveřejněného týdne, pak budou jen ke čtení."
     },
     "tagFilter": {
