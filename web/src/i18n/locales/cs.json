@@ -6843,6 +6843,7 @@
       "noEnd": "Bez konce"
     },
     "profile": {
+      "back": "Zpět na trenéry",
       "joined": "Registrace {{date}}",
       "freeNote": "Na plánu Zdarma. Nic se neúčtuje.",
       "actionsHint": "Každá akce vás požádá o potvrzení a důvod. Obojí se zapíše do historie.",

@@ -6596,6 +6596,7 @@
       "noEnd": "No end"
     },
     "profile": {
+      "back": "Back to coaches",
       "joined": "Joined {{date}}",
       "freeNote": "On the Free plan. Nothing is billed.",
       "actionsHint": "Each action asks you to confirm it and give a reason. Both go into the history.",
