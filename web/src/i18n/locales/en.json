@@ -296,8 +296,15 @@
     "planChoice": {
       "bannerTitle": "Your free {{plan}} plan ended on {{date}}. Choose a plan to continue.",
       "bannerTitleNoDate": "Your free {{plan}} plan has ended. Choose a plan to continue.",
-      "title": "Choose your plan",
-      "subtitle": "Your clients always use the app for free.",
+      "title": "Your plan changed",
+      "decision": {
+        "lapse_one": "Your {{plan}} plan ended, so you're on Free now. Free allows {{count}} client and you have {{have}}. Keep Free and pick the {{count}} to keep, or choose another plan.",
+        "lapse_other": "Your {{plan}} plan ended, so you're on Free now. Free allows {{count}} clients and you have {{have}}. Keep Free and pick the {{count}} to keep, or choose another plan.",
+        "free_one": "You're on Free, which allows {{count}} client, and you have {{have}}. Keep Free and pick the {{count}} to keep, or choose another plan.",
+        "free_other": "You're on Free, which allows {{count}} clients, and you have {{have}}. Keep Free and pick the {{count}} to keep, or choose another plan.",
+        "smaller_one": "Your plan changed to {{plan}}. {{plan}} allows {{count}} client and you have {{have}}. Keep {{plan}} and pick the {{count}} to keep, or choose another plan.",
+        "smaller_other": "Your plan changed to {{plan}}. {{plan}} allows {{count}} clients and you have {{have}}. Keep {{plan}} and pick the {{count}} to keep, or choose another plan."
+      },
       "loadError": "Could not load the plans. Please try again.",
       "chooseError": "Could not switch your plan. Please try again.",
       "header": {
@@ -306,8 +313,12 @@
         "settings": "Settings"
       },
       "card": {
-        "choose": "Choose {{plan}}",
-        "soon": "Available soon",
+        "current": "Your plan now",
+        "upgrade": "Upgrade to {{plan}}",
+        "switchFree": "Switch to Free",
+        "keepAll": "Keep {{plan}}",
+        "keep_one": "Keep {{plan}}, pick {{count}} client",
+        "keep_other": "Keep {{plan}}, pick {{count}} clients",
         "per": {
           "month": "/ month",
           "year": "/ year"
@@ -322,7 +333,9 @@
       "keep": {
         "back": "Back to plans",
         "confirm_one": "Switch to Free and keep this client",
-        "confirm_other": "Switch to Free and keep these {{count}}"
+        "confirm_other": "Switch to Free and keep these {{count}}",
+        "save_one": "Keep {{plan}} and this client",
+        "save_other": "Keep {{plan}} and these {{count}}"
       }
     },
     "lapse": {

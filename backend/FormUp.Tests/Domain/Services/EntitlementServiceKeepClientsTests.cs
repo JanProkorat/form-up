@@ -41,6 +41,14 @@ public class EntitlementServiceKeepClientsTests
         GivenFreeAt = givenFreeAt,
     };
 
+    private static CoachSubscription PaidSubscription(int? maxActiveClients, SubscriptionStatus status = SubscriptionStatus.Active)
+    {
+        var subscription = Subscription(status);
+        subscription.SubscriptionPlan.MaxActiveClients = maxActiveClients;
+
+        return subscription;
+    }
+
     private static SubscriptionPlan FreePlan(int? maxActiveClients) => new()
     {
         Id = 1,
@@ -147,6 +155,59 @@ public class EntitlementServiceKeepClientsTests
 
         state.IsLapsed.Should().BeFalse();
         state.OverCapClientProfileIds.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(SubscriptionStatus.Active)]
+    [InlineData(SubscriptionStatus.Trialing)]
+    [InlineData(SubscriptionStatus.PastDue)]
+    public async Task GetKeepClientsState_SmallerPaidPlan_SplitsAgainstThePlansOwnCapAndIsNotALapse(SubscriptionStatus status)
+    {
+        var service = CreateService(PaidSubscription(maxActiveClients: 2, status), freeCap: 1);
+
+        var state = await service.GetKeepClientsStateAsync(CoachProfileId, TestContext.Current.CancellationToken);
+
+        state.IsLapsed.Should().BeFalse();
+        state.Cap.Should().Be(2, "the cap is the paid plan's limit, not Free's");
+        state.KeptClientProfileIds.Should().BeEquivalentTo([1L, 2L]);
+        state.OverCapClientProfileIds.Should().Equal(3L);
+        state.CanChooseKeptClients.Should().BeTrue();
+        state.IsChoicePending.Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData(3)]
+    [InlineData(10)]
+    [InlineData(null)]
+    public async Task GetKeepClientsState_PaidPlanWithinItsLimitOrUnlimited_NobodyIsOverCap(int? maxActiveClients)
+    {
+        var service = CreateService(PaidSubscription(maxActiveClients), freeCap: 1);
+
+        var state = await service.GetKeepClientsStateAsync(CoachProfileId, TestContext.Current.CancellationToken);
+
+        state.OverCapClientProfileIds.Should().BeEmpty();
+        state.CanChooseKeptClients.Should().BeFalse();
+        state.IsChoicePending.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GetKeepClientsState_SmallerPaidPlanAfterTheChoice_KeepsTheOverCapListButTheChoiceIsNoLongerPending()
+    {
+        var service = CreateService(PaidSubscription(maxActiveClients: 2), firstClientState: ConnectionState.FreePlanReleased);
+
+        var state = await service.GetKeepClientsStateAsync(CoachProfileId, TestContext.Current.CancellationToken);
+
+        state.OverCapClientProfileIds.Should().Equal(1L);
+        state.IsChoicePending.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task IsClientOverCap_SmallerPaidPlan_IsTrueForTheOverCapClient()
+    {
+        var service = CreateService(PaidSubscription(maxActiveClients: 2));
+
+        (await service.IsClientOverCapAsync(_coachUserId, ClientUserId(3), TestContext.Current.CancellationToken))
+            .Should().BeTrue();
     }
 
     [Fact]

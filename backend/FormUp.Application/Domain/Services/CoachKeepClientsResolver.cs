@@ -52,11 +52,14 @@ public static class CoachKeepClientsResolver
 
         var keptIds = kept.Concat(fill).Select(client => client.Id).ToHashSet();
 
+        var overCap = clients.Where(client => !keptIds.Contains(client.Id)).ToList();
+
         return new KeepClientsState(
             true,
             cap,
             keptIds.OrderBy(id => id).ToList(),
-            clients.Where(client => !keptIds.Contains(client.Id)).Select(client => client.Id).OrderBy(id => id).ToList());
+            overCap.Select(client => client.Id).OrderBy(id => id).ToList(),
+            IsChoicePending: overCap.Any(client => client.HasConnected));
     }
 
     private static (DateTime When, long LinkId) RankKey(List<KeepLinkRow> links) =>

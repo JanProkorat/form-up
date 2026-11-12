@@ -24377,7 +24377,10 @@ the ended plan. Never true together with IsLapsed. */
     endedPlanNameEn?: string | undefined;
     /** German name of the ended given plan; null unless PlanChoiceRequired. */
     endedPlanNameDe?: string | undefined;
-    /** Live clients above the Free plan's cap; zero unless IsLapsed or the coach is on an explicit Free plan with clients over the cap. */
+    /** True while the coach has live clients over the cap of the plan in force and at least one of them has no kept or
+released decision yet. Never true together with PlanChoiceRequired. */
+    keepClientsChoiceRequired?: boolean;
+    /** Live clients above the cap of the plan in force; zero unless IsLapsed or the coach has more live clients than the plan's limit. */
     overCapClientCount?: number;
     /** Distinct active clients across all the coach's roles; the kept clients while lapsed. */
     activeClientCount?: number;

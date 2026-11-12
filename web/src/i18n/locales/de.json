@@ -296,8 +296,15 @@
     "planChoice": {
       "bannerTitle": "Ihr kostenloser Tarif {{plan}} endete am {{date}}. Wählen Sie einen Tarif, um fortzufahren.",
       "bannerTitleNoDate": "Ihr kostenloser Tarif {{plan}} ist beendet. Wählen Sie einen Tarif, um fortzufahren.",
-      "title": "Wählen Sie Ihren Tarif",
-      "subtitle": "Ihre Klienten nutzen die App immer kostenlos.",
+      "title": "Ihr Tarif hat sich geändert",
+      "decision": {
+        "lapse_one": "Ihr Tarif {{plan}} ist beendet, daher sind Sie jetzt auf Free. Free erlaubt {{count}} Klienten und Sie haben {{have}}. Behalten Sie Free und wählen Sie die {{count}} aus, die Sie behalten möchten, oder wählen Sie einen anderen Tarif.",
+        "lapse_other": "Ihr Tarif {{plan}} ist beendet, daher sind Sie jetzt auf Free. Free erlaubt {{count}} Klienten und Sie haben {{have}}. Behalten Sie Free und wählen Sie die {{count}} aus, die Sie behalten möchten, oder wählen Sie einen anderen Tarif.",
+        "free_one": "Sie sind auf Free, das {{count}} Klienten erlaubt, und Sie haben {{have}}. Behalten Sie Free und wählen Sie die {{count}} aus, die Sie behalten möchten, oder wählen Sie einen anderen Tarif.",
+        "free_other": "Sie sind auf Free, das {{count}} Klienten erlaubt, und Sie haben {{have}}. Behalten Sie Free und wählen Sie die {{count}} aus, die Sie behalten möchten, oder wählen Sie einen anderen Tarif.",
+        "smaller_one": "Ihr Tarif hat sich auf {{plan}} geändert. {{plan}} erlaubt {{count}} Klienten und Sie haben {{have}}. Behalten Sie {{plan}} und wählen Sie die {{count}} aus, die Sie behalten möchten, oder wählen Sie einen anderen Tarif.",
+        "smaller_other": "Ihr Tarif hat sich auf {{plan}} geändert. {{plan}} erlaubt {{count}} Klienten und Sie haben {{have}}. Behalten Sie {{plan}} und wählen Sie die {{count}} aus, die Sie behalten möchten, oder wählen Sie einen anderen Tarif."
+      },
       "loadError": "Die Tarife konnten nicht geladen werden. Bitte versuchen Sie es erneut.",
       "chooseError": "Der Tarif konnte nicht gewechselt werden. Bitte versuchen Sie es erneut.",
       "header": {
@@ -306,8 +313,12 @@
         "settings": "Einstellungen"
       },
       "card": {
-        "choose": "{{plan}} wählen",
-        "soon": "Bald verfügbar",
+        "current": "Ihr Tarif jetzt",
+        "upgrade": "Auf {{plan}} upgraden",
+        "switchFree": "Zu Free wechseln",
+        "keepAll": "{{plan}} behalten",
+        "keep_one": "{{plan}} behalten, {{count}} Klienten wählen",
+        "keep_other": "{{plan}} behalten, {{count}} Klienten wählen",
         "per": {
           "month": "/ Monat",
           "year": "/ Jahr"
@@ -322,7 +333,9 @@
       "keep": {
         "back": "Zurück zu den Tarifen",
         "confirm_one": "Zu Free wechseln und diesen Klienten behalten",
-        "confirm_other": "Zu Free wechseln und diese {{count}} behalten"
+        "confirm_other": "Zu Free wechseln und diese {{count}} behalten",
+        "save_one": "{{plan}} und diesen Klienten behalten",
+        "save_other": "{{plan}} und diese {{count}} behalten"
       }
     },
     "lapse": {
