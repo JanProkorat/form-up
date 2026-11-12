@@ -8,17 +8,18 @@ import { coachPlanName, formatCoachDate, formatCoachMoney } from '@/components/a
 /** The bar turns amber from this share of the cap, and red when the coach is over it. */
 const BAR_WARN_PERCENT = 80;
 
+/** One compact stat of the row: small uppercase label, value, then a bar or a note. Divided from its neighbour by a line. */
 function Tile({ label, value, children }: { label: string; value: string; children?: ReactNode }) {
   return (
-    <div className="flex min-w-0 flex-col gap-2 rounded-xl bg-sunken px-4 py-3.5">
-      <span className="text-meta font-semibold text-muted-foreground">{label}</span>
-      <span className="font-display text-card-title font-semibold text-ink">{value}</span>
+    <div className="flex min-w-0 flex-col gap-0.75 px-4 sm:border-l sm:border-line sm:first:border-l-0">
+      <span className="text-caption font-semibold tracking-wide text-muted-foreground uppercase">{label}</span>
+      <span className="font-display text-subhead font-semibold whitespace-nowrap text-ink">{value}</span>
       {children}
     </div>
   );
 }
 
-/** Plan card of the coach profile: plan, status, price, a status note and three tiles (clients, next payment, promotion). */
+/** Plan card of the coach profile: plan, status, price, a status note and one compact stats row (clients, next payment, promotion). */
 export default function CoachPlanCard({ coach }: { coach: GetAdminCoachResponse }) {
   const { t, i18n } = useTranslation();
   const used = coach.clientsUsed ?? 0;
@@ -74,10 +75,10 @@ export default function CoachPlanCard({ coach }: { coach: GetAdminCoachResponse 
   return (
     <section
       aria-labelledby="coach-plan-heading"
-      className="flex flex-col gap-4.5 rounded-2xl border border-line bg-card px-6 py-5.5 shadow-panel"
+      className="flex flex-col gap-2.5 rounded-2xl border border-line bg-card px-5 py-4 shadow-panel"
     >
       <div className="flex flex-wrap items-center gap-3">
-        <h2 id="coach-plan-heading" className="font-display text-stat leading-tight font-semibold text-ink">
+        <h2 id="coach-plan-heading" className="font-display text-card-title leading-tight font-semibold text-ink">
           {coachPlanName(coach.plan, i18n.language)}
         </h2>
         <CoachStatusBadge status={coach.status} endsAt={coach.currentPeriodEndsAt} />
@@ -85,12 +86,12 @@ export default function CoachPlanCard({ coach }: { coach: GetAdminCoachResponse 
       </div>
 
       <p
-        className={`text-copy ${coach.failureDetail ? 'rounded-lg bg-error-soft px-3 py-2 text-error' : 'text-muted-foreground'}`}
+        className={`text-body ${coach.failureDetail ? 'rounded-lg bg-error-soft px-3 py-2 text-error' : 'text-muted-foreground'}`}
       >
         {note}
       </p>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="-mx-4 grid grid-cols-1 gap-3 border-t border-line pt-2.5 sm:grid-cols-3 sm:gap-0">
         <Tile
           label={t('adminCoaches.drawer.clients')}
           value={
@@ -106,7 +107,7 @@ export default function CoachPlanCard({ coach }: { coach: GetAdminCoachResponse 
               aria-valuemin={0}
               aria-valuemax={max}
               aria-valuenow={Math.min(used, max)}
-              className="h-1.5 overflow-hidden rounded-full bg-line"
+              className="mt-0.5 h-1 overflow-hidden rounded-full bg-line"
             >
               {/* The fill width is a runtime percentage and cannot be a static class. */}
               <div className={`h-full rounded-full ${barClass}`} style={{ width: `${percent}%` }} />

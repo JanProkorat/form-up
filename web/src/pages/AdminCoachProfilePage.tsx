@@ -110,7 +110,8 @@ export default function AdminCoachProfilePage() {
               <CoachPlanCard coach={coach} />
               <CoachActions coach={coach} coachId={coachId} plans={plans} onGone={() => navigate(COACHES_PATH)} />
             </div>
-            <div className="flex min-w-0 flex-col gap-5">
+            {/* On lg the History column stays within the window (below the header) and scrolls inside its card. */}
+            <div className="flex min-w-0 flex-col gap-5 lg:sticky lg:top-0 lg:max-h-[calc(100dvh-9.5rem)]">
               <CoachHistory entries={coach.history ?? []} plans={plans} />
             </div>
           </div>

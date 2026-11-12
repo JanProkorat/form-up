@@ -4,6 +4,7 @@ import { AdminCoachHistoryKind, type AdminCoachHistoryEntryDto } from '@/api/adm
 import type { SubscriptionPlanDto } from '@/api/admin-subscription-plans';
 import { planName } from '@/components/admin-plans/planForm';
 import { formatCoachDate } from '@/components/admin-coaches/coachFormat';
+import { useScrollEdgeFade } from '@/hooks/useScrollEdgeFade';
 
 const HISTORY_KEY: Record<AdminCoachHistoryKind, string> = {
   [AdminCoachHistoryKind.Joined]: 'joined',
@@ -31,6 +32,7 @@ interface Props {
 /** The coach's history timeline plus the note that client data stays hidden from admins. */
 export default function CoachHistory({ entries, plans }: Props) {
   const { t, i18n } = useTranslation();
+  const fadeRef = useScrollEdgeFade<HTMLOListElement>();
 
   const planLabel = (code: string | undefined): string => {
     const plan = plans.find((candidate) => candidate.code === code);
@@ -39,15 +41,21 @@ export default function CoachHistory({ entries, plans }: Props) {
 
   return (
     <>
+      {/* A long history scrolls inside the card; the page keeps its height (the column caps it on lg). */}
       <section
         aria-labelledby="coach-history-heading"
-        className="flex flex-col gap-4 rounded-2xl border border-line bg-card px-6 py-5.5 shadow-panel"
+        className="flex min-h-0 flex-col gap-4 rounded-2xl border border-line bg-card px-6 pt-5.5 pb-2 shadow-panel"
       >
-        <h2 id="coach-history-heading" className="text-subhead font-semibold text-ink">
+        <h2 id="coach-history-heading" className="shrink-0 text-subhead font-semibold text-ink">
           {t('adminCoaches.history.title')}
         </h2>
-        {entries.length === 0 && <p className="text-body text-muted-foreground">{t('adminCoaches.history.empty')}</p>}
-        <ol className="flex flex-col gap-3.5">
+        {entries.length === 0 && <p className="pb-3.5 text-body text-muted-foreground">{t('adminCoaches.history.empty')}</p>}
+        <ol
+          ref={fadeRef}
+          tabIndex={0}
+          aria-labelledby="coach-history-heading"
+          className="scroll-edge-fade scrollbar-hidden -mr-2 flex min-h-0 flex-col gap-3.5 overflow-y-auto pr-2 pb-3.5 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+        >
           {entries.map((entry, index) => {
             const kind = entry.kind ? HISTORY_KEY[entry.kind] : undefined;
             const who = entry.byCoach
