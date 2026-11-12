@@ -390,6 +390,7 @@
       "detailTitle": "{{name}} is outside your {{plan}} plan.",
       "body": "Plans of clients outside your plan run until the last published week, then become read-only.",
       "upgrade": "Higher plan",
+      "showClients": "Show these clients",
       "pickClient": "Choose a client for the free slot"
     },
     "plan": {
@@ -734,15 +735,16 @@
       "all": "All",
       "active": "Active",
       "paused": "No plan",
-      "outsidePlan": "Outside plan",
       "archived": "Archived",
       "pending": "Pending"
     },
     "searchPlaceholder": "Search clients...",
-    "chips": {
-      "groupLabel": "Filter clients",
-      "all": "All",
-      "endingSoon": "Ending soon"
+    "filterMenu": {
+      "label": "Filter",
+      "endingSoon": "Plans ending soon",
+      "outsidePlan": "Outside plan",
+      "clearAll": "Clear filters",
+      "remove": "Remove filter {{name}}"
     },
     "outsidePlan": {
       "chip": "Outside plan",

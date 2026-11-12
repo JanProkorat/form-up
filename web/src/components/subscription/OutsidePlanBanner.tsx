@@ -11,10 +11,12 @@ interface Props {
   clientLimit: number | null;
   overCapClientCount: number;
   freeSlotCount: number;
+  /** Set on the clients list: adds a button that filters the list to the clients outside the plan. */
+  onShowClients?: () => void;
 }
 
 /** Notice for a coach with clients outside the plan: what happens to them, and the way to a higher plan. */
-export default function OutsidePlanBanner({ clientName, planName, clientLimit, overCapClientCount, freeSlotCount }: Props) {
+export default function OutsidePlanBanner({ clientName, planName, clientLimit, overCapClientCount, freeSlotCount, onShowClients }: Props) {
   const { t } = useTranslation();
 
   const title = clientName
@@ -32,6 +34,11 @@ export default function OutsidePlanBanner({ clientName, planName, clientLimit, o
         <span className="text-body text-ink-2">{t('subscription.outsidePlan.body')}</span>
       </div>
       <div className="ml-auto flex flex-wrap items-center gap-2">
+        {onShowClients && (
+          <Button type="button" variant="outline" size="lg" className="px-3.5 font-semibold" onClick={onShowClients}>
+            {t('subscription.outsidePlan.showClients')}
+          </Button>
+        )}
         {freeSlotCount > 0 && (
           <Button asChild variant="outline" size="lg" className="px-3.5 font-semibold">
             <Link to={KEEP_CLIENTS_PATH}>{t('subscription.outsidePlan.pickClient')}</Link>

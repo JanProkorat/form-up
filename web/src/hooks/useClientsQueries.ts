@@ -1,5 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ClientListStatus } from '@/api/generated';
+import { ClientListFilter, ClientListStatus } from '@/api/generated';
 import { getClients, getPendingClients, type GetClientsResult } from '@/api/clients';
 import {
   getClientTags,
@@ -36,17 +36,17 @@ import type { ClientListFilters, ClientListTab } from '@/hooks/useClientListPara
  * Maps the page's tab — including the virtual `Pending` tab, which has no
  * corresponding `ClientListStatus` member — to the status the list endpoint
  * accepts. `Pending` maps to `Active` because **`tabCounts`** is computed with
- * `search` and `tagIds` applied but never the tab or the chip (see the
+ * `search` and `tagIds` applied but never the tab or the filter flags (see the
  * `ClientTabCounts` doc comment in generated.ts), so it is identical whatever
  * `status` is sent — which is what the Pending tab needs, since its own badge
  * lives on this response while its rows come from `usePendingClients()`.
  * Note the badges therefore DO move with search and tags; it is only the tab
- * and chip they ignore.
+ * and the flags they ignore.
  *
  * `filterCounts` is **not** status-independent — it is scoped to the current
  * tab (see the `ClientFilterCounts` doc comment in generated.ts). That is
- * harmless only because the chips are hidden on the Pending tab, so the
- * Active-scoped counts are never rendered there. Show the chips on Pending
+ * harmless only because the Filter menu is hidden on the Pending tab, so the
+ * Active-scoped counts are never rendered there. Show the menu on Pending
  * and this mapping starts lying.
  *
  * `All` sends no status: the endpoint then returns Active and Paused clients
@@ -60,9 +60,6 @@ function tabToStatus(tab: ClientListTab): ClientListStatus | undefined {
       return ClientListStatus.Paused;
     case 'Archived':
       return ClientListStatus.Archived;
-    case 'OutsidePlan':
-      // outsidePlan=true must not be combined with a status (Archived is a 400).
-      return undefined;
     case 'Active':
     case 'Pending':
     default:
@@ -74,7 +71,7 @@ function tabToStatus(tab: ClientListTab): ClientListStatus | undefined {
  * The trainer's clients list, filtered/paginated per `filters`.
  *
  * Deliberately kept **enabled on all four tabs**, including Pending: the
- * counts each tab/chip badge shows live only on this response (there is no
+ * counts each tab badge and each Filter-menu count shows live only on this response (there is no
  * separate "counts" endpoint), so disabling this query while Pending is
  * active would blank every tab's badge count instead of just skipping the
  * Pending tab's own (nonexistent) rows. Do not "optimise" this away.
@@ -94,7 +91,8 @@ export function useClients(filters: ClientListFilters) {
       {
         tab: filters.tab,
         search: filters.search,
-        chip: filters.chip,
+        endingSoon: filters.endingSoon,
+        outsidePlan: filters.outsidePlan,
         tagIdsKey,
         page: filters.page,
         pageSize: filters.pageSize,
@@ -107,8 +105,8 @@ export function useClients(filters: ClientListFilters) {
         tagIds: filters.tagIds,
         search: filters.search || undefined,
         status: tabToStatus(filters.tab),
-        filter: filters.chip,
-        outsidePlan: filters.tab === 'OutsidePlan' ? true : undefined,
+        filter: filters.endingSoon ? ClientListFilter.EndingSoon : undefined,
+        outsidePlan: filters.outsidePlan ? true : undefined,
       }),
     placeholderData: keepPreviousData,
   });

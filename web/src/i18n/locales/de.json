@@ -390,6 +390,7 @@
       "detailTitle": "{{name}} liegt außerhalb Ihres Tarifs {{plan}}.",
       "body": "Die Pläne von Klienten außerhalb Ihres Tarifs laufen bis zur letzten veröffentlichten Woche weiter und sind danach nur noch lesbar.",
       "upgrade": "Höherer Tarif",
+      "showClients": "Diese Klienten anzeigen",
       "pickClient": "Klienten für den freien Platz wählen"
     },
     "plan": {
@@ -734,15 +735,16 @@
       "all": "Alle",
       "active": "Aktiv",
       "paused": "Ohne Plan",
-      "outsidePlan": "Außerhalb des Tarifs",
       "archived": "Archiviert",
       "pending": "Ausstehend"
     },
     "searchPlaceholder": "Klienten suchen...",
-    "chips": {
-      "groupLabel": "Klienten filtern",
-      "all": "Alle",
-      "endingSoon": "Endet bald"
+    "filterMenu": {
+      "label": "Filter",
+      "endingSoon": "Pläne enden bald",
+      "outsidePlan": "Außerhalb des Tarifs",
+      "clearAll": "Filter zurücksetzen",
+      "remove": "Filter {{name}} entfernen"
     },
     "outsidePlan": {
       "chip": "Außerhalb des Tarifs",

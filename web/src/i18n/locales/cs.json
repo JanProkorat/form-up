@@ -418,6 +418,7 @@
       "detailTitle": "{{name}} je mimo váš tarif {{plan}}.",
       "body": "Plány klientů mimo tarif doběhnou do posledního zveřejněného týdne, pak budou jen ke čtení.",
       "upgrade": "Vyšší tarif",
+      "showClients": "Zobrazit tyto klienty",
       "pickClient": "Vybrat klienta na volné místo"
     },
     "plan": {
@@ -782,15 +783,16 @@
       "all": "Vše",
       "active": "Aktivní",
       "paused": "Bez plánu",
-      "outsidePlan": "Mimo tarif",
       "archived": "Archivovaní",
       "pending": "Čekající"
     },
     "searchPlaceholder": "Hledat klienty...",
-    "chips": {
-      "groupLabel": "Filtrovat klienty",
-      "all": "Vše",
-      "endingSoon": "Brzy končící"
+    "filterMenu": {
+      "label": "Filtr",
+      "endingSoon": "Plány brzy končí",
+      "outsidePlan": "Mimo tarif",
+      "clearAll": "Zrušit filtry",
+      "remove": "Odebrat filtr {{name}}"
     },
     "outsidePlan": {
       "chip": "Mimo tarif",

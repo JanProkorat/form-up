@@ -1,5 +1,5 @@
 /**
- * #1066 — Clients list page regression smoke (tab switch, a filter chip, the
+ * #1066 — Clients list page regression smoke (tab switch, the Filter menu, the
  * invite flow). Path is deliberately under trainer/ — every project in
  * playwright.config.ts matches a role subfolder via testMatch, so a spec at
  * the e2e/ root is collected by no project and silently never runs (see
@@ -64,22 +64,34 @@ test.describe('clients list page', () => {
     await expect(page.getByText('Loading', { exact: false })).toHaveCount(0);
   });
 
-  test('selecting a filter chip updates the URL and marks the chip active', async ({ page }) => {
-    // The four chips of the old filter row are gone.
-    for (const removed of [/Unread messages/, /No messages/, /New check-ins/, /Missing check-ins/]) {
-      await expect(page.getByRole('button', { name: removed })).toHaveCount(0);
-    }
+  test('the Filter menu toggles Plans ending soon, which lands in the URL and as a removable chip', async ({ page }) => {
+    // The old chip row (All / Ending soon) is gone; the filter lives in one menu.
+    await expect(page.getByRole('button', { name: /Ending soon/ })).toHaveCount(0);
 
-    // "Ending soon" is one of the two chips left (All, Ending soon). A zero count
-    // disables the chip, which the fixture may produce.
-    const endingSoonChip = page.getByRole('button', { name: /Ending soon/ });
-    await expect(endingSoonChip).toBeVisible();
-    test.skip(await endingSoonChip.isDisabled(), 'No client is ending soon on this fixture, so the chip is disabled');
-    await endingSoonChip.click();
+    await page.getByRole('button', { name: /^Filter/ }).click();
+    // A zero count disables the row, which the fixture may produce.
+    const endingSoon = page.getByRole('menuitemcheckbox', { name: /Plans ending soon/ });
+    await expect(endingSoon).toBeVisible();
+    test.skip(
+      (await endingSoon.getAttribute('data-disabled')) !== null,
+      'No client is ending soon on this fixture, so the menu row is disabled',
+    );
+    await endingSoon.click();
     await page.waitForLoadState('networkidle');
 
-    await expect(page).toHaveURL(/chip=EndingSoon/);
-    await expect(endingSoonChip).toHaveAttribute('aria-pressed', 'true');
+    await expect(page).toHaveURL(/endingSoon=1/);
+    await expect(endingSoon).toHaveAttribute('aria-checked', 'true');
+
+    // The menu stays open; close it, then remove the flag through its chip.
+    await page.keyboard.press('Escape');
+    await page.getByRole('button', { name: 'Remove filter Plans ending soon' }).click();
+    await expect(page).not.toHaveURL(/endingSoon/);
+  });
+
+  test('a legacy ?tab=OutsidePlan or ?chip= URL falls back to the default tab', async ({ page }) => {
+    await page.goto('/clients?tab=OutsidePlan&chip=EndingSoon');
+    await expect(page.getByRole('tab', { name: /^All/ })).toHaveAttribute('data-state', 'active');
+    await expect(page.getByRole('button', { name: /Remove filter/ })).toHaveCount(0);
   });
 
   test('inviting a new client sends the invite and closes the drawer', async ({ page }) => {
@@ -337,14 +349,12 @@ test.describe('clients list page', () => {
     expect(pageTitleHeight).toBeGreaterThan(32);
     expect(pageTitleHeight).toBeLessThan(36);
 
-    const allChip = page.getByRole('button', { name: /\bAll$/ });
-    const countBadge = allChip.locator('span').first();
-    await expect(countBadge).toBeVisible();
-    const badgeBox = await countBadge.boundingBox();
-    // PageClientsC board: min-width 20px, height 20px.
-    expect(badgeBox?.height ?? 0).toBeGreaterThan(19);
-    expect(badgeBox?.height ?? 0).toBeLessThan(21);
-    expect(badgeBox?.width ?? 0).toBeGreaterThanOrEqual(badgeBox?.height ?? 0);
+    const filterButton = page.getByRole('button', { name: /^Filter/ });
+    await expect(filterButton).toBeVisible();
+    const filterHeight = (await filterButton.boundingBox())?.height ?? 0;
+    // PageClientsC board: 36px filter button.
+    expect(filterHeight).toBeGreaterThan(35);
+    expect(filterHeight).toBeLessThan(37);
   });
 
   /**
