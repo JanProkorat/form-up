@@ -149,6 +149,56 @@ public class GetMySubscriptionEndpointTests(FitnessApiFactory factory)
         block.PlanCode.Should().Be("studio");
         block.LapsedPlanNameEn.Should().BeNull();
         block.OverCapClientCount.Should().Be(0);
+        block.FreeSlotCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Get_RestrictedClientsAndAnEmptyKeptSlot_ReportsTheFreeSlot()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, "studio", SubscriptionStatus.Canceled);
+        var states = new[] { ConnectionState.FreePlanKept, ConnectionState.FreePlanReleased, ConnectionState.FreePlanReleased };
+        foreach (var state in states)
+        {
+            var client = await TestActors.Client(factory).CreateAsync(Ct);
+            await TestActors.Link(factory, coach, client).WithState(state).CreateAsync(Ct);
+        }
+
+        var block = await GetAsync(coach);
+
+        block.ClientLimit.Should().Be(2);
+        block.OverCapClientCount.Should().Be(2);
+        block.FreeSlotCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Get_RestrictedClientsAndEveryKeptSlotTaken_ReportsNoFreeSlot()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, "studio", SubscriptionStatus.Canceled);
+        foreach (var daysAgo in new[] { 30, 20, 10 })
+        {
+            var client = await TestActors.Client(factory).CreateAsync(Ct);
+            await TestActors.Link(factory, coach, client).WithActivatedAtUtc(DateTime.UtcNow.AddDays(-daysAgo)).CreateAsync(Ct);
+        }
+
+        var block = await GetAsync(coach);
+
+        block.OverCapClientCount.Should().Be(1);
+        block.FreeSlotCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Get_CoachOnAnUnlimitedPlanOrWithinTheCap_ReportsNoFreeSlot()
+    {
+        var unlimited = await TestActors.Trainer(factory).CreateAsync(Ct);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, unlimited, "studio");
+        var withinCap = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var client = await TestActors.Client(factory).CreateAsync(Ct);
+        await TestActors.Link(factory, withinCap, client).CreateAsync(Ct);
+
+        (await GetAsync(unlimited)).FreeSlotCount.Should().Be(0);
+        (await GetAsync(withinCap)).FreeSlotCount.Should().Be(0);
     }
 
     private async Task SetPeriodEndAsync(Actor coach, DateTimeOffset periodEnd)

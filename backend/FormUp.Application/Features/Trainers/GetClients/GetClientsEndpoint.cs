@@ -43,7 +43,9 @@ namespace FormUp.Application.Features.Trainers.GetClients;
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">Database context.</param>
 /// <param name="timeProvider">Clock abstraction — lets tests pin "now" deterministically.</param>
-public class GetClientsEndpoint(IMongoContext mongo, IApplicationDbContext db, TimeProvider timeProvider)
+/// <param name="entitlementService">Resolves which live clients are over the cap of the plan in force.</param>
+public class GetClientsEndpoint(
+    IMongoContext mongo, IApplicationDbContext db, TimeProvider timeProvider, EntitlementService entitlementService)
     : Endpoint<GetClientsRequest, GetClientsResponse>
 {
     /// <summary>
@@ -99,8 +101,13 @@ public class GetClientsEndpoint(IMongoContext mongo, IApplicationDbContext db, T
 
         var tagsByLinkId = await LoadTagsByLinkIdAsync(roster, professionalProfile.Id, ct);
 
+        // Same source as the CLIENT_OVER_PLAN_LIMIT gate, so the flag and the gate never disagree.
+        var overCapClientIds = (await entitlementService.GetKeepClientsStateAsync(professionalProfile.Id, ct))
+            .OverCapClientProfileIds
+            .ToHashSet();
+
         var classified = roster
-            .Select(row => Classify(row, nutritionByClient, trainingByClient, today))
+            .Select(row => Classify(row, nutritionByClient, trainingByClient, today, overCapClientIds))
             .ToList();
 
         var pendingCount = await CountPendingAsync(professionalProfile.Id, now, ct);
@@ -110,6 +117,7 @@ public class GetClientsEndpoint(IMongoContext mongo, IApplicationDbContext db, T
             Active = classified.Count(r => r.Status == ClientListStatus.Active),
             Paused = classified.Count(r => r.Status == ClientListStatus.Paused),
             Archived = classified.Count(r => r.Status == ClientListStatus.Archived),
+            OutsidePlan = classified.Count(r => r.IsOutsidePlan),
             Pending = pendingCount
         };
 
@@ -118,6 +126,11 @@ public class GetClientsEndpoint(IMongoContext mongo, IApplicationDbContext db, T
         var tabFiltered = req.Status is null
             ? classified.Where(r => r.Status != ClientListStatus.Archived).ToList()
             : classified.Where(r => r.Status == req.Status.Value).ToList();
+
+        if (req.OutsidePlan == true)
+        {
+            tabFiltered = tabFiltered.Where(r => r.IsOutsidePlan).ToList();
+        }
 
         var counts = ClientRosterFilterClassifier.ComputeCounts(
             tabFiltered,
@@ -200,6 +213,7 @@ public class GetClientsEndpoint(IMongoContext mongo, IApplicationDbContext db, T
             .Select(l => new RosterRow
             {
                 LinkId = l.Id,
+                ClientProfileId = l.ClientProfileId,
                 ClientPublicId = l.ClientProfile.PublicId,
                 ClientUserId = l.ClientProfile.User.Id,
                 Email = l.ClientProfile.User.Email!,
@@ -378,7 +392,8 @@ public class GetClientsEndpoint(IMongoContext mongo, IApplicationDbContext db, T
         RosterRow row,
         Dictionary<Guid, PlanWindowProjection> nutritionByClient,
         Dictionary<Guid, PlanWindowProjection> trainingByClient,
-        DateOnly today)
+        DateOnly today,
+        HashSet<long> overCapClientIds)
     {
         var activePlans = new List<ClientActivePlanDto>();
         var isEndingSoon = false;
@@ -427,7 +442,10 @@ public class GetClientsEndpoint(IMongoContext mongo, IApplicationDbContext db, T
             hasActiveNutritionPlan,
             hasActiveTrainingPlan);
 
-        return new ClassifiedRow(row, status, hasActiveNutritionPlan, hasActiveTrainingPlan, isEndingSoon, activePlans);
+        var isOutsidePlan = row.IsActive && overCapClientIds.Contains(row.ClientProfileId);
+
+        return new ClassifiedRow(
+            row, status, hasActiveNutritionPlan, hasActiveTrainingPlan, isEndingSoon, activePlans, isOutsidePlan);
     }
 
     /// <summary>
@@ -456,7 +474,8 @@ public class GetClientsEndpoint(IMongoContext mongo, IApplicationDbContext db, T
             UnreadMessageCount = r.Row.UnreadMessageCount,
             HasActiveNutritionPlan = r.HasActiveNutritionPlan,
             HasActiveTrainingPlan = r.HasActiveTrainingPlan,
-            ActivePlans = r.ActivePlans
+            ActivePlans = r.ActivePlans,
+            IsOutsidePlan = r.IsOutsidePlan
         };
 
     /// <summary>
@@ -466,6 +485,7 @@ public class GetClientsEndpoint(IMongoContext mongo, IApplicationDbContext db, T
     private sealed class RosterRow
     {
         public long LinkId { get; init; }
+        public long ClientProfileId { get; init; }
         public Guid ClientPublicId { get; init; }
         public Guid ClientUserId { get; init; }
         public string Email { get; init; } = string.Empty;
@@ -500,5 +520,6 @@ public class GetClientsEndpoint(IMongoContext mongo, IApplicationDbContext db, T
         bool HasActiveNutritionPlan,
         bool HasActiveTrainingPlan,
         bool IsEndingSoon,
-        List<ClientActivePlanDto> ActivePlans);
+        List<ClientActivePlanDto> ActivePlans,
+        bool IsOutsidePlan);
 }

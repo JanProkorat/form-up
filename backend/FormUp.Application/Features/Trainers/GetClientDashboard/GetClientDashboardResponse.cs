@@ -71,6 +71,12 @@ public class GetClientDashboardResponse
     public bool IsActive { get; set; }
 
     /// <summary>
+    /// True when the client is outside the plan in force (over its client cap): visible to the
+    /// coach but not workable. Same source as the CLIENT_OVER_PLAN_LIMIT gate.
+    /// </summary>
+    public bool IsOutsidePlan { get; set; }
+
+    /// <summary>
     /// Derived Active/Paused/Archived status — computed by
     /// <see cref="Domain.Services.ClientStatusClassifier.Classify"/>, the same derivation
     /// <c>GetClientsEndpoint</c> uses, so this value always agrees with the caller's clients-list

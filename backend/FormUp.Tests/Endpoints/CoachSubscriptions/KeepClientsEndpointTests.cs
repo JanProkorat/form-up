@@ -120,26 +120,139 @@ public class KeepClientsEndpointTests(FitnessApiFactory factory)
         overCap.AfterLapse.Should().Be(KeepClientAfterLapse.RunsUntilEndThenReadOnly);
     }
 
-    [Fact]
-    public async Task Put_ValidChoice_KeepsTheChosenAndReleasesTheRestAndCanBeChanged()
+    private async Task SetLinkStateAsync(Actor coach, Actor client, ConnectionState state)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var link = await db.ClientProfessionalLinks.SingleAsync(
+            l => l.ProfessionalProfileId == coach.ProfileId && l.ClientProfile.PublicId == client.PublicId, Ct);
+        link.ConnectionState = state;
+        await db.SaveChangesAsync(Ct);
+    }
+
+    /// <summary>
+    /// A coach whose choice [0, 1] is saved and whose first kept client then left: one kept client, one empty slot,
+    /// the third client released. Returns the coach and the clients in link order.
+    /// </summary>
+    private async Task<(Actor Coach, List<Actor> Clients)> CoachWithAnEmptyKeptSlotAsync()
     {
         var (coach, clients) = await LapsedCoachAsync();
 
+        (await PutAsync(coach, clients[0].PublicId, clients[1].PublicId)).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        await SetLinkStateAsync(coach, clients[0], ConnectionState.Ended);
+
+        return (coach, clients);
+    }
+
+    [Fact]
+    public async Task Put_FirstChoice_KeepsTheChosenAndReleasesTheRestAndLocksTheChoice()
+    {
+        var (coach, clients) = await LapsedCoachAsync();
+
+        var before = await GetAsync(coach);
+        before.IsChoiceLocked.Should().BeFalse();
+
         (await PutAsync(coach, clients[1].PublicId, clients[2].PublicId)).StatusCode.Should().Be(HttpStatusCode.NoContent);
 
-        var first = await LinkStatesAsync(coach);
-        first[clients[0].PublicId].Should().Be(ConnectionState.FreePlanReleased);
-        first[clients[1].PublicId].Should().Be(ConnectionState.FreePlanKept);
-        first[clients[2].PublicId].Should().Be(ConnectionState.FreePlanKept);
-        (await GetAsync(coach)).Clients.Where(client => client.IsKept).Select(client => client.ClientId).Should()
+        var states = await LinkStatesAsync(coach);
+        states[clients[0].PublicId].Should().Be(ConnectionState.FreePlanReleased);
+        states[clients[1].PublicId].Should().Be(ConnectionState.FreePlanKept);
+        states[clients[2].PublicId].Should().Be(ConnectionState.FreePlanKept);
+
+        var after = await GetAsync(coach);
+        after.Clients.Where(client => client.IsKept).Select(client => client.ClientId).Should()
             .BeEquivalentTo([clients[1].PublicId, clients[2].PublicId]);
+        after.IsChoiceLocked.Should().BeTrue();
+        after.FreeSlotCount.Should().Be(0);
+    }
 
-        (await PutAsync(coach, clients[0].PublicId, clients[2].PublicId)).StatusCode.Should().Be(HttpStatusCode.NoContent);
+    [Fact]
+    public async Task Put_SwappingAKeptClientAfterTheChoice_Returns409ChoiceLockedAndChangesNothing()
+    {
+        var (coach, clients) = await LapsedCoachAsync();
+        (await PutAsync(coach, clients[1].PublicId, clients[2].PublicId)).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        var saved = await LinkStatesAsync(coach);
 
-        var second = await LinkStatesAsync(coach);
-        second[clients[0].PublicId].Should().Be(ConnectionState.FreePlanKept);
-        second[clients[1].PublicId].Should().Be(ConnectionState.FreePlanReleased);
-        second[clients[2].PublicId].Should().Be(ConnectionState.FreePlanKept);
+        var response = await PutAsync(coach, clients[0].PublicId, clients[2].PublicId);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await response.Content.ReadAsStringAsync(Ct)).Should().Contain(ErrorCodes.KeepClientsChoiceLocked);
+        (await LinkStatesAsync(coach)).Should().BeEquivalentTo(saved);
+    }
+
+    [Fact]
+    public async Task Put_ResavingTheSameKeptSetAfterTheChoice_StaysValid()
+    {
+        var (coach, clients) = await LapsedCoachAsync();
+        (await PutAsync(coach, clients[1].PublicId, clients[2].PublicId)).StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        (await PutAsync(coach, clients[1].PublicId, clients[2].PublicId)).StatusCode.Should().Be(HttpStatusCode.NoContent);
+    }
+
+    [Fact]
+    public async Task Put_KeptClientLeft_FillingTheFreeSlotWithARestrictedClientKeepsItAndReleasesNoOneElse()
+    {
+        var (coach, clients) = await CoachWithAnEmptyKeptSlotAsync();
+
+        var get = await GetAsync(coach);
+        get.IsChoiceLocked.Should().BeTrue();
+        get.FreeSlotCount.Should().Be(1);
+
+        (await PutAsync(coach, clients[1].PublicId, clients[2].PublicId)).StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        var states = await LinkStatesAsync(coach);
+        states[clients[0].PublicId].Should().Be(ConnectionState.Ended);
+        states[clients[1].PublicId].Should().Be(ConnectionState.FreePlanKept);
+        states[clients[2].PublicId].Should().Be(ConnectionState.FreePlanKept);
+    }
+
+    [Fact]
+    public async Task Put_FreeSlotButTheRequestAlsoDropsAKeptClient_Returns409ChoiceLocked()
+    {
+        var (coach, clients) = await CoachWithAnEmptyKeptSlotAsync();
+        var another = await TestActors.Client(factory).CreateAsync(Ct);
+        await TestActors.Link(factory, coach, another).WithState(ConnectionState.FreePlanReleased).CreateAsync(Ct);
+
+        // Same count as the free slot allows, but client 1 (kept) is swapped for two restricted clients.
+        var response = await PutAsync(coach, clients[2].PublicId, another.PublicId);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await response.Content.ReadAsStringAsync(Ct)).Should().Contain(ErrorCodes.KeepClientsChoiceLocked);
+        (await LinkStatesAsync(coach))[clients[1].PublicId].Should().Be(ConnectionState.FreePlanKept);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(3)]
+    public async Task Put_LockedChoiceWithAFreeSlot_AddingFewerOrMoreThanTheFreeSlots_Returns400CountInvalid(int total)
+    {
+        var (coach, clients) = await CoachWithAnEmptyKeptSlotAsync();
+        var another = await TestActors.Client(factory).CreateAsync(Ct);
+        await TestActors.Link(factory, coach, another).WithState(ConnectionState.FreePlanReleased).CreateAsync(Ct);
+
+        var ids = new[] { clients[1].PublicId, clients[2].PublicId, another.PublicId }.Take(total).ToArray();
+
+        var response = await PutAsync(coach, ids);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await response.Content.ReadAsStringAsync(Ct)).Should().Contain(ErrorCodes.KeepClientsCountInvalid);
+    }
+
+    [Fact]
+    public async Task Put_LockedChoiceWithANewlyLinkedOverCapClient_ResavingTheKeptSetReleasesTheNewClient()
+    {
+        var (coach, clients) = await LapsedCoachAsync();
+        (await PutAsync(coach, clients[0].PublicId, clients[1].PublicId)).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        var newcomer = await TestActors.Client(factory).CreateAsync(Ct);
+        await TestActors.Link(factory, coach, newcomer).CreateAsync(Ct);
+
+        (await PutAsync(coach, clients[0].PublicId, clients[1].PublicId)).StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        var states = await LinkStatesAsync(coach);
+        states[newcomer.PublicId].Should().Be(ConnectionState.FreePlanReleased);
+        states[clients[0].PublicId].Should().Be(ConnectionState.FreePlanKept);
+        states[clients[1].PublicId].Should().Be(ConnectionState.FreePlanKept);
     }
 
     [Fact]

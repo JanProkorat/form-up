@@ -28,7 +28,8 @@ internal sealed class SetKeepClientsEndpoint(IApplicationDbContext db, Entitleme
         {
             s.Summary = "Choose the clients a lapsed plan keeps";
             s.Description = "Marks exactly min(cap, live clients) of the caller's live clients as kept and releases the rest. " +
-                            "Can be changed any time while the plan stays lapsed or the Free plan stays over its cap.";
+                            "The first choice after a plan change is free. After that the kept clients are locked: the request must " +
+                            "contain every currently kept client and may only add restricted clients to empty slots; a new plan change unlocks it.";
             s.Response(StatusCodes.Status204NoContent, "The choice was saved");
             s.Response<ProblemDetails>(StatusCodes.Status400BadRequest,
                 "Invalid body, a duplicate id, or the wrong number of clients (KEEP_CLIENTS_COUNT_INVALID)");
@@ -36,7 +37,9 @@ internal sealed class SetKeepClientsEndpoint(IApplicationDbContext db, Entitleme
             s.Response(StatusCodes.Status403Forbidden, "The caller is not a trainer or nutritionist, or the coach role was removed");
             s.Response(StatusCodes.Status404NotFound,
                 "The caller has no professional profile, or an id is not one of the caller's live clients");
-            s.Response(StatusCodes.Status409Conflict, "The paid plan has not lapsed and the Free plan is within its cap (SUBSCRIPTION_NOT_LAPSED)");
+            s.Response<ProblemDetails>(StatusCodes.Status409Conflict,
+                "The paid plan has not lapsed and the Free plan is within its cap (SUBSCRIPTION_NOT_LAPSED), " +
+                "or the choice is locked and the request drops a kept client or adds an unrestricted one (KEEP_CLIENTS_CHOICE_LOCKED)");
         });
     }
 
@@ -92,6 +95,31 @@ internal sealed class SetKeepClientsEndpoint(IApplicationDbContext db, Entitleme
         {
             await Send.NotFoundAsync(ct);
             return;
+        }
+
+        // Once a choice is saved the kept clients stay kept: the request may only add restricted clients.
+        var isChoiceLocked = links.Any(link =>
+            link.ConnectionState is ConnectionState.FreePlanKept or ConnectionState.FreePlanReleased);
+
+        if (isChoiceLocked)
+        {
+            var requestedProfileIds = links
+                .Where(link => keepIds.Contains(link.ClientProfile.PublicId))
+                .Select(link => link.ClientProfileId)
+                .ToHashSet();
+            var currentlyKept = state.KeptClientProfileIds.ToHashSet();
+            var overCap = state.OverCapClientProfileIds.ToHashSet();
+
+            if (!currentlyKept.IsSubsetOf(requestedProfileIds)
+                || !requestedProfileIds.Except(currentlyKept).All(overCap.Contains))
+            {
+                await this.SendProblemAsync(
+                    StatusCodes.Status409Conflict,
+                    ErrorCodes.KeepClientsChoiceLocked,
+                    "The choice is already made: kept clients cannot be swapped, only free slots can be filled.",
+                    ct);
+                return;
+            }
         }
 
         foreach (var link in links)

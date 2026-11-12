@@ -621,6 +621,9 @@ public static class ErrorCodes
     /// <summary>The kept-clients choice has a duplicate id or the wrong number of clients.</summary>
     public const string KeepClientsCountInvalid = "KEEP_CLIENTS_COUNT_INVALID";
 
+    /// <summary>The kept-clients choice was already made and the request would swap a kept client out.</summary>
+    public const string KeepClientsChoiceLocked = "KEEP_CLIENTS_CHOICE_LOCKED";
+
     /// <summary>The coach's paid plan has not lapsed, so there is no kept-clients choice to make.</summary>
     public const string SubscriptionNotLapsed = "SUBSCRIPTION_NOT_LAPSED";
 

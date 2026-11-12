@@ -1,5 +1,6 @@
 using FastEndpoints;
 using FluentValidation;
+using FormUp.Application.Domain.Enums;
 
 namespace FormUp.Application.Features.Trainers.GetClients;
 
@@ -31,6 +32,11 @@ public class GetClientsValidator : Validator<GetClientsRequest>
         RuleFor(x => x.Filter)
             .IsInEnum()
             .When(x => x.Filter.HasValue);
+
+        RuleFor(x => x.OutsidePlan)
+            .Must(_ => false)
+            .WithMessage("The outsidePlan filter cannot be combined with the Archived status.")
+            .When(x => x.OutsidePlan == true && x.Status == ClientListStatus.Archived);
 
         RuleFor(x => x.TagIds)
             .Must(tagIds => tagIds.Count <= MaxTagIds)
