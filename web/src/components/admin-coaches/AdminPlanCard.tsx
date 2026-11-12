@@ -3,6 +3,8 @@ import { Check, Minus, Users } from 'lucide-react';
 import type { SubscriptionPlanDto } from '@/api/admin-subscription-plans';
 import { formatPlanMoney, planName } from '@/components/admin-plans/planForm';
 import type { PlanColor } from '@/components/admin-coaches/giveFreePlans';
+import { ADMIN_FEATURE_LABEL_KEY } from '@/components/admin-plans/planFeatureLabels';
+import { PLAN_FEATURES } from '@/components/subscription/planFeatures';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -16,14 +18,11 @@ interface Props {
   onSelect: (code: string) => void;
 }
 
-/** The feature lines of a plan card, each tied to a plan flag. */
-const FEATURES: ReadonlyArray<{ flag: keyof SubscriptionPlanDto; labelKey: string }> = [
-  { flag: 'canCreatePlans', labelKey: 'adminPlans.features.plans' },
-  { flag: 'canMessage', labelKey: 'adminPlans.features.chat' },
-  { flag: 'canSendQuestionnaires', labelKey: 'adminPlans.features.forms' },
-  { flag: 'canUseWeeklyCheckIns', labelKey: 'adminPlans.features.checkIns' },
-  { flag: 'canUsePerClientCheckInConfig', labelKey: 'adminPlans.features.perClientCheckIns' },
-];
+/** The feature lines of a plan card, from the shared feature list. */
+const FEATURES: ReadonlyArray<{ flag: keyof SubscriptionPlanDto; labelKey: string }> = PLAN_FEATURES.map((feature) => ({
+  flag: feature.flag,
+  labelKey: ADMIN_FEATURE_LABEL_KEY[feature.key],
+}));
 
 /** One selectable plan in the give-for-free picker: coloured header, regular price, limit and features. */
 export default function AdminPlanCard({ plan, color, selected, current = false, name, onSelect }: Props) {

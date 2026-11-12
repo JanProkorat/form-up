@@ -16,15 +16,11 @@ import { formatMoney } from '@/components/subscription/money';
 import UsageBar from '@/components/subscription/UsageBar';
 import { useSubscription } from '@/hooks/useSubscriptionQueries';
 import { PLAN_BILLING_ANCHOR } from '@/components/subscription/planLinks';
+import { PLAN_FEATURES, coachFeatureLabelKey } from '@/components/subscription/planFeatures';
 
-const FEATURE_ROWS: readonly { flag: keyof SubscriptionFeaturesDto; labelKey: string }[] = [
-  { flag: 'canCreatePlans', labelKey: 'subscription.plan.features.plans' },
-  { flag: 'canMessage', labelKey: 'subscription.plan.features.messaging' },
-  { flag: 'canSendQuestionnaires', labelKey: 'subscription.plan.features.forms' },
-  { flag: 'canUseWeeklyCheckIns', labelKey: 'subscription.plan.features.checkIns' },
-  { flag: 'canUsePerClientCheckInConfig', labelKey: 'subscription.plan.features.perClientCheckIns' },
-  { flag: 'canUsePayments', labelKey: 'subscription.plan.features.payments' },
-];
+const FEATURE_ROWS: readonly { flag: keyof SubscriptionFeaturesDto; labelKey: string }[] = PLAN_FEATURES.map(
+  (feature) => ({ flag: feature.flag, labelKey: coachFeatureLabelKey(feature.key) }),
+);
 
 const STATUS_TONE: Record<SubscriptionStatus, string> = {
   [SubscriptionStatus.Trialing]: 'bg-success-soft text-success-ink',
