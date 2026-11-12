@@ -6789,12 +6789,15 @@
       "checkIns": "Wöchentliche Check-ins",
       "perClientCheckIns": "Check-in-Einstellungen pro Klient",
       "perClientCheckInsHint": "Erfordert wöchentliche Check-ins",
+      "payments": "Zahlungen und Pakete",
+      "paymentsHint": "Leistungspakete und Zahlungen von Klienten",
       "chip": {
         "plans": "Pläne",
         "chat": "Chat",
         "forms": "Formulare",
         "checkIns": "Check-ins",
         "perClientCheckIns": "Individuelle Check-ins",
+        "payments": "Zahlungen",
         "everything": "Alles"
       }
     },

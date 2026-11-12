@@ -7041,12 +7041,15 @@
       "checkIns": "Týdenní check-iny",
       "perClientCheckIns": "Nastavení check-inů pro každého klienta",
       "perClientCheckInsHint": "Vyžaduje týdenní check-iny",
+      "payments": "Platby a balíčky",
+      "paymentsHint": "Balíčky služeb a platby od klientů",
       "chip": {
         "plans": "Plány",
         "chat": "Chat",
         "forms": "Formuláře",
         "checkIns": "Check-iny",
         "perClientCheckIns": "Check-iny na míru",
+        "payments": "Platby",
         "everything": "Vše"
       }
     },

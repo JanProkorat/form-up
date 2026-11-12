@@ -34,6 +34,7 @@ function featureLabelKeys(plan: SubscriptionPlanDto): string[] {
     [plan.canSendQuestionnaires, 'forms'],
     [plan.canUseWeeklyCheckIns, 'checkIns'],
     [plan.canUsePerClientCheckInConfig, 'perClientCheckIns'],
+    [plan.canUsePayments, 'payments'],
   ];
   const on = flags.filter(([enabled]) => enabled).map(([, key]) => key);
   return on.length === flags.length ? ['everything'] : on;

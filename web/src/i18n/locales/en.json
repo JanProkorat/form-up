@@ -6790,12 +6790,15 @@
       "checkIns": "Weekly check-ins",
       "perClientCheckIns": "Per-client check-in settings",
       "perClientCheckInsHint": "Needs weekly check-ins",
+      "payments": "Payments and packages",
+      "paymentsHint": "Service packages and client payments",
       "chip": {
         "plans": "Plans",
         "chat": "Chat",
         "forms": "Forms",
         "checkIns": "Check-ins",
         "perClientCheckIns": "Custom check-ins",
+        "payments": "Payments",
         "everything": "Everything"
       }
     },
