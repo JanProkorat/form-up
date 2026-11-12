@@ -9,6 +9,8 @@ using FormUp.Application.Infrastructure.Data.MongoDb;
 using FormUp.Tests.Builders;
 using FormUp.Tests.Infrastructure;
 using FluentAssertions;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -760,6 +762,148 @@ public class GetClientsEndpointTests(FitnessApiFactory factory)
             .Should().BeEquivalentTo(Ids(clients, 1, 3));
     }
 
+    // ── winding-down outside-plan clients (published weeks still run) ────────
+
+    private static readonly DateTime TodayUtc = DateTime.UtcNow.Date;
+
+    private static DateOnly EndOfFirstPublishedWeek(DateTime startDate) => DateOnly.FromDateTime(startDate.AddDays(6));
+
+    /// <summary>
+    /// Free cap 2, four clients: [0] and [1] in plan, [2] and [3] outside. A published week starting
+    /// <paramref name="daysAgo"/> days back ends 6 days after its start.
+    /// </summary>
+    private async Task<(Actor Coach, List<Actor> Clients)> CoachWithPublishedWeekOnOutsideClientAsync(int daysAgo)
+    {
+        var (coach, clients) = await CoachWithClientsAsync(4);
+        await SeedPublishedTrainingPlanAsync(coach.UserId, clients[2].UserId, TodayUtc.AddDays(-daysAgo));
+
+        return (coach, clients);
+    }
+
+    [Fact]
+    public async Task List_OutsidePlanClientWhosePublishedWeeksStillRun_ListsInActiveAndOutsidePlanWithReadOnlyFrom()
+    {
+        var (coach, clients) = await CoachWithPublishedWeekOnOutsideClientAsync(daysAgo: 3);
+        // An in-plan client with published weeks never gets the marker.
+        await SeedPublishedTrainingPlanAsync(coach.UserId, clients[1].UserId, TodayUtc.AddDays(-3));
+        var expectedEnd = EndOfFirstPublishedWeek(TodayUtc.AddDays(-3));
+
+        var active = await ListAsync(coach, "?tab=Active");
+        var outside = await ListAsync(coach, "?tab=OutsidePlan");
+
+        active.Clients.Select(c => c.UserId).Should().Equal(Ids(clients, 1, 0, 2));
+        outside.Clients.Select(c => c.UserId).Should().Equal(Ids(clients, 3, 2));
+        active.Clients.Single(c => c.UserId == clients[2].UserId).ReadOnlyFrom.Should().Be(expectedEnd);
+        outside.Clients.Single(c => c.UserId == clients[2].UserId).ReadOnlyFrom.Should().Be(expectedEnd);
+        outside.Clients.Single(c => c.UserId == clients[3].UserId).ReadOnlyFrom.Should().BeNull();
+        active.Clients.Where(c => c.UserId != clients[2].UserId).Should().OnlyContain(c => c.ReadOnlyFrom == null);
+    }
+
+    [Fact]
+    public async Task List_OutsidePlanClientWhosePublishedWeeksEnded_IsOnlyInOutsidePlanWithoutReadOnlyFrom()
+    {
+        var (coach, clients) = await CoachWithPublishedWeekOnOutsideClientAsync(daysAgo: 7);
+
+        var active = await ListAsync(coach, "?tab=Active");
+        var outside = await ListAsync(coach, "?tab=OutsidePlan");
+
+        active.Clients.Select(c => c.UserId).Should().Equal(Ids(clients, 1, 0));
+        outside.Clients.Select(c => c.UserId).Should().Equal(Ids(clients, 3, 2));
+        outside.Clients.Should().OnlyContain(c => c.ReadOnlyFrom == null);
+    }
+
+    [Fact]
+    public async Task List_TabCountsInPlan_CountsTheActiveTabDefinitionIncludingWindingDownClients()
+    {
+        var (coach, _) = await CoachWithPublishedWeekOnOutsideClientAsync(daysAgo: 3);
+
+        var all = await ListAsync(coach, "?tab=All");
+        var outside = await ListAsync(coach, "?tab=OutsidePlan");
+
+        all.TabCounts.InPlan.Should().Be(3);
+        all.TabCounts.OutsidePlan.Should().Be(2, "winding-down clients stay in the Outside plan tab too");
+        outside.TabCounts.InPlan.Should().Be(3);
+        (await ListAsync(coach, "?tab=Active")).TotalCount.Should().Be(3);
+    }
+
+    [Fact]
+    public async Task List_WindingDownClientOnLaterPage_StillCountsAndPagesInActiveTab()
+    {
+        var (coach, clients) = await CoachWithPublishedWeekOnOutsideClientAsync(daysAgo: 3);
+
+        var page1 = await ListAsync(coach, "?tab=Active&page=1&pageSize=2");
+        var page2 = await ListAsync(coach, "?tab=Active&page=2&pageSize=2");
+
+        page1.TotalCount.Should().Be(3);
+        page1.Clients.Select(c => c.UserId).Should().Equal(Ids(clients, 1, 0));
+        page2.Clients.Select(c => c.UserId).Should().Equal(Ids(clients, 2));
+        page2.Clients.Single().ReadOnlyFrom.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task List_ArchivedPlanOrAnotherCoachsPlan_DoesNotKeepAnOutsidePlanClientRunning()
+    {
+        var (coach, clients) = await CoachWithClientsAsync(4);
+        var otherCoach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        await SeedPublishedTrainingPlanAsync(
+            coach.UserId, clients[2].UserId, TodayUtc.AddDays(-3), TrainingPlanStatus.Archived);
+        await SeedPublishedTrainingPlanAsync(otherCoach.UserId, clients[3].UserId, TodayUtc.AddDays(-3));
+
+        var active = await ListAsync(coach, "?tab=Active");
+        var outside = await ListAsync(coach, "?tab=OutsidePlan");
+
+        active.Clients.Select(c => c.UserId).Should().Equal(Ids(clients, 1, 0));
+        outside.Clients.Should().OnlyContain(c => c.ReadOnlyFrom == null);
+    }
+
+    [Fact]
+    public async Task List_PublishedWeeksEndingExactlyToday_StillRunButNotOnceTodayHasPassed()
+    {
+        var (coach, clients) = await CoachWithClientsAsync(4);
+        var pinnedNow = DateTimeOffset.UtcNow;
+        var pinnedToday = pinnedNow.UtcDateTime.Date;
+        // [2] ends on the pinned day itself, [3] ended the day before.
+        await SeedPublishedTrainingPlanAsync(coach.UserId, clients[2].UserId, pinnedToday.AddDays(-6));
+        await SeedPublishedTrainingPlanAsync(coach.UserId, clients[3].UserId, pinnedToday.AddDays(-7));
+
+        SettableTimeProvider.Now = pinnedNow;
+        var pinnedHttp = PinnedFactory.CreateClient();
+        pinnedHttp.DefaultRequestHeaders.Authorization = coach.Http.DefaultRequestHeaders.Authorization;
+
+        var active = await ListAsync(coach with { Http = pinnedHttp }, "?tab=Active");
+
+        active.Clients.Select(c => c.UserId).Should().Equal(Ids(clients, 1, 0, 2));
+        active.Clients.Single(c => c.UserId == clients[2].UserId).ReadOnlyFrom
+            .Should().Be(DateOnly.FromDateTime(pinnedToday));
+    }
+
+    private sealed class SettableTimeProvider : TimeProvider
+    {
+        public static DateTimeOffset Now { get; set; } = DateTimeOffset.UtcNow;
+
+        public override DateTimeOffset GetUtcNow() => Now;
+    }
+
+    private static WebApplicationFactory<Program>? _pinnedFactory;
+
+    /// <summary>
+    /// A host derived from the shared fixture whose clock reads <see cref="SettableTimeProvider.Now"/>,
+    /// memoized in a static field and never disposed (the same pattern as
+    /// <c>GetTodayPlanProjectionIntegrationTests</c>).
+    /// </summary>
+    private WebApplicationFactory<Program> PinnedFactory => _pinnedFactory ??= factory.WithWebHostBuilder(builder =>
+    {
+        builder.ConfigureServices(services =>
+        {
+            foreach (var descriptor in services.Where(d => d.ServiceType == typeof(TimeProvider)).ToList())
+            {
+                services.Remove(descriptor);
+            }
+
+            services.AddSingleton<TimeProvider, SettableTimeProvider>();
+        });
+    });
+
     // ── fixtures ─────────────────────────────────────────────────────────────
 
     private async Task<(HttpClient Http, Guid UserId)> SetupTrainerAsync()
@@ -820,6 +964,23 @@ public class GetClientsEndpointTests(FitnessApiFactory factory)
             Status = TrainingPlanStatus.Active,
             StartDate = startDate,
             Weeks = Enumerable.Range(1, weekCount).Select(n => new TrainingWeek { WeekNumber = n }).ToList()
+        }, cancellationToken: TestContext.Current.CancellationToken);
+    }
+
+    private async Task SeedPublishedTrainingPlanAsync(
+        Guid authorUserId, Guid clientUserId, DateTime startDate, TrainingPlanStatus status = TrainingPlanStatus.Active)
+    {
+        using var scope = factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+        await mongo.TrainingPlans.InsertOneAsync(new TrainingPlan
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = clientUserId,
+            TrainerId = authorUserId,
+            Name = "Published Plan",
+            Status = status,
+            StartDate = startDate,
+            Weeks = [new TrainingWeek { WeekNumber = 1, Status = WeekStatus.Published }]
         }, cancellationToken: TestContext.Current.CancellationToken);
     }
 
@@ -933,6 +1094,7 @@ public class GetClientsEndpointTests(FitnessApiFactory factory)
         public bool HasActiveNutritionPlan { get; set; }
         public bool HasActiveTrainingPlan { get; set; }
         public bool IsOutsidePlan { get; set; }
+        public DateOnly? ReadOnlyFrom { get; set; }
         public List<object> ActivePlans { get; set; } = [];
     }
 

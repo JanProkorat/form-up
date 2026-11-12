@@ -214,6 +214,12 @@ public class ClientSummary
     /// still see them but not work on them. Never true for an Archived row.
     /// </summary>
     public bool IsOutsidePlan { get; set; }
+
+    /// <summary>
+    /// For a live outside-plan client whose published plan weeks still run: the last day those weeks
+    /// cover, after which the plans turn read-only. Null for every other row.
+    /// </summary>
+    public DateOnly? ReadOnlyFrom { get; set; }
 }
 
 /// <summary>
