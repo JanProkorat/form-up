@@ -4207,6 +4207,22 @@
       "w": 860,
       "x": 7600,
       "y": 62412
+    },
+    "PagePlanDecisionC.dc.html": {
+      "h": 1100,
+      "page": "web",
+      "title": "C · Coach plan · Plan changed, decision needed",
+      "w": 1440,
+      "x": 8540,
+      "y": 61052
+    },
+    "PagePlanDecisionD.dc.html": {
+      "h": 1100,
+      "page": "web",
+      "title": "D · Coach plan · Plan changed, decision needed",
+      "w": 1440,
+      "x": 8540,
+      "y": 62412
     }
   },
   "notes": {
@@ -4889,10 +4905,12 @@
     "PagePlanChangedNoticeC.dc.html",
     "PagePlanEndedNoticeC.dc.html",
     "PagePlanNotificationsC.dc.html",
+    "PagePlanDecisionC.dc.html",
     "PageSettingsPlanPastDueD.dc.html",
     "PagePlanChangedNoticeD.dc.html",
     "PagePlanEndedNoticeD.dc.html",
     "PagePlanNotificationsD.dc.html",
+    "PagePlanDecisionD.dc.html",
     "PagePaywallFeatureC.dc.html",
     "PagePaywallFeatureD.dc.html",
     "PageLapseKeepClientsC.dc.html",
