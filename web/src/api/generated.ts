@@ -26076,6 +26076,9 @@ hover popover. Omits any domain the link does not grant. */
     /** True when this live client is outside the plan in force (over its client cap): the coach can
 still see them but not work on them. Never true for an Archived row. */
     isOutsidePlan?: boolean;
+    /** For a live outside-plan client whose published plan weeks still run: the last day those weeks
+cover, after which the plans turn read-only. Null for every other row. */
+    readOnlyFrom?: string | undefined;
 }
 
 /** Derived status of a client on the trainer's clients list. Never stored — computed per request from the link's ConnectionState plus whether an in-window Active plan exists in a domain the link grants (see GetClientsEndpoint). */
