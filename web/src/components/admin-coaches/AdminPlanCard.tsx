@@ -51,7 +51,18 @@ export default function AdminPlanCard({ plan, color, selected, current = false, 
             onChange={() => onSelect(code)}
             className={cn('size-4.5 shrink-0 cursor-pointer', color.accent)}
           />
-          <span className="font-display text-card-title font-semibold text-ink">{planName(plan, i18n.language)}</span>
+          <span className="min-w-0 truncate font-display text-card-title font-semibold text-ink">
+            {planName(plan, i18n.language)}
+          </span>
+          {/* The pill shares the name row (no taller than the icon), so selecting a card never changes its height. */}
+          {highlighted && (
+            // A template string, not cn(): twMerge would drop the custom text-meta size next to text-ink.
+            <span
+              className={`shrink-0 rounded-full border px-2 py-0.5 text-meta font-semibold whitespace-nowrap text-ink ${color.pill}`}
+            >
+              {t(current ? 'adminCoaches.giveFree.current' : 'adminCoaches.giveFree.selected')}
+            </span>
+          )}
           <span
             aria-hidden="true"
             className={cn('ml-auto flex size-8 shrink-0 items-center justify-center rounded-field bg-card', color.tile)}
@@ -59,14 +70,6 @@ export default function AdminPlanCard({ plan, color, selected, current = false, 
             <Icon className="size-4" />
           </span>
         </span>
-        {highlighted && (
-          // A template string, not cn(): twMerge would drop the custom text-meta size next to text-ink.
-          <span
-            className={`self-start rounded-full border px-2 py-0.5 text-meta font-semibold text-ink ${color.pill}`}
-          >
-            {t(current ? 'adminCoaches.giveFree.current' : 'adminCoaches.giveFree.selected')}
-          </span>
-        )}
       </span>
 
       <span className="flex items-baseline gap-1.5">
