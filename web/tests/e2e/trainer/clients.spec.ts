@@ -670,7 +670,8 @@ test.describe('client tag filter — create a tag (#1119)', () => {
   test('an archived row with an ended link is not a link and its menu offers Payments, not the detail', async ({ page }) => {
     // The seed has no ended link, so fake the Archived tab's list response.
     await page.route(
-      (url) => url.pathname.endsWith('/trainer/clients') && url.searchParams.get('status') === 'Archived',
+      // The clients page selects its tab with `tab`, not the legacy `status` (#2086).
+      (url) => url.pathname.endsWith('/trainer/clients') && url.searchParams.get('tab') === 'Archived',
       async (route) => {
         await route.fulfill({
           status: 200,
