@@ -22,7 +22,8 @@ from 1794226496-cc4b, and PNGs for the new boards are not rendered yet. Partial 
 (#2070): `PageAdminCoachDialogs` and `PageAdminCoachProfile` updated and `PagePlanChangedNotice`,
 `PagePlanEndedNotice` and `PagePlanNotifications` added from web portal 1794403060-8947, also without PNGs.
 Partial update on 2026-11-12 (#2080): `PagePlanPicker` updated and `PagePlanDecision` added from web portal
-1794472027-2409, without PNGs. The #2056 export was a full re-sync: boards the
+1794472027-2409, without PNGs. Partial update on 2026-11-12 (#2084): `PageClientsRestricted` and
+`PageClientDetailRestricted` added from web portal 1794478908-c7e5, without PNGs. The #2056 export was a full re-sync: boards the
 canvases had folded into combined boards (e.g. the `PageReset*` steps into
 `PageResetPasswordFlow`, the settings dialogs into `PageDialogs`) are gone, and the
 clickable prototypes link to the combined board instead. The concepts and logo boards
