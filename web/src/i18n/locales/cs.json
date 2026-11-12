@@ -3016,6 +3016,7 @@
       "copiedFrom": "Převzato z profilu klienta {{name}}",
       "resetToProfile": "obnovit z profilu",
       "startedFromTemplate": "Vytvořeno ze šablony {{name}}",
+      "outsidePlan": "{{name}} je mimo váš tarif. Úpravy a zveřejnění odemkne vyšší tarif.",
       "about": {
         "heading": "O klientovi {{name}}",
         "goal": "Cíl",

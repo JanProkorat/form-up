@@ -2892,6 +2892,7 @@
       "copiedFrom": "Copied from {{name}}'s profile",
       "resetToProfile": "reset to profile",
       "startedFromTemplate": "Started from template {{name}}",
+      "outsidePlan": "{{name}} is outside your plan. Editing and publishing unlock on a higher plan.",
       "about": {
         "heading": "About {{name}}",
         "goal": "Goal",

@@ -2891,6 +2891,7 @@
       "copiedFrom": "Aus dem Profil von {{name}} übernommen",
       "resetToProfile": "auf Profil zurücksetzen",
       "startedFromTemplate": "Aus Vorlage {{name}} erstellt",
+      "outsidePlan": "{{name}} liegt außerhalb Ihres Tarifs. Bearbeiten und Veröffentlichen schaltet ein höherer Tarif frei.",
       "about": {
         "heading": "Über {{name}}",
         "goal": "Ziel",

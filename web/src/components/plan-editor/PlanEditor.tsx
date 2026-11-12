@@ -240,6 +240,12 @@ interface Props {
   onClearLockRejection?: () => void;
   /** The server's current copy of the plan, for restoring the rejected meal; null or absent while it is being refetched. */
   storedDocument?: EditorDocument | null;
+  /**
+   * Set when the plan's client is outside the coach's plan, so nothing may change: every edit that would change the
+   * document is dropped and `onBlocked` fires instead, and Save, the primary action and Add week show a lock and call it.
+   * Only the client plan editor passes it.
+   */
+  outsidePlan?: { onBlocked: () => void };
   saveState: PlanEditorSaveState;
   /** Persists the document; resolves with the server's copy, or null when the save failed. */
   onSave: (doc: EditorDocument) => Promise<EditorDocument | null>;
@@ -414,12 +420,34 @@ export default function PlanEditor({
   lockRejection = null,
   onClearLockRejection,
   storedDocument = null,
+  outsidePlan,
   saveState,
   onSave,
   onReload,
 }: Props) {
   const { t, i18n } = useTranslation();
-  const { doc, dirty, canUndo, canRedo, edit: rawEdit, undo, redo, markSaved } = usePlanEditorState(initial);
+  const { doc, dirty, canUndo, canRedo, edit: stateEdit, undo, redo, markSaved } = usePlanEditorState(initial);
+  const outsidePlanRef = useRef(outsidePlan);
+  const docRef = useRef(doc);
+  useEffect(() => {
+    outsidePlanRef.current = outsidePlan;
+    docRef.current = doc;
+  });
+  // The one gate for every document change (edit, restore, template apply, week removal): for an outside-plan client a
+  // change that would alter the document is dropped and the paywall opens instead. A no-op update passes silently.
+  const rawEdit = useCallback<PlanEditorState['edit']>(
+    (update, coalesceKey) => {
+      const guard = outsidePlanRef.current;
+      if (!guard) {
+        stateEdit(update, coalesceKey);
+        return;
+      }
+      if (update(docRef.current) !== docRef.current) {
+        guard.onBlocked();
+      }
+    },
+    [stateEdit],
+  );
   const locks = mealLocks ?? null;
   const locksRef = useRef(locks);
   useEffect(() => {
@@ -1459,6 +1487,10 @@ export default function PlanEditor({
   }
 
   async function save() {
+    if (outsidePlan) {
+      outsidePlan.onBlocked();
+      return;
+    }
     const sent = doc;
     const saved = await onSave(sent);
     if (saved) {
@@ -1481,7 +1513,10 @@ export default function PlanEditor({
   /** Drops the last week from the document and saves it; the server drops the stored draft week with it. */
   async function confirmRemoveWeek() {
     const next = removeLastWeek(doc);
-    if (next === doc) {
+    if (next === doc || outsidePlan) {
+      if (next !== doc) {
+        outsidePlan?.onBlocked();
+      }
       setRemoveWeekNumber(null);
       return;
     }
@@ -1503,6 +1538,10 @@ export default function PlanEditor({
 
   async function runPrimaryAction() {
     if (!primaryAction) {
+      return;
+    }
+    if (outsidePlan) {
+      outsidePlan.onBlocked();
       return;
     }
     const sent = doc;
@@ -1715,6 +1754,7 @@ export default function PlanEditor({
                     : undefined
                 }
                 secondarySave={secondarySave}
+                locked={outsidePlan !== undefined}
                 actions={renderHeaderActions?.(hostContext)}
                 range={range}
                 view={view}
@@ -1739,7 +1779,12 @@ export default function PlanEditor({
                       : undefined
                   }
                   onSelect={(index) => navigate({ week: index })}
+                  addLocked={outsidePlan !== undefined}
                   onAddWeek={() => {
+                    if (outsidePlan) {
+                      outsidePlan.onBlocked();
+                      return;
+                    }
                     edit(addWeek);
                     navigate({ week: doc.weeks.length });
                   }}
