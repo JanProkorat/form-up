@@ -172,10 +172,10 @@ public class EntitlementService
 
     /// <summary>
     /// Resolves whether the professional's paid plan has lapsed, whether an ended gift waits for a plan choice,
-    /// and which live clients the Free plan keeps and which are over its cap. The cap is the Free plan's own
-    /// limit, read from the data. An explicit Free plan with more live clients than the cap behaves like a lapse
-    /// for the over-cap clients but is not <see cref="KeepClientsState.IsLapsed"/>. While a plan choice is
-    /// required nobody is over the cap.
+    /// and which live clients the plan in force keeps and which are over its cap. A lapse uses the Free plan's own
+    /// limit; otherwise the cap is the client limit of the plan in force (Free or a smaller paid plan), read from the
+    /// data. A plan with more live clients than its cap behaves like a lapse for the over-cap clients but is not
+    /// <see cref="KeepClientsState.IsLapsed"/>. While a plan choice is required nobody is over the cap.
     /// </summary>
     /// <param name="professionalProfileId">The professional's <c>ProfessionalProfile.Id</c>.</param>
     /// <param name="ct">Cancellation token.</param>
@@ -184,7 +184,7 @@ public class EntitlementService
         var row = await db.CoachSubscriptions
             .AsNoTracking()
             .Where(cs => cs.ProfessionalProfileId == professionalProfileId)
-            .Select(cs => new { cs.Status, cs.FreeUntil, cs.GivenFreeAt, PlanCode = cs.SubscriptionPlan != null ? cs.SubscriptionPlan.Code : null })
+            .Select(cs => new { cs.Status, cs.FreeUntil, cs.GivenFreeAt, PlanMaxActiveClients = cs.SubscriptionPlan != null ? cs.SubscriptionPlan.MaxActiveClients : null })
             .FirstOrDefaultAsync(ct);
 
         if (row is null)
@@ -208,12 +208,13 @@ public class EntitlementService
             return await GetFreePlanKeepSplitAsync(professionalProfileId, ct);
         }
 
-        if (row.PlanCode != SubscriptionPlanCodes.Free)
+        // The plan in force: an unlimited plan never has anyone over the cap.
+        if (row.PlanMaxActiveClients is not { } planCap)
         {
             return KeepClientsState.NotLapsed;
         }
 
-        var split = await GetFreePlanKeepSplitAsync(professionalProfileId, ct);
+        var split = await SplitLiveClientsAsync(professionalProfileId, planCap, ct);
 
         return split.OverCapClientProfileIds.Count == 0 ? KeepClientsState.NotLapsed : split with { IsLapsed = false };
     }
@@ -227,14 +228,20 @@ public class EntitlementService
     public async Task<KeepClientsState> GetFreePlanKeepSplitAsync(long professionalProfileId, CancellationToken ct)
     {
         var free = await LoadFreePlanAsync(ct);
+
+        // A missing Free plan fails closed: nobody fits under a cap of zero.
+        return await SplitLiveClientsAsync(professionalProfileId, free is null ? 0 : free.MaxActiveClients, ct);
+    }
+
+    private async Task<KeepClientsState> SplitLiveClientsAsync(long professionalProfileId, int? cap, CancellationToken ct)
+    {
         var links = await db.ClientProfessionalLinks
             .AsNoTracking()
             .Where(cpl => cpl.ProfessionalProfileId == professionalProfileId && cpl.ConnectionState != ConnectionState.Ended)
             .Select(cpl => new KeepLinkRow(cpl.Id, cpl.ClientProfileId, cpl.ConnectionState, cpl.ActivatedAtUtc, cpl.DateCreated))
             .ToListAsync(ct);
 
-        // A missing Free plan fails closed: nobody fits under a cap of zero.
-        return CoachKeepClientsResolver.Resolve(links, free is null ? 0 : free.MaxActiveClients);
+        return CoachKeepClientsResolver.Resolve(links, cap);
     }
 
     /// <summary>

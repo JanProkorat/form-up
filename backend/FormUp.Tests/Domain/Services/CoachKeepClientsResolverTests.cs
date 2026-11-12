@@ -36,6 +36,30 @@ public class CoachKeepClientsResolverTests
     }
 
     [Fact]
+    public void Resolve_OverCapClientStillConnected_ChoiceIsPending()
+    {
+        var links = new[] { Link(1, 10, 30), Link(2, 20, 10), Link(3, 30, 20) };
+
+        CoachKeepClientsResolver.Resolve(links, 2).IsChoicePending.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Resolve_EveryLiveClientKeptOrReleased_ChoiceIsNotPending()
+    {
+        var links = new[]
+        {
+            Link(1, 10, 30, ConnectionState.FreePlanReleased),
+            Link(2, 20, 10, ConnectionState.FreePlanKept),
+            Link(3, 30, 20, ConnectionState.FreePlanKept),
+        };
+
+        var state = CoachKeepClientsResolver.Resolve(links, 2);
+
+        state.OverCapClientProfileIds.Should().Equal(10L);
+        state.IsChoicePending.Should().BeFalse();
+    }
+
+    [Fact]
     public void Resolve_LegacyLinkWithoutActivationTime_RanksByItsCreationTimeNotAsOldest()
     {
         // Client 10 has no activation time; its row was created on day 25, so it is the newest of the three.

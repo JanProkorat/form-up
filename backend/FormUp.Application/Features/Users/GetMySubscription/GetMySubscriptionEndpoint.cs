@@ -31,7 +31,9 @@ internal sealed class GetMySubscriptionEndpoint(
                             "the active-client count is the kept clients and the over-cap count is reported. When an admin-given plan has ended and no plan " +
                             "was chosen yet, planChoiceRequired is true (never together with isLapsed), the plan fields still describe the ended plan " +
                             "and its names are repeated as the ended-plan names. A coach on an explicit Free plan with clients over the cap gets the " +
-                            "kept count and the over-cap count too.";
+                            "kept count and the over-cap count too, as does a coach on a smaller paid plan than their client count. " +
+                            "keepClientsChoiceRequired is true while some over-cap client has no kept or released decision yet " +
+                            "(never together with planChoiceRequired).";
             s.Response<GetMySubscriptionResponse>(StatusCodes.Status200OK, "The caller's subscription block");
             s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
             s.Response(StatusCodes.Status403Forbidden, "The caller is not a trainer or nutritionist");
@@ -94,6 +96,7 @@ internal sealed class GetMySubscriptionEndpoint(
             response.EndedPlanNameDe = response.NameDe;
         }
 
+        response.KeepClientsChoiceRequired = !keepState.IsPlanChoiceRequired && keepState.IsChoicePending;
         response.ClientLimit = entitlements.MaxActiveClients;
         response.SecondRole = await entitlementService.GetSecondRoleStateAsync(profileId.Value, ct);
         response.Features = new SubscriptionFeaturesDto

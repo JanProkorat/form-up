@@ -68,7 +68,13 @@ public class GetMySubscriptionResponse
     /// <summary>German name of the ended given plan; null unless <see cref="PlanChoiceRequired"/>.</summary>
     public string? EndedPlanNameDe { get; set; }
 
-    /// <summary>Live clients above the Free plan's cap; zero unless <see cref="IsLapsed"/> or the coach is on an explicit Free plan with clients over the cap.</summary>
+    /// <summary>
+    /// True while the coach has live clients over the cap of the plan in force and at least one of them has no kept or
+    /// released decision yet. Never true together with <see cref="PlanChoiceRequired"/>.
+    /// </summary>
+    public bool KeepClientsChoiceRequired { get; set; }
+
+    /// <summary>Live clients above the cap of the plan in force; zero unless <see cref="IsLapsed"/> or the coach has more live clients than the plan's limit.</summary>
     public int OverCapClientCount { get; set; }
 
     /// <summary>Distinct active clients across all the coach's roles; the kept clients while lapsed.</summary>
