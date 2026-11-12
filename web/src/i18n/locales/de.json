@@ -4452,6 +4452,10 @@
     }
   },
   "clientDetail": {
+    "outsidePlanPaywall": {
+      "title": "Einen neuen Plan für {{name}} erstellen Sie mit einem höheren Tarif",
+      "body": "{{name}} liegt außerhalb Ihres Tarifs {{plan}}. Nach dem Upgrade können Sie wieder Pläne erstellen und veröffentlichen."
+    },
     "automations": {
       "introBefore": "Regeln von Ihrer Seite ",
       "introLink": "Automatisierungen",

@@ -4609,6 +4609,10 @@
     }
   },
   "clientDetail": {
+    "outsidePlanPaywall": {
+      "title": "Nový plán pro klienta {{name}} vytvoříte ve vyšším tarifu",
+      "body": "{{name}} je mimo váš tarif {{plan}}. Po zvýšení plánu mu můžete znovu sestavovat a zveřejňovat plány."
+    },
     "automations": {
       "introBefore": "Pravidla ze stránky ",
       "introLink": "Automatizace",

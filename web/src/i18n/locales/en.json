@@ -4453,6 +4453,10 @@
     }
   },
   "clientDetail": {
+    "outsidePlanPaywall": {
+      "title": "Create a new plan for {{name}} on a higher plan",
+      "body": "{{name}} is outside your {{plan}} plan. Upgrade to build and publish plans for them again."
+    },
     "automations": {
       "introBefore": "Rules from your ",
       "introLink": "Automations",
