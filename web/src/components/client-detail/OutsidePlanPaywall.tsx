@@ -21,7 +21,10 @@ export default function OutsidePlanPaywall({ firstName, inDialog = false }: Prop
   const { planName } = useSubscription();
   const Title = inDialog ? DialogPrimitive.Title : 'h3';
   const Body = inDialog ? DialogPrimitive.Description : 'p';
-  const title = t('clientDetail.outsidePlanPaywall.title', { name: firstName });
+  // The dialog opens from an existing plan in the editor; the inline card sits where a new plan would start.
+  const title = t(inDialog ? 'clientDetail.outsidePlanPaywall.editTitle' : 'clientDetail.outsidePlanPaywall.title', {
+    name: firstName,
+  });
 
   return (
     <div

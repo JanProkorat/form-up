@@ -4456,6 +4456,7 @@
   "clientDetail": {
     "outsidePlanPaywall": {
       "title": "Create a new plan for {{name}} on a higher plan",
+      "editTitle": "Edit {{name}}'s plan on a higher plan",
       "body": "{{name}} is outside your {{plan}} plan. Upgrade to build and publish new plans again.",
       "lead": "Clients stay where their next plan is always ready. Don't keep them waiting.",
       "benefit1": "{{name}} gets a new plan right away, with no break in your work together.",
