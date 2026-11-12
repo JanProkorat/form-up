@@ -33,7 +33,7 @@
   "html": "web/01-01-page-home-c.html",
   "png": "web/01-01-page-home-c.png",
   "w": 1440,
-  "h": 5400
+  "h": 4520
  },
  {
   "html": "web/01-02-page-home-sign-in-c.html",
@@ -45,7 +45,7 @@
   "html": "web/02-01-page-home-d.html",
   "png": "web/02-01-page-home-d.png",
   "w": 1440,
-  "h": 5400
+  "h": 4520
  },
  {
   "html": "web/02-02-page-home-sign-in-d.html",
