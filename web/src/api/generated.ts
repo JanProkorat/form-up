@@ -4527,11 +4527,12 @@ export class ApiClient {
     returned when explicitly requested.
      * @param filter (optional) Optional filter chip narrowing the current tab further. Its own count is reported in
     FilterCounts without this filter applied.
-     * @param outsidePlan (optional) When true, narrows the list to live clients outside the plan in force (over its client cap),
-    whatever their Active/Paused status. Cannot be combined with status=Archived.
-     * @return Success
+     * @param tab (optional) Optional clients-page tab. Cannot be combined with Status. Omitted means
+    the legacy Status selection.
+     * @param plan (optional) Optional plan filter, applied after the tab. Archived rows never match.
+     * @return Client page with tab, plan and chip counts
      */
-    getClientsEndpoint(page: number, pageSize: number, tagIds: string[], search?: string | null | undefined, status?: ClientListStatus | null | undefined, filter?: ClientListFilter | null | undefined, outsidePlan?: boolean | null | undefined, signal?: AbortSignal): Promise<GetClientsResponse> {
+    getClientsEndpoint(page: number, pageSize: number, tagIds: string[], search?: string | null | undefined, status?: ClientListStatus | null | undefined, filter?: ClientListFilter | null | undefined, tab?: ClientListTab | null | undefined, plan?: ClientPlanFilter | null | undefined, signal?: AbortSignal): Promise<GetClientsResponse> {
         let url_ = this.baseUrl + "/trainer/clients?";
         if (page === undefined || page === null)
             throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
@@ -4551,8 +4552,10 @@ export class ApiClient {
             url_ += "status=" + encodeURIComponent("" + status) + "&";
         if (filter !== undefined && filter !== null)
             url_ += "filter=" + encodeURIComponent("" + filter) + "&";
-        if (outsidePlan !== undefined && outsidePlan !== null)
-            url_ += "outsidePlan=" + encodeURIComponent("" + outsidePlan) + "&";
+        if (tab !== undefined && tab !== null)
+            url_ += "tab=" + encodeURIComponent("" + tab) + "&";
+        if (plan !== undefined && plan !== null)
+            url_ += "plan=" + encodeURIComponent("" + plan) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -4597,11 +4600,11 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid paging, enum value, or tab combined with status", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
@@ -26027,6 +26030,9 @@ existing linked clients, and pending rows are not clients yet. */
 tagIds applied but the chip filter itself NOT applied — this is what lets the web
 client grey out a chip whose count is zero without losing the ability to select it. */
     filterCounts?: ClientFilterCounts;
+    /** Counts per plan filter over the selected tab (or legacy status selection), with search and
+tags applied but neither the plan filter nor the filter chip. */
+    planCounts?: ClientPlanCounts;
 }
 
 /** Summary of a client in the trainer's client list. */
@@ -26107,7 +26113,11 @@ export enum Profession {
 
 /** Per-tab client counts. See TabCounts for scoping rules. */
 export interface ClientTabCounts {
-    /** Number of clients in the Active tab. */
+    /** Number of links in the All tab, archived included. */
+    all?: number;
+    /** Number of live clients inside the plan in force (the Active tab). */
+    inPlan?: number;
+    /** Number of clients with Active status (current plan). */
     active?: number;
     /** Number of clients in the Paused tab. */
     paused?: number;
@@ -26137,6 +26147,18 @@ export interface ClientFilterCounts {
     endingSoon?: number;
 }
 
+/** Per-plan-filter client counts. See PlanCounts. */
+export interface ClientPlanCounts {
+    /** Total rows in the selected tab. */
+    all?: number;
+    /** Rows with a current plan. */
+    active?: number;
+    /** Rows with no current plan. */
+    none?: number;
+    /** Rows whose current plan ends within 14 days. */
+    endingSoon?: number;
+}
+
 /** Request model for retrieving a trainer's client list with pagination. */
 export interface GetClientsRequest {
 }
@@ -26148,6 +26170,21 @@ export enum ClientListFilter {
     NoMessages = "NoMessages",
     NewCheckIns = "NewCheckIns",
     MissingCheckIns = "MissingCheckIns",
+    EndingSoon = "EndingSoon",
+}
+
+/** The clients-page tabs served by GET /trainer/clients. Pending invitations are not a tab here — they come from a different endpoint. */
+export enum ClientListTab {
+    All = "All",
+    Active = "Active",
+    OutsidePlan = "OutsidePlan",
+    Archived = "Archived",
+}
+
+/** Filters the clients list by the state of the client's training or nutrition plan. Archived rows never match. */
+export enum ClientPlanFilter {
+    Active = "Active",
+    None = "None",
     EndingSoon = "EndingSoon",
 }
 
