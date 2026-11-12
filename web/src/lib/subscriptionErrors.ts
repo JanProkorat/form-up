@@ -5,7 +5,8 @@ const CLIENT_LIMIT_REACHED = 'CLIENT_LIMIT_REACHED';
 
 const CLIENT_OVER_PLAN_LIMIT = 'CLIENT_OVER_PLAN_LIMIT';
 const SUBSCRIPTION_NOT_LAPSED = 'SUBSCRIPTION_NOT_LAPSED';
-const PLAN_CHOICE_REQUIRED = 'PLAN_CHOICE_REQUIRED';
+const KEEP_CLIENTS_CHOICE_LOCKED = 'KEEP_CLIENTS_CHOICE_LOCKED';
+const PLAN_CHOICE_REQUIRED ='PLAN_CHOICE_REQUIRED';
 const PLAN_CHOICE_NOT_REQUIRED = 'PLAN_CHOICE_NOT_REQUIRED';
 
 /** Window event fired by the API layer when any request is refused with 403 PLAN_CHOICE_REQUIRED. */
@@ -33,6 +34,11 @@ export function isClientOverPlanLimit(error: unknown): boolean {
 /** 409 SUBSCRIPTION_NOT_LAPSED: the keep-clients choice only exists while a paid plan has lapsed. */
 export function isSubscriptionNotLapsed(error: unknown): boolean {
   return hasCode(error, SUBSCRIPTION_NOT_LAPSED);
+}
+
+/** 409 KEEP_CLIENTS_CHOICE_LOCKED: a saved choice can only be extended by filling free slots with restricted clients. */
+export function isKeepClientsChoiceLocked(error: unknown): boolean {
+  return hasCode(error, KEEP_CLIENTS_CHOICE_LOCKED);
 }
 
 /**

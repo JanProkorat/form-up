@@ -7,21 +7,16 @@ import type { ClientListFilter } from '@/api/generated';
  * `ClientListStatus`; `Pending` and `All` are page-only virtual tabs with no
  * backend enum member. `Pending` drives the Pending-tab query instead of the
  * list query; `All` lists Active + Paused clients (no status filter) with the
- * pending rows below them.
+ * pending rows below them. `OutsidePlan` is virtual too: it lists live clients
+ * over the plan's client cap (`outsidePlan=true`, no status).
  */
-export type ClientListTab = 'All' | 'Active' | 'Paused' | 'Archived' | 'Pending';
+export type ClientListTab = 'All' | 'Active' | 'Paused' | 'OutsidePlan' | 'Archived' | 'Pending';
 
-const VALID_TABS: readonly ClientListTab[] = ['All', 'Active', 'Paused', 'Archived', 'Pending'];
+const VALID_TABS: readonly ClientListTab[] = ['All', 'Active', 'Paused', 'OutsidePlan', 'Archived', 'Pending'];
 const DEFAULT_TAB: ClientListTab = 'All';
 
-const VALID_CHIPS: readonly string[] = [
-  'All',
-  'UnreadMessages',
-  'NoMessages',
-  'NewCheckIns',
-  'MissingCheckIns',
-  'EndingSoon',
-];
+// Stale ?chip= values of the removed chips fall back to All.
+const VALID_CHIPS: readonly string[] = ['All', 'EndingSoon'];
 const DEFAULT_CHIP = 'All' as ClientListFilter;
 
 export const CLIENTS_PAGE_SIZE = 20;

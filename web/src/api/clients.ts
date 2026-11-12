@@ -30,6 +30,8 @@ export interface GetClientsParams {
   search?: string;
   status?: ClientListStatus;
   filter?: ClientListFilter;
+  /** Narrows the list to live clients outside the plan in force. Never combine with the Archived status (400). */
+  outsidePlan?: boolean;
 }
 
 export interface GetClientsResult {
@@ -57,6 +59,7 @@ export async function getClients(params: GetClientsParams): Promise<GetClientsRe
     params.search,
     params.status,
     params.filter,
+    params.outsidePlan,
   );
   return {
     clients: response.clients ?? [],

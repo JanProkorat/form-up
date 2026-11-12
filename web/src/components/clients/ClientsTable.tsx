@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import type { ClientSummary } from '@/api/clients';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import ClientStatusBadge from '@/components/clients/ClientStatusBadge';
+import OutsidePlanChip from '@/components/clients/OutsidePlanChip';
 import ClientTagPill from '@/components/clients/ClientTagPill';
 import ClientTagPickerPopover from '@/components/clients/ClientTagPickerPopover';
 import PlanIconsCell from '@/components/clients/PlanIconsCell';
@@ -117,8 +118,9 @@ export default function ClientsTable({
             // An ended link has no detail page (the API answers 404), so the row must not link to it.
             const ended = client.isActive === false;
             const canOpenDetail = Boolean(rowId) && !ended;
+            const restricted = client.isOutsidePlan === true;
             return (
-              <TableRow key={client.publicId}>
+              <TableRow key={client.publicId} className={restricted ? 'bg-sunken' : undefined}>
                 <TableCell className={CELL_CLASS}>
                   <Checkbox
                     checked={Boolean(rowId) && selectedIds.has(rowId)}
@@ -139,11 +141,14 @@ export default function ClientsTable({
                     </Avatar>
                     <div className="flex flex-col">
                       {canOpenDetail ? (
-                        <Link to={`/clients/${rowId}`} className="font-medium text-foreground hover:underline">
+                        <Link
+                          to={`/clients/${rowId}`}
+                          className={`font-medium hover:underline ${restricted ? 'text-muted-foreground' : 'text-foreground'}`}
+                        >
                           {client.firstName} {client.lastName}
                         </Link>
                       ) : (
-                        <span className="font-medium text-foreground">
+                        <span className={`font-medium ${restricted ? 'text-muted-foreground' : 'text-foreground'}`}>
                           {client.firstName} {client.lastName}
                         </span>
                       )}
@@ -152,7 +157,10 @@ export default function ClientsTable({
                   </div>
                 </TableCell>
                 <TableCell className={CELL_CLASS}>
-                  <ClientStatusBadge status={client.status} />
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <ClientStatusBadge status={client.status} />
+                    {restricted && <OutsidePlanChip />}
+                  </div>
                 </TableCell>
                 <TableCell className={CELL_CLASS}>
                   <div className="flex flex-wrap items-center gap-1">

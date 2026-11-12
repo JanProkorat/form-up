@@ -371,11 +371,26 @@
       "save_other": "Keep these {{count}}",
       "saveSuccess": "Your choice is saved",
       "saveError": "Could not save your choice. Please try again.",
+      "choiceLockedError": "Clients you already keep cannot be changed; you can only add clients outside your plan to the free slots. Reload the page.",
+      "lockedTitle_one": "Choose {{count}} client for the free slot",
+      "lockedTitle_other": "Choose {{count}} clients for the free slots",
+      "lockedSubtitle": "Clients you already keep stay as they are. Pick clients who are outside your plan for the free slots.",
+      "lockedSave": "Keep selected",
       "loadError": "Could not load your clients.",
       "retry": "Try again",
       "notLapsed": "Your plan has not lapsed, so there is nothing to choose.",
       "backToClients": "Back to clients",
       "noClients": "You have no clients to choose from."
+    },
+    "outsidePlan": {
+      "titleLimit_one": "The {{plan}} plan includes {{count}} client.",
+      "titleLimit_other": "The {{plan}} plan includes {{count}} clients.",
+      "titleOutside_one": "{{count}} client is outside your plan.",
+      "titleOutside_other": "{{count}} clients are outside your plan.",
+      "detailTitle": "{{name}} is outside your {{plan}} plan.",
+      "body": "Their plans run until the last published week, then become read-only.",
+      "upgrade": "Higher plan",
+      "pickClient": "Choose a client for the free slot"
     },
     "plan": {
       "title": "Plan and billing",
@@ -719,6 +734,7 @@
       "all": "All",
       "active": "Active",
       "paused": "No plan",
+      "outsidePlan": "Outside plan",
       "archived": "Archived",
       "pending": "Pending"
     },
@@ -726,11 +742,11 @@
     "chips": {
       "groupLabel": "Filter clients",
       "all": "All",
-      "unreadMessages": "Unread messages",
-      "noMessages": "No messages",
-      "newCheckIns": "New check-ins",
-      "missingCheckIns": "Missing check-ins",
       "endingSoon": "Ending soon"
+    },
+    "outsidePlan": {
+      "chip": "Outside plan",
+      "tooltip": "Their plans run until the last published week, then become read-only."
     },
     "tagFilter": {
       "label": "Select tags",

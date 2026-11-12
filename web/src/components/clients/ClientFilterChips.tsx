@@ -3,30 +3,17 @@ import { Button } from '@/components/ui/button';
 import { ClientListFilter, type ClientFilterCounts } from '@/api/generated';
 import { cn } from '@/lib/utils';
 
-const CHIP_ORDER: ClientListFilter[] = [
-  ClientListFilter.All,
-  ClientListFilter.UnreadMessages,
-  ClientListFilter.NoMessages,
-  ClientListFilter.NewCheckIns,
-  ClientListFilter.MissingCheckIns,
-  ClientListFilter.EndingSoon,
-];
+type VisibleChip = ClientListFilter.All | ClientListFilter.EndingSoon;
 
-const CHIP_COUNT_KEY: Record<ClientListFilter, keyof ClientFilterCounts> = {
+const CHIP_ORDER: VisibleChip[] = [ClientListFilter.All, ClientListFilter.EndingSoon];
+
+const CHIP_COUNT_KEY: Record<VisibleChip, keyof ClientFilterCounts> = {
   [ClientListFilter.All]: 'all',
-  [ClientListFilter.UnreadMessages]: 'unreadMessages',
-  [ClientListFilter.NoMessages]: 'noMessages',
-  [ClientListFilter.NewCheckIns]: 'newCheckIns',
-  [ClientListFilter.MissingCheckIns]: 'missingCheckIns',
   [ClientListFilter.EndingSoon]: 'endingSoon',
 };
 
-const CHIP_LABEL_KEY: Record<ClientListFilter, string> = {
+const CHIP_LABEL_KEY: Record<VisibleChip, string> = {
   [ClientListFilter.All]: 'clients.chips.all',
-  [ClientListFilter.UnreadMessages]: 'clients.chips.unreadMessages',
-  [ClientListFilter.NoMessages]: 'clients.chips.noMessages',
-  [ClientListFilter.NewCheckIns]: 'clients.chips.newCheckIns',
-  [ClientListFilter.MissingCheckIns]: 'clients.chips.missingCheckIns',
   [ClientListFilter.EndingSoon]: 'clients.chips.endingSoon',
 };
 
@@ -37,7 +24,7 @@ interface Props {
 }
 
 /**
- * The six surviving filter chips. A chip's count is computed with the
+ * The two surviving filter chips (All, Ending soon). A chip's count is computed with the
  * current tab/search/tags applied but the chip itself not — see
  * `ClientFilterCounts` in generated.ts — so a count of zero genuinely means
  * "selecting this returns nothing", and the chip is disabled rather than
