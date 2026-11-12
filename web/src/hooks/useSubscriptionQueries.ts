@@ -72,6 +72,10 @@ export function useSubscription() {
     /** True while an admin-given plan has ended and the coach has not chosen a plan yet. */
     planChoiceRequired: data?.planChoiceRequired === true,
     endedPlanName: endedPlanNameFor(data, i18n.language),
+    /** True while the coach has live clients over the plan's limit and has not yet picked which to keep. */
+    keepClientsChoiceRequired: data?.keepClientsChoiceRequired === true,
+    /** Either decision blocks the app until made: choosing a plan, or choosing the clients to keep. */
+    planDecisionRequired: data?.planChoiceRequired === true || data?.keepClientsChoiceRequired === true,
     /** Live clients above the Free plan's cap (lapsed, or on Free with too many). */
     overCapClientCount: data?.overCapClientCount ?? 0,
   };
