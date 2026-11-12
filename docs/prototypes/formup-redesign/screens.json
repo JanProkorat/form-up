@@ -258,6 +258,12 @@
   "h": 1100
  },
  {
+  "html": "web/05-23-page-clients-choice-pending-c.html",
+  "png": "web/05-23-page-clients-choice-pending-c.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
   "html": "web/06-01-page-clients-d.html",
   "png": "web/06-01-page-clients-d.png",
   "w": 1440,
@@ -388,6 +394,12 @@
   "png": "web/06-22-page-client-detail-restricted-d.png",
   "w": 1440,
   "h": 1100
+ },
+ {
+  "html": "web/06-23-page-clients-choice-pending-d.html",
+  "png": "web/06-23-page-clients-choice-pending-d.png",
+  "w": 1440,
+  "h": 900
  },
  {
   "html": "web/07-01-page-inbox-c.html",

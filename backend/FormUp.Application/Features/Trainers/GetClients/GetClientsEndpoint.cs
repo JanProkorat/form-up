@@ -5,6 +5,7 @@ using FormUp.Application.Domain.Documents;
 using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Services;
+using FormUp.Application.Features.CoachSubscriptions.Shared;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
@@ -26,8 +27,8 @@ namespace FormUp.Application.Features.Trainers.GetClients;
 /// </para>
 /// <para>
 /// Round trips per request: 1 SQL profile lookup, 1 SQL roster+facts pass, 2 Mongo plan
-/// projections (nutrition, training), 1 SQL tag lookup, and 2 lightweight SQL COUNTs for the
-/// Pending tab count — 7 total, all independent of roster size and page size.
+/// projections (nutrition, training), 2 Mongo published-weeks projections (outside-plan clients), 1 SQL tag lookup, and 2 lightweight SQL COUNTs for the
+/// Pending tab count — 9 total, all independent of roster size and page size.
 /// </para>
 /// <para>
 /// Ambiguities pinned for this endpoint (issue #1064): (1) <see cref="ClientTabCounts.Pending"/>
@@ -63,7 +64,14 @@ public class GetClientsEndpoint(
             s.Summary = "Get trainer's clients";
             s.Description =
                 "Returns a paginated list of clients managed by the authenticated trainer or " +
-                "nutritionist, with derived status tabs, tag/chip filters, and per-tab/per-chip counts.";
+                "nutritionist, with derived status tabs, tag/chip filters, and per-tab/per-chip counts. " +
+                "Clients within the coach's plan come first, then clients outside it; each group newest-linked first. " +
+                "Optional tab (cannot be combined with status) and plan filter; tabCounts ignore both. " +
+                "The Active tab also lists outside-plan clients whose published weeks still run (readOnlyFrom).";
+            s.Responses[StatusCodes.Status200OK] = "Client page with tab, plan and chip counts";
+            s.Responses[StatusCodes.Status400BadRequest] = "Invalid paging, enum value, or tab combined with status";
+            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
+            s.Responses[StatusCodes.Status404NotFound] = "Caller has no professional profile";
         });
     }
 
@@ -106,14 +114,25 @@ public class GetClientsEndpoint(
             .OverCapClientProfileIds
             .ToHashSet();
 
+        // One batched Mongo pass for every live outside-plan client, before the tab filter, counts and paging.
+        var outsidePlanUserIds = roster
+            .Where(r => r.IsActive && overCapClientIds.Contains(r.ClientProfileId))
+            .Select(r => r.ClientUserId)
+            .Distinct()
+            .ToList();
+        var runsUntilByClient = await ClientPlanRunsUntilLoader.LoadAsync(
+            mongo, professionalProfile.UserId, outsidePlanUserIds, ct);
+
         var classified = roster
-            .Select(row => Classify(row, nutritionByClient, trainingByClient, today, overCapClientIds))
+            .Select(row => Classify(row, nutritionByClient, trainingByClient, today, overCapClientIds, runsUntilByClient))
             .ToList();
 
         var pendingCount = await CountPendingAsync(professionalProfile.Id, now, ct);
 
         var tabCounts = new ClientTabCounts
         {
+            All = classified.Count,
+            InPlan = classified.Count(IsInActiveTab),
             Active = classified.Count(r => r.Status == ClientListStatus.Active),
             Paused = classified.Count(r => r.Status == ClientListStatus.Paused),
             Archived = classified.Count(r => r.Status == ClientListStatus.Archived),
@@ -121,15 +140,19 @@ public class GetClientsEndpoint(
             Pending = pendingCount
         };
 
-        // Omitted status means every live link — Active and Paused combined, Archived excluded —
-        // matching this endpoint's pre-existing behaviour before status tabs existed.
-        var tabFiltered = req.Status is null
-            ? classified.Where(r => r.Status != ClientListStatus.Archived).ToList()
-            : classified.Where(r => r.Status == req.Status.Value).ToList();
+        var tabFiltered = SelectTab(classified, req);
 
-        if (req.OutsidePlan == true)
+        var planCounts = new ClientPlanCounts
         {
-            tabFiltered = tabFiltered.Where(r => r.IsOutsidePlan).ToList();
+            All = tabFiltered.Count,
+            Active = tabFiltered.Count(r => MatchesPlan(r, ClientPlanFilter.Active)),
+            None = tabFiltered.Count(r => MatchesPlan(r, ClientPlanFilter.None)),
+            EndingSoon = tabFiltered.Count(r => MatchesPlan(r, ClientPlanFilter.EndingSoon))
+        };
+
+        if (req.Plan is { } plan)
+        {
+            tabFiltered = tabFiltered.Where(r => MatchesPlan(r, plan)).ToList();
         }
 
         var counts = ClientRosterFilterClassifier.ComputeCounts(
@@ -152,8 +175,11 @@ public class GetClientsEndpoint(
 
         var chipFiltered = ApplyChipFilter(tabFiltered, req.Filter);
 
+        // In-plan clients always precede outside-plan ones, on every tab/filter and across pages,
+        // so the sort must run before Skip/Take; each group is newest-linked first.
         var page = chipFiltered
-            .OrderByDescending(r => r.Row.LinkedAt)
+            .OrderBy(r => r.IsOutsidePlan)
+            .ThenByDescending(r => r.Row.LinkedAt)
             .Skip((req.Page - 1) * req.PageSize)
             .Take(req.PageSize)
             .Select(r => BuildSummary(r, tagsByLinkId))
@@ -166,9 +192,46 @@ public class GetClientsEndpoint(
             Page = req.Page,
             PageSize = req.PageSize,
             TabCounts = tabCounts,
-            FilterCounts = filterCounts
+            FilterCounts = filterCounts,
+            PlanCounts = planCounts
         }, ct);
     }
+
+    /// <summary>
+    /// Applies the <c>tab</c>; without it, the legacy <c>status</c> selection — omitted status
+    /// means every live link (Active and Paused, Archived excluded).
+    /// </summary>
+    private static List<ClassifiedRow> SelectTab(List<ClassifiedRow> classified, GetClientsRequest req)
+    {
+        if (req.Tab is { } tab)
+        {
+            return tab switch
+            {
+                ClientListTab.All => classified,
+                ClientListTab.Active => classified.Where(IsInActiveTab).ToList(),
+                ClientListTab.OutsidePlan => classified.Where(r => r.Row.IsActive && r.IsOutsidePlan).ToList(),
+                _ => classified.Where(r => !r.Row.IsActive).ToList()
+            };
+        }
+
+        return req.Status is null
+            ? classified.Where(r => r.Status != ClientListStatus.Archived).ToList()
+            : classified.Where(r => r.Status == req.Status.Value).ToList();
+    }
+
+    /// <summary>
+    /// The Active tab: live clients in the plan, plus outside-plan clients whose published weeks still run.
+    /// </summary>
+    private static bool IsInActiveTab(ClassifiedRow r) =>
+        r.Row.IsActive && (!r.IsOutsidePlan || r.ReadOnlyFrom is not null);
+
+    private static bool MatchesPlan(ClassifiedRow r, ClientPlanFilter plan) =>
+        r.Status != ClientListStatus.Archived && plan switch
+        {
+            ClientPlanFilter.Active => r.Status == ClientListStatus.Active,
+            ClientPlanFilter.None => r.Status == ClientListStatus.Paused,
+            _ => r.IsEndingSoon
+        };
 
     private static List<ClassifiedRow> ApplyChipFilter(List<ClassifiedRow> rows, ClientListFilter? filter) =>
         rows.Where(r => ClientRosterFilterClassifier.Matches(
@@ -393,7 +456,8 @@ public class GetClientsEndpoint(
         Dictionary<Guid, PlanWindowProjection> nutritionByClient,
         Dictionary<Guid, PlanWindowProjection> trainingByClient,
         DateOnly today,
-        HashSet<long> overCapClientIds)
+        HashSet<long> overCapClientIds,
+        Dictionary<Guid, DateOnly> runsUntilByClient)
     {
         var activePlans = new List<ClientActivePlanDto>();
         var isEndingSoon = false;
@@ -444,8 +508,14 @@ public class GetClientsEndpoint(
 
         var isOutsidePlan = row.IsActive && overCapClientIds.Contains(row.ClientProfileId);
 
+        DateOnly? readOnlyFrom = isOutsidePlan
+            && runsUntilByClient.TryGetValue(row.ClientUserId, out var lastDay)
+            && ClientPlanRunsUntilLoader.StillRuns(lastDay, today)
+                ? lastDay
+                : null;
+
         return new ClassifiedRow(
-            row, status, hasActiveNutritionPlan, hasActiveTrainingPlan, isEndingSoon, activePlans, isOutsidePlan);
+            row, status, hasActiveNutritionPlan, hasActiveTrainingPlan, isEndingSoon, activePlans, isOutsidePlan, readOnlyFrom);
     }
 
     /// <summary>
@@ -475,7 +545,8 @@ public class GetClientsEndpoint(
             HasActiveNutritionPlan = r.HasActiveNutritionPlan,
             HasActiveTrainingPlan = r.HasActiveTrainingPlan,
             ActivePlans = r.ActivePlans,
-            IsOutsidePlan = r.IsOutsidePlan
+            IsOutsidePlan = r.IsOutsidePlan,
+            ReadOnlyFrom = r.ReadOnlyFrom
         };
 
     /// <summary>
@@ -521,5 +592,6 @@ public class GetClientsEndpoint(
         bool HasActiveTrainingPlan,
         bool IsEndingSoon,
         List<ClientActivePlanDto> ActivePlans,
-        bool IsOutsidePlan);
+        bool IsOutsidePlan,
+        DateOnly? ReadOnlyFrom);
 }

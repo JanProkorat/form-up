@@ -4,14 +4,14 @@ import { Lock, Plus, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ClientListFilter, type ClientTabCounts } from '@/api/generated';
-import { useClientListParams, type ClientListTab } from '@/hooks/useClientListParams';
+import { type ClientTabCounts } from '@/api/generated';
+import { useClientListParams, type ClientsPageTab } from '@/hooks/useClientListParams';
 import { useClients, usePendingClients } from '@/hooks/useClientsQueries';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useSubscription } from '@/hooks/useSubscriptionQueries';
 import OutsidePlanBanner from '@/components/subscription/OutsidePlanBanner';
 import { cn } from '@/lib/utils';
-import ClientFilterChips from '@/components/clients/ClientFilterChips';
+import ClientFilterMenu, { ClientActiveFilters } from '@/components/clients/ClientFilterMenu';
 import ClientTagFilterPopover from '@/components/clients/ClientTagFilterPopover';
 import ClientsTable from '@/components/clients/ClientsTable';
 import PendingTable from '@/components/clients/PendingTable';
@@ -20,46 +20,35 @@ import ClientSelectionBar from '@/components/clients/ClientSelectionBar';
 import BroadcastDrawer from '@/components/clients/BroadcastDrawer';
 import AddClientDrawer from '@/components/clients/AddClientDrawer';
 
-// All first (the default), then the order of the Figma wireframe (frame
-// client-list-02, #1066 phase 6): Active, Pending, Paused, Ended — "Ended" was
-// renamed "Archived" earlier in this issue, which is settled.
-// "Outside plan" sits between Paused ("No plan") and Archived and only shows while some client is over the cap.
-const TAB_ORDER: ClientListTab[] = ['All', 'Active', 'Pending', 'Paused', 'OutsidePlan', 'Archived'];
+// Order of the PageClients board: All, Active (the default), Outside plan (only
+// when it has clients or is open), Pending, Archived.
+const TAB_ORDER: ClientsPageTab[] = ['All', 'Active', 'OutsidePlan', 'Pending', 'Archived'];
 
-const TAB_LABEL_KEY: Record<ClientListTab, string> = {
+const TAB_LABEL_KEY: Record<ClientsPageTab, string> = {
   All: 'clients.tabs.all',
   Active: 'clients.tabs.active',
-  Paused: 'clients.tabs.paused',
   OutsidePlan: 'clients.tabs.outsidePlan',
-  Archived: 'clients.tabs.archived',
   Pending: 'clients.tabs.pending',
+  Archived: 'clients.tabs.archived',
 };
 
-const TAB_COUNT_KEY: Record<Exclude<ClientListTab, 'All'>, keyof ClientTabCounts> = {
-  Active: 'active',
-  Paused: 'paused',
+const TAB_COUNT_KEY: Record<ClientsPageTab, keyof ClientTabCounts> = {
+  All: 'all',
+  Active: 'inPlan',
   OutsidePlan: 'outsidePlan',
-  Archived: 'archived',
   Pending: 'pending',
+  Archived: 'archived',
 };
-
-/** One tab's badge. "All" has no count of its own: it is the Active, No-plan and Pending ones added up. */
-function tabCount(tab: ClientListTab, counts: ClientTabCounts): number {
-  if (tab === 'All') {
-    return (counts.active ?? 0) + (counts.paused ?? 0) + (counts.pending ?? 0);
-  }
-  return counts[TAB_COUNT_KEY[tab]] ?? 0;
-}
 
 /**
- * The trainer-portal Clients page — tabs, search, filter chips, tag filter,
+ * The trainer-portal Clients page — tabs, search, tag and filter menus,
  * the client table, and pagination. See PLAN-1066-clients-page.md §2-3 for
  * the phased build (this is phase 3) and the design decisions behind the
  * URL-as-state-of-record model consumed via `useClientListParams`.
  */
 export default function ClientsPage() {
   const { t } = useTranslation();
-  const { filters, setSearch, setTab, setChip, setTagIds, setPage, clearFilters } = useClientListParams();
+  const { filters, setSearch, setTab, setPlan, setTagIds, setPage, clearPlan, clearFilters } = useClientListParams();
 
   const [searchInput, setSearchInput] = useState(filters.search);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -133,17 +122,17 @@ export default function ClientsPage() {
 
   const isPendingTab = filters.tab === 'Pending';
 
-  // Deliberately enabled on every tab, including Pending — tab/chip counts
+  // Deliberately enabled on every tab, including Pending — tab and plan counts
   // live only on this response (see useClients' own doc comment). Do not
   // gate this query on `!isPendingTab`.
   const clientsQuery = useClients(filters);
   const pendingQuery = usePendingClients();
 
-  // Search/chip/tag changes don't clear the selection outright — they PRUNE
+  // Search/plan/tag changes don't clear the selection outright — they PRUNE
   // it: drop any selected client the new filter excludes, keep the rest (a
   // coach who ticks 10 and then narrows the list to 7 should still see 7
   // selected). Paging within the same filter must NOT prune — `setPage`
-  // never touches `search`/`chip`/`tags`, so it never changes `filterKey`
+  // never touches `search`/`plan`/`tags`, so it never changes `filterKey`
   // and this block never runs for it. `tagIds` is sorted to match
   // `useClients`' own `tagIdsKey`, so re-picking the same tags in a
   // different click order isn't treated as a filter change.
@@ -183,7 +172,7 @@ export default function ClientsPage() {
   // forever after one failure.
   //
   // Adjusted during render, same pattern as `selectionTab`/`syncedSearch`.
-  const filterKey = `${filters.search}|${filters.chip}|${[...filters.tagIds].sort().join(',')}`;
+  const filterKey = `${filters.search}|${filters.plan ?? ''}|${[...filters.tagIds].sort().join(',')}`;
   const [prunedFilterKey, setPrunedFilterKey] = useState(filterKey);
   if (filterKey !== prunedFilterKey && clientsQuery.isSuccess && !clientsQuery.isPlaceholderData) {
     setPrunedFilterKey(filterKey);
@@ -199,10 +188,14 @@ export default function ClientsPage() {
     filters.tab === 'All' && (pendingQuery.isPending || pendingQuery.isError || (pendingQuery.data ?? []).length > 0);
   const tabCounts = clientsQuery.data?.tabCounts;
   const subscription = useSubscription();
-  const showOutsidePlanBanner = subscription.isCoach && subscription.overCapClientCount > 0;
-  const visibleTabs = TAB_ORDER.filter((tab) => tab !== 'OutsidePlan' || (tabCounts?.outsidePlan ?? 0) > 0);
-  const hasActiveFilter =
-    filters.search !== '' || filters.chip !== ClientListFilter.All || filters.tagIds.length > 0;
+  const choicePending = subscription.isCoach && subscription.keepClientsChoiceRequired;
+  const showOutsidePlanBanner = subscription.isCoach && (choicePending || subscription.overCapClientCount > 0);
+  const hasPlanFilter = filters.plan !== null;
+  const hasActiveFilter = filters.search !== '' || hasPlanFilter || filters.tagIds.length > 0;
+  const isOutsidePlanTab = filters.tab === 'OutsidePlan';
+  const visibleTabs = TAB_ORDER.filter(
+    (tab) => tab !== 'OutsidePlan' || isOutsidePlanTab || (tabCounts?.outsidePlan ?? 0) > 0,
+  );
 
   return (
     <div className="flex flex-col gap-4">
@@ -227,10 +220,12 @@ export default function ClientsPage() {
           clientLimit={subscription.clientLimit}
           overCapClientCount={subscription.overCapClientCount}
           freeSlotCount={subscription.freeSlotCount}
+          choicePending={choicePending}
+          onShowClients={isOutsidePlanTab ? undefined : () => setTab('OutsidePlan')}
         />
       )}
 
-      <Tabs value={filters.tab} onValueChange={(value) => setTab(value as ClientListTab)}>
+      <Tabs value={filters.tab} onValueChange={(value) => setTab(value as ClientsPageTab)}>
         {/* Below the width where all four tabs fit (phone-width shell fix,
             see PLAN-1066-clients-page.md phase 5), the row scrolls within
             its own container instead of being clipped by the shell's
@@ -251,7 +246,7 @@ export default function ClientsPage() {
                         isActiveTab ? 'bg-primary text-primary-foreground' : 'bg-line text-muted-foreground',
                       )}
                     >
-                      {tabCount(tab, tabCounts)}
+                      {tabCounts[TAB_COUNT_KEY[tab]] ?? 0}
                     </span>
                   )}
                 </TabsTrigger>
@@ -278,8 +273,12 @@ export default function ClientsPage() {
               />
           </div>
           <ClientTagFilterPopover selectedTagIds={filters.tagIds} onChange={setTagIds} />
-          <span className="hidden h-6 w-px bg-line sm:block" aria-hidden="true" />
-          <ClientFilterChips active={filters.chip} counts={clientsQuery.data?.filterCounts} onSelect={setChip} />
+          <ClientFilterMenu
+            plan={filters.plan}
+            counts={clientsQuery.data?.planCounts}
+            onChange={setPlan}
+          />
+          {hasPlanFilter && <ClientActiveFilters plan={filters.plan} onRemove={clearPlan} />}
         </div>
       )}
 

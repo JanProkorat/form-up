@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { instantiatePlanTemplate } from '@/api/nutrition-plan-templates';
 import { createPlan } from '@/api/plans';
 import CopyPlanFromClientDialog from '@/components/client-detail/nutrition/CopyPlanFromClientDialog';
+import OutsidePlanPaywall from '@/components/client-detail/OutsidePlanPaywall';
 import { getErrorStatus, showApiError, showSuccess } from '@/lib/api-errors';
 import { cn } from '@/lib/utils';
 import type { GetClientDashboardResponse } from '@/api/generated';
@@ -78,7 +79,9 @@ export default function NutritionEmptyState({ clientId, dashboard }: Props) {
     () => criteriaFromOnboarding(onboarding, clientKcal),
     [onboarding, clientKcal],
   );
-  const { goalQuery, allQuery } = useClientMatchedTemplates(criteria.goal, true);
+  // A client outside the coach's plan cannot get a new plan: show a paywall instead of the templates.
+  const outsidePlan = dashboard.isOutsidePlan === true;
+  const { goalQuery, allQuery } = useClientMatchedTemplates(criteria.goal, !outsidePlan);
   const hasGoal = criteria.goal !== undefined;
   const isPending = allQuery.isPending || (hasGoal && goalQuery.isPending);
   const isError = allQuery.isError || (hasGoal && goalQuery.isError);
@@ -164,10 +167,16 @@ export default function NutritionEmptyState({ clientId, dashboard }: Props) {
           <h2 id={headingId} className="text-stat font-bold text-ink">
             {t('clientDetail.nutrition.empty.heading', { name: firstName })}
           </h2>
-          <p className="max-w-xl text-copy text-muted-foreground">{t('clientDetail.nutrition.empty.body')}</p>
+          {!outsidePlan && (
+            <p className="max-w-xl text-copy text-muted-foreground">{t('clientDetail.nutrition.empty.body')}</p>
+          )}
         </div>
       </div>
 
+      {outsidePlan ? (
+        <OutsidePlanPaywall firstName={firstName} />
+      ) : (
+      <>
       <div className="flex items-center justify-between gap-3">
         <p className="text-caption font-semibold uppercase tracking-wider text-muted-foreground">
           {[t('clientDetail.nutrition.empty.matchedTo', { name: firstName }), ...matchedParts].join(' · ')}
@@ -339,6 +348,8 @@ export default function NutritionEmptyState({ clientId, dashboard }: Props) {
         </Link>
       </div>
       <CopyPlanFromClientDialog open={copyOpen} onOpenChange={setCopyOpen} clientId={clientId} />
+      </>
+      )}
     </section>
   );
 }

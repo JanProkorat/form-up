@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Check, ChevronLeft, Loader2, Redo2, Undo2 } from 'lucide-react';
+import { Check, ChevronLeft, Loader2, Lock, Redo2, Undo2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -63,6 +63,8 @@ interface Props {
   primaryAction?: { label: string; disabled: boolean; title?: string; busy: boolean; onRun: () => void };
   /** With a primary action, also shows the default Save button to its left. */
   secondarySave?: boolean;
+  /** Save and the primary action stay enabled and show a lock: the host answers the click with a paywall. */
+  locked?: boolean;
   /** Rendered last in the row, e.g. a plan actions menu. */
   actions?: ReactNode;
   range: EditorRange;
@@ -88,6 +90,7 @@ export default function PlanEditorHeader({
   onSave,
   primaryAction,
   secondarySave,
+  locked = false,
   actions,
   range,
   view,
@@ -243,10 +246,10 @@ export default function PlanEditorHeader({
                   type="button"
                   variant="outline"
                   className={cn('h-7.5 shrink-0', buttonPadding, controlOrder)}
-                  disabled={!dirty || nameInvalid || saving || primaryAction.busy}
+                  disabled={(!dirty && !locked) || nameInvalid || saving || primaryAction.busy}
                   onClick={onSave}
                 >
-                  <Check aria-hidden="true" />
+                  {locked ? <Lock aria-hidden="true" /> : <Check aria-hidden="true" />}
                   {t('planEditor.save')}
                 </Button>
               )}
@@ -259,6 +262,8 @@ export default function PlanEditorHeader({
               >
                 {primaryAction.busy ? (
                   <Loader2 className="animate-spin" aria-hidden="true" />
+                ) : locked ? (
+                  <Lock aria-hidden="true" />
                 ) : (
                   <Check aria-hidden="true" />
                 )}
@@ -266,8 +271,8 @@ export default function PlanEditorHeader({
               </Button>
             </>
           ) : (
-            <Button type="button" className="h-7.5 px-3" disabled={!dirty || nameInvalid || saving} onClick={onSave}>
-              <Check aria-hidden="true" />
+            <Button type="button" className="h-7.5 px-3" disabled={(!dirty && !locked) || nameInvalid || saving} onClick={onSave}>
+              {locked ? <Lock aria-hidden="true" /> : <Check aria-hidden="true" />}
               {t('planEditor.save')}
             </Button>
           )}

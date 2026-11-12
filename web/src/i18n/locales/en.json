@@ -367,6 +367,8 @@
       },
       "selected": "{{count}} of {{cap}} selected",
       "changeLater": "You can change your choice here later.",
+      "preselectedHint_one": "We pre-selected the {{count}} client you have worked with longest. You can change the selection.",
+      "preselectedHint_other": "We pre-selected the {{count}} clients you have worked with longest. You can change the selection.",
       "save_one": "Keep this client",
       "save_other": "Keep these {{count}}",
       "saveSuccess": "Your choice is saved",
@@ -390,7 +392,12 @@
       "detailTitle": "{{name}} is outside your {{plan}} plan.",
       "body": "Plans of clients outside your plan run until the last published week, then become read-only.",
       "upgrade": "Higher plan",
-      "pickClient": "Choose a client for the free slot"
+      "showClients": "Show these clients",
+      "pickClient": "Choose a client for the free slot",
+      "pendingTitle_one": "Your {{plan}} plan includes {{count}} client. You have not confirmed which one yet.",
+      "pendingTitle_other": "Your {{plan}} plan includes {{count}} clients. You have not confirmed which ones yet.",
+      "pendingBody": "Until you do, you keep the clients you have worked with longest. The others keep their published weeks, then become read-only.",
+      "chooseClients": "Choose clients"
     },
     "plan": {
       "title": "Plan and billing",
@@ -739,13 +746,22 @@
       "pending": "Pending"
     },
     "searchPlaceholder": "Search clients...",
-    "chips": {
-      "groupLabel": "Filter clients",
-      "all": "All",
-      "endingSoon": "Ending soon"
+    "filterMenu": {
+      "label": "Filter",
+      "plansGroup": "Plans",
+      "plans": {
+        "all": "All plans",
+        "active": "Active plans",
+        "none": "No plan",
+        "endingSoon": "Plans ending soon"
+      },
+      "clearAll": "Clear filters",
+      "remove": "Remove filter {{name}}"
     },
     "outsidePlan": {
       "chip": "Outside plan",
+      "readOnlyFrom": "Read-only from {{date}}",
+      "readOnlyTooltip": "Outside your plan. Published weeks run until {{date}}, then the plans become read-only.",
       "tooltip": "This client's plans run until the last published week, then become read-only."
     },
     "tagFilter": {
@@ -2876,6 +2892,7 @@
       "copiedFrom": "Copied from {{name}}'s profile",
       "resetToProfile": "reset to profile",
       "startedFromTemplate": "Started from template {{name}}",
+      "outsidePlan": "{{name}} is outside your plan. Editing and publishing unlock on a higher plan.",
       "about": {
         "heading": "About {{name}}",
         "goal": "Goal",
@@ -4437,6 +4454,15 @@
     }
   },
   "clientDetail": {
+    "outsidePlanPaywall": {
+      "title": "Create a new plan for {{name}} on a higher plan",
+      "editTitle": "Edit {{name}}'s plan on a higher plan",
+      "body": "{{name}} is outside your {{plan}} plan. Upgrade to build and publish new plans again.",
+      "lead": "Clients stay where their next plan is always ready. Don't keep them waiting.",
+      "benefit1": "{{name}} gets a new plan right away, with no break in your work together.",
+      "benefit2": "Room for the next clients who come to you.",
+      "benefit3": "Higher plans also unlock more tools for working with clients."
+    },
     "automations": {
       "introBefore": "Rules from your ",
       "introLink": "Automations",

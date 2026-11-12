@@ -9,6 +9,8 @@ using FormUp.Application.Infrastructure.Data.MongoDb;
 using FormUp.Tests.Builders;
 using FormUp.Tests.Infrastructure;
 using FluentAssertions;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -551,30 +553,34 @@ public class GetClientsEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task List_OutsidePlanTrue_ListsExactlyTheOverCapLiveRowsActiveAndPausedWithSearchApplied()
+    public async Task List_TabOutsidePlan_ListsExactlyTheOverCapLiveRowsActiveAndPausedWithSearchApplied()
     {
         var (coach, clients) = await CoachWithClientsAsync(4);
         await SeedActiveTrainingPlanAsync(coach.UserId, clients[2].UserId, DateTime.UtcNow.Date.AddDays(-1));
 
-        var all = await ListAsync(coach, "?outsidePlan=true");
+        var all = await ListAsync(coach, "?tab=OutsidePlan");
 
         all.Clients.Select(c => c.UserId).Should().BeEquivalentTo([clients[2].UserId, clients[3].UserId]);
         all.Clients.Select(c => c.Status).Should().BeEquivalentTo(["Active", "Paused"]);
         all.TotalCount.Should().Be(2);
 
-        var searched = await ListAsync(coach, $"?outsidePlan=true&search={Uri.EscapeDataString(clients[3].Email)}");
+        var searched = await ListAsync(coach, $"?tab=OutsidePlan&search={Uri.EscapeDataString(clients[3].Email)}");
 
         searched.Clients.Should().ContainSingle(c => c.UserId == clients[3].UserId);
         searched.TabCounts.OutsidePlan.Should().Be(1, "search narrows the tab counts like Active and Paused");
     }
 
-    [Fact]
-    public async Task List_OutsidePlanTrueWithStatusArchived_Returns400()
+    [Theory]
+    [InlineData("?tab=Active&status=Active")]
+    [InlineData("?tab=All&status=Archived")]
+    [InlineData("?tab=Bogus")]
+    [InlineData("?plan=Bogus")]
+    [InlineData("?tab=99")]
+    public async Task List_TabWithStatusOrInvalidEnum_Returns400(string query)
     {
         var (coach, _) = await CoachWithClientsAsync(1);
 
-        var response = await coach.Http.GetAsync(
-            "/trainer/clients?outsidePlan=true&status=Archived", TestContext.Current.CancellationToken);
+        var response = await coach.Http.GetAsync($"/trainer/clients{query}", TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
@@ -594,6 +600,28 @@ public class GetClientsEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task List_OutsidePlanClientsLinkedMoreRecently_ListedAfterAllInPlanClientsAcrossPages()
+    {
+        // Free cap 2: clients[0] and [1] are in plan, [2..4] outside, and every outside client is newer.
+        var (coach, clients) = await CoachWithClientsAsync(5);
+
+        var all = await ListAsync(coach);
+
+        all.Clients.Select(c => c.UserId).Should().Equal(
+            [clients[1].UserId, clients[0].UserId, clients[4].UserId, clients[3].UserId, clients[2].UserId]);
+
+        var paged = new List<Guid>();
+
+        for (var page = 1; page <= 3; page++)
+        {
+            var body = await ListAsync(coach, $"?page={page}&pageSize=2");
+            paged.AddRange(body.Clients.Select(c => c.UserId));
+        }
+
+        paged.Should().Equal(all.Clients.Select(c => c.UserId));
+    }
+
+    [Fact]
     public async Task List_WithinCapUnlimitedPlanOrPlanChoiceRequired_FlagsNobody()
     {
         var (withinCap, _) = await CoachWithClientsAsync(2);
@@ -609,9 +637,272 @@ public class GetClientsEndpointTests(FitnessApiFactory factory)
 
             body.Clients.Should().OnlyContain(c => !c.IsOutsidePlan);
             body.TabCounts.OutsidePlan.Should().Be(0);
-            (await ListAsync(coach, "?outsidePlan=true")).Clients.Should().BeEmpty();
+            (await ListAsync(coach, "?tab=OutsidePlan")).Clients.Should().BeEmpty();
         }
     }
+
+    // ── clients-page tabs and plan filter ────────────────────────────────────
+
+    /// <summary>
+    /// Free cap 2, five clients linked oldest first, the oldest archived: [1] and [2] in plan,
+    /// [3] and [4] outside. Plans: [1] ending soon, [3] long-running; [2] and [4] have none.
+    /// </summary>
+    private async Task<(Actor Coach, List<Actor> Clients)> MixedRosterAsync()
+    {
+        var (coach, clients) = await CoachWithClientsAsync(5);
+        await SetLinkActiveAsync(clients[0].PublicId, false);
+        await SeedActiveTrainingPlanAsync(coach.UserId, clients[1].UserId, DateTime.UtcNow.Date.AddDays(-1), weekCount: 1);
+        await SeedActiveTrainingPlanAsync(coach.UserId, clients[3].UserId, DateTime.UtcNow.Date.AddDays(-1), weekCount: 10);
+
+        return (coach, clients);
+    }
+
+    private static Guid[] Ids(List<Actor> clients, params int[] indexes) =>
+        indexes.Select(i => clients[i].UserId).ToArray();
+
+    [Theory]
+    [InlineData("All", new[] { 2, 1, 0, 4, 3 })]
+    [InlineData("Active", new[] { 2, 1 })]
+    [InlineData("OutsidePlan", new[] { 4, 3 })]
+    [InlineData("Archived", new[] { 0 })]
+    public async Task List_Tab_ReturnsExpectedRowsInOrder(string tab, int[] expected)
+    {
+        var (coach, clients) = await MixedRosterAsync();
+
+        var body = await ListAsync(coach, $"?tab={tab}");
+
+        body.Clients.Select(c => c.UserId).Should().Equal(Ids(clients, expected));
+        body.TotalCount.Should().Be(expected.Length);
+    }
+
+    [Theory]
+    [InlineData("Active", new[] { 1, 3 })]
+    [InlineData("None", new[] { 2, 4 })]
+    [InlineData("EndingSoon", new[] { 1 })]
+    public async Task List_PlanFilterOnAllTab_ReturnsExpectedRows_ArchivedNeverMatches(string plan, int[] expected)
+    {
+        var (coach, clients) = await MixedRosterAsync();
+
+        var body = await ListAsync(coach, $"?tab=All&plan={plan}");
+
+        body.Clients.Select(c => c.UserId).Should().BeEquivalentTo(Ids(clients, expected));
+        body.Clients.Should().NotContain(c => c.UserId == clients[0].UserId);
+    }
+
+    [Fact]
+    public async Task List_TabCombinedWithPlan_AppliesPlanAfterTab()
+    {
+        var (coach, clients) = await MixedRosterAsync();
+
+        var inPlanEnding = await ListAsync(coach, "?tab=Active&plan=EndingSoon");
+        var outsideActive = await ListAsync(coach, "?tab=OutsidePlan&plan=Active");
+        var archivedNone = await ListAsync(coach, "?tab=Archived&plan=None");
+
+        inPlanEnding.Clients.Select(c => c.UserId).Should().Equal(clients[1].UserId);
+        outsideActive.Clients.Select(c => c.UserId).Should().Equal(clients[3].UserId);
+        archivedNone.Clients.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task List_TabCounts_AreIndependentOfTabAndPlan()
+    {
+        var (coach, _) = await MixedRosterAsync();
+
+        var baseline = await ListAsync(coach);
+
+        baseline.TabCounts.Should().BeEquivalentTo(new TabCountsDto
+        {
+            All = 5, InPlan = 2, Active = 2, Paused = 2, Archived = 1, OutsidePlan = 2, Pending = 0
+        });
+
+        foreach (var query in new[] { "?tab=All", "?tab=Active", "?tab=OutsidePlan", "?tab=Archived", "?tab=Active&plan=None", "?plan=EndingSoon" })
+        {
+            (await ListAsync(coach, query)).TabCounts.Should().BeEquivalentTo(baseline.TabCounts, query);
+        }
+    }
+
+    [Theory]
+    [InlineData("?tab=All", 5, 2, 2, 1)]
+    [InlineData("?tab=Active", 2, 1, 1, 1)]
+    [InlineData("?tab=OutsidePlan", 2, 1, 1, 0)]
+    [InlineData("?tab=Archived", 1, 0, 0, 0)]
+    [InlineData("?tab=All&plan=None", 5, 2, 2, 1)]
+    [InlineData("?tab=All&filter=EndingSoon", 5, 2, 2, 1)]
+    public async Task List_PlanCounts_ComputedOnSelectedTabBeforePlanAndChipFilters(
+        string query, int all, int active, int none, int endingSoon)
+    {
+        var (coach, _) = await MixedRosterAsync();
+
+        var body = await ListAsync(coach, query);
+
+        body.PlanCounts.Should().BeEquivalentTo(new PlanCountsDto
+        {
+            All = all, Active = active, None = none, EndingSoon = endingSoon
+        });
+    }
+
+    [Fact]
+    public async Task List_WithoutTabPlanOrStatus_KeepsLegacyRowsAndCounts()
+    {
+        var (coach, clients) = await MixedRosterAsync();
+
+        var body = await ListAsync(coach);
+
+        // Every live link, Archived excluded, in-plan first then newest-linked first.
+        body.Clients.Select(c => c.UserId).Should().Equal(Ids(clients, 2, 1, 4, 3));
+        body.TotalCount.Should().Be(4);
+        body.TabCounts.Active.Should().Be(2);
+        body.TabCounts.Paused.Should().Be(2);
+        body.TabCounts.Archived.Should().Be(1);
+        body.TabCounts.OutsidePlan.Should().Be(2);
+        body.FilterCounts.All.Should().Be(4);
+        body.PlanCounts.All.Should().Be(4);
+
+        (await ListAsync(coach, "?status=Active")).Clients.Select(c => c.UserId)
+            .Should().BeEquivalentTo(Ids(clients, 1, 3));
+    }
+
+    // ── winding-down outside-plan clients (published weeks still run) ────────
+
+    private static readonly DateTime TodayUtc = DateTime.UtcNow.Date;
+
+    private static DateOnly EndOfFirstPublishedWeek(DateTime startDate) => DateOnly.FromDateTime(startDate.AddDays(6));
+
+    /// <summary>
+    /// Free cap 2, four clients: [0] and [1] in plan, [2] and [3] outside. A published week starting
+    /// <paramref name="daysAgo"/> days back ends 6 days after its start.
+    /// </summary>
+    private async Task<(Actor Coach, List<Actor> Clients)> CoachWithPublishedWeekOnOutsideClientAsync(int daysAgo)
+    {
+        var (coach, clients) = await CoachWithClientsAsync(4);
+        await SeedPublishedTrainingPlanAsync(coach.UserId, clients[2].UserId, TodayUtc.AddDays(-daysAgo));
+
+        return (coach, clients);
+    }
+
+    [Fact]
+    public async Task List_OutsidePlanClientWhosePublishedWeeksStillRun_ListsInActiveAndOutsidePlanWithReadOnlyFrom()
+    {
+        var (coach, clients) = await CoachWithPublishedWeekOnOutsideClientAsync(daysAgo: 3);
+        // An in-plan client with published weeks never gets the marker.
+        await SeedPublishedTrainingPlanAsync(coach.UserId, clients[1].UserId, TodayUtc.AddDays(-3));
+        var expectedEnd = EndOfFirstPublishedWeek(TodayUtc.AddDays(-3));
+
+        var active = await ListAsync(coach, "?tab=Active");
+        var outside = await ListAsync(coach, "?tab=OutsidePlan");
+
+        active.Clients.Select(c => c.UserId).Should().Equal(Ids(clients, 1, 0, 2));
+        outside.Clients.Select(c => c.UserId).Should().Equal(Ids(clients, 3, 2));
+        active.Clients.Single(c => c.UserId == clients[2].UserId).ReadOnlyFrom.Should().Be(expectedEnd);
+        outside.Clients.Single(c => c.UserId == clients[2].UserId).ReadOnlyFrom.Should().Be(expectedEnd);
+        outside.Clients.Single(c => c.UserId == clients[3].UserId).ReadOnlyFrom.Should().BeNull();
+        active.Clients.Where(c => c.UserId != clients[2].UserId).Should().OnlyContain(c => c.ReadOnlyFrom == null);
+    }
+
+    [Fact]
+    public async Task List_OutsidePlanClientWhosePublishedWeeksEnded_IsOnlyInOutsidePlanWithoutReadOnlyFrom()
+    {
+        var (coach, clients) = await CoachWithPublishedWeekOnOutsideClientAsync(daysAgo: 7);
+
+        var active = await ListAsync(coach, "?tab=Active");
+        var outside = await ListAsync(coach, "?tab=OutsidePlan");
+
+        active.Clients.Select(c => c.UserId).Should().Equal(Ids(clients, 1, 0));
+        outside.Clients.Select(c => c.UserId).Should().Equal(Ids(clients, 3, 2));
+        outside.Clients.Should().OnlyContain(c => c.ReadOnlyFrom == null);
+    }
+
+    [Fact]
+    public async Task List_TabCountsInPlan_CountsTheActiveTabDefinitionIncludingWindingDownClients()
+    {
+        var (coach, _) = await CoachWithPublishedWeekOnOutsideClientAsync(daysAgo: 3);
+
+        var all = await ListAsync(coach, "?tab=All");
+        var outside = await ListAsync(coach, "?tab=OutsidePlan");
+
+        all.TabCounts.InPlan.Should().Be(3);
+        all.TabCounts.OutsidePlan.Should().Be(2, "winding-down clients stay in the Outside plan tab too");
+        outside.TabCounts.InPlan.Should().Be(3);
+        (await ListAsync(coach, "?tab=Active")).TotalCount.Should().Be(3);
+    }
+
+    [Fact]
+    public async Task List_WindingDownClientOnLaterPage_StillCountsAndPagesInActiveTab()
+    {
+        var (coach, clients) = await CoachWithPublishedWeekOnOutsideClientAsync(daysAgo: 3);
+
+        var page1 = await ListAsync(coach, "?tab=Active&page=1&pageSize=2");
+        var page2 = await ListAsync(coach, "?tab=Active&page=2&pageSize=2");
+
+        page1.TotalCount.Should().Be(3);
+        page1.Clients.Select(c => c.UserId).Should().Equal(Ids(clients, 1, 0));
+        page2.Clients.Select(c => c.UserId).Should().Equal(Ids(clients, 2));
+        page2.Clients.Single().ReadOnlyFrom.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task List_ArchivedPlanOrAnotherCoachsPlan_DoesNotKeepAnOutsidePlanClientRunning()
+    {
+        var (coach, clients) = await CoachWithClientsAsync(4);
+        var otherCoach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        await SeedPublishedTrainingPlanAsync(
+            coach.UserId, clients[2].UserId, TodayUtc.AddDays(-3), TrainingPlanStatus.Archived);
+        await SeedPublishedTrainingPlanAsync(otherCoach.UserId, clients[3].UserId, TodayUtc.AddDays(-3));
+
+        var active = await ListAsync(coach, "?tab=Active");
+        var outside = await ListAsync(coach, "?tab=OutsidePlan");
+
+        active.Clients.Select(c => c.UserId).Should().Equal(Ids(clients, 1, 0));
+        outside.Clients.Should().OnlyContain(c => c.ReadOnlyFrom == null);
+    }
+
+    [Fact]
+    public async Task List_PublishedWeeksEndingExactlyToday_StillRunButNotOnceTodayHasPassed()
+    {
+        var (coach, clients) = await CoachWithClientsAsync(4);
+        var pinnedNow = DateTimeOffset.UtcNow;
+        var pinnedToday = pinnedNow.UtcDateTime.Date;
+        // [2] ends on the pinned day itself, [3] ended the day before.
+        await SeedPublishedTrainingPlanAsync(coach.UserId, clients[2].UserId, pinnedToday.AddDays(-6));
+        await SeedPublishedTrainingPlanAsync(coach.UserId, clients[3].UserId, pinnedToday.AddDays(-7));
+
+        SettableTimeProvider.Now = pinnedNow;
+        var pinnedHttp = PinnedFactory.CreateClient();
+        pinnedHttp.DefaultRequestHeaders.Authorization = coach.Http.DefaultRequestHeaders.Authorization;
+
+        var active = await ListAsync(coach with { Http = pinnedHttp }, "?tab=Active");
+
+        active.Clients.Select(c => c.UserId).Should().Equal(Ids(clients, 1, 0, 2));
+        active.Clients.Single(c => c.UserId == clients[2].UserId).ReadOnlyFrom
+            .Should().Be(DateOnly.FromDateTime(pinnedToday));
+    }
+
+    private sealed class SettableTimeProvider : TimeProvider
+    {
+        public static DateTimeOffset Now { get; set; } = DateTimeOffset.UtcNow;
+
+        public override DateTimeOffset GetUtcNow() => Now;
+    }
+
+    private static WebApplicationFactory<Program>? _pinnedFactory;
+
+    /// <summary>
+    /// A host derived from the shared fixture whose clock reads <see cref="SettableTimeProvider.Now"/>,
+    /// memoized in a static field and never disposed (the same pattern as
+    /// <c>GetTodayPlanProjectionIntegrationTests</c>).
+    /// </summary>
+    private WebApplicationFactory<Program> PinnedFactory => _pinnedFactory ??= factory.WithWebHostBuilder(builder =>
+    {
+        builder.ConfigureServices(services =>
+        {
+            foreach (var descriptor in services.Where(d => d.ServiceType == typeof(TimeProvider)).ToList())
+            {
+                services.Remove(descriptor);
+            }
+
+            services.AddSingleton<TimeProvider, SettableTimeProvider>();
+        });
+    });
 
     // ── fixtures ─────────────────────────────────────────────────────────────
 
@@ -673,6 +964,23 @@ public class GetClientsEndpointTests(FitnessApiFactory factory)
             Status = TrainingPlanStatus.Active,
             StartDate = startDate,
             Weeks = Enumerable.Range(1, weekCount).Select(n => new TrainingWeek { WeekNumber = n }).ToList()
+        }, cancellationToken: TestContext.Current.CancellationToken);
+    }
+
+    private async Task SeedPublishedTrainingPlanAsync(
+        Guid authorUserId, Guid clientUserId, DateTime startDate, TrainingPlanStatus status = TrainingPlanStatus.Active)
+    {
+        using var scope = factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+        await mongo.TrainingPlans.InsertOneAsync(new TrainingPlan
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = clientUserId,
+            TrainerId = authorUserId,
+            Name = "Published Plan",
+            Status = status,
+            StartDate = startDate,
+            Weeks = [new TrainingWeek { WeekNumber = 1, Status = WeekStatus.Published }]
         }, cancellationToken: TestContext.Current.CancellationToken);
     }
 
@@ -742,10 +1050,21 @@ public class GetClientsEndpointTests(FitnessApiFactory factory)
         public int PageSize { get; set; }
         public TabCountsDto TabCounts { get; set; } = new();
         public FilterCountsDto FilterCounts { get; set; } = new();
+        public PlanCountsDto PlanCounts { get; set; } = new();
+    }
+
+    private sealed class PlanCountsDto
+    {
+        public int All { get; set; }
+        public int Active { get; set; }
+        public int None { get; set; }
+        public int EndingSoon { get; set; }
     }
 
     private sealed class TabCountsDto
     {
+        public int All { get; set; }
+        public int InPlan { get; set; }
         public int Active { get; set; }
         public int Paused { get; set; }
         public int Archived { get; set; }
@@ -775,6 +1094,7 @@ public class GetClientsEndpointTests(FitnessApiFactory factory)
         public bool HasActiveNutritionPlan { get; set; }
         public bool HasActiveTrainingPlan { get; set; }
         public bool IsOutsidePlan { get; set; }
+        public DateOnly? ReadOnlyFrom { get; set; }
         public List<object> ActivePlans { get; set; } = [];
     }
 

@@ -367,6 +367,8 @@
       },
       "selected": "{{count}} von {{cap}} ausgewählt",
       "changeLater": "Sie können Ihre Auswahl hier später ändern.",
+      "preselectedHint_one": "Wir haben den {{count}} Klienten vorausgewählt, mit dem Sie am längsten zusammenarbeiten. Sie können die Auswahl ändern.",
+      "preselectedHint_other": "Wir haben die {{count}} Klienten vorausgewählt, mit denen Sie am längsten zusammenarbeiten. Sie können die Auswahl ändern.",
       "save_one": "Diesen Klienten behalten",
       "save_other": "Diese {{count}} behalten",
       "saveSuccess": "Ihre Auswahl ist gespeichert",
@@ -390,7 +392,12 @@
       "detailTitle": "{{name}} liegt außerhalb Ihres Tarifs {{plan}}.",
       "body": "Die Pläne von Klienten außerhalb Ihres Tarifs laufen bis zur letzten veröffentlichten Woche weiter und sind danach nur noch lesbar.",
       "upgrade": "Höherer Tarif",
-      "pickClient": "Klienten für den freien Platz wählen"
+      "showClients": "Diese Klienten anzeigen",
+      "pickClient": "Klienten für den freien Platz wählen",
+      "pendingTitle_one": "Ihr Tarif {{plan}} umfasst {{count}} Klienten. Sie haben noch nicht bestätigt, welche.",
+      "pendingTitle_other": "Ihr Tarif {{plan}} umfasst {{count}} Klienten. Sie haben noch nicht bestätigt, welche.",
+      "pendingBody": "Bis dahin behalten Sie die Klienten, mit denen Sie am längsten zusammenarbeiten. Die anderen behalten ihre veröffentlichten Wochen, danach sind sie nur lesbar.",
+      "chooseClients": "Klienten auswählen"
     },
     "plan": {
       "title": "Tarif und Abrechnung",
@@ -739,13 +746,22 @@
       "pending": "Ausstehend"
     },
     "searchPlaceholder": "Klienten suchen...",
-    "chips": {
-      "groupLabel": "Klienten filtern",
-      "all": "Alle",
-      "endingSoon": "Endet bald"
+    "filterMenu": {
+      "label": "Filter",
+      "plansGroup": "Pläne",
+      "plans": {
+        "all": "Alle Pläne",
+        "active": "Aktive Pläne",
+        "none": "Ohne Plan",
+        "endingSoon": "Pläne enden bald"
+      },
+      "clearAll": "Filter zurücksetzen",
+      "remove": "Filter {{name}} entfernen"
     },
     "outsidePlan": {
       "chip": "Außerhalb des Tarifs",
+      "readOnlyFrom": "Nur lesbar ab {{date}}",
+      "readOnlyTooltip": "Außerhalb Ihres Tarifs. Veröffentlichte Wochen laufen bis {{date}}, danach sind die Pläne nur lesbar.",
       "tooltip": "Die Pläne dieses Klienten laufen bis zur letzten veröffentlichten Woche weiter und sind danach nur noch lesbar."
     },
     "tagFilter": {
@@ -2875,6 +2891,7 @@
       "copiedFrom": "Aus dem Profil von {{name}} übernommen",
       "resetToProfile": "auf Profil zurücksetzen",
       "startedFromTemplate": "Aus Vorlage {{name}} erstellt",
+      "outsidePlan": "{{name}} liegt außerhalb Ihres Tarifs. Bearbeiten und Veröffentlichen schaltet ein höherer Tarif frei.",
       "about": {
         "heading": "Über {{name}}",
         "goal": "Ziel",
@@ -4436,6 +4453,15 @@
     }
   },
   "clientDetail": {
+    "outsidePlanPaywall": {
+      "title": "Einen neuen Plan für {{name}} erstellen Sie mit einem höheren Tarif",
+      "editTitle": "Den Plan von {{name}} bearbeiten Sie mit einem höheren Tarif",
+      "body": "{{name}} liegt außerhalb Ihres Tarifs {{plan}}. Nach dem Upgrade können Sie wieder neue Pläne erstellen und veröffentlichen.",
+      "lead": "Klienten bleiben dort, wo ihr nächster Plan immer bereitliegt. Lassen Sie sie nicht warten.",
+      "benefit1": "{{name}} bekommt sofort einen neuen Plan, ohne Unterbrechung der Zusammenarbeit.",
+      "benefit2": "Platz für die nächsten Klienten, die zu Ihnen kommen.",
+      "benefit3": "Höhere Tarife schalten weitere Werkzeuge für die Arbeit mit Klienten frei."
+    },
     "automations": {
       "introBefore": "Regeln von Ihrer Seite ",
       "introLink": "Automatisierungen",

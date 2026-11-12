@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { LogOut } from 'lucide-react';
+import { Info, LogOut } from 'lucide-react';
 import type { CoachPlanDto } from '@/api/generated';
 import Wordmark from '@/components/brand/Wordmark';
 import KeepClientsTable from '@/components/subscription/KeepClientsTable';
@@ -164,6 +164,12 @@ export default function PlanChoicePage() {
             <div className="flex flex-col gap-1.5">
               <h1 className="text-display font-semibold text-ink">{t('subscription.lapse.title', { count: required })}</h1>
               <p className="text-copy text-muted-foreground">{t('subscription.lapse.subtitle')}</p>
+              {keepQuery.data?.isChoiceLocked !== true && clients.length > 0 && (
+                <p className="flex w-fit items-center gap-2 rounded-lg bg-sunken px-3 py-2 text-body text-muted-foreground">
+                  <Info className="size-4 shrink-0" aria-hidden="true" />
+                  {t('subscription.lapse.preselectedHint', { count: required })}
+                </p>
+              )}
             </div>
 
             <div className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-line bg-card shadow-panel">

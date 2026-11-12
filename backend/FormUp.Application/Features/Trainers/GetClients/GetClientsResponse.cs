@@ -42,6 +42,30 @@ public class GetClientsResponse
     /// client grey out a chip whose count is zero without losing the ability to select it.
     /// </summary>
     public ClientFilterCounts FilterCounts { get; set; } = new();
+
+    /// <summary>
+    /// Counts per plan filter over the selected tab (or legacy status selection), with search and
+    /// tags applied but neither the plan filter nor the filter chip.
+    /// </summary>
+    public ClientPlanCounts PlanCounts { get; set; } = new();
+}
+
+/// <summary>
+/// Per-plan-filter client counts. See <see cref="GetClientsResponse.PlanCounts"/>.
+/// </summary>
+public class ClientPlanCounts
+{
+    /// <summary>Total rows in the selected tab.</summary>
+    public int All { get; set; }
+
+    /// <summary>Rows with a current plan.</summary>
+    public int Active { get; set; }
+
+    /// <summary>Rows with no current plan.</summary>
+    public int None { get; set; }
+
+    /// <summary>Rows whose current plan ends within 14 days.</summary>
+    public int EndingSoon { get; set; }
 }
 
 /// <summary>
@@ -49,7 +73,13 @@ public class GetClientsResponse
 /// </summary>
 public class ClientTabCounts
 {
-    /// <summary>Number of clients in the Active tab.</summary>
+    /// <summary>Number of links in the All tab, archived included.</summary>
+    public int All { get; set; }
+
+    /// <summary>Number of live clients inside the plan in force (the Active tab).</summary>
+    public int InPlan { get; set; }
+
+    /// <summary>Number of clients with Active status (current plan).</summary>
     public int Active { get; set; }
 
     /// <summary>Number of clients in the Paused tab.</summary>
@@ -184,6 +214,12 @@ public class ClientSummary
     /// still see them but not work on them. Never true for an Archived row.
     /// </summary>
     public bool IsOutsidePlan { get; set; }
+
+    /// <summary>
+    /// For a live outside-plan client whose published plan weeks still run: the last day those weeks
+    /// cover, after which the plans turn read-only. Null for every other row.
+    /// </summary>
+    public DateOnly? ReadOnlyFrom { get; set; }
 }
 
 /// <summary>

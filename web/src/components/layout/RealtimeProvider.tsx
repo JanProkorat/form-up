@@ -262,11 +262,14 @@ function CoachRealtimeSync() {
   }, [queryClient]);
 
   // Form Up changed, ended or stopped renewing the plan: refresh the plan views, the keep-clients
-  // list and the bell. Only an ended plan interrupts the coach with a toast, and nothing navigates.
+  // list, the client lists and details (the client cap moved) and the bell. Only an ended plan
+  // interrupts the coach with a toast, and nothing navigates.
   const handleSubscriptionChanged = useCallback(
     (payload: unknown) => {
       void queryClient.invalidateQueries({ queryKey: subscriptionKeys.mine });
       void queryClient.invalidateQueries({ queryKey: subscriptionKeys.keepClients });
+      void queryClient.invalidateQueries({ queryKey: ['clients'] });
+      void queryClient.invalidateQueries({ queryKey: ['client-dashboard'] });
       void queryClient.invalidateQueries({ queryKey: ['notifications'] });
       const event = readSubscriptionChange(payload);
       if (event?.action !== 'ended') return;

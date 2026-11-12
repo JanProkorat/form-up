@@ -1,30 +1,31 @@
 import { useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import type { ClientListFilter } from '@/api/generated';
+import { ClientPlanFilter } from '@/api/generated';
 
 /**
- * The clients-list page's tabs. `Active` | `Paused` | `Archived` mirror
- * `ClientListStatus`; `Pending` and `All` are page-only virtual tabs with no
- * backend enum member. `Pending` drives the Pending-tab query instead of the
- * list query; `All` lists Active + Paused clients (no status filter) with the
- * pending rows below them. `OutsidePlan` is virtual too: it lists live clients
- * over the plan's client cap (`outsidePlan=true`, no status).
+ * The clients-list page's tabs. `All` | `Active` | `OutsidePlan` | `Archived` mirror the
+ * generated `ClientListTab`; `Pending` is a page-only virtual tab with no backend member.
+ * `Pending` drives the Pending-tab rows instead of the list query.
  */
-export type ClientListTab = 'All' | 'Active' | 'Paused' | 'OutsidePlan' | 'Archived' | 'Pending';
+export type ClientsPageTab = 'All' | 'Active' | 'OutsidePlan' | 'Pending' | 'Archived';
 
-const VALID_TABS: readonly ClientListTab[] = ['All', 'Active', 'Paused', 'OutsidePlan', 'Archived', 'Pending'];
-const DEFAULT_TAB: ClientListTab = 'All';
+// Legacy ?tab=Paused, ?chip=, ?endingSoon= and ?outsidePlan= are not valid values and fall back to the defaults.
+const VALID_TABS: readonly ClientsPageTab[] = ['All', 'Active', 'OutsidePlan', 'Pending', 'Archived'];
+const DEFAULT_TAB: ClientsPageTab = 'Active';
 
-// Stale ?chip= values of the removed chips fall back to All.
-const VALID_CHIPS: readonly string[] = ['All', 'EndingSoon'];
-const DEFAULT_CHIP = 'All' as ClientListFilter;
+const VALID_PLANS: readonly ClientPlanFilter[] = [
+  ClientPlanFilter.Active,
+  ClientPlanFilter.None,
+  ClientPlanFilter.EndingSoon,
+];
 
 export const CLIENTS_PAGE_SIZE = 20;
 
 export interface ClientListFilters {
-  tab: ClientListTab;
+  tab: ClientsPageTab;
   search: string;
-  chip: ClientListFilter;
+  /** The single-choice plan filter; null is "All plans". Ignored on the Pending tab. */
+  plan: ClientPlanFilter | null;
   tagIds: string[];
   page: number;
   pageSize: number;
@@ -38,23 +39,25 @@ export interface UseClientListParamsResult {
    */
   setSearch: (value: string) => void;
   /** Switches tab. Pushes a history entry; resets page to 1. */
-  setTab: (tab: ClientListTab) => void;
-  /** Switches the active filter chip. Pushes a history entry; resets page to 1. */
-  setChip: (chip: ClientListFilter) => void;
+  setTab: (tab: ClientsPageTab) => void;
+  /** Sets the plan filter (null = all plans). Pushes a history entry; resets page to 1. */
+  setPlan: (plan: ClientPlanFilter | null) => void;
   /** Replaces the full selected-tag set. Pushes a history entry; resets page to 1. */
   setTagIds: (tagIds: string[]) => void;
   /** Navigates to a page. Pushes a history entry. */
   setPage: (page: number) => void;
-  /** Clears chip, tags and search back to defaults; keeps the current tab. */
+  /** Resets the plan filter to all plans. Pushes a history entry; resets page to 1. */
+  clearPlan: () => void;
+  /** Clears plan, tags and search back to defaults; keeps the current tab. */
   clearFilters: () => void;
 }
 
-function parseTab(value: string | null): ClientListTab {
-  return VALID_TABS.includes(value as ClientListTab) ? (value as ClientListTab) : DEFAULT_TAB;
+function parseTab(value: string | null): ClientsPageTab {
+  return VALID_TABS.includes(value as ClientsPageTab) ? (value as ClientsPageTab) : DEFAULT_TAB;
 }
 
-function parseChip(value: string | null): ClientListFilter {
-  return VALID_CHIPS.includes(value ?? '') ? (value as ClientListFilter) : DEFAULT_CHIP;
+function parsePlan(value: string | null): ClientPlanFilter | null {
+  return VALID_PLANS.includes(value as ClientPlanFilter) ? (value as ClientPlanFilter) : null;
 }
 
 function parsePage(value: string | null): number {
@@ -73,17 +76,17 @@ function parseTagIds(value: string | null): string[] {
   return Array.from(new Set(ids));
 }
 
-type UrlPatch = Partial<Record<'tab' | 'q' | 'chip' | 'tags' | 'page', string | null>>;
+type UrlPatch = Partial<Record<'tab' | 'plan' | 'q' | 'tags' | 'page', string | null>>;
 
 /**
  * Owns the clients-list page's filter state entirely in the URL — `tab`,
- * `q`, `chip`, `tags`, `page`. Component state holds only what isn't a
+ * `plan`, `q`, `tags`, `page`. Component state holds only what isn't a
  * filter (the raw, undebounced search input, row selection, dialog-open
  * flags). This is the sole source consumed to build the list query key —
  * there is no second copy of this state to drift out of sync with it.
  *
- * Read-side normalisation (`parseTab`/`parseChip`/`parsePage`) means a
- * hand-edited or stale URL can never send a bad tab/chip to the API:
+ * Read-side normalisation (`parseTab`/`parsePlan`/`parsePage`) means a
+ * hand-edited or stale URL can never send a bad tab or plan to the API:
  * unknown values silently fall back to the default. Unknown tag ids are
  * deliberately NOT dropped here — the backend treats an unrecognised or
  * foreign tag id as matching nothing (see `getClientsEndpoint` doc comment
@@ -94,17 +97,16 @@ type UrlPatch = Partial<Record<'tab' | 'q' | 'chip' | 'tags' | 'page', string | 
 export function useClientListParams(): UseClientListParamsResult {
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const filters = useMemo<ClientListFilters>(
-    () => ({
+  const filters = useMemo<ClientListFilters>(() => {
+    return {
       tab: parseTab(searchParams.get('tab')),
       search: searchParams.get('q') ?? '',
-      chip: parseChip(searchParams.get('chip')),
+      plan: parsePlan(searchParams.get('plan')),
       tagIds: parseTagIds(searchParams.get('tags')),
       page: parsePage(searchParams.get('page')),
       pageSize: CLIENTS_PAGE_SIZE,
-    }),
-    [searchParams],
-  );
+    };
+  }, [searchParams]);
 
   const update = useCallback(
     (patch: UrlPatch, options: { replace?: boolean } = {}) => {
@@ -134,15 +136,16 @@ export function useClientListParams(): UseClientListParamsResult {
   );
 
   const setTab = useCallback(
-    (tab: ClientListTab) => {
+    (tab: ClientsPageTab) => {
+      // The plan choice is kept across tabs; only the page resets.
       update({ tab: tab === DEFAULT_TAB ? null : tab, page: null });
     },
     [update],
   );
 
-  const setChip = useCallback(
-    (chip: ClientListFilter) => {
-      update({ chip: chip === DEFAULT_CHIP ? null : chip, page: null });
+  const setPlan = useCallback(
+    (plan: ClientPlanFilter | null) => {
+      update({ plan, page: null });
     },
     [update],
   );
@@ -162,9 +165,13 @@ export function useClientListParams(): UseClientListParamsResult {
     [update],
   );
 
-  const clearFilters = useCallback(() => {
-    update({ chip: null, tags: null, q: null, page: null });
+  const clearPlan = useCallback(() => {
+    update({ plan: null, page: null });
   }, [update]);
 
-  return { filters, setSearch, setTab, setChip, setTagIds, setPage, clearFilters };
+  const clearFilters = useCallback(() => {
+    update({ plan: null, tags: null, q: null, page: null });
+  }, [update]);
+
+  return { filters, setSearch, setTab, setPlan, setTagIds, setPage, clearPlan, clearFilters };
 }

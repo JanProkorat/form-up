@@ -39,12 +39,32 @@ function formatDay(value: string | undefined, language: string): string {
   return new Intl.DateTimeFormat(language, { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(value));
 }
 
+/**
+ * What happens to a client under the current selection. The server's afterLapse reflects the saved
+ * (or provisional) choice, so it is recomputed from the checkbox and the last published week instead.
+ */
+function afterFor(checked: boolean, publishedWeeksEnd: string | undefined): KeepClientAfterLapse {
+  if (checked) return KeepClientAfterLapse.FullAccess;
+  const today = new Date().toISOString().slice(0, 10);
+  return publishedWeeksEnd && publishedWeeksEnd.slice(0, 10) >= today
+    ? KeepClientAfterLapse.RunsUntilEndThenReadOnly
+    : KeepClientAfterLapse.ReadOnly;
+}
+
 /** The lapsed coach's live clients with a checkbox per row, the roles they are linked under and what happens next. */
 export default function KeepClientsTable({ clients, selected, full, disabled, locked = false, onToggle }: Props) {
   const { t, i18n } = useTranslation();
 
   return (
-    <Table className="min-w-190">
+    // Fixed layout: ticking a row changes its "after" badge, which must not resize the columns.
+    <Table className="min-w-190 table-fixed">
+      <colgroup>
+        <col className="w-[10%]" />
+        <col className="w-[29%]" />
+        <col className="w-[18%]" />
+        <col className="w-[18%]" />
+        <col className="w-[25%]" />
+      </colgroup>
       <TableHeader className="sticky top-0 z-10 bg-card">
         <TableRow>
           <TableHead className={HEAD_CLASS}>{t('subscription.lapse.table.keep')}</TableHead>
@@ -62,7 +82,7 @@ export default function KeepClientsTable({ clients, selected, full, disabled, lo
           const name = `${firstName} ${lastName}`.trim();
           const checked = selected.has(clientId);
           const roles = ROLE_ORDER.filter((role) => client.roles?.includes(role));
-          const afterLapse = client.afterLapse ?? KeepClientAfterLapse.ReadOnly;
+          const afterLapse = afterFor(checked, client.publishedWeeksEnd);
           const endsOn = formatDay(client.publishedWeeksEnd, i18n.language);
           const afterLabel =
             afterLapse === KeepClientAfterLapse.RunsUntilEndThenReadOnly

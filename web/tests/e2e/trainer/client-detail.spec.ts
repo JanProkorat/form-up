@@ -33,7 +33,10 @@ test.describe('client detail page — overview tab', () => {
 
     // Capture the list badge's text BEFORE navigating away — this is the
     // value the detail page's pill must equal.
-    const listStatusText = (await row.locator('[data-slot="badge"]').first().innerText()).trim();
+    // The list pill reads "Active plans" where the detail pill reads "Active"; "No plan" and "Archived" match.
+    const listStatusText = (await row.locator('[data-slot="badge"]').first().innerText())
+      .trim()
+      .replace(/^Active plans$/, 'Active');
     expect(listStatusText.length).toBeGreaterThan(0);
 
     await row.getByRole('link', { name: 'QA Client', exact: true }).click();

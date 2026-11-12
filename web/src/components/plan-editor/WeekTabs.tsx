@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Lock, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import ConflictBadge from '@/components/plan-editor/sync-conflicts/ConflictBadge';
@@ -29,6 +29,8 @@ interface Props {
   weekStatus?: (weekIndex: number) => WeekPillStatus | undefined;
   onSelect: (weekIndex: number) => void;
   onAddWeek: () => void;
+  /** Shows a lock on the add-week button: the host answers the click with a paywall. */
+  addLocked?: boolean;
   /**
    * Shows a remove button on the last week while it is not published and another week remains: on hover,
    * and on keyboard focus of the chip or the button. Omit to never offer removal.
@@ -37,7 +39,7 @@ interface Props {
 }
 
 /** Scrollable row of week pills with prev/next arrows and an add-week button. */
-export default function WeekTabs({ weekCount, current, readOnly, weekStatus, onSelect, onAddWeek, onRemoveLast }: Props) {
+export default function WeekTabs({ weekCount, current, readOnly, weekStatus, onSelect, onAddWeek, addLocked = false, onRemoveLast }: Props) {
   const { t } = useTranslation();
   const conflicts = useSyncConflicts();
   const statuses = weekStatus ? Array.from({ length: weekCount }, (_, index) => weekStatus(index)) : [];
@@ -143,7 +145,7 @@ export default function WeekTabs({ weekCount, current, readOnly, weekStatus, onS
           disabled={weekCount >= MAX_WEEKS}
           onClick={onAddWeek}
         >
-          <Plus aria-hidden="true" />
+          {addLocked ? <Lock aria-hidden="true" /> : <Plus aria-hidden="true" />}
         </Button>
       )}
       {weekStatus && weekCount > 0 && (

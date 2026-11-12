@@ -1,5 +1,5 @@
 /**
- * #1066 — Clients list page regression smoke (tab switch, a filter chip, the
+ * #1066 — Clients list page regression smoke (tab switch, the Filter menu, legacy URLs, the
  * invite flow). Path is deliberately under trainer/ — every project in
  * playwright.config.ts matches a role subfolder via testMatch, so a spec at
  * the e2e/ root is collected by no project and silently never runs (see
@@ -52,34 +52,70 @@ test.describe('clients list page', () => {
   });
 
   test('switching tabs updates the URL and the active tab', async ({ page }) => {
-    await expect(page.getByRole('tab', { name: /^All/ })).toHaveAttribute('data-state', 'active');
-    const pausedTab = page.getByRole('tab', { name: /No plan/ });
-    await pausedTab.click();
+    await expect(page.getByRole('tab', { name: /^Active/ })).toHaveAttribute('data-state', 'active');
+    const allTab = page.getByRole('tab', { name: /^All/ });
+    await allTab.click();
     await page.waitForLoadState('networkidle');
 
-    await expect(page).toHaveURL(/tab=Paused/);
-    await expect(pausedTab).toHaveAttribute('data-state', 'active');
+    await expect(page).toHaveURL(/tab=All/);
+    await expect(allTab).toHaveAttribute('data-state', 'active');
 
     // Table settles into either rows or the empty state — never stuck loading.
     await expect(page.getByText('Loading', { exact: false })).toHaveCount(0);
   });
 
-  test('selecting a filter chip updates the URL and marks the chip active', async ({ page }) => {
-    // The four chips of the old filter row are gone.
-    for (const removed of [/Unread messages/, /No messages/, /New check-ins/, /Missing check-ins/]) {
-      await expect(page.getByRole('button', { name: removed })).toHaveCount(0);
-    }
+  test('the Filter menu picks one plan, which lands in the URL and as a removable chip', async ({ page }) => {
+    // The old chip row (All / Ending soon) is gone; the filter lives in one menu.
+    await expect(page.getByRole('button', { name: /Ending soon/ })).toHaveCount(0);
 
-    // "Ending soon" is one of the two chips left (All, Ending soon). A zero count
-    // disables the chip, which the fixture may produce.
-    const endingSoonChip = page.getByRole('button', { name: /Ending soon/ });
-    await expect(endingSoonChip).toBeVisible();
-    test.skip(await endingSoonChip.isDisabled(), 'No client is ending soon on this fixture, so the chip is disabled');
-    await endingSoonChip.click();
+    await page.getByRole('button', { name: /^Filter/ }).click();
+    const allPlans = page.getByRole('menuitemradio', { name: /^All plans/ });
+    await expect(allPlans).toHaveAttribute('aria-checked', 'true');
+    await expect(page.getByRole('menuitemradio')).toHaveCount(4);
+
+    // A zero count disables the option, which the fixture may produce for "Active plans".
+    const activePlans = page.getByRole('menuitemradio', { name: /^Active plans/ });
+    test.skip(
+      (await activePlans.getAttribute('data-disabled')) !== null,
+      'No client has a current plan on this fixture, so the menu option is disabled',
+    );
+    await activePlans.click();
     await page.waitForLoadState('networkidle');
 
-    await expect(page).toHaveURL(/chip=EndingSoon/);
-    await expect(endingSoonChip).toHaveAttribute('aria-pressed', 'true');
+    // A single choice closes the menu.
+    await expect(page.getByRole('menuitemradio')).toHaveCount(0);
+    await expect(page).toHaveURL(/plan=Active/);
+    await expect(page.getByRole('button', { name: /^Filter/ })).toContainText('1');
+
+    // Switching tab keeps the plan choice.
+    await page.getByRole('tab', { name: /^All/ }).click();
+    await expect(page).toHaveURL(/plan=Active/);
+
+    await page.getByRole('button', { name: 'Remove filter Active plans' }).click();
+    await expect(page).not.toHaveURL(/plan=/);
+  });
+
+  test('the Filter menu and its chip are hidden on the Pending tab', async ({ page }) => {
+    await page.goto('/clients?tab=Pending&plan=Active');
+    await expect(page.getByRole('tab', { name: /^Pending/ })).toHaveAttribute('data-state', 'active');
+    await expect(page.getByRole('button', { name: /^Filter/ })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /Remove filter/ })).toHaveCount(0);
+  });
+
+  test('legacy ?tab=Paused, ?chip=, ?endingSoon= and ?outsidePlan= URLs fall back to the default tab with no plan', async ({
+    page,
+  }) => {
+    for (const query of ['tab=Paused', 'chip=EndingSoon', 'endingSoon=1', 'outsidePlan=1', 'tab=Paused&chip=EndingSoon']) {
+      await page.goto(`/clients?${query}`);
+      await expect(page.getByRole('tab', { name: /^Active/ })).toHaveAttribute('data-state', 'active');
+      await expect(page.getByRole('button', { name: /Remove filter/ })).toHaveCount(0);
+    }
+  });
+
+  test('a valid ?tab=Archived&plan=None URL opens that tab with the plan chip', async ({ page }) => {
+    await page.goto('/clients?tab=Archived&plan=None');
+    await expect(page.getByRole('tab', { name: /^Archived/ })).toHaveAttribute('data-state', 'active');
+    await expect(page.getByRole('button', { name: 'Remove filter No plan' })).toBeVisible();
   });
 
   test('inviting a new client sends the invite and closes the drawer', async ({ page }) => {
@@ -337,14 +373,12 @@ test.describe('clients list page', () => {
     expect(pageTitleHeight).toBeGreaterThan(32);
     expect(pageTitleHeight).toBeLessThan(36);
 
-    const allChip = page.getByRole('button', { name: /\bAll$/ });
-    const countBadge = allChip.locator('span').first();
-    await expect(countBadge).toBeVisible();
-    const badgeBox = await countBadge.boundingBox();
-    // PageClientsC board: min-width 20px, height 20px.
-    expect(badgeBox?.height ?? 0).toBeGreaterThan(19);
-    expect(badgeBox?.height ?? 0).toBeLessThan(21);
-    expect(badgeBox?.width ?? 0).toBeGreaterThanOrEqual(badgeBox?.height ?? 0);
+    const filterButton = page.getByRole('button', { name: /^Filter/ });
+    await expect(filterButton).toBeVisible();
+    const filterHeight = (await filterButton.boundingBox())?.height ?? 0;
+    // PageClientsC board: 36px filter button.
+    expect(filterHeight).toBeGreaterThan(35);
+    expect(filterHeight).toBeLessThan(37);
   });
 
   /**
@@ -636,7 +670,8 @@ test.describe('client tag filter — create a tag (#1119)', () => {
   test('an archived row with an ended link is not a link and its menu offers Payments, not the detail', async ({ page }) => {
     // The seed has no ended link, so fake the Archived tab's list response.
     await page.route(
-      (url) => url.pathname.endsWith('/trainer/clients') && url.searchParams.get('status') === 'Archived',
+      // The clients page selects its tab with `tab`, not the legacy `status` (#2086).
+      (url) => url.pathname.endsWith('/trainer/clients') && url.searchParams.get('tab') === 'Archived',
       async (route) => {
         await route.fulfill({
           status: 200,

@@ -387,6 +387,10 @@
       },
       "selected": "{{count}} z {{cap}} vybráno",
       "changeLater": "Svůj výběr tu můžete později změnit.",
+      "preselectedHint_one": "Předvybrali jsme {{count}} klienta, se kterým spolupracujete nejdéle. Výběr můžete změnit.",
+      "preselectedHint_few": "Předvybrali jsme {{count}} klienty, se kterými spolupracujete nejdéle. Výběr můžete změnit.",
+      "preselectedHint_many": "Předvybrali jsme {{count}} klienta, se kterými spolupracujete nejdéle. Výběr můžete změnit.",
+      "preselectedHint_other": "Předvybrali jsme {{count}} klientů, se kterými spolupracujete nejdéle. Výběr můžete změnit.",
       "save_one": "Ponechat tohoto klienta",
       "save_few": "Ponechat tyto {{count}}",
       "save_many": "Ponechat těchto {{count}}",
@@ -417,8 +421,15 @@
       "titleOutside_other": "{{count}} klientů je mimo tarif.",
       "detailTitle": "{{name}} je mimo váš tarif {{plan}}.",
       "body": "Plány klientů mimo tarif doběhnou do posledního zveřejněného týdne, pak budou jen ke čtení.",
-      "upgrade": "Vyšší tarif",
-      "pickClient": "Vybrat klienta na volné místo"
+      "upgrade": "Zvýšit plán",
+      "showClients": "Zobrazit tyto klienty",
+      "pickClient": "Vybrat klienta na volné místo",
+      "pendingTitle_one": "Tarif {{plan}} zahrnuje {{count}} klienta. Zatím jste nepotvrdili, kterého.",
+      "pendingTitle_few": "Tarif {{plan}} zahrnuje {{count}} klienty. Zatím jste nepotvrdili, které.",
+      "pendingTitle_many": "Tarif {{plan}} zahrnuje {{count}} klienta. Zatím jste nepotvrdili, které.",
+      "pendingTitle_other": "Tarif {{plan}} zahrnuje {{count}} klientů. Zatím jste nepotvrdili, které.",
+      "pendingBody": "Do té doby vám zůstávají klienti, se kterými spolupracujete nejdéle. Ostatním zůstanou zveřejněné týdny, pak budou jen ke čtení.",
+      "chooseClients": "Vybrat klienty"
     },
     "plan": {
       "title": "Tarif a platby",
@@ -787,13 +798,22 @@
       "pending": "Čekající"
     },
     "searchPlaceholder": "Hledat klienty...",
-    "chips": {
-      "groupLabel": "Filtrovat klienty",
-      "all": "Vše",
-      "endingSoon": "Brzy končící"
+    "filterMenu": {
+      "label": "Filtr",
+      "plansGroup": "Plány",
+      "plans": {
+        "all": "Všechny plány",
+        "active": "Aktivní plány",
+        "none": "Bez plánu",
+        "endingSoon": "Plány brzy končí"
+      },
+      "clearAll": "Zrušit filtry",
+      "remove": "Odebrat filtr {{name}}"
     },
     "outsidePlan": {
       "chip": "Mimo tarif",
+      "readOnlyFrom": "Jen ke čtení od {{date}}",
+      "readOnlyTooltip": "Mimo tarif. Zveřejněné týdny běží do {{date}}, pak budou plány jen ke čtení.",
       "tooltip": "Plány tohoto klienta doběhnou do posledního zveřejněného týdne, pak budou jen ke čtení."
     },
     "tagFilter": {
@@ -2996,6 +3016,7 @@
       "copiedFrom": "Převzato z profilu klienta {{name}}",
       "resetToProfile": "obnovit z profilu",
       "startedFromTemplate": "Vytvořeno ze šablony {{name}}",
+      "outsidePlan": "{{name}} je mimo váš tarif. Úpravy a zveřejnění odemkne vyšší tarif.",
       "about": {
         "heading": "O klientovi {{name}}",
         "goal": "Cíl",
@@ -4589,6 +4610,15 @@
     }
   },
   "clientDetail": {
+    "outsidePlanPaywall": {
+      "title": "Nový plán pro klienta {{name}} vytvoříte ve vyšším tarifu",
+      "editTitle": "Plán klienta {{name}} upravíte ve vyšším tarifu",
+      "body": "{{name}} je mimo váš tarif {{plan}}. Po zvýšení plánu půjde znovu sestavovat a zveřejňovat nové plány.",
+      "lead": "Klienti zůstávají tam, kde mají plán stále připravený. Nenechte je čekat.",
+      "benefit1": "{{name}} dostane nový plán hned, bez přerušení spolupráce.",
+      "benefit2": "Místo pro další klienty, kteří k vám přijdou.",
+      "benefit3": "Vyšší tarify odemykají i další nástroje pro práci s klienty."
+    },
     "automations": {
       "introBefore": "Pravidla ze stránky ",
       "introLink": "Automatizace",

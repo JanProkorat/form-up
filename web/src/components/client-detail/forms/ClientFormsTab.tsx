@@ -7,6 +7,8 @@ import type { GetClientDashboardResponse } from '@/api/generated';
 import FormDetail from '@/components/client-detail/forms/FormDetail';
 import FormListCard from '@/components/client-detail/forms/FormListCard';
 import SendFormDialog from '@/components/client-detail/forms/SendFormDialog';
+import PaywallCard from '@/components/subscription/PaywallCard';
+import { useSubscription } from '@/hooks/useSubscriptionQueries';
 import {
   FORMS_FILTERS,
   countForms,
@@ -41,6 +43,7 @@ export default function ClientFormsTab({ clientId, dashboard }: Props) {
   const { t, i18n } = useTranslation();
   const [searchParams] = useSearchParams();
   const requestedId = searchParams.get('form');
+  const formsLocked = !useSubscription().isEntitled('canSendQuestionnaires');
   const forms = useClientForms(clientId);
   const markSeen = useMarkClientFormSeen(clientId);
   const markSeenMutate = markSeen.mutate;
@@ -87,6 +90,15 @@ export default function ClientFormsTab({ clientId, dashboard }: Props) {
         }
       },
     });
+  }
+
+  // Forms are not on the coach's plan: the same paywall as the Forms page.
+  if (formsLocked) {
+    return (
+      <div className="flex justify-center pt-6">
+        <PaywallCard feature="forms" />
+      </div>
+    );
   }
 
   if (forms.isPending) {

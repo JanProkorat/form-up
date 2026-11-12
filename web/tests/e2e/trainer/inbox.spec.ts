@@ -38,12 +38,11 @@ async function getClientsListNamesOnCurrentTab(page: Page): Promise<string[]> {
 
 /**
  * The clients-list roster for a given filter chip, unioned across the
- * Active and Paused tabs — matching the population contract's "live links,
+ * Active and Outside plan tabs — matching the population contract's "live links,
  * archived links excluded" (docs: GetConversationsEndpoint's roster-filter
- * path; a Paused client is still a *live* link, per
- * `ClientStatusClassifier.Classify` returning Archived only when the LINK
- * itself is no longer live). The inbox's own filter has no tab concept —
- * it always spans this same union, never just the Active tab alone.
+ * path; a client outside the plan is still a *live* link). The All tab is not
+ * used because it also lists archived clients. The inbox's own filter has no
+ * tab concept — it always spans this same union, never just the Active tab alone.
  *
  * The clients page no longer has chips for most of these filters (#2084), but the API still does, so the
  * roster request is rewritten to carry the filter and the page renders the filtered list.
@@ -57,7 +56,7 @@ async function getClientsListNamesForFilter(page: Page, filterParam: string): Pr
   });
   const names: string[] = [];
   try {
-    for (const tab of ['Active', 'Paused'] as const) {
+    for (const tab of ['Active', 'OutsidePlan'] as const) {
       await page.goto(`/clients?tab=${tab}`);
       await page.waitForLoadState('networkidle');
       names.push(...(await getClientsListNamesOnCurrentTab(page)));
@@ -332,7 +331,10 @@ test.describe('inbox page', () => {
     const listRow = page.getByRole('row', { name: QA_CLIENT_NAME }).filter({
       has: page.getByRole('link', { name: 'QA Client', exact: true }),
     });
-    const listStatusText = (await listRow.locator('[data-slot="badge"]').first().innerText()).trim();
+    // The list pill reads "Active plans" where the panel pill reads "Active"; "No plan" and "Archived" match.
+    const listStatusText = (await listRow.locator('[data-slot="badge"]').first().innerText())
+      .trim()
+      .replace(/^Active plans$/, 'Active');
     const qaClientHref = await listRow.getByRole('link', { name: 'QA Client', exact: true }).getAttribute('href');
     const qaClientId = qaClientHref?.split('/').pop();
     if (!qaClientId) {

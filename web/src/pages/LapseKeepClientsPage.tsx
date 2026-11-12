@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Info } from 'lucide-react';
 import KeepClientsTable from '@/components/subscription/KeepClientsTable';
@@ -15,6 +15,7 @@ export default function LapseKeepClientsPage() {
   const subscription = useSubscription();
   const keepQuery = useKeepClients(subscription.isCoach);
   const saveMutation = useSetKeepClients();
+  const navigate = useNavigate();
   // null = untouched: the selection is whatever the server currently keeps.
   const [choice, setChoice] = useState<ReadonlySet<string> | null>(null);
 
@@ -56,6 +57,7 @@ export default function LapseKeepClientsPage() {
       onSuccess: () => {
         setChoice(null);
         showSuccess('subscription.lapse.saveSuccess');
+        navigate('/clients');
       },
       onError: (error) =>
         showApiError(
@@ -71,6 +73,11 @@ export default function LapseKeepClientsPage() {
   const notLapsed = keepQuery.isError && isSubscriptionNotLapsed(keepQuery.error);
   const showBanner = subscription.isLapsed && plan !== '';
   const showOverCapBanner = !subscription.isLapsed && subscription.overCapClientCount > 0 && cap !== null;
+
+  // A confirmed choice with no freed slot leaves nothing to pick here (e.g. an old notification link).
+  if (keepQuery.isSuccess && locked && required === serverKept.size && !saveMutation.isPending) {
+    return <Navigate to="/clients" replace />;
+  }
 
   return (
     <div className="flex h-full flex-col gap-4.5">
@@ -130,6 +137,12 @@ export default function LapseKeepClientsPage() {
             <p className="text-copy text-muted-foreground">
               {t(locked ? 'subscription.lapse.lockedSubtitle' : 'subscription.lapse.subtitle')}
             </p>
+            {!locked && clients.length > 0 && (
+              <p className="flex w-fit items-center gap-2 rounded-lg bg-sunken px-3 py-2 text-body text-muted-foreground">
+                <Info className="size-4 shrink-0" aria-hidden="true" />
+                {t('subscription.lapse.preselectedHint', { count: required })}
+              </p>
+            )}
           </div>
 
           {clients.length === 0 ? (

@@ -111,9 +111,8 @@ export default function NotificationsPopover({ collapsed, rowClassName, label, o
   const { count, capped } = useUnreadNotificationsCount();
   const markRead = useMarkNotificationRead();
   const markAllRead = useMarkAllNotificationsRead();
-  const { isLapsed, overCapClientCount } = useSubscription();
   // Same rule as the account menu: the keep-clients screen is only useful while a pick is still due.
-  const needsKeepPick = isLapsed || overCapClientCount > 0;
+  const needsKeepPick = useSubscription().keepPickDue;
 
   const items = notificationsQuery.data ?? [];
   const badgeText = capped ? `${NOTIFICATIONS_PAGE_SIZE}+` : String(count);
