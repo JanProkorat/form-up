@@ -594,6 +594,28 @@ public class GetClientsEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task List_OutsidePlanClientsLinkedMoreRecently_ListedAfterAllInPlanClientsAcrossPages()
+    {
+        // Free cap 2: clients[0] and [1] are in plan, [2..4] outside, and every outside client is newer.
+        var (coach, clients) = await CoachWithClientsAsync(5);
+
+        var all = await ListAsync(coach);
+
+        all.Clients.Select(c => c.UserId).Should().Equal(
+            [clients[1].UserId, clients[0].UserId, clients[4].UserId, clients[3].UserId, clients[2].UserId]);
+
+        var paged = new List<Guid>();
+
+        for (var page = 1; page <= 3; page++)
+        {
+            var body = await ListAsync(coach, $"?page={page}&pageSize=2");
+            paged.AddRange(body.Clients.Select(c => c.UserId));
+        }
+
+        paged.Should().Equal(all.Clients.Select(c => c.UserId));
+    }
+
+    [Fact]
     public async Task List_WithinCapUnlimitedPlanOrPlanChoiceRequired_FlagsNobody()
     {
         var (withinCap, _) = await CoachWithClientsAsync(2);

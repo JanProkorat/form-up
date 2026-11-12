@@ -63,7 +63,8 @@ public class GetClientsEndpoint(
             s.Summary = "Get trainer's clients";
             s.Description =
                 "Returns a paginated list of clients managed by the authenticated trainer or " +
-                "nutritionist, with derived status tabs, tag/chip filters, and per-tab/per-chip counts.";
+                "nutritionist, with derived status tabs, tag/chip filters, and per-tab/per-chip counts. " +
+                "Clients within the coach's plan come first, then clients outside it; each group newest-linked first.";
         });
     }
 
@@ -152,8 +153,11 @@ public class GetClientsEndpoint(
 
         var chipFiltered = ApplyChipFilter(tabFiltered, req.Filter);
 
+        // In-plan clients always precede outside-plan ones, on every tab/filter and across pages,
+        // so the sort must run before Skip/Take; each group is newest-linked first.
         var page = chipFiltered
-            .OrderByDescending(r => r.Row.LinkedAt)
+            .OrderBy(r => r.IsOutsidePlan)
+            .ThenByDescending(r => r.Row.LinkedAt)
             .Skip((req.Page - 1) * req.PageSize)
             .Take(req.PageSize)
             .Select(r => BuildSummary(r, tagsByLinkId))
