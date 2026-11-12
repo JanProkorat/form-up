@@ -56,7 +56,15 @@ export default function KeepClientsTable({ clients, selected, full, disabled, lo
   const { t, i18n } = useTranslation();
 
   return (
-    <Table className="min-w-190">
+    // Fixed layout: ticking a row changes its "after" badge, which must not resize the columns.
+    <Table className="min-w-190 table-fixed">
+      <colgroup>
+        <col className="w-[10%]" />
+        <col className="w-[29%]" />
+        <col className="w-[18%]" />
+        <col className="w-[18%]" />
+        <col className="w-[25%]" />
+      </colgroup>
       <TableHeader className="sticky top-0 z-10 bg-card">
         <TableRow>
           <TableHead className={HEAD_CLASS}>{t('subscription.lapse.table.keep')}</TableHead>
