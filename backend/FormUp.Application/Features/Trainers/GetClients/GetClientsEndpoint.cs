@@ -64,7 +64,12 @@ public class GetClientsEndpoint(
             s.Description =
                 "Returns a paginated list of clients managed by the authenticated trainer or " +
                 "nutritionist, with derived status tabs, tag/chip filters, and per-tab/per-chip counts. " +
-                "Clients within the coach's plan come first, then clients outside it; each group newest-linked first.";
+                "Clients within the coach's plan come first, then clients outside it; each group newest-linked first. " +
+                "Optional tab (cannot be combined with status) and plan filter; tabCounts ignore both.";
+            s.Responses[StatusCodes.Status200OK] = "Client page with tab, plan and chip counts";
+            s.Responses[StatusCodes.Status400BadRequest] = "Invalid paging, enum value, or tab combined with status";
+            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
+            s.Responses[StatusCodes.Status404NotFound] = "Caller has no professional profile";
         });
     }
 
@@ -115,6 +120,8 @@ public class GetClientsEndpoint(
 
         var tabCounts = new ClientTabCounts
         {
+            All = classified.Count,
+            InPlan = classified.Count(r => r.Row.IsActive && !r.IsOutsidePlan),
             Active = classified.Count(r => r.Status == ClientListStatus.Active),
             Paused = classified.Count(r => r.Status == ClientListStatus.Paused),
             Archived = classified.Count(r => r.Status == ClientListStatus.Archived),
@@ -122,15 +129,19 @@ public class GetClientsEndpoint(
             Pending = pendingCount
         };
 
-        // Omitted status means every live link — Active and Paused combined, Archived excluded —
-        // matching this endpoint's pre-existing behaviour before status tabs existed.
-        var tabFiltered = req.Status is null
-            ? classified.Where(r => r.Status != ClientListStatus.Archived).ToList()
-            : classified.Where(r => r.Status == req.Status.Value).ToList();
+        var tabFiltered = SelectTab(classified, req);
 
-        if (req.OutsidePlan == true)
+        var planCounts = new ClientPlanCounts
         {
-            tabFiltered = tabFiltered.Where(r => r.IsOutsidePlan).ToList();
+            All = tabFiltered.Count,
+            Active = tabFiltered.Count(r => MatchesPlan(r, ClientPlanFilter.Active)),
+            None = tabFiltered.Count(r => MatchesPlan(r, ClientPlanFilter.None)),
+            EndingSoon = tabFiltered.Count(r => MatchesPlan(r, ClientPlanFilter.EndingSoon))
+        };
+
+        if (req.Plan is { } plan)
+        {
+            tabFiltered = tabFiltered.Where(r => MatchesPlan(r, plan)).ToList();
         }
 
         var counts = ClientRosterFilterClassifier.ComputeCounts(
@@ -170,9 +181,40 @@ public class GetClientsEndpoint(
             Page = req.Page,
             PageSize = req.PageSize,
             TabCounts = tabCounts,
-            FilterCounts = filterCounts
+            FilterCounts = filterCounts,
+            PlanCounts = planCounts
         }, ct);
     }
+
+    /// <summary>
+    /// Applies the <c>tab</c>; without it, the legacy <c>status</c> selection — omitted status
+    /// means every live link (Active and Paused, Archived excluded).
+    /// </summary>
+    private static List<ClassifiedRow> SelectTab(List<ClassifiedRow> classified, GetClientsRequest req)
+    {
+        if (req.Tab is { } tab)
+        {
+            return tab switch
+            {
+                ClientListTab.All => classified,
+                ClientListTab.Active => classified.Where(r => r.Row.IsActive && !r.IsOutsidePlan).ToList(),
+                ClientListTab.OutsidePlan => classified.Where(r => r.Row.IsActive && r.IsOutsidePlan).ToList(),
+                _ => classified.Where(r => !r.Row.IsActive).ToList()
+            };
+        }
+
+        return req.Status is null
+            ? classified.Where(r => r.Status != ClientListStatus.Archived).ToList()
+            : classified.Where(r => r.Status == req.Status.Value).ToList();
+    }
+
+    private static bool MatchesPlan(ClassifiedRow r, ClientPlanFilter plan) =>
+        r.Status != ClientListStatus.Archived && plan switch
+        {
+            ClientPlanFilter.Active => r.Status == ClientListStatus.Active,
+            ClientPlanFilter.None => r.Status == ClientListStatus.Paused,
+            _ => r.IsEndingSoon
+        };
 
     private static List<ClassifiedRow> ApplyChipFilter(List<ClassifiedRow> rows, ClientListFilter? filter) =>
         rows.Where(r => ClientRosterFilterClassifier.Matches(

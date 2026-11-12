@@ -45,8 +45,13 @@ public class GetClientsRequest
     public ClientListFilter? Filter { get; set; }
 
     /// <summary>
-    /// When true, narrows the list to live clients outside the plan in force (over its client cap),
-    /// whatever their Active/Paused status. Cannot be combined with <c>status=Archived</c>.
+    /// Optional clients-page tab. Cannot be combined with <see cref="Status"/>. Omitted means
+    /// the legacy <see cref="Status"/> selection.
     /// </summary>
-    public bool? OutsidePlan { get; set; }
+    public ClientListTab? Tab { get; set; }
+
+    /// <summary>
+    /// Optional plan filter, applied after the tab. Archived rows never match.
+    /// </summary>
+    public ClientPlanFilter? Plan { get; set; }
 }

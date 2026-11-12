@@ -551,30 +551,34 @@ public class GetClientsEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task List_OutsidePlanTrue_ListsExactlyTheOverCapLiveRowsActiveAndPausedWithSearchApplied()
+    public async Task List_TabOutsidePlan_ListsExactlyTheOverCapLiveRowsActiveAndPausedWithSearchApplied()
     {
         var (coach, clients) = await CoachWithClientsAsync(4);
         await SeedActiveTrainingPlanAsync(coach.UserId, clients[2].UserId, DateTime.UtcNow.Date.AddDays(-1));
 
-        var all = await ListAsync(coach, "?outsidePlan=true");
+        var all = await ListAsync(coach, "?tab=OutsidePlan");
 
         all.Clients.Select(c => c.UserId).Should().BeEquivalentTo([clients[2].UserId, clients[3].UserId]);
         all.Clients.Select(c => c.Status).Should().BeEquivalentTo(["Active", "Paused"]);
         all.TotalCount.Should().Be(2);
 
-        var searched = await ListAsync(coach, $"?outsidePlan=true&search={Uri.EscapeDataString(clients[3].Email)}");
+        var searched = await ListAsync(coach, $"?tab=OutsidePlan&search={Uri.EscapeDataString(clients[3].Email)}");
 
         searched.Clients.Should().ContainSingle(c => c.UserId == clients[3].UserId);
         searched.TabCounts.OutsidePlan.Should().Be(1, "search narrows the tab counts like Active and Paused");
     }
 
-    [Fact]
-    public async Task List_OutsidePlanTrueWithStatusArchived_Returns400()
+    [Theory]
+    [InlineData("?tab=Active&status=Active")]
+    [InlineData("?tab=All&status=Archived")]
+    [InlineData("?tab=Bogus")]
+    [InlineData("?plan=Bogus")]
+    [InlineData("?tab=99")]
+    public async Task List_TabWithStatusOrInvalidEnum_Returns400(string query)
     {
         var (coach, _) = await CoachWithClientsAsync(1);
 
-        var response = await coach.Http.GetAsync(
-            "/trainer/clients?outsidePlan=true&status=Archived", TestContext.Current.CancellationToken);
+        var response = await coach.Http.GetAsync($"/trainer/clients{query}", TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
@@ -631,8 +635,129 @@ public class GetClientsEndpointTests(FitnessApiFactory factory)
 
             body.Clients.Should().OnlyContain(c => !c.IsOutsidePlan);
             body.TabCounts.OutsidePlan.Should().Be(0);
-            (await ListAsync(coach, "?outsidePlan=true")).Clients.Should().BeEmpty();
+            (await ListAsync(coach, "?tab=OutsidePlan")).Clients.Should().BeEmpty();
         }
+    }
+
+    // ── clients-page tabs and plan filter ────────────────────────────────────
+
+    /// <summary>
+    /// Free cap 2, five clients linked oldest first, the oldest archived: [1] and [2] in plan,
+    /// [3] and [4] outside. Plans: [1] ending soon, [3] long-running; [2] and [4] have none.
+    /// </summary>
+    private async Task<(Actor Coach, List<Actor> Clients)> MixedRosterAsync()
+    {
+        var (coach, clients) = await CoachWithClientsAsync(5);
+        await SetLinkActiveAsync(clients[0].PublicId, false);
+        await SeedActiveTrainingPlanAsync(coach.UserId, clients[1].UserId, DateTime.UtcNow.Date.AddDays(-1), weekCount: 1);
+        await SeedActiveTrainingPlanAsync(coach.UserId, clients[3].UserId, DateTime.UtcNow.Date.AddDays(-1), weekCount: 10);
+
+        return (coach, clients);
+    }
+
+    private static Guid[] Ids(List<Actor> clients, params int[] indexes) =>
+        indexes.Select(i => clients[i].UserId).ToArray();
+
+    [Theory]
+    [InlineData("All", new[] { 2, 1, 0, 4, 3 })]
+    [InlineData("Active", new[] { 2, 1 })]
+    [InlineData("OutsidePlan", new[] { 4, 3 })]
+    [InlineData("Archived", new[] { 0 })]
+    public async Task List_Tab_ReturnsExpectedRowsInOrder(string tab, int[] expected)
+    {
+        var (coach, clients) = await MixedRosterAsync();
+
+        var body = await ListAsync(coach, $"?tab={tab}");
+
+        body.Clients.Select(c => c.UserId).Should().Equal(Ids(clients, expected));
+        body.TotalCount.Should().Be(expected.Length);
+    }
+
+    [Theory]
+    [InlineData("Active", new[] { 1, 3 })]
+    [InlineData("None", new[] { 2, 4 })]
+    [InlineData("EndingSoon", new[] { 1 })]
+    public async Task List_PlanFilterOnAllTab_ReturnsExpectedRows_ArchivedNeverMatches(string plan, int[] expected)
+    {
+        var (coach, clients) = await MixedRosterAsync();
+
+        var body = await ListAsync(coach, $"?tab=All&plan={plan}");
+
+        body.Clients.Select(c => c.UserId).Should().BeEquivalentTo(Ids(clients, expected));
+        body.Clients.Should().NotContain(c => c.UserId == clients[0].UserId);
+    }
+
+    [Fact]
+    public async Task List_TabCombinedWithPlan_AppliesPlanAfterTab()
+    {
+        var (coach, clients) = await MixedRosterAsync();
+
+        var inPlanEnding = await ListAsync(coach, "?tab=Active&plan=EndingSoon");
+        var outsideActive = await ListAsync(coach, "?tab=OutsidePlan&plan=Active");
+        var archivedNone = await ListAsync(coach, "?tab=Archived&plan=None");
+
+        inPlanEnding.Clients.Select(c => c.UserId).Should().Equal(clients[1].UserId);
+        outsideActive.Clients.Select(c => c.UserId).Should().Equal(clients[3].UserId);
+        archivedNone.Clients.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task List_TabCounts_AreIndependentOfTabAndPlan()
+    {
+        var (coach, _) = await MixedRosterAsync();
+
+        var baseline = await ListAsync(coach);
+
+        baseline.TabCounts.Should().BeEquivalentTo(new TabCountsDto
+        {
+            All = 5, InPlan = 2, Active = 2, Paused = 2, Archived = 1, OutsidePlan = 2, Pending = 0
+        });
+
+        foreach (var query in new[] { "?tab=All", "?tab=Active", "?tab=OutsidePlan", "?tab=Archived", "?tab=Active&plan=None", "?plan=EndingSoon" })
+        {
+            (await ListAsync(coach, query)).TabCounts.Should().BeEquivalentTo(baseline.TabCounts, query);
+        }
+    }
+
+    [Theory]
+    [InlineData("?tab=All", 5, 2, 2, 1)]
+    [InlineData("?tab=Active", 2, 1, 1, 1)]
+    [InlineData("?tab=OutsidePlan", 2, 1, 1, 0)]
+    [InlineData("?tab=Archived", 1, 0, 0, 0)]
+    [InlineData("?tab=All&plan=None", 5, 2, 2, 1)]
+    [InlineData("?tab=All&filter=EndingSoon", 5, 2, 2, 1)]
+    public async Task List_PlanCounts_ComputedOnSelectedTabBeforePlanAndChipFilters(
+        string query, int all, int active, int none, int endingSoon)
+    {
+        var (coach, _) = await MixedRosterAsync();
+
+        var body = await ListAsync(coach, query);
+
+        body.PlanCounts.Should().BeEquivalentTo(new PlanCountsDto
+        {
+            All = all, Active = active, None = none, EndingSoon = endingSoon
+        });
+    }
+
+    [Fact]
+    public async Task List_WithoutTabPlanOrStatus_KeepsLegacyRowsAndCounts()
+    {
+        var (coach, clients) = await MixedRosterAsync();
+
+        var body = await ListAsync(coach);
+
+        // Every live link, Archived excluded, in-plan first then newest-linked first.
+        body.Clients.Select(c => c.UserId).Should().Equal(Ids(clients, 2, 1, 4, 3));
+        body.TotalCount.Should().Be(4);
+        body.TabCounts.Active.Should().Be(2);
+        body.TabCounts.Paused.Should().Be(2);
+        body.TabCounts.Archived.Should().Be(1);
+        body.TabCounts.OutsidePlan.Should().Be(2);
+        body.FilterCounts.All.Should().Be(4);
+        body.PlanCounts.All.Should().Be(4);
+
+        (await ListAsync(coach, "?status=Active")).Clients.Select(c => c.UserId)
+            .Should().BeEquivalentTo(Ids(clients, 1, 3));
     }
 
     // ── fixtures ─────────────────────────────────────────────────────────────
@@ -764,10 +889,21 @@ public class GetClientsEndpointTests(FitnessApiFactory factory)
         public int PageSize { get; set; }
         public TabCountsDto TabCounts { get; set; } = new();
         public FilterCountsDto FilterCounts { get; set; } = new();
+        public PlanCountsDto PlanCounts { get; set; } = new();
+    }
+
+    private sealed class PlanCountsDto
+    {
+        public int All { get; set; }
+        public int Active { get; set; }
+        public int None { get; set; }
+        public int EndingSoon { get; set; }
     }
 
     private sealed class TabCountsDto
     {
+        public int All { get; set; }
+        public int InPlan { get; set; }
         public int Active { get; set; }
         public int Paused { get; set; }
         public int Archived { get; set; }
