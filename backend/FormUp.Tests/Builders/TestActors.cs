@@ -109,6 +109,16 @@ public sealed class ActorBuilder(FitnessApiFactory factory, UserRole[] roles)
     private UserRole[] _removedRoles = [];
     private bool _emailConfirmed;
     private DateTime? _dateCreated;
+    private bool _withPayments;
+
+    /// <summary>Seeded plan whose payments flag is on.</summary>
+    private const string PaymentsPlanCode = "pro";
+
+    /// <summary>
+    /// Subscribes a coach to the seeded Pro plan, so the payments feature is on (the default coach has
+    /// no subscription and falls back to the Free plan, which excludes payments).
+    /// </summary>
+    public ActorBuilder WithPayments() { _withPayments = true; return this; }
 
     /// <summary>
     /// Overrides the generated email (default is a random, always-unique fixture address).
@@ -216,7 +226,14 @@ public sealed class ActorBuilder(FitnessApiFactory factory, UserRole[] roles)
         var token = TestTokenFactory.CreateAccessToken(factory, user.Id, _email, roleNames);
         TestHelpers.SetBearerToken(http, token);
 
-        return new Actor(http, user.Id, _email, profileId, publicId);
+        var actor = new Actor(http, user.Id, _email, profileId, publicId);
+
+        if (_withPayments)
+        {
+            await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, actor, PaymentsPlanCode);
+        }
+
+        return actor;
     }
 }
 

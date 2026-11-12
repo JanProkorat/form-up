@@ -1332,8 +1332,7 @@ public static class CoachSubscriptionBuilder
     }
 
     /// <summary>
-    /// Moves the coach to a fresh active plan whose payments feature is off. A canceled subscription would not do
-    /// for that: it falls back to the Free plan, which includes payments.
+    /// Moves the coach to a fresh active plan whose payments feature is off.
     /// </summary>
     /// <param name="factory">The test host.</param>
     /// <param name="coach">The coach to move.</param>

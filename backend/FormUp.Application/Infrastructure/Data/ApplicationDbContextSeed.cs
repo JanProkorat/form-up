@@ -154,7 +154,8 @@ public static class ApplicationDbContextSeed
             CanSendQuestionnaires = questionnairesAndCheckIns,
             CanUseWeeklyCheckIns = questionnairesAndCheckIns,
             CanUsePerClientCheckInConfig = perClientCheckInConfig,
-            CanUsePayments = true,
+            // Client payments (packages) come with Pro, like forms and check-ins.
+            CanUsePayments = questionnairesAndCheckIns,
             MaxActiveClients = maxActiveClients,
             PriceMinorUnits = price,
             SecondRoleAddOnPriceMinorUnits = addOnPrice,

@@ -73,7 +73,7 @@ public class CoachDiscountEndpointTests(FitnessApiFactory factory)
     [Fact]
     public async Task CreateAndUpdate_PackageScope_IsStoredAllPackagesOrTheGivenList()
     {
-        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var coach = await TestActors.Trainer(factory).WithPayments().CreateAsync(TestContext.Current.CancellationToken);
         var first = await CreatePackageAsync(coach);
         var second = await CreatePackageAsync(coach);
 
@@ -98,7 +98,7 @@ public class CoachDiscountEndpointTests(FitnessApiFactory factory)
     [Fact]
     public async Task Create_InvalidBody_Returns400()
     {
-        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var coach = await TestActors.Trainer(factory).WithPayments().CreateAsync(TestContext.Current.CancellationToken);
 
         var response = await coach.Http.PostAsJsonAsync(
             "/payments/discounts", DiscountBody(), TestContext.Current.CancellationToken);
@@ -109,8 +109,8 @@ public class CoachDiscountEndpointTests(FitnessApiFactory factory)
     [Fact]
     public async Task Create_ForeignUnknownOrArchivedPackage_Returns400WithIdenticalCode()
     {
-        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
-        var other = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var coach = await TestActors.Trainer(factory).WithPayments().CreateAsync(TestContext.Current.CancellationToken);
+        var other = await TestActors.Trainer(factory).WithPayments().CreateAsync(TestContext.Current.CancellationToken);
         var foreignPackage = await CreatePackageAsync(other);
         var archivedPackage = await CreatePackageAsync(coach);
         await coach.Http.PostAsync($"/payments/packages/{archivedPackage}/archive", JsonContent.Create(new { }), TestContext.Current.CancellationToken);
@@ -141,7 +141,7 @@ public class CoachDiscountEndpointTests(FitnessApiFactory factory)
     [Fact]
     public async Task Create_FixedDiscountLimitedToAPackageInAnotherCurrency_Returns400CurrencyMismatch()
     {
-        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var coach = await TestActors.Trainer(factory).WithPayments().CreateAsync(TestContext.Current.CancellationToken);
         var euroPackage = await CreatePackageAsync(coach, "EUR");
 
         var response = await coach.Http.PostAsJsonAsync(
@@ -156,7 +156,7 @@ public class CoachDiscountEndpointTests(FitnessApiFactory factory)
     [Fact]
     public async Task Archive_IsIdempotentAndAnArchivedDiscountRefusesUpdatesWith409()
     {
-        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var coach = await TestActors.Trainer(factory).WithPayments().CreateAsync(TestContext.Current.CancellationToken);
         var discount = await CreateDiscountAsync(coach, DiscountBody(all: true));
 
         var first = await ArchiveAsync(coach, discount.DiscountId);
@@ -175,8 +175,8 @@ public class CoachDiscountEndpointTests(FitnessApiFactory factory)
     [Fact]
     public async Task ForeignOrUnknownDiscount_Returns404OnGetUpdateAndArchive()
     {
-        var owner = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
-        var intruder = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var owner = await TestActors.Trainer(factory).WithPayments().CreateAsync(TestContext.Current.CancellationToken);
+        var intruder = await TestActors.Trainer(factory).WithPayments().CreateAsync(TestContext.Current.CancellationToken);
         var discount = await CreateDiscountAsync(owner, DiscountBody(all: true));
 
         foreach (var discountId in new[] { discount.DiscountId, Guid.NewGuid() })
