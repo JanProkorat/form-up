@@ -191,6 +191,7 @@
     "navigationTitle": "Navigation"
   },
   "sidebar": {
+    "lockedInPlan": "Not included in your plan",
     "adminSection": "Form Up admin",
     "adminPlans": "Plans",
     "adminPromotions": "Promotions",

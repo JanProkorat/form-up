@@ -10,6 +10,7 @@ import {
   FileText,
   HelpCircle,
   Layers,
+  Lock,
   MessageSquare,
   Package,
   Tag,
@@ -23,6 +24,11 @@ import NotificationsPopover from '@/components/notifications/NotificationsPopove
 import Wordmark from '@/components/brand/Wordmark';
 import { useConversationFilterCounts } from '@/hooks/useInboxQueries';
 import { useActiveRoles } from '@/hooks/useActiveRoles';
+import { useSubscription } from '@/hooks/useSubscriptionQueries';
+import { useScrollEdgeFade } from '@/hooks/useScrollEdgeFade';
+
+/** Help & Support has no page yet; flip to true to bring the placeholder row back. */
+const SHOW_HELP = false;
 
 /**
  * v1 navigation — only the sections/items this rebuild actually delivers.
@@ -148,6 +154,15 @@ export default function Sidebar({ onNavigate, collapsed = false, onToggleCollaps
   const visibleSections = NAV_SECTIONS.filter(
     (section) => !section.requiredRole || (!isLoading && !isError && hasRole(section.requiredRole)),
   );
+  const { isEntitled } = useSubscription();
+  const navRef = useScrollEdgeFade<HTMLDivElement>();
+  // isEntitled stays true while the subscription loads or fails, so no lock flashes in.
+  const isLocked = (to: string) =>
+    (to === '/forms' && !isEntitled('canSendQuestionnaires')) ||
+    (to === '/packages' && !isEntitled('canUsePayments'));
+  // The rail shows no text, so its accessible name carries the locked state.
+  const navLabel = (labelKey: string, to: string) =>
+    isLocked(to) ? `${t(labelKey)}, ${t('sidebar.lockedInPlan')}` : t(labelKey);
   const toggleLabel = t(collapsed ? 'shell.expandNavigation' : 'shell.collapseNavigation');
   const ToggleIcon = collapsed ? ChevronsRight : ChevronsLeft;
 
@@ -204,8 +219,9 @@ export default function Sidebar({ onNavigate, collapsed = false, onToggleCollaps
         </div>
 
         <div
+          ref={navRef}
           className={cn(
-            'flex flex-1 flex-col overflow-x-hidden overflow-y-auto transition-[gap]',
+            'scrollbar-hidden scroll-edge-fade flex flex-1 flex-col overflow-x-hidden overflow-y-auto transition-[gap]',
             MOTION,
             collapsed ? 'gap-1' : 'gap-5',
           )}
@@ -248,8 +264,8 @@ export default function Sidebar({ onNavigate, collapsed = false, onToggleCollaps
                     key={to}
                     to={to}
                     onClick={onNavigate}
-                    title={collapsed ? t(labelKey) : undefined}
-                    aria-label={collapsed ? t(labelKey) : undefined}
+                    title={collapsed ? navLabel(labelKey, to) : undefined}
+                    aria-label={collapsed ? navLabel(labelKey, to) : undefined}
                     className={({ isActive }) =>
                       cn(
                         ROW,
@@ -262,6 +278,19 @@ export default function Sidebar({ onNavigate, collapsed = false, onToggleCollaps
                   >
                     <Icon className="size-4 shrink-0" aria-hidden="true" />
                     <RowLabel collapsed={collapsed}>{t(labelKey)}</RowLabel>
+                    {isLocked(to) && (
+                      <Lock
+                        role={collapsed ? undefined : 'img'}
+                        aria-label={collapsed ? undefined : t('sidebar.lockedInPlan')}
+                        aria-hidden={collapsed || undefined}
+                        data-testid="sidebar-locked"
+                        className={cn(
+                          'shrink-0 text-sidebar-muted transition-[top,right,margin,width,height]',
+                          MOTION,
+                          collapsed ? 'absolute right-1.5 bottom-1 size-3' : 'ml-auto size-3.5',
+                        )}
+                      />
+                    )}
                     {to === '/inbox' && unreadCount > 0 && (
                       <span
                         role="img"
@@ -293,19 +322,21 @@ export default function Sidebar({ onNavigate, collapsed = false, onToggleCollaps
             onNavigate={onNavigate}
           />
 
-          <Fold open={!collapsed}>
-            <div className="flex flex-col gap-1 pt-1">
-              <button
-                type="button"
-                disabled
-                title={t('shell.comingSoon')}
-                className={cn(ROW, 'text-sidebar-muted disabled:cursor-not-allowed')}
-              >
-                <HelpCircle className="size-4 shrink-0" aria-hidden="true" />
-                {t('sidebar.help')}
-              </button>
-            </div>
-          </Fold>
+          {SHOW_HELP && (
+            <Fold open={!collapsed}>
+              <div className="flex flex-col gap-1 pt-1">
+                <button
+                  type="button"
+                  disabled
+                  title={t('shell.comingSoon')}
+                  className={cn(ROW, 'text-sidebar-muted disabled:cursor-not-allowed')}
+                >
+                  <HelpCircle className="size-4 shrink-0" aria-hidden="true" />
+                  {t('sidebar.help')}
+                </button>
+              </div>
+            </Fold>
+          )}
 
           <div
             className={cn(

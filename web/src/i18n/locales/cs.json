@@ -191,6 +191,7 @@
     "navigationTitle": "Navigace"
   },
   "sidebar": {
+    "lockedInPlan": "Není součástí vašeho tarifu",
     "adminSection": "Správa Form Up",
     "adminPlans": "Plány",
     "adminPromotions": "Akce",
