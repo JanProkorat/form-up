@@ -3,6 +3,7 @@ import { Check, Users, X } from 'lucide-react';
 import { BillingInterval, type CoachPlanDto } from '@/api/generated';
 import { formatMoney } from '@/components/subscription/money';
 import { coachPlanName } from '@/components/subscription/planNames';
+import { PLAN_FEATURES } from '@/components/subscription/planFeatures';
 import { Button } from '@/components/ui/button';
 
 interface Props {
@@ -19,14 +20,7 @@ interface Props {
   onAction: () => void;
 }
 
-const FEATURES = [
-  { flag: 'canCreatePlans', key: 'plans' },
-  { flag: 'canMessage', key: 'messaging' },
-  { flag: 'canSendQuestionnaires', key: 'forms' },
-  { flag: 'canUseWeeklyCheckIns', key: 'checkIns' },
-  { flag: 'canUsePerClientCheckInConfig', key: 'perClientCheckIns' },
-  { flag: 'canUsePayments', key: 'payments' },
-] as const;
+const FEATURES = PLAN_FEATURES;
 
 /** One plan of the picker: name, price, second-role line, client cap, included features and the choose button. */
 export default function PlanCard({ plan, current = false, actionLabel, primary, actionDisabled, busy, onAction }: Props) {

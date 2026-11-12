@@ -52,6 +52,12 @@ public class SubscriptionPlanSeedTests(FitnessApiFactory factory)
         plans["pro"].CanSendQuestionnaires.Should().BeTrue();
         plans["pro"].CanUseWeeklyCheckIns.Should().BeTrue();
 
+        // Client payments (packages) come with Pro.
+        plans["free"].CanUsePayments.Should().BeFalse();
+        plans["start"].CanUsePayments.Should().BeFalse();
+        plans["pro"].CanUsePayments.Should().BeTrue();
+        plans["studio"].CanUsePayments.Should().BeTrue();
+
         plans["studio"].PriceMinorUnits.Should().Be(99900);
         plans["studio"].BothRolesIncluded.Should().BeTrue();
         plans["studio"].MaxActiveClients.Should().BeNull();

@@ -25,7 +25,7 @@ public class UndoBankAccountChangeEndpointTests(FitnessApiFactory factory)
     /// </summary>
     private async Task<(Actor Coach, string Token)> CoachWhoChangedAccountAsync()
     {
-        var coach = await TestActors.Trainer(factory).WithPassword(Password).CreateAsync(TestContext.Current.CancellationToken);
+        var coach = await TestActors.Trainer(factory).WithPayments().WithPassword(Password).CreateAsync(TestContext.Current.CancellationToken);
         await SetBankAccountAsync(factory, coach, ValidIban, "Old Holder");
 
         var change = await ChangeAsync(coach, OtherIban);

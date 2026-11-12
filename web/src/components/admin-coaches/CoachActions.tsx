@@ -65,7 +65,7 @@ interface RowProps {
 
 function ActionRow({ tone, icon, title, description, button, unavailableNote }: RowProps) {
   return (
-    <li className="flex flex-wrap items-center gap-x-4 gap-y-3 border-t border-line py-3.5">
+    <li className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line py-2.5">
       <span
         aria-hidden="true"
         className={cn('flex size-9 shrink-0 items-center justify-center rounded-field [&_svg]:size-4.5', ROW_TILE_CLASS[tone])}
@@ -78,7 +78,7 @@ function ActionRow({ tone, icon, title, description, button, unavailableNote }: 
       </div>
       <div className="ml-auto">
         {unavailableNote ? (
-          <p className="max-w-60 text-right text-body leading-normal text-muted-foreground">{unavailableNote}</p>
+          <p className="max-w-80 text-right text-meta leading-normal text-muted-foreground">{unavailableNote}</p>
         ) : (
           button
         )}
@@ -93,7 +93,6 @@ function RowButton({ danger = false, children, ...props }: { danger?: boolean; c
     <Button
       type="button"
       variant="outline"
-      size="lg"
       className={cn('px-3.5 font-semibold', danger && 'text-error')}
       {...props}
     >
@@ -164,9 +163,9 @@ export default function CoachActions({ coach, coachId, plans, onGone }: Props) {
   return (
     <section
       aria-labelledby="coach-actions-heading"
-      className="flex flex-col rounded-2xl border border-line bg-card px-6 pt-5.5 pb-2 shadow-panel"
+      className="flex flex-col rounded-2xl border border-line bg-card px-5 pt-4 pb-1 shadow-panel"
     >
-      <div className="flex flex-col gap-1 pb-3.5">
+      <div className="flex flex-col gap-0.5 pb-2.5">
         <h2 id="coach-actions-heading" className="text-subhead font-semibold text-ink">
           {t('adminCoaches.drawer.actions')}
         </h2>
@@ -189,7 +188,6 @@ export default function CoachActions({ coach, coachId, plans, onGone }: Props) {
             <Button
               type="button"
               variant="outline"
-              size="lg"
               className="px-3.5 font-semibold"
               disabled
               title={t('shell.comingSoon')}

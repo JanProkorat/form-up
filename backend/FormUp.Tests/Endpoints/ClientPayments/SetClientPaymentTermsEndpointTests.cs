@@ -177,7 +177,7 @@ public class SetClientPaymentTermsEndpointTests(FitnessApiFactory factory)
     public async Task SetTerms_PackageOrDiscountOfAnotherCoach_Returns404()
     {
         var world = await CreateWorldAsync(factory);
-        var otherCoach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var otherCoach = await TestActors.Trainer(factory).WithPayments().CreateAsync(TestContext.Current.CancellationToken);
         var packageId = await CreatePackageAsync(world.Coach);
         var foreignPackage = await CreatePackageAsync(otherCoach);
         var foreignDiscount = await CreateDiscountAsync(otherCoach);

@@ -37,6 +37,7 @@ const planShape = z.object({
   canSendQuestionnaires: z.boolean(),
   canUseWeeklyCheckIns: z.boolean(),
   canUsePerClientCheckInConfig: z.boolean(),
+  canUsePayments: z.boolean(),
   isActive: z.boolean(),
   moveExistingCoaches: z.boolean(),
 });
@@ -99,6 +100,7 @@ export function defaultPlanValues(): PlanFormValues {
     canSendQuestionnaires: false,
     canUseWeeklyCheckIns: false,
     canUsePerClientCheckInConfig: false,
+    canUsePayments: false,
     isActive: true,
     moveExistingCoaches: false,
   };
@@ -136,6 +138,7 @@ export function planToFormValues(plan: SubscriptionPlanDto): PlanFormValues {
     canSendQuestionnaires: plan.canSendQuestionnaires ?? false,
     canUseWeeklyCheckIns: plan.canUseWeeklyCheckIns ?? false,
     canUsePerClientCheckInConfig: plan.canUsePerClientCheckInConfig ?? false,
+    canUsePayments: plan.canUsePayments ?? false,
     isActive: plan.isActive ?? true,
     moveExistingCoaches: false,
   };
@@ -149,6 +152,7 @@ function featureFlags(values: PlanFormValues) {
     canSendQuestionnaires: values.canSendQuestionnaires,
     canUseWeeklyCheckIns: values.canUseWeeklyCheckIns,
     canUsePerClientCheckInConfig: values.canUseWeeklyCheckIns && values.canUsePerClientCheckInConfig,
+    canUsePayments: values.canUsePayments,
   };
 }
 
@@ -174,8 +178,8 @@ export function formValuesToCreateRequest(values: PlanFormValues): CreateSubscri
 }
 
 /**
- * Builds the update body. Fields the drawer does not edit (payments flag, currency, billing,
- * external price id) keep the saved plan's value, and the cap key is always present.
+ * Builds the update body. Fields the drawer does not edit (currency, billing, external price id)
+ * keep the saved plan's value, and the cap key is always present.
  */
 export function formValuesToUpdateRequest(
   values: PlanFormValues,
@@ -189,7 +193,6 @@ export function formValuesToUpdateRequest(
     nameDe: values.nameDe.trim(),
     ...secondRoleFields(values),
     ...featureFlags(values),
-    canUsePayments: plan.canUsePayments ?? false,
     moveExistingCoachesAtNextRenewal: priceChanged && values.moveExistingCoaches,
     maxActiveClients: values.unlimited ? null : Number(values.maxActiveClients),
     priceMinorUnits,

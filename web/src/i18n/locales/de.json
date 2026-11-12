@@ -6595,6 +6595,7 @@
       "noEnd": "Ohne Ende"
     },
     "profile": {
+      "back": "Zurück zu den Trainern",
       "joined": "Registriert am {{date}}",
       "freeNote": "Im Plan Kostenlos. Es wird nichts abgerechnet.",
       "actionsHint": "Jede Aktion verlangt Ihre Bestätigung und einen Grund. Beides landet im Verlauf.",
@@ -6788,12 +6789,15 @@
       "checkIns": "Wöchentliche Check-ins",
       "perClientCheckIns": "Check-in-Einstellungen pro Klient",
       "perClientCheckInsHint": "Erfordert wöchentliche Check-ins",
+      "payments": "Zahlungen und Pakete",
+      "paymentsHint": "Leistungspakete und Zahlungen von Klienten",
       "chip": {
         "plans": "Pläne",
         "chat": "Chat",
         "forms": "Formulare",
         "checkIns": "Check-ins",
         "perClientCheckIns": "Individuelle Check-ins",
+        "payments": "Zahlungen",
         "everything": "Alles"
       }
     },

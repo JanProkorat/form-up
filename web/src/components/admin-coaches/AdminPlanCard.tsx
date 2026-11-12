@@ -3,6 +3,8 @@ import { Check, Minus, Users } from 'lucide-react';
 import type { SubscriptionPlanDto } from '@/api/admin-subscription-plans';
 import { formatPlanMoney, planName } from '@/components/admin-plans/planForm';
 import type { PlanColor } from '@/components/admin-coaches/giveFreePlans';
+import { ADMIN_FEATURE_LABEL_KEY } from '@/components/admin-plans/planFeatureLabels';
+import { PLAN_FEATURES } from '@/components/subscription/planFeatures';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -16,14 +18,11 @@ interface Props {
   onSelect: (code: string) => void;
 }
 
-/** The feature lines of a plan card, each tied to a plan flag. */
-const FEATURES: ReadonlyArray<{ flag: keyof SubscriptionPlanDto; labelKey: string }> = [
-  { flag: 'canCreatePlans', labelKey: 'adminPlans.features.plans' },
-  { flag: 'canMessage', labelKey: 'adminPlans.features.chat' },
-  { flag: 'canSendQuestionnaires', labelKey: 'adminPlans.features.forms' },
-  { flag: 'canUseWeeklyCheckIns', labelKey: 'adminPlans.features.checkIns' },
-  { flag: 'canUsePerClientCheckInConfig', labelKey: 'adminPlans.features.perClientCheckIns' },
-];
+/** The feature lines of a plan card, from the shared feature list. */
+const FEATURES: ReadonlyArray<{ flag: keyof SubscriptionPlanDto; labelKey: string }> = PLAN_FEATURES.map((feature) => ({
+  flag: feature.flag,
+  labelKey: ADMIN_FEATURE_LABEL_KEY[feature.key],
+}));
 
 /** One selectable plan in the give-for-free picker: coloured header, regular price, limit and features. */
 export default function AdminPlanCard({ plan, color, selected, current = false, name, onSelect }: Props) {
@@ -51,7 +50,18 @@ export default function AdminPlanCard({ plan, color, selected, current = false, 
             onChange={() => onSelect(code)}
             className={cn('size-4.5 shrink-0 cursor-pointer', color.accent)}
           />
-          <span className="font-display text-card-title font-semibold text-ink">{planName(plan, i18n.language)}</span>
+          <span className="min-w-0 truncate font-display text-card-title font-semibold text-ink">
+            {planName(plan, i18n.language)}
+          </span>
+          {/* The pill shares the name row (no taller than the icon), so selecting a card never changes its height. */}
+          {highlighted && (
+            // A template string, not cn(): twMerge would drop the custom text-meta size next to text-ink.
+            <span
+              className={`shrink-0 rounded-full border px-2 py-0.5 text-meta font-semibold whitespace-nowrap text-ink ${color.pill}`}
+            >
+              {t(current ? 'adminCoaches.giveFree.current' : 'adminCoaches.giveFree.selected')}
+            </span>
+          )}
           <span
             aria-hidden="true"
             className={cn('ml-auto flex size-8 shrink-0 items-center justify-center rounded-field bg-card', color.tile)}
@@ -59,14 +69,6 @@ export default function AdminPlanCard({ plan, color, selected, current = false, 
             <Icon className="size-4" />
           </span>
         </span>
-        {highlighted && (
-          // A template string, not cn(): twMerge would drop the custom text-meta size next to text-ink.
-          <span
-            className={`self-start rounded-full border px-2 py-0.5 text-meta font-semibold text-ink ${color.pill}`}
-          >
-            {t(current ? 'adminCoaches.giveFree.current' : 'adminCoaches.giveFree.selected')}
-          </span>
-        )}
       </span>
 
       <span className="flex items-baseline gap-1.5">

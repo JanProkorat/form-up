@@ -166,6 +166,7 @@ function LoadedClientPlanEditor({
             onboarding={onboarding}
             clientFirstName={firstName || clientName}
             onTemplateApplied={markTemplateApplied}
+            onBlocked={outsidePlan?.onBlocked}
           />
         ),
       }}

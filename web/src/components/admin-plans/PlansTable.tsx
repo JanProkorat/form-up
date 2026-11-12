@@ -13,6 +13,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import type { SubscriptionPlanDto } from '@/api/admin-subscription-plans';
 import { CELL_CLASS, CELL_TEXT_CLASS, CatalogTile, HEAD_CLASS } from '@/components/package-catalog/catalogParts';
 import { formatPlanMoney, isFreePlan, planName } from '@/components/admin-plans/planForm';
+import { ADMIN_FEATURE_CHIP_KEY } from '@/components/admin-plans/planFeatureLabels';
+import { PLAN_FEATURES } from '@/components/subscription/planFeatures';
 import { cn } from '@/lib/utils';
 
 const COLUMN_COUNT = 8;
@@ -28,13 +30,10 @@ interface Props {
 
 /** The feature chips of a plan; one "Everything" chip when every feature is on. */
 function featureLabelKeys(plan: SubscriptionPlanDto): string[] {
-  const flags: [boolean | undefined, string][] = [
-    [plan.canCreatePlans, 'plans'],
-    [plan.canMessage, 'chat'],
-    [plan.canSendQuestionnaires, 'forms'],
-    [plan.canUseWeeklyCheckIns, 'checkIns'],
-    [plan.canUsePerClientCheckInConfig, 'perClientCheckIns'],
-  ];
+  const flags: [boolean | undefined, string][] = PLAN_FEATURES.map((feature) => [
+    plan[feature.flag],
+    ADMIN_FEATURE_CHIP_KEY[feature.key],
+  ]);
   const on = flags.filter(([enabled]) => enabled).map(([, key]) => key);
   return on.length === flags.length ? ['everything'] : on;
 }

@@ -28,16 +28,21 @@ export default function AdminCoachProfilePage() {
   const coach = coachQuery.data;
   const plans = plansQuery.data ?? [];
   const joined = formatCoachDate(coach?.joinedAt, i18n.language);
+  // Same square back button as the client detail header.
+  const backButton = (
+    <Link
+      to={COACHES_PATH}
+      aria-label={t('adminCoaches.profile.back')}
+      className="flex size-9 shrink-0 items-center justify-center self-start rounded-lg border border-border bg-card text-ink transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
+    >
+      <ChevronLeft className="size-4.5" aria-hidden="true" />
+    </Link>
+  );
 
   return (
     <div className="flex flex-col gap-5.5">
-      <Link
-        to={COACHES_PATH}
-        className="-ml-1.5 inline-flex h-8 items-center gap-1.5 self-start rounded-lg pr-2.5 pl-1.5 text-meta font-semibold text-ink-2 outline-none hover:text-ink focus-visible:ring-3 focus-visible:ring-ring/50"
-      >
-        <ChevronLeft aria-hidden="true" className="size-4" />
-        {t('adminCoaches.title')}
-      </Link>
+      {/* While the coach loads or fails, the back button stands alone; once loaded it sits in the header. */}
+      {!coach && backButton}
 
       {coachQuery.isPending && (
         <div className="flex flex-col gap-4">
@@ -57,15 +62,16 @@ export default function AdminCoachProfilePage() {
 
       {coach && (
         <>
-          <header className="flex flex-wrap items-center gap-4.5">
+          <header className="flex flex-wrap items-center gap-3.5">
+            <div className="self-center">{backButton}</div>
             <span
               aria-hidden="true"
               className="flex size-16 shrink-0 items-center justify-center rounded-full bg-sunken text-card-title font-semibold text-ink"
             >
               {coachInitials(coach.name)}
             </span>
-            <div className="flex min-w-0 flex-col gap-1.5">
-              <h1 className="font-display text-display leading-tight font-semibold text-ink">
+            <div className="flex min-w-0 flex-col gap-1">
+              <h1 className="font-display text-title leading-tight font-semibold text-ink">
                 {coach.name ?? t('adminCoaches.drawer.titleFallback')}
               </h1>
               <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-copy text-muted-foreground">
@@ -104,7 +110,8 @@ export default function AdminCoachProfilePage() {
               <CoachPlanCard coach={coach} />
               <CoachActions coach={coach} coachId={coachId} plans={plans} onGone={() => navigate(COACHES_PATH)} />
             </div>
-            <div className="flex min-w-0 flex-col gap-5">
+            {/* On lg the History column stays within the window (below the header) and scrolls inside its card. */}
+            <div className="flex min-w-0 flex-col gap-5 lg:sticky lg:top-0 lg:max-h-[calc(100dvh-9.5rem)]">
               <CoachHistory entries={coach.history ?? []} plans={plans} />
             </div>
           </div>

@@ -6843,6 +6843,7 @@
       "noEnd": "Bez konce"
     },
     "profile": {
+      "back": "Zpět na trenéry",
       "joined": "Registrace {{date}}",
       "freeNote": "Na plánu Zdarma. Nic se neúčtuje.",
       "actionsHint": "Každá akce vás požádá o potvrzení a důvod. Obojí se zapíše do historie.",
@@ -7040,12 +7041,15 @@
       "checkIns": "Týdenní check-iny",
       "perClientCheckIns": "Nastavení check-inů pro každého klienta",
       "perClientCheckInsHint": "Vyžaduje týdenní check-iny",
+      "payments": "Platby a balíčky",
+      "paymentsHint": "Balíčky služeb a platby od klientů",
       "chip": {
         "plans": "Plány",
         "chat": "Chat",
         "forms": "Formuláře",
         "checkIns": "Check-iny",
         "perClientCheckIns": "Check-iny na míru",
+        "payments": "Platby",
         "everything": "Vše"
       }
     },

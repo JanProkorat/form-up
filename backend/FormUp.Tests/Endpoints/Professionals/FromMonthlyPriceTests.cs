@@ -86,7 +86,7 @@ public class FromMonthlyPriceTests(FitnessApiFactory factory)
     [Fact]
     public async Task PublicProfile_MixedPackages_ShowsTheLowestActiveVisibleInMainCurrency()
     {
-        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var coach = await TestActors.Trainer(factory).WithPayments().CreateAsync(TestContext.Current.CancellationToken);
         var client = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
         await AddPackageAsync(coach, 2500m);
         await AddPackageAsync(coach, 1800m);
@@ -109,7 +109,7 @@ public class FromMonthlyPriceTests(FitnessApiFactory factory)
     [Fact]
     public async Task PublicProfile_OneOffPackageIsCheapest_ShowsItWithOneOffBilling()
     {
-        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var coach = await TestActors.Trainer(factory).WithPayments().CreateAsync(TestContext.Current.CancellationToken);
         var client = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
         await AddPackageAsync(coach, 1800m);
         await AddPackageAsync(coach, 700m, PackageBillingInterval.EveryNWeeks);
@@ -126,7 +126,7 @@ public class FromMonthlyPriceTests(FitnessApiFactory factory)
     [Fact]
     public async Task PublicProfile_EveryNWeeksPackageIsCheapest_ShowsItWithItsIntervalWeeks()
     {
-        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var coach = await TestActors.Trainer(factory).WithPayments().CreateAsync(TestContext.Current.CancellationToken);
         var client = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
         await AddPackageAsync(coach, 1800m);
         await AddPackageAsync(coach, 900m, PackageBillingInterval.OneOff);
@@ -143,7 +143,7 @@ public class FromMonthlyPriceTests(FitnessApiFactory factory)
     [Fact]
     public async Task PublicProfile_EuroMainCurrency_ShowsTheLowestEuroPackage()
     {
-        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var coach = await TestActors.Trainer(factory).WithPayments().CreateAsync(TestContext.Current.CancellationToken);
         var client = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
         await SetProfileCurrencyAsync(coach, PaymentCurrency.EUR);
         await AddPackageAsync(coach, 80m, currency: PaymentCurrency.EUR);
@@ -160,7 +160,7 @@ public class FromMonthlyPriceTests(FitnessApiFactory factory)
     public async Task Search_MixedCoaches_ResolvesEachPriceInOneBatch()
     {
         var tag = Guid.NewGuid().ToString("N");
-        var priced = await TestActors.Trainer(factory).WithName("Priced", $"Batch{tag}").CreateAsync(TestContext.Current.CancellationToken);
+        var priced = await TestActors.Trainer(factory).WithPayments().WithName("Priced", $"Batch{tag}").CreateAsync(TestContext.Current.CancellationToken);
         var locked = await TestActors.Trainer(factory).WithName("Locked", $"Batch{tag}").CreateAsync(TestContext.Current.CancellationToken);
         var bare = await TestActors.Trainer(factory).WithName("Bare", $"Batch{tag}").CreateAsync(TestContext.Current.CancellationToken);
         var client = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);

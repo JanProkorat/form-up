@@ -6596,6 +6596,7 @@
       "noEnd": "No end"
     },
     "profile": {
+      "back": "Back to coaches",
       "joined": "Joined {{date}}",
       "freeNote": "On the Free plan. Nothing is billed.",
       "actionsHint": "Each action asks you to confirm it and give a reason. Both go into the history.",
@@ -6789,12 +6790,15 @@
       "checkIns": "Weekly check-ins",
       "perClientCheckIns": "Per-client check-in settings",
       "perClientCheckInsHint": "Needs weekly check-ins",
+      "payments": "Payments and packages",
+      "paymentsHint": "Service packages and client payments",
       "chip": {
         "plans": "Plans",
         "chat": "Chat",
         "forms": "Forms",
         "checkIns": "Check-ins",
         "perClientCheckIns": "Custom check-ins",
+        "payments": "Payments",
         "everything": "Everything"
       }
     },

@@ -383,6 +383,18 @@ function DrawerBody({ plan, onSubmit, onStopOffering, isSaving, onClose }: BodyP
               />
             )}
           />
+          <Controller
+            control={control}
+            name="canUsePayments"
+            render={({ field }) => (
+              <CheckRow
+                label={t('adminPlans.features.payments')}
+                hint={t('adminPlans.features.paymentsHint')}
+                checked={field.value}
+                onCheckedChange={field.onChange}
+              />
+            )}
+          />
         </section>
 
         <section className="flex flex-col gap-3">
