@@ -448,6 +448,15 @@ export default function PlanEditor({
     },
     [stateEdit],
   );
+  // For drawers and confirm dialogs that only lead to an edit: open the paywall right away instead of the step.
+  const blockedByPlan = useCallback(() => {
+    const guard = outsidePlanRef.current;
+    if (!guard) {
+      return false;
+    }
+    guard.onBlocked();
+    return true;
+  }, []);
   const locks = mealLocks ?? null;
   const locksRef = useRef(locks);
   useEffect(() => {
@@ -923,6 +932,9 @@ export default function PlanEditor({
       copyCell(drop, 'replace');
       return;
     }
+    if (blockedByPlan()) {
+      return;
+    }
     setPendingDrop(drop);
   }
 
@@ -1328,6 +1340,9 @@ export default function PlanEditor({
       return;
     }
     if (previewLabelMove(week, move).targetHasFood) {
+      if (blockedByPlan()) {
+        return;
+      }
       setPendingLabel(move);
       return;
     }
@@ -1372,6 +1387,9 @@ export default function PlanEditor({
 
   /** Opens the add-meal drawer; the grid rows shift once a meal lands, so nothing stays selected afterwards. */
   function openAddMeal(mode: AddMealMode, preselect: MealKind | null) {
+    if (blockedByPlan()) {
+      return;
+    }
     setAddMeal((previous) => ({ open: true, mode, preselect, key: previous.key + 1 }));
   }
 
@@ -1474,6 +1492,9 @@ export default function PlanEditor({
     const days = daysWithFoodInRow(week, rowIndex);
     if (days.length === 0) {
       removeRow(rowIndex);
+      return;
+    }
+    if (blockedByPlan()) {
       return;
     }
     setPendingRemoval({ rowIndex, rowLabelKey: rowLabelKey(rowIndex), weekNumber: currentIndex + 1, days });
@@ -1788,7 +1809,15 @@ export default function PlanEditor({
                     edit(addWeek);
                     navigate({ week: doc.weeks.length });
                   }}
-                  onRemoveLast={allowWeekRemoval ? () => setRemoveWeekNumber(doc.weeks.length) : undefined}
+                  onRemoveLast={
+                    allowWeekRemoval
+                      ? () => {
+                          if (!blockedByPlan()) {
+                            setRemoveWeekNumber(doc.weeks.length);
+                          }
+                        }
+                      : undefined
+                  }
                 />
                 </div>
                 {locks && view === 'meals' && rows.length > 0 && <MealLockLegend />}
@@ -1940,7 +1969,15 @@ export default function PlanEditor({
             <MealPicker
               onApplyCommon={applyCommonMeals}
               onDone={addMealKinds}
-              onCopyMeals={renderCopyMeals ? () => setCopyOpen(true) : undefined}
+              onCopyMeals={
+                renderCopyMeals
+                  ? () => {
+                      if (!blockedByPlan()) {
+                        setCopyOpen(true);
+                      }
+                    }
+                  : undefined
+              }
             />
           )}
           </div>

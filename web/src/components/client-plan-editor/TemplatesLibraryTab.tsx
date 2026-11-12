@@ -41,6 +41,8 @@ interface Props {
   clientFirstName: string;
   /** Called once a template has been put into the document, so the host can mark the next save. */
   onTemplateApplied?: () => void;
+  /** Set for a client outside the coach's plan: Use opens the paywall instead of loading the template. */
+  onBlocked?: () => void;
 }
 
 interface PendingApply {
@@ -190,6 +192,7 @@ export default function TemplatesLibraryTab({
   onboarding,
   clientFirstName,
   onTemplateApplied,
+  onBlocked,
 }: Props) {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
@@ -244,6 +247,10 @@ export default function TemplatesLibraryTab({
   function use(item: RankedTemplate) {
     const templateId = item.template.templateId;
     if (!templateId) {
+      return;
+    }
+    if (onBlocked) {
+      onBlocked();
       return;
     }
     load.mutate(templateId, {
