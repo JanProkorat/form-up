@@ -4527,9 +4527,11 @@ export class ApiClient {
     returned when explicitly requested.
      * @param filter (optional) Optional filter chip narrowing the current tab further. Its own count is reported in
     FilterCounts without this filter applied.
+     * @param outsidePlan (optional) When true, narrows the list to live clients outside the plan in force (over its client cap),
+    whatever their Active/Paused status. Cannot be combined with status=Archived.
      * @return Success
      */
-    getClientsEndpoint(page: number, pageSize: number, tagIds: string[], search?: string | null | undefined, status?: ClientListStatus | null | undefined, filter?: ClientListFilter | null | undefined, signal?: AbortSignal): Promise<GetClientsResponse> {
+    getClientsEndpoint(page: number, pageSize: number, tagIds: string[], search?: string | null | undefined, status?: ClientListStatus | null | undefined, filter?: ClientListFilter | null | undefined, outsidePlan?: boolean | null | undefined, signal?: AbortSignal): Promise<GetClientsResponse> {
         let url_ = this.baseUrl + "/trainer/clients?";
         if (page === undefined || page === null)
             throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
@@ -4549,6 +4551,8 @@ export class ApiClient {
             url_ += "status=" + encodeURIComponent("" + status) + "&";
         if (filter !== undefined && filter !== null)
             url_ += "filter=" + encodeURIComponent("" + filter) + "&";
+        if (outsidePlan !== undefined && outsidePlan !== null)
+            url_ += "outsidePlan=" + encodeURIComponent("" + outsidePlan) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -14963,7 +14967,10 @@ export class ApiClient {
 
         } else if (status === 409) {
             const _responseText = response.data;
-            return throwException("The paid plan has not lapsed and the Free plan is within its cap (SUBSCRIPTION_NOT_LAPSED)", status, _responseText, _headers);
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = JSON.parse(resultData409);
+            return throwException("The paid plan has not lapsed and the Free plan is within its cap (SUBSCRIPTION_NOT_LAPSED), or the choice is locked and the request drops a kept client or adds an unrestricted one (KEEP_CLIENTS_CHOICE_LOCKED)", status, _responseText, _headers, result409);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -24382,6 +24389,9 @@ released decision yet. Never true together with PlanChoiceRequired. */
     keepClientsChoiceRequired?: boolean;
     /** Live clients above the cap of the plan in force; zero unless IsLapsed or the coach has more live clients than the plan's limit. */
     overCapClientCount?: number;
+    /** Kept slots still empty while clients are over the cap (cap minus kept clients); zero when nobody is over
+the cap, the plan is unlimited or a plan choice is required. */
+    freeSlotCount?: number;
     /** Distinct active clients across all the coach's roles; the kept clients while lapsed. */
     activeClientCount?: number;
     /** Active-client limit that applies now; null means unlimited. */
@@ -26057,6 +26067,9 @@ link does not grant CanViewTrainingPlans. */
     /** The client's currently in-window Active plans, one per visible domain, for the row's
 hover popover. Omits any domain the link does not grant. */
     activePlans?: ClientActivePlanDto[];
+    /** True when this live client is outside the plan in force (over its client cap): the coach can
+still see them but not work on them. Never true for an Archived row. */
+    isOutsidePlan?: boolean;
 }
 
 /** Derived status of a client on the trainer's clients list. Never stored — computed per request from the link's ConnectionState plus whether an in-window Active plan exists in a domain the link grants (see GetClientsEndpoint). */
@@ -26100,6 +26113,9 @@ export interface ClientTabCounts {
     paused?: number;
     /** Number of clients in the Archived tab. */
     archived?: number;
+    /** Number of live clients outside the plan in force (over its client cap), across Active and
+Paused, with search and tags applied. Archived rows are never counted. */
+    outsidePlan?: number;
     /** Number of pending rows (unaccepted invites plus incoming pending requests) for the
 caller. Unfiltered by search or tags — see TabCounts. */
     pending?: number;
@@ -26302,6 +26318,9 @@ endpoints — it differs from ClientPublicId. */
     linkedAt?: string;
     /** Whether the trainer-client relationship is currently active. */
     isActive?: boolean;
+    /** True when the client is outside the plan in force (over its client cap): visible to the
+coach but not workable. Same source as the CLIENT_OVER_PLAN_LIMIT gate. */
+    isOutsidePlan?: boolean;
     /** Derived Active/Paused/Archived status — computed by
 Classify, the same derivation
 GetClientsEndpoint uses, so this value always agrees with the caller's clients-list
@@ -30230,6 +30249,11 @@ export interface SetCoachSubscriptionRequest {
 export interface GetKeepClientsResponse {
     /** How many clients the Free plan keeps; null means unlimited. */
     cap?: number | undefined;
+    /** True once a choice was saved (some live link is kept or released): the kept clients can no longer be swapped,
+only free slots can be filled with restricted clients. A new plan change unlocks it again. */
+    isChoiceLocked?: boolean;
+    /** Kept slots still empty while clients are over the cap; zero otherwise. */
+    freeSlotCount?: number;
     /** The caller's live clients, one entry per client even when linked in both roles. */
     clients?: KeepClientDto[];
 }
