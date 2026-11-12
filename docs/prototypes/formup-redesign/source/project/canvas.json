@@ -4255,6 +4255,22 @@
       "w": 1440,
       "x": 30400,
       "y": 15800
+    },
+    "PageClientsChoicePendingC.dc.html": {
+      "h": 900,
+      "page": "web",
+      "title": "Clients · choice pending",
+      "w": 1440,
+      "x": 31920,
+      "y": 14300
+    },
+    "PageClientsChoicePendingD.dc.html": {
+      "h": 900,
+      "page": "web",
+      "title": "Clients · choice pending",
+      "w": 1440,
+      "x": 31920,
+      "y": 15800
     }
   },
   "notes": {
@@ -4791,6 +4807,7 @@
     "EmailPaymentRequestD.dc.html",
     "PageClientsC.dc.html",
     "PageClientsRestrictedC.dc.html",
+    "PageClientsChoicePendingC.dc.html",
     "PageClientDetailC.dc.html",
     "PageClientDetailRestrictedC.dc.html",
     "PageClientDetailTrainerC.dc.html",
@@ -4800,6 +4817,7 @@
     "PageIngredientDrawerC.dc.html",
     "PageClientsD.dc.html",
     "PageClientsRestrictedD.dc.html",
+    "PageClientsChoicePendingD.dc.html",
     "PageClientDetailD.dc.html",
     "PageClientDetailRestrictedD.dc.html",
     "PageClientDetailTrainerD.dc.html",
