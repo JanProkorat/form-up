@@ -278,9 +278,9 @@ export default function ClientsPage() {
             counts={clientsQuery.data?.planCounts}
             onChange={setPlan}
           />
+          {hasPlanFilter && <ClientActiveFilters plan={filters.plan} onRemove={clearPlan} />}
         </div>
       )}
-      {!isPendingTab && hasPlanFilter && <ClientActiveFilters plan={filters.plan} onRemove={clearPlan} />}
 
       {isPendingTab ? (
         <PendingTable
