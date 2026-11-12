@@ -78,6 +78,8 @@ export function useSubscription() {
     planDecisionRequired: data?.planChoiceRequired === true || data?.keepClientsChoiceRequired === true,
     /** Live clients above the Free plan's cap (lapsed, or on Free with too many). */
     overCapClientCount: data?.overCapClientCount ?? 0,
+    /** Kept slots still empty while clients are outside the plan. */
+    freeSlotCount: data?.freeSlotCount ?? 0,
   };
 }
 
@@ -106,6 +108,8 @@ export function useSetKeepClients() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: subscriptionKeys.keepClients }),
         queryClient.invalidateQueries({ queryKey: subscriptionKeys.mine }),
+        queryClient.invalidateQueries({ queryKey: ['clients'] }),
+        queryClient.invalidateQueries({ queryKey: ['client-dashboard'] }),
       ]);
     },
   });

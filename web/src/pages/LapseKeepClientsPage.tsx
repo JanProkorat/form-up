@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useKeepClients, useSetKeepClients, useSubscription } from '@/hooks/useSubscriptionQueries';
 import { showApiError, showSuccess } from '@/lib/api-errors';
-import { isSubscriptionNotLapsed } from '@/lib/subscriptionErrors';
+import { isKeepClientsChoiceLocked, isSubscriptionNotLapsed } from '@/lib/subscriptionErrors';
 
 /** Lapsed coach: pick which clients the Free plan keeps; the others keep their published weeks, then go read-only. */
 export default function LapseKeepClientsPage() {
@@ -20,14 +20,28 @@ export default function LapseKeepClientsPage() {
 
   const clients = keepQuery.data?.clients ?? [];
   const cap = keepQuery.data?.cap ?? null;
-  // Fewer clients than the cap means everyone is kept; no cap means the same.
-  const required = cap === null ? clients.length : Math.min(cap, clients.length);
   const serverKept = new Set(clients.filter((client) => client.isKept).map((client) => client.clientId ?? ''));
+  // A locked choice keeps every kept client; only restricted ones can fill the free slots.
+  const locked = keepQuery.data?.isChoiceLocked === true;
+  const freeSlots = keepQuery.data?.freeSlotCount ?? 0;
+  const restrictedCount = clients.length - serverKept.size;
+  // Fewer clients than the cap means everyone is kept; no cap means the same.
+  const required = locked
+    ? serverKept.size + Math.min(freeSlots, restrictedCount)
+    : cap === null
+      ? clients.length
+      : Math.min(cap, clients.length);
   const selected = choice ?? serverKept;
   const full = selected.size >= required;
   const ready = selected.size === required;
+  // What the counter and title show: the free slots when locked, else the whole selection.
+  const shownRequired = locked ? required - serverKept.size : required;
+  const shownSelected = locked ? selected.size - serverKept.size : selected.size;
 
   const toggle = (clientId: string) => {
+    if (locked && serverKept.has(clientId)) {
+      return;
+    }
     const next = new Set(selected);
     if (next.has(clientId)) {
       next.delete(clientId);
@@ -43,7 +57,11 @@ export default function LapseKeepClientsPage() {
         setChoice(null);
         showSuccess('subscription.lapse.saveSuccess');
       },
-      onError: (error) => showApiError(error, 'subscription.lapse.saveError'),
+      onError: (error) =>
+        showApiError(
+          error,
+          isKeepClientsChoiceLocked(error) ? 'subscription.lapse.choiceLockedError' : 'subscription.lapse.saveError',
+        ),
     });
   };
 
@@ -104,8 +122,14 @@ export default function LapseKeepClientsPage() {
       ) : (
         <>
           <div className="flex flex-col gap-1.5">
-            <h1 className="text-display font-semibold text-ink">{t('subscription.lapse.title', { count: required })}</h1>
-            <p className="text-copy text-muted-foreground">{t('subscription.lapse.subtitle')}</p>
+            <h1 className="text-display font-semibold text-ink">
+              {locked
+                ? t('subscription.lapse.lockedTitle', { count: shownRequired })
+                : t('subscription.lapse.title', { count: required })}
+            </h1>
+            <p className="text-copy text-muted-foreground">
+              {t(locked ? 'subscription.lapse.lockedSubtitle' : 'subscription.lapse.subtitle')}
+            </p>
           </div>
 
           {clients.length === 0 ? (
@@ -119,6 +143,7 @@ export default function LapseKeepClientsPage() {
                     selected={selected}
                     full={full}
                     disabled={saveMutation.isPending}
+                    locked={locked}
                     onToggle={toggle}
                   />
                 </div>
@@ -126,9 +151,9 @@ export default function LapseKeepClientsPage() {
 
               <div className="flex flex-wrap items-center gap-3">
                 <span className="font-semibold text-ink" aria-live="polite">
-                  {t('subscription.lapse.selected', { count: selected.size, cap: required })}
+                  {t('subscription.lapse.selected', { count: shownSelected, cap: shownRequired })}
                 </span>
-                <span className="text-body text-muted-foreground">{t('subscription.lapse.changeLater')}</span>
+                {!locked && <span className="text-body text-muted-foreground">{t('subscription.lapse.changeLater')}</span>}
                 <Button
                   type="button"
                   size="lg"
@@ -136,7 +161,7 @@ export default function LapseKeepClientsPage() {
                   disabled={!ready || saveMutation.isPending}
                   onClick={save}
                 >
-                  {t('subscription.lapse.save', { count: required })}
+                  {locked ? t('subscription.lapse.lockedSave') : t('subscription.lapse.save', { count: required })}
                 </Button>
               </div>
             </>

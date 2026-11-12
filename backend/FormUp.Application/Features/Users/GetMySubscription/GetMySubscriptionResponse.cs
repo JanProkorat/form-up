@@ -77,6 +77,12 @@ public class GetMySubscriptionResponse
     /// <summary>Live clients above the cap of the plan in force; zero unless <see cref="IsLapsed"/> or the coach has more live clients than the plan's limit.</summary>
     public int OverCapClientCount { get; set; }
 
+    /// <summary>
+    /// Kept slots still empty while clients are over the cap (cap minus kept clients); zero when nobody is over
+    /// the cap, the plan is unlimited or a plan choice is required.
+    /// </summary>
+    public int FreeSlotCount { get; set; }
+
     /// <summary>Distinct active clients across all the coach's roles; the kept clients while lapsed.</summary>
     public int ActiveClientCount { get; set; }
 

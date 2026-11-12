@@ -24,6 +24,13 @@ public sealed record KeepClientsState(
     /// </summary>
     public bool CanChooseKeptClients => IsLapsed || OverCapClientProfileIds.Count > 0;
 
+    /// <summary>
+    /// How many more clients the coach may still mark as kept: the cap minus the kept clients while some
+    /// live clients are over the cap and the cap is limited, otherwise zero.
+    /// </summary>
+    public int FreeSlotCount =>
+        Cap is { } cap && OverCapClientProfileIds.Count > 0 ? Math.Max(0, cap - KeptClientProfileIds.Count) : 0;
+
     /// <summary>The state of a coach whose plan has not lapsed: nobody is over the cap.</summary>
     public static KeepClientsState NotLapsed { get; } = new(false, null, [], []);
 }

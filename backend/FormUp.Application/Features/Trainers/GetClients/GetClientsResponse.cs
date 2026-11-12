@@ -59,6 +59,12 @@ public class ClientTabCounts
     public int Archived { get; set; }
 
     /// <summary>
+    /// Number of live clients outside the plan in force (over its client cap), across Active and
+    /// Paused, with search and tags applied. Archived rows are never counted.
+    /// </summary>
+    public int OutsidePlan { get; set; }
+
+    /// <summary>
     /// Number of pending rows (unaccepted invites plus incoming pending requests) for the
     /// caller. Unfiltered by search or tags — see <see cref="GetClientsResponse.TabCounts"/>.
     /// </summary>
@@ -172,6 +178,12 @@ public class ClientSummary
     /// hover popover. Omits any domain the link does not grant.
     /// </summary>
     public List<ClientActivePlanDto> ActivePlans { get; set; } = [];
+
+    /// <summary>
+    /// True when this live client is outside the plan in force (over its client cap): the coach can
+    /// still see them but not work on them. Never true for an Archived row.
+    /// </summary>
+    public bool IsOutsidePlan { get; set; }
 }
 
 /// <summary>

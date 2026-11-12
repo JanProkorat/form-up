@@ -24,13 +24,15 @@ namespace FormUp.Application.Features.Trainers.GetClientDashboard;
 /// <param name="mongo">MongoDB context for reading active plan goal/macros.</param>
 /// <param name="timeProvider">Clock abstraction — lets tests pin "now" deterministically.</param>
 /// <param name="coachDiscipline">Narrows the link flags to the disciplines the caller holds a role for (active or removed but not yet swept).</param>
+/// <param name="entitlementService">Tells whether the client is over the cap of the caller's plan in force.</param>
 public class GetClientDashboardEndpoint(
     IApplicationDbContext db,
     IAuditService audit,
     IComplianceService complianceService,
     IMongoContext mongo,
     TimeProvider timeProvider,
-    ICoachDisciplineAccess coachDiscipline)
+    ICoachDisciplineAccess coachDiscipline,
+    EntitlementService entitlementService)
     : Endpoint<GetClientDashboardRequest, GetClientDashboardResponse>
 {
     /// <inheritdoc />
@@ -377,8 +379,13 @@ public class GetClientDashboardEndpoint(
             }
         }
 
+        var isOutsidePlan = (await entitlementService.GetKeepClientsStateAsync(professionalProfile.Id, ct))
+            .OverCapClientProfileIds
+            .Contains(clientProfile.Id);
+
         await Send.OkAsync(new GetClientDashboardResponse
         {
+            IsOutsidePlan = isOutsidePlan,
             LinkId = link.Id,
             ClientPublicId = clientProfile.PublicId,
             ClientUserId = clientProfile.UserId,

@@ -1,5 +1,7 @@
 using System.Security.Claims;
 using FastEndpoints;
+using FormUp.Application.Domain.Services;
+using Microsoft.Extensions.Logging.Abstractions;
 using FluentAssertions;
 using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Documents;
@@ -88,7 +90,8 @@ public class GetClientDashboardPlanGoalTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db, _audit, _complianceService, mongo, TimeProvider.System, PassThroughCoachDisciplineAccess.Instance);
+            db, _audit, _complianceService, mongo, TimeProvider.System, PassThroughCoachDisciplineAccess.Instance,
+            new EntitlementService(db, TimeProvider.System, NullLogger<EntitlementService>.Instance));
 
         await ep.HandleAsync(new GetClientDashboardRequest
         {
@@ -155,7 +158,8 @@ public class GetClientDashboardPlanGoalTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db, _audit, _complianceService, mongo, TimeProvider.System, PassThroughCoachDisciplineAccess.Instance);
+            db, _audit, _complianceService, mongo, TimeProvider.System, PassThroughCoachDisciplineAccess.Instance,
+            new EntitlementService(db, TimeProvider.System, NullLogger<EntitlementService>.Instance));
 
         await ep.HandleAsync(new GetClientDashboardRequest
         {
@@ -228,7 +232,8 @@ public class GetClientDashboardPlanGoalTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db, _audit, _complianceService, mongo, TimeProvider.System, PassThroughCoachDisciplineAccess.Instance);
+            db, _audit, _complianceService, mongo, TimeProvider.System, PassThroughCoachDisciplineAccess.Instance,
+            new EntitlementService(db, TimeProvider.System, NullLogger<EntitlementService>.Instance));
 
         await ep.HandleAsync(new GetClientDashboardRequest
         {
@@ -311,7 +316,8 @@ public class GetClientDashboardPlanGoalTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db, _audit, _complianceService, mongo, TimeProvider.System, PassThroughCoachDisciplineAccess.Instance);
+            db, _audit, _complianceService, mongo, TimeProvider.System, PassThroughCoachDisciplineAccess.Instance,
+            new EntitlementService(db, TimeProvider.System, NullLogger<EntitlementService>.Instance));
 
         await ep.HandleAsync(new GetClientDashboardRequest
         {

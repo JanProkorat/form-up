@@ -97,6 +97,7 @@ internal sealed class GetMySubscriptionEndpoint(
         }
 
         response.KeepClientsChoiceRequired = !keepState.IsPlanChoiceRequired && keepState.IsChoicePending;
+        response.FreeSlotCount = keepState.IsPlanChoiceRequired ? 0 : keepState.FreeSlotCount;
         response.ClientLimit = entitlements.MaxActiveClients;
         response.SecondRole = await entitlementService.GetSecondRoleStateAsync(profileId.Value, ct);
         response.Features = new SubscriptionFeaturesDto

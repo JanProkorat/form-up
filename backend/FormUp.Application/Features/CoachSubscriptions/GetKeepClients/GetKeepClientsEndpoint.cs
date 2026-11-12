@@ -87,6 +87,7 @@ internal sealed class GetKeepClientsEndpoint(
             {
                 link.ClientProfileId,
                 link.ProfessionalRole,
+                link.ConnectionState,
                 ClientPublicId = link.ClientProfile.PublicId,
                 ClientUserId = link.ClientProfile.UserId,
                 link.ClientProfile.User.FirstName,
@@ -126,7 +127,18 @@ internal sealed class GetKeepClientsEndpoint(
             .ThenBy(client => client.FirstName)
             .ToList();
 
-        await Send.OkAsync(new GetKeepClientsResponse { Cap = state.Cap, Clients = clients }, ct);
+        var isChoiceLocked = links.Any(link =>
+            link.ConnectionState is ConnectionState.FreePlanKept or ConnectionState.FreePlanReleased);
+
+        await Send.OkAsync(
+            new GetKeepClientsResponse
+            {
+                Cap = state.Cap,
+                IsChoiceLocked = isChoiceLocked,
+                FreeSlotCount = state.FreeSlotCount,
+                Clients = clients,
+            },
+            ct);
     }
 
     /// <summary>

@@ -10,6 +10,8 @@ interface Props {
   /** True when the selection is at the cap: unchecked rows can no longer be ticked. */
   full: boolean;
   disabled: boolean;
+  /** True when the choice is locked: kept rows stay ticked and cannot be unticked. */
+  locked?: boolean;
   onToggle: (clientId: string) => void;
 }
 
@@ -38,7 +40,7 @@ function formatDay(value: string | undefined, language: string): string {
 }
 
 /** The lapsed coach's live clients with a checkbox per row, the roles they are linked under and what happens next. */
-export default function KeepClientsTable({ clients, selected, full, disabled, onToggle }: Props) {
+export default function KeepClientsTable({ clients, selected, full, disabled, locked = false, onToggle }: Props) {
   const { t, i18n } = useTranslation();
 
   return (
@@ -74,7 +76,7 @@ export default function KeepClientsTable({ clients, selected, full, disabled, on
               <TableCell className={CELL_CLASS}>
                 <Checkbox
                   checked={checked}
-                  disabled={disabled || (full && !checked)}
+                  disabled={disabled || (full && !checked) || (locked && client.isKept === true)}
                   aria-label={t('subscription.lapse.keepAria', { name })}
                   onCheckedChange={() => onToggle(clientId)}
                   className="size-4.5"

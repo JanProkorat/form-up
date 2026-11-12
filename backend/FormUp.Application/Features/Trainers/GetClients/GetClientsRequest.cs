@@ -43,4 +43,10 @@ public class GetClientsRequest
     /// <see cref="GetClientsResponse.FilterCounts"/> without this filter applied.
     /// </summary>
     public ClientListFilter? Filter { get; set; }
+
+    /// <summary>
+    /// When true, narrows the list to live clients outside the plan in force (over its client cap),
+    /// whatever their Active/Paused status. Cannot be combined with <c>status=Archived</c>.
+    /// </summary>
+    public bool? OutsidePlan { get; set; }
 }

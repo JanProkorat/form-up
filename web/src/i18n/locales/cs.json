@@ -393,11 +393,32 @@
       "save_other": "Ponechat těchto {{count}}",
       "saveSuccess": "Výběr je uložen",
       "saveError": "Výběr se nepodařilo uložit. Zkuste to prosím znovu.",
+      "choiceLockedError": "Už ponechaní klienti se změnit nedají, na volná místa můžete jen přidat klienty mimo tarif. Načtěte stránku znovu.",
+      "lockedTitle_one": "Vyberte {{count}} klienta na volné místo",
+      "lockedTitle_few": "Vyberte {{count}} klienty na volná místa",
+      "lockedTitle_many": "Vyberte {{count}} klienta na volná místa",
+      "lockedTitle_other": "Vyberte {{count}} klientů na volná místa",
+      "lockedSubtitle": "Už ponechaní klienti zůstávají beze změny. Na volná místa vyberte klienty, kteří jsou teď mimo tarif.",
+      "lockedSave": "Ponechat vybrané",
       "loadError": "Klienty se nepodařilo načíst.",
       "retry": "Zkusit znovu",
       "notLapsed": "Váš tarif neskončil, není tedy co vybírat.",
       "backToClients": "Zpět na klienty",
       "noClients": "Nemáte žádné klienty, ze kterých byste mohli vybírat."
+    },
+    "outsidePlan": {
+      "titleLimit_one": "Tarif {{plan}} zahrnuje {{count}} klienta.",
+      "titleLimit_few": "Tarif {{plan}} zahrnuje {{count}} klienty.",
+      "titleLimit_many": "Tarif {{plan}} zahrnuje {{count}} klienta.",
+      "titleLimit_other": "Tarif {{plan}} zahrnuje {{count}} klientů.",
+      "titleOutside_one": "{{count}} klient je mimo tarif.",
+      "titleOutside_few": "{{count}} klienti jsou mimo tarif.",
+      "titleOutside_many": "{{count}} klienta je mimo tarif.",
+      "titleOutside_other": "{{count}} klientů je mimo tarif.",
+      "detailTitle": "{{name}} je mimo váš tarif {{plan}}.",
+      "body": "Plány klientů mimo tarif doběhnou do posledního zveřejněného týdne, pak budou jen ke čtení.",
+      "upgrade": "Vyšší tarif",
+      "pickClient": "Vybrat klienta na volné místo"
     },
     "plan": {
       "title": "Tarif a platby",
@@ -761,6 +782,7 @@
       "all": "Vše",
       "active": "Aktivní",
       "paused": "Bez plánu",
+      "outsidePlan": "Mimo tarif",
       "archived": "Archivovaní",
       "pending": "Čekající"
     },
@@ -768,11 +790,11 @@
     "chips": {
       "groupLabel": "Filtrovat klienty",
       "all": "Vše",
-      "unreadMessages": "Nepřečtené zprávy",
-      "noMessages": "Bez zpráv",
-      "newCheckIns": "Nové check-iny",
-      "missingCheckIns": "Chybějící check-iny",
       "endingSoon": "Brzy končící"
+    },
+    "outsidePlan": {
+      "chip": "Mimo tarif",
+      "tooltip": "Plány tohoto klienta doběhnou do posledního zveřejněného týdne, pak budou jen ke čtení."
     },
     "tagFilter": {
       "label": "Vybrat štítky",

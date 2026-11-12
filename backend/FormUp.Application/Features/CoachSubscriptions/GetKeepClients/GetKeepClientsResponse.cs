@@ -10,6 +10,15 @@ public class GetKeepClientsResponse
     /// <summary>How many clients the Free plan keeps; null means unlimited.</summary>
     public int? Cap { get; set; }
 
+    /// <summary>
+    /// True once a choice was saved (some live link is kept or released): the kept clients can no longer be swapped,
+    /// only free slots can be filled with restricted clients. A new plan change unlocks it again.
+    /// </summary>
+    public bool IsChoiceLocked { get; set; }
+
+    /// <summary>Kept slots still empty while clients are over the cap; zero otherwise.</summary>
+    public int FreeSlotCount { get; set; }
+
     /// <summary>The caller's live clients, one entry per client even when linked in both roles.</summary>
     public List<KeepClientDto> Clients { get; set; } = [];
 }

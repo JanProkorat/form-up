@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Search } from 'lucide-react';
+import { Lock, Plus, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -8,6 +8,8 @@ import { ClientListFilter, type ClientTabCounts } from '@/api/generated';
 import { useClientListParams, type ClientListTab } from '@/hooks/useClientListParams';
 import { useClients, usePendingClients } from '@/hooks/useClientsQueries';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useSubscription } from '@/hooks/useSubscriptionQueries';
+import OutsidePlanBanner from '@/components/subscription/OutsidePlanBanner';
 import { cn } from '@/lib/utils';
 import ClientFilterChips from '@/components/clients/ClientFilterChips';
 import ClientTagFilterPopover from '@/components/clients/ClientTagFilterPopover';
@@ -21,12 +23,14 @@ import AddClientDrawer from '@/components/clients/AddClientDrawer';
 // All first (the default), then the order of the Figma wireframe (frame
 // client-list-02, #1066 phase 6): Active, Pending, Paused, Ended — "Ended" was
 // renamed "Archived" earlier in this issue, which is settled.
-const TAB_ORDER: ClientListTab[] = ['All', 'Active', 'Pending', 'Paused', 'Archived'];
+// "Outside plan" sits between Paused ("No plan") and Archived and only shows while some client is over the cap.
+const TAB_ORDER: ClientListTab[] = ['All', 'Active', 'Pending', 'Paused', 'OutsidePlan', 'Archived'];
 
 const TAB_LABEL_KEY: Record<ClientListTab, string> = {
   All: 'clients.tabs.all',
   Active: 'clients.tabs.active',
   Paused: 'clients.tabs.paused',
+  OutsidePlan: 'clients.tabs.outsidePlan',
   Archived: 'clients.tabs.archived',
   Pending: 'clients.tabs.pending',
 };
@@ -34,6 +38,7 @@ const TAB_LABEL_KEY: Record<ClientListTab, string> = {
 const TAB_COUNT_KEY: Record<Exclude<ClientListTab, 'All'>, keyof ClientTabCounts> = {
   Active: 'active',
   Paused: 'paused',
+  OutsidePlan: 'outsidePlan',
   Archived: 'archived',
   Pending: 'pending',
 };
@@ -193,6 +198,9 @@ export default function ClientsPage() {
   const showPendingSection =
     filters.tab === 'All' && (pendingQuery.isPending || pendingQuery.isError || (pendingQuery.data ?? []).length > 0);
   const tabCounts = clientsQuery.data?.tabCounts;
+  const subscription = useSubscription();
+  const showOutsidePlanBanner = subscription.isCoach && subscription.overCapClientCount > 0;
+  const visibleTabs = TAB_ORDER.filter((tab) => tab !== 'OutsidePlan' || (tabCounts?.outsidePlan ?? 0) > 0);
   const hasActiveFilter =
     filters.search !== '' || filters.chip !== ClientListFilter.All || filters.tagIds.length > 0;
 
@@ -213,6 +221,15 @@ export default function ClientsPage() {
         </Button>
       </div>
 
+      {showOutsidePlanBanner && (
+        <OutsidePlanBanner
+          planName={subscription.planName}
+          clientLimit={subscription.clientLimit}
+          overCapClientCount={subscription.overCapClientCount}
+          freeSlotCount={subscription.freeSlotCount}
+        />
+      )}
+
       <Tabs value={filters.tab} onValueChange={(value) => setTab(value as ClientListTab)}>
         {/* Below the width where all four tabs fit (phone-width shell fix,
             see PLAN-1066-clients-page.md phase 5), the row scrolls within
@@ -221,10 +238,11 @@ export default function ClientsPage() {
             "Pending" tab would be unreachable rather than merely narrow. */}
         <div className="overflow-x-auto">
           <TabsList variant="underline">
-            {TAB_ORDER.map((tab) => {
+            {visibleTabs.map((tab) => {
               const isActiveTab = filters.tab === tab;
               return (
                 <TabsTrigger key={tab} value={tab} variant="underline" className="gap-1.5 text-body">
+                  {tab === 'OutsidePlan' && <Lock className="size-3.5" aria-hidden="true" />}
                   {t(TAB_LABEL_KEY[tab])}
                   {tabCounts && (
                     <span

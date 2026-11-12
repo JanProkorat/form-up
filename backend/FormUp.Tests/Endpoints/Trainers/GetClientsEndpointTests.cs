@@ -500,6 +500,119 @@ public class GetClientsEndpointTests(FitnessApiFactory factory)
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
+    // ── outside the plan in force ────────────────────────────────────────────
+
+    /// <summary>
+    /// A coach on an explicit Free plan row (cap 2; with no row nobody is ever over the cap) with <paramref name="count"/> Connected clients linked 10 days apart,
+    /// oldest first: the last ones are over the cap.
+    /// </summary>
+    private async Task<(Actor Coach, List<Actor> Clients)> CoachWithClientsAsync(int count, bool onFreePlan = true)
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+
+        if (onFreePlan)
+        {
+            await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, "free");
+        }
+
+        var clients = new List<Actor>();
+
+        for (var i = 0; i < count; i++)
+        {
+            var client = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
+            await TestActors.Link(factory, coach, client)
+                .WithActivatedAtUtc(DateTime.UtcNow.AddDays(-(100 - i * 10)))
+                .CreateAsync(TestContext.Current.CancellationToken);
+            clients.Add(client);
+        }
+
+        return (coach, clients);
+    }
+
+    private static async Task<GetClientsResponseDto> ListAsync(Actor coach, string query = "")
+    {
+        var response = await coach.Http.GetAsync($"/trainer/clients{query}", TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        return (await Deserialize(response))!;
+    }
+
+    [Fact]
+    public async Task List_CoachOverTheCap_FlagsOnlyTheOverCapRowsAndCountsThem()
+    {
+        var (coach, clients) = await CoachWithClientsAsync(3);
+
+        var body = await ListAsync(coach);
+
+        body.Clients.Single(c => c.UserId == clients[2].UserId).IsOutsidePlan.Should().BeTrue();
+        body.Clients.Where(c => c.UserId != clients[2].UserId).Should().OnlyContain(c => !c.IsOutsidePlan);
+        body.TabCounts.OutsidePlan.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task List_OutsidePlanTrue_ListsExactlyTheOverCapLiveRowsActiveAndPausedWithSearchApplied()
+    {
+        var (coach, clients) = await CoachWithClientsAsync(4);
+        await SeedActiveTrainingPlanAsync(coach.UserId, clients[2].UserId, DateTime.UtcNow.Date.AddDays(-1));
+
+        var all = await ListAsync(coach, "?outsidePlan=true");
+
+        all.Clients.Select(c => c.UserId).Should().BeEquivalentTo([clients[2].UserId, clients[3].UserId]);
+        all.Clients.Select(c => c.Status).Should().BeEquivalentTo(["Active", "Paused"]);
+        all.TotalCount.Should().Be(2);
+
+        var searched = await ListAsync(coach, $"?outsidePlan=true&search={Uri.EscapeDataString(clients[3].Email)}");
+
+        searched.Clients.Should().ContainSingle(c => c.UserId == clients[3].UserId);
+        searched.TabCounts.OutsidePlan.Should().Be(1, "search narrows the tab counts like Active and Paused");
+    }
+
+    [Fact]
+    public async Task List_OutsidePlanTrueWithStatusArchived_Returns400()
+    {
+        var (coach, _) = await CoachWithClientsAsync(1);
+
+        var response = await coach.Http.GetAsync(
+            "/trainer/clients?outsidePlan=true&status=Archived", TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task List_ArchivedRowOfAnOverCapCoach_IsNeverFlagged()
+    {
+        var (coach, clients) = await CoachWithClientsAsync(4);
+        await SetLinkActiveAsync(clients[0].PublicId, false);
+
+        var archived = await ListAsync(coach, "?status=Archived");
+        var live = await ListAsync(coach);
+
+        archived.Clients.Should().ContainSingle().Which.IsOutsidePlan.Should().BeFalse();
+        live.Clients.Where(c => c.IsOutsidePlan).Select(c => c.UserId).Should().BeEquivalentTo([clients[3].UserId]);
+        live.TabCounts.OutsidePlan.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task List_WithinCapUnlimitedPlanOrPlanChoiceRequired_FlagsNobody()
+    {
+        var (withinCap, _) = await CoachWithClientsAsync(2);
+        var (unlimited, _) = await CoachWithClientsAsync(3, onFreePlan: false);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, unlimited, "studio");
+        var (choiceRequired, _) = await CoachWithClientsAsync(3, onFreePlan: false);
+        var plan = await PaidPlanBuilder.CreateAsync(factory);
+        await CoachSubscriptionBuilder.SubscribeWithEndedGiftAsync(factory, choiceRequired, plan);
+
+        foreach (var coach in new[] { withinCap, unlimited, choiceRequired })
+        {
+            var body = await ListAsync(coach);
+
+            body.Clients.Should().OnlyContain(c => !c.IsOutsidePlan);
+            body.TabCounts.OutsidePlan.Should().Be(0);
+            (await ListAsync(coach, "?outsidePlan=true")).Clients.Should().BeEmpty();
+        }
+    }
+
     // ── fixtures ─────────────────────────────────────────────────────────────
 
     private async Task<(HttpClient Http, Guid UserId)> SetupTrainerAsync()
@@ -636,6 +749,7 @@ public class GetClientsEndpointTests(FitnessApiFactory factory)
         public int Active { get; set; }
         public int Paused { get; set; }
         public int Archived { get; set; }
+        public int OutsidePlan { get; set; }
         public int Pending { get; set; }
     }
 
@@ -660,6 +774,7 @@ public class GetClientsEndpointTests(FitnessApiFactory factory)
         public int UnreadMessageCount { get; set; }
         public bool HasActiveNutritionPlan { get; set; }
         public bool HasActiveTrainingPlan { get; set; }
+        public bool IsOutsidePlan { get; set; }
         public List<object> ActivePlans { get; set; } = [];
     }
 

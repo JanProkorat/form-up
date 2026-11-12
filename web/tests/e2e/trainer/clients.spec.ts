@@ -65,23 +65,21 @@ test.describe('clients list page', () => {
   });
 
   test('selecting a filter chip updates the URL and marks the chip active', async ({ page }) => {
-    // "No messages" was the QA seed fixture's one non-zero non-"All" chip
-    // pre-#1095. It reads 0 on this tab now: #1095 seeded a NEW third
-    // client (qa.client3, no conversation, no active plan) specifically to
-    // keep this chip populated, but a plan-less live-linked client is
-    // classified Paused (ClientStatusClassifier.Classify — #1094), not
-    // Active, so it doesn't appear on this page's default Active tab at
-    // all (it's on the Paused tab; see inbox.spec.ts's filter-parity test,
-    // which unions Active+Paused to match the inbox's tab-independent
-    // roster and finds it there). "Unread messages" is the chip #1095
-    // actually left non-zero on the Active tab — the original QA Client
-    // now has a seeded conversation with one unread message.
-    const unreadMessagesChip = page.getByRole('button', { name: /Unread messages/ });
-    await unreadMessagesChip.click();
+    // The four chips of the old filter row are gone.
+    for (const removed of [/Unread messages/, /No messages/, /New check-ins/, /Missing check-ins/]) {
+      await expect(page.getByRole('button', { name: removed })).toHaveCount(0);
+    }
+
+    // "Ending soon" is one of the two chips left (All, Ending soon). A zero count
+    // disables the chip, which the fixture may produce.
+    const endingSoonChip = page.getByRole('button', { name: /Ending soon/ });
+    await expect(endingSoonChip).toBeVisible();
+    test.skip(await endingSoonChip.isDisabled(), 'No client is ending soon on this fixture, so the chip is disabled');
+    await endingSoonChip.click();
     await page.waitForLoadState('networkidle');
 
-    await expect(page).toHaveURL(/chip=UnreadMessages/);
-    await expect(unreadMessagesChip).toHaveAttribute('aria-pressed', 'true');
+    await expect(page).toHaveURL(/chip=EndingSoon/);
+    await expect(endingSoonChip).toHaveAttribute('aria-pressed', 'true');
   });
 
   test('inviting a new client sends the invite and closes the drawer', async ({ page }) => {

@@ -4223,6 +4223,38 @@
       "w": 1440,
       "x": 8540,
       "y": 62412
+    },
+    "PageClientsRestrictedC.dc.html": {
+      "h": 900,
+      "page": "web",
+      "title": "C · Clients · outside the plan",
+      "w": 1440,
+      "x": 28880,
+      "y": 14300
+    },
+    "PageClientsRestrictedD.dc.html": {
+      "h": 900,
+      "page": "web",
+      "title": "D · Clients · outside the plan",
+      "w": 1440,
+      "x": 28880,
+      "y": 15800
+    },
+    "PageClientDetailRestrictedC.dc.html": {
+      "h": 1100,
+      "page": "web",
+      "title": "C · ClientDetail · outside the plan",
+      "w": 1440,
+      "x": 30400,
+      "y": 14300
+    },
+    "PageClientDetailRestrictedD.dc.html": {
+      "h": 1100,
+      "page": "web",
+      "title": "D · ClientDetail · outside the plan",
+      "w": 1440,
+      "x": 30400,
+      "y": 15800
     }
   },
   "notes": {
@@ -4758,14 +4790,18 @@
     "EmailPaymentRequestC.dc.html",
     "EmailPaymentRequestD.dc.html",
     "PageClientsC.dc.html",
+    "PageClientsRestrictedC.dc.html",
     "PageClientDetailC.dc.html",
+    "PageClientDetailRestrictedC.dc.html",
     "PageClientDetailTrainerC.dc.html",
     "PageClientDetailNutritionistC.dc.html",
     "PageInboxC.dc.html",
     "PageIngredientsC.dc.html",
     "PageIngredientDrawerC.dc.html",
     "PageClientsD.dc.html",
+    "PageClientsRestrictedD.dc.html",
     "PageClientDetailD.dc.html",
+    "PageClientDetailRestrictedD.dc.html",
     "PageClientDetailTrainerD.dc.html",
     "PageClientDetailNutritionistD.dc.html",
     "PageInboxD.dc.html",

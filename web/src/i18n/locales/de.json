@@ -371,11 +371,26 @@
       "save_other": "Diese {{count}} behalten",
       "saveSuccess": "Ihre Auswahl ist gespeichert",
       "saveError": "Die Auswahl konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.",
+      "choiceLockedError": "Bereits behaltene Klienten lassen sich nicht mehr ändern; Sie können nur Klienten außerhalb des Tarifs auf freie Plätze setzen. Laden Sie die Seite neu.",
+      "lockedTitle_one": "Wählen Sie {{count}} Klienten für den freien Platz",
+      "lockedTitle_other": "Wählen Sie {{count}} Klienten für die freien Plätze",
+      "lockedSubtitle": "Bereits behaltene Klienten bleiben unverändert. Wählen Sie für die freien Plätze Klienten, die außerhalb Ihres Tarifs liegen.",
+      "lockedSave": "Auswahl behalten",
       "loadError": "Die Klienten konnten nicht geladen werden.",
       "retry": "Erneut versuchen",
       "notLapsed": "Ihr Tarif ist nicht abgelaufen, daher gibt es nichts auszuwählen.",
       "backToClients": "Zurück zu den Klienten",
       "noClients": "Sie haben keine Klienten, aus denen Sie auswählen könnten."
+    },
+    "outsidePlan": {
+      "titleLimit_one": "Der Tarif {{plan}} umfasst {{count}} Klienten.",
+      "titleLimit_other": "Der Tarif {{plan}} umfasst {{count}} Klienten.",
+      "titleOutside_one": "{{count}} Klient liegt außerhalb des Tarifs.",
+      "titleOutside_other": "{{count}} Klienten liegen außerhalb des Tarifs.",
+      "detailTitle": "{{name}} liegt außerhalb Ihres Tarifs {{plan}}.",
+      "body": "Die Pläne von Klienten außerhalb Ihres Tarifs laufen bis zur letzten veröffentlichten Woche weiter und sind danach nur noch lesbar.",
+      "upgrade": "Höherer Tarif",
+      "pickClient": "Klienten für den freien Platz wählen"
     },
     "plan": {
       "title": "Tarif und Abrechnung",
@@ -719,6 +734,7 @@
       "all": "Alle",
       "active": "Aktiv",
       "paused": "Ohne Plan",
+      "outsidePlan": "Außerhalb des Tarifs",
       "archived": "Archiviert",
       "pending": "Ausstehend"
     },
@@ -726,11 +742,11 @@
     "chips": {
       "groupLabel": "Klienten filtern",
       "all": "Alle",
-      "unreadMessages": "Ungelesene Nachrichten",
-      "noMessages": "Keine Nachrichten",
-      "newCheckIns": "Neue Check-ins",
-      "missingCheckIns": "Fehlende Check-ins",
       "endingSoon": "Endet bald"
+    },
+    "outsidePlan": {
+      "chip": "Außerhalb des Tarifs",
+      "tooltip": "Die Pläne dieses Klienten laufen bis zur letzten veröffentlichten Woche weiter und sind danach nur noch lesbar."
     },
     "tagFilter": {
       "label": "Tags auswählen",

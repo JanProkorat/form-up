@@ -60,6 +60,9 @@ function tabToStatus(tab: ClientListTab): ClientListStatus | undefined {
       return ClientListStatus.Paused;
     case 'Archived':
       return ClientListStatus.Archived;
+    case 'OutsidePlan':
+      // outsidePlan=true must not be combined with a status (Archived is a 400).
+      return undefined;
     case 'Active':
     case 'Pending':
     default:
@@ -105,6 +108,7 @@ export function useClients(filters: ClientListFilters) {
         search: filters.search || undefined,
         status: tabToStatus(filters.tab),
         filter: filters.chip,
+        outsidePlan: filters.tab === 'OutsidePlan' ? true : undefined,
       }),
     placeholderData: keepPreviousData,
   });

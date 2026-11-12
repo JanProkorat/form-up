@@ -318,22 +318,23 @@ public class ChooseFreePlanEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task KeepClients_OnTheFreePlanOverTheCap_CanBeRepickedAfterChoosingFree()
+    public async Task KeepClients_OnTheFreePlanOverTheCap_CannotBeSwappedAfterChoosingFree()
     {
         var (coach, clients) = await EndedGiftCoachAsync(30, 20, 10);
         (await ChooseAsync(coach, clients[1].PublicId, clients[2].PublicId)).StatusCode.Should().Be(HttpStatusCode.NoContent);
 
         (await KeptClientIdsAsync(coach)).Should().BeEquivalentTo([clients[1].PublicId, clients[2].PublicId]);
 
-        var repick = await coach.Http.PutAsJsonAsync(
+        var swap = await coach.Http.PutAsJsonAsync(
             "/users/me/subscription/keep-clients", new { ClientIds = new[] { clients[0].PublicId, clients[1].PublicId } }, Ct);
 
-        repick.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        swap.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await swap.Content.ReadAsStringAsync(Ct)).Should().Contain(ErrorCodes.KeepClientsChoiceLocked);
         var states = await LinkStatesAsync(coach);
-        states[clients[0].PublicId].Should().Be(ConnectionState.FreePlanKept);
+        states[clients[0].PublicId].Should().Be(ConnectionState.FreePlanReleased);
         states[clients[1].PublicId].Should().Be(ConnectionState.FreePlanKept);
-        states[clients[2].PublicId].Should().Be(ConnectionState.FreePlanReleased);
-        (await KeptClientIdsAsync(coach)).Should().BeEquivalentTo([clients[0].PublicId, clients[1].PublicId]);
+        states[clients[2].PublicId].Should().Be(ConnectionState.FreePlanKept);
+        (await KeptClientIdsAsync(coach)).Should().BeEquivalentTo([clients[1].PublicId, clients[2].PublicId]);
     }
 
     [Fact]

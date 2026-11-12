@@ -44,6 +44,30 @@ public class CoachKeepClientsResolverTests
     }
 
     [Fact]
+    public void FreeSlotCount_KeptClientLeftWhileRestrictedClientsRemain_IsTheEmptySlots()
+    {
+        var links = new[]
+        {
+            Link(1, 10, 30, ConnectionState.FreePlanKept),
+            Link(2, 20, 10, ConnectionState.FreePlanReleased),
+            Link(3, 30, 20, ConnectionState.FreePlanReleased),
+        };
+
+        CoachKeepClientsResolver.Resolve(links, 2).FreeSlotCount.Should().Be(1);
+    }
+
+    [Fact]
+    public void FreeSlotCount_EverySlotTakenNobodyRestrictedOrUnlimited_IsZero()
+    {
+        var full = new[] { Link(1, 10, 30), Link(2, 20, 10), Link(3, 30, 20) };
+        var within = new[] { Link(1, 10, 30, ConnectionState.FreePlanKept) };
+
+        CoachKeepClientsResolver.Resolve(full, 2).FreeSlotCount.Should().Be(0);
+        CoachKeepClientsResolver.Resolve(within, 2).FreeSlotCount.Should().Be(0);
+        CoachKeepClientsResolver.Resolve(full, null).FreeSlotCount.Should().Be(0);
+    }
+
+    [Fact]
     public void Resolve_EveryLiveClientKeptOrReleased_ChoiceIsNotPending()
     {
         var links = new[]
