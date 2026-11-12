@@ -94,8 +94,8 @@ export default function AccountMenu({ onNavigate, collapsed = false }: Props) {
 
   const activeRoles = useActiveRoles();
   const subscription = useSubscription();
-  // Lapsed, or on Free with more live clients than it allows: the coach can (re)pick which clients stay.
-  const needsKeepPick = subscription.isLapsed || subscription.overCapClientCount > 0;
+  // The keep-clients screen only while a pick is due: an unconfirmed choice, or a freed slot to fill.
+  const needsKeepPick = subscription.keepPickDue;
   const tokenRoles = (user?.roles ?? []).map((role) => role.toLowerCase());
   const tokenCoachRoles = tokenRoles.filter((role) => COACH_ROLES.has(role));
 

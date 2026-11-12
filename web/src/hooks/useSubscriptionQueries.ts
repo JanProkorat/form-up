@@ -80,6 +80,9 @@ export function useSubscription() {
     overCapClientCount: data?.overCapClientCount ?? 0,
     /** Kept slots still empty while clients are outside the plan. */
     freeSlotCount: data?.freeSlotCount ?? 0,
+    /** The keep-clients screen has something to do: an unconfirmed choice, or a freed slot to fill. */
+    keepPickDue:
+      data?.keepClientsChoiceRequired === true || ((data?.overCapClientCount ?? 0) > 0 && (data?.freeSlotCount ?? 0) > 0),
   };
 }
 
