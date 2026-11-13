@@ -10,7 +10,7 @@ import { coachInitials, formatCoachDate } from '@/components/admin-coaches/coach
 import { useAdminCoach } from '@/components/admin-coaches/useAdminCoachesQueries';
 import { useAdminPlans } from '@/components/admin-plans/useAdminPlansQueries';
 
-const COACHES_PATH = '/admin/coaches';
+const COACHES_PATH = '/admin/coach-accounts';
 
 /** Role chip colours: nutrition green and training orange, anything else neutral. */
 const ROLE_CHIP_CLASS: Record<string, string> = {

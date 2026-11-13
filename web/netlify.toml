@@ -97,6 +97,19 @@
   status = 200
   force = true
 
+# Same reasoning: the SPA pages live at /admin/coach-accounts[/:coachId].
+[[redirects]]
+  from = "/admin/coaches"
+  to = "https://dev-fitnessplatform.onrender.com/admin/coaches"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/admin/coaches/*"
+  to = "https://dev-fitnessplatform.onrender.com/admin/coaches/:splat"
+  status = 200
+  force = true
+
 [[redirects]]
   from = "/swagger/*"
   to = "https://dev-fitnessplatform.onrender.com/swagger/:splat"
