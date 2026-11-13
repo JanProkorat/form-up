@@ -216,7 +216,12 @@
         "web/src/api/client-payments.ts",
         "web/src/api/questionnaires.ts",
         "web/src/lib/cooperationCards.ts",
-        "web/src/hooks/useActiveRoles.ts"
+        "web/src/hooks/useActiveRoles.ts",
+        "web/src/components/subscription/OutsidePlanBanner.tsx",
+        "web/src/components/clients/ClientFilterMenu.tsx",
+        "web/src/components/clients/OutsidePlanChip.tsx",
+        "web/src/hooks/useSubscriptionQueries.ts",
+        "web/src/lib/subscriptionErrors.ts"
       ],
       "endpoints": [
         "GET /trainer/clients",
@@ -233,7 +238,8 @@
         "POST /trainer/client-requests/{publicId}/withdraw-proposal",
         "GET /trainer/questionnaires",
         "GET /payments/packages",
-        "GET /payments/discounts"
+        "GET /payments/discounts",
+        "GET /users/me/subscription"
       ],
       "board": "PageClients",
       "shots": [
@@ -302,7 +308,9 @@
         "web/src/api/client-plans.ts",
         "web/src/api/weekly-checkins.ts",
         "web/src/api/plans.ts",
-        "web/src/api/training-plans.ts"
+        "web/src/api/training-plans.ts",
+        "web/src/components/subscription/OutsidePlanBanner.tsx",
+        "web/src/components/client-detail/OutsidePlanPaywall.tsx"
       ],
       "endpoints": [
         "GET /trainer/clients/{clientId}",
@@ -347,7 +355,9 @@
         "web/src/api/photos.ts",
         "web/src/api/weekly-checkins.ts",
         "web/src/hooks/usePlanTemplatesQueries.ts",
-        "web/src/components/client-plan-editor/templateMatching.ts"
+        "web/src/components/client-plan-editor/templateMatching.ts",
+        "web/src/components/subscription/OutsidePlanBanner.tsx",
+        "web/src/components/client-detail/OutsidePlanPaywall.tsx"
       ],
       "endpoints": [
         "GET /trainer/clients",
@@ -555,7 +565,9 @@
         "web/src/api/nutrition-plan-templates.ts",
         "web/src/api/foods.ts",
         "web/src/api/food-tags.ts",
-        "web/src/api/recipes.ts"
+        "web/src/api/recipes.ts",
+        "web/src/components/client-detail/OutsidePlanPaywall.tsx",
+        "web/src/components/client-detail/OutsidePlanPaywallDialog.tsx"
       ],
       "endpoints": [
         "GET /trainer/clients/{clientId}",
@@ -802,7 +814,10 @@
         "web/src/components/settings/**",
         "web/src/components/layout/AccountMenu.tsx",
         "web/src/api/profile.ts",
-        "web/src/api/roles.ts"
+        "web/src/api/roles.ts",
+        "web/src/components/settings/PlanBillingCard.tsx",
+        "web/src/components/subscription/planFeatures.ts",
+        "web/src/hooks/useSubscriptionQueries.ts"
       ],
       "endpoints": [
         "GET /users/me",
@@ -815,7 +830,8 @@
         "DELETE /users/me/roles/{role}",
         "POST /users/me/coach-account/disable",
         "POST /users/me/coach-account/keep",
-        "DELETE /users/me"
+        "DELETE /users/me",
+        "GET /users/me/subscription"
       ],
       "board": "PageSettings",
       "shots": [
@@ -921,7 +937,8 @@
         "web/src/components/package-catalog/packageFormParts.tsx",
         "web/src/components/automations/automationFormParts.tsx",
         "web/src/api/admin-subscription-plans.ts",
-        "web/src/lib/money.ts"
+        "web/src/lib/money.ts",
+        "web/src/components/subscription/planFeatures.ts"
       ],
       "endpoints": [
         "GET /admin/subscription-plans",
@@ -930,6 +947,108 @@
         "DELETE /admin/subscription-plans/{code}"
       ],
       "board": "PageAdminPlans",
+      "shots": [
+        { "name": "default" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "web.admin.coaches",
+      "app": "web",
+      "area": "Admin",
+      "title": "Coaches",
+      "route": "/admin/coach-accounts",
+      "roles": ["Admin"],
+      "files": [
+        "web/src/pages/AdminCoachesPage.tsx",
+        "web/src/components/admin-coaches/*",
+        "web/src/api/admin-coaches.ts"
+      ],
+      "endpoints": [
+        "GET /admin/coaches"
+      ],
+      "board": "PageAdminCoaches",
+      "shots": [
+        { "name": "default" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "web.admin.coach-profile",
+      "app": "web",
+      "area": "Admin",
+      "title": "Coach detail",
+      "route": "/admin/coach-accounts/:coachId",
+      "roles": ["Admin"],
+      "files": [
+        "web/src/pages/AdminCoachProfilePage.tsx",
+        "web/src/components/admin-coaches/*",
+        "web/src/api/admin-coaches.ts",
+        "web/src/components/admin-plans/planFeatureLabels.ts",
+        "web/src/components/subscription/planFeatures.ts"
+      ],
+      "endpoints": [
+        "GET /admin/coaches/{coachId}",
+        "PUT /admin/coaches/{coachId}/subscription",
+        "POST /admin/coaches/{coachId}/give-free",
+        "POST /admin/coaches/{coachId}/end-plan",
+        "POST /admin/coaches/{coachId}/cancel-renewal",
+        "POST /admin/coaches/{coachId}/disable",
+        "GET /admin/subscription-plans"
+      ],
+      "board": "PageAdminCoachProfile",
+      "shots": [
+        { "name": "default" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "web.plan.choose",
+      "app": "web",
+      "area": "Account",
+      "title": "Choose a plan",
+      "route": "/plan/choose",
+      "roles": ["Trainer", "Nutritionist"],
+      "files": [
+        "web/src/pages/PlanChoicePage.tsx",
+        "web/src/routes/PlanChoiceGuard.tsx",
+        "web/src/components/subscription/PlanCard.tsx",
+        "web/src/components/subscription/KeepClientsTable.tsx",
+        "web/src/components/subscription/planFeatures.ts",
+        "web/src/hooks/useSubscriptionQueries.ts"
+      ],
+      "endpoints": [
+        "GET /users/me/subscription",
+        "GET /users/me/subscription/plans",
+        "POST /users/me/subscription/choose-free",
+        "GET /users/me/subscription/keep-clients",
+        "PUT /users/me/subscription/keep-clients"
+      ],
+      "board": "PagePlanDecision",
+      "shots": [
+        { "name": "default" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "web.plan.keep-clients",
+      "app": "web",
+      "area": "Account",
+      "title": "Keep clients",
+      "route": "/plan/keep-clients",
+      "roles": ["Trainer", "Nutritionist"],
+      "files": [
+        "web/src/pages/LapseKeepClientsPage.tsx",
+        "web/src/components/subscription/KeepClientsTable.tsx",
+        "web/src/hooks/useSubscriptionQueries.ts",
+        "web/src/lib/subscriptionErrors.ts"
+      ],
+      "endpoints": [
+        "GET /users/me/subscription",
+        "GET /users/me/subscription/keep-clients",
+        "PUT /users/me/subscription/keep-clients"
+      ],
+      "board": "PageLapseKeepClients",
       "shots": [
         { "name": "default" }
       ],
@@ -1464,7 +1583,8 @@
         "mobile/src/components/photoRequest/format.ts",
         "mobile/src/components/photoRequest/hooks.ts",
         "mobile/src/components/photoRequest/model.ts",
-        "mobile/src/components/today/PhotoRequestBanner.tsx"
+        "mobile/src/components/today/PhotoRequestBanner.tsx",
+        "mobile/src/components/today/PlanRunsUntilCard.tsx"
       ],
       "endpoints": [
         "GET /users/me",
