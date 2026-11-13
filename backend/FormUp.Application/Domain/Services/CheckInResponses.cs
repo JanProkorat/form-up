@@ -17,7 +17,7 @@ public static class CheckInResponses
     public static IQueryable<QuestionnaireResponse> CurrentCollaborationCheckIns(this IQueryable<QuestionnaireResponse> responses) =>
         responses.Where(r => r.Kind == QuestionnaireResponseKind.CheckIn
                              && r.Status != QuestionnaireResponseStatus.Cancelled
-                             && r.Link.IsActive
+                             && r.Link.ConnectionState != ConnectionState.Ended
                              && (r.Link.ActivatedAtUtc == null
                                  || (r.Status == QuestionnaireResponseStatus.Submitted
                                      ? r.SubmittedAt >= r.Link.ActivatedAtUtc

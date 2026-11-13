@@ -154,13 +154,7 @@ public class AcceptInvitePackageTermsIntegrationTests(FitnessApiFactory factory)
         var packageId = await CreatePackageAsync(coach);
         var inviteId = await SendInviteAsync(coach, client, packageId);
 
-        using (var scope = factory.Services.CreateScope())
-        {
-            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            var subscription = await db.CoachSubscriptions.SingleAsync(cs => cs.ProfessionalProfileId == coach.ProfileId, Ct);
-            subscription.Status = SubscriptionStatus.Canceled;
-            await db.SaveChangesAsync(Ct);
-        }
+        await CoachSubscriptionBuilder.MoveToPlanWithoutPaymentsAsync(factory, coach);
 
         var response = await AcceptInAppAsync(client, inviteId);
 

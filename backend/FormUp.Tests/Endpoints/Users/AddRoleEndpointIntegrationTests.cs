@@ -159,7 +159,8 @@ public class AddRoleEndpointIntegrationTests(FitnessApiFactory factory)
     {
         var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
         await DisableCoachAccountIntegrationTests.SeedSubscriptionAsync(
-            factory, coach.ProfileId, SubscriptionStatus.Active, DateTimeOffset.UtcNow.AddDays(10));
+            factory, coach.ProfileId, SubscriptionStatus.Active, DateTimeOffset.UtcNow.AddDays(10),
+            paysSecondRoleAddOn: true);
         (await coach.Http.PostAsync("/users/me/coach-account/disable", null, TestContext.Current.CancellationToken))
             .StatusCode.Should().Be(HttpStatusCode.OK);
 
@@ -173,6 +174,75 @@ public class AddRoleEndpointIntegrationTests(FitnessApiFactory factory)
             .Select(p => p.CoachAccountActiveUntil).FirstAsync(TestContext.Current.CancellationToken)).Should().BeNull();
         (await db.CoachSubscriptions.AsNoTracking().Where(cs => cs.ProfessionalProfileId == coach.ProfileId)
             .Select(cs => cs.CancelAtPeriodEnd).FirstAsync(TestContext.Current.CancellationToken)).Should().BeFalse();
+    }
+
+    // ── Second-role rule ─────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task Post_RolesMe_PlanWithoutBothRolesAndNoAddOn_Returns403SubscriptionRequired()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, "start");
+
+        var resp = await coach.Http.PostAsJsonAsync(
+            "/users/me/roles", new { Role = "Nutritionist" }, TestContext.Current.CancellationToken);
+
+        resp.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))
+            .Should().Contain(FormUp.Application.Domain.Constants.ErrorCodes.SubscriptionRequired);
+    }
+
+    [Fact]
+    public async Task Post_RolesMe_PlanWithoutBothRolesButPaidAddOn_AddsTheRole()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, "start", paysSecondRoleAddOn: true);
+
+        var resp = await coach.Http.PostAsJsonAsync(
+            "/users/me/roles", new { Role = "Nutritionist" }, TestContext.Current.CancellationToken);
+
+        resp.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task Post_RolesMe_RestoringARoleWhileTheOtherIsActiveOnAPlanWithoutAddOn_Returns403SubscriptionRequired()
+    {
+        var coach = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Nutritionist)
+            .WithRemovedCoachRoles(UserRole.Nutritionist)
+            .CreateAsync(TestContext.Current.CancellationToken);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, "start");
+
+        var resp = await coach.Http.PostAsJsonAsync(
+            "/users/me/roles", new { Role = "Nutritionist" }, TestContext.Current.CancellationToken);
+
+        resp.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))
+            .Should().Contain(FormUp.Application.Domain.Constants.ErrorCodes.SubscriptionRequired);
+    }
+
+    [Fact]
+    public async Task Post_RolesMe_RestoringTheOnlyActiveRoleOnAPlanWithoutAddOn_IsAllowed()
+    {
+        var coach = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Nutritionist)
+            .WithRemovedCoachRoles(UserRole.Trainer, UserRole.Nutritionist)
+            .CreateAsync(TestContext.Current.CancellationToken);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, "start");
+
+        var resp = await coach.Http.PostAsJsonAsync(
+            "/users/me/roles", new { Role = "Trainer" }, TestContext.Current.CancellationToken);
+
+        resp.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task Post_RolesMe_CoachOnTheFreePlan_AddsTheRoleBecauseFreeIncludesBothRoles()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+
+        var resp = await coach.Http.PostAsJsonAsync(
+            "/users/me/roles", new { Role = "Nutritionist" }, TestContext.Current.CancellationToken);
+
+        resp.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
     // ── Local response DTO (per slice rules — no cross-feature imports) ──────

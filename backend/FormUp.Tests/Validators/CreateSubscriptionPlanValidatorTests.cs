@@ -19,7 +19,7 @@ public class CreateSubscriptionPlanValidatorTests
         NameCs = "Malý",
         NameEn = "Small",
         NameDe = "Klein",
-        ApplicableRoles = ApplicableRoles.Both,
+        BothRolesIncluded = true,
         Currency = "CZK",
         PriceMinorUnits = 29900,
         BillingInterval = BillingInterval.Monthly,
@@ -104,13 +104,43 @@ public class CreateSubscriptionPlanValidatorTests
     }
 
     [Fact]
-    public void ApplicableRoles_OutOfEnum_FailsWithOutOfRangeCode()
+    public void SecondRole_PaidAddOnWithoutBothRolesIncluded_PassesValidation()
     {
         var req = ValidRequest();
-        req.ApplicableRoles = (ApplicableRoles)99;
+        req.BothRolesIncluded = false;
+        req.SecondRoleAddOnPriceMinorUnits = 14900;
+
+        _validator.TestValidate(req).IsValid.Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData(true, 14900L)]
+    [InlineData(false, null)]
+    public void SecondRole_BothOrNeitherSet_FailsWithSecondRoleOptionInvalidCode(
+        bool bothRolesIncluded, long? addOnPrice)
+    {
+        var req = ValidRequest();
+        req.BothRolesIncluded = bothRolesIncluded;
+        req.SecondRoleAddOnPriceMinorUnits = addOnPrice;
 
         var result = _validator.TestValidate(req);
-        result.ShouldHaveValidationErrorFor(x => x.ApplicableRoles).WithErrorCode(ErrorCodes.OutOfRange);
+
+        result.Errors.Should().Contain(e => e.ErrorCode == ErrorCodes.SecondRoleOptionInvalid);
+    }
+
+    [Theory]
+    [InlineData(0L)]
+    [InlineData(-1L)]
+    public void SecondRoleAddOnPrice_ZeroOrNegative_FailsWithOutOfRangeCode(long addOnPrice)
+    {
+        var req = ValidRequest();
+        req.BothRolesIncluded = false;
+        req.SecondRoleAddOnPriceMinorUnits = addOnPrice;
+
+        var result = _validator.TestValidate(req);
+
+        result.ShouldHaveValidationErrorFor(x => x.SecondRoleAddOnPriceMinorUnits)
+            .WithErrorCode(ErrorCodes.OutOfRange);
     }
 
     [Fact]

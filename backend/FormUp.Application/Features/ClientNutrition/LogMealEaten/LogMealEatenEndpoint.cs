@@ -46,17 +46,15 @@ public class LogMealEatenEndpoint(
     {
         Post("/client/nutrition/log/meals/{MealId}/eaten");
         Roles(AppRoles.Client);
-        Description(b => b.ClearDefaultProduces(StatusCodes.Status200OK)
-            .Produces<LogMealEatenResponse>(StatusCodes.Status201Created));
         Summary(s =>
         {
             s.Summary = "Log a meal as eaten";
             s.Description = "Records that the client has eaten a specific meal from their active nutrition plan. "
                 + "An offline-synced request whose plan snapshot is stale is still recorded and flagged in the body.";
-            s.Responses[StatusCodes.Status201Created] = "Meal logged; syncConflict flags a collision with a plan change; a meal that left the plan is still logged from the items the client saw, and mealLogged is false only when it left the plan and the request carried no seen items";
-            s.Responses[StatusCodes.Status400BadRequest] = "Invalid request";
-            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
-            s.Responses[StatusCodes.Status404NotFound] = "No such meal in the client's plans";
+            s.Response<LogMealEatenResponse>(StatusCodes.Status201Created, "Meal logged; syncConflict flags a collision with a plan change; a meal that left the plan is still logged from the items the client saw, and mealLogged is false only when it left the plan and the request carried no seen items");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Invalid request");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status404NotFound, "No such meal in the client's plans");
         });
     }
 
@@ -426,7 +424,7 @@ public class LogMealEatenEndpoint(
             var links = await db.ClientProfessionalLinks
                 .AsNoTracking()
                 .Where(l => l.ClientProfileId == clientProfile.Id
-                            && l.IsActive
+                            && l.ConnectionState != ConnectionState.Ended
                             && l.ProfessionalProfile.UserId == conflict.PlanAuthorId)
                 .Select(l => new
                 {
@@ -534,7 +532,7 @@ public class LogMealEatenEndpoint(
     {
         var professionalUserIds = await db.ClientProfessionalLinks
             .AsNoTracking()
-            .Where(l => l.ClientProfileId == clientProfileId && l.IsActive)
+            .Where(l => l.ClientProfileId == clientProfileId && l.ConnectionState != ConnectionState.Ended)
             .Join(db.ProfessionalProfiles.AsNoTracking(),
                 link => link.ProfessionalProfileId,
                 prof => prof.Id,

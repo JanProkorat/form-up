@@ -41,9 +41,9 @@ public class GetDashboardSummaryEndpoint(
         {
             s.Summary = "Get trainer dashboard summary";
             s.Description = "Returns per-client compliance, streak, training, calorie, and activity data for the trainer's dashboard.";
-            s.Responses[StatusCodes.Status200OK] = "Per-client dashboard items";
-            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
-            s.Responses[StatusCodes.Status404NotFound] = "Professional profile not found";
+            s.Response<GetDashboardSummaryResponse>(StatusCodes.Status200OK, "Per-client dashboard items");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status404NotFound, "Professional profile not found");
         });
     }
 
@@ -89,7 +89,7 @@ public class GetDashboardSummaryEndpoint(
         var links = await db.ClientProfessionalLinks
             .AsNoTracking()
             .Where(l => l.ProfessionalProfileId == professionalProfile.Id
-                        && l.IsActive
+                        && l.ConnectionState != ConnectionState.Ended
                         && (l.CanViewNutritionPlans || l.CanViewTrainingPlans))
             .Include(l => l.ClientProfile)
             .ThenInclude(cp => cp.User)
@@ -374,7 +374,7 @@ public class GetDashboardSummaryEndpoint(
             LastName = link.ClientProfile.User.LastName,
             Email = link.ClientProfile.User.Email!,
             AvatarBlobUrl = link.ClientProfile.User.AvatarBlobUrl,
-            IsActive = link.IsActive,
+            IsActive = link.ConnectionState != ConnectionState.Ended,
             Goal = link.ClientProfile.Goals,
             CompliancePercent = percentForViewer,
             CurrentStreak = streak,

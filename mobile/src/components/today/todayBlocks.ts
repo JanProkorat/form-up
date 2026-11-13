@@ -53,6 +53,16 @@ export function isRunningPlan(plan: ClientOwnPlanItem, today: string): boolean {
   return planEndDate(start, Math.max(plan.totalWeeks ?? 0, 1)) >= today;
 }
 
+/**
+ * The last day a running plan stays open, when the server says it is capped and that day has not passed
+ * (`yyyy-MM-dd`, compared as strings). Undefined for any other area state.
+ */
+export function planRunsUntil(block: AreaBlock, today: string): string | undefined {
+  if (block.state.kind !== 'running') return undefined;
+  const runsUntil = isoDay(block.state.plan.runsUntil);
+  return runsUntil !== '' && runsUntil >= today ? runsUntil : undefined;
+}
+
 /** True when any area has a plan under way. */
 export const hasRunningPlan = (blocks: readonly AreaBlock[]): boolean =>
   blocks.some((block) => block.state.kind === 'running');

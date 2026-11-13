@@ -450,6 +450,12 @@ public static class ErrorCodes
     /// <summary>Subscription plan not found for the given Code.</summary>
     public const string SubscriptionPlanNotFound = "SUBSCRIPTION_PLAN_NOT_FOUND";
 
+    /// <summary>A plan must either include both roles or carry a positive second-role add-on price, never both or neither.</summary>
+    public const string SecondRoleOptionInvalid = "SECOND_ROLE_OPTION_INVALID";
+
+    /// <summary>The Free plan is fixed at price 0 and must stay offered; it cannot be repriced, hidden or deactivated.</summary>
+    public const string FreePlanLocked = "FREE_PLAN_LOCKED";
+
     /// <summary>Currency is not one of the platform's supported billing currencies.</summary>
     public const string UnsupportedCurrency = "UNSUPPORTED_CURRENCY";
 
@@ -603,11 +609,35 @@ public static class ErrorCodes
     /// <summary>The check-in can no longer be answered: its answer window has passed.</summary>
     public const string CheckInAnswerWindowClosed = "CHECK_IN_ANSWER_WINDOW_CLOSED";
 
-    /// <summary>The coach's subscription does not include weekly check-ins, or is not in good standing.</summary>
-    public const string CheckInsNotEntitled = "CHECK_INS_NOT_ENTITLED";
+    /// <summary>The coach's current subscription does not include the feature being used.</summary>
+    public const string SubscriptionRequired = "SUBSCRIPTION_REQUIRED";
 
-    /// <summary>The coach's subscription does not include per-client check-in configuration, or is not in good standing.</summary>
-    public const string PerClientCheckInConfigNotEntitled = "PER_CLIENT_CHECK_IN_CONFIG_NOT_ENTITLED";
+    /// <summary>The coach is at the active-client limit of the current subscription.</summary>
+    public const string ClientLimitReached = "CLIENT_LIMIT_REACHED";
+
+    /// <summary>The client is over the Free plan's client cap after the coach's paid plan lapsed, so the action is refused.</summary>
+    public const string ClientOverPlanLimit = "CLIENT_OVER_PLAN_LIMIT";
+
+    /// <summary>The kept-clients choice has a duplicate id or the wrong number of clients.</summary>
+    public const string KeepClientsCountInvalid = "KEEP_CLIENTS_COUNT_INVALID";
+
+    /// <summary>The kept-clients choice was already made and the request would swap a kept client out.</summary>
+    public const string KeepClientsChoiceLocked = "KEEP_CLIENTS_CHOICE_LOCKED";
+
+    /// <summary>The coach's paid plan has not lapsed, so there is no kept-clients choice to make.</summary>
+    public const string SubscriptionNotLapsed = "SUBSCRIPTION_NOT_LAPSED";
+
+    /// <summary>The coach's admin-given free plan ended, so every write except choosing a plan is refused until they choose one.</summary>
+    public const string PlanChoiceRequired = "PLAN_CHOICE_REQUIRED";
+
+    /// <summary>The coach has no ended free plan waiting for a choice, so there is nothing to choose.</summary>
+    public const string PlanChoiceNotRequired = "PLAN_CHOICE_NOT_REQUIRED";
+
+    /// <summary>The coach has no paying subscription whose renewal could be cancelled (no row, Free plan, a gift, or a plan that no longer applies).</summary>
+    public const string NoRenewingSubscription = "NO_RENEWING_SUBSCRIPTION";
+
+    /// <summary>The coach has no paid or given plan in force to end (no row, Free plan, ended paid plan, or a gift that has expired).</summary>
+    public const string NoPlanToEnd = "NO_PLAN_TO_END";
 
     /// <summary>The IBAN is malformed or fails the mod-97 check.</summary>
     public const string InvalidIban = "INVALID_IBAN";

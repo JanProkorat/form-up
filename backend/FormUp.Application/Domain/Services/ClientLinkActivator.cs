@@ -39,7 +39,7 @@ public static class ClientLinkActivator
             .FirstOrDefaultAsync(l => l.ClientProfileId == clientProfileId
                                       && l.ProfessionalProfileId == professional.Id, ct);
 
-        if (link is { IsActive: true })
+        if (link is { ConnectionState: not ConnectionState.Ended })
         {
             return await WidenActiveLinkAsync(db, userManager, link, professional, requestedScope, ct);
         }
@@ -72,7 +72,7 @@ public static class ClientLinkActivator
 
         if (link is not null)
         {
-            link.IsActive = true;
+            link.ConnectionState = ConnectionState.Connected;
             link.ActivatedAtUtc = DateTime.UtcNow;
             link.ProfessionalRole = professionalRole;
             link.CanViewNutritionPlans = canViewNutritionPlans;
@@ -90,7 +90,7 @@ public static class ClientLinkActivator
             ClientProfileId = clientProfileId,
             ProfessionalProfileId = professional.Id,
             ProfessionalRole = professionalRole,
-            IsActive = true,
+            ConnectionState = ConnectionState.Connected,
             ActivatedAtUtc = DateTime.UtcNow,
             CanViewNutritionPlans = canViewNutritionPlans,
             CanViewTrainingPlans = canViewTrainingPlans,

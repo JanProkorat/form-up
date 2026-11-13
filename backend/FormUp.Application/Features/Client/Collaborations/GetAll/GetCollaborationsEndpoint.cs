@@ -11,7 +11,9 @@ namespace FormUp.Application.Features.Client.Collaborations.GetAll;
 /// <summary>
 /// Returns the client's active professional collaborations.
 /// </summary>
-public class GetCollaborationsEndpoint(IApplicationDbContext db, TimeProvider timeProvider) : EndpointWithoutRequest<GetCollaborationsResponse>
+public class GetCollaborationsEndpoint(
+    IApplicationDbContext db, EntitlementService entitlementService, TimeProvider timeProvider)
+    : EndpointWithoutRequest<GetCollaborationsResponse>
 {
     public override void Configure()
     {
@@ -21,8 +23,8 @@ public class GetCollaborationsEndpoint(IApplicationDbContext db, TimeProvider ti
         {
             s.Summary = "Get active collaborations";
             s.Description = "Returns all active professional links for the authenticated client, each with the first payment of its current terms and the effective weekly check-in days.";
-            s.Responses[StatusCodes.Status200OK] = "The client's active collaborations";
-            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
+            s.Response<GetCollaborationsResponse>(StatusCodes.Status200OK, "The client's active collaborations");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
         });
     }
 
@@ -45,7 +47,7 @@ public class GetCollaborationsEndpoint(IApplicationDbContext db, TimeProvider ti
 
         var links = await db.ClientProfessionalLinks
             .AsNoTracking()
-            .Where(l => l.ClientProfileId == clientProfile.Id && l.IsActive)
+            .Where(l => l.ClientProfileId == clientProfile.Id && l.ConnectionState != ConnectionState.Ended)
             .Include(l => l.ProfessionalProfile)
                 .ThenInclude(pp => pp.User)
             .Select(l => new CollaborationDto
@@ -184,7 +186,7 @@ public class GetCollaborationsEndpoint(IApplicationDbContext db, TimeProvider ti
     {
         var links = await db.ClientProfessionalLinks
             .AsNoTracking()
-            .Where(l => l.ClientProfileId == clientProfileId && l.IsActive)
+            .Where(l => l.ClientProfileId == clientProfileId && l.ConnectionState != ConnectionState.Ended)
             .Select(l => new { l.Id, l.PublicId, l.ProfessionalProfileId, l.ProfessionalRole })
             .ToListAsync(ct);
 
@@ -202,7 +204,6 @@ public class GetCollaborationsEndpoint(IApplicationDbContext db, TimeProvider ti
                 .ToListAsync(ct))
             .ToLookup(a => a.ClientProfessionalLinkId, a => a.ClientTagId);
 
-        var entitlementService = new EntitlementService(db);
         var localToday = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime);
 
         foreach (var link in links)

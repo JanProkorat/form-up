@@ -11,7 +11,10 @@ import {
   useUpdateAutomationRule,
 } from '@/hooks/useAutomationQueries';
 import { useTrainerQuestionnaires } from '@/hooks/useQuestionnaireQueries';
+import { useInvalidateSubscription } from '@/hooks/useSubscriptionQueries';
 import { getRfc7807ErrorCode, showApiError, showSuccess } from '@/lib/api-errors';
+import { isSubscriptionRequired } from '@/lib/subscriptionErrors';
+import PaywallDialog from '@/components/subscription/PaywallDialog';
 import { cn } from '@/lib/utils';
 import AutomationRuleDrawer from '@/components/automations/AutomationRuleDrawer';
 import AutomationsTable from '@/components/automations/AutomationsTable';
@@ -45,6 +48,8 @@ export default function AutomationsPage() {
   const [drawer, setDrawer] = useState<{ rule?: AutomationRuleDto } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AutomationRuleDto | null>(null);
   const [togglingIds, setTogglingIds] = useState<ReadonlySet<string>>(new Set());
+  const [paywallOpen, setPaywallOpen] = useState(false);
+  const invalidateSubscription = useInvalidateSubscription();
 
   const formTitles = useMemo(
     () => new Map((formsQuery.data ?? []).map((form) => [form.publicId, form.title] as const)),
@@ -66,6 +71,12 @@ export default function AutomationsPage() {
       showSuccess('automations.saveSuccess');
       setDrawer(null);
     } catch (error) {
+      if (isSubscriptionRequired(error)) {
+        // Stale plan data: refetch it and explain with the paywall instead of a toast.
+        invalidateSubscription();
+        setPaywallOpen(true);
+        return;
+      }
       showApiError(error, 'automations.saveError');
       // The rule is gone (deleted elsewhere): the list already refetches, so close the stale drawer.
       if (getRfc7807ErrorCode(error) === ERROR_RULE_NOT_FOUND) {
@@ -83,7 +94,14 @@ export default function AutomationsPage() {
     updateMutation.mutate(
       { ruleId, request: ruleToToggleRequest(rule, enabled) },
       {
-        onError: (error) => showApiError(error, 'automations.toggleError'),
+        onError: (error) => {
+          if (isSubscriptionRequired(error)) {
+            invalidateSubscription();
+            setPaywallOpen(true);
+            return;
+          }
+          showApiError(error, 'automations.toggleError');
+        },
         onSettled: () =>
           setTogglingIds((current) => {
             const next = new Set(current);
@@ -176,6 +194,8 @@ export default function AutomationsPage() {
           isSaving={createMutation.isPending || updateMutation.isPending}
         />
       )}
+
+      <PaywallDialog open={paywallOpen} onOpenChange={setPaywallOpen} feature="checkIns" />
 
       <Dialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <DialogContent>

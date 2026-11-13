@@ -37,18 +37,18 @@ public class CreatePlanEndpoint(
     {
         Post("/nutrition/plans");
         Roles(AppRoles.Nutritionist);
-        Description(b => b.ClearDefaultProduces(StatusCodes.Status200OK)
-            .Produces<PlanSummaryDto>(StatusCodes.Status201Created));
         Summary(s =>
         {
             s.Summary = "Create a nutrition plan";
             s.Description = "Creates a new nutrition plan in Draft status for a client.";
-            s.Responses[StatusCodes.Status201Created] = "The new Draft plan";
-            s.Responses[StatusCodes.Status400BadRequest] = "Invalid request, or the questionnaire response is not found or not submitted";
-            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
-            s.Responses[StatusCodes.Status403Forbidden] = "The caller's Nutritionist coach role was removed";
-            s.Responses[StatusCodes.Status404NotFound] = "Client not found, or not accessible to the caller";
-            s.Responses[StatusCodes.Status409Conflict] = "The start date window overlaps another plan of the client (PLAN_OVERLAP)";
+            s.Response<PlanSummaryDto>(StatusCodes.Status201Created, "The new Draft plan");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Invalid request, or the questionnaire response is not found or not submitted");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status403Forbidden,
+                "The caller's Nutritionist coach role was removed, the subscription does not include plans (SUBSCRIPTION_REQUIRED), " +
+                "or the client is over the Free plan's client limit (CLIENT_OVER_PLAN_LIMIT)");
+            s.Response(StatusCodes.Status404NotFound, "Client not found, or not accessible to the caller");
+            s.Response(StatusCodes.Status409Conflict, "The start date window overlaps another plan of the client (PLAN_OVERLAP)");
         });
     }
 
@@ -76,6 +76,13 @@ public class CreatePlanEndpoint(
             return;
         }
 
+        if (await this.RespondIfFeatureNotEntitledAsync(
+                db, nutritionistId, entitlements => entitlements.CanCreatePlans,
+                "The current subscription does not include creating plans.", ct))
+        {
+            return;
+        }
+
         // req.ClientId is the trainer-facing ClientProfile.PublicId — resolve to
         // ApplicationUser.Id, the canonical clientId key for Mongo documents (#840).
         var clientProfile = await db.ClientProfiles
@@ -89,6 +96,11 @@ public class CreatePlanEndpoint(
         }
 
         var clientUserId = clientProfile.UserId;
+
+        if (await this.RespondIfClientOverPlanLimitAsync(db, nutritionistId, clientUserId, ct))
+        {
+            return;
+        }
 
         // Validate questionnaire response link if provided
         if (req.QuestionnaireResponseId.HasValue)

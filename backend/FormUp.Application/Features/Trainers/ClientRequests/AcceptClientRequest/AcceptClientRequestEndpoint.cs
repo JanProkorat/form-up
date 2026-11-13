@@ -37,6 +37,12 @@ public class AcceptClientRequestEndpoint(
             s.Summary = "Accept a client request";
             s.Description = "Accepts a pending client request, creates a client-professional link, and optionally assigns a questionnaire. " +
                 "When the request carries a package, its terms (with the optional discount) are applied; an unusable package or discount means accepting without terms.";
+            s.Response(StatusCodes.Status204NoContent, "Request accepted");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest,
+                "The request is unknown or already processed (CLIENT_REQUEST_NOT_FOUND), or another coded refusal such as PROFESSION_ALREADY_OCCUPIED");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status403Forbidden,
+                "The coach role was removed, or the coach is at the active-client limit (CLIENT_LIMIT_REACHED)");
         });
     }
 
@@ -163,6 +169,12 @@ public class AcceptClientRequestEndpoint(
         await using var transaction = await db.BeginTransactionAsync(ct);
         await db.LockClientProfileAsync(clientRequest.ClientProfileId, ct);
 
+        if (await this.RespondIfClientLimitReachedAsync(
+                db, professionalProfile.Id, clientRequest.ClientProfileId, ct))
+        {
+            return;
+        }
+
         // A client may hold at most one active coach per profession (#980). This
         // covers BOTH the reactivate branch and the insert branch below — a
         // reactivation re-occupying a slot another active professional holds is
@@ -190,7 +202,7 @@ public class AcceptClientRequestEndpoint(
 
         if (link is not null)
         {
-            link.IsActive = true;
+            link.ConnectionState = ConnectionState.Connected;
             link.ActivatedAtUtc = DateTime.UtcNow;
             link.ProfessionalRole = professionalRole;
             link.CanViewNutritionPlans = canViewNutritionPlans;
@@ -204,7 +216,7 @@ public class AcceptClientRequestEndpoint(
                 ClientProfileId = clientRequest.ClientProfileId,
                 ProfessionalProfileId = professionalProfile.Id,
                 ProfessionalRole = professionalRole,
-                IsActive = true,
+                ConnectionState = ConnectionState.Connected,
                 ActivatedAtUtc = DateTime.UtcNow,
                 CanViewNutritionPlans = canViewNutritionPlans,
                 CanViewTrainingPlans = canViewTrainingPlans,

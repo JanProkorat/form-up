@@ -17,11 +17,13 @@ namespace FormUp.Application.Infrastructure.Services;
 /// <param name="db">Application database context.</param>
 /// <param name="mongo">MongoDB context, read for plan windows.</param>
 /// <param name="sender">Sends one occurrence.</param>
+/// <param name="entitlementService">Resolves the coach's subscription entitlements.</param>
 /// <param name="logger">Logger.</param>
 public sealed class AutomationClaimProcessor(
     IApplicationDbContext db,
     IMongoContext mongo,
     AutomationOccurrenceSender sender,
+    EntitlementService entitlementService,
     ILogger<AutomationClaimProcessor> logger)
 {
     private enum RunMode
@@ -98,7 +100,7 @@ public sealed class AutomationClaimProcessor(
     private async Task<bool> RunAsync(AutomationSchedule schedule, DateTime nowUtc, RunMode mode, CancellationToken ct)
     {
         var evaluation = await AutomationEvaluationLoader.LoadAsync(
-            db, schedule.AutomationRuleId, schedule.ClientProfileId, nowUtc, ct);
+            db, entitlementService, schedule.AutomationRuleId, schedule.ClientProfileId, nowUtc, ct);
 
         if (evaluation is null || !evaluation.Effective.Enabled)
         {

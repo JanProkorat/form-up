@@ -46,6 +46,11 @@ public static class TestActors
     public static ActorBuilder Client(FitnessApiFactory factory) => new(factory, [UserRole.Client]);
 
     /// <summary>
+    /// Builds an <see cref="UserRole.Admin"/> actor (no professional profile).
+    /// </summary>
+    public static ActorBuilder Admin(FitnessApiFactory factory) => new(factory, [UserRole.Admin]);
+
+    /// <summary>
     /// Builds a professional actor holding an arbitrary set of global roles — needed for
     /// dual-role escalation cases (a caller holding both Trainer and Nutritionist).
     /// </summary>
@@ -57,6 +62,28 @@ public static class TestActors
     /// </summary>
     public static LinkBuilder Link(FitnessApiFactory factory, Actor professional, Actor client) =>
         new(factory, professional.ProfileId, client.ProfileId);
+
+    /// <summary>
+    /// Creates one client per entry and links each to the professional in the given role, the collaboration of each
+    /// having begun that many days ago. Returns the clients in the same order.
+    /// </summary>
+    public static async Task<List<Actor>> LinkClientsAsync(
+        FitnessApiFactory factory, Actor professional, UserRole role, params int[] linkedDaysAgo)
+    {
+        var clients = new List<Actor>();
+
+        foreach (var daysAgo in linkedDaysAgo)
+        {
+            var client = await Client(factory).CreateAsync(TestContext.Current.CancellationToken);
+            await Link(factory, professional, client)
+                .AsRole(role)
+                .WithActivatedAtUtc(DateTime.UtcNow.AddDays(-daysAgo))
+                .CreateAsync(TestContext.Current.CancellationToken);
+            clients.Add(client);
+        }
+
+        return clients;
+    }
 
     /// <summary>
     /// Builds a <see cref="ClientProfessionalLink"/> from raw profile ids — for fixtures that
@@ -82,6 +109,16 @@ public sealed class ActorBuilder(FitnessApiFactory factory, UserRole[] roles)
     private UserRole[] _removedRoles = [];
     private bool _emailConfirmed;
     private DateTime? _dateCreated;
+    private bool _withPayments;
+
+    /// <summary>Seeded plan whose payments flag is on.</summary>
+    private const string PaymentsPlanCode = "pro";
+
+    /// <summary>
+    /// Subscribes a coach to the seeded Pro plan, so the payments feature is on (the default coach has
+    /// no subscription and falls back to the Free plan, which excludes payments).
+    /// </summary>
+    public ActorBuilder WithPayments() { _withPayments = true; return this; }
 
     /// <summary>
     /// Overrides the generated email (default is a random, always-unique fixture address).
@@ -189,7 +226,14 @@ public sealed class ActorBuilder(FitnessApiFactory factory, UserRole[] roles)
         var token = TestTokenFactory.CreateAccessToken(factory, user.Id, _email, roleNames);
         TestHelpers.SetBearerToken(http, token);
 
-        return new Actor(http, user.Id, _email, profileId, publicId);
+        var actor = new Actor(http, user.Id, _email, profileId, publicId);
+
+        if (_withPayments)
+        {
+            await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, actor, PaymentsPlanCode);
+        }
+
+        return actor;
     }
 }
 
@@ -201,6 +245,7 @@ public sealed class LinkBuilder(FitnessApiFactory factory, long professionalProf
 {
     private UserRole _professionalRole = UserRole.Trainer;
     private bool _isActive = true;
+    private ConnectionState? _state;
     private bool _canViewNutritionPlans = true;
     private bool _canViewTrainingPlans = true;
     private DateTime _dateCreated = DateTime.UtcNow;
@@ -233,6 +278,11 @@ public sealed class LinkBuilder(FitnessApiFactory factory, long professionalProf
     /// Marks the link inactive (defaults to active).
     /// </summary>
     public LinkBuilder Inactive() { _isActive = false; return this; }
+
+    /// <summary>
+    /// Sets the link's exact connection state (defaults to <see cref="ConnectionState.Connected"/>).
+    /// </summary>
+    public LinkBuilder WithState(ConnectionState state) { _state = state; return this; }
 
     /// <summary>
     /// Overrides the link's creation timestamp (defaults to now).
@@ -268,7 +318,7 @@ public sealed class LinkBuilder(FitnessApiFactory factory, long professionalProf
             ProfessionalProfileId = professionalProfileId,
             ClientProfileId = clientProfileId,
             ProfessionalRole = _professionalRole,
-            IsActive = _isActive,
+            ConnectionState = _state ?? (_isActive ? ConnectionState.Connected : ConnectionState.Ended),
             CanViewNutritionPlans = _canViewNutritionPlans,
             CanViewTrainingPlans = _canViewTrainingPlans,
             DateCreated = _dateCreated,

@@ -1,4 +1,5 @@
 using FormUp.Application.Domain.Entities;
+using FormUp.Application.Domain.Enums;
 
 namespace FormUp.Application.Domain.Extensions;
 
@@ -22,7 +23,7 @@ public static class PhotoDiaryRequestOwnership
     {
         if (request.Link is not null)
         {
-            return request.Link.ClientProfile.UserId == clientUserId && request.Link.IsActive;
+            return request.Link.ClientProfile.UserId == clientUserId && request.Link.ConnectionState != ConnectionState.Ended;
         }
 
         if (request.PendingInvite is not null && clientEmail is not null)

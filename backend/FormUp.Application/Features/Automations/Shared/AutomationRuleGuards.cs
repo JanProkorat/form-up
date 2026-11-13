@@ -123,7 +123,7 @@ public static class AutomationRuleGuards
     /// <summary>
     /// Checks the coach's subscription for a check-in rule write: the weekly check-in feature, or, with
     /// <paramref name="perClient"/>, per-client check-in configuration (an override or a pause). Answers
-    /// a coded 403 and returns true when the plan does not include it. A coach with no subscription is entitled.
+    /// a coded 403 (<see cref="ErrorCodes.SubscriptionRequired"/>) and returns true when the plan does not include it.
     /// </summary>
     /// <param name="endpoint">The endpoint instance.</param>
     /// <param name="entitlementService">Resolves subscription entitlements.</param>
@@ -142,7 +142,7 @@ public static class AutomationRuleGuards
 
         await endpoint.SendProblemAsync(
             StatusCodes.Status403Forbidden,
-            perClient ? ErrorCodes.PerClientCheckInConfigNotEntitled : ErrorCodes.CheckInsNotEntitled,
+            ErrorCodes.SubscriptionRequired,
             perClient
                 ? "The current subscription does not include per-client check-in configuration."
                 : "The current subscription does not include weekly check-ins.",
@@ -217,7 +217,7 @@ public static class AutomationRuleGuards
 
             var clientProfileIds = await db.ClientProfessionalLinks
                 .AsNoTracking()
-                .Where(l => l.ProfessionalProfileId == profile.Id && l.IsActive && publicIds.Contains(l.ClientProfile.PublicId))
+                .Where(l => l.ProfessionalProfileId == profile.Id && l.ConnectionState != ConnectionState.Ended && publicIds.Contains(l.ClientProfile.PublicId))
                 .Select(l => l.ClientProfileId)
                 .Distinct()
                 .ToListAsync(ct);

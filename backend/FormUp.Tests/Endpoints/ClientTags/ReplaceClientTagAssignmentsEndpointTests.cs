@@ -6,6 +6,7 @@ using FormUp.Tests.Infrastructure;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using FormUp.Application.Domain.Enums;
 
 namespace FormUp.Tests.Endpoints.ClientTags;
 
@@ -193,7 +194,7 @@ public class ReplaceClientTagAssignmentsEndpointTests(FitnessApiFactory factory)
                 .FirstAsync(cp => cp.PublicId == clientPublicId, TestContext.Current.CancellationToken);
             var link = await db.ClientProfessionalLinks
                 .FirstAsync(l => l.ClientProfileId == clientProfile.Id, TestContext.Current.CancellationToken);
-            link.IsActive = false;
+            link.ConnectionState = ConnectionState.Ended;
             await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 

@@ -10,7 +10,7 @@ namespace FormUp.Application.Domain.Entities;
 /// <remarks>
 /// <para>
 /// This exists because the client-addressed professional routes each answered the question
-/// differently: some checked <c>IsActive</c> alone, one checked an either-flag helper and then
+/// differently: some checked <c>ConnectionState</c> alone, one checked an either-flag helper and then
 /// returned single-domain data, and one derived its domain scope from the caller's <b>global
 /// roles</b> via <c>User.IsInRole</c> rather than from the link. Global role state must never
 /// widen a per-link capability — a dual-role professional whose link was deliberately narrowed to

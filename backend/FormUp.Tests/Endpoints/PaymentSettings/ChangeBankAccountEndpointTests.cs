@@ -21,12 +21,12 @@ public class ChangeBankAccountEndpointTests(FitnessApiFactory factory)
 
     private Task<Actor> CoachWithPasswordAsync(string? language = null)
     {
-        var builder = TestActors.Trainer(factory).WithPassword(Password);
+        var builder = TestActors.Trainer(factory).WithPayments().WithPassword(Password);
         return (language is null ? builder : builder.WithLanguage(language)).CreateAsync(TestContext.Current.CancellationToken);
     }
 
     private Task<Actor> CoachWithoutPasswordAsync() =>
-        TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        TestActors.Trainer(factory).WithPayments().CreateAsync(TestContext.Current.CancellationToken);
 
     private async Task<string> RequestCodeAsync(Actor coach)
     {

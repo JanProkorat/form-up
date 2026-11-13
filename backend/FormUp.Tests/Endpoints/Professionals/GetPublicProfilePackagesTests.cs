@@ -99,7 +99,7 @@ public class GetPublicProfilePackagesTests(FitnessApiFactory factory)
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             await db.ClientProfessionalLinks
                 .Where(l => l.ProfessionalProfileId == coach.ProfileId)
-                .ExecuteUpdateAsync(s => s.SetProperty(l => l.IsActive, false), Ct);
+                .ExecuteUpdateAsync(s => s.SetProperty(l => l.ConnectionState, ConnectionState.Ended), Ct);
         }
 
         var ended = await ReadProfileAsync(client, coach);
@@ -156,7 +156,7 @@ public class GetPublicProfilePackagesTests(FitnessApiFactory factory)
         var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
         await SubscribeAsync(factory, coach, canUsePayments: true);
         await CreatePackageAsync(coach);
-        await SetSubscriptionLockedAsync(coach);
+        await CoachSubscriptionBuilder.MoveToPlanWithoutPaymentsAsync(factory, coach);
         var client = await TestActors.Client(factory).CreateAsync(Ct);
 
         (await ReadProfileAsync(client, coach)).Packages.Should().BeEmpty();
@@ -187,13 +187,5 @@ public class GetPublicProfilePackagesTests(FitnessApiFactory factory)
                 new ProfileCertificate("Bare", null, null)
             ],
             options => options.WithStrictOrdering());
-    }
-
-    private async Task SetSubscriptionLockedAsync(Actor coach)
-    {
-        using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        (await db.CoachSubscriptions.SingleAsync(cs => cs.ProfessionalProfileId == coach.ProfileId, Ct)).Status = SubscriptionStatus.Canceled;
-        await db.SaveChangesAsync(Ct);
     }
 }

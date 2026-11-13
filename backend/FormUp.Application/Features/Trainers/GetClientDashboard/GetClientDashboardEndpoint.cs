@@ -24,13 +24,15 @@ namespace FormUp.Application.Features.Trainers.GetClientDashboard;
 /// <param name="mongo">MongoDB context for reading active plan goal/macros.</param>
 /// <param name="timeProvider">Clock abstraction — lets tests pin "now" deterministically.</param>
 /// <param name="coachDiscipline">Narrows the link flags to the disciplines the caller holds a role for (active or removed but not yet swept).</param>
+/// <param name="entitlementService">Tells whether the client is over the cap of the caller's plan in force.</param>
 public class GetClientDashboardEndpoint(
     IApplicationDbContext db,
     IAuditService audit,
     IComplianceService complianceService,
     IMongoContext mongo,
     TimeProvider timeProvider,
-    ICoachDisciplineAccess coachDiscipline)
+    ICoachDisciplineAccess coachDiscipline,
+    EntitlementService entitlementService)
     : Endpoint<GetClientDashboardRequest, GetClientDashboardResponse>
 {
     /// <inheritdoc />
@@ -45,10 +47,10 @@ public class GetClientDashboardEndpoint(
                 + "sessionsCompletedThisWeek / sessionsPlannedThisWeek count the client's training sessions in the current "
                 + "plan week (week follows the client's local date) and are null without training-plan access or an active "
                 + "plan whose current week is covered by a published week (an unpublished current week uses the latest earlier published one).";
-            s.Responses[StatusCodes.Status200OK] = "Client dashboard";
-            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
-            s.Responses[StatusCodes.Status403Forbidden] = "Active link grants neither nutrition nor training visibility";
-            s.Responses[StatusCodes.Status404NotFound] = "Client unknown, or the caller has no active link to it";
+            s.Response<GetClientDashboardResponse>(StatusCodes.Status200OK, "Client dashboard");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status403Forbidden, "Active link grants neither nutrition nor training visibility");
+            s.Response(StatusCodes.Status404NotFound, "Client unknown, or the caller has no active link to it");
         });
     }
 
@@ -94,7 +96,7 @@ public class GetClientDashboardEndpoint(
             .FirstOrDefaultAsync(ctl =>
                 ctl.ProfessionalProfileId == professionalProfile.Id &&
                 ctl.ClientProfileId == clientProfile.Id &&
-                ctl.IsActive, ct);
+                ctl.ConnectionState != ConnectionState.Ended, ct);
 
         if (link is null)
         {
@@ -315,7 +317,7 @@ public class GetClientDashboardEndpoint(
         }
 
         var status = ClientStatusClassifier.Classify(
-            link.IsActive,
+            link.ConnectionState != ConnectionState.Ended,
             effective,
             hasActiveNutritionPlan,
             hasActiveTrainingPlan);
@@ -377,8 +379,13 @@ public class GetClientDashboardEndpoint(
             }
         }
 
+        var isOutsidePlan = (await entitlementService.GetKeepClientsStateAsync(professionalProfile.Id, ct))
+            .OverCapClientProfileIds
+            .Contains(clientProfile.Id);
+
         await Send.OkAsync(new GetClientDashboardResponse
         {
+            IsOutsidePlan = isOutsidePlan,
             LinkId = link.Id,
             ClientPublicId = clientProfile.PublicId,
             ClientUserId = clientProfile.UserId,
@@ -392,7 +399,7 @@ public class GetClientDashboardEndpoint(
             // DateCreated, not DateUpdated — matches GetClientsEndpoint's "Client since" so a
             // capability-flag toggle (which bumps DateUpdated) cannot move this date (#1094).
             LinkedAt = link.DateCreated,
-            IsActive = link.IsActive,
+            IsActive = link.ConnectionState != ConnectionState.Ended,
             Status = status,
             CanViewNutritionPlans = effective.CanViewNutritionPlans,
             CanViewTrainingPlans = effective.CanViewTrainingPlans,

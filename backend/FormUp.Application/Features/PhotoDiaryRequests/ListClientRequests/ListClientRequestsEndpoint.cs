@@ -38,7 +38,7 @@ public class ListClientRequestsEndpoint(IApplicationDbContext db)
         // Collect link IDs where this client is the client profile
         var clientLinkIds = await db.ClientProfessionalLinks
             .AsNoTracking()
-            .Where(l => l.ClientProfile.UserId == clientUserId && l.IsActive)
+            .Where(l => l.ClientProfile.UserId == clientUserId && l.ConnectionState != ConnectionState.Ended)
             .Select(l => (long?)l.Id)
             .ToListAsync(ct);
 

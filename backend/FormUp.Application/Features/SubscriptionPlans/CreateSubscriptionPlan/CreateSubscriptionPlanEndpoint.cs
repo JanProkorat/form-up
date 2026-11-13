@@ -28,10 +28,10 @@ internal sealed class CreateSubscriptionPlanEndpoint(IApplicationDbContext db)
             s.Summary = "Create subscription plan";
             s.Description = "Creates a new subscription tier. Code is the immutable entitlement/Stripe mapping key.";
             s.Response<SubscriptionPlanDto>(StatusCodes.Status201Created, "Subscription plan created");
-            s.Responses[StatusCodes.Status400BadRequest] = "Invalid request body";
-            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or invalid credentials";
-            s.Responses[StatusCodes.Status403Forbidden] = "Caller is not an Admin";
-            s.Responses[StatusCodes.Status409Conflict] = "A plan with this Code already exists";
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Invalid request body");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or invalid credentials");
+            s.Response(StatusCodes.Status403Forbidden, "Caller is not an Admin");
+            s.Response(StatusCodes.Status409Conflict, "A plan with this Code already exists");
         });
     }
 
@@ -58,7 +58,7 @@ internal sealed class CreateSubscriptionPlanEndpoint(IApplicationDbContext db)
             NameCs = req.NameCs,
             NameEn = req.NameEn,
             NameDe = req.NameDe,
-            ApplicableRoles = req.ApplicableRoles,
+            BothRolesIncluded = req.BothRolesIncluded,
             CanCreatePlans = req.CanCreatePlans,
             CanMessage = req.CanMessage,
             CanSendQuestionnaires = req.CanSendQuestionnaires,
@@ -67,11 +67,22 @@ internal sealed class CreateSubscriptionPlanEndpoint(IApplicationDbContext db)
             CanUsePayments = req.CanUsePayments,
             MaxActiveClients = req.MaxActiveClients,
             PriceMinorUnits = req.PriceMinorUnits,
+            SecondRoleAddOnPriceMinorUnits = req.SecondRoleAddOnPriceMinorUnits,
             Currency = req.Currency,
             BillingInterval = req.BillingInterval,
-            ExternalPriceId = req.ExternalPriceId,
             IsActive = req.IsActive,
         };
+
+        plan.Prices.Add(new SubscriptionPlanPrice
+        {
+            SubscriptionPlan = plan,
+            SubscriptionPlanId = 0,
+            PriceMinorUnits = req.PriceMinorUnits,
+            SecondRoleAddOnPriceMinorUnits = req.SecondRoleAddOnPriceMinorUnits,
+            Currency = req.Currency,
+            ExternalPriceId = req.ExternalPriceId,
+            ValidFrom = DateTime.UtcNow,
+        });
 
         db.SubscriptionPlans.Add(plan);
 
@@ -93,7 +104,7 @@ internal sealed class CreateSubscriptionPlanEndpoint(IApplicationDbContext db)
             return;
         }
 
-        await Send.ResponseAsync(SubscriptionPlanDto.FromEntity(plan), StatusCodes.Status201Created, ct);
+        await Send.ResponseAsync(SubscriptionPlanDto.FromEntity(plan, req.ExternalPriceId, 0), StatusCodes.Status201Created, ct);
     }
 
     private static bool IsUniqueViolation(DbUpdateException ex) =>

@@ -118,4 +118,9 @@ public class ClientOwnPlanItem
     /// "Trainer" for training plans, "Nutritionist" for nutrition plans.
     /// </summary>
     public string ProfessionalRole { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Last day the published weeks cover. Filled only when the client is over the lapsed coach's Free plan cap; null otherwise.
+    /// </summary>
+    public DateOnly? RunsUntil { get; set; }
 }

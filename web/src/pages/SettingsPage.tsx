@@ -8,6 +8,7 @@ import AccountCard from '@/components/settings/AccountCard';
 import DangerZoneCard from '@/components/settings/DangerZoneCard';
 import NotificationsCard from '@/components/settings/NotificationsCard';
 import PaymentsCard from '@/components/settings/payments/PaymentsCard';
+import PlanBillingCard from '@/components/settings/PlanBillingCard';
 import RolesCard from '@/components/settings/RolesCard';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -82,6 +83,7 @@ export default function SettingsPage() {
             onTimeZoneChange={(value) => timeZoneMutation.mutate(value)}
           />
         )}
+        <PlanBillingCard />
         <NotificationsCard />
         <PaymentsCard />
         <RolesCard />

@@ -8,6 +8,7 @@
     "publish": "Publish",
     "publishNoStartDate": "Set the plan's start date before publishing.",
     "cancel": "Cancel",
+    "datePicker": { "placeholder": "Pick a date", "clear": "Clear date", "previousMonth": "Previous month", "nextMonth": "Next month" },
     "close": "Close",
     "optional": "optional",
     "send": "Send",
@@ -190,6 +191,11 @@
     "navigationTitle": "Navigation"
   },
   "sidebar": {
+    "lockedInPlan": "Not included in your plan",
+    "adminSection": "Form Up admin",
+    "adminPlans": "Plans",
+    "adminPromotions": "Promotions",
+    "adminCoaches": "Coaches",
     "automations": "Automations",
     "dashboard": "Dashboard",
     "profile": "Profile",
@@ -244,11 +250,209 @@
     "nutritionist": "Nutritionist",
     "client": "Client"
   },
+  "subscription": {
+    "seePlans": "See plans",
+    "clientsOfLimit": "{{count}} of {{limit}} clients",
+    "status": {
+      "Trialing": "Trial",
+      "Active": "Active",
+      "PastDue": "Payment failed",
+      "Canceled": "Canceled",
+      "Incomplete": "Incomplete"
+    },
+    "paywall": {
+      "notOnPlan": "Not on your {{plan}} plan",
+      "forms": {
+        "title": "Forms come with a higher plan",
+        "body": "Ask clients the right questions before you build their plan, and hear about their week before it starts.",
+        "benefit1": "Send questionnaires and onboarding forms",
+        "benefit2": "Weekly check-ins, with answers in each client's card"
+      },
+      "checkIns": {
+        "title": "Weekly check-ins come with a higher plan",
+        "body": "Hear how each client's week went before the next one starts.",
+        "benefit1": "A weekly check-in sent on your schedule",
+        "benefit2": "Answers in each client's card"
+      }
+    },
+    "clientLimit": {
+      "title": "Your plan is full",
+      "description": "Your {{plan}} plan covers {{limit}} active clients.",
+      "descriptionUnknown": "Your {{plan}} plan has no room for another client.",
+      "hintAccept": "{{name}}'s request stays in your Inbox. You can also end work with a client to free a place.",
+      "hintInvite": "You can also end work with a client to free a place.",
+      "notNow": "Not now"
+    },
+    "checkIns": {
+      "locked": "Weekly check-in forms come with a higher plan.",
+      "overrideLocked": "Changing this check-in for one client comes with a higher plan."
+    },
+    "sidebar": {
+      "plan": "{{plan}} plan",
+      "usage": "{{used}} of {{limit}} clients",
+      "unlimited": "Clients: {{count}} · no limit",
+      "aria": "{{plan}} plan, {{detail}}. Open plan and billing",
+      "ariaLapsed": "{{plan}} plan, {{detail}}. Choose the clients to keep"
+    },
+    "planChoice": {
+      "bannerTitle": "Your free {{plan}} plan ended on {{date}}. Choose a plan to continue.",
+      "bannerTitleNoDate": "Your free {{plan}} plan has ended. Choose a plan to continue.",
+      "title": "Your plan changed",
+      "decision": {
+        "lapse_one": "Your {{plan}} plan ended, so you're on Free now. Free allows {{count}} client and you have {{have}}. Keep Free and pick the {{count}} to keep, or choose another plan.",
+        "lapse_other": "Your {{plan}} plan ended, so you're on Free now. Free allows {{count}} clients and you have {{have}}. Keep Free and pick the {{count}} to keep, or choose another plan.",
+        "free_one": "You're on Free, which allows {{count}} client, and you have {{have}}. Keep Free and pick the {{count}} to keep, or choose another plan.",
+        "free_other": "You're on Free, which allows {{count}} clients, and you have {{have}}. Keep Free and pick the {{count}} to keep, or choose another plan.",
+        "smaller_one": "Your plan changed to {{plan}}. {{plan}} allows {{count}} client and you have {{have}}. Keep {{plan}} and pick the {{count}} to keep, or choose another plan.",
+        "smaller_other": "Your plan changed to {{plan}}. {{plan}} allows {{count}} clients and you have {{have}}. Keep {{plan}} and pick the {{count}} to keep, or choose another plan."
+      },
+      "loadError": "Could not load the plans. Please try again.",
+      "chooseError": "Could not switch your plan. Please try again.",
+      "header": {
+        "nav": "Account",
+        "messages": "Messages",
+        "settings": "Settings"
+      },
+      "card": {
+        "current": "Your plan now",
+        "upgrade": "Upgrade to {{plan}}",
+        "switchFree": "Switch to Free",
+        "keepAll": "Keep {{plan}}",
+        "keep_one": "Keep {{plan}}, pick {{count}} client",
+        "keep_other": "Keep {{plan}}, pick {{count}} clients",
+        "per": {
+          "month": "/ month",
+          "year": "/ year"
+        },
+        "bothRoles": "Both roles included",
+        "secondRoleAddOn": "Second role +{{amount}}",
+        "unlimitedClients": "No client limit",
+        "clientCap_one": "Up to {{count}} client",
+        "clientCap_other": "Up to {{count}} clients",
+        "notIncluded": "Not included:"
+      },
+      "keep": {
+        "back": "Back to plans",
+        "confirm_one": "Switch to Free and keep this client",
+        "confirm_other": "Switch to Free and keep these {{count}}",
+        "save_one": "Keep {{plan}} and this client",
+        "save_other": "Keep {{plan}} and these {{count}}"
+      }
+    },
+    "lapse": {
+      "bannerTitle": "Your {{plan}} plan ended on {{date}}",
+      "bannerTitleNoDate": "Your {{plan}} plan has ended",
+      "bannerBody_one": "You're on Free now: {{count}} active client, both roles.",
+      "bannerBody_other": "You're on Free now: {{count}} active clients, both roles.",
+      "overCapBanner_one": "You're on the Free plan with more clients than it allows. Choose which {{count}} stays fully active.",
+      "overCapBanner_other": "You're on the Free plan with more clients than it allows. Choose which {{count}} stay fully active.",
+      "resubscribe": "Resubscribe",
+      "title_one": "Pick {{count}} client to keep",
+      "title_other": "Pick {{count}} clients to keep",
+      "subtitle": "They keep everything as now. The others keep the weeks you already published, then their plans become read-only.",
+      "table": {
+        "keep": "Keep",
+        "client": "Client",
+        "roles": "Roles",
+        "publishedEnd": "Published weeks end",
+        "after": "After"
+      },
+      "keepAria": "Keep {{name}}",
+      "notPublished": "Not published",
+      "after": {
+        "fullAccess": "Stays active",
+        "runsUntil": "Read-only from {{date}}",
+        "runsUntilNoDate": "Read-only after the published weeks",
+        "readOnly": "Read-only now"
+      },
+      "selected": "{{count}} of {{cap}} selected",
+      "changeLater": "You can change your choice here later.",
+      "preselectedHint_one": "We pre-selected the {{count}} client you have worked with longest. You can change the selection.",
+      "preselectedHint_other": "We pre-selected the {{count}} clients you have worked with longest. You can change the selection.",
+      "save_one": "Keep this client",
+      "save_other": "Keep these {{count}}",
+      "saveSuccess": "Your choice is saved",
+      "saveError": "Could not save your choice. Please try again.",
+      "choiceLockedError": "Clients you already keep cannot be changed; you can only add clients outside your plan to the free slots. Reload the page.",
+      "lockedTitle_one": "Choose {{count}} client for the free slot",
+      "lockedTitle_other": "Choose {{count}} clients for the free slots",
+      "lockedSubtitle": "Clients you already keep stay as they are. Pick clients who are outside your plan for the free slots.",
+      "lockedSave": "Keep selected",
+      "loadError": "Could not load your clients.",
+      "retry": "Try again",
+      "notLapsed": "Your plan has not lapsed, so there is nothing to choose.",
+      "backToClients": "Back to clients",
+      "noClients": "You have no clients to choose from."
+    },
+    "outsidePlan": {
+      "titleLimit_one": "The {{plan}} plan includes {{count}} client.",
+      "titleLimit_other": "The {{plan}} plan includes {{count}} clients.",
+      "titleOutside_one": "{{count}} client is outside your plan.",
+      "titleOutside_other": "{{count}} clients are outside your plan.",
+      "detailTitle": "{{name}} is outside your {{plan}} plan.",
+      "body": "Plans of clients outside your plan run until the last published week, then become read-only.",
+      "upgrade": "Higher plan",
+      "showClients": "Show these clients",
+      "pickClient": "Choose a client for the free slot",
+      "pendingTitle_one": "Your {{plan}} plan includes {{count}} client. You have not confirmed which one yet.",
+      "pendingTitle_other": "Your {{plan}} plan includes {{count}} clients. You have not confirmed which ones yet.",
+      "pendingBody": "Until you do, you keep the clients you have worked with longest. The others keep their published weeks, then become read-only.",
+      "chooseClients": "Choose clients"
+    },
+    "plan": {
+      "title": "Plan and billing",
+      "description": "What you pay Form Up. Your clients never pay for the app.",
+      "loadError": "Could not load your plan. Please refresh the page.",
+      "renews": "Monthly · Renews {{date}}",
+      "ends": "Ends {{date}}",
+      "freeUntil": "Included until {{date}}",
+      "setByFormUpUntil": "Until {{date}} · Set by Form Up",
+      "setByFormUp": "Set by Form Up",
+      "endedByFormUp": "Form Up ended your {{plan}} plan. You're on Free now.",
+      "changePlan": "Change plan",
+      "manageBilling": "Manage billing",
+      "bill": {
+        "title": "Your monthly bill",
+        "free": "No monthly charge.",
+        "plan": "{{plan}} plan",
+        "secondRole": "Second role",
+        "total": "Total",
+        "perMonth": "{{amount}} / month",
+        "secondRoleUnavailable": "A second professional role is not part of this plan."
+      },
+      "clients": {
+        "title": "Clients",
+        "ofLimit": "of {{limit}} active clients",
+        "unlimited": "active clients · no limit",
+        "countsOnce": "A client you coach in both roles counts once."
+      },
+      "features": {
+        "plans": "Training and nutrition plans",
+        "messaging": "Chat, progress photos, measurements",
+        "forms": "Forms",
+        "checkIns": "Weekly check-ins",
+        "perClientCheckIns": "Check-in settings per client",
+        "payments": "Payments"
+      },
+      "code": {
+        "label": "Have a code?",
+        "placeholder": "Enter code",
+        "hint": "One offer at a time. A code replaces the current offer when you apply it.",
+        "apply": "Apply"
+      },
+      "card": {
+        "title": "Card, invoices and cancelling",
+        "description": "Available once plan selection opens."
+      }
+    }
+  },
   "accountMenu": {
     "trigger": "Account menu",
     "title": "Account",
     "profile": "Your profile",
     "settings": "Settings",
+    "planBilling": "Plan and billing",
+    "keepClients": "Choose clients to keep",
     "language": "Language",
     "theme": "Theme",
     "languages": {
@@ -537,18 +741,28 @@
       "all": "All",
       "active": "Active",
       "paused": "No plan",
+      "outsidePlan": "Outside plan",
       "archived": "Archived",
       "pending": "Pending"
     },
     "searchPlaceholder": "Search clients...",
-    "chips": {
-      "groupLabel": "Filter clients",
-      "all": "All",
-      "unreadMessages": "Unread messages",
-      "noMessages": "No messages",
-      "newCheckIns": "New check-ins",
-      "missingCheckIns": "Missing check-ins",
-      "endingSoon": "Ending soon"
+    "filterMenu": {
+      "label": "Filter",
+      "plansGroup": "Plans",
+      "plans": {
+        "all": "All plans",
+        "active": "Active plans",
+        "none": "No plan",
+        "endingSoon": "Plans ending soon"
+      },
+      "clearAll": "Clear filters",
+      "remove": "Remove filter {{name}}"
+    },
+    "outsidePlan": {
+      "chip": "Outside plan",
+      "readOnlyFrom": "Read-only from {{date}}",
+      "readOnlyTooltip": "Outside your plan. Published weeks run until {{date}}, then the plans become read-only.",
+      "tooltip": "This client's plans run until the last published week, then become read-only."
     },
     "tagFilter": {
       "label": "Select tags",
@@ -2684,6 +2898,7 @@
       "copiedFrom": "Copied from {{name}}'s profile",
       "resetToProfile": "reset to profile",
       "startedFromTemplate": "Started from template {{name}}",
+      "outsidePlan": "{{name}} is outside your plan. Editing and publishing unlock on a higher plan.",
       "about": {
         "heading": "About {{name}}",
         "goal": "Goal",
@@ -3185,6 +3400,11 @@
     }
   },
   "apiErrors": {
+    "FREE_PLAN_LOCKED": "The Free plan cannot be changed this way: its price stays at 0 and it is always offered.",
+    "SUBSCRIPTION_PLAN_CODE_ALREADY_EXISTS": "A plan with this code already exists.",
+    "SUBSCRIPTION_PLAN_NOT_FOUND": "This plan no longer exists.",
+    "NO_RENEWING_SUBSCRIPTION": "This coach has no renewing paid plan, so there is no renewal to cancel.",
+    "SECOND_ROLE_OPTION_INVALID": "Choose either a paid second-role add-on or the second role included in the price.",
     "PAYMENTS_NOT_ENTITLED": "Payments aren't part of your plan.",
     "BANK_ACCOUNT_NOT_SET": "Add your bank account in Settings before you request a payment.",
     "PAYMENT_ALREADY_PAID": "This payment was already marked as paid.",
@@ -3230,8 +3450,13 @@
     "CHECK_IN_RULE_EXISTS": "You already have a weekly check-in rule switched on. Switch it off first, or edit that one.",
     "AUTOMATION_CHECK_IN_INVALID": "A weekly check-in needs a weekday, a time, an answer window and a weekly interval.",
     "AUTOMATION_CHECK_IN_FIELDS_NOT_ALLOWED": "Weekday, answer window and reminder settings belong to weekly check-in rules only.",
-    "CHECK_INS_NOT_ENTITLED": "Weekly check-ins are not included in your plan.",
-    "PER_CLIENT_CHECK_IN_CONFIG_NOT_ENTITLED": "Changing the weekly check-in for one client is not included in your plan.",
+    "SUBSCRIPTION_REQUIRED": "This isn't part of your plan.",
+    "CLIENT_LIMIT_REACHED": "Your plan is full. It has no room for another client.",
+    "CLIENT_OVER_PLAN_LIMIT": "This client is over your Free plan's limit, so you can't change their plan. Choose the clients you keep from the account menu.",
+    "KEEP_CLIENTS_COUNT_INVALID": "Pick exactly as many clients as your Free plan keeps.",
+    "SUBSCRIPTION_NOT_LAPSED": "Your plan has not lapsed, so there is nothing to choose.",
+    "PLAN_CHOICE_REQUIRED": "Your free plan ended. Choose a plan to continue.",
+    "PLAN_CHOICE_NOT_REQUIRED": "You have already chosen a plan.",
     "CHECK_IN_ANSWER_WINDOW_CLOSED": "The time to answer this check-in has passed.",
     "INVALID_CREDENTIALS": "Invalid email or password.",
     "ACCOUNT_DEACTIVATED": "Your account has been deactivated.",
@@ -4034,6 +4259,8 @@
     "reviewInClients": "Review in Clients",
     "seeInClientActivity": "See in client activity",
     "seePhotos": "See photos",
+    "seeYourPlan": "See your plan",
+    "pickClientsToKeep": "Pick the clients to keep",
     "markRead": "Mark as read",
     "markAllReadShort": "Mark all read",
     "unreadCount": "{{count}} unread"
@@ -4233,6 +4460,15 @@
     }
   },
   "clientDetail": {
+    "outsidePlanPaywall": {
+      "title": "Create a new plan for {{name}} on a higher plan",
+      "editTitle": "Edit {{name}}'s plan on a higher plan",
+      "body": "{{name}} is outside your {{plan}} plan. Upgrade to build and publish new plans again.",
+      "lead": "Clients stay where their next plan is always ready. Don't keep them waiting.",
+      "benefit1": "{{name}} gets a new plan right away, with no break in your work together.",
+      "benefit2": "Room for the next clients who come to you.",
+      "benefit3": "Higher plans also unlock more tools for working with clients."
+    },
     "automations": {
       "introBefore": "Rules from your ",
       "introLink": "Automations",
@@ -6311,6 +6547,326 @@
         "note": "Note",
         "notePlaceholder": "For example, knee injury"
       }
+    }
+  },
+  "adminCoaches": {
+    "title": "Coaches",
+    "subtitle": "Plans and payments of every coach account. Their clients' data stays private.",
+    "loadError": "Could not load the coaches.",
+    "retry": "Try again",
+    "empty": "No coaches match.",
+    "search": "Search coaches",
+    "stats": {
+      "paying": "Paying coaches",
+      "noPlans": "No paying coaches yet",
+      "revenue": "Monthly revenue",
+      "revenueNote": "Paying coaches only",
+      "failed": "Payment failed",
+      "failedNote": "Still counted as paying",
+      "free": "Free and set by Form Up",
+      "freeNote": "Not counted in revenue"
+    },
+    "filters": {
+      "label": "Filter coaches by status",
+      "All": "All",
+      "Paying": "Paying",
+      "PaymentFailed": "Payment failed",
+      "Cancelling": "Cancelling",
+      "Free": "Free",
+      "GivenFree": "Set by Form Up"
+    },
+    "status": {
+      "Paying": "Active",
+      "PaymentFailed": "Payment failed",
+      "Cancelling": "Cancelling",
+      "Free": "Free",
+      "GivenFree": "Set by Form Up",
+      "cancellingOn": "Cancels {{date}}"
+    },
+    "roles": {
+      "Trainer": "Trainer",
+      "Nutritionist": "Nutritionist"
+    },
+    "table": {
+      "coach": "Coach",
+      "roles": "Roles",
+      "plan": "Plan",
+      "status": "Status",
+      "clients": "Clients",
+      "promotion": "Promotion",
+      "renewsEnds": "Renews / ends",
+      "clientsOf": "{{used}} / {{max}}",
+      "renews": "Renews {{date}}",
+      "ends": "Ends {{date}}",
+      "until": "Until {{date}}",
+      "noEnd": "No end"
+    },
+    "profile": {
+      "back": "Back to coaches",
+      "joined": "Joined {{date}}",
+      "freeNote": "On the Free plan. Nothing is billed.",
+      "actionsHint": "Each action asks you to confirm it and give a reason. Both go into the history.",
+      "nextPayment": "Next payment",
+      "promotion": "Promotion",
+      "promotionNone": "None",
+      "promotionNoneNote": "Full price",
+      "noValue": "—",
+      "nextNote": {
+        "renews": "Renews",
+        "ends": "Plan ends, no renewal",
+        "giftEnds": "Plan ends",
+        "giftNoEnd": "Set by Form Up",
+        "nothing": "Nothing to pay"
+      }
+    },
+    "giveFree": {
+      "description": "The new plan applies right away and {{name}}'s open portal updates without a reload. Without an end date it never expires.",
+      "plan": "Plan",
+      "until": "Until",
+      "selected": "Selected",
+      "current": "Current plan",
+      "perMonth": "/ month",
+      "clientsUpTo_one": "Up to {{count}} client",
+      "clientsUpTo_other": "Up to {{count}} clients",
+      "clientsUnlimited": "Unlimited clients",
+      "included": " (included)",
+      "notIncluded": " (not included)",
+      "counter": "Plans {{from}}–{{to}} of {{total}}",
+      "previous": "Previous plans",
+      "next": "Next plans",
+      "summaryNone": "Choose a plan.",
+      "summaryUntil": "from today until {{date}}. Then {{name}} chooses a plan.",
+      "summaryNoEnd": "from today, with no end date.",
+      "summaryPickDate": "from today. Pick the end date.",
+      "confirm": "Change to {{plan}}",
+      "keepUntil": "stays, now until {{date}}. Then {{name}} chooses a plan.",
+      "keepNoEnd": "stays, now with no end date.",
+      "keepPickDate": "stays. Pick the new end date.",
+      "confirmKeep": "Change end date"
+    },
+    "drawer": {
+      "titleFallback": "Coach",
+      "loading": "Loading...",
+      "loadError": "Could not load this coach.",
+      "joined": "joined {{date}}",
+      "plan": "Plan",
+      "perMonth": "{{price}} / month",
+      "perYear": "{{price}} / year",
+      "renews": "Renews on {{date}}.",
+      "endsOn": "The paid plan runs until {{date}}, then the coach drops to Free.",
+      "givenUntil": "Set by Form Up until {{date}}.",
+      "givenNoEnd": "Set by Form Up, with no end date.",
+      "clients": "Clients",
+      "clientsOf": "{{used}} of {{max}}",
+      "clientsUnlimited": "{{used}}, unlimited",
+      "actions": "Actions",
+      "privacy": "Client names and data aren't shown to admins. Counts only.",
+      "openInStripe": "Open in Stripe"
+    },
+    "actions": {
+      "reason": "Reason",
+      "giveFree": {
+        "title": "Change plan",
+        "description": "Pick the plan, until when and why. Applies right away.",
+        "noEnd": "No end date",
+        "button": "Change plan",
+        "success": "The plan was changed.",
+        "error": "Could not change the plan."
+      },
+      "promotion": {
+        "title": "Apply a promotion",
+        "description": "Only for this coach, e.g. after a support issue.",
+        "button": "Apply"
+      },
+      "cancelRenewal": {
+        "title": "Cancel renewal",
+        "description": "Stops at the end of the paid month. Plans run to the end.",
+        "button": "Cancel renewal",
+        "none": "This coach has no renewing paid plan.",
+        "already": "The renewal is already cancelled.",
+        "success": "The renewal was cancelled.",
+        "alreadySuccess": "The renewal was already cancelled.",
+        "error": "Could not cancel the renewal.",
+        "dialogTitle": "Cancel renewal?",
+        "dialogDescription": "The {{plan}} plan stops on {{date}}, at the end of the paid period. Nothing is charged after that, and the coach's clients' plans run to the end.",
+        "dialogDescriptionNoDate": "The {{plan}} plan stops at the end of the paid period. Nothing is charged after that, and the coach's clients' plans run to the end.",
+        "placeholder": "Why are you cancelling it?",
+        "keep": "Keep renewal"
+      },
+      "endPlan": {
+        "title": "End plan now",
+        "description": "Moves the coach to Free today. Over the Free limit, they pick which clients to keep.",
+        "button": "End plan",
+        "none": "This coach has no paid or given plan to end.",
+        "success": "The plan was ended.",
+        "error": "Could not end the plan.",
+        "dialogTitle": "End plan now?",
+        "dialogDescription": "{{name}} moves from {{plan}} to Free today and isn't charged again.",
+        "callout_one": "{{name}} has {{count}} client and Free allows {{max}}. Next time they sign in, they pick which to keep. The other clients' plans run until their last published week.",
+        "callout_other": "{{name}} has {{count}} clients and Free allows {{max}}. Next time they sign in, they pick which to keep. The other clients' plans run until their last published week.",
+        "placeholder": "Why are you ending the plan?",
+        "cancel": "Cancel",
+        "confirm": "End plan now"
+      },
+      "disable": {
+        "title": "Disable coach account",
+        "description": "Removes all roles. Same as the coach's own Disable button.",
+        "button": "Disable",
+        "success": "The coach account was disabled.",
+        "error": "Could not disable the coach account.",
+        "dialogTitle": "Disable coach account?",
+        "dialogDescription": "The coach's roles are removed, at the end of the paid period if there is one. It works the same as the coach's own Disable button.",
+        "placeholder": "Why are you disabling the account?",
+        "confirm": "Disable account"
+      }
+    },
+    "history": {
+      "title": "History",
+      "empty": "Nothing recorded yet.",
+      "byCoach": "By the coach",
+      "byAdmin": "By {{name}}",
+      "reason": "reason: {{reason}}",
+      "kind": {
+        "joined": "Joined",
+        "givenFree_until": "Changed to {{plan}} until {{date}}",
+        "givenFree_plain": "Changed to {{plan}}, no end date",
+        "planAssigned": "Plan changed to {{plan}}",
+        "planEnded": "Plan ended: {{plan}}",
+        "renewalCancelled_until": "Renewal cancelled, plan ends {{date}}",
+        "renewalCancelled_plain": "Renewal cancelled",
+        "accountDisabled_until": "Account disabled, active until {{date}}",
+        "accountDisabled_plain": "Account disabled",
+        "accountKept": "Account kept",
+        "roleAdded": "Role added: {{role}}",
+        "roleRemoved": "Role removed: {{role}}",
+        "unknown": "Updated"
+      }
+    },
+    "validation": {
+      "planRequired": "Choose a plan.",
+      "dateRequired": "Pick the end date, or tick No end date.",
+      "dateFuture": "The end date must be in the future.",
+      "reasonRequired": "Write a reason.",
+      "reasonTooLong": "The reason can be at most 300 characters."
+    },
+    "errors": {
+      "noActiveRole": "This coach has no active coach role, so there is nothing to disable.",
+      "noPlanToEnd": "This coach has no paid or given plan to end, so there is nothing to do."
+    }
+  },
+  "adminPlans": {
+    "title": "Plans",
+    "subtitle": "What coaches can buy. Changing a price creates a new one in Stripe; coaches already paying keep theirs.",
+    "newPlan": "New plan",
+    "note": "Every coach starts on Free. Promotions lower these prices for a while; they never change them.",
+    "loadError": "Could not load the plans.",
+    "retry": "Try again",
+    "empty": "No plans yet.",
+    "unlimited": "Unlimited",
+    "saveSuccess": "Plan saved.",
+    "saveError": "Could not save the plan.",
+    "stopSuccess": "The plan is no longer offered.",
+    "stopError": "Could not stop offering the plan.",
+    "table": {
+      "plan": "Plan",
+      "perMonth": "Per month",
+      "secondRole": "Second role",
+      "clients": "Clients",
+      "features": "Features",
+      "coaches": "Coaches",
+      "status": "Status",
+      "actions": "Actions",
+      "code": "code: {{code}}",
+      "included": "Included"
+    },
+    "status": {
+      "active": "Active",
+      "stopped": "Not offered"
+    },
+    "rowMenu": {
+      "open": "Open menu for plan {{name}}",
+      "edit": "Edit",
+      "stopOffering": "Stop offering"
+    },
+    "features": {
+      "plans": "Training and nutrition plans",
+      "chat": "Chat, progress photos, measurements",
+      "forms": "Forms",
+      "formsHint": "Questionnaires and onboarding forms",
+      "checkIns": "Weekly check-ins",
+      "perClientCheckIns": "Per-client check-in settings",
+      "perClientCheckInsHint": "Needs weekly check-ins",
+      "payments": "Payments and packages",
+      "paymentsHint": "Service packages and client payments",
+      "chip": {
+        "plans": "Plans",
+        "chat": "Chat",
+        "forms": "Forms",
+        "checkIns": "Check-ins",
+        "perClientCheckIns": "Custom check-ins",
+        "payments": "Payments",
+        "everything": "Everything"
+      }
+    },
+    "drawer": {
+      "titleNew": "New plan",
+      "titleEdit": "Edit plan · {{name}}",
+      "descriptionNew": "What coaches will be able to buy.",
+      "coaches_one": "{{count}} coach on this plan",
+      "coaches_other": "{{count}} coaches on this plan",
+      "sectionPlan": "Plan",
+      "nameCs": "Name · Czech",
+      "nameEn": "Name · English",
+      "nameDe": "Name · German",
+      "code": "Code",
+      "codeHint": "Used by the app and Stripe. Can’t change after the plan is created.",
+      "sectionPrice": "Price",
+      "perMonth": "Per month",
+      "freePriceHint": "Free always costs 0.",
+      "billing": "Billing",
+      "billingMonthly": "Monthly",
+      "billingAnnualLater": "Annual billing comes later.",
+      "secondRole": "Second role",
+      "secondRoleAddOn": "Paid add-on",
+      "secondRoleIncluded": "Included in the price",
+      "addOnPrice": "Second role per month",
+      "sectionClients": "Clients",
+      "activeClients": "Active clients",
+      "activeClientsHint": "A client in both roles counts once.",
+      "sectionFeatures": "Features",
+      "sectionPreview": "How coaches see it",
+      "offer": "Offer to coaches",
+      "offerHint": "Off hides it from the plan picker. Coaches already on it keep it.",
+      "offerFreeHint": "The Free plan is always offered.",
+      "stopOffering": "Stop offering",
+      "saving": "Saving…",
+      "save": "Save plan"
+    },
+    "preview": {
+      "price": "{{price}} / month",
+      "secondRole": "second role +{{price}}",
+      "secondRoleIncluded": "second role included",
+      "clients_one": "up to {{count}} client",
+      "clients_other": "up to {{count}} clients",
+      "unlimitedClients": "unlimited clients",
+      "offered": "Offered",
+      "notOffered": "Not offered"
+    },
+    "priceChange": {
+      "title": "Price changes from {{from}} to {{to}}",
+      "body_one": "Saving creates a new price in Stripe. New coaches pay {{to}}. The {{count}} coach already on {{name}} keeps {{from}}.",
+      "body_other": "Saving creates a new price in Stripe. New coaches pay {{to}}. The {{count}} coaches already on {{name}} keep {{from}}.",
+      "move": "Move them to {{price}} at their next renewal",
+      "moveHint": "We email each coach before the change."
+    },
+    "validation": {
+      "nameRequired": "Enter a name.",
+      "nameTooLong": "The name can be at most 200 characters.",
+      "codeInvalid": "The code may only contain lowercase letters, digits and hyphens (up to 50 characters).",
+      "codeTaken": "A plan with this code already exists.",
+      "priceInvalid": "Enter a price from 0 to 1,000,000.",
+      "addOnInvalid": "Enter a second-role price above 0, or choose Included in the price.",
+      "clientsInvalid": "Enter a number of clients from 1, or tick Unlimited."
     }
   }
 }

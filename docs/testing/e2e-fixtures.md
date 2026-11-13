@@ -59,6 +59,8 @@ docker ps --format '{{.Names}}'
 | Ending client "QA Ending" | `qa.client.ending@formup.test` | `10101010-1010-1010-1010-101010101010` |
 | Coach (trainer + nutritionist) | `qa.coach@formup.test` | `99999999-9999-9999-9999-999999999999` |
 | Client "QA Duo" | `qa.client.both@formup.test` | `44444444-4444-4444-4444-444444444444` |
+| Lapsed coach (trainer) | `qa.coach.lapsed@formup.test` | prefix `20202020` — see [lapsed and gift coaches](#seeded-lapsed-and-gift-ended-coaches-2051) |
+| Gift-ended coach (trainer) | `qa.coach.gift@formup.test` | prefix `30303030` — see [lapsed and gift coaches](#seeded-lapsed-and-gift-ended-coaches-2051) |
 
 The second pair (`Client 2` / `Trainer 2`) is dedicated to the multi-section shared-exercise fixture (#474). Client 3 is linked to the QA trainer only — see [the inbox fixture](#seeded-inbox-conversation--weekly-check-ins-1095) — and has no conversation and no active plan. The former client has an **ended** link to the QA trainer and one conversation — see [the ended-link fixture](#ended-link-conversation-1101). They share the same password as the other accounts (`QA_SEED_PASSWORD` from `.env.test`).
 
@@ -710,6 +712,30 @@ Both accounts use `QA_SEED_PASSWORD`.
 
 The training plan covers one week from the reset Monday, so like the other
 fixtures it goes stale a week after `/test/reset`.
+
+## Seeded lapsed and gift-ended coaches (#2051)
+
+Two extra trainer accounts for the coach-subscription states from #1596 and
+#2036. Every other QA coach stays on the Studio plan, so existing specs are
+unaffected. Both new coaches are hidden from public search and use
+`QA_SEED_PASSWORD`. Each has one client more than the Free plan's cap (cap read
+from the Free plan row, seeded as 2, so 3 clients each). Clients are linked a
+week apart, so the newest one is always the one over the cap.
+
+| Coach | Subscription | Clients | What it exercises |
+|---|---|---|---|
+| `qa.coach.lapsed@formup.test` | Pro plan, status Canceled, no gift | `qa.lapsed.client1` … `client3@formup.test`; client 3 is over the cap | #1596: lapsed to Free, keep-clients screen, `CLIENT_OVER_PLAN_LIMIT`, `runsUntil` |
+| `qa.coach.gift@formup.test` | Start plan given free (`GivenFreeAt` 60 days ago, `FreeUntil` 14 days ago) | `qa.gift.client1` … `client3@formup.test`; client 3 would be over the cap after choosing Free | #2036: plan-choice-required, blocking picker, choose-Free with a keep list |
+
+Users, profiles, subscriptions and links are seeded in both seed kinds. The
+rich kind also gives each coach's client 3 a training plan with one published
+week: the lapsed coach's week ended about three weeks before reset (read-only
+after the last week), the gift coach's week is the current one.
+
+**These accounts change when you use them.** Choosing which clients to keep or
+picking Free writes link states and the subscription row. Re-running the seed
+leaves those changes in place on purpose; only `/test/reset` restores both
+coaches to the states above.
 
 ---
 

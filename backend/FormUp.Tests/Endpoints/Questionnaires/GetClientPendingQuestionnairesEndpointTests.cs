@@ -77,7 +77,7 @@ public class GetClientPendingQuestionnairesEndpointTests(FitnessApiFactory facto
             ClientProfileId = clientProfile.Id,
             ProfessionalProfileId = profProfile.Id,
             ProfessionalRole = role,
-            IsActive = isActive,
+            ConnectionState = isActive ? ConnectionState.Connected : ConnectionState.Ended,
             CanViewNutritionPlans = role == UserRole.Nutritionist,
             CanViewTrainingPlans = role == UserRole.Trainer,
             PublicId = Guid.NewGuid(),

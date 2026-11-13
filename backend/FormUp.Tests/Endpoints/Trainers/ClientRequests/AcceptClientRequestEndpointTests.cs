@@ -432,7 +432,7 @@ public class AcceptClientRequestEndpointTests
         var exception = await act.Should().ThrowAsync<ValidationFailureException>();
         exception.Which.Failures.Should().ContainSingle(
             f => f.ErrorCode == ErrorCodes.ProfessionAlreadyOccupied);
-        ownInactiveLink.IsActive.Should().BeFalse(
+        ownInactiveLink.ConnectionState.Should().Be(ConnectionState.Ended,
             "the reactivation must not go through when the slot is already occupied by another professional");
     }
 

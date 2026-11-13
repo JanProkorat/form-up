@@ -23,8 +23,21 @@ public class CoachSubscriptionConfiguration : IEntityTypeConfiguration<CoachSubs
             .WithOne(pp => pp.CoachSubscription)
             .HasForeignKey<CoachSubscription>(cs => cs.ProfessionalProfileId);
 
+        builder.Property(cs => cs.PaysSecondRoleAddOn)
+            .HasDefaultValue(false);
+
         builder.HasOne(cs => cs.SubscriptionPlan)
             .WithMany()
             .HasForeignKey(cs => cs.SubscriptionPlanId);
+
+        builder.HasOne(cs => cs.SubscriptionPlanPrice)
+            .WithMany()
+            .HasForeignKey(cs => cs.SubscriptionPlanPriceId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        builder.HasOne(cs => cs.PendingSubscriptionPlanPrice)
+            .WithMany()
+            .HasForeignKey(cs => cs.PendingSubscriptionPlanPriceId)
+            .OnDelete(DeleteBehavior.NoAction);
     }
 }

@@ -148,7 +148,7 @@ public class CancelPhotoDiaryRequestEndpointTests(FitnessApiFactory factory)
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var link = await db.ClientProfessionalLinks.FirstAsync(
                 l => l.Id == linkId, TestContext.Current.CancellationToken);
-            link.IsActive = false;
+            link.ConnectionState = ConnectionState.Ended;
             await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 

@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { HubConnectionBuilder, HubConnection, LogLevel, HubConnectionState, HttpError } from '@microsoft/signalr';
 import { useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/stores/auth';
+import { useToastStore } from '@/stores/toast';
 import { clientOfflineSyncConflictKeys } from '@/hooks/useClientOfflineSyncConflicts';
 import { clientFormsKey } from '@/api/questionnaires';
+import { subscriptionKeys } from '@/api/subscription';
 import { weeklyCheckInKeys } from '@/hooks/useWeeklyCheckIns';
 import { executeRefresh } from '@/lib/refresh';
 import { RealtimeContext, setHubConnection, useSignalR, type RealtimeApi } from '@/hooks/useSignalR';
@@ -28,6 +31,27 @@ function readClientPublicId(payload: unknown): string | null {
   if (typeof payload !== 'object' || payload === null) return null;
   const value = (payload as Record<string, unknown>).clientPublicId;
   return typeof value === 'string' && value.length > 0 ? value : null;
+}
+
+interface SubscriptionChange {
+  action: string;
+  planNameCs: string;
+  planNameEn: string;
+  planNameDe: string;
+}
+
+/** Reads a `subscriptionchanged` payload; null when it is not an object with a string action. */
+function readSubscriptionChange(payload: unknown): SubscriptionChange | null {
+  if (typeof payload !== 'object' || payload === null) return null;
+  const record = payload as Record<string, unknown>;
+  if (typeof record.action !== 'string') return null;
+  const text = (value: unknown) => (typeof value === 'string' ? value : '');
+  return {
+    action: record.action,
+    planNameCs: text(record.planNameCs),
+    planNameEn: text(record.planNameEn),
+    planNameDe: text(record.planNameDe),
+  };
 }
 
 /**
@@ -193,6 +217,7 @@ export default function RealtimeProvider({ children }: { children: ReactNode }) 
  */
 function CoachRealtimeSync() {
   const queryClient = useQueryClient();
+  const { t, i18n } = useTranslation();
 
   const invalidateInbox = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: ['notifications'] });
@@ -231,6 +256,31 @@ function CoachRealtimeSync() {
     [queryClient],
   );
 
+  // An ended collaboration frees a client place, so the plan's client usage is stale.
+  const invalidateSubscription = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: subscriptionKeys.mine });
+  }, [queryClient]);
+
+  // Form Up changed, ended or stopped renewing the plan: refresh the plan views, the keep-clients
+  // list, the client lists and details (the client cap moved) and the bell. Only an ended plan
+  // interrupts the coach with a toast, and nothing navigates.
+  const handleSubscriptionChanged = useCallback(
+    (payload: unknown) => {
+      void queryClient.invalidateQueries({ queryKey: subscriptionKeys.mine });
+      void queryClient.invalidateQueries({ queryKey: subscriptionKeys.keepClients });
+      void queryClient.invalidateQueries({ queryKey: ['clients'] });
+      void queryClient.invalidateQueries({ queryKey: ['client-dashboard'] });
+      void queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      const event = readSubscriptionChange(payload);
+      if (event?.action !== 'ended') return;
+      const lang = i18n.language.slice(0, 2).toLowerCase();
+      const byLang = lang === 'cs' ? event.planNameCs : lang === 'de' ? event.planNameDe : event.planNameEn;
+      const plan = byLang || event.planNameEn || event.planNameCs || event.planNameDe;
+      useToastStore.getState().addToast(t('subscription.plan.endedByFormUp', { plan }), 'success');
+    },
+    [queryClient, t, i18n],
+  );
+
   // Photo events carry no client id, so the client photo lists and request status refresh by prefix.
   const invalidatePhotos = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: ['client-photos'] });
@@ -252,6 +302,8 @@ function CoachRealtimeSync() {
   const handlers = useMemo(
     () => ({
       ...Object.fromEntries(COOPERATION_EVENTS.map((event) => [event, invalidateAll])),
+      collaborationended: invalidateSubscription,
+      subscriptionchanged: handleSubscriptionChanged,
       newmessage: invalidateInbox,
       offlinesyncconflict: invalidateConflicts,
       questionnairesubmitted: invalidateForms,
@@ -259,7 +311,16 @@ function CoachRealtimeSync() {
       photodiarysubmitted: invalidatePhotosSubmitted,
       photodiaryphotouploaded: invalidatePhotos,
     }),
-    [invalidateAll, invalidateInbox, invalidateConflicts, invalidateForms, invalidatePhotosSubmitted, invalidatePhotos],
+    [
+      invalidateAll,
+      invalidateInbox,
+      invalidateConflicts,
+      invalidateForms,
+      invalidateSubscription,
+      handleSubscriptionChanged,
+      invalidatePhotosSubmitted,
+      invalidatePhotos,
+    ],
   );
   useSignalR(handlers, resync);
 

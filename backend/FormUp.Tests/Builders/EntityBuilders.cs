@@ -541,6 +541,7 @@ public class ClientProfessionalLinkBuilder
     private long _professionalProfileId;
     private UserRole _professionalRole = UserRole.Trainer;
     private bool _isActive = true;
+    private ConnectionState? _state;
     private bool _canViewNutritionPlans = true;
     private bool _canViewTrainingPlans = true;
     private ClientProfile? _clientProfile;
@@ -579,6 +580,11 @@ public class ClientProfessionalLinkBuilder
     public ClientProfessionalLinkBuilder Inactive() { _isActive = false; return this; }
 
     /// <summary>
+    /// Sets the exact connection state, overriding <see cref="Inactive"/>.
+    /// </summary>
+    public ClientProfessionalLinkBuilder WithConnectionState(ConnectionState state) { _state = state; return this; }
+
+    /// <summary>
     /// Sets whether this link permits viewing nutrition plans.
     /// </summary>
     public ClientProfessionalLinkBuilder WithCanViewNutritionPlans(bool value) { _canViewNutritionPlans = value; return this; }
@@ -610,7 +616,8 @@ public class ClientProfessionalLinkBuilder
     {
         Id = _id,
         ClientProfileId = _clientProfileId, ProfessionalProfileId = _professionalProfileId,
-        ProfessionalRole = _professionalRole, IsActive = _isActive,
+        ProfessionalRole = _professionalRole,
+        ConnectionState = _state ?? (_isActive ? ConnectionState.Connected : ConnectionState.Ended),
         CanViewNutritionPlans = _canViewNutritionPlans,
         CanViewTrainingPlans = _canViewTrainingPlans,
         ClientProfile = _clientProfile!, ProfessionalProfile = _professionalProfile!,
@@ -1098,10 +1105,182 @@ public static class CheckInFixtures
 }
 
 /// <summary>
+/// Gives a test plan the open price row every plan has in production.
+/// </summary>
+public static class SubscriptionPlanPriceBuilder
+{
+    /// <summary>
+    /// Adds an open price row mirroring the plan's current price fields and returns it. The row
+    /// is saved together with the plan.
+    /// </summary>
+    /// <param name="plan">The plan to give a price row.</param>
+    public static SubscriptionPlanPrice OpenPriceFor(SubscriptionPlan plan)
+    {
+        var price = new SubscriptionPlanPrice
+        {
+            SubscriptionPlanId = 0,
+            SubscriptionPlan = plan,
+            PriceMinorUnits = plan.PriceMinorUnits,
+            SecondRoleAddOnPriceMinorUnits = plan.SecondRoleAddOnPriceMinorUnits,
+            Currency = plan.Currency,
+            ValidFrom = DateTime.UtcNow,
+        };
+        plan.Prices.Add(price);
+        return price;
+    }
+
+    /// <summary>
+    /// Makes sure the Free plan exists (price 0, active) — the shared test database only has it
+    /// after something ran the seed.
+    /// </summary>
+    /// <param name="factory">The test host.</param>
+    public static async Task EnsureFreePlanAsync(FitnessApiFactory factory)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        if (await db.SubscriptionPlans.AnyAsync(p => p.Code == "free", TestContext.Current.CancellationToken))
+        {
+            return;
+        }
+
+        var plan = new SubscriptionPlan
+        {
+            Code = "free",
+            NameCs = "Zdarma",
+            NameEn = "Free",
+            NameDe = "Kostenlos",
+            BothRolesIncluded = true,
+            MaxActiveClients = 2,
+            PriceMinorUnits = 0,
+            Currency = "CZK",
+            BillingInterval = BillingInterval.Monthly,
+            IsActive = true,
+        };
+        OpenPriceFor(plan);
+        db.SubscriptionPlans.Add(plan);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+}
+
+/// <summary>
+/// Writes a paid plan with an open price row and the limits a test cares about.
+/// </summary>
+public static class PaidPlanBuilder
+{
+    /// <summary>
+    /// Creates the plan and returns its unique code.
+    /// </summary>
+    /// <param name="factory">The test host.</param>
+    /// <param name="currency">Currency of the price rows; use a currency unique to the test when asserting revenue.</param>
+    /// <param name="priceMinorUnits">Plan price.</param>
+    /// <param name="addOnMinorUnits">Second-role add-on price, or null.</param>
+    /// <param name="bothRolesIncluded">True when the plan covers both roles at no extra charge.</param>
+    /// <param name="interval">Billing cadence.</param>
+    /// <param name="maxActiveClients">Active-client limit; null means unlimited.</param>
+    public static async Task<string> CreateAsync(
+        FitnessApiFactory factory,
+        string currency = "CZK",
+        long priceMinorUnits = 29900,
+        long? addOnMinorUnits = null,
+        bool bothRolesIncluded = true,
+        BillingInterval interval = BillingInterval.Monthly,
+        int? maxActiveClients = 30)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var plan = new SubscriptionPlan
+        {
+            Code = $"paid-{Guid.NewGuid():N}"[..30],
+            NameCs = "Plán",
+            NameEn = "Plan",
+            NameDe = "Plan",
+            BothRolesIncluded = bothRolesIncluded,
+            MaxActiveClients = maxActiveClients,
+            PriceMinorUnits = priceMinorUnits,
+            SecondRoleAddOnPriceMinorUnits = addOnMinorUnits,
+            Currency = currency,
+            BillingInterval = interval,
+            IsActive = true,
+        };
+        SubscriptionPlanPriceBuilder.OpenPriceFor(plan);
+        db.SubscriptionPlans.Add(plan);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        return plan.Code;
+    }
+}
+
+/// <summary>
 /// Subscribes a coach to a fresh plan with the given check-in flags.
 /// </summary>
 public static class CoachSubscriptionBuilder
 {
+    /// <summary>
+    /// Subscribes the coach to an existing plan, on the plan's open price row.
+    /// </summary>
+    /// <param name="factory">The test host.</param>
+    /// <param name="coach">The coach to subscribe.</param>
+    /// <param name="planCode">Code of the plan to subscribe to.</param>
+    /// <param name="status">The subscription status.</param>
+    /// <param name="freeUntil">While now is before this instant the plan's features apply whatever the status is.</param>
+    /// <param name="paysSecondRoleAddOn">True when the coach pays for the second-role add-on.</param>
+    /// <param name="givenFreeAt">When an admin gave the plan for free, or null when it is not a gift.</param>
+    /// <param name="cancelAtPeriodEnd">True when the renewal is cancelled.</param>
+    /// <param name="currentPeriodEndsAt">When the current paid period ends.</param>
+    public static async Task SubscribeToPlanAsync(
+        FitnessApiFactory factory,
+        Actor coach,
+        string planCode,
+        SubscriptionStatus status = SubscriptionStatus.Active,
+        DateTimeOffset? freeUntil = null,
+        bool paysSecondRoleAddOn = false,
+        DateTimeOffset? givenFreeAt = null,
+        bool cancelAtPeriodEnd = false,
+        DateTimeOffset? currentPeriodEndsAt = null)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var price = await db.SubscriptionPlanPrices
+            .Where(p => p.SubscriptionPlan.Code == planCode && p.ValidTo == null)
+            .SingleAsync(TestContext.Current.CancellationToken);
+
+        await ReplaceSubscriptionAsync(db, coach);
+        db.CoachSubscriptions.Add(new CoachSubscription
+        {
+            ProfessionalProfileId = coach.ProfileId,
+            SubscriptionPlanId = price.SubscriptionPlanId,
+            SubscriptionPlanPriceId = price.Id,
+            Status = status,
+            FreeUntil = freeUntil,
+            PaysSecondRoleAddOn = paysSecondRoleAddOn,
+            GivenFreeAt = givenFreeAt,
+            CancelAtPeriodEnd = cancelAtPeriodEnd,
+            CurrentPeriodEndsAt = currentPeriodEndsAt,
+        });
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>
+    /// Subscribes the coach to a plan an admin gave for free that ended <paramref name="endedDaysAgo"/> days ago
+    /// and was never replaced, so the coach must choose a plan.
+    /// </summary>
+    /// <param name="factory">The test host.</param>
+    /// <param name="coach">The coach to subscribe.</param>
+    /// <param name="planCode">Code of the given plan.</param>
+    /// <param name="endedDaysAgo">How long ago the gift ended.</param>
+    public static Task SubscribeWithEndedGiftAsync(
+        FitnessApiFactory factory, Actor coach, string planCode = "pro", int endedDaysAgo = 1) =>
+        SubscribeToPlanAsync(
+            factory,
+            coach,
+            planCode,
+            SubscriptionStatus.Active,
+            freeUntil: DateTimeOffset.UtcNow.AddDays(-endedDaysAgo),
+            givenFreeAt: DateTimeOffset.UtcNow.AddDays(-endedDaysAgo - 30));
+
     /// <summary>
     /// Writes a plan with the given check-in flags and a subscription of the coach to it.
     /// </summary>
@@ -1110,12 +1289,14 @@ public static class CoachSubscriptionBuilder
     /// <param name="canUseWeeklyCheckIns">The plan's weekly check-in flag.</param>
     /// <param name="canUsePerClientCheckInConfig">The plan's per-client check-in configuration flag.</param>
     /// <param name="status">The subscription status.</param>
+    /// <param name="maxActiveClients">The plan's active-client limit; null means unlimited.</param>
     public static async Task SubscribeAsync(
         FitnessApiFactory factory,
         Actor coach,
         bool canUseWeeklyCheckIns,
         bool canUsePerClientCheckInConfig,
-        SubscriptionStatus status = SubscriptionStatus.Active)
+        SubscriptionStatus status = SubscriptionStatus.Active,
+        int? maxActiveClients = null)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -1126,23 +1307,86 @@ public static class CoachSubscriptionBuilder
             NameCs = "Plán",
             NameEn = "Plan",
             NameDe = "Plan",
-            ApplicableRoles = ApplicableRoles.Both,
+            BothRolesIncluded = true,
             CanUseWeeklyCheckIns = canUseWeeklyCheckIns,
             CanUsePerClientCheckInConfig = canUsePerClientCheckInConfig,
+            MaxActiveClients = maxActiveClients,
             PriceMinorUnits = 99900,
             Currency = "CZK",
             BillingInterval = BillingInterval.Monthly,
             IsActive = true,
         };
+        var price = SubscriptionPlanPriceBuilder.OpenPriceFor(plan);
         db.SubscriptionPlans.Add(plan);
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
+        await ReplaceSubscriptionAsync(db, coach);
         db.CoachSubscriptions.Add(new CoachSubscription
         {
             ProfessionalProfileId = coach.ProfileId,
             SubscriptionPlanId = plan.Id,
+            SubscriptionPlanPriceId = price.Id,
             Status = status,
         });
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
+
+    /// <summary>
+    /// Moves the coach to a fresh active plan whose payments feature is off.
+    /// </summary>
+    /// <param name="factory">The test host.</param>
+    /// <param name="coach">The coach to move.</param>
+    public static async Task MoveToPlanWithoutPaymentsAsync(FitnessApiFactory factory, Actor coach)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var plan = new SubscriptionPlan
+        {
+            Code = $"no-payments-{Guid.NewGuid():N}",
+            NameCs = "Plán",
+            NameEn = "Plan",
+            NameDe = "Plan",
+            BothRolesIncluded = true,
+            CanUsePayments = false,
+            PriceMinorUnits = 99900,
+            Currency = "CZK",
+            BillingInterval = BillingInterval.Monthly,
+            IsActive = true,
+        };
+        var price = SubscriptionPlanPriceBuilder.OpenPriceFor(plan);
+        db.SubscriptionPlans.Add(plan);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        await ReplaceSubscriptionAsync(db, coach);
+        db.CoachSubscriptions.Add(new CoachSubscription
+        {
+            ProfessionalProfileId = coach.ProfileId,
+            SubscriptionPlanId = plan.Id,
+            SubscriptionPlanPriceId = price.Id,
+            Status = SubscriptionStatus.Active,
+        });
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>
+    /// A coach has at most one subscription row, so subscribing again replaces the earlier one.
+    /// </summary>
+    private static Task<int> ReplaceSubscriptionAsync(ApplicationDbContext db, Actor coach) =>
+        db.CoachSubscriptions
+            .Where(cs => cs.ProfessionalProfileId == coach.ProfileId)
+            .ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+}
+
+/// <summary>
+/// Builds the <see cref="FormUp.Application.Domain.Services.EntitlementService"/> a unit test passes to an endpoint.
+/// </summary>
+public static class EntitlementServiceBuilder
+{
+    /// <summary>
+    /// A service over <paramref name="db"/> with the system clock and a null logger.
+    /// </summary>
+    /// <param name="db">The database context the service reads.</param>
+    public static FormUp.Application.Domain.Services.EntitlementService For(IApplicationDbContext db) =>
+        new(db, TimeProvider.System, Microsoft.Extensions.Logging.Abstractions.NullLogger<FormUp.Application.Domain.Services.EntitlementService>.Instance);
 }

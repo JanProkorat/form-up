@@ -28,6 +28,7 @@ public class AutomationCheckInSweeperTests(FitnessApiFactory factory)
     private async Task<Fixture> ArrangeAsync(Action<AutomationRule>? configure = null)
     {
         var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, "studio");
         var client = await TestActors.Client(factory).CreateAsync(Ct);
         var linkId = await TestActors.Link(factory, coach, client).CreateAsync(Ct);
         var form = await AutomationTestData.InsertQuestionnaireAsync(factory, coach, QuestionnaireType.CheckIn);
@@ -256,7 +257,7 @@ public class AutomationCheckInSweeperTests(FitnessApiFactory factory)
         var fixture = await ArrangeAsync();
         var reminded = await AddOpenCheckInAsync(fixture, SentAt.AddHours(48));
         await WithDbAsync(db => db.ClientProfessionalLinks.Where(l => l.Id == fixture.LinkId)
-            .ExecuteUpdateAsync(s => s.SetProperty(l => l.IsActive, false), Ct));
+            .ExecuteUpdateAsync(s => s.SetProperty(l => l.ConnectionState, ConnectionState.Ended), Ct));
 
         await SweepAsync(fixture, SentAt.AddHours(25));
         await SweepAsync(fixture, SentAt.AddHours(60));

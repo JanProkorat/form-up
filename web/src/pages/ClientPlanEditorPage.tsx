@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -8,6 +8,7 @@ import type { GetPlanResponse, OnboardingDataDto } from '@/api/generated';
 import { fetchPlanForEditor } from '@/api/plans';
 import { useClientForms } from '@/components/client-forms/useClientForms';
 import ClientAvatar from '@/components/clients/ClientAvatar';
+import OutsidePlanPaywallDialog from '@/components/client-detail/OutsidePlanPaywallDialog';
 import PlanEditorFormsTab from '@/components/client-plan-editor/forms/PlanEditorFormsTab';
 import { selectPlanEditorForms } from '@/components/client-plan-editor/forms/planEditorForms';
 import ClientPlanInfoPanel from '@/components/client-plan-editor/ClientPlanInfoPanel';
@@ -35,6 +36,8 @@ interface LoadedProps {
   onReload: () => void;
   /** False while the plan is being refetched: its lock data and stored meals are about to change. */
   planFresh: boolean;
+  /** The client is outside the coach's plan: edits, saving and publishing open the paywall instead. */
+  isOutsidePlan: boolean;
 }
 
 /** Hosts the shared plan editor for one loaded client plan. Mounted once per load, so edits stay local. */
@@ -47,11 +50,16 @@ function LoadedClientPlanEditor({
   onboarding,
   onReload,
   planFresh,
+  isOutsidePlan,
 }: LoadedProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [finishOpen, setFinishOpen] = useState(false);
+  const [paywallOpen, setPaywallOpen] = useState(false);
+  const openPaywall = useCallback(() => setPaywallOpen(true), []);
+  // A closed plan stays read-only as before; the outside-plan lock only applies to a plan that could be edited.
+  const outsidePlan = isOutsidePlan && !isClosedPlan(plan) ? { onBlocked: openPaywall } : undefined;
   const {
     initial,
     saveState,
@@ -68,7 +76,7 @@ function LoadedClientPlanEditor({
     finishPlan,
     lifecycleBusy,
     markTemplateApplied,
-  } = useClientPlanEditor(plan, clientId);
+  } = useClientPlanEditor(plan, clientId, openPaywall);
   // Read from the page's live plan, not the editor's adopted copy: a save response carries no lock data.
   const mealLocks = useMemo(
     () => buildPlanMealLocks(plan, firstName || clientName),
@@ -90,8 +98,10 @@ function LoadedClientPlanEditor({
   const hasNewForm = selectPlanEditorForms(formsQuery.data?.current).some((item) => item.isNew);
 
   return (
+    <>
     <PlanEditor
       initial={initial}
+      outsidePlan={outsidePlan}
       extraSideTabs={[
         {
           id: 'forms',
@@ -143,6 +153,7 @@ function LoadedClientPlanEditor({
           onboarding={onboarding}
           savedStartDate={savedStartDate}
           sourceTemplateId={plan.sourceTemplateId}
+          outsidePlanNote={outsidePlan !== undefined}
         />
       )}
       infoTabLabel={t('clientPlanEditor.info.tab')}
@@ -155,6 +166,7 @@ function LoadedClientPlanEditor({
             onboarding={onboarding}
             clientFirstName={firstName || clientName}
             onTemplateApplied={markTemplateApplied}
+            onBlocked={outsidePlan?.onBlocked}
           />
         ),
       }}
@@ -209,6 +221,8 @@ function LoadedClientPlanEditor({
       onSave={save}
       onReload={onReload}
     />
+    <OutsidePlanPaywallDialog open={paywallOpen} onOpenChange={setPaywallOpen} firstName={clientFirstName} />
+    </>
   );
 }
 
@@ -299,6 +313,7 @@ export default function ClientPlanEditorPage() {
       lastName={dashboard?.lastName}
       onboarding={dashboard?.onboarding}
       planFresh={!planQuery.isFetching}
+      isOutsidePlan={dashboard?.isOutsidePlan === true}
       onReload={() => {
         void planQuery.refetch().then(() => setReloadCount((count) => count + 1));
       }}

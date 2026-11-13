@@ -22,11 +22,13 @@ namespace FormUp.Application.Features.Client.Plans.GetClientPlans;
 /// <param name="db">Relational database context.</param>
 /// <param name="timeProvider">Clock abstraction (#955) — lets tests pin the "now" instant deterministically.</param>
 /// <param name="macroCalculator">Meal-totals calculator for the per-day nutrition averages.</param>
+/// <param name="entitlements">Subscription entitlements, used for the over-cap check.</param>
 public class GetClientPlansEndpoint(
     IMongoContext mongo,
     IApplicationDbContext db,
     TimeProvider timeProvider,
-    IMacroCalculatorService macroCalculator)
+    IMacroCalculatorService macroCalculator,
+    EntitlementService entitlements)
     : Endpoint<GetClientPlansRequest, GetClientPlansResponse>
 {
     /// <inheritdoc />
@@ -261,6 +263,7 @@ public class GetClientPlansEndpoint(
         await ApplyTrainingProgressAsync(clientId, now, trainingPlans, itemsByPlanId, ct);
         await ApplyNutritionProgressAsync(clientId, now, nutritionPlans, itemsByPlanId, ct);
         await ApplyProfessionalNamesAsync(nutritionPlans, trainingPlans, itemsByPlanId, ct);
+        await ApplyRunsUntilAsync(clientId, nutritionPlans, trainingPlans, itemsByPlanId, ct);
 
         // Sort by completion date descending, then creation
         items = items
@@ -410,6 +413,51 @@ public class GetClientPlansEndpoint(
 
             itemsByPlanId[plan.ExternalId].MealsLoggedPercent =
                 Math.Min(100, (int)Math.Round(logged * 100m / planned, MidpointRounding.AwayFromZero));
+        }
+    }
+
+    /// <summary>
+    /// Fills RunsUntil on Active plans whose author lapsed to the Free plan and left this client over its cap.
+    /// The over-cap answer costs several queries, so it is looked up once per author.
+    /// </summary>
+    private async Task ApplyRunsUntilAsync(
+        Guid clientId,
+        List<NutritionPlan> nutritionPlans,
+        List<TrainingPlan> trainingPlans,
+        Dictionary<Guid, ClientOwnPlanItem> itemsByPlanId,
+        CancellationToken ct)
+    {
+        var overCapByAuthor = new Dictionary<Guid, bool>();
+
+        async Task<bool> IsOverCapAsync(Guid authorId)
+        {
+            if (!overCapByAuthor.TryGetValue(authorId, out var overCap))
+            {
+                overCap = await entitlements.IsClientOverCapAsync(authorId, clientId, ct);
+                overCapByAuthor[authorId] = overCap;
+            }
+
+            return overCap;
+        }
+
+        foreach (var plan in nutritionPlans.Where(p => p.Status == NutritionPlanStatus.Active))
+        {
+            if (await IsOverCapAsync(plan.NutritionistId))
+            {
+                itemsByPlanId[plan.ExternalId].RunsUntil = PlanRunsUntilResolver.Resolve(
+                    plan.StartDate,
+                    plan.Weeks.Where(w => w.Status == WeekStatus.Published).Select(w => w.WeekNumber));
+            }
+        }
+
+        foreach (var plan in trainingPlans.Where(p => p.Status == TrainingPlanStatus.Active))
+        {
+            if (await IsOverCapAsync(plan.TrainerId))
+            {
+                itemsByPlanId[plan.ExternalId].RunsUntil = PlanRunsUntilResolver.Resolve(
+                    plan.StartDate,
+                    plan.Weeks.Where(w => w.Status == WeekStatus.Published).Select(w => w.WeekNumber));
+            }
         }
     }
 

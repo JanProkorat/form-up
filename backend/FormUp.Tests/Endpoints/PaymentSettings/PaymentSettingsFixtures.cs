@@ -41,13 +41,14 @@ internal static class PaymentSettingsFixtures
             NameCs = "Plán",
             NameEn = "Plan",
             NameDe = "Plan",
-            ApplicableRoles = ApplicableRoles.Both,
+            BothRolesIncluded = true,
             CanUsePayments = canUsePayments,
             PriceMinorUnits = 99900,
             Currency = "CZK",
             BillingInterval = BillingInterval.Monthly,
             IsActive = true
         };
+        var price = SubscriptionPlanPriceBuilder.OpenPriceFor(plan);
         db.SubscriptionPlans.Add(plan);
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -55,6 +56,7 @@ internal static class PaymentSettingsFixtures
         {
             ProfessionalProfileId = coach.ProfileId,
             SubscriptionPlanId = plan.Id,
+            SubscriptionPlanPriceId = price.Id,
             Status = status
         });
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);

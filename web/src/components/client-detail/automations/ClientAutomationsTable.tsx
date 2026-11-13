@@ -75,6 +75,8 @@ interface Props {
   formTitles: ReadonlyMap<string, string>;
   /** Rule ids with a write in flight. */
   busyIds: ReadonlySet<string>;
+  /** The plan has no per-client check-in settings: a check-in row cannot be customised. */
+  checkInOverrideLocked: boolean;
   onOpen: (item: ClientAutomationItem) => void;
   onToggle: (item: ClientAutomationItem, on: boolean) => void;
   onReset: (item: ClientAutomationItem) => void;
@@ -88,6 +90,7 @@ export default function ClientAutomationsTable({
   parentRules,
   formTitles,
   busyIds,
+  checkInOverrideLocked,
   onOpen,
   onToggle,
   onReset,
@@ -121,6 +124,7 @@ export default function ClientAutomationsTable({
           const globalDisabled = !isClientOnly && item.enabled === false;
           const checked = isClientOnly ? item.enabled !== false : !item.isPaused && !globalDisabled;
           const busy = busyIds.has(ruleId);
+          const overrideLocked = checkIn && !isClientOnly && checkInOverrideLocked;
 
           return (
             <TableRow key={ruleId} className="border-line">
@@ -136,13 +140,16 @@ export default function ClientAutomationsTable({
                   <div className="flex min-w-0 max-w-80 flex-col">
                     <button
                       type="button"
-                      className="truncate text-left text-copy font-semibold text-ink outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+                      disabled={overrideLocked}
+                      className="truncate text-left text-copy font-semibold text-ink outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:no-underline"
                       onClick={() => onOpen(item)}
                     >
                       {name}
                     </button>
                     <span className="truncate text-meta text-muted-foreground">
-                      {rowSubtitle(item, parentRules.get(ruleId), formTitle, t, language)}
+                      {overrideLocked
+                        ? t('subscription.checkIns.overrideLocked')
+                        : rowSubtitle(item, parentRules.get(ruleId), formTitle, t, language)}
                     </span>
                   </div>
                 </div>

@@ -69,7 +69,7 @@ public class AcceptClientRequestPackageTermsTests(FitnessApiFactory factory)
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
         return await db.ClientProfessionalLinks.AnyAsync(
-            l => l.ClientProfileId == client.ProfileId && l.ProfessionalProfileId == coach.ProfileId && l.IsActive, Ct);
+            l => l.ClientProfileId == client.ProfileId && l.ProfessionalProfileId == coach.ProfileId && l.ConnectionState != ConnectionState.Ended, Ct);
     }
 
     private async Task<bool> SkipAuditedAsync(Guid requestId)

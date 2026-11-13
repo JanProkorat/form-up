@@ -143,6 +143,7 @@ public class AutomationScheduler(
                 var snapshot = await AutomationCoachSnapshot.LoadAsync(
                     services.GetRequiredService<IApplicationDbContext>(),
                     services.GetRequiredService<IMongoContext>(),
+                    services.GetRequiredService<EntitlementService>(),
                     coachProfileId,
                     ct);
 

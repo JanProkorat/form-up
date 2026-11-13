@@ -35,7 +35,9 @@ import {
 } from '@/hooks/useClientsQueries';
 import { usePaymentDiscounts, usePaymentPackages } from '@/hooks/useClientPaymentQueries';
 import { useTrainerQuestionnaires } from '@/hooks/useQuestionnaireQueries';
+import ClientLimitDialog from '@/components/subscription/ClientLimitDialog';
 import { firstName, formatSentWhen, useHeldServices } from '@/lib/cooperationCards';
+import { isClientLimitReached } from '@/lib/subscriptionErrors';
 
 interface Props {
   /** Public id of the incoming client request to review. */
@@ -132,6 +134,7 @@ function ReviewBody({ request, onClose }: { request: IncomingClientRequestDto; o
   const [discountChoice, setDiscountChoice] = useState('');
   const [formChoice, setFormChoice] = useState<string | null>(null);
   const [message, setMessage] = useState('');
+  const [capOpen, setCapOpen] = useState(false);
 
   const selectedPackageId = packageChoice ?? coachPackages[0]?.id ?? NO_PACKAGE_ID;
   const offeredPackage = isProposeVariant
@@ -152,7 +155,17 @@ function ReviewBody({ request, onClose }: { request: IncomingClientRequestDto; o
   const messageTooLong = message.length > OFFER_MESSAGE_MAX_LENGTH;
 
   // The server answers 409 CLIENT_REQUEST_INVALID_STATE when the request moved on elsewhere; the drawer has nothing left to do.
-  const closeOnConflict = { onError: (error: unknown) => isRequestStateConflict(error) && onClose() };
+  const closeOnConflict = {
+    onError: (error: unknown) => {
+      if (isClientLimitReached(error)) {
+        setCapOpen(true);
+        return;
+      }
+      if (isRequestStateConflict(error)) {
+        onClose();
+      }
+    },
+  };
   const statement = message.trim() || undefined;
   // Skip is sent only when the coach explicitly picked "None"; an untouched row never skips.
   const skipOnboardingForm = formChoice === NO_FORM_ID;
@@ -358,6 +371,7 @@ function ReviewBody({ request, onClose }: { request: IncomingClientRequestDto; o
           </>
         )}
       </div>
+      <ClientLimitDialog open={capOpen} onOpenChange={setCapOpen} context="accept" clientName={shortName} />
     </>
   );
 }

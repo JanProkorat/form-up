@@ -16,15 +16,13 @@ public class CreateResponseEndpoint(IApplicationDbContext db, IClientLinkAuthori
     {
         Post("/client/questionnaire/response");
         Roles(AppRoles.Client);
-        Description(b => b.ClearDefaultProduces(StatusCodes.Status200OK)
-            .Produces<CreateResponseResponse>(StatusCodes.Status201Created));
         Summary(s =>
         {
             s.Summary = "Create questionnaire response";
             s.Description = "Creates a new in-progress questionnaire response for the authenticated client.";
-            s.Responses[StatusCodes.Status201Created] = "Response created";
-            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
-            s.Responses[StatusCodes.Status404NotFound] = "Unknown questionnaire, no client profile, or no active link to its owner";
+            s.Response<CreateResponseResponse>(StatusCodes.Status201Created, "Response created");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status404NotFound, "Unknown questionnaire, no client profile, or no active link to its owner");
         });
     }
 
@@ -85,7 +83,7 @@ public class CreateResponseEndpoint(IApplicationDbContext db, IClientLinkAuthori
             .AsNoTracking()
             .Where(l => l.ClientProfileId == clientProfile.Id
                         && l.ProfessionalProfileId == professionalProfile.Id
-                        && l.IsActive)
+                        && l.ConnectionState != ConnectionState.Ended)
             .Select(l => (long?)l.Id)
             .FirstOrDefaultAsync(ct);
 

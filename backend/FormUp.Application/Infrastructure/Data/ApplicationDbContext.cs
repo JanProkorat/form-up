@@ -151,6 +151,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public virtual DbSet<SubscriptionPlan> SubscriptionPlans { get; set; } = null!;
 
     /// <summary>
+    /// Price history of the subscription tiers; one open row per plan.
+    /// </summary>
+    public virtual DbSet<SubscriptionPlanPrice> SubscriptionPlanPrices { get; set; } = null!;
+
+    /// <summary>
     /// A professional's subscription to a <see cref="SubscriptionPlan"/>.
     /// </summary>
     public virtual DbSet<CoachSubscription> CoachSubscriptions { get; set; } = null!;

@@ -17,11 +17,13 @@ namespace FormUp.Application.Infrastructure.Services;
 /// <param name="db">Application database context.</param>
 /// <param name="notifications">Creates the in-app and push notification.</param>
 /// <param name="notifier">Realtime broadcast to the client.</param>
+/// <param name="entitlementService">Resolves the coach's subscription entitlements.</param>
 /// <param name="logger">Logger.</param>
 public sealed class AutomationOccurrenceSender(
     IApplicationDbContext db,
     INotificationService notifications,
     IRealtimeNotifier notifier,
+    EntitlementService entitlementService,
     ILogger<AutomationOccurrenceSender> logger)
 {
     /// <summary>How long a photo request an automation sends stays open.</summary>
@@ -44,7 +46,8 @@ public sealed class AutomationOccurrenceSender(
         DateTime nowUtc,
         CancellationToken ct)
     {
-        var evaluation = await AutomationEvaluationLoader.LoadAsync(db, ruleId, clientProfileId, nowUtc, ct);
+        var evaluation = await AutomationEvaluationLoader.LoadAsync(
+            db, entitlementService, ruleId, clientProfileId, nowUtc, ct);
 
         if (evaluation is null || !evaluation.Effective.Enabled)
         {

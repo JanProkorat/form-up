@@ -31,8 +31,20 @@ public class UpdateSubscriptionPlanRequest
     /// <summary>German plan name.</summary>
     public string NameDe { get; set; } = string.Empty;
 
-    /// <summary>Which professional role(s) this plan applies to.</summary>
-    public ApplicableRoles ApplicableRoles { get; set; }
+    /// <summary>
+    /// True when the plan covers both professional roles at no extra charge. Required; exactly
+    /// one of this and <see cref="SecondRoleAddOnPriceMinorUnits"/> must be set.
+    /// </summary>
+    public bool? BothRolesIncluded { get; set; }
+
+    /// <summary>Price of the second-role add-on. Must be positive; omit when both roles are included.</summary>
+    public long? SecondRoleAddOnPriceMinorUnits { get; set; }
+
+    /// <summary>
+    /// When the price changes, mark every coach currently on the plan to move to the new price
+    /// at their next renewal. Defaults to false: coaches keep the price row they pay.
+    /// </summary>
+    public bool MoveExistingCoachesAtNextRenewal { get; set; }
 
     /// <summary>Whether the plan allows creating nutrition/training plans. Required.</summary>
     public bool? CanCreatePlans { get; set; }

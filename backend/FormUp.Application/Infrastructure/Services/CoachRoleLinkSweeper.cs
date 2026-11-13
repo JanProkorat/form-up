@@ -190,7 +190,7 @@ public class CoachRoleLinkSweeper(
 
         var links = await db.ClientProfessionalLinks
             .AsNoTracking()
-            .Where(l => l.ProfessionalProfileId == profileId && l.IsActive)
+            .Where(l => l.ProfessionalProfileId == profileId && l.ConnectionState != ConnectionState.Ended)
             .Select(l => new
             {
                 l.Id,
@@ -325,10 +325,10 @@ public class CoachRoleLinkSweeper(
             ct);
 
         var changed = await db.ClientProfessionalLinks
-            .Where(l => l.Id == candidate.LinkId && l.IsActive)
+            .Where(l => l.Id == candidate.LinkId && l.ConnectionState != ConnectionState.Ended)
             .ExecuteUpdateAsync(
                 setters => setters
-                    .SetProperty(l => l.IsActive, false)
+                    .SetProperty(l => l.ConnectionState, ConnectionState.Ended)
                     .SetProperty(l => l.DateUpdated, (DateTime?)now),
                 ct);
 

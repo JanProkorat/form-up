@@ -25,9 +25,9 @@ public class ClientProfessionalLink : PublicTimestampableEntity
     public UserRole ProfessionalRole { get; set; }
 
     /// <summary>
-    /// Indicates whether this professional-client relationship is currently active.
+    /// Lifecycle state of this professional-client relationship.
     /// </summary>
-    public bool IsActive { get; set; } = true;
+    public ConnectionState ConnectionState { get; set; } = ConnectionState.Connected;
 
     /// <summary>
     /// When the current collaboration began (UTC): set on creation and on every reactivation.

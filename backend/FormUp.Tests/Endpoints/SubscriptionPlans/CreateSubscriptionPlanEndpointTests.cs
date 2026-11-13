@@ -2,7 +2,6 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using FormUp.Application.Domain.Enums;
 using FormUp.Application.Features.SubscriptionPlans.Shared;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Tests.Infrastructure;
@@ -34,7 +33,8 @@ public class CreateSubscriptionPlanEndpointTests(FitnessApiFactory factory)
         NameCs: "Malý",
         NameEn: "Small",
         NameDe: "Klein",
-        ApplicableRoles: "Both",
+        BothRolesIncluded: true,
+        SecondRoleAddOnPriceMinorUnits: null,
         CanCreatePlans: true,
         CanMessage: true,
         CanSendQuestionnaires: false,
@@ -72,9 +72,62 @@ public class CreateSubscriptionPlanEndpointTests(FitnessApiFactory factory)
 
         persisted.Should().NotBeNull();
         persisted!.NameEn.Should().Be("Small");
-        persisted.ApplicableRoles.Should().Be(ApplicableRoles.Both);
+        persisted.BothRolesIncluded.Should().BeTrue();
+        persisted.SecondRoleAddOnPriceMinorUnits.Should().BeNull();
         persisted.IsActive.Should().BeTrue();
         persisted.CanUsePayments.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Create_WithAddOnPrice_WritesOneOpenPriceRowMirroringThePlan()
+    {
+        var client = await TestHelpers.RegisterAdminAsync(factory, TestContext.Current.CancellationToken);
+        var code = UniqueCode();
+
+        var response = await client.PostAsJsonAsync(
+            "/admin/subscription-plans",
+            ValidPayload(code) with
+            {
+                BothRolesIncluded = false,
+                SecondRoleAddOnPriceMinorUnits = 14900,
+                ExternalPriceId = "price_create",
+            },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var body = await response.Content.ReadFromJsonAsync<SubscriptionPlanDto>(
+            JsonOptions, TestContext.Current.CancellationToken);
+        body!.SecondRoleAddOnPriceMinorUnits.Should().Be(14900);
+        body.BothRolesIncluded.Should().BeFalse();
+        body.ExternalPriceId.Should().Be("price_create");
+        body.CoachCount.Should().Be(0);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var plan = await db.SubscriptionPlans
+            .AsNoTracking()
+            .Include(p => p.Prices)
+            .FirstAsync(p => p.Code == code, TestContext.Current.CancellationToken);
+
+        var price = plan.Prices.Should().ContainSingle().Subject;
+        price.ValidTo.Should().BeNull();
+        price.PriceMinorUnits.Should().Be(plan.PriceMinorUnits);
+        price.SecondRoleAddOnPriceMinorUnits.Should().Be(14900);
+        price.ExternalPriceId.Should().Be("price_create");
+    }
+
+    [Fact]
+    public async Task Create_WithBothRolesAndAddOnPrice_Returns400()
+    {
+        var client = await TestHelpers.RegisterAdminAsync(factory, TestContext.Current.CancellationToken);
+
+        var response = await client.PostAsJsonAsync(
+            "/admin/subscription-plans",
+            ValidPayload(UniqueCode()) with { SecondRoleAddOnPriceMinorUnits = 14900 },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Fact]
@@ -91,7 +144,7 @@ public class CreateSubscriptionPlanEndpointTests(FitnessApiFactory factory)
                 NameCs = "Malý",
                 NameEn = "Small",
                 NameDe = "Klein",
-                ApplicableRoles = "Both",
+                BothRolesIncluded = true,
                 Currency = "CZK",
                 BillingInterval = "Monthly",
             },
@@ -150,7 +203,8 @@ public class CreateSubscriptionPlanEndpointTests(FitnessApiFactory factory)
         string NameCs,
         string NameEn,
         string NameDe,
-        string ApplicableRoles,
+        bool BothRolesIncluded,
+        long? SecondRoleAddOnPriceMinorUnits,
         bool CanCreatePlans,
         bool CanMessage,
         bool CanSendQuestionnaires,

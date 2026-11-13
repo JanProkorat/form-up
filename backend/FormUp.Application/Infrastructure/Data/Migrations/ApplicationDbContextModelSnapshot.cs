@@ -1364,6 +1364,10 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("client_profile_id");
 
+                    b.Property<int>("ConnectionState")
+                        .HasColumnType("integer")
+                        .HasColumnName("connection_state");
+
                     b.Property<DateTime>("DateCreated")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("date_created");
@@ -1371,10 +1375,6 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("DateUpdated")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("date_updated");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_active");
 
                     b.Property<long>("ProfessionalProfileId")
                         .HasColumnType("bigint")
@@ -2144,6 +2144,24 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                         .HasColumnType("text")
                         .HasColumnName("external_subscription_id");
 
+                    b.Property<DateTimeOffset?>("FreeUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("free_until");
+
+                    b.Property<DateTimeOffset?>("GivenFreeAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("given_free_at");
+
+                    b.Property<bool>("PaysSecondRoleAddOn")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("pays_second_role_add_on");
+
+                    b.Property<long?>("PendingSubscriptionPlanPriceId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("pending_subscription_plan_price_id");
+
                     b.Property<long>("ProfessionalProfileId")
                         .HasColumnType("bigint")
                         .HasColumnName("professional_profile_id");
@@ -2156,6 +2174,10 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("subscription_plan_id");
 
+                    b.Property<long>("SubscriptionPlanPriceId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("subscription_plan_price_id");
+
                     b.Property<DateTimeOffset?>("TrialEndsAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("trial_ends_at");
@@ -2163,12 +2185,18 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                     b.HasKey("Id")
                         .HasName("pk_coach_subscriptions");
 
+                    b.HasIndex("PendingSubscriptionPlanPriceId")
+                        .HasDatabaseName("ix_coach_subscriptions_pending_subscription_plan_price_id");
+
                     b.HasIndex("ProfessionalProfileId")
                         .IsUnique()
                         .HasDatabaseName("ix_coach_subscriptions_professional_profile_id");
 
                     b.HasIndex("SubscriptionPlanId")
                         .HasDatabaseName("ix_coach_subscriptions_subscription_plan_id");
+
+                    b.HasIndex("SubscriptionPlanPriceId")
+                        .HasDatabaseName("ix_coach_subscriptions_subscription_plan_price_id");
 
                     b.ToTable("coach_subscriptions", (string)null);
                 });
@@ -3405,13 +3433,13 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
-                    b.Property<int>("ApplicableRoles")
-                        .HasColumnType("integer")
-                        .HasColumnName("applicable_roles");
-
                     b.Property<int>("BillingInterval")
                         .HasColumnType("integer")
                         .HasColumnName("billing_interval");
+
+                    b.Property<bool>("BothRolesIncluded")
+                        .HasColumnType("boolean")
+                        .HasColumnName("both_roles_included");
 
                     b.Property<bool>("CanCreatePlans")
                         .HasColumnType("boolean")
@@ -3455,10 +3483,6 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("date_updated");
 
-                    b.Property<string>("ExternalPriceId")
-                        .HasColumnType("text")
-                        .HasColumnName("external_price_id");
-
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean")
                         .HasColumnName("is_active");
@@ -3486,6 +3510,10 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("price_minor_units");
 
+                    b.Property<long?>("SecondRoleAddOnPriceMinorUnits")
+                        .HasColumnType("bigint")
+                        .HasColumnName("second_role_add_on_price_minor_units");
+
                     b.HasKey("Id")
                         .HasName("pk_subscription_plans");
 
@@ -3494,6 +3522,65 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                         .HasDatabaseName("ix_subscription_plans_code");
 
                     b.ToTable("subscription_plans", (string)null);
+                });
+
+            modelBuilder.Entity("FormUp.Application.Domain.Entities.SubscriptionPlanPrice", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasColumnName("currency");
+
+                    b.Property<DateTime>("DateCreated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_created");
+
+                    b.Property<DateTime?>("DateUpdated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_updated");
+
+                    b.Property<string>("ExternalPriceId")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("external_price_id");
+
+                    b.Property<long>("PriceMinorUnits")
+                        .HasColumnType("bigint")
+                        .HasColumnName("price_minor_units");
+
+                    b.Property<long?>("SecondRoleAddOnPriceMinorUnits")
+                        .HasColumnType("bigint")
+                        .HasColumnName("second_role_add_on_price_minor_units");
+
+                    b.Property<long>("SubscriptionPlanId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("subscription_plan_id");
+
+                    b.Property<DateTime>("ValidFrom")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("valid_from");
+
+                    b.Property<DateTime?>("ValidTo")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("valid_to");
+
+                    b.HasKey("Id")
+                        .HasName("pk_subscription_plan_prices");
+
+                    b.HasIndex("SubscriptionPlanId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_subscription_plan_prices_subscription_plan_id")
+                        .HasFilter("valid_to IS NULL");
+
+                    b.ToTable("subscription_plan_prices", (string)null);
                 });
 
             modelBuilder.Entity("FormUp.Application.Domain.Entities.UserExternalLogin", b =>
@@ -4135,6 +4222,12 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("FormUp.Application.Domain.Entities.CoachSubscription", b =>
                 {
+                    b.HasOne("FormUp.Application.Domain.Entities.SubscriptionPlanPrice", "PendingSubscriptionPlanPrice")
+                        .WithMany()
+                        .HasForeignKey("PendingSubscriptionPlanPriceId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .HasConstraintName("fk_coach_subscriptions_subscription_plan_prices_pending_subscr");
+
                     b.HasOne("FormUp.Application.Domain.Entities.ProfessionalProfile", "ProfessionalProfile")
                         .WithOne("CoachSubscription")
                         .HasForeignKey("FormUp.Application.Domain.Entities.CoachSubscription", "ProfessionalProfileId")
@@ -4149,9 +4242,20 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_coach_subscriptions_subscription_plans_subscription_plan_id");
 
+                    b.HasOne("FormUp.Application.Domain.Entities.SubscriptionPlanPrice", "SubscriptionPlanPrice")
+                        .WithMany()
+                        .HasForeignKey("SubscriptionPlanPriceId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired()
+                        .HasConstraintName("fk_coach_subscriptions_subscription_plan_prices_subscription_p");
+
+                    b.Navigation("PendingSubscriptionPlanPrice");
+
                     b.Navigation("ProfessionalProfile");
 
                     b.Navigation("SubscriptionPlan");
+
+                    b.Navigation("SubscriptionPlanPrice");
                 });
 
             modelBuilder.Entity("FormUp.Application.Domain.Entities.Conversation", b =>
@@ -4462,6 +4566,18 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("FormUp.Application.Domain.Entities.SubscriptionPlanPrice", b =>
+                {
+                    b.HasOne("FormUp.Application.Domain.Entities.SubscriptionPlan", "SubscriptionPlan")
+                        .WithMany("Prices")
+                        .HasForeignKey("SubscriptionPlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_subscription_plan_prices_subscription_plans_subscription_pl");
+
+                    b.Navigation("SubscriptionPlan");
+                });
+
             modelBuilder.Entity("FormUp.Application.Domain.Entities.UserExternalLogin", b =>
                 {
                     b.HasOne("FormUp.Application.Domain.Entities.ApplicationUser", "User")
@@ -4614,6 +4730,11 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
             modelBuilder.Entity("FormUp.Application.Domain.Entities.QuestionnaireResponse", b =>
                 {
                     b.Navigation("Answers");
+                });
+
+            modelBuilder.Entity("FormUp.Application.Domain.Entities.SubscriptionPlan", b =>
+                {
+                    b.Navigation("Prices");
                 });
 #pragma warning restore 612, 618
         }

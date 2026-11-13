@@ -1,5 +1,7 @@
 import { useTranslation } from 'react-i18next';
+import { Lock } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useSubscription } from '@/hooks/useSubscriptionQueries';
 
 export type ClientDetailTab = 'overview' | 'nutrition' | 'photos' | 'payment' | 'automations' | 'forms';
 
@@ -38,6 +40,8 @@ export default function ClientDetailTabs({
   hasNewForms = false,
 }: Props) {
   const { t } = useTranslation();
+  // Same rule as the sidebar: forms off the coach's plan show a lock (stays unlocked while loading).
+  const formsLocked = !useSubscription().isEntitled('canSendQuestionnaires');
   const tabKeys = TAB_KEYS.filter((key) => {
     if (key === 'nutrition') {
       return canViewNutritionPlans;
@@ -76,7 +80,13 @@ export default function ClientDetailTabs({
                 title={isLive ? undefined : t('shell.comingSoon')}
               >
                 {t(`clientDetail.overview.tabs.${key}`)}
-                {key === 'forms' && hasNewForms && (
+                {key === 'forms' && formsLocked && (
+                  <>
+                    <Lock className="ml-1.5 size-3.5 text-muted-foreground" aria-hidden="true" />
+                    <span className="sr-only">{t('sidebar.lockedInPlan')}</span>
+                  </>
+                )}
+                {key === 'forms' && hasNewForms && !formsLocked && (
                   <>
                     <span data-testid="forms-tab-dot" className="ml-1.5 size-1.75 rounded-full bg-error" aria-hidden="true" />
                     <span className="sr-only">{t('clientForms.newAnswer')}</span>

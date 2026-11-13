@@ -23,22 +23,8 @@ public readonly record struct CoachEntitlements(
     int? MaxActiveClients)
 {
     /// <summary>
-    /// Every feature flag on, no client-count limit. Applied when a professional has no
-    /// <see cref="Entities.CoachSubscription"/> row at all — the interim decision so existing
-    /// coaches are not locked out before the free-tier model ships.
-    /// </summary>
-    public static CoachEntitlements FullyEntitled { get; } = new(
-        CanCreatePlans: true,
-        CanMessage: true,
-        CanSendQuestionnaires: true,
-        CanUseWeeklyCheckIns: true,
-        CanUsePerClientCheckInConfig: true,
-        CanUsePayments: true,
-        MaxActiveClients: null);
-
-    /// <summary>
-    /// Every feature flag off. Applied when the subscription's <see cref="Enums.SubscriptionStatus"/>
-    /// is <c>PastDue</c>, <c>Canceled</c>, or <c>Incomplete</c> — the plan's own flags are ignored.
+    /// Every feature flag off and no client slots. Applied when the Free plan row is missing, so the
+    /// service fails closed.
     /// </summary>
     public static CoachEntitlements Locked { get; } = new(
         CanCreatePlans: false,

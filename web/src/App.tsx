@@ -29,12 +29,19 @@ import InboxPage from '@/pages/InboxPage';
 import FormsPage from '@/pages/FormsPage';
 import AutomationsPage from '@/pages/AutomationsPage';
 import PackagesPage from '@/pages/PackagesPage';
+import AdminPlansPage from '@/pages/AdminPlansPage';
+import AdminCoachesPage from '@/pages/AdminCoachesPage';
+import AdminCoachProfilePage from '@/pages/AdminCoachProfilePage';
 import FormBuilderPage from '@/pages/FormBuilderPage';
 import IngredientsPage from '@/pages/IngredientsPage';
 import RecipesPage from '@/pages/RecipesPage';
 import PlanTemplatesPage from '@/pages/PlanTemplatesPage';
 import PlanTemplateEditorPage from '@/pages/PlanTemplateEditorPage';
 import ClientPlanEditorPage from '@/pages/ClientPlanEditorPage';
+import LapseKeepClientsPage from '@/pages/LapseKeepClientsPage';
+import PlanChoicePage from '@/pages/PlanChoicePage';
+import PlanChoiceGuard from '@/routes/PlanChoiceGuard';
+import { KEEP_CLIENTS_PATH, PLAN_CHOICE_PATH } from '@/components/subscription/planLinks';
 import ProfilePage from '@/pages/ProfilePage';
 import SettingsPage from '@/pages/SettingsPage';
 import NotFoundPage from '@/pages/NotFoundPage';
@@ -83,6 +90,11 @@ const router = createBrowserRouter(
       <Route path="/download-app" element={<DownloadAppPage />} />
 
       <Route element={<ProtectedRoute />}>
+       {/* Keeps a coach with an ended given plan on the picker; the picker route itself is full screen, no AppShell. */}
+       <Route element={<PlanChoiceGuard />}>
+        <Route element={<RoleGuard allowedRoles={['Trainer', 'Nutritionist']} />}>
+          <Route path={PLAN_CHOICE_PATH} element={<PlanChoicePage />} />
+        </Route>
         <Route element={<AppShell />}>
           <Route path="/clients" element={<ClientsPage />} />
           <Route path="/clients/:clientId" element={<ClientDetailPage />}>
@@ -101,6 +113,14 @@ const router = createBrowserRouter(
             <Route path="/recipes" element={<RecipesPage />} />
             <Route path="/plan-templates" element={<PlanTemplatesPage />} />
           </Route>
+          <Route element={<RoleGuard allowedRoles={['Admin']} />}>
+            <Route path="/admin/plans" element={<AdminPlansPage />} />
+            <Route path="/admin/coach-accounts" element={<AdminCoachesPage />} />
+            <Route path="/admin/coach-accounts/:coachId" element={<AdminCoachProfilePage />} />
+          </Route>
+          <Route element={<RoleGuard allowedRoles={['Trainer', 'Nutritionist']} />}>
+            <Route path={KEEP_CLIENTS_PATH} element={<LapseKeepClientsPage />} />
+          </Route>
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
@@ -112,6 +132,7 @@ const router = createBrowserRouter(
             <Route path="/clients/:clientId/nutrition/plans/:planId" element={<ClientPlanEditorPage />} />
           </Route>
         </Route>
+       </Route>
       </Route>
 
       <Route path="*" element={<NotFoundPage />} />

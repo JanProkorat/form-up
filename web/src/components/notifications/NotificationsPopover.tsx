@@ -2,12 +2,15 @@ import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
+  Ban,
   Bell,
+  CalendarX,
   Camera,
   Check,
   ChevronRight,
   History,
   MessageSquare,
+  Repeat,
   UserCheck,
   UserPlus,
   UserX,
@@ -26,6 +29,8 @@ import {
   useUnreadNotificationsCount,
 } from '@/hooks/useNotificationsQueries';
 import { NOTIFICATIONS_PAGE_SIZE } from '@/api/notifications';
+import { useSubscription } from '@/hooks/useSubscriptionQueries';
+import { KEEP_CLIENTS_PATH, PLAN_BILLING_PATH } from '@/components/subscription/planLinks';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const RECENT_WEEKDAY_WINDOW_DAYS = 6;
@@ -36,7 +41,17 @@ const TYPE_ICON: Record<string, LucideIcon> = {
   invitationdeclined: UserX,
   newmessage: MessageSquare,
   progressphotossubmitted: Camera,
+  coachplanchanged: Repeat,
+  coachplanended: CalendarX,
+  coachplanrenewalcancelled: Ban,
 };
+
+const PLAN_NOTIFICATION_TYPES: ReadonlySet<string> = new Set([
+  'coachplanchanged',
+  'coachplanended',
+  'coachplanrenewalcancelled',
+]);
+const COACH_PLAN_ENDED_TYPE = 'coachplanended';
 
 const OFFLINE_SYNC_CONFLICT_TYPE = 'offlinesyncconflict';
 const PROGRESS_PHOTOS_SUBMITTED_TYPE = 'progressphotossubmitted';
@@ -96,6 +111,8 @@ export default function NotificationsPopover({ collapsed, rowClassName, label, o
   const { count, capped } = useUnreadNotificationsCount();
   const markRead = useMarkNotificationRead();
   const markAllRead = useMarkAllNotificationsRead();
+  // Same rule as the account menu: the keep-clients screen is only useful while a pick is still due.
+  const needsKeepPick = useSubscription().keepPickDue;
 
   const items = notificationsQuery.data ?? [];
   const badgeText = capped ? `${NOTIFICATIONS_PAGE_SIZE}+` : String(count);
@@ -106,6 +123,13 @@ export default function NotificationsPopover({ collapsed, rowClassName, label, o
     setOpen(false);
     onNavigate?.();
     navigate('/clients?tab=Pending');
+  }
+
+  function openPlanPage(item: NotificationDto, path: string) {
+    if (!item.read) markRead.mutate(item.id);
+    setOpen(false);
+    onNavigate?.();
+    navigate(path);
   }
 
   function seeClientActivity(item: NotificationDto, clientPublicId: string) {
@@ -256,6 +280,23 @@ export default function NotificationsPopover({ collapsed, rowClassName, label, o
                         className="inline-flex items-center gap-0.5 self-start text-label font-semibold text-foreground underline underline-offset-2"
                       >
                         {t('notifications.seePhotos')}
+                        <ChevronRight className="size-3.5" aria-hidden="true" />
+                      </button>
+                    )}
+                    {PLAN_NOTIFICATION_TYPES.has(item.type) && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          openPlanPage(
+                            item,
+                            item.type === COACH_PLAN_ENDED_TYPE && needsKeepPick ? KEEP_CLIENTS_PATH : PLAN_BILLING_PATH,
+                          )
+                        }
+                        className="inline-flex items-center gap-0.5 self-start text-label font-semibold text-foreground underline underline-offset-2"
+                      >
+                        {item.type === COACH_PLAN_ENDED_TYPE && needsKeepPick
+                          ? t('notifications.pickClientsToKeep')
+                          : t('notifications.seeYourPlan')}
                         <ChevronRight className="size-3.5" aria-hidden="true" />
                       </button>
                     )}

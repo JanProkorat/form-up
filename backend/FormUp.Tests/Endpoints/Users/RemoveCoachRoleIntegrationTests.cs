@@ -47,7 +47,7 @@ public class RemoveCoachRoleIntegrationTests(FitnessApiFactory factory)
         (await userManager.GetRolesAsync(user!)).Should().Contain(AppRoles.Trainer);
 
         var link = await db.ClientProfessionalLinks.AsNoTracking().FirstAsync(l => l.Id == linkId, Ct);
-        link.IsActive.Should().BeTrue();
+        link.ConnectionState.Should().Be(ConnectionState.Connected);
         link.CanViewTrainingPlans.Should().BeTrue();
         link.CanViewNutritionPlans.Should().BeTrue();
     }

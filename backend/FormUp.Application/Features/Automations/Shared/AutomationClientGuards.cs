@@ -6,6 +6,7 @@ using FormUp.Application.Domain.Interfaces;
 using FormUp.Application.Domain.Services;
 using FormUp.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using FormUp.Application.Domain.Enums;
 
 namespace FormUp.Application.Features.Automations.Shared;
 
@@ -60,7 +61,7 @@ public static class AutomationClientGuards
 
         var links = await db.ClientProfessionalLinks
             .AsNoTracking()
-            .Where(l => l.ProfessionalProfileId == profile.Id && l.ClientProfileId == client.Id && l.IsActive)
+            .Where(l => l.ProfessionalProfileId == profile.Id && l.ClientProfileId == client.Id && l.ConnectionState != ConnectionState.Ended)
             .Select(l => new { l.Id, l.DateCreated, l.ActivatedAtUtc })
             .ToListAsync(ct);
 

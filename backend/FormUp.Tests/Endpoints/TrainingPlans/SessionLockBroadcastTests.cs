@@ -222,7 +222,7 @@ public class SessionLockBroadcastTests
         var ep = Factory.Create<UnlockTrainingSessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, DefaultOptions(), notifier,
+            new MockDbBuilder().Build(), mongo, lockService, DefaultOptions(), notifier,
             EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         // Act
@@ -278,7 +278,7 @@ public class SessionLockBroadcastTests
         var ep = Factory.Create<UnlockTrainingSessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, DefaultOptions(), notifier,
+            new MockDbBuilder().Build(), mongo, lockService, DefaultOptions(), notifier,
             EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         // Act
@@ -311,7 +311,7 @@ public class SessionLockBroadcastTests
         var ep = Factory.Create<RelockTrainingSessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, notifier,
+            new MockDbBuilder().Build(), mongo, lockService, notifier,
             EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         // Act
@@ -360,7 +360,7 @@ public class SessionLockBroadcastTests
         var ep = Factory.Create<RelockTrainingSessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, notifier,
+            new MockDbBuilder().Build(), mongo, lockService, notifier,
             EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         // Act

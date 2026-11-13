@@ -148,13 +148,7 @@ public class SendClientRequestPackageTests(FitnessApiFactory factory)
         var coach = await CoachWithPaymentsAsync();
         var client = await TestActors.Client(factory).CreateAsync(Ct);
         var packageId = await CreatePackageAsync(coach);
-        using (var scope = factory.Services.CreateScope())
-        {
-            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            var subscription = await db.CoachSubscriptions.SingleAsync(cs => cs.ProfessionalProfileId == coach.ProfileId, Ct);
-            subscription.Status = FormUp.Application.Domain.Enums.SubscriptionStatus.Canceled;
-            await db.SaveChangesAsync(Ct);
-        }
+        await CoachSubscriptionBuilder.MoveToPlanWithoutPaymentsAsync(factory, coach);
 
         await AssertRefusedAsync(coach, client, packageId);
     }

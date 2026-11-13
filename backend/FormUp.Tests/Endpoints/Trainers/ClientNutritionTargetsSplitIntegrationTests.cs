@@ -89,7 +89,7 @@ public class ClientNutritionTargetsSplitIntegrationTests(FitnessApiFactory facto
             ProfessionalProfileId = trainerProfileId,
             ClientProfileId = clientProfileId,
             ProfessionalRole = UserRole.Nutritionist,
-            IsActive = true,
+            ConnectionState = ConnectionState.Connected,
             CanViewTrainingPlans = true,
             CanViewNutritionPlans = true,
             DateCreated = DateTime.UtcNow,

@@ -170,6 +170,11 @@ public interface IApplicationDbContext
     DbSet<SubscriptionPlan> SubscriptionPlans { get; set; }
 
     /// <summary>
+    /// Price history of the subscription tiers; one open row per plan.
+    /// </summary>
+    DbSet<SubscriptionPlanPrice> SubscriptionPlanPrices { get; set; }
+
+    /// <summary>
     /// A professional's subscription to a <see cref="SubscriptionPlan"/>.
     /// </summary>
     DbSet<CoachSubscription> CoachSubscriptions { get; set; }

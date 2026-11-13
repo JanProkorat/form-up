@@ -19,11 +19,13 @@ namespace FormUp.Application.Features.Automations.GetClientAutomations;
 /// <param name="db">Application database context.</param>
 /// <param name="mongo">MongoDB context, read for plan-event send dates.</param>
 /// <param name="linkAuthorizationService">Resolves link capabilities.</param>
+/// <param name="entitlementService">Resolves the coach's subscription entitlements.</param>
 /// <param name="timeProvider">Clock.</param>
 public class GetClientAutomationsEndpoint(
     IApplicationDbContext db,
     IMongoContext mongo,
     IClientLinkAuthorizationService linkAuthorizationService,
+    EntitlementService entitlementService,
     TimeProvider timeProvider)
     : Endpoint<GetClientAutomationsRequest, GetClientAutomationsResponse>
 {
@@ -39,10 +41,10 @@ public class GetClientAutomationsEndpoint(
             s.Summary = "List a client's effective automation rules";
             s.Description =
                 "Returns each rule with its source, next send, last result and 30-day counts.";
-            s.Responses[StatusCodes.Status200OK] = "The client's effective rules";
-            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or invalid credentials";
-            s.Responses[StatusCodes.Status403Forbidden] = "The live link grants no access";
-            s.Responses[StatusCodes.Status404NotFound] = "Client not found, or the caller has no live link to them";
+            s.Response<GetClientAutomationsResponse>(StatusCodes.Status200OK, "The client's effective rules");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or invalid credentials");
+            s.Response(StatusCodes.Status403Forbidden, "The live link grants no access");
+            s.Response(StatusCodes.Status404NotFound, "Client not found, or the caller has no live link to them");
         });
     }
 
@@ -103,7 +105,7 @@ public class GetClientAutomationsEndpoint(
 
         // A coach without per-client check-in configuration runs a check-in rule on the coach-wide
         // schedule, so the client's override and pause are not shown either.
-        var entitlements = await new EntitlementService(db).GetEntitlementsAsync(context.Profile.Id, ct);
+        var entitlements = await entitlementService.GetEntitlementsAsync(context.Profile.Id, ct);
 
         foreach (var rule in rules)
         {

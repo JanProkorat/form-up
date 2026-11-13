@@ -493,6 +493,7 @@ public class ClientAutomationEndpointTests(FitnessApiFactory factory)
     public async Task Override_CheckInWindowWithMismatchedReminder_Returns400()
     {
         var (coach, client, _) = await LinkedPairAsync();
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, "studio");
         var formId = await AutomationTestData.CreateQuestionnaireAsync(factory, coach, QuestionnaireType.CheckIn);
         var rule = await CreateRuleAsync(coach, new Dictionary<string, object?>
         {
@@ -528,6 +529,7 @@ public class ClientAutomationEndpointTests(FitnessApiFactory factory)
     public async Task List_CheckInOverrideIgnoredWhenThePlanLacksPerClientConfig()
     {
         var (coach, client, _) = await LinkedPairAsync();
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, "studio");
         var formId = await AutomationTestData.CreateQuestionnaireAsync(factory, coach, QuestionnaireType.CheckIn);
         var rule = await CreateRuleAsync(coach, new Dictionary<string, object?>
         {

@@ -86,6 +86,7 @@ public class GetCollaborationsCheckInIntegrationTests(FitnessApiFactory factory)
     public async Task GetAll_RuleEnabledWithoutOverride_ReturnsRuleDayForTheLinkProfession()
     {
         var (coach, client) = await LinkedPairAsync(UserRole.Nutritionist);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, "studio");
         await AddCheckInRuleAsync(coach, DayOfWeek.Wednesday);
 
         var checkIns = await GetCheckInsAsync(client, coach);
@@ -97,6 +98,7 @@ public class GetCollaborationsCheckInIntegrationTests(FitnessApiFactory factory)
     public async Task GetAll_OverrideHasDay_OverrideDayWins()
     {
         var (coach, client) = await LinkedPairAsync();
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, "studio");
         var rule = await AddCheckInRuleAsync(coach, DayOfWeek.Wednesday);
         await AddOverrideAsync(rule, client, DayOfWeek.Friday);
 
@@ -155,6 +157,7 @@ public class GetCollaborationsCheckInIntegrationTests(FitnessApiFactory factory)
     public async Task GetAll_ClientOnlyRuleOfAnotherClient_IsNotShown()
     {
         var (coach, client) = await LinkedPairAsync();
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, "studio");
         var otherClient = await TestActors.Client(factory).CreateAsync(Ct);
         await TestActors.Link(factory, coach, otherClient).CreateAsync(Ct);
         await AddCheckInRuleAsync(coach, DayOfWeek.Saturday, configure: rule => rule.ClientProfileId = otherClient.ProfileId);

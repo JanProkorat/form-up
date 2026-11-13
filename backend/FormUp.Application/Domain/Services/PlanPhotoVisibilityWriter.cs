@@ -79,7 +79,7 @@ public static class PlanPhotoVisibilityWriter
         await db.ClientProfessionalLinks
             .AsNoTracking()
             .Where(link => link.ClientProfileId == clientProfileId
-                && link.IsActive
+                && link.ConnectionState != ConnectionState.Ended
                 && (link.CanViewNutritionPlans || link.CanViewTrainingPlans))
             .Join(
                 db.ProfessionalProfiles,

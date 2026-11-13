@@ -56,11 +56,11 @@ public class GetConversationsEndpoint(
                              "narrowed by a clients-list-style filter chip (professional callers only). " +
                              "Linked clients with no conversation yet are not listed. The UnreadMessages chip also " +
                              "lists conversations of clients with no link yet.";
-            s.Responses[StatusCodes.Status200OK] = "Conversation list, newest activity first.";
-            s.Responses[StatusCodes.Status400BadRequest] = "filter is not a member of ClientListFilter, " +
-                                                             "or a non-All filter was requested by a Client caller.";
-            s.Responses[StatusCodes.Status401Unauthorized] = "No caller claim on the request.";
-            s.Responses[StatusCodes.Status404NotFound] = "Caller is a professional with no ProfessionalProfile.";
+            s.Response<List<ConversationDto>>(StatusCodes.Status200OK, "Conversation list, newest activity first.");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "filter is not a member of ClientListFilter, " +
+                                                                        "or a non-All filter was requested by a Client caller.");
+            s.Response(StatusCodes.Status401Unauthorized, "No caller claim on the request.");
+            s.Response(StatusCodes.Status404NotFound, "Caller is a professional with no ProfessionalProfile.");
         });
     }
 
@@ -292,7 +292,7 @@ public class GetConversationsEndpoint(
             {
                 ClientUserId = l.ClientProfile.UserId,
                 ProfessionalUserId = l.ProfessionalProfile.UserId,
-                l.IsActive,
+                IsActive = l.ConnectionState != ConnectionState.Ended,
                 ChangedAt = l.DateUpdated ?? l.DateCreated,
             })
             .ToListAsync(ct);

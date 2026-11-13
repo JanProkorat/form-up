@@ -17,12 +17,18 @@ public static class AutomationEvaluationLoader
     /// that no longer includes the client, or a check-in rule whose coach lost the check-in feature.
     /// </summary>
     /// <param name="db">Application database context.</param>
+    /// <param name="entitlementService">Resolves the coach's subscription entitlements.</param>
     /// <param name="ruleId">Internal id of the rule.</param>
     /// <param name="clientProfileId">Internal id of the client profile.</param>
     /// <param name="nowUtc">The current instant, which decides whether a pause lapsed.</param>
     /// <param name="ct">Cancellation token.</param>
     public static async Task<AutomationEvaluation?> LoadAsync(
-        IApplicationDbContext db, long ruleId, long clientProfileId, DateTime nowUtc, CancellationToken ct)
+        IApplicationDbContext db,
+        EntitlementService entitlementService,
+        long ruleId,
+        long clientProfileId,
+        DateTime nowUtc,
+        CancellationToken ct)
     {
         var rule = await db.AutomationRules
             .AsNoTracking()
@@ -60,7 +66,7 @@ public static class AutomationEvaluationLoader
         // Only a check-in rule depends on the subscription, so other rules cost no extra query.
         if (AutomationCheckInGate.IsCheckInRule(rule))
         {
-            var entitlements = await new EntitlementService(db).GetEntitlementsAsync(coach.Id, ct);
+            var entitlements = await entitlementService.GetEntitlementsAsync(coach.Id, ct);
 
             if (!AutomationCheckInGate.MaySend(rule, entitlements))
             {

@@ -66,7 +66,7 @@ public class CreatePendingInviteEndpointTests
                 new ClaimsIdentity(roles.Length > 1
                     ? MultiRoleClaims(callerId, roles)
                     : EndpointTestHelpers.FakeUserClaims(callerId, roles.FirstOrDefault() ?? AppRoles.Trainer))),
-            db, emailQueue, notificationService, notifier, conversationSeedService, userManager, new EntitlementService(db), logger, TimeProvider.System);
+            db, emailQueue, notificationService, notifier, conversationSeedService, userManager, EntitlementServiceBuilder.For(db), logger, TimeProvider.System);
 
         return new InviteHarness(ep, conversationSeedService, userManager, emailQueue, notificationService, notifier);
     }

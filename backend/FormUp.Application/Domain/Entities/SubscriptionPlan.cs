@@ -32,9 +32,10 @@ public class SubscriptionPlan : TimestampableEntity
     public required string NameDe { get; set; }
 
     /// <summary>
-    /// Which professional role(s) this plan applies to.
+    /// True when the plan covers both professional roles at no extra charge. When false,
+    /// <see cref="SecondRoleAddOnPriceMinorUnits"/> is the price of the second role.
     /// </summary>
-    public ApplicableRoles ApplicableRoles { get; set; }
+    public bool BothRolesIncluded { get; set; }
 
     /// <summary>
     /// Whether the plan allows creating nutrition/training plans.
@@ -72,9 +73,16 @@ public class SubscriptionPlan : TimestampableEntity
     public int? MaxActiveClients { get; set; }
 
     /// <summary>
-    /// Plan price, expressed in the smallest unit of <see cref="Currency"/> (e.g. cents).
+    /// Current plan price, expressed in the smallest unit of <see cref="Currency"/> (e.g. cents).
+    /// Mirrors the open <see cref="Prices"/> row.
     /// </summary>
     public long PriceMinorUnits { get; set; }
+
+    /// <summary>
+    /// Current price of the second-role add-on in the same unit. Null when
+    /// <see cref="BothRolesIncluded"/>. Mirrors the open <see cref="Prices"/> row.
+    /// </summary>
+    public long? SecondRoleAddOnPriceMinorUnits { get; set; }
 
     /// <summary>
     /// ISO 4217 currency code for <see cref="PriceMinorUnits"/>.
@@ -87,12 +95,12 @@ public class SubscriptionPlan : TimestampableEntity
     public BillingInterval BillingInterval { get; set; }
 
     /// <summary>
-    /// External payment-provider price identifier. Populated once billing integration ships.
-    /// </summary>
-    public string? ExternalPriceId { get; set; }
-
-    /// <summary>
     /// Whether the plan is currently offered/selectable.
     /// </summary>
     public bool IsActive { get; set; }
+
+    /// <summary>
+    /// Price history, one row per price the plan has been sold at. Exactly one row is open.
+    /// </summary>
+    public ICollection<SubscriptionPlanPrice> Prices { get; set; } = [];
 }

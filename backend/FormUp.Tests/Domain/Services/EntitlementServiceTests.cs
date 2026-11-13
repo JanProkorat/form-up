@@ -2,6 +2,7 @@ using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Services;
 using FormUp.Application.Infrastructure.Data;
+using FormUp.Tests.Builders;
 using FormUp.Tests.Infrastructure;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -59,7 +60,7 @@ public class EntitlementServiceTests(FitnessApiFactory factory)
             ProfessionalProfileId = professionalProfile.Id,
             ClientProfileId = clientProfile.Id,
             ProfessionalRole = UserRole.Trainer,
-            IsActive = isActive,
+            ConnectionState = isActive ? ConnectionState.Connected : ConnectionState.Ended,
             CanViewNutritionPlans = true,
             CanViewTrainingPlans = true
         });
@@ -69,7 +70,6 @@ public class EntitlementServiceTests(FitnessApiFactory factory)
 
     private async Task<long> CreateSubscriptionPlanAsync(
         string tag,
-        ApplicableRoles applicableRoles = ApplicableRoles.Both,
         int? maxActiveClients = null,
         bool canCreatePlans = true,
         bool canMessage = true,
@@ -87,7 +87,7 @@ public class EntitlementServiceTests(FitnessApiFactory factory)
             NameCs = "Plán",
             NameEn = "Plan",
             NameDe = "Plan",
-            ApplicableRoles = applicableRoles,
+            BothRolesIncluded = true,
             CanCreatePlans = canCreatePlans,
             CanMessage = canMessage,
             CanSendQuestionnaires = canSendQuestionnaires,
@@ -101,6 +101,7 @@ public class EntitlementServiceTests(FitnessApiFactory factory)
             IsActive = true
         };
 
+        SubscriptionPlanPriceBuilder.OpenPriceFor(plan);
         db.SubscriptionPlans.Add(plan);
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         return plan.Id;
@@ -111,10 +112,16 @@ public class EntitlementServiceTests(FitnessApiFactory factory)
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
+        var priceId = await db.SubscriptionPlanPrices
+            .Where(p => p.SubscriptionPlanId == subscriptionPlanId && p.ValidTo == null)
+            .Select(p => p.Id)
+            .SingleAsync(TestContext.Current.CancellationToken);
+
         db.CoachSubscriptions.Add(new CoachSubscription
         {
             ProfessionalProfileId = professionalProfileId,
             SubscriptionPlanId = subscriptionPlanId,
+            SubscriptionPlanPriceId = priceId,
             Status = status
         });
 
@@ -132,10 +139,10 @@ public class EntitlementServiceTests(FitnessApiFactory factory)
     [Theory]
     [InlineData(SubscriptionStatus.Trialing, true)]
     [InlineData(SubscriptionStatus.Active, true)]
-    [InlineData(SubscriptionStatus.PastDue, false)]
+    [InlineData(SubscriptionStatus.PastDue, true)]
     [InlineData(SubscriptionStatus.Canceled, false)]
     [InlineData(SubscriptionStatus.Incomplete, false)]
-    public async Task GetEntitlementsAsync_EveryStatus_ResolvesPlanFlagsOnlyWhenInGoodStanding(
+    public async Task GetEntitlementsAsync_EveryStatus_ResolvesPlanFlagsOrFallsBackToFree(
         SubscriptionStatus status, bool expectPlanFlags)
     {
         var professionalUserId = await RegisterProfessionalAsync($"status-{status}");
@@ -146,12 +153,10 @@ public class EntitlementServiceTests(FitnessApiFactory factory)
 
         var entitlements = await service.GetEntitlementsAsync(professionalProfileId, TestContext.Current.CancellationToken);
 
-        entitlements.CanCreatePlans.Should().Be(expectPlanFlags);
-        entitlements.CanMessage.Should().Be(expectPlanFlags);
+        // The fixture plan switches every flag on; the seeded Free plan keeps the paid-only ones off.
         entitlements.CanSendQuestionnaires.Should().Be(expectPlanFlags);
         entitlements.CanUseWeeklyCheckIns.Should().Be(expectPlanFlags);
         entitlements.CanUsePerClientCheckInConfig.Should().Be(expectPlanFlags);
-        entitlements.CanUsePayments.Should().Be(expectPlanFlags);
         scope.Dispose();
     }
 
@@ -169,29 +174,6 @@ public class EntitlementServiceTests(FitnessApiFactory factory)
         var entitlements = await service.GetEntitlementsAsync(professionalProfileId, TestContext.Current.CancellationToken);
 
         entitlements.CanUsePayments.Should().Be(canUsePayments);
-        scope.Dispose();
-    }
-
-    // ── GetEntitlementsAsync — role axis (ApplicableRoles does not gate the flags) ──
-
-    [Theory]
-    [InlineData(ApplicableRoles.Trainer)]
-    [InlineData(ApplicableRoles.Nutritionist)]
-    [InlineData(ApplicableRoles.Both)]
-    public async Task GetEntitlementsAsync_AnyApplicableRoles_ResolvesPlanFlagsUnaffectedByRole(
-        ApplicableRoles applicableRoles)
-    {
-        var professionalUserId = await RegisterProfessionalAsync($"role-{applicableRoles}");
-        var professionalProfileId = await GetProfessionalProfileIdAsync(professionalUserId);
-        var planId = await CreateSubscriptionPlanAsync($"role-{applicableRoles}", applicableRoles: applicableRoles);
-        await CreateCoachSubscriptionAsync(professionalProfileId, planId, SubscriptionStatus.Active);
-        var service = CreateService(out var scope);
-
-        var entitlements = await service.GetEntitlementsAsync(professionalProfileId, TestContext.Current.CancellationToken);
-
-        entitlements.CanCreatePlans.Should().BeTrue(
-            "ApplicableRoles is a role-gating axis reserved for the endpoint layer (#594) — " +
-            "EntitlementService itself must not filter on it");
         scope.Dispose();
     }
 
@@ -214,18 +196,23 @@ public class EntitlementServiceTests(FitnessApiFactory factory)
         scope.Dispose();
     }
 
-    // ── No CoachSubscription row — interim fully-entitled behavior ──────────────
+    // ── No CoachSubscription row — the Free plan applies ────────────────────────
 
     [Fact]
-    public async Task GetEntitlementsAsync_NoSubscriptionRow_ReturnsFullyEntitled()
+    public async Task GetEntitlementsAsync_NoSubscriptionRow_ReturnsTheFreePlanEntitlements()
     {
         var professionalUserId = await RegisterProfessionalAsync("no-subscription");
         var professionalProfileId = await GetProfessionalProfileIdAsync(professionalUserId);
         var service = CreateService(out var scope);
+        var free = await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().SubscriptionPlans
+            .AsNoTracking()
+            .SingleAsync(p => p.Code == "free", TestContext.Current.CancellationToken);
 
         var entitlements = await service.GetEntitlementsAsync(professionalProfileId, TestContext.Current.CancellationToken);
 
-        entitlements.Should().Be(CoachEntitlements.FullyEntitled);
+        entitlements.Should().Be(new CoachEntitlements(
+            free.CanCreatePlans, free.CanMessage, free.CanSendQuestionnaires, free.CanUseWeeklyCheckIns,
+            free.CanUsePerClientCheckInConfig, free.CanUsePayments, free.MaxActiveClients));
         scope.Dispose();
     }
 
@@ -245,18 +232,23 @@ public class EntitlementServiceTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task CanAddClientAsync_NoSubscriptionRow_ReturnsTrueRegardlessOfClientCount()
+    public async Task CanAddClientAsync_NoSubscriptionRowAtTheFreeCap_ReturnsFalse()
     {
         var professionalUserId = await RegisterProfessionalAsync("no-sub-add");
         var professionalProfileId = await GetProfessionalProfileIdAsync(professionalUserId);
-        await CreateClientLinkAsync(professionalUserId, "no-sub-add-1");
-        await CreateClientLinkAsync(professionalUserId, "no-sub-add-2");
-        await CreateClientLinkAsync(professionalUserId, "no-sub-add-3");
         var service = CreateService(out var scope);
+        var free = await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().SubscriptionPlans
+            .AsNoTracking()
+            .SingleAsync(p => p.Code == "free", TestContext.Current.CancellationToken);
+
+        for (var index = 0; index < free.MaxActiveClients!.Value; index++)
+        {
+            await CreateClientLinkAsync(professionalUserId, $"no-sub-add-{index}");
+        }
 
         var canAdd = await service.CanAddClientAsync(professionalProfileId, TestContext.Current.CancellationToken);
 
-        canAdd.Should().BeTrue("no subscription row means unlimited, per the interim fully-entitled decision");
+        canAdd.Should().BeFalse("no subscription row resolves to the Free plan and its client cap");
         scope.Dispose();
     }
 

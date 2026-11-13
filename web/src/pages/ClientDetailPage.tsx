@@ -17,6 +17,8 @@ import EndedClientPaymentView from '@/components/client-detail/payment/EndedClie
 import { getErrorStatus } from '@/lib/api-errors';
 import { useInvalidateClientLinkState } from '@/hooks/useClientPaymentQueries';
 import { useSignalR } from '@/hooks/useSignalR';
+import { useSubscription } from '@/hooks/useSubscriptionQueries';
+import OutsidePlanBanner from '@/components/subscription/OutsidePlanBanner';
 import { useClientNutritionRealtime } from '@/hooks/useClientNutritionRealtime';
 import ClientPhotosTab from '@/components/client-detail/photos/ClientPhotosTab';
 import ClientFormsTab from '@/components/client-detail/forms/ClientFormsTab';
@@ -55,6 +57,7 @@ export default function ClientDetailPage() {
             : 'overview';
 
   const invalidateLinkState = useInvalidateClientLinkState(clientId);
+  const subscription = useSubscription();
 
   const dashboardQuery = useQuery({
     queryKey: ['client-dashboard', clientId],
@@ -129,6 +132,15 @@ export default function ClientDetailPage() {
 
   return (
     <div className="flex flex-col gap-4">
+      {dashboard.isOutsidePlan === true && (
+        <OutsidePlanBanner
+          clientName={`${dashboard.firstName ?? ''} ${dashboard.lastName ?? ''}`.trim()}
+          planName={subscription.planName}
+          clientLimit={subscription.clientLimit}
+          overCapClientCount={subscription.overCapClientCount}
+          freeSlotCount={subscription.freeSlotCount}
+        />
+      )}
       <ClientDetailHeader
         clientId={clientId}
         dashboard={dashboard}

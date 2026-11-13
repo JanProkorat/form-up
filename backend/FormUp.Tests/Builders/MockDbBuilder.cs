@@ -34,6 +34,8 @@ public class MockDbBuilder
     private readonly List<Conversation> _conversations = [];
     private readonly List<ChatMessage> _chatMessages = [];
     private readonly List<ClientTag> _clientTags = [];
+    private readonly List<SubscriptionPlan> _subscriptionPlans = [];
+    private readonly List<CoachSubscription> _coachSubscriptions = [];
 
     /// <summary>
     /// Adds an <see cref="ApplicationUser"/> to the mock context.
@@ -160,6 +162,34 @@ public class MockDbBuilder
     public MockDbBuilder With(ClientTag tag) { _clientTags.Add(tag); return this; }
 
     /// <summary>
+    /// Adds a <see cref="SubscriptionPlan"/> to the mock context. A plan coded <c>free</c> replaces the default Free plan.
+    /// </summary>
+    public MockDbBuilder With(SubscriptionPlan plan) { _subscriptionPlans.Add(plan); return this; }
+
+    /// <summary>
+    /// Adds a <see cref="CoachSubscription"/> to the mock context. Its <c>SubscriptionPlan</c> navigation must be set.
+    /// </summary>
+    public MockDbBuilder With(CoachSubscription subscription) { _coachSubscriptions.Add(subscription); return this; }
+
+    /// <summary>
+    /// The Free plan as the seed writes it, so a coach with no subscription row resolves to it in a unit test.
+    /// </summary>
+    private static SubscriptionPlan SeededFreePlan() => new()
+    {
+        Id = -1,
+        Code = Application.Domain.Constants.SubscriptionPlanCodes.Free,
+        NameCs = "Zdarma",
+        NameEn = "Free",
+        NameDe = "Kostenlos",
+        Currency = "CZK",
+        BothRolesIncluded = true,
+        CanCreatePlans = true,
+        CanMessage = true,
+        CanUsePayments = true,
+        MaxActiveClients = 2,
+    };
+
+    /// <summary>
     /// Builds a mocked <see cref="IApplicationDbContext"/> with all registered entities as queryable DbSets.
     /// </summary>
     public IApplicationDbContext Build()
@@ -191,6 +221,14 @@ public class MockDbBuilder
         var clientTagsSet = _clientTags.BuildMockDbSet();
         var clientPaymentAssignmentsSet = new List<ClientPaymentAssignment>().BuildMockDbSet();
 
+        if (!_subscriptionPlans.Any(plan => plan.Code == Application.Domain.Constants.SubscriptionPlanCodes.Free))
+        {
+            _subscriptionPlans.Add(SeededFreePlan());
+        }
+
+        var subscriptionPlansSet = _subscriptionPlans.BuildMockDbSet();
+        var coachSubscriptionsSet = _coachSubscriptions.BuildMockDbSet();
+
         // Built before the Returns() below, per the same NSubstitute pitfall noted above.
         var transaction = Substitute.For<IDbContextTransaction>();
 
@@ -220,6 +258,8 @@ public class MockDbBuilder
         db.ChatMessages.Returns(chatMessagesSet);
         db.ClientTags.Returns(clientTagsSet);
         db.ClientPaymentAssignments.Returns(clientPaymentAssignmentsSet);
+        db.SubscriptionPlans.Returns(subscriptionPlansSet);
+        db.CoachSubscriptions.Returns(coachSubscriptionsSet);
 
         db.SaveChangesAsync(Arg.Any<CancellationToken>()).Returns(1);
 

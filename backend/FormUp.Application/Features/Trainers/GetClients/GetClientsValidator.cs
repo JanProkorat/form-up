@@ -32,6 +32,19 @@ public class GetClientsValidator : Validator<GetClientsRequest>
             .IsInEnum()
             .When(x => x.Filter.HasValue);
 
+        RuleFor(x => x.Tab)
+            .IsInEnum()
+            .When(x => x.Tab.HasValue);
+
+        RuleFor(x => x.Plan)
+            .IsInEnum()
+            .When(x => x.Plan.HasValue);
+
+        RuleFor(x => x.Tab)
+            .Must(_ => false)
+            .WithMessage("The tab parameter cannot be combined with status.")
+            .When(x => x.Tab.HasValue && x.Status.HasValue);
+
         RuleFor(x => x.TagIds)
             .Must(tagIds => tagIds.Count <= MaxTagIds)
             .WithMessage($"At most {MaxTagIds} tag ids may be supplied.");

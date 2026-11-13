@@ -88,12 +88,11 @@ public static class ApplicationDbContextSeed
     }
 
     /// <summary>
-    /// Seeds a placeholder set of subscription tiers (Free/Small/Medium/Big) so the Admin
-    /// management UI (#595, #596) has rows to display on first boot. Upserts by <c>Code</c> —
-    /// a plan that already exists is left untouched, so Admin edits made through the CRUD
-    /// endpoints are never clobbered by a later boot re-running this seeder. Caps and prices
-    /// are intentionally placeholder values; exact figures are a post-consult data change via
-    /// the Admin UI, not a code change (#595).
+    /// Seeds the placeholder subscription tiers (Free/Start/Pro/Studio), each with its one open
+    /// price row, so the Admin management UI has rows to display on first boot. Insert-if-missing
+    /// by <c>Code</c> — a plan that already exists is left untouched, so Admin edits made through
+    /// the CRUD endpoints are never clobbered by a later boot re-running this seeder. Prices and
+    /// caps are placeholder values, editable through the Admin UI.
     /// </summary>
     private static async Task EnsureSubscriptionPlansAsync(ApplicationDbContext context)
     {
@@ -103,82 +102,22 @@ public static class ApplicationDbContextSeed
 
         var placeholderPlans = new[]
         {
-            new SubscriptionPlan
-            {
-                Code = "free",
-                NameCs = "Zdarma",
-                NameEn = "Free",
-                NameDe = "Kostenlos",
-                ApplicableRoles = ApplicableRoles.Both,
-                CanCreatePlans = false,
-                CanMessage = false,
-                CanSendQuestionnaires = false,
-                CanUseWeeklyCheckIns = false,
-                CanUsePerClientCheckInConfig = false,
-                MaxActiveClients = 3,
-                PriceMinorUnits = 0,
-                Currency = SupportedCurrencies.Czk,
-                BillingInterval = BillingInterval.Monthly,
-                ExternalPriceId = null,
-                IsActive = true,
-            },
-            new SubscriptionPlan
-            {
-                Code = "small",
-                NameCs = "Malý",
-                NameEn = "Small",
-                NameDe = "Klein",
-                ApplicableRoles = ApplicableRoles.Both,
-                CanCreatePlans = true,
-                CanMessage = true,
-                CanSendQuestionnaires = false,
-                CanUseWeeklyCheckIns = false,
-                CanUsePerClientCheckInConfig = false,
-                MaxActiveClients = 10,
-                PriceMinorUnits = 29900,
-                Currency = SupportedCurrencies.Czk,
-                BillingInterval = BillingInterval.Monthly,
-                ExternalPriceId = null,
-                IsActive = true,
-            },
-            new SubscriptionPlan
-            {
-                Code = "medium",
-                NameCs = "Střední",
-                NameEn = "Medium",
-                NameDe = "Mittel",
-                ApplicableRoles = ApplicableRoles.Both,
-                CanCreatePlans = true,
-                CanMessage = true,
-                CanSendQuestionnaires = true,
-                CanUseWeeklyCheckIns = true,
-                CanUsePerClientCheckInConfig = false,
-                MaxActiveClients = 30,
-                PriceMinorUnits = 59900,
-                Currency = SupportedCurrencies.Czk,
-                BillingInterval = BillingInterval.Monthly,
-                ExternalPriceId = null,
-                IsActive = true,
-            },
-            new SubscriptionPlan
-            {
-                Code = "big",
-                NameCs = "Velký",
-                NameEn = "Big",
-                NameDe = "Groß",
-                ApplicableRoles = ApplicableRoles.Both,
-                CanCreatePlans = true,
-                CanMessage = true,
-                CanSendQuestionnaires = true,
-                CanUseWeeklyCheckIns = true,
-                CanUsePerClientCheckInConfig = true,
-                MaxActiveClients = null,
-                PriceMinorUnits = 99900,
-                Currency = SupportedCurrencies.Czk,
-                BillingInterval = BillingInterval.Monthly,
-                ExternalPriceId = null,
-                IsActive = true,
-            },
+            NewSeedPlan(
+                SubscriptionPlanCodes.Free, "Zdarma", "Free", "Kostenlos",
+                price: 0, addOnPrice: null, maxActiveClients: 2,
+                questionnairesAndCheckIns: false, perClientCheckInConfig: false),
+            NewSeedPlan(
+                "start", "Start", "Start", "Start",
+                price: 29900, addOnPrice: 14900, maxActiveClients: 10,
+                questionnairesAndCheckIns: false, perClientCheckInConfig: false),
+            NewSeedPlan(
+                "pro", "Pro", "Pro", "Pro",
+                price: 59900, addOnPrice: 29900, maxActiveClients: 30,
+                questionnairesAndCheckIns: true, perClientCheckInConfig: false),
+            NewSeedPlan(
+                "studio", "Studio", "Studio", "Studio",
+                price: 99900, addOnPrice: null, maxActiveClients: null,
+                questionnairesAndCheckIns: true, perClientCheckInConfig: true),
         };
 
         foreach (var plan in placeholderPlans)
@@ -190,6 +129,52 @@ public static class ApplicationDbContextSeed
         }
 
         await context.SaveChangesAsync();
+    }
+
+    private static SubscriptionPlan NewSeedPlan(
+        string code,
+        string nameCs,
+        string nameEn,
+        string nameDe,
+        long price,
+        long? addOnPrice,
+        int? maxActiveClients,
+        bool questionnairesAndCheckIns,
+        bool perClientCheckInConfig)
+    {
+        var plan = new SubscriptionPlan
+        {
+            Code = code,
+            NameCs = nameCs,
+            NameEn = nameEn,
+            NameDe = nameDe,
+            BothRolesIncluded = addOnPrice is null,
+            CanCreatePlans = true,
+            CanMessage = true,
+            CanSendQuestionnaires = questionnairesAndCheckIns,
+            CanUseWeeklyCheckIns = questionnairesAndCheckIns,
+            CanUsePerClientCheckInConfig = perClientCheckInConfig,
+            // Client payments (packages) come with Pro, like forms and check-ins.
+            CanUsePayments = questionnairesAndCheckIns,
+            MaxActiveClients = maxActiveClients,
+            PriceMinorUnits = price,
+            SecondRoleAddOnPriceMinorUnits = addOnPrice,
+            Currency = SupportedCurrencies.Czk,
+            BillingInterval = BillingInterval.Monthly,
+            IsActive = true,
+        };
+
+        plan.Prices.Add(new SubscriptionPlanPrice
+        {
+            SubscriptionPlanId = 0,
+            SubscriptionPlan = plan,
+            PriceMinorUnits = price,
+            SecondRoleAddOnPriceMinorUnits = addOnPrice,
+            Currency = SupportedCurrencies.Czk,
+            ValidFrom = DateTime.UtcNow,
+        });
+
+        return plan;
     }
 
     /// <summary>

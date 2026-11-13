@@ -31,11 +31,11 @@ internal sealed class GetClientNutritionPlanEndpoint(IMongoContext mongo, IAppli
             s.Summary = "Get one of the caller's nutrition plans";
             s.Description = "Returns the published weeks of one of the caller's own Active or Completed nutrition plans. "
                 + "The current week and day are null when the plan is upcoming, completed, or past its window.";
-            s.Responses[StatusCodes.Status200OK] = "Nutrition plan with its published weeks";
-            s.Responses[StatusCodes.Status400BadRequest] = "Invalid plan id";
-            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
-            s.Responses[StatusCodes.Status404NotFound] =
-                "Plan not found, not owned by the caller, not Active or Completed, or without a published week";
+            s.Response<GetFullPlanResponse>(StatusCodes.Status200OK, "Nutrition plan with its published weeks");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Invalid plan id");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status404NotFound,
+                "Plan not found, not owned by the caller, not Active or Completed, or without a published week");
         });
     }
 
@@ -82,6 +82,14 @@ internal sealed class GetClientNutritionPlanEndpoint(IMongoContext mongo, IAppli
             response.CurrentWeek = null;
             response.CurrentDayOfWeek = null;
         }
+
+        response.RunsUntil = await this.ResolveRunsUntilForOverCapClientAsync(
+            db,
+            plan.NutritionistId,
+            clientId,
+            plan.StartDate,
+            plan.Weeks.Where(w => w.Status == WeekStatus.Published).Select(w => w.WeekNumber),
+            ct);
 
         await Send.OkAsync(response, ct);
     }
