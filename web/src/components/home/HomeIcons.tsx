@@ -42,27 +42,6 @@ export function IconPlay({ size = 14 }: SizedProps) {
   );
 }
 
-export function IconDumbbell({ size = 18 }: SizedProps) {
-  return (
-    <Icon size={size}>
-      <path d="M6 7v10" />
-      <path d="M3 9.5v5" />
-      <path d="M18 7v10" />
-      <path d="M21 9.5v5" />
-      <path d="M6 12h12" />
-    </Icon>
-  );
-}
-
-export function IconCopy({ size = 18 }: SizedProps) {
-  return (
-    <Icon size={size}>
-      <rect x="8" y="8" width="12" height="12" rx="2" />
-      <path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3" />
-    </Icon>
-  );
-}
-
 export function IconPulse({ size = 18 }: SizedProps) {
   return (
     <Icon size={size}>
@@ -71,76 +50,11 @@ export function IconPulse({ size = 18 }: SizedProps) {
   );
 }
 
-export function IconCalendar({ size = 18 }: SizedProps) {
-  return (
-    <Icon size={size}>
-      <rect x="3.5" y="5" width="17" height="15" rx="2" />
-      <path d="M3.5 10h17" />
-      <path d="M8 3v4" />
-      <path d="M16 3v4" />
-    </Icon>
-  );
-}
-
-export function IconSliders({ size = 18 }: SizedProps) {
-  return (
-    <Icon size={size}>
-      <path d="M4 7h10" />
-      <path d="M18 7h2" />
-      <circle cx="16" cy="7" r="2" />
-      <path d="M4 17h4" />
-      <path d="M12 17h8" />
-      <circle cx="10" cy="17" r="2" />
-    </Icon>
-  );
-}
-
-export function IconPeople({ size = 18 }: SizedProps) {
-  return (
-    <Icon size={size}>
-      <circle cx="9" cy="8" r="3.5" />
-      <path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5" />
-      <path d="M16 4.5a3.5 3.5 0 0 1 0 7" />
-      <path d="M18 14.8c1.9.7 3.1 2.4 3.5 5.2" />
-    </Icon>
-  );
-}
-
-export function IconSearch({ size = 13 }: SizedProps) {
+export function IconSearch({ size = 18 }: SizedProps) {
   return (
     <Icon size={size}>
       <circle cx="11" cy="11" r="6.5" />
       <path d="M20 20l-4.2-4.2" />
-    </Icon>
-  );
-}
-
-export function IconGrip({ size = 14 }: SizedProps) {
-  return (
-    <Icon size={size}>
-      <circle cx="9" cy="6" r="1.2" />
-      <circle cx="15" cy="6" r="1.2" />
-      <circle cx="9" cy="12" r="1.2" />
-      <circle cx="15" cy="12" r="1.2" />
-      <circle cx="9" cy="18" r="1.2" />
-      <circle cx="15" cy="18" r="1.2" />
-    </Icon>
-  );
-}
-
-export function IconChevronRight({ size = 20 }: SizedProps) {
-  return (
-    <Icon size={size}>
-      <path d="M9 6l6 6-6 6" />
-    </Icon>
-  );
-}
-
-export function IconArrowUp({ size = 16 }: SizedProps) {
-  return (
-    <Icon size={size}>
-      <path d="M12 19V5" />
-      <path d="M6 11l6-6 6 6" />
     </Icon>
   );
 }
@@ -154,83 +68,39 @@ export function IconApple({ size = 16 }: SizedProps) {
   );
 }
 
-export function IconCursor() {
-  return (
-    <svg width="18" height="22" viewBox="0 0 18 22" aria-hidden="true">
-      <path
-        d="M2 2L2 18L6.5 13.5L9.5 20L12 19L9 12.5L15 12.5Z"
-        className="fill-ink stroke-surface"
-        strokeWidth="1.4"
-      />
-    </svg>
-  );
-}
-
-export function IconEyeOff({ size = 18 }: SizedProps) {
-  return (
-    <Icon size={size}>
-      <path d="M3 3l18 18" />
-      <path d="M10.6 6.1A9.8 9.8 0 0 1 12 6c5 0 9 6 9 6a16 16 0 0 1-2.6 3.2" />
-      <path d="M6.6 6.6C4.4 8.1 3 12 3 12s4 6 9 6a9 9 0 0 0 4.4-1.1" />
-    </Icon>
-  );
-}
-
 export function IconVideo({ size = 18 }: SizedProps) {
   return (
     <Icon size={size}>
-      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <rect x="3" y="5" width="18" height="14" rx="3" />
       <path d="M10 9.5v5l4.5-2.5z" />
     </Icon>
   );
 }
 
-export function IconChart({ size = 18 }: SizedProps) {
+/** Two rows and a column crossing: "build by dragging". */
+export function IconHash({ size = 18 }: SizedProps) {
   return (
     <Icon size={size}>
-      <path d="M4 20V4" />
-      <path d="M4 20h16" />
-      <path d="M8 15l3.5-4 3 2.5L19 7" />
+      <path d="M5 9h14M5 15h14M9 5v14" />
     </Icon>
   );
 }
 
-export function IconClipboard({ size = 18 }: SizedProps) {
+/** Left-aligned lines of different lengths: "macros at a glance". */
+export function IconLines({ size = 18 }: SizedProps) {
   return (
     <Icon size={size}>
-      <rect x="5" y="4" width="14" height="17" rx="2" />
-      <path d="M9 4h6v3H9z" />
-      <path d="M8.5 12h7" />
-      <path d="M8.5 16h5" />
+      <path d="M4 7h10M4 12h16M4 17h7" />
     </Icon>
   );
 }
 
-export function IconDatabase({ size = 18 }: SizedProps) {
+export function IconCart({ size = 18 }: SizedProps) {
   return (
     <Icon size={size}>
-      <ellipse cx="12" cy="6" rx="7" ry="3" />
-      <path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6" />
-      <path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3" />
-    </Icon>
-  );
-}
-
-export function IconTemplate({ size = 18 }: SizedProps) {
-  return (
-    <Icon size={size}>
-      <rect x="3.5" y="4" width="17" height="16" rx="2" />
-      <path d="M3.5 9h17" />
-      <path d="M10 9v11" />
-    </Icon>
-  );
-}
-
-export function IconCamera({ size = 18 }: SizedProps) {
-  return (
-    <Icon size={size}>
-      <path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" />
-      <circle cx="12" cy="13" r="3.5" />
+      <path d="M4 5h2l2 11h10l2-8H7" />
+      <circle cx="9" cy="20" r="1.2" />
+      <circle cx="17" cy="20" r="1.2" />
     </Icon>
   );
 }

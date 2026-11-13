@@ -5884,19 +5884,11 @@
       "themeToLight": "Zum hellen Design wechseln"
     },
     "hero": {
-      "eyebrow": "Für Personal Trainer und Ernährungsberater",
       "headline": "Ihre Kunden, raus aus Tabellen",
       "headlineAccent": "und WhatsApp.",
-      "sub": "Erstellen Sie Ernährungs- und Trainingspläne im Web. Ihre Kunden folgen ihnen auf dem Handy, haken jede Mahlzeit und jedes Training ab und schicken Ihnen jede Woche einen Check-in.",
+      "sub": "Planen Sie im Web. Ihre Kunden folgen dem Plan auf dem Handy.",
       "createAccount": "Konto erstellen",
-      "seeInAction": "In Aktion ansehen",
-      "note": "Webportal zum Planen, mobile App für Sie und Ihre Kunden.",
-      "steps": {
-        "build": "Rezept in den Tag ziehen",
-        "publish": "Ein Klick — und es ist auf dem Handy",
-        "follow": "Mahlzeiten und Trainings abgehakt",
-        "see": "Check-ins kommen zu Ihnen"
-      }
+      "seeInAction": "In Aktion ansehen"
     },
     "steps": {
       "build": { "title": "Erstellen" },
@@ -5905,95 +5897,54 @@
       "see": { "title": "Sie sehen es" }
     },
     "how": {
-      "eyebrow": "So funktioniert’s",
-      "title": "Eine Woche mit einem Kunden, in vier Momenten",
+      "title": "Eine Woche mit einem Kunden",
       "steps": {
-        "build": "Ziehen Sie Rezepte und Übungen in die Woche. Die Makros summieren sich von selbst.",
-        "publish": "Fertige Wochen landen mit einem Klick auf dem Handy Ihres Kunden. Entwürfe bleiben verborgen.",
-        "follow": "Ihr Kunde hakt Mahlzeiten und Trainings ab. Sie sehen es sofort.",
-        "see": "Einmal pro Woche kommt der Check-in: Gewicht, Fotos und wie die Woche lief."
+        "build": "Ziehen Sie Rezepte und Übungen in die Woche.",
+        "publish": "Ein Klick. Entwürfe bleiben verborgen.",
+        "follow": "Mahlzeiten und Trainings abgehakt.",
+        "see": "Gewicht, Fotos, wie die Woche lief."
       },
-      "phone": {
-        "label": "Auf dem Handy Ihres Kunden",
-        "empty": "Noch nichts. Entwürfe bleiben verborgen, bis Sie veröffentlichen.",
-        "ready": { "title": "Woche 5 ist bereit", "body": "Jan hat 7 Tage Mahlzeiten und 3 Trainings veröffentlicht." },
-        "workout": { "title": "Training erledigt", "body": "Oberkörper A · 52 Min. · alle Sätze protokolliert." },
-        "checkin": { "title": "Check-in gesendet", "body": "68,4 kg · Energie 4/5 · 3 Fortschrittsfotos." }
+      "stage": {
+        "planWeek": "Fettabbau — Woche 5",
+        "draft": "Entwurf",
+        "readyBody": "7 Tage Mahlzeiten und 3 Trainings",
+        "monday": "Montag",
+        "today": "Heute",
+        "mealsOnTrack": { "title": "Mahlzeiten im Plan", "body": "Petra · 3 von 4 heute" },
+        "workoutDone": {
+          "title": "Training erledigt",
+          "body": "Oberkörper A · 52 Min. · alle Sätze protokolliert"
+        },
+        "checkinTitle": "Petras Check-in",
+        "checkinNote": "„Am Freitag waren die Beine schwer.“ · Energie 4/5 · Schlaf 7 Std."
       }
     },
     "coaches": {
-      "eyebrow": "Für Coaches",
       "title": "Trainingspläne, die Ihre Kunden wirklich befolgen",
-      "lead": "Planen Sie die Woche im Portal. Im Studio hat Ihr Kunde jede Übung, jedes Video und jedes Gewicht auf dem Handy.",
-      "features": {
-        "sessions": {
-          "title": "Einheiten per Drag-and-drop",
-          "desc": "Wählen Sie Übungen aus der Bibliothek — jede mit Video — und legen Sie Sätze, Wiederholungen, Gewicht und Pause fest."
-        },
-        "templates": {
-          "title": "Vorlagen zum Wiederverwenden",
-          "desc": "Speichern Sie eine Einheit oder einen ganzen Plan und geben Sie ihn mit einem Klick an den nächsten Kunden."
-        },
-        "watch": {
-          "title": "Live dabei sein",
-          "desc": "Ihr Kunde protokolliert jeden Satz während des Trainings. Sie sehen, was er gehoben hat und wie es sich anfühlte."
-        },
-        "library": {
-          "title": "Übungsbibliothek mit Videos",
-          "desc": "Zu jeder Übung gehört ein kurzes Video, damit Ihr Kunde die Ausführung vor dem ersten Satz sieht."
-        },
-        "progress": {
-          "title": "Fortschritt im Zeitverlauf",
-          "desc": "Gewicht, Körpermaße und Fortschrittsfotos, Woche für Woche als Diagramm für jeden Kunden."
-        },
-        "intake": {
-          "title": "Aufnahmefragebögen",
-          "desc": "Senden Sie vor der ersten Einheit einen Einstiegsbogen und lesen Sie die Antworten im Kundenprofil."
-        }
+      "lead": "Planen Sie im Portal. Ihre Kunden protokollieren jeden Satz direkt im Studio.",
+      "points": {
+        "sessions": "Einheiten per Drag-and-drop",
+        "library": "Übungsbibliothek mit Videos",
+        "watch": "Live dabei sein"
       }
     },
     "nutritionists": {
-      "eyebrow": "Für Ernährungsberater",
       "title": "Ernährungspläne, die aufgehen",
-      "lead": "Rezepte, Zutaten und Ziele an einem Ort. Ihr Kunde erhält den Plan und eine Einkaufsliste für die Woche.",
-      "features": {
-        "plans": {
-          "title": "Ernährungspläne nach Wochen",
-          "desc": "Füllen Sie die Woche mit Ihren Rezepten und Zutaten. Veröffentlichen Sie nur fertige Wochen."
-        },
-        "macros": {
-          "title": "Makros auf einen Blick",
-          "desc": "Jede Mahlzeit zeigt, ob sie im Ziel, darüber oder darunter liegt — bevor Ihr Kunde sie sieht."
-        },
-        "alongside": {
-          "title": "Zusammenarbeit mit dem Trainer",
-          "desc": "Ein Kunde kann Ernährungsberater und Coach haben. Jeder von Ihnen verantwortet seinen eigenen Plan."
-        },
-        "foods": {
-          "title": "Lebensmitteldatenbank integriert",
-          "desc": "Suchen Sie Produkte aus Open Food Facts oder fügen Sie eigene Zutaten mit ihren Makros hinzu."
-        },
-        "templates": {
-          "title": "Mahlzeitenvorlagen",
-          "desc": "Speichern Sie ein Frühstück oder einen ganzen Tag einmal und fügen Sie es in jeden Kundenplan ein."
-        },
-        "diary": {
-          "title": "Fototagebuch",
-          "desc": "Bitten Sie Ihren Kunden um Fotos seiner Mahlzeiten und sehen Sie, was er an dem Tag wirklich gegessen hat."
-        }
+      "lead": "Rezepte, Makros und Ziele an einem Ort.",
+      "points": {
+        "foods": "Lebensmitteldatenbank integriert",
+        "macros": "Makros auf einen Blick",
+        "shopping": "Einkaufsliste für den Kunden"
       }
     },
     "app": {
-      "eyebrow": "Die mobile App",
       "title": "Eine App für Ihre Kunden — und für Sie",
-      "lead": "Für Ihre Kunden ist die App der Ort, an dem alles passiert: die heutigen Mahlzeiten und Trainings, der Chat mit Ihnen und der wöchentliche Check-in. Sie erhalten dieselbe App mit Coach-Ansicht — sehen Sie, wer Sie braucht, prüfen Sie Check-ins und antworten Sie von überall.",
+      "lead": "Kostenlos für Ihre Kunden. Sie erhalten dieselbe App mit Coach-Ansicht.",
       "appStore": "App Store",
       "googlePlay": "Google Play",
-      "clients": { "badge": "Ihre Kunden", "caption": "Ihr wichtigstes Werkzeug, jeden Tag" },
-      "you": { "badge": "Sie", "caption": "Ihre Kunden in Ihrer Tasche" }
+      "phones": { "client": "Ihr Kunde", "you": "Sie" }
     },
     "questions": {
-      "eyebrow": "Fragen",
       "title": "Bevor Sie starten",
       "items": {
         "pay": { "q": "Zahlt mein Kunde für die App?", "a": "Nein. Die mobile App ist für Ihre Kunden kostenlos." },
@@ -6020,8 +5971,7 @@
       }
     },
     "join": {
-      "title": "Werden Sie Teil unserer Community aus Coaches und Ernährungsberatern",
-      "sub": "Richten Sie Ihr Konto ein, laden Sie Ihren ersten Kunden ein und erstellen Sie noch heute Nachmittag seine erste Woche.",
+      "title": "Erstellen Sie die erste Woche Ihres ersten Kunden noch heute Nachmittag.",
       "cta": "Konto erstellen"
     },
     "footer": {
@@ -6030,93 +5980,69 @@
     },
     "mock": {
       "planTitle": "Fettabbau — 12 Wochen",
-      "planWeek": "· Woche 5",
-      "nutritionView": "· Woche 5 · Ernährungsansicht",
+      "weekShort": "Woche 5",
       "published": "VERÖFFENTLICHT",
       "days": { "mon": "Mo", "tue": "Di", "wed": "Mi", "thu": "Do" },
-      "day": "Tag",
       "meals": { "breakfast": "Frühstück", "snack": "Snack", "lunch": "Mittagessen", "dinner": "Abendessen" },
       "foods": {
         "oatBowl": "Haferbowl",
         "yogurtBowl": "Joghurtbowl",
         "eggToast": "Eier-Toast",
         "appleAlmonds": "Apfel, Mandeln",
-        "proteinShake": "Proteinshake",
-        "yogurtHoney": "Joghurt, Honig",
         "lentilCurry": "Linsencurry",
         "tunaSalad": "Thunfischsalat",
         "chickenBowl": "Hähnchen-Bowl",
+        "salmon": "Lachs",
         "salmonPotatoes": "Lachs, Kartoffeln",
         "beefStirFry": "Rindfleisch aus dem Wok",
         "tofuNoodles": "Tofu-Nudeln"
       },
       "kcal": "kcal",
-      "onTarget": "im Ziel",
-      "notifBadge": "FU",
+      "recipes": "Rezepte",
+      "publishWeek": "Woche 5 veröffentlichen",
+      "weekReady": "Woche 5 · 7 Tage fertig",
+      "planName": "Fettabbau",
+      "planShort": "Fettabbau · Woche 5",
+      "notifReadyTitle": "Woche 5 ist bereit",
+      "notifReadyBody": "Jan hat Ihren Plan veröffentlicht",
+      "dayWednesday": "Mittwoch",
+      "dayThursday": "Donnerstag",
+      "todaysMeals": "Heutige Mahlzeiten",
       "kg": "kg",
       "weightValue": "68,4",
       "weightDelta": "−0,6 kg",
       "weightDeltaShort": "−0,6",
-      "notifApp": "Form Up",
-      "notifNow": "jetzt",
-      "notifBody": "Jan hat das Mittagessen am Donnerstag angepasst — Hähnchen-Bowl, 640 kcal",
       "checkinSent": "Petra hat ihren Check-in gesendet",
-      "checkinSummary": "68,4 kg · −0,6 kg diese Woche · Energie 4/5",
-      "date": "Donnerstag, 2. Okt.",
+      "checkinEnergy": "Energie 4/5",
+      "petraInitial": "P",
       "greeting": "Guten Morgen, Petra",
-      "todaysMeals": "Heutige Mahlzeiten",
-      "mealsProgress": "2 von 4",
       "workoutName": "Oberkörper A",
-      "workoutMeta": "45 Min. · 6 Übungen",
+      "workoutMinutes": "45 Min.",
       "start": "Start",
-      "weekReady": "Woche 5 · 7 Tage fertig",
-      "publishWeek": "Woche 5 veröffentlichen",
-      "dayProgress": "1.100 / 2.100 kcal",
-      "checkinNote": "Energie 4/5 · Schlaf 7 Std. · „Am Freitag waren die Beine schwer.“",
-      "sessionKind": "· Einheitenvorlage",
-      "exerciseLibrary": "Übungsbibliothek",
-      "blockA": "Block A · Kraft",
+      "sessionTemplate": "Einheitenvorlage",
+      "liveTitle": "Live · Petra trainiert gerade",
       "exercises": {
         "benchPress": "Bankdrücken",
         "barbellRow": "Langhantelrudern",
-        "facePull": "Face Pull",
-        "pullUp": "Klimmzug",
-        "overheadPress": "Schulterdrücken"
+        "overheadPress": "Schulterdrücken",
+        "pullUp": "Klimmzug"
       },
-      "muscles": { "chest": "Brust", "back": "Rücken", "shoulders": "Schultern" },
-      "bodyweight": "Körpergewicht",
       "setsMax": "3 × max.",
-      "rest": { "min": "{{value}} Min.", "s": "{{value}} Sek." },
-      "liveTitle": "Live · Petra trainiert gerade",
-      "liveSet": "Bankdrücken · Satz 3 von 4",
-      "liveReps": "60 kg × 8 Wdh.",
+      "next": "als Nächstes",
+      "todayMeta": "Heute · 45 Min.",
+      "blockA": "Block A · Kraft",
+      "setN": "Satz {{n}}",
+      "setDetail": "8 × 60 kg",
+      "grams": "{{value}} g",
+      "logSet": "Satz protokollieren",
       "shoppingList": "Einkaufsliste · Woche 5",
       "shopping": {
         "chickenBreast": "Hähnchenbrust",
         "basmatiRice": "Basmatireis",
-        "greekYogurt": "Griechischer Joghurt",
-        "blueberries": "Heidelbeeren"
+        "greekYogurt": "Griechischer Joghurt"
       },
-      "sundayWeek": "Woche 5",
-      "todayMeta": "Heute · 45 Min.",
-      "blockProgress": "2 von 4",
-      "setNext": "3 × 10 · Satz 1 als Nächstes",
-      "logSet": "Satz protokollieren",
-      "lunchOnTarget": "Mittagessen · im Ziel",
       "macros": { "protein": "Eiweiß", "carbs": "Kohlenhydrate", "fat": "Fett" },
-      "ingredients": {
-        "title": "Zutaten",
-        "chickenBreast": "Hähnchenbrust",
-        "basmatiRice": "Basmatireis",
-        "broccoli": "Brokkoli",
-        "oliveOil": "Olivenöl"
-      },
-      "markEaten": "Als gegessen markieren",
-      "weeklyCheckIn": "Wöchentlicher Check-in",
-      "weight": "Gewicht",
-      "progressPhotos": "Fortschrittsfotos",
-      "energyThisWeek": "Energie diese Woche",
-      "sendToCoach": "An Jan senden",
+      "dropHere": "Mittagessen — Mahlzeit hier ablegen",
       "coachClients": "Coach · 12 Kunden",
       "clientsTitle": "Kunden",
       "needsYou": "Brauchen Sie · 2",
@@ -6124,14 +6050,9 @@
       "clientNotes": {
         "checkinWaiting": "Check-in wartet",
         "missedMeals": "2 Mahlzeiten verpasst",
-        "workoutDone": "Training erledigt · 52 Min.",
+        "workoutDone": "Training erledigt",
         "allMeals": "Alle Mahlzeiten heute"
-      },
-      "reviewSubtitle": "Petra N. · Woche 5",
-      "reviewTitle": "Check-in",
-      "trendDelta": "−2,1 in 6 Wochen",
-      "reviewQuote": "„Am Freitag waren die Beine schwer.“ · Energie 4/5",
-      "replyPlaceholder": "Petra antworten…"
+      }
     }
   },
   "packages": {
