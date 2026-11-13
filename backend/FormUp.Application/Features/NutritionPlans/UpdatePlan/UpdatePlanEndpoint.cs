@@ -53,13 +53,17 @@ public class UpdatePlanEndpoint(
                             "are locked: changing, moving or deleting one returns 409 MEAL_LOCKED, adding a meal to a " +
                             "past day returns 409 PAST_DAY_LOCKED. With PreserveLockedMeals the locked and past-day " +
                             "meals are kept as stored instead and the rest of the payload is applied.";
-            s.Responses[StatusCodes.Status200OK] = "Updated plan";
-            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
-            s.Responses[StatusCodes.Status404NotFound] = "Plan not found, or not editable by the caller";
-            s.Responses[StatusCodes.Status409Conflict] =
+            s.Response<GetPlanResponse>(StatusCodes.Status200OK, "Updated plan");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Invalid request, or a published week was removed or the start date is invalid");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status403Forbidden,
+                "The subscription does not include plans (SUBSCRIPTION_REQUIRED), or the client is over the Free plan's client limit " +
+                "and the plan's last published week has ended or the start date changed (CLIENT_OVER_PLAN_LIMIT)");
+            s.Response(StatusCodes.Status404NotFound, "Plan not found, or not editable by the caller");
+            s.Response(StatusCodes.Status409Conflict,
                 "PLAN_VERSION_CONFLICT, MEAL_LOCKED or PAST_DAY_LOCKED. Lock responses (MEAL_LOCKED, " +
                 "PAST_DAY_LOCKED) also carry the rejected meal as top-level mealId (null when the request " +
-                "sent none), weekNumber and dayOfWeek";
+                "sent none), weekNumber and dayOfWeek");
         });
     }
 
@@ -87,7 +91,7 @@ public class UpdatePlanEndpoint(
             req.Version,
             p => p.Version,
             (plan, authorizeCt) => AuthorizeAsync(plan, nutritionistId, authorizeCt),
-            (plan, mutateCt) => MutateAsync(plan, req, mutateCt),
+            (plan, mutateCt) => MutateAsync(plan, nutritionistId, req, mutateCt),
             ct);
 
         switch (guardResult.Outcome)
@@ -144,13 +148,16 @@ public class UpdatePlanEndpoint(
         var capabilities = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
             nutritionistId, plan.ClientId, ct);
 
-        if (capabilities is { CanViewNutritionPlans: true })
+        if (capabilities is not { CanViewNutritionPlans: true })
         {
-            return true;
+            await Send.NotFoundAsync(ct);
+            return false;
         }
 
-        await Send.NotFoundAsync(ct);
-        return false;
+        // The subscription gate comes after the lookup, so a missing or foreign plan still answers 404.
+        return !await this.RespondIfFeatureNotEntitledAsync(
+            db, nutritionistId, entitlements => entitlements.CanCreatePlans,
+            "The current subscription does not include editing plans.", ct);
     }
 
     private async Task<bool> RefuseExtensionAsync(CancellationToken ct)
@@ -168,8 +175,33 @@ public class UpdatePlanEndpoint(
     /// version-gated replace. Returns <c>false</c> after writing a 403 when a removed coach role
     /// tries to extend an in-progress plan; other validation failures throw via <c>ThrowError</c>.
     /// </summary>
-    private async Task<bool> MutateAsync(NutritionPlan plan, UpdatePlanRequest req, CancellationToken ct)
+    private async Task<bool> MutateAsync(NutritionPlan plan, Guid nutritionistId, UpdatePlanRequest req, CancellationToken ct)
     {
+        // A client over the Free plan's cap keeps the published weeks they have: the plan stays editable
+        // until the last of them ends, but not in a way that pushes that end out.
+        var overCapAccess = await this.RespondIfClientOverPlanLimitAfterRunsUntilAsync(
+            db,
+            nutritionistId,
+            plan.ClientId,
+            PlanRunsUntilResolver.Resolve(
+                plan.StartDate, plan.Weeks.Where(w => w.Status == WeekStatus.Published).Select(w => w.WeekNumber)),
+            ct);
+
+        if (overCapAccess == OverCapEditAccess.Refused)
+        {
+            return false;
+        }
+
+        if (overCapAccess == OverCapEditAccess.WindowOpen && req.StartDate?.Date != plan.StartDate?.Date)
+        {
+            await this.SendProblemAsync(
+                StatusCodes.Status403Forbidden,
+                ErrorCodes.ClientOverPlanLimit,
+                "The start date of a plan cannot change while its client is over the Free plan's client limit.",
+                ct);
+            return false;
+        }
+
         // A removed role may finish its in-progress plans but not push their end date out.
         if (HttpContext.Items.ContainsKey(RemovedCoachRoleMiddleware.RoleRemovedItemKey)
             && plan.StartDate.HasValue

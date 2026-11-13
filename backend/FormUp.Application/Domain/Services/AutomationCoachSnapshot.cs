@@ -92,10 +92,15 @@ public sealed class AutomationCoachSnapshot
     /// </summary>
     /// <param name="db">Application database context.</param>
     /// <param name="mongo">MongoDB context, read for plan windows.</param>
+    /// <param name="entitlementService">Resolves the coach's subscription entitlements.</param>
     /// <param name="coachProfileId">The coach's professional profile id.</param>
     /// <param name="ct">Cancellation token.</param>
     public static async Task<AutomationCoachSnapshot?> LoadAsync(
-        IApplicationDbContext db, IMongoContext mongo, long coachProfileId, CancellationToken ct)
+        IApplicationDbContext db,
+        IMongoContext mongo,
+        EntitlementService entitlementService,
+        long coachProfileId,
+        CancellationToken ct)
     {
         var coach = await db.ProfessionalProfiles
             .AsNoTracking()
@@ -153,7 +158,7 @@ public sealed class AutomationCoachSnapshot
                 ct)
             : new Dictionary<Guid, List<AutomationPlanWindow>>();
 
-        var entitlements = await new EntitlementService(db).GetEntitlementsAsync(coachProfileId, ct);
+        var entitlements = await entitlementService.GetEntitlementsAsync(coachProfileId, ct);
 
         return new AutomationCoachSnapshot(coach, rules, clients, overrides, sentCounts, planWindows, entitlements);
     }

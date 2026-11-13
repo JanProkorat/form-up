@@ -84,7 +84,7 @@ public class CoachPackageEndpointTests(FitnessApiFactory factory)
     [Fact]
     public async Task CreateThenUpdate_PriceHistory_GetsARowOnlyWhenThePriceChangesAndAuditsOldAndNew()
     {
-        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var coach = await TestActors.Trainer(factory).WithPayments().CreateAsync(TestContext.Current.CancellationToken);
 
         var package = await CreateAsync(coach, ValidBody(currency: "EUR", description: "  Weekly plan + chat  "));
 
@@ -112,7 +112,7 @@ public class CoachPackageEndpointTests(FitnessApiFactory factory)
     [Fact]
     public async Task Create_InvalidBody_Returns400()
     {
-        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var coach = await TestActors.Trainer(factory).WithPayments().CreateAsync(TestContext.Current.CancellationToken);
 
         var response = await coach.Http.PostAsJsonAsync(
             "/payments/packages", ValidBody(price: 0m), TestContext.Current.CancellationToken);
@@ -123,7 +123,7 @@ public class CoachPackageEndpointTests(FitnessApiFactory factory)
     [Fact]
     public async Task Archive_IsIdempotentAndAnArchivedPackageRefusesUpdatesWith409()
     {
-        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var coach = await TestActors.Trainer(factory).WithPayments().CreateAsync(TestContext.Current.CancellationToken);
         var package = await CreateAsync(coach);
 
         var first = await ArchiveAsync(coach, package.PackageId);
@@ -144,8 +144,8 @@ public class CoachPackageEndpointTests(FitnessApiFactory factory)
     [Fact]
     public async Task ForeignOrUnknownPackage_Returns404OnGetUpdateAndArchive()
     {
-        var owner = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
-        var intruder = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var owner = await TestActors.Trainer(factory).WithPayments().CreateAsync(TestContext.Current.CancellationToken);
+        var intruder = await TestActors.Trainer(factory).WithPayments().CreateAsync(TestContext.Current.CancellationToken);
         var package = await CreateAsync(owner);
 
         foreach (var packageId in new[] { package.PackageId, Guid.NewGuid() })
@@ -164,8 +164,8 @@ public class CoachPackageEndpointTests(FitnessApiFactory factory)
     [Fact]
     public async Task List_ReturnsOnlyOwnActivePackages_ArchivedOnRequest()
     {
-        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
-        var other = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var coach = await TestActors.Trainer(factory).WithPayments().CreateAsync(TestContext.Current.CancellationToken);
+        var other = await TestActors.Trainer(factory).WithPayments().CreateAsync(TestContext.Current.CancellationToken);
         var active = await CreateAsync(coach, ValidBody(name: "Active"));
         var archived = await CreateAsync(coach, ValidBody(name: "Archived"));
         await CreateAsync(other);

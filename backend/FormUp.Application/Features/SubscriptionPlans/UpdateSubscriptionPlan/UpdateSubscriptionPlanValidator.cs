@@ -36,8 +36,18 @@ internal sealed class UpdateSubscriptionPlanValidator : Validator<UpdateSubscrip
             .NotEmpty().WithErrorCode(ErrorCodes.Required)
             .MaximumLength(200).WithErrorCode(ErrorCodes.OutOfRange);
 
-        RuleFor(x => x.ApplicableRoles)
-            .IsInEnum().WithErrorCode(ErrorCodes.OutOfRange);
+        RuleFor(x => x.BothRolesIncluded)
+            .NotNull().WithErrorCode(ErrorCodes.Required);
+
+        RuleFor(x => x.SecondRoleAddOnPriceMinorUnits)
+            .GreaterThan(0).WithErrorCode(ErrorCodes.OutOfRange)
+            .When(x => x.SecondRoleAddOnPriceMinorUnits.HasValue);
+
+        RuleFor(x => x)
+            .Must(x => x.BothRolesIncluded == !x.SecondRoleAddOnPriceMinorUnits.HasValue)
+            .WithErrorCode(ErrorCodes.SecondRoleOptionInvalid)
+            .WithMessage("Set exactly one of bothRolesIncluded and secondRoleAddOnPriceMinorUnits.")
+            .When(x => x.BothRolesIncluded.HasValue);
 
         RuleFor(x => x.CanCreatePlans)
             .NotNull().WithErrorCode(ErrorCodes.Required);

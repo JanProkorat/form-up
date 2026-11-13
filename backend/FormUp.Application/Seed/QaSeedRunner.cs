@@ -1,3 +1,4 @@
+using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Documents;
 using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
@@ -326,6 +327,34 @@ public static class QaSeedRunner
     public static readonly Guid QaDuoNutritionPlanExternalId = new("44444444-4444-4444-eeee-000000000001");
     public static readonly Guid QaDuoTrainingPlanExternalId  = new("44444444-4444-4444-dddd-000000000001");
 
+    // -------------------------------------------------------------------------
+    // Free-plan cap fixtures (both seed kinds for users, profiles, subscriptions and links; Rich
+    // only for the training plans). Two coaches, each with cap+1 NEW clients (cap is read from the
+    // Free plan row). Client n is activated (7 x (cap + 1 - n + 1)) days ago, so the oldest clients
+    // are kept and the newest, client number cap+1, is the one over the cap.
+    //  - Lapsed coach: paid plan, Canceled, no gift. Resolves lapsed with one over-cap client.
+    //  - Gift coach: paid plan given free, gift ended. Resolves plan-choice-required, nobody over
+    //    the cap until a plan is chosen.
+    // Neither coach is on Studio and neither shows in public search.
+    // -------------------------------------------------------------------------
+    private const string LapsedGuidPrefix = "20202020";
+    private const string GiftGuidPrefix   = "30303030";
+
+    public const string LapsedCoachEmail = "qa.coach.lapsed@formup.test";
+    public const string GiftCoachEmail   = "qa.coach.gift@formup.test";
+
+    public static readonly Guid LapsedCoachUserId = CapFixtureGuid(LapsedGuidPrefix, "0000", 0);
+    public static readonly Guid GiftCoachUserId   = CapFixtureGuid(GiftGuidPrefix, "0000", 0);
+
+    public static string LapsedClientEmail(int clientNumber) => $"qa.lapsed.client{clientNumber}@formup.test";
+    public static string GiftClientEmail(int clientNumber)   => $"qa.gift.client{clientNumber}@formup.test";
+
+    public static Guid LapsedClientUserId(int clientNumber) => CapFixtureGuid(LapsedGuidPrefix, "0000", clientNumber);
+    public static Guid GiftClientUserId(int clientNumber)   => CapFixtureGuid(GiftGuidPrefix, "0000", clientNumber);
+
+    private static Guid CapFixtureGuid(string prefix, string segment, int index) =>
+        new($"{prefix}-{prefix[..4]}-{prefix[..4]}-{segment}-{index:D12}");
+
     // Sessions of the Duo training plan. Session A is the completed one and always sits on the
     // seed-time weekday; B and C sit two and four weekdays later (wrapping inside the week).
     public static readonly Guid QaDuoSessionAId = new("44444444-4444-4444-bbbb-000000000001");
@@ -534,6 +563,16 @@ public static class QaSeedRunner
         // so minimal mode also has two clean pairs with working auth).
         await EnsureTrainerClientLinkAsync(db, trainer2Profile, client2Profile, logger);
 
+        // Free-plan cap coaches (lapsed paid plan, ended gift) with their cap+1 clients each, in both kinds.
+        var freePlanCap = await ReadFreePlanCapAsync(db);
+        await EnsureCapCoachAsync(userManager, db, logger, freePlanCap, LapsedGuidPrefix, "Lapsed",
+            LapsedCoachUserId, LapsedCoachEmail, LapsedClientUserId, LapsedClientEmail,
+            planCode: "pro", SubscriptionStatus.Canceled, givenFreeAt: null, freeUntil: null);
+        await EnsureCapCoachAsync(userManager, db, logger, freePlanCap, GiftGuidPrefix, "Gift",
+            GiftCoachUserId, GiftCoachEmail, GiftClientUserId, GiftClientEmail,
+            planCode: "start", SubscriptionStatus.Active,
+            givenFreeAt: DateTimeOffset.UtcNow.AddDays(-60), freeUntil: DateTimeOffset.UtcNow.AddDays(-14));
+
         if (kind == SeedKind.Rich)
         {
             // #588 — exercise catalog docs for every synthetic SessionExercise id the
@@ -646,6 +685,13 @@ public static class QaSeedRunner
             await EnsureDuoPersonalRecordAsync(mongo, logger);
             await EnsureOverviewCheckInsAsync(db, logger, ClientDuoUserId, CoachUserId, QaDuoCheckInIds);
 
+            // Over-cap clients of the cap coaches: the lapsed coach's plan already ended (read-only after
+            // the last week), the gift coach's plan is still running.
+            await EnsureCapClientPlanAsync(mongo, logger, LapsedGuidPrefix, "Lapsed", LapsedCoachUserId,
+                LapsedClientUserId(freePlanCap + 1), freePlanCap + 1, weeksAgoStart: 4);
+            await EnsureCapClientPlanAsync(mongo, logger, GiftGuidPrefix, "Gift", GiftCoachUserId,
+                GiftClientUserId(freePlanCap + 1), freePlanCap + 1, weeksAgoStart: 0);
+
             // Image blobs in MinIO — idempotent, bucket created if absent.
             await EnsureAvatarAsync(sp, logger);
             await EnsureFoodImageAsync(sp, logger);
@@ -751,7 +797,8 @@ public static class QaSeedRunner
         Guid publicId,
         ILogger logger,
         bool online = false,
-        bool showInSearch = false)
+        bool showInSearch = false,
+        bool putOnStudio = true)
     {
         var existing = await db.ProfessionalProfiles
             .FirstOrDefaultAsync(p => p.UserId == userId);
@@ -759,6 +806,12 @@ public static class QaSeedRunner
         if (existing is not null)
         {
             logger.LogInformation("QA ProfessionalProfile already present for userId={UserId}", userId);
+
+            if (putOnStudio)
+            {
+                await EnsureStudioSubscriptionAsync(db, existing, logger);
+            }
+
             return existing;
         }
 
@@ -776,8 +829,225 @@ public static class QaSeedRunner
         await db.SaveChangesAsync();
         await DefaultCheckInForm.EnsureAsync(db, userId, "en", CancellationToken.None);
 
+        if (putOnStudio)
+        {
+            await EnsureStudioSubscriptionAsync(db, profile, logger);
+        }
+
         logger.LogInformation("QA ProfessionalProfile created for userId={UserId} publicId={PublicId}", userId, publicId);
         return profile;
+    }
+
+    /// <summary>
+    /// Puts a QA coach on the Studio plan (Active, its open price row) so every feature and an unlimited client
+    /// count are available to the fixtures. A coach that already has a subscription row is left as it is.
+    /// </summary>
+    private static async Task EnsureStudioSubscriptionAsync(
+        ApplicationDbContext db, ProfessionalProfile profile, ILogger logger)
+    {
+        if (await db.CoachSubscriptions.AnyAsync(cs => cs.ProfessionalProfileId == profile.Id))
+        {
+            return;
+        }
+
+        var studioPrice = await db.SubscriptionPlanPrices
+            .AsNoTracking()
+            .Where(p => p.SubscriptionPlan.Code == "studio" && p.ValidTo == null)
+            .Select(p => new { p.Id, p.SubscriptionPlanId })
+            .FirstOrDefaultAsync()
+            ?? throw new InvalidOperationException(
+                "The studio subscription plan must be seeded before the QA coaches (ApplicationDbContextSeed.SeedAsync).");
+
+        db.CoachSubscriptions.Add(new CoachSubscription
+        {
+            ProfessionalProfileId = profile.Id,
+            SubscriptionPlanId = studioPrice.SubscriptionPlanId,
+            SubscriptionPlanPriceId = studioPrice.Id,
+            Status = SubscriptionStatus.Active,
+        });
+        await db.SaveChangesAsync();
+
+        logger.LogInformation("QA coach profileId={ProfileId} put on the studio plan", profile.Id);
+    }
+
+    /// <summary>
+    /// Reads the client cap from the Free plan row. Fails fast when the plan is missing or unlimited,
+    /// since the cap fixtures cannot be shaped without a number.
+    /// </summary>
+    private static async Task<int> ReadFreePlanCapAsync(ApplicationDbContext db)
+    {
+        var cap = await db.SubscriptionPlans
+            .AsNoTracking()
+            .Where(p => p.Code == SubscriptionPlanCodes.Free)
+            .Select(p => new { p.MaxActiveClients })
+            .FirstOrDefaultAsync()
+            ?? throw new InvalidOperationException(
+                "The free subscription plan must be seeded before the QA cap coaches (ApplicationDbContextSeed.SeedAsync).");
+
+        return cap.MaxActiveClients
+            ?? throw new InvalidOperationException("The free subscription plan has no client cap; the QA cap coaches need one.");
+    }
+
+    /// <summary>
+    /// Creates one cap coach (user, profile off Studio, its own subscription row) and cap+1 new clients linked to it,
+    /// each with a staggered <c>ActivatedAtUtc</c> so the kept and over-cap split is deterministic.
+    /// </summary>
+    private static async Task EnsureCapCoachAsync(
+        UserManager<ApplicationUser> userManager,
+        ApplicationDbContext db,
+        ILogger logger,
+        int cap,
+        string guidPrefix,
+        string label,
+        Guid coachUserId,
+        string coachEmail,
+        Func<int, Guid> clientUserId,
+        Func<int, string> clientEmail,
+        string planCode,
+        SubscriptionStatus status,
+        DateTimeOffset? givenFreeAt,
+        DateTimeOffset? freeUntil)
+    {
+        await EnsureUserAsync(userManager, coachUserId, coachEmail, "QA", $"{label}Coach", UserRole.Trainer, logger);
+        var coachProfile = await EnsureProfessionalProfileAsync(
+            db, coachUserId, CapFixtureGuid(guidPrefix, "bbbb", 1), logger, putOnStudio: false);
+        await EnsureCapSubscriptionAsync(db, coachProfile, planCode, status, givenFreeAt, freeUntil, logger);
+
+        var clientCount = cap + 1;
+        var now = DateTime.UtcNow;
+
+        for (var clientNumber = 1; clientNumber <= clientCount; clientNumber++)
+        {
+            await EnsureUserAsync(
+                userManager, clientUserId(clientNumber), clientEmail(clientNumber), "QA", $"{label}Client{clientNumber}",
+                UserRole.Client, logger);
+            var clientProfile = await EnsureClientProfileAsync(
+                db, clientUserId(clientNumber), CapFixtureGuid(guidPrefix, "aaaa", clientNumber), logger);
+            await EnsureTrainerClientLinkAsync(
+                db, coachProfile, clientProfile, logger,
+                activatedAtUtc: now.AddDays(-7 * (clientCount - clientNumber + 1)));
+        }
+    }
+
+    /// <summary>
+    /// Writes a QA coach's subscription row on the named paid plan's open price row. A coach that already has a
+    /// row is left as it is, so a re-seed never undoes what a QA flow changed.
+    /// </summary>
+    private static async Task EnsureCapSubscriptionAsync(
+        ApplicationDbContext db,
+        ProfessionalProfile profile,
+        string planCode,
+        SubscriptionStatus status,
+        DateTimeOffset? givenFreeAt,
+        DateTimeOffset? freeUntil,
+        ILogger logger)
+    {
+        if (await db.CoachSubscriptions.AnyAsync(cs => cs.ProfessionalProfileId == profile.Id))
+        {
+            return;
+        }
+
+        var price = await db.SubscriptionPlanPrices
+            .AsNoTracking()
+            .Where(p => p.SubscriptionPlan.Code == planCode && p.ValidTo == null)
+            .Select(p => new { p.Id, p.SubscriptionPlanId })
+            .FirstOrDefaultAsync()
+            ?? throw new InvalidOperationException(
+                $"The '{planCode}' subscription plan must be seeded before the QA cap coaches (ApplicationDbContextSeed.SeedAsync).");
+
+        db.CoachSubscriptions.Add(new CoachSubscription
+        {
+            ProfessionalProfileId = profile.Id,
+            SubscriptionPlanId = price.SubscriptionPlanId,
+            SubscriptionPlanPriceId = price.Id,
+            Status = status,
+            GivenFreeAt = givenFreeAt,
+            FreeUntil = freeUntil,
+        });
+        await db.SaveChangesAsync();
+
+        logger.LogInformation(
+            "QA cap coach profileId={ProfileId} put on the {PlanCode} plan ({Status})", profile.Id, planCode, status);
+    }
+
+    /// <summary>
+    /// One published week for a cap client, starting <paramref name="weeksAgoStart"/> Mondays ago. Four weeks ago
+    /// the single week has already ended; zero keeps it running today.
+    /// </summary>
+    private static async Task EnsureCapClientPlanAsync(
+        IMongoContext mongo,
+        ILogger logger,
+        string guidPrefix,
+        string label,
+        Guid coachUserId,
+        Guid clientUserId,
+        int clientNumber,
+        int weeksAgoStart)
+    {
+        var planId = CapFixtureGuid(guidPrefix, "dddd", clientNumber);
+        var existing = await mongo.TrainingPlans.Find(p => p.ExternalId == planId).FirstOrDefaultAsync();
+
+        if (existing is not null)
+        {
+            logger.LogInformation("QA cap TrainingPlan already present: externalId={ExternalId}", planId);
+            return;
+        }
+
+        var now = DateTime.UtcNow;
+        var startDate = MondayOfWeek(now).AddDays(-7 * weeksAgoStart);
+
+        var sessionsByDay = new Dictionary<int, List<TrainingSession>>
+        {
+            [1] =
+            [
+                new TrainingSession
+                {
+                    SessionId = CapFixtureGuid(guidPrefix, "eeee", clientNumber),
+                    Name      = $"QA {label} Strength",
+                    Order     = 1,
+                    Workouts  = [],
+                    StandaloneExercises =
+                    [
+                        new SessionExercise
+                        {
+                            ExerciseId         = CapFixtureGuid(guidPrefix, "ffff", clientNumber),
+                            ExerciseExternalId = StandardExercise1Id,
+                            ExerciseName       = "QA Squat",
+                            Order              = 1,
+                            MovementType       = MovementType.Reps,
+                            Sets =
+                            [
+                                new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 8, WeightKg = 60m },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        };
+
+        await mongo.TrainingPlans.InsertOneAsync(new TrainingPlan
+        {
+            ExternalId  = planId,
+            ClientId    = clientUserId,
+            TrainerId   = coachUserId,
+            Name        = $"QA {label} Over-cap Plan",
+            Status      = TrainingPlanStatus.Active,
+            StartDate   = startDate,
+            DateCreated = now,
+            Version     = 1,
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber    = 1,
+                    Status        = WeekStatus.Published,
+                    DatePublished = startDate,
+                    Days          = BuildTrainingDays(sessionsByDay),
+                },
+            ],
+        });
+
+        logger.LogInformation("QA cap TrainingPlan created: externalId={ExternalId}", planId);
     }
 
     private static async Task EnsureTrainerClientLinkAsync(
@@ -788,7 +1058,8 @@ public static class QaSeedRunner
         bool isActive = true,
         UserRole professionalRole = UserRole.Trainer,
         bool canViewNutritionPlans = false,
-        bool canViewTrainingPlans = true)
+        bool canViewTrainingPlans = true,
+        DateTime? activatedAtUtc = null)
     {
         var existing = await db.ClientProfessionalLinks
             .AnyAsync(l =>
@@ -808,10 +1079,11 @@ public static class QaSeedRunner
             ProfessionalProfileId = trainerProfile.Id,
             ClientProfileId = clientProfile.Id,
             ProfessionalRole = professionalRole,
-            IsActive = isActive,
+            ConnectionState = isActive ? ConnectionState.Connected : ConnectionState.Ended,
             CanViewTrainingPlans = canViewTrainingPlans,
             CanViewNutritionPlans = canViewNutritionPlans,
             DateCreated = DateTime.UtcNow,
+            ActivatedAtUtc = activatedAtUtc,
         };
 
         db.ClientProfessionalLinks.Add(link);
@@ -2527,7 +2799,7 @@ public static class QaSeedRunner
                 ProfessionalProfileId = nutriProfile.Id,
                 ClientProfileId       = clientProfile.Id,
                 ProfessionalRole      = UserRole.Nutritionist,
-                IsActive              = true,
+                ConnectionState              = ConnectionState.Connected,
                 CanViewNutritionPlans = true,
                 CanViewTrainingPlans  = false,
                 DateCreated           = DateTime.UtcNow,

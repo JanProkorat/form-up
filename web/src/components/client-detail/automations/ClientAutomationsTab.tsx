@@ -18,7 +18,10 @@ import {
   useUpdateAutomationRule,
 } from '@/hooks/useAutomationQueries';
 import { useTrainerQuestionnaires } from '@/hooks/useQuestionnaireQueries';
+import { useInvalidateSubscription, useSubscription } from '@/hooks/useSubscriptionQueries';
 import { getErrorStatus, getRfc7807ErrorCode, showApiError, showSuccess } from '@/lib/api-errors';
+import { isSubscriptionRequired } from '@/lib/subscriptionErrors';
+import PaywallDialog from '@/components/subscription/PaywallDialog';
 import AutomationRuleDrawer from '@/components/automations/AutomationRuleDrawer';
 import {
   clientItemToRule,
@@ -70,6 +73,9 @@ export default function ClientAutomationsTab({ clientId, dashboard }: Props) {
   const [drawer, setDrawer] = useState<DrawerState | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ClientAutomationItem | null>(null);
   const [busyIds, setBusyIds] = useState<ReadonlySet<string>>(new Set());
+  const [paywallOpen, setPaywallOpen] = useState(false);
+  const { isEntitled } = useSubscription();
+  const invalidateSubscription = useInvalidateSubscription();
 
   const clientName = dashboard.firstName?.trim() || t('clientDetail.photos.clientFallback');
 
@@ -100,7 +106,14 @@ export default function ClientAutomationsTab({ clientId, dashboard }: Props) {
     }
     setBusy(ruleId, true);
     const callbacks = {
-      onError: (error: unknown) => showApiError(error, 'clientDetail.automations.toggleError'),
+      onError: (error: unknown) => {
+        if (isSubscriptionRequired(error)) {
+          invalidateSubscription();
+          setPaywallOpen(true);
+          return;
+        }
+        showApiError(error, 'clientDetail.automations.toggleError');
+      },
       onSettled: () => setBusy(ruleId, false),
     };
     if (item.source === AutomationRuleSource.OnlyThisClient) {
@@ -166,6 +179,12 @@ export default function ClientAutomationsTab({ clientId, dashboard }: Props) {
       showSuccess('automations.saveSuccess');
       setDrawer(null);
     } catch (error) {
+      if (isSubscriptionRequired(error)) {
+        // Stale plan data: refetch it and explain with the paywall instead of a toast.
+        invalidateSubscription();
+        setPaywallOpen(true);
+        return;
+      }
       showApiError(error, 'automations.saveError');
       // The rule is gone (deleted elsewhere): the lists already refetch, so close the stale drawer.
       if (getRfc7807ErrorCode(error) === ERROR_RULE_NOT_FOUND) {
@@ -235,6 +254,7 @@ export default function ClientAutomationsTab({ clientId, dashboard }: Props) {
               parentRules={parentRules}
               formTitles={formTitles}
               busyIds={busyIds}
+              checkInOverrideLocked={!isEntitled('canUsePerClientCheckInConfig')}
               onOpen={handleOpen}
               onToggle={handleToggle}
               onReset={handleReset}
@@ -264,6 +284,8 @@ export default function ClientAutomationsTab({ clientId, dashboard }: Props) {
           }
         />
       )}
+
+      <PaywallDialog open={paywallOpen} onOpenChange={setPaywallOpen} feature="checkIns" />
 
       <Dialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <DialogContent>

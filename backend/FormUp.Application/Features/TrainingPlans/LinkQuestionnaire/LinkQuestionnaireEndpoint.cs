@@ -36,6 +36,14 @@ public class LinkTrainingQuestionnaireEndpoint(
         {
             s.Summary = "Link questionnaire to training plan";
             s.Description = "Links a submitted questionnaire response to a plan, or unlinks by passing null.";
+            s.Response<GetTrainingPlanResponse>(StatusCodes.Status200OK, "The updated plan");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest,
+                "The plan is not Draft or Active, or the questionnaire response is not found or not submitted");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status403Forbidden,
+                "The client is over the Free plan's client limit and the plan's last published week has ended (CLIENT_OVER_PLAN_LIMIT)");
+            s.Response(StatusCodes.Status404NotFound, "Plan not found, or not editable by the caller");
+            s.Response(StatusCodes.Status409Conflict, "The plan was changed concurrently (PLAN_VERSION_CONFLICT)");
         });
     }
 
@@ -135,12 +143,21 @@ public class LinkTrainingQuestionnaireEndpoint(
         var capabilities = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
             trainerId, plan.ClientId, ct);
 
-        if (capabilities is { CanViewTrainingPlans: true })
+        if (capabilities is not { CanViewTrainingPlans: true })
         {
-            return true;
+            await Send.NotFoundAsync(ct);
+            return false;
         }
 
-        await Send.NotFoundAsync(ct);
-        return false;
+        // A client over the Free plan's cap stays editable only until the last published week ends.
+        var overCapAccess = await this.RespondIfClientOverPlanLimitAfterRunsUntilAsync(
+            db,
+            trainerId,
+            plan.ClientId,
+            PlanRunsUntilResolver.Resolve(
+                plan.StartDate, plan.Weeks.Where(w => w.Status == WeekStatus.Published).Select(w => w.WeekNumber)),
+            ct);
+
+        return overCapAccess != OverCapEditAccess.Refused;
     }
 }

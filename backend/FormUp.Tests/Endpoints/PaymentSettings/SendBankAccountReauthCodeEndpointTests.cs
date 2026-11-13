@@ -31,7 +31,7 @@ public class SendBankAccountReauthCodeEndpointTests(FitnessApiFactory factory)
     [Fact]
     public async Task SendCode_NoPasswordCoach_EmailsSixDigitCodeAndStoresOnlyItsHash()
     {
-        var coach = await TestActors.Trainer(factory).WithLanguage("de").CreateAsync(TestContext.Current.CancellationToken);
+        var coach = await TestActors.Trainer(factory).WithPayments().WithLanguage("de").CreateAsync(TestContext.Current.CancellationToken);
 
         var response = await coach.Http.PostAsync("/payments/bank-account/code", null, TestContext.Current.CancellationToken);
 
@@ -49,7 +49,7 @@ public class SendBankAccountReauthCodeEndpointTests(FitnessApiFactory factory)
     [Fact]
     public async Task SendCode_AskedTwice_ReplacesTheEarlierCode()
     {
-        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var coach = await TestActors.Trainer(factory).WithPayments().CreateAsync(TestContext.Current.CancellationToken);
 
         await coach.Http.PostAsync("/payments/bank-account/code", null, TestContext.Current.CancellationToken);
         await coach.Http.PostAsync("/payments/bank-account/code", null, TestContext.Current.CancellationToken);
@@ -63,7 +63,7 @@ public class SendBankAccountReauthCodeEndpointTests(FitnessApiFactory factory)
     [Fact]
     public async Task SendCode_CoachWithPassword_Returns400AndStoresAndSendsNothing()
     {
-        var coach = await TestActors.Trainer(factory).WithPassword(Password).CreateAsync(TestContext.Current.CancellationToken);
+        var coach = await TestActors.Trainer(factory).WithPayments().WithPassword(Password).CreateAsync(TestContext.Current.CancellationToken);
 
         var response = await coach.Http.PostAsync("/payments/bank-account/code", null, TestContext.Current.CancellationToken);
 

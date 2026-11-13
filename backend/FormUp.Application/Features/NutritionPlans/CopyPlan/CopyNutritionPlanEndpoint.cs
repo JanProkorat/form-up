@@ -37,17 +37,17 @@ public class CopyNutritionPlanEndpoint(
     {
         Post("/nutrition/plans/{PlanId}/copy");
         Roles(AppRoles.Nutritionist);
-        Description(b => b.ClearDefaultProduces(StatusCodes.Status200OK)
-            .Produces<CopyNutritionPlanResponse>(StatusCodes.Status201Created));
         Summary(s =>
         {
             s.Summary = "Copy a nutrition plan to a client";
             s.Description = "Creates a new Draft plan for the same or another linked client from a plan the caller authored. Every week starts as Draft.";
-            s.Responses[StatusCodes.Status201Created] = "The new Draft plan";
-            s.Responses[StatusCodes.Status400BadRequest] = "Invalid request";
-            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
-            s.Responses[StatusCodes.Status404NotFound] = "Source plan or target client not found, or not accessible to the caller";
-            s.Responses[StatusCodes.Status409Conflict] = "The start date window overlaps another plan of the target client (PLAN_OVERLAP)";
+            s.Response<CopyNutritionPlanResponse>(StatusCodes.Status201Created, "The new Draft plan");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Invalid request");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status403Forbidden,
+                "The subscription does not include plans (SUBSCRIPTION_REQUIRED), or the target client is over the Free plan's client limit (CLIENT_OVER_PLAN_LIMIT)");
+            s.Response(StatusCodes.Status404NotFound, "Source plan or target client not found, or not accessible to the caller");
+            s.Response(StatusCodes.Status409Conflict, "The start date window overlaps another plan of the target client (PLAN_OVERLAP)");
         });
     }
 
@@ -81,6 +81,14 @@ public class CopyNutritionPlanEndpoint(
             return;
         }
 
+        // After the source and target lookups, so a missing or foreign plan or client still answers 404.
+        if (await this.RespondIfFeatureNotEntitledAsync(
+                db, nutritionistId, entitlements => entitlements.CanCreatePlans,
+                "The current subscription does not include creating plans.", ct))
+        {
+            return;
+        }
+
         var targetClientUserId = await db.ClientProfiles
             .AsNoTracking()
             .Where(cp => cp.PublicId == req.ClientId)
@@ -90,6 +98,11 @@ public class CopyNutritionPlanEndpoint(
         if (targetClientUserId is null)
         {
             await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        if (await this.RespondIfClientOverPlanLimitAsync(db, nutritionistId, targetClientUserId.Value, ct))
+        {
             return;
         }
 

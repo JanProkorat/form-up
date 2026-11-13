@@ -23,23 +23,33 @@ internal sealed class GetSubscriptionPlansEndpoint(IApplicationDbContext db)
         {
             s.Summary = "List subscription plans";
             s.Description = "Returns every subscription tier, including inactive ones — the Admin management UI needs the full set, not just what's currently offered.";
-            s.Responses[StatusCodes.Status200OK] = "All subscription plans";
-            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or invalid credentials";
-            s.Responses[StatusCodes.Status403Forbidden] = "Caller is not an Admin";
+            s.Response<GetSubscriptionPlansResponse>(StatusCodes.Status200OK, "All subscription plans");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or invalid credentials");
+            s.Response(StatusCodes.Status403Forbidden, "Caller is not an Admin");
         });
     }
 
     /// <inheritdoc />
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var plans = await db.SubscriptionPlans
+        var rows = await db.SubscriptionPlans
             .AsNoTracking()
             .OrderBy(p => p.Code)
+            .Select(p => new
+            {
+                Plan = p,
+                ExternalPriceId = p.Prices
+                    .Where(price => price.ValidTo == null)
+                    .Select(price => price.ExternalPriceId)
+                    .FirstOrDefault(),
+                CoachCount = db.CoachSubscriptions.Count(cs =>
+                    cs.SubscriptionPlanId == p.Id && LiveSubscriptionStatuses.All.Contains(cs.Status)),
+            })
             .ToListAsync(ct);
 
         await Send.OkAsync(new GetSubscriptionPlansResponse
         {
-            Plans = plans.Select(SubscriptionPlanDto.FromEntity).ToList(),
+            Plans = rows.Select(r => SubscriptionPlanDto.FromEntity(r.Plan, r.ExternalPriceId, r.CoachCount)).ToList(),
         }, ct);
     }
 }

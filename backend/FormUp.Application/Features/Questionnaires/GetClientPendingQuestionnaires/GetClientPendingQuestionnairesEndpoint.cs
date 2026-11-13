@@ -66,7 +66,7 @@ public class GetClientPendingQuestionnairesEndpoint(
         // Collect link IDs and invite IDs for this client (same dual-source pattern as ListClientRequests)
         var clientLinkIds = await db.ClientProfessionalLinks
             .AsNoTracking()
-            .Where(l => l.ClientProfileId == clientProfile.Id && l.IsActive)
+            .Where(l => l.ClientProfileId == clientProfile.Id && l.ConnectionState != ConnectionState.Ended)
             .Select(l => (long?)l.Id)
             .ToListAsync(ct);
 
@@ -141,7 +141,7 @@ public class GetClientPendingQuestionnairesEndpoint(
         // Get all active professional links (with profile/user navigation)
         var links = await db.ClientProfessionalLinks
             .Include(l => l.ProfessionalProfile).ThenInclude(pp => pp.User)
-            .Where(l => l.ClientProfileId == clientProfile.Id && l.IsActive)
+            .Where(l => l.ClientProfileId == clientProfile.Id && l.ConnectionState != ConnectionState.Ended)
             .ToListAsync(ct);
 
         var questionnaireItems = new List<PendingQuestionnaireItem>();

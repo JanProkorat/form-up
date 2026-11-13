@@ -23,9 +23,10 @@ public class GetClientQuestionnaireEndpoint(IApplicationDbContext db, TimeProvid
                             "If omitted, falls back to the first active link (legacy behaviour). " +
                             "Pass ?responsePublicId= to load the questionnaire of one open response instead; " +
                             "an unknown, foreign, closed or inactive-link response is a 404.";
-            s.Responses[StatusCodes.Status200OK] = "The questionnaire with any existing answers";
-            s.Responses[StatusCodes.Status404NotFound] = "No matching questionnaire, response or active link";
-            s.Responses[StatusCodes.Status409Conflict] = "The response is a check-in past its answer window (CHECK_IN_ANSWER_WINDOW_CLOSED)";
+            s.Response<GetClientQuestionnaireResponse>(StatusCodes.Status200OK, "The questionnaire with any existing answers");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status404NotFound, "No matching questionnaire, response or active link");
+            s.Response(StatusCodes.Status409Conflict, "The response is a check-in past its answer window (CHECK_IN_ANSWER_WINDOW_CLOSED)");
         });
     }
 
@@ -62,7 +63,7 @@ public class GetClientQuestionnaireEndpoint(IApplicationDbContext db, TimeProvid
                     r.PublicId == responsePublicIdParam.Value
                     && r.ClientId == userGuid
                     && r.Link.ClientProfileId == clientProfile.Id
-                    && r.Link.IsActive
+                    && r.Link.ConnectionState != ConnectionState.Ended
                     && (r.Status == QuestionnaireResponseStatus.Pending || r.Status == QuestionnaireResponseStatus.InProgress), ct);
 
             link = requestedResponse?.Link;
@@ -78,14 +79,14 @@ public class GetClientQuestionnaireEndpoint(IApplicationDbContext db, TimeProvid
             link = await db.ClientProfessionalLinks
                 .Where(l => l.ClientProfileId == clientProfile.Id
                          && l.PublicId == linkPublicIdParam.Value
-                         && l.IsActive)
+                         && l.ConnectionState != ConnectionState.Ended)
                 .FirstOrDefaultAsync(ct);
         }
         else
         {
             // Legacy fallback: first active link
             link = await db.ClientProfessionalLinks
-                .Where(l => l.ClientProfileId == clientProfile.Id && l.IsActive)
+                .Where(l => l.ClientProfileId == clientProfile.Id && l.ConnectionState != ConnectionState.Ended)
                 .FirstOrDefaultAsync(ct);
         }
 

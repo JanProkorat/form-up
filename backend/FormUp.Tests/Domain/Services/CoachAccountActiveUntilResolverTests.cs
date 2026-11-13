@@ -14,6 +14,7 @@ public class CoachAccountActiveUntilResolverTests
     {
         ProfessionalProfileId = 1,
         SubscriptionPlanId = 1,
+        SubscriptionPlanPriceId = 1,
         Status = status,
         CurrentPeriodEndsAt = periodEnd,
         TrialEndsAt = trialEnd,

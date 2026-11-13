@@ -44,6 +44,18 @@ public class StatusCodeContractTests(FitnessApiFactory factory)
     [InlineData("post", "/payments/bank-account/undo", "204,400,409,429", false, Body)]
     [InlineData("post", "/payments/bank-account/code", "204,400,401,403,404,429", false, Body)]
     [InlineData("post", "/payments/clients/{clientId}/payments/{paymentId}/request", "200,400,401,403,404,409,429", true, Body)]
+    [InlineData("get", "/users/me/subscription", "200,401,403,404", true, Absent)]
+    [InlineData("get", "/users/me/subscription/keep-clients", "200,401,403,404,409", true, Absent)]
+    [InlineData("put", "/users/me/subscription/keep-clients", "204,400,401,403,404,409", false, Body)]
+    [InlineData("get", "/users/me/subscription/plans", "200,401,403", true, Absent)]
+    [InlineData("post", "/users/me/subscription/choose-free", "204,400,401,403,404,409", false, Body)]
+    [InlineData("put", "/admin/coaches/{coachId}/subscription", "200,400,401,403,404", true, Body)]
+    [InlineData("get", "/admin/coaches", "200,400,401,403", true, Body)]
+    [InlineData("get", "/admin/coaches/{coachId}", "200,401,403,404", true, Absent)]
+    [InlineData("post", "/admin/coaches/{coachId}/give-free", "200,400,401,403,404", true, Body)]
+    [InlineData("post", "/admin/coaches/{coachId}/cancel-renewal", "200,400,401,403,404,409", true, Body)]
+    [InlineData("post", "/admin/coaches/{coachId}/end-plan", "200,400,401,403,404,409", true, Body)]
+    [InlineData("post", "/admin/coaches/{coachId}/disable", "200,400,401,403,404", true, Body)]
     public async Task Swagger_Operation_DeclaresExactlyTheStatusCodesItCanReturn(
         string method, string route, string expected, bool typedSuccess, string badRequest)
     {

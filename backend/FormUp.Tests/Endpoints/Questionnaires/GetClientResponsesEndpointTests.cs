@@ -65,7 +65,7 @@ public class GetClientResponsesEndpointTests(FitnessApiFactory factory)
             ClientProfileId = clientProfile.Id,
             ProfessionalProfileId = profProfile.Id,
             ProfessionalRole = UserRole.Trainer,
-            IsActive = isActive,
+            ConnectionState = isActive ? ConnectionState.Connected : ConnectionState.Ended,
             PublicId = Guid.NewGuid(),
             DateCreated = DateTime.UtcNow,
         };

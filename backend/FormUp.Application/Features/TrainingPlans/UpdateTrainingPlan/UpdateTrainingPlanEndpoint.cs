@@ -51,6 +51,15 @@ public class UpdateTrainingPlanEndpoint(
             s.Description = "Replaces the plan's name, description, and all weeks/sessions/exercises/sets. " +
                             "Per-week publish status is preserved. Uses optimistic concurrency via version field. " +
                             "Published sessions with content changes require an active Editing lock.";
+            s.Response<GetTrainingPlanResponse>(StatusCodes.Status200OK, "Updated plan");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Invalid request, or a published week was removed or the start date is invalid");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status403Forbidden,
+                "The subscription does not include plans (SUBSCRIPTION_REQUIRED), a removed coach role, or the client is over the " +
+                "Free plan's client limit and the plan's last published week has ended or the start date changed (CLIENT_OVER_PLAN_LIMIT)");
+            s.Response(StatusCodes.Status404NotFound, "Plan not found, or not editable by the caller");
+            s.Response(StatusCodes.Status409Conflict,
+                "PLAN_VERSION_CONFLICT, SESSION_LOCKED (a published session with content changes needs an Editing lock) or WORKOUT_ALREADY_COMPLETED");
         });
     }
 
@@ -84,6 +93,31 @@ public class UpdateTrainingPlanEndpoint(
             (plan, authorizeCt) => AuthorizeAsync(plan, trainerId, authorizeCt),
             async (plan, mutateCt) =>
             {
+                // A client over the Free plan's cap keeps the published weeks they have: the plan stays editable
+                // until the last of them ends, but not in a way that pushes that end out.
+                var overCapAccess = await this.RespondIfClientOverPlanLimitAfterRunsUntilAsync(
+                    db,
+                    trainerId,
+                    plan.ClientId,
+                    PlanRunsUntilResolver.Resolve(
+                        plan.StartDate, plan.Weeks.Where(w => w.Status == WeekStatus.Published).Select(w => w.WeekNumber)),
+                    mutateCt);
+
+                if (overCapAccess == OverCapEditAccess.Refused)
+                {
+                    return false;
+                }
+
+                if (overCapAccess == OverCapEditAccess.WindowOpen && req.StartDate?.Date != plan.StartDate?.Date)
+                {
+                    await this.SendProblemAsync(
+                        StatusCodes.Status403Forbidden,
+                        ErrorCodes.ClientOverPlanLimit,
+                        "The start date of a plan cannot change while its client is over the Free plan's client limit.",
+                        mutateCt);
+                    return false;
+                }
+
                 // A removed role may finish its in-progress plans but not push their end date out.
                 if (HttpContext.Items.ContainsKey(RemovedCoachRoleMiddleware.RoleRemovedItemKey)
                     && plan.StartDate.HasValue
@@ -458,13 +492,16 @@ public class UpdateTrainingPlanEndpoint(
         var capabilities = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
             trainerId, plan.ClientId, ct);
 
-        if (capabilities is { CanViewTrainingPlans: true })
+        if (capabilities is not { CanViewTrainingPlans: true })
         {
-            return true;
+            await Send.NotFoundAsync(ct);
+            return false;
         }
 
-        await Send.NotFoundAsync(ct);
-        return false;
+        // The subscription gate comes after the lookup, so a missing or foreign plan still answers 404.
+        return !await this.RespondIfFeatureNotEntitledAsync(
+            db, trainerId, entitlements => entitlements.CanCreatePlans,
+            "The current subscription does not include editing plans.", ct);
     }
 
     /// <summary>

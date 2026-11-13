@@ -116,7 +116,9 @@ public class GetWeekPlanEndpoint(IMongoContext mongo, IApplicationDbContext db, 
             PlanName = plan.Name,
             WeekNumber = week.WeekNumber,
             Days = week.Days,
-            GlobalSettings = plan.GlobalSettings
+            GlobalSettings = plan.GlobalSettings,
+            RunsUntil = await this.ResolveRunsUntilForOverCapClientAsync(
+                db, plan.NutritionistId, clientId, plan.StartDate, publishedWeeks.Select(w => w.WeekNumber), ct),
         }, ct);
     }
 }

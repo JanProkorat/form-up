@@ -1,5 +1,6 @@
 using FormUp.Application.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using FormUp.Application.Domain.Enums;
 
 namespace FormUp.Application.Domain.Services;
 
@@ -66,7 +67,7 @@ public static class ProfessionSlotGuard
         return await links.AnyAsync(l =>
             l.ClientProfileId == clientProfileId &&
             l.ProfessionalProfileId != professionalProfileId &&
-            l.IsActive &&
+            l.ConnectionState != ConnectionState.Ended &&
             ((wantsNutritionPlans && l.CanViewNutritionPlans) ||
              (wantsTrainingPlans && l.CanViewTrainingPlans)),
             ct);

@@ -19,6 +19,14 @@ public class CheckInAutomationRuleEndpointTests(FitnessApiFactory factory)
 
     private Task<Actor> CreateCoachAsync() => TestActors.Trainer(factory).CreateAsync(Ct);
 
+    /// <summary>A coach on the seeded Studio plan, which includes check-ins and per-client configuration.</summary>
+    private async Task<Actor> CreateEntitledCoachAsync()
+    {
+        var coach = await CreateCoachAsync();
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, "studio");
+        return coach;
+    }
+
     private static Dictionary<string, object?> CheckInRule(Guid questionnaireId, bool enabled = true) => new()
     {
         ["name"] = "Weekly check-in",
@@ -47,7 +55,7 @@ public class CheckInAutomationRuleEndpointTests(FitnessApiFactory factory)
     [Fact]
     public async Task Create_CheckInRuleOnACheckInForm_IsAcceptedAndNeverSkips()
     {
-        var coach = await CreateCoachAsync();
+        var coach = await CreateEntitledCoachAsync();
         var formId = await AutomationTestData.CreateQuestionnaireAsync(factory, coach, QuestionnaireType.CheckIn);
         var body = CheckInRule(formId);
         body["skipWhilePreviousUnanswered"] = true;
@@ -66,7 +74,7 @@ public class CheckInAutomationRuleEndpointTests(FitnessApiFactory factory)
     [Fact]
     public async Task Create_CheckInRuleWithSevenDayWindow_RoundTrips()
     {
-        var coach = await CreateCoachAsync();
+        var coach = await CreateEntitledCoachAsync();
         var formId = await AutomationTestData.CreateQuestionnaireAsync(factory, coach, QuestionnaireType.CheckIn);
         var body = CheckInRule(formId);
         body["answerWindowHours"] = 168;
@@ -80,7 +88,7 @@ public class CheckInAutomationRuleEndpointTests(FitnessApiFactory factory)
     [Fact]
     public async Task CheckInRule_SecondEnabledOne_IsRefusedOnCreateAndOnEnabling()
     {
-        var coach = await CreateCoachAsync();
+        var coach = await CreateEntitledCoachAsync();
         var formId = await AutomationTestData.CreateQuestionnaireAsync(factory, coach, QuestionnaireType.CheckIn);
         (await coach.Http.PostAsJsonAsync("/trainer/automations/rules", CheckInRule(formId), Ct))
             .StatusCode.Should().Be(HttpStatusCode.OK);
@@ -98,7 +106,7 @@ public class CheckInAutomationRuleEndpointTests(FitnessApiFactory factory)
     [Fact]
     public async Task Update_RuleSwitchedToACheckInForm_IsRefusedWhileAnotherIsEnabled()
     {
-        var coach = await CreateCoachAsync();
+        var coach = await CreateEntitledCoachAsync();
         var formId = await AutomationTestData.CreateQuestionnaireAsync(factory, coach, QuestionnaireType.CheckIn);
         var otherFormId = await AutomationTestData.CreateQuestionnaireAsync(factory, coach);
         await coach.Http.PostAsJsonAsync("/trainer/automations/rules", CheckInRule(formId), Ct);
@@ -139,7 +147,7 @@ public class CheckInAutomationRuleEndpointTests(FitnessApiFactory factory)
     [Fact]
     public async Task Override_CheckInRule_TakesAnotherWeekdayAndRefusesCheckInFieldsOnOtherRules()
     {
-        var coach = await CreateCoachAsync();
+        var coach = await CreateEntitledCoachAsync();
         var client = await TestActors.Client(factory).CreateAsync(Ct);
         await TestActors.Link(factory, coach, client).CreateAsync(Ct);
         var formId = await AutomationTestData.CreateQuestionnaireAsync(factory, coach, QuestionnaireType.CheckIn);
@@ -167,7 +175,7 @@ public class CheckInAutomationRuleEndpointTests(FitnessApiFactory factory)
 
         var response = await coach.Http.PostAsJsonAsync("/trainer/automations/rules", CheckInRule(formId), Ct);
 
-        await AssertErrorCodeAsync(response, HttpStatusCode.Forbidden, ErrorCodes.CheckInsNotEntitled);
+        await AssertErrorCodeAsync(response, HttpStatusCode.Forbidden, ErrorCodes.SubscriptionRequired);
     }
 
     [Fact]
@@ -185,7 +193,7 @@ public class CheckInAutomationRuleEndpointTests(FitnessApiFactory factory)
         var response = await coach.Http.PutAsJsonAsync(
             $"/trainer/clients/{client.PublicId}/automations/{rule.RuleId}/override", overrideBody, Ct);
 
-        await AssertErrorCodeAsync(response, HttpStatusCode.Forbidden, ErrorCodes.PerClientCheckInConfigNotEntitled);
+        await AssertErrorCodeAsync(response, HttpStatusCode.Forbidden, ErrorCodes.SubscriptionRequired);
     }
 
     [Fact]

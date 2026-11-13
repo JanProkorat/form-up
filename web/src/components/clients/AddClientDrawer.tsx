@@ -29,6 +29,8 @@ import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useTrainerQuestionnaires } from '@/hooks/useQuestionnaireQueries';
 import { isNotEntitled } from '@/components/client-detail/payment/paymentErrors';
 import { usePaymentDiscounts, usePaymentPackages } from '@/hooks/useClientPaymentQueries';
+import ClientLimitDialog from '@/components/subscription/ClientLimitDialog';
+import { isClientLimitReached } from '@/lib/subscriptionErrors';
 import { useAuthStore } from '@/stores/auth';
 import { cn } from '@/lib/utils';
 
@@ -86,6 +88,7 @@ function InviteForm({ onClose }: { onClose: () => void }) {
   const [discountChoice, setDiscountChoice] = useState('');
   const [formChoice, setFormChoice] = useState<string | null>(null);
   const [message, setMessage] = useState('');
+  const [capOpen, setCapOpen] = useState(false);
 
   const schema = z.object({
     email: z
@@ -177,11 +180,12 @@ function InviteForm({ onClose }: { onClose: () => void }) {
           ? { packageId: offeredPackage.id, ...(offeredDiscount ? { discountId: offeredDiscount.discountId } : {}) }
           : {}),
       },
-      { onSuccess: onClose },
+      { onSuccess: onClose, onError: (error) => isClientLimitReached(error) && setCapOpen(true) },
     );
   }
 
   return (
+    <>
     <form onSubmit={handleSubmit(onSubmit)} className="flex min-h-0 flex-1 flex-col">
       <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-6 py-5">
         <section className="flex flex-col gap-3">
@@ -321,5 +325,7 @@ function InviteForm({ onClose }: { onClose: () => void }) {
         </Button>
       </div>
     </form>
+    <ClientLimitDialog open={capOpen} onOpenChange={setCapOpen} context="invite" />
+    </>
   );
 }

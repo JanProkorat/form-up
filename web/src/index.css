@@ -1432,3 +1432,25 @@
     radial-gradient(620px 460px at 100% 0%, var(--gf-hero-warm), transparent 70%),
     radial-gradient(560px 460px at 0% 100%, var(--gf-hero-fresh), transparent 70%);
 }
+
+/* Scroll area with no native scrollbar. Wheel, touch and keyboard scrolling keep working. */
+@utility scrollbar-hidden {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Edge fade for a scroll area. --scroll-fade-top / --scroll-fade-bottom are set by
+   useScrollEdgeFade (0px when that side has nothing cut off). Only the mask alpha matters, not the colour. */
+@utility scroll-edge-fade {
+  --scroll-fade-top: 0px;
+  --scroll-fade-bottom: 0px;
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    black var(--scroll-fade-top),
+    black calc(100% - var(--scroll-fade-bottom)),
+    transparent 100%
+  );
+}

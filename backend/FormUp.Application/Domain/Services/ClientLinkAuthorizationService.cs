@@ -80,7 +80,7 @@ public class ClientLinkAuthorizationService(IApplicationDbContext db) : IClientL
 
         var activeLinks = db.ClientProfessionalLinks
             .AsNoTracking()
-            .Where(cpl => cpl.ProfessionalProfileId == professionalProfile.Id && cpl.IsActive);
+            .Where(cpl => cpl.ProfessionalProfileId == professionalProfile.Id && cpl.ConnectionState != ConnectionState.Ended);
 
         // null means "every active link, including one that grants neither domain" — see
         // LinkCapabilities.GrantsNothing — and is deliberately NOT the same as
@@ -128,7 +128,7 @@ public class ClientLinkAuthorizationService(IApplicationDbContext db) : IClientL
             .Where(cpl =>
                 cpl.ProfessionalProfileId == professionalProfileId &&
                 cpl.ClientProfileId == clientProfileId &&
-                cpl.IsActive)
+                cpl.ConnectionState != ConnectionState.Ended)
             .Select(cpl => new { cpl.CanViewNutritionPlans, cpl.CanViewTrainingPlans })
             .FirstOrDefaultAsync(ct);
 

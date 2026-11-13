@@ -90,7 +90,7 @@ public class RemoveCoachRoleEndpointTests
         ProfessionalProfileId = profile.Id,
         ProfessionalProfile = profile,
         ClientProfile = new ClientProfile { UserId = clientUserId },
-        IsActive = true,
+        ConnectionState = ConnectionState.Connected,
         CanViewTrainingPlans = true,
         CanViewNutritionPlans = false,
     };

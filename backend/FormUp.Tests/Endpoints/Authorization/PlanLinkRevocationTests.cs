@@ -119,7 +119,7 @@ public class PlanLinkRevocationTests(FitnessApiFactory factory)
 
         var link = await db.ClientProfessionalLinks.FirstAsync(
             l => l.PublicId == linkPublicId, TestContext.Current.CancellationToken);
-        link.IsActive = false;
+        link.ConnectionState = ConnectionState.Ended;
 
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
     }

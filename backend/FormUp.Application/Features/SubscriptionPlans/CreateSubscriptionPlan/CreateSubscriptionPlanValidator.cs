@@ -33,8 +33,14 @@ internal sealed class CreateSubscriptionPlanValidator : Validator<CreateSubscrip
             .NotEmpty().WithErrorCode(ErrorCodes.Required)
             .MaximumLength(200).WithErrorCode(ErrorCodes.OutOfRange);
 
-        RuleFor(x => x.ApplicableRoles)
-            .IsInEnum().WithErrorCode(ErrorCodes.OutOfRange);
+        RuleFor(x => x.SecondRoleAddOnPriceMinorUnits)
+            .GreaterThan(0).WithErrorCode(ErrorCodes.OutOfRange)
+            .When(x => x.SecondRoleAddOnPriceMinorUnits.HasValue);
+
+        RuleFor(x => x)
+            .Must(x => x.BothRolesIncluded != x.SecondRoleAddOnPriceMinorUnits.HasValue)
+            .WithErrorCode(ErrorCodes.SecondRoleOptionInvalid)
+            .WithMessage("Set exactly one of bothRolesIncluded and secondRoleAddOnPriceMinorUnits.");
 
         RuleFor(x => x.BillingInterval)
             .IsInEnum().WithErrorCode(ErrorCodes.OutOfRange);

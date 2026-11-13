@@ -8,8 +8,11 @@ import type {
   ClientSummary,
   ClientListStatus,
   ClientListFilter,
+  ClientListTab,
+  ClientPlanFilter,
   ClientTabCounts,
   ClientFilterCounts,
+  ClientPlanCounts,
   PendingClientRow,
 } from '@/api/generated';
 
@@ -17,8 +20,11 @@ export type {
   ClientSummary,
   ClientListStatus,
   ClientListFilter,
+  ClientListTab,
+  ClientPlanFilter,
   ClientTabCounts,
   ClientFilterCounts,
+  ClientPlanCounts,
   PendingClientRow,
 };
 export { PendingRowKind } from '@/api/generated';
@@ -30,6 +36,10 @@ export interface GetClientsParams {
   search?: string;
   status?: ClientListStatus;
   filter?: ClientListFilter;
+  /** The clients-page tab. Never combine with `status` (400). */
+  tab?: ClientListTab;
+  /** Single-choice plan filter, applied after the tab. */
+  plan?: ClientPlanFilter;
 }
 
 export interface GetClientsResult {
@@ -39,6 +49,7 @@ export interface GetClientsResult {
   pageSize: number;
   tabCounts: ClientTabCounts;
   filterCounts: ClientFilterCounts;
+  planCounts: ClientPlanCounts;
 }
 
 /**
@@ -57,6 +68,8 @@ export async function getClients(params: GetClientsParams): Promise<GetClientsRe
     params.search,
     params.status,
     params.filter,
+    params.tab,
+    params.plan,
   );
   return {
     clients: response.clients ?? [],
@@ -65,6 +78,7 @@ export async function getClients(params: GetClientsParams): Promise<GetClientsRe
     pageSize: response.pageSize ?? params.pageSize,
     tabCounts: response.tabCounts ?? {},
     filterCounts: response.filterCounts ?? {},
+    planCounts: response.planCounts ?? {},
   };
 }
 

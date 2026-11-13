@@ -2,7 +2,10 @@ import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useActiveRoles } from '@/hooks/useActiveRoles';
-import { ChevronUp, LogOut, Monitor, Moon, Settings, Sun, User } from 'lucide-react';
+import { ChevronUp, CreditCard, LogOut, Monitor, Moon, Settings, Sun, User, Users } from 'lucide-react';
+import SidebarPlanRow from '@/components/subscription/SidebarPlanRow';
+import { KEEP_CLIENTS_PATH, PLAN_BILLING_PATH } from '@/components/subscription/planLinks';
+import { useSubscription } from '@/hooks/useSubscriptionQueries';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
 import { useThemeStore, type ThemePreference } from '@/stores/theme';
@@ -90,6 +93,9 @@ export default function AccountMenu({ onNavigate, collapsed = false }: Props) {
   const [open, setOpen] = useState(false);
 
   const activeRoles = useActiveRoles();
+  const subscription = useSubscription();
+  // The keep-clients screen only while a pick is due: an unconfirmed choice, or a freed slot to fill.
+  const needsKeepPick = subscription.keepPickDue;
   const tokenRoles = (user?.roles ?? []).map((role) => role.toLowerCase());
   const tokenCoachRoles = tokenRoles.filter((role) => COACH_ROLES.has(role));
 
@@ -111,13 +117,14 @@ export default function AccountMenu({ onNavigate, collapsed = false }: Props) {
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
+      <div className="flex flex-col rounded-field border border-sidebar-active bg-sidebar-active">
       <PopoverTrigger asChild>
         <button
           type="button"
           aria-label={t('accountMenu.trigger')}
           title={collapsed ? t('accountMenu.trigger') : undefined}
           className={cn(
-            'flex w-full items-center rounded-field border border-sidebar-active bg-sidebar-active text-left outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-sidebar-text/60',
+            'flex w-full items-center rounded-field text-left outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-sidebar-text/60',
             collapsed ? 'justify-center p-1.5' : 'gap-2.5 py-1.75 pr-1.5 pl-2.75',
           )}
         >
@@ -143,6 +150,17 @@ export default function AccountMenu({ onNavigate, collapsed = false }: Props) {
           )}
         </button>
       </PopoverTrigger>
+      {!collapsed && subscription.isCoach && subscription.data && (
+        <SidebarPlanRow
+          planName={subscription.planName}
+          status={subscription.data.status}
+          used={subscription.activeClientCount}
+          limit={subscription.clientLimit}
+          lapsed={needsKeepPick}
+          onNavigate={onNavigate}
+        />
+      )}
+      </div>
       <PopoverContent
         side="right"
         align="end"
@@ -173,6 +191,21 @@ export default function AccountMenu({ onNavigate, collapsed = false }: Props) {
           <Settings className="size-4 text-muted-foreground" aria-hidden="true" />
           {t('accountMenu.settings')}
         </Link>
+        {subscription.isCoach && (
+          <Link to={PLAN_BILLING_PATH} onClick={close} className={ITEM_CLASS}>
+            <CreditCard className="size-4 text-muted-foreground" aria-hidden="true" />
+            {t('accountMenu.planBilling')}
+            {subscription.planName && (
+              <span className="ml-auto text-meta font-semibold text-muted-foreground">{subscription.planName}</span>
+            )}
+          </Link>
+        )}
+        {subscription.isCoach && needsKeepPick && (
+          <Link to={KEEP_CLIENTS_PATH} onClick={close} className={ITEM_CLASS}>
+            <Users className="size-4 text-muted-foreground" aria-hidden="true" />
+            {t('accountMenu.keepClients')}
+          </Link>
+        )}
         <div className="my-1.5 h-px bg-border" />
         <Segmented label={t('accountMenu.language')}>
           {LANGUAGES.map((lng) => (

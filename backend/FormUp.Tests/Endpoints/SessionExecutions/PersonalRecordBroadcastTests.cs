@@ -121,7 +121,7 @@ public class PersonalRecordBroadcastTests(FitnessApiFactory factory)
             ClientProfileId = clientProfile.Id,
             ProfessionalProfileId = professionalProfileId,
             ProfessionalRole = UserRole.Trainer,
-            IsActive = isActive,
+            ConnectionState = isActive ? ConnectionState.Connected : ConnectionState.Ended,
             CanViewTrainingPlans = canViewTrainingPlans,
             CanViewNutritionPlans = !canViewTrainingPlans,
             DateCreated = DateTime.UtcNow

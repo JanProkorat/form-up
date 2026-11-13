@@ -21,6 +21,7 @@ import { weekHasItems } from '@/components/plan-editor/plan-editor-ops';
 import { DAYS_PER_WEEK, type EditorDocument, type WeekStatus } from '@/components/plan-editor/plan-editor-types';
 import { parseLockRejection, type LockRejection } from '@/components/plan-editor/meal-locks';
 import { getApiErrorMessage, getErrorStatus, getProblemBody, getRfc7807ErrorCode, showApiError } from '@/lib/api-errors';
+import { isClientOverPlanLimit } from '@/lib/subscriptionErrors';
 import { useToastStore } from '@/stores/toast';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -105,7 +106,7 @@ export function isClosedPlan(plan: GetPlanResponse): boolean {
  * map and the conflict state. The loaded copy is captured once, so a background refetch never changes the
  * version the next save is checked against; every save and publish response replaces it.
  */
-export function useClientPlanEditor(loadedPlan: GetPlanResponse, clientId: string) {
+export function useClientPlanEditor(loadedPlan: GetPlanResponse, clientId: string, onOverPlanLimit?: () => void) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const planId = loadedPlan.planId ?? '';
@@ -140,7 +141,20 @@ export function useClientPlanEditor(loadedPlan: GetPlanResponse, clientId: strin
     return document;
   }
 
+  /** 403 CLIENT_OVER_PLAN_LIMIT: opens the paywall instead of an error; false when it is another error. */
+  function handleOverPlanLimit(error: unknown): boolean {
+    if (!onOverPlanLimit || !isClientOverPlanLimit(error)) {
+      return false;
+    }
+    onOverPlanLimit();
+    return true;
+  }
+
   function fail(error: unknown) {
+    if (handleOverPlanLimit(error)) {
+      setSaveState({ status: 'idle' });
+      return;
+    }
     if (getErrorStatus(error) === 409) {
       const code = getRfc7807ErrorCode(error);
       if (code === 'MEAL_LOCKED' || code === 'PAST_DAY_LOCKED') {
@@ -185,7 +199,9 @@ export function useClientPlanEditor(loadedPlan: GetPlanResponse, clientId: strin
     try {
       await deleteMutation.mutateAsync();
     } catch (error) {
-      showApiError(error, 'clientPlanEditor.delete.error');
+      if (!handleOverPlanLimit(error)) {
+        showApiError(error, 'clientPlanEditor.delete.error');
+      }
       return false;
     }
     queryClient.removeQueries({ queryKey: ['nutrition-plan-detail', planId] });
@@ -205,6 +221,9 @@ export function useClientPlanEditor(loadedPlan: GetPlanResponse, clientId: strin
     try {
       await completeMutation.mutateAsync(planRef.current.version);
     } catch (error) {
+      if (handleOverPlanLimit(error)) {
+        return false;
+      }
       if (getErrorStatus(error) === 409) {
         setSaveState({ status: 'conflict', message: t('planEditor.conflict.message') });
       } else {

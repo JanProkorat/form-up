@@ -33,9 +33,9 @@ internal sealed class GetClientFormsEndpoint(
             s.Description = "Returns the onboarding, questionnaire and check-in forms the caller sent the client. " +
                 "Unanswered forms are listed only for the current collaboration; answered forms from an earlier " +
                 "collaboration come back in a separate group.";
-            s.Responses[StatusCodes.Status200OK] = "Forms of the current and previous collaborations";
-            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
-            s.Responses[StatusCodes.Status404NotFound] = "Unknown client, or the caller has no live link to it";
+            s.Response<GetClientFormsResponse>(StatusCodes.Status200OK, "Forms of the current and previous collaborations");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status404NotFound, "Unknown client, or the caller has no live link to it");
         });
     }
 
@@ -79,7 +79,7 @@ internal sealed class GetClientFormsEndpoint(
             .AsNoTracking()
             .Where(link => link.ClientProfile.UserId == clientUserId
                            && link.ProfessionalProfile.UserId == coachUserId
-                           && link.IsActive)
+                           && link.ConnectionState != ConnectionState.Ended)
             .MaxAsync(link => link.ActivatedAtUtc, ct);
 
         var responses = await db.QuestionnaireResponses

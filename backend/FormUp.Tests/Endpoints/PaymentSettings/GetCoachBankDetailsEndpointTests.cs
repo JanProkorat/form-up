@@ -26,7 +26,7 @@ public class GetCoachBankDetailsEndpointTests(FitnessApiFactory factory)
     [Fact]
     public async Task Get_LinkGrantingNoPlanCapability_ReturnsTheBankDetails()
     {
-        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var coach = await TestActors.Trainer(factory).WithPayments().CreateAsync(TestContext.Current.CancellationToken);
         var client = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
         await SetBankAccountAsync(factory, coach, ValidIban, "Martin Král");
         await TestActors.Link(factory, coach, client)
@@ -48,7 +48,9 @@ public class GetCoachBankDetailsEndpointTests(FitnessApiFactory factory)
     [InlineData("not entitled")]
     public async Task Get_NoLiveLinkNoIbanOrPaymentsLocked_Returns404(string scenario)
     {
-        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var coachBuilder = TestActors.Trainer(factory);
+        var coach = await (scenario == "not entitled" ? coachBuilder : coachBuilder.WithPayments())
+            .CreateAsync(TestContext.Current.CancellationToken);
         var client = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
 
         if (scenario != "no iban")
@@ -128,7 +130,7 @@ public class GetCoachBankDetailsEndpointTests(FitnessApiFactory factory)
     public async Task Get_OpenPaymentOwedToAnotherCoach_Returns404()
     {
         var (coach, client) = await EndedLinkAsync();
-        var otherCoach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var otherCoach = await TestActors.Trainer(factory).WithPayments().CreateAsync(TestContext.Current.CancellationToken);
         await SeedPaymentAsync(otherCoach, client, ClientPaymentStatus.Requested);
 
         var response = await GetAsync(client, coach);
@@ -150,7 +152,7 @@ public class GetCoachBankDetailsEndpointTests(FitnessApiFactory factory)
 
     private async Task<(Actor Coach, Actor Client)> EndedLinkAsync()
     {
-        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var coach = await TestActors.Trainer(factory).WithPayments().CreateAsync(TestContext.Current.CancellationToken);
         var client = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
         await SetBankAccountAsync(factory, coach, ValidIban);
         await TestActors.Link(factory, coach, client).Inactive().CreateAsync(TestContext.Current.CancellationToken);
@@ -160,7 +162,7 @@ public class GetCoachBankDetailsEndpointTests(FitnessApiFactory factory)
 
     private async Task<(Actor Coach, Actor Client)> RoleRemovedLinkAsync()
     {
-        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var coach = await TestActors.Trainer(factory).WithPayments().CreateAsync(TestContext.Current.CancellationToken);
         var client = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
         await SetBankAccountAsync(factory, coach, ValidIban);
         await TestActors.Link(factory, coach, client).CanViewNutritionPlans(false).CreateAsync(TestContext.Current.CancellationToken);

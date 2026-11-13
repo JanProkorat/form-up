@@ -97,7 +97,7 @@ public class ProfessionSlotRaceTests(FitnessApiFactory factory)
             ClientProfileId = clientProfileId,
             ProfessionalProfileId = coachAProfileId,
             ProfessionalRole = Application.Domain.Enums.UserRole.Nutritionist,
-            IsActive = true,
+            ConnectionState = ConnectionState.Connected,
             CanViewNutritionPlans = true,
             CanViewTrainingPlans = false
         });
@@ -188,7 +188,7 @@ public class ProfessionSlotRaceTests(FitnessApiFactory factory)
 
         var activeNutritionLinks = await db.ClientProfessionalLinks.AsNoTracking()
             .CountAsync(l => l.ClientProfileId == clientProfile.Id
-                             && l.IsActive
+                             && l.ConnectionState != ConnectionState.Ended
                              && l.CanViewNutritionPlans, ct);
 
         activeNutritionLinks.Should().Be(1,

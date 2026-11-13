@@ -21,8 +21,8 @@ public class SubscriptionPlanDto
     /// <summary>German plan name.</summary>
     public string NameDe { get; set; } = string.Empty;
 
-    /// <summary>Which professional role(s) this plan applies to.</summary>
-    public ApplicableRoles ApplicableRoles { get; set; }
+    /// <summary>True when the plan covers both professional roles at no extra charge.</summary>
+    public bool BothRolesIncluded { get; set; }
 
     /// <summary>Whether the plan allows creating nutrition/training plans.</summary>
     public bool CanCreatePlans { get; set; }
@@ -45,31 +45,43 @@ public class SubscriptionPlanDto
     /// <summary>Maximum number of active clients allowed under this plan. Null means unlimited.</summary>
     public int? MaxActiveClients { get; set; }
 
-    /// <summary>Plan price, expressed in the smallest unit of <see cref="Currency"/>.</summary>
+    /// <summary>Current plan price, expressed in the smallest unit of <see cref="Currency"/>.</summary>
     public long PriceMinorUnits { get; set; }
 
-    /// <summary>ISO 4217 currency code for <see cref="PriceMinorUnits"/>.</summary>
+    /// <summary>Current price of the second-role add-on. Null when both roles are included.</summary>
+    public long? SecondRoleAddOnPriceMinorUnits { get; set; }
+
+    /// <summary>ISO 4217 currency code for the prices.</summary>
     public string Currency { get; set; } = string.Empty;
 
     /// <summary>Billing cadence for this plan.</summary>
     public BillingInterval BillingInterval { get; set; }
 
-    /// <summary>External payment-provider price identifier, once billing integration ships.</summary>
+    /// <summary>External payment-provider price identifier of the current price, once billing integration ships.</summary>
     public string? ExternalPriceId { get; set; }
 
     /// <summary>Whether the plan is currently offered/selectable.</summary>
     public bool IsActive { get; set; }
 
     /// <summary>
+    /// Number of coaches with a live subscription (trialing, active or past due) on this plan.
+    /// Coaches without a subscription row are not counted.
+    /// </summary>
+    public int CoachCount { get; set; }
+
+    /// <summary>
     /// Maps a <see cref="SubscriptionPlan"/> entity to its wire representation.
     /// </summary>
-    public static SubscriptionPlanDto FromEntity(SubscriptionPlan plan) => new()
+    /// <param name="plan">The plan.</param>
+    /// <param name="externalPriceId">External price id of the plan's open price row.</param>
+    /// <param name="coachCount">Coaches currently on the plan.</param>
+    public static SubscriptionPlanDto FromEntity(SubscriptionPlan plan, string? externalPriceId, int coachCount) => new()
     {
         Code = plan.Code,
         NameCs = plan.NameCs,
         NameEn = plan.NameEn,
         NameDe = plan.NameDe,
-        ApplicableRoles = plan.ApplicableRoles,
+        BothRolesIncluded = plan.BothRolesIncluded,
         CanCreatePlans = plan.CanCreatePlans,
         CanMessage = plan.CanMessage,
         CanSendQuestionnaires = plan.CanSendQuestionnaires,
@@ -78,9 +90,11 @@ public class SubscriptionPlanDto
         CanUsePayments = plan.CanUsePayments,
         MaxActiveClients = plan.MaxActiveClients,
         PriceMinorUnits = plan.PriceMinorUnits,
+        SecondRoleAddOnPriceMinorUnits = plan.SecondRoleAddOnPriceMinorUnits,
         Currency = plan.Currency,
         BillingInterval = plan.BillingInterval,
-        ExternalPriceId = plan.ExternalPriceId,
+        ExternalPriceId = externalPriceId,
         IsActive = plan.IsActive,
+        CoachCount = coachCount,
     };
 }

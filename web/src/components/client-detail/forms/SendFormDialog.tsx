@@ -6,7 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useTrainerQuestionnaires } from '@/hooks/useQuestionnaireQueries';
+import PaywallDialog from '@/components/subscription/PaywallDialog';
+import { useInvalidateSubscription } from '@/hooks/useSubscriptionQueries';
 import { showApiError, showSuccess } from '@/lib/api-errors';
+import { isSubscriptionRequired } from '@/lib/subscriptionErrors';
 
 interface Props {
   clientId: string;
@@ -21,6 +24,8 @@ export default function SendFormDialog({ clientId, clientName, open, onOpenChang
   const queryClient = useQueryClient();
   const formsQuery = useTrainerQuestionnaires();
   const [picked, setPicked] = useState<string | null>(null);
+  const [paywallOpen, setPaywallOpen] = useState(false);
+  const invalidateSubscription = useInvalidateSubscription();
 
   const forms = (formsQuery.data ?? []).filter((form) => form.isActive && form.type !== QuestionnaireType.CheckIn);
 
@@ -31,11 +36,20 @@ export default function SendFormDialog({ clientId, clientName, open, onOpenChang
       onOpenChange(false);
       setPicked(null);
     },
-    onError: (error) => showApiError(error, 'clientForms.send.error'),
+    onError: (error) => {
+      if (isSubscriptionRequired(error)) {
+        // Stale plan data: refetch it and explain with the paywall instead of a toast.
+        invalidateSubscription();
+        setPaywallOpen(true);
+        return;
+      }
+      showApiError(error, 'clientForms.send.error');
+    },
     onSettled: () => queryClient.invalidateQueries({ queryKey: clientFormsKey(clientId) }),
   });
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
@@ -98,5 +112,7 @@ export default function SendFormDialog({ clientId, clientName, open, onOpenChang
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    <PaywallDialog open={paywallOpen} onOpenChange={setPaywallOpen} feature="forms" />
+    </>
   );
 }

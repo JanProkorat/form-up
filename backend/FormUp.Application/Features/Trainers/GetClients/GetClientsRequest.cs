@@ -43,4 +43,15 @@ public class GetClientsRequest
     /// <see cref="GetClientsResponse.FilterCounts"/> without this filter applied.
     /// </summary>
     public ClientListFilter? Filter { get; set; }
+
+    /// <summary>
+    /// Optional clients-page tab. Cannot be combined with <see cref="Status"/>. Omitted means
+    /// the legacy <see cref="Status"/> selection.
+    /// </summary>
+    public ClientListTab? Tab { get; set; }
+
+    /// <summary>
+    /// Optional plan filter, applied after the tab. Archived rows never match.
+    /// </summary>
+    public ClientPlanFilter? Plan { get; set; }
 }

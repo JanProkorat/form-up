@@ -35,7 +35,7 @@ public static class EndpointTestHelpers
 
         return new InvitePackageTermsApplier(
             db,
-            new EntitlementService(db),
+            Builders.EntitlementServiceBuilder.For(db),
             new ClientPaymentTermsWriter(db, audit),
             audit,
             NullLogger<InvitePackageTermsApplier>.Instance);

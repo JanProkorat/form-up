@@ -246,6 +246,24 @@
   "h": 900
  },
  {
+  "html": "web/05-21-page-clients-restricted-c.html",
+  "png": "web/05-21-page-clients-restricted-c.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/05-22-page-client-detail-restricted-c.html",
+  "png": "web/05-22-page-client-detail-restricted-c.png",
+  "w": 1440,
+  "h": 1100
+ },
+ {
+  "html": "web/05-23-page-clients-choice-pending-c.html",
+  "png": "web/05-23-page-clients-choice-pending-c.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
   "html": "web/06-01-page-clients-d.html",
   "png": "web/06-01-page-clients-d.png",
   "w": 1440,
@@ -362,6 +380,24 @@
  {
   "html": "web/06-20-page-clients-pending-d.html",
   "png": "web/06-20-page-clients-pending-d.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/06-21-page-clients-restricted-d.html",
+  "png": "web/06-21-page-clients-restricted-d.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/06-22-page-client-detail-restricted-d.html",
+  "png": "web/06-22-page-client-detail-restricted-d.png",
+  "w": 1440,
+  "h": 1100
+ },
+ {
+  "html": "web/06-23-page-clients-choice-pending-d.html",
+  "png": "web/06-23-page-clients-choice-pending-d.png",
   "w": 1440,
   "h": 900
  },
@@ -960,6 +996,30 @@
   "h": 1240
  },
  {
+  "html": "web/35-04-page-plan-changed-notice-c.html",
+  "png": "web/35-04-page-plan-changed-notice-c.png",
+  "w": 1440,
+  "h": 1240
+ },
+ {
+  "html": "web/35-05-page-plan-ended-notice-c.html",
+  "png": "web/35-05-page-plan-ended-notice-c.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/35-06-page-plan-notifications-c.html",
+  "png": "web/35-06-page-plan-notifications-c.png",
+  "w": 860,
+  "h": 640
+ },
+ {
+  "html": "web/35-07-page-plan-decision-c.html",
+  "png": "web/35-07-page-plan-decision-c.png",
+  "w": 1440,
+  "h": 1100
+ },
+ {
   "html": "web/36-01-page-plan-picker-d.html",
   "png": "web/36-01-page-plan-picker-d.png",
   "w": 1440,
@@ -976,6 +1036,30 @@
   "png": "web/36-03-page-settings-plan-past-due-d.png",
   "w": 1440,
   "h": 1240
+ },
+ {
+  "html": "web/36-04-page-plan-changed-notice-d.html",
+  "png": "web/36-04-page-plan-changed-notice-d.png",
+  "w": 1440,
+  "h": 1240
+ },
+ {
+  "html": "web/36-05-page-plan-ended-notice-d.html",
+  "png": "web/36-05-page-plan-ended-notice-d.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/36-06-page-plan-notifications-d.html",
+  "png": "web/36-06-page-plan-notifications-d.png",
+  "w": 860,
+  "h": 640
+ },
+ {
+  "html": "web/36-07-page-plan-decision-d.html",
+  "png": "web/36-07-page-plan-decision-d.png",
+  "w": 1440,
+  "h": 1100
  },
  {
   "html": "web/37-01-page-paywall-feature-c.html",
@@ -1032,10 +1116,16 @@
   "h": 1240
  },
  {
-  "html": "web/39-06-page-admin-coach-drawer-c.html",
-  "png": "web/39-06-page-admin-coach-drawer-c.png",
+  "html": "web/39-06-page-admin-coach-profile-c.html",
+  "png": "web/39-06-page-admin-coach-profile-c.png",
   "w": 1440,
   "h": 1240
+ },
+ {
+  "html": "web/39-07-page-admin-coach-dialogs-c.html",
+  "png": "web/39-07-page-admin-coach-dialogs-c.png",
+  "w": 2408,
+  "h": 900
  },
  {
   "html": "web/40-01-page-admin-plans-d.html",
@@ -1068,10 +1158,16 @@
   "h": 1240
  },
  {
-  "html": "web/40-06-page-admin-coach-drawer-d.html",
-  "png": "web/40-06-page-admin-coach-drawer-d.png",
+  "html": "web/40-06-page-admin-coach-profile-d.html",
+  "png": "web/40-06-page-admin-coach-profile-d.png",
   "w": 1440,
   "h": 1240
+ },
+ {
+  "html": "web/40-07-page-admin-coach-dialogs-d.html",
+  "png": "web/40-07-page-admin-coach-dialogs-d.png",
+  "w": 2408,
+  "h": 900
  },
  {
   "html": "web/41-01-page-client-activity-offline-sync-c.html",

@@ -15,7 +15,18 @@ The old combined canvas (<https://claude.ai/artifact/HFzM8WqykBxJvkLdiqU85h>) is
 frozen and no longer updated.
 
 **Snapshot of web portal 1794226496-cc4b, client app 1794307123-abc5 and coach app
-1794226497-216b, exported 2026-11-10 (#2056).** This was a full re-sync: boards the
+1794226497-216b, exported 2026-11-10 (#2056).** Partial update on 2026-11-10 (#2065):
+`PageAdminCoachProfile`, `PageAdminCoachDialogs` and `PageAdminCoaches` taken from web
+portal 1794314120-6fd1 and `PageAdminCoachDrawer` removed; other web boards are still
+from 1794226496-cc4b, and PNGs for the new boards are not rendered yet. Partial update on 2026-11-11
+(#2070): `PageAdminCoachDialogs` and `PageAdminCoachProfile` updated and `PagePlanChangedNotice`,
+`PagePlanEndedNotice` and `PagePlanNotifications` added from web portal 1794403060-8947, also without PNGs.
+Partial update on 2026-11-12 (#2080): `PagePlanPicker` updated and `PagePlanDecision` added from web portal
+1794472027-2409, without PNGs. Partial update on 2026-11-12 (#2084): `PageClientsRestricted` and
+`PageClientDetailRestricted` added from web portal 1794478908-c7e5, without PNGs. Partial update on 2026-11-12
+(#2086): `PageClients` and `PageClientsRestricted` updated (tabs by plan cap, plan filter menu) from web portal 1794494910-0948, then `PageLapseKeepClients`
+updated and `PageClientsChoicePending` added from web portal 1794497663-42f9, without PNGs. Partial
+update on 2026-11-12: `PageAdminCoachProfile` (back button beside the avatar, compact plan card, History scrolling inside its card) from web portal 1794519679-7991. The #2056 export was a full re-sync: boards the
 canvases had folded into combined boards (e.g. the `PageReset*` steps into
 `PageResetPasswordFlow`, the settings dialogs into `PageDialogs`) are gone, and the
 clickable prototypes link to the combined board instead. The concepts and logo boards

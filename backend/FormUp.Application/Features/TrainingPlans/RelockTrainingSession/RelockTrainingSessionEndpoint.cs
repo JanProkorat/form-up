@@ -6,6 +6,8 @@ using FormUp.Application.Domain.Documents;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Extensions;
 using FormUp.Application.Domain.Interfaces;
+using FormUp.Application.Domain.Services;
+using FormUp.Application.Infrastructure.Data;
 using FormUp.Application.Infrastructure.Data.MongoDb;
 
 namespace FormUp.Application.Features.TrainingPlans.RelockTrainingSession;
@@ -19,6 +21,7 @@ namespace FormUp.Application.Features.TrainingPlans.RelockTrainingSession;
 /// </summary>
 [RemovedCoachRole(AppRoles.Trainer, RemovedCoachRoleMode.WhilePlanInProgress)]
 public class RelockTrainingSessionEndpoint(
+    IApplicationDbContext db,
     IMongoContext mongo,
     ISessionLockService lockService,
     IRealtimeNotifier notifier,
@@ -35,6 +38,12 @@ public class RelockTrainingSessionEndpoint(
             s.Summary = "Relock a training session (release the Editing lock)";
             s.Description = "Releases the Editing lock, returning the session to Stable state. " +
                             "Idempotent: if the lock is already released or expired this is a no-op success.";
+            s.Response(StatusCodes.Status204NoContent, "Lock released (or already released)");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Invalid request");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status403Forbidden,
+                "The client is over the Free plan's client limit and the plan's last published week has ended (CLIENT_OVER_PLAN_LIMIT)");
+            s.Response(StatusCodes.Status404NotFound, "Plan or session not found, or not editable by the caller");
         });
     }
 
@@ -55,6 +64,20 @@ public class RelockTrainingSessionEndpoint(
         var plan = await this.LoadOwnedTrainingPlanIfAllowedAsync(mongo, linkAuthorizationService, req.PlanId, trainerId, ct);
 
         if (plan is null)
+        {
+            return;
+        }
+
+        // A client over the Free plan's cap stays editable only until the last published week ends.
+        var overCapAccess = await this.RespondIfClientOverPlanLimitAfterRunsUntilAsync(
+            db,
+            trainerId,
+            plan.ClientId,
+            PlanRunsUntilResolver.Resolve(
+                plan.StartDate, plan.Weeks.Where(w => w.Status == WeekStatus.Published).Select(w => w.WeekNumber)),
+            ct);
+
+        if (overCapAccess == OverCapEditAccess.Refused)
         {
             return;
         }

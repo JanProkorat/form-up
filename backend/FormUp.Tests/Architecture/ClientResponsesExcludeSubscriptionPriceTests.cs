@@ -22,11 +22,13 @@ public class ClientResponsesExcludeSubscriptionPriceTests(FitnessApiFactory fact
     private static readonly HashSet<Type> ForbiddenTypes =
     [
         typeof(SubscriptionPlan),
+        typeof(SubscriptionPlanPrice),
         typeof(SubscriptionPlanDto),
         typeof(CoachSubscription),
     ];
 
-    private static readonly HashSet<string> ForbiddenPropertyNames = ["PriceMinorUnits", "ExternalPriceId"];
+    private static readonly HashSet<string> ForbiddenPropertyNames =
+        ["PriceMinorUnits", "SecondRoleAddOnPriceMinorUnits", "ExternalPriceId"];
 
     [Fact]
     public void ClientAnonymousAndLoginOnlyResponses_NeverReachSubscriptionPlanOrPrice()

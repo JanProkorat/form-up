@@ -25,7 +25,7 @@ public class PaymentSettingsEndpointTests(FitnessApiFactory factory)
     [Fact]
     public async Task GetThenPut_NewCoach_StartsFromDefaultsAndStoresTheSettingsWithoutTouchingTheBankAccount()
     {
-        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var coach = await TestActors.Trainer(factory).WithPayments().CreateAsync(TestContext.Current.CancellationToken);
 
         var get = await coach.Http.GetAsync("/payments/settings", TestContext.Current.CancellationToken);
 
@@ -54,7 +54,7 @@ public class PaymentSettingsEndpointTests(FitnessApiFactory factory)
     [Fact]
     public async Task Put_ProfileCurrency_IsStoredAndKeptWhenOmitted()
     {
-        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var coach = await TestActors.Trainer(factory).WithPayments().CreateAsync(TestContext.Current.CancellationToken);
         var body = new { PaymentDueDays = 7, MessageFormat = "PackageName", VariableSymbolFormat = "YearMonthClientNumber" };
 
         (await coach.Http.PutAsJsonAsync(
@@ -69,7 +69,7 @@ public class PaymentSettingsEndpointTests(FitnessApiFactory factory)
     [Fact]
     public async Task Put_DueDaysOutOfRange_Returns400AndStoresNothing()
     {
-        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var coach = await TestActors.Trainer(factory).WithPayments().CreateAsync(TestContext.Current.CancellationToken);
 
         var response = await coach.Http.PutAsJsonAsync(
             "/payments/settings",

@@ -58,7 +58,7 @@ public class GetPendingInviteEndpointTests
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
                 new System.Security.Claims.ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientUserId, AppRoles.Client))),
-            db, userManager, TimeProvider.System, new EntitlementService(db));
+            db, userManager, TimeProvider.System, EntitlementServiceBuilder.For(db));
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -96,7 +96,7 @@ public class GetPendingInviteEndpointTests
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
                 new System.Security.Claims.ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientUserId, AppRoles.Client))),
-            db, userManager, TimeProvider.System, new EntitlementService(db));
+            db, userManager, TimeProvider.System, EntitlementServiceBuilder.For(db));
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 

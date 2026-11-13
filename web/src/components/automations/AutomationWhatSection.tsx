@@ -9,6 +9,7 @@ import { AutomationActionType, AutomationScheduleUnit, AutomationTriggerKind } f
 import { QuestionnaireType } from '@/api/questionnaires';
 import { useAutomationRules } from '@/hooks/useAutomationQueries';
 import { useTrainerQuestionnaires } from '@/hooks/useQuestionnaireQueries';
+import { useSubscription } from '@/hooks/useSubscriptionQueries';
 import { isCheckInRule } from '@/components/automations/automationFormat';
 import {
   FIELD_CLASS,
@@ -62,6 +63,9 @@ export default function AutomationWhatSection({
   // so check-in forms are hidden while another enabled check-in rule exists.
   const formsQuery = useTrainerQuestionnaires();
   const rulesQuery = useAutomationRules();
+  // The weekly check-in rule type needs the plan feature; the other rule types stay usable.
+  const { isEntitled } = useSubscription();
+  const checkInsLocked = !isEntitled('canUseWeeklyCheckIns');
   const otherCheckInRuleEnabled = (rulesQuery.data?.rules ?? []).some(
     (rule) => isCheckInRule(rule) && rule.enabled === true && rule.ruleId !== editingRuleId,
   );
@@ -149,7 +153,11 @@ export default function AutomationWhatSection({
             >
               <option value="">{t('automations.drawer.what.formPlaceholder')}</option>
               {forms.map((form) => (
-                <option key={form.publicId} value={form.publicId}>
+                <option
+                  key={form.publicId}
+                  value={form.publicId}
+                  disabled={checkInsLocked && form.type === QuestionnaireType.CheckIn && form.publicId !== questionnaireId}
+                >
                   {form.type === QuestionnaireType.CheckIn
                     ? t('automations.drawer.what.formOptionCheckIn', { title: form.title })
                     : t('automations.drawer.what.formOption', { title: form.title, count: form.questionCount })}
@@ -160,6 +168,9 @@ export default function AutomationWhatSection({
           </div>
           {formsQuery.isError && (
             <span className="text-meta font-normal text-destructive">{t('automations.drawer.what.formsError')}</span>
+          )}
+          {checkInsLocked && forms.some((form) => form.type === QuestionnaireType.CheckIn) && (
+            <span className="text-meta font-normal text-muted-foreground">{t('subscription.checkIns.locked')}</span>
           )}
           {checkIn && selectedForm && (
             <span className="text-meta font-normal text-muted-foreground">

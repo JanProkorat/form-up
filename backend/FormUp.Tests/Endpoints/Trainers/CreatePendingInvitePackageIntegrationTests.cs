@@ -80,7 +80,7 @@ public class CreatePendingInvitePackageIntegrationTests(FitnessApiFactory factor
     {
         var coach = await CoachWithPaymentsAsync();
         var packageId = await CreatePackageAsync(coach);
-        await SetSubscriptionStatusAsync(coach, SubscriptionStatus.Canceled);
+        await CoachSubscriptionBuilder.MoveToPlanWithoutPaymentsAsync(factory, coach);
         var email = NewEmail();
 
         var response = await InviteAsync(coach, email, packageId);
@@ -152,12 +152,4 @@ public class CreatePendingInvitePackageIntegrationTests(FitnessApiFactory factor
         (await ProblemCodeAsync(response)).Should().Be("CURRENCY_MISMATCH");
     }
 
-    private async Task SetSubscriptionStatusAsync(Actor coach, SubscriptionStatus status)
-    {
-        using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var subscription = await db.CoachSubscriptions.SingleAsync(cs => cs.ProfessionalProfileId == coach.ProfileId, Ct);
-        subscription.Status = status;
-        await db.SaveChangesAsync(Ct);
-    }
 }

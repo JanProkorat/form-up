@@ -61,7 +61,7 @@ public class ClientLinkAuthorizationServiceTests(FitnessApiFactory factory)
             ProfessionalProfileId = professionalProfile.Id,
             ClientProfileId = clientProfile.Id,
             ProfessionalRole = UserRole.Trainer,
-            IsActive = isActive,
+            ConnectionState = isActive ? ConnectionState.Connected : ConnectionState.Ended,
             CanViewNutritionPlans = canViewNutritionPlans,
             CanViewTrainingPlans = canViewTrainingPlans,
             DateCreated = DateTime.UtcNow

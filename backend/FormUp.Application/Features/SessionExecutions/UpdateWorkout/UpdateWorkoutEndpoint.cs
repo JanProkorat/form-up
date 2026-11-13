@@ -502,7 +502,7 @@ public class UpdateWorkoutEndpoint(
         {
             trainerUserIds = await db.ClientProfessionalLinks
                 .AsNoTracking()
-                .Where(l => l.ClientProfile.UserId == pr.ClientId && l.IsActive && l.CanViewTrainingPlans)
+                .Where(l => l.ClientProfile.UserId == pr.ClientId && l.ConnectionState != ConnectionState.Ended && l.CanViewTrainingPlans)
                 .Select(l => l.ProfessionalProfile.UserId)
                 .ToListAsync(ct);
         }

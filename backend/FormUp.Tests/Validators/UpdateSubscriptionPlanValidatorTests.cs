@@ -20,7 +20,7 @@ public class UpdateSubscriptionPlanValidatorTests
         NameCs = "Malý",
         NameEn = "Small",
         NameDe = "Klein",
-        ApplicableRoles = ApplicableRoles.Both,
+        BothRolesIncluded = true,
         CanCreatePlans = true,
         CanMessage = true,
         CanSendQuestionnaires = true,
@@ -39,6 +39,54 @@ public class UpdateSubscriptionPlanValidatorTests
     {
         var result = _validator.TestValidate(ValidRequest());
         result.IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void BothRolesIncluded_Omitted_FailsWithRequiredCode()
+    {
+        var req = ValidRequest();
+        req.BothRolesIncluded = null;
+
+        var result = _validator.TestValidate(req);
+        result.ShouldHaveValidationErrorFor(x => x.BothRolesIncluded).WithErrorCode(ErrorCodes.Required);
+    }
+
+    [Theory]
+    [InlineData(true, 14900L)]
+    [InlineData(false, null)]
+    public void SecondRole_BothOrNeitherSet_FailsWithSecondRoleOptionInvalidCode(
+        bool bothRolesIncluded, long? addOnPrice)
+    {
+        var req = ValidRequest();
+        req.BothRolesIncluded = bothRolesIncluded;
+        req.SecondRoleAddOnPriceMinorUnits = addOnPrice;
+
+        var result = _validator.TestValidate(req);
+
+        result.Errors.Should().Contain(e => e.ErrorCode == ErrorCodes.SecondRoleOptionInvalid);
+    }
+
+    [Fact]
+    public void SecondRoleAddOnPrice_Zero_FailsWithOutOfRangeCode()
+    {
+        var req = ValidRequest();
+        req.BothRolesIncluded = false;
+        req.SecondRoleAddOnPriceMinorUnits = 0;
+
+        var result = _validator.TestValidate(req);
+
+        result.ShouldHaveValidationErrorFor(x => x.SecondRoleAddOnPriceMinorUnits)
+            .WithErrorCode(ErrorCodes.OutOfRange);
+    }
+
+    [Fact]
+    public void SecondRole_PaidAddOnWithoutBothRolesIncluded_PassesValidation()
+    {
+        var req = ValidRequest();
+        req.BothRolesIncluded = false;
+        req.SecondRoleAddOnPriceMinorUnits = 14900;
+
+        _validator.TestValidate(req).IsValid.Should().BeTrue();
     }
 
     [Fact]

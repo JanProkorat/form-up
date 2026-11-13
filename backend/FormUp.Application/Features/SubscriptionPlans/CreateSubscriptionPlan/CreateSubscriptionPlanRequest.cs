@@ -21,8 +21,14 @@ public class CreateSubscriptionPlanRequest
     /// <summary>German plan name.</summary>
     public string NameDe { get; set; } = string.Empty;
 
-    /// <summary>Which professional role(s) this plan applies to.</summary>
-    public ApplicableRoles ApplicableRoles { get; set; }
+    /// <summary>
+    /// True when the plan covers both professional roles at no extra charge. Exactly one of this
+    /// and <see cref="SecondRoleAddOnPriceMinorUnits"/> must be set.
+    /// </summary>
+    public bool BothRolesIncluded { get; set; }
+
+    /// <summary>Price of the second-role add-on. Must be positive; omit when both roles are included.</summary>
+    public long? SecondRoleAddOnPriceMinorUnits { get; set; }
 
     /// <summary>Whether the plan allows creating nutrition/training plans.</summary>
     public bool CanCreatePlans { get; set; }

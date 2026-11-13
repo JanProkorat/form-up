@@ -95,7 +95,7 @@ public class ReinviteReactivatesLinkIntegrationTests(FitnessApiFactory factory)
 
         response.IsSuccessStatusCode.Should().BeTrue(await response.Content.ReadAsStringAsync(Ct));
         var link = await LinkOfAsync(coach, client);
-        link.IsActive.Should().BeTrue();
+        link.ConnectionState.Should().Be(ConnectionState.Connected);
         link.CanViewTrainingPlans.Should().BeTrue();
         link.QuestionnaireId.Should().Be(questionnaireId);
         using var check = factory.Services.CreateScope();
@@ -117,7 +117,7 @@ public class ReinviteReactivatesLinkIntegrationTests(FitnessApiFactory factory)
         var response = await AcceptAsync(byToken, coach, client, LinkCapabilityScope.TrainingOnly);
 
         await AssertCodeAsync(response, HttpStatusCode.Forbidden, ErrorCodes.CoachRoleRemoved);
-        (await LinkOfAsync(coach, client)).IsActive.Should().BeFalse();
+        (await LinkOfAsync(coach, client)).ConnectionState.Should().Be(ConnectionState.Ended);
     }
 
     [Theory]
@@ -134,7 +134,7 @@ public class ReinviteReactivatesLinkIntegrationTests(FitnessApiFactory factory)
         var response = await AcceptAsync(byToken, coach, client);
 
         await AssertCodeAsync(response, HttpStatusCode.BadRequest, ErrorCodes.ProfessionAlreadyOccupied);
-        (await LinkOfAsync(coach, client)).IsActive.Should().BeFalse();
+        (await LinkOfAsync(coach, client)).ConnectionState.Should().Be(ConnectionState.Ended);
     }
 
     [Fact]
@@ -181,7 +181,7 @@ public class ReinviteReactivatesLinkIntegrationTests(FitnessApiFactory factory)
             $"/client/invites/{inviteId}/accept", new StringContent("{}", Encoding.UTF8, "application/json"), Ct);
 
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
-        (await LinkOfAsync(world.Coach, world.Client)).IsActive.Should().BeTrue();
+        (await LinkOfAsync(world.Coach, world.Client)).ConnectionState.Should().Be(ConnectionState.Connected);
         using var check = factory.Services.CreateScope();
         var checkDb = check.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var starts = await checkDb.ClientPayments.AsNoTracking()

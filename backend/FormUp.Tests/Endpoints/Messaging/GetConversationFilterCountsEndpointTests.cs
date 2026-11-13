@@ -181,7 +181,7 @@ public class GetConversationFilterCountsEndpointTests(FitnessApiFactory factory)
             .FirstAsync(cp => cp.PublicId == clientPublicId, TestContext.Current.CancellationToken);
         var link = await db.ClientProfessionalLinks
             .FirstAsync(l => l.ClientProfileId == clientProfile.Id, TestContext.Current.CancellationToken);
-        link.IsActive = false;
+        link.ConnectionState = ConnectionState.Ended;
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 

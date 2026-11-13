@@ -11,6 +11,8 @@ import Pagination from '@/components/library/Pagination';
 import SingleOptionFilterPopover from '@/components/plan-templates/SingleOptionFilterPopover';
 import FormsTable from '@/components/forms/FormsTable';
 import CreateFormDialog from '@/components/forms/CreateFormDialog';
+import PaywallCard from '@/components/subscription/PaywallCard';
+import { useSubscription } from '@/hooks/useSubscriptionQueries';
 
 const TYPE_VALUES = [QuestionnaireType.Onboarding, QuestionnaireType.CheckIn] as const;
 
@@ -23,6 +25,7 @@ const TYPE_VALUES = [QuestionnaireType.Onboarding, QuestionnaireType.CheckIn] as
 export default function FormsPage() {
   const { t } = useTranslation();
   const { filters, setSearch, setType, setPage, clearFilters } = useFormListParams();
+  const { isEntitled } = useSubscription();
 
   const [searchInput, setSearchInput] = useState(filters.search);
   const [createOpen, setCreateOpen] = useState(false);
@@ -49,6 +52,9 @@ export default function FormsPage() {
   const page = Math.min(filters.page, lastPage);
   const pageForms = activeForms.slice((page - 1) * filters.pageSize, page * filters.pageSize);
 
+  // Unknown or failed plan lookups never lock the page; only a loaded plan without the feature does.
+  const locked = !isEntitled('canSendQuestionnaires');
+
   const hasActiveFilter = filters.search !== '' || filters.type !== null;
   const showEmptyState = !formsQuery.isPending && !formsQuery.isError && totalCount === 0 && !hasActiveFilter;
 
@@ -63,12 +69,20 @@ export default function FormsPage() {
           <h1 className="text-display font-semibold text-ink">{t('forms.title')}</h1>
           <p className="text-copy text-muted-foreground">{t('forms.subtitle')}</p>
         </div>
-        <Button type="button" size="lg" className="gap-1.75 px-3.5 font-semibold" onClick={() => setCreateOpen(true)}>
-          <Plus aria-hidden="true" />
-          {t('forms.newForm')}
-        </Button>
+        {!locked && (
+          <Button type="button" size="lg" className="gap-1.75 px-3.5 font-semibold" onClick={() => setCreateOpen(true)}>
+            <Plus aria-hidden="true" />
+            {t('forms.newForm')}
+          </Button>
+        )}
       </div>
 
+      {locked ? (
+        <div className="flex flex-1 items-start justify-center pt-10">
+          <PaywallCard feature="forms" />
+        </div>
+      ) : (
+      <>
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative min-w-40 max-w-search flex-1">
           <Search
@@ -128,6 +142,8 @@ export default function FormsPage() {
             onPageChange={setPage}
           />
         </div>
+      )}
+      </>
       )}
 
       <CreateFormDialog open={createOpen} onOpenChange={setCreateOpen} />

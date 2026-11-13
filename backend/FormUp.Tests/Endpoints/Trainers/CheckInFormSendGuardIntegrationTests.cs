@@ -42,6 +42,7 @@ public class CheckInFormSendGuardIntegrationTests(FitnessApiFactory factory)
     private async Task<(Actor Trainer, Actor Client, long LinkId)> CreateLinkedPairAsync()
     {
         var trainer = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, trainer, "studio");
         var client = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
         var linkId = await TestActors.Link(factory, trainer, client).CreateAsync(TestContext.Current.CancellationToken);
 

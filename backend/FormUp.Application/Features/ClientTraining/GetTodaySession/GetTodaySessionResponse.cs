@@ -51,6 +51,12 @@ public class GetTodaySessionResponse
     public DateTime? DateCompleted { get; set; }
 
     /// <summary>
+    /// Last day of the plan's last published week, set only when the plan's coach no longer has a plan that covers
+    /// this client: after it the plan is read-only. Null otherwise.
+    /// </summary>
+    public DateOnly? RunsUntil { get; set; }
+
+    /// <summary>
     /// Per-exercise muscle groups, keyed by SessionExercise.ExerciseExternalId.
     /// Empty when an exercise no longer exists in the database. Populated by
     /// looking up Exercise documents for every exercise referenced by today's

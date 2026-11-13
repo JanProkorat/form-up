@@ -1,7 +1,9 @@
 using System.Net;
+using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Infrastructure.Data;
+using FormUp.Tests.Builders;
 using FormUp.Tests.Infrastructure;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -26,18 +28,20 @@ public class DeactivateSubscriptionPlanEndpointTests(FitnessApiFactory factory)
 
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        db.SubscriptionPlans.Add(new SubscriptionPlan
+        var plan = new SubscriptionPlan
         {
             Code = code,
             NameCs = "Test",
             NameEn = "Test",
             NameDe = "Test",
-            ApplicableRoles = ApplicableRoles.Both,
+            BothRolesIncluded = true,
             Currency = "CZK",
             PriceMinorUnits = 0,
             BillingInterval = BillingInterval.Monthly,
             IsActive = isActive,
-        });
+        };
+        SubscriptionPlanPriceBuilder.OpenPriceFor(plan);
+        db.SubscriptionPlans.Add(plan);
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         return code;
@@ -83,6 +87,27 @@ public class DeactivateSubscriptionPlanEndpointTests(FitnessApiFactory factory)
 
         persisted.Should().NotBeNull();
         persisted!.IsActive.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Deactivate_FreePlan_Returns409FreePlanLockedAndStaysActive()
+    {
+        var client = await TestHelpers.RegisterAdminAsync(factory, TestContext.Current.CancellationToken);
+        await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
+
+        var response = await client.DeleteAsync(
+            "/admin/subscription-plans/free", TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))
+            .Should().Contain(ErrorCodes.FreePlanLocked);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var free = await db.SubscriptionPlans
+            .AsNoTracking()
+            .FirstAsync(p => p.Code == "free", TestContext.Current.CancellationToken);
+        free.IsActive.Should().BeTrue();
     }
 
     [Fact]

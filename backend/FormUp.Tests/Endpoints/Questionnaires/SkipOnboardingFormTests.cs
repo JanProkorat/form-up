@@ -155,7 +155,7 @@ public class SkipOnboardingFormTests(FitnessApiFactory factory)
 
         accepted.StatusCode.Should().Be(HttpStatusCode.NoContent);
         var link = await StoredLinkAsync(coach, client);
-        link.IsActive.Should().BeTrue();
+        link.ConnectionState.Should().Be(ConnectionState.Connected);
         link.SkipOnboardingForm.Should().BeFalse();
     }
 

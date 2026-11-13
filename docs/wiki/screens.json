@@ -216,7 +216,15 @@
         "web/src/api/client-payments.ts",
         "web/src/api/questionnaires.ts",
         "web/src/lib/cooperationCards.ts",
-        "web/src/hooks/useActiveRoles.ts"
+        "web/src/hooks/useActiveRoles.ts",
+        "web/src/components/subscription/OutsidePlanBanner.tsx",
+        "web/src/components/clients/ClientFilterMenu.tsx",
+        "web/src/components/clients/OutsidePlanChip.tsx",
+        "web/src/hooks/useSubscriptionQueries.ts",
+        "web/src/lib/subscriptionErrors.ts",
+        "web/src/components/subscription/ClientLimitDialog.tsx",
+        "web/src/components/subscription/planLinks.ts",
+        "web/src/components/subscription/UsageBar.tsx"
       ],
       "endpoints": [
         "GET /trainer/clients",
@@ -233,7 +241,8 @@
         "POST /trainer/client-requests/{publicId}/withdraw-proposal",
         "GET /trainer/questionnaires",
         "GET /payments/packages",
-        "GET /payments/discounts"
+        "GET /payments/discounts",
+        "GET /users/me/subscription"
       ],
       "board": "PageClients",
       "shots": [
@@ -264,13 +273,18 @@
         "web/src/hooks/useClientPaymentQueries.ts",
         "web/src/components/client-detail/payment/paymentErrors.ts",
         "web/src/components/client-detail/payment/paymentModel.ts",
-        "web/src/api/client-payments.ts"
+        "web/src/api/client-payments.ts",
+        "web/src/components/subscription/ClientLimitDialog.tsx",
+        "web/src/lib/subscriptionErrors.ts",
+        "web/src/components/subscription/UsageBar.tsx",
+        "web/src/hooks/useSubscriptionQueries.ts"
       ],
       "endpoints": [
         "POST /trainer/pending-invites",
         "GET /trainer/questionnaires",
         "GET /payments/packages",
-        "GET /payments/discounts"
+        "GET /payments/discounts",
+        "GET /users/me/subscription"
       ],
       "board": "PageClientInviteDrawer",
       "shots": [
@@ -302,7 +316,11 @@
         "web/src/api/client-plans.ts",
         "web/src/api/weekly-checkins.ts",
         "web/src/api/plans.ts",
-        "web/src/api/training-plans.ts"
+        "web/src/api/training-plans.ts",
+        "web/src/components/subscription/OutsidePlanBanner.tsx",
+        "web/src/components/client-detail/OutsidePlanPaywall.tsx",
+        "web/src/components/subscription/planLinks.ts",
+        "web/src/hooks/useSubscriptionQueries.ts"
       ],
       "endpoints": [
         "GET /trainer/clients/{clientId}",
@@ -313,7 +331,8 @@
         "GET /trainer/clients/{clientId}/plans",
         "GET /trainer/clients/{clientUserId}/weekly-check-ins/history",
         "GET /nutrition/plans/{planId}",
-        "GET /training/plans/{planId}"
+        "GET /training/plans/{planId}",
+        "GET /users/me/subscription"
       ],
       "board": "PageClientDetail",
       "shots": [
@@ -347,7 +366,11 @@
         "web/src/api/photos.ts",
         "web/src/api/weekly-checkins.ts",
         "web/src/hooks/usePlanTemplatesQueries.ts",
-        "web/src/components/client-plan-editor/templateMatching.ts"
+        "web/src/components/client-plan-editor/templateMatching.ts",
+        "web/src/components/subscription/OutsidePlanBanner.tsx",
+        "web/src/components/client-detail/OutsidePlanPaywall.tsx",
+        "web/src/components/subscription/planLinks.ts",
+        "web/src/hooks/useSubscriptionQueries.ts"
       ],
       "endpoints": [
         "GET /trainer/clients",
@@ -365,7 +388,8 @@
         "POST /nutrition/plans/{planId}/copy",
         "GET /nutrition/plan-templates",
         "POST /nutrition/plan-templates/{templateId}/instantiate",
-        "POST /nutrition/plan-templates/from-plan"
+        "POST /nutrition/plan-templates/from-plan",
+        "GET /users/me/subscription"
       ],
       "board": "PageClientNutrition",
       "shots": [
@@ -385,7 +409,10 @@
         "web/src/components/client-detail/**",
         "web/src/components/automations/*",
         "web/src/hooks/useAutomationQueries.ts",
-        "web/src/api/automations.ts"
+        "web/src/api/automations.ts",
+        "web/src/components/subscription/OutsidePlanBanner.tsx",
+        "web/src/components/subscription/planLinks.ts",
+        "web/src/hooks/useSubscriptionQueries.ts"
       ],
       "endpoints": [
         "GET /trainer/clients/{clientId}/automations",
@@ -395,7 +422,8 @@
         "PUT /trainer/clients/{clientId}/automations/{ruleId}/pause",
         "GET /trainer/automations/rules",
         "PUT /trainer/automations/rules/{ruleId}",
-        "DELETE /trainer/automations/rules/{ruleId}"
+        "DELETE /trainer/automations/rules/{ruleId}",
+        "GET /users/me/subscription"
       ],
       "board": "PageClientAutomations",
       "shots": [
@@ -422,7 +450,10 @@
         "web/src/api/payment-settings.ts",
         "web/src/components/paywall/FeaturePaywall.tsx",
         "web/src/lib/payment-format.ts",
-        "web/src/lib/money.ts"
+        "web/src/lib/money.ts",
+        "web/src/components/subscription/OutsidePlanBanner.tsx",
+        "web/src/hooks/useSubscriptionQueries.ts",
+        "web/src/components/subscription/planLinks.ts"
       ],
       "endpoints": [
         "GET /payments/clients/{clientId}/summary",
@@ -435,7 +466,8 @@
         "POST /payments/clients/{clientId}/payments/{paymentId}/waive",
         "GET /payments/packages",
         "GET /payments/discounts",
-        "GET /payments/settings"
+        "GET /payments/settings",
+        "GET /users/me/subscription"
       ],
       "board": "PageClientPayment",
       "shots": [
@@ -555,7 +587,12 @@
         "web/src/api/nutrition-plan-templates.ts",
         "web/src/api/foods.ts",
         "web/src/api/food-tags.ts",
-        "web/src/api/recipes.ts"
+        "web/src/api/recipes.ts",
+        "web/src/components/client-detail/OutsidePlanPaywall.tsx",
+        "web/src/components/client-detail/OutsidePlanPaywallDialog.tsx",
+        "web/src/components/subscription/planLinks.ts",
+        "web/src/hooks/useSubscriptionQueries.ts",
+        "web/src/lib/subscriptionErrors.ts"
       ],
       "endpoints": [
         "GET /trainer/clients/{clientId}",
@@ -572,7 +609,8 @@
         "GET /foods/search",
         "GET /trainer/food-tags",
         "GET /recipes",
-        "GET /recipes/{recipeId}"
+        "GET /recipes/{recipeId}",
+        "GET /users/me/subscription"
       ],
       "board": "PageClientPlanEditor",
       "shots": [
@@ -802,7 +840,14 @@
         "web/src/components/settings/**",
         "web/src/components/layout/AccountMenu.tsx",
         "web/src/api/profile.ts",
-        "web/src/api/roles.ts"
+        "web/src/api/roles.ts",
+        "web/src/components/settings/PlanBillingCard.tsx",
+        "web/src/components/subscription/planFeatures.ts",
+        "web/src/hooks/useSubscriptionQueries.ts",
+        "web/src/components/subscription/SidebarPlanRow.tsx",
+        "web/src/components/subscription/UsageBar.tsx",
+        "web/src/components/subscription/money.ts",
+        "web/src/components/subscription/planLinks.ts"
       ],
       "endpoints": [
         "GET /users/me",
@@ -815,7 +860,8 @@
         "DELETE /users/me/roles/{role}",
         "POST /users/me/coach-account/disable",
         "POST /users/me/coach-account/keep",
-        "DELETE /users/me"
+        "DELETE /users/me",
+        "GET /users/me/subscription"
       ],
       "board": "PageSettings",
       "shots": [
@@ -835,14 +881,17 @@
         "web/src/components/forms/*.tsx",
         "web/src/hooks/useFormListParams.ts",
         "web/src/hooks/useQuestionnaireQueries.ts",
-        "web/src/api/questionnaires.ts"
+        "web/src/api/questionnaires.ts",
+        "web/src/components/subscription/PaywallCard.tsx",
+        "web/src/hooks/useSubscriptionQueries.ts"
       ],
       "endpoints": [
         "GET /trainer/questionnaires",
         "POST /trainer/questionnaires",
         "GET /trainer/questionnaires/{publicId}",
         "PUT /trainer/questionnaires/{publicId}",
-        "DELETE /trainer/questionnaires/{publicId}"
+        "DELETE /trainer/questionnaires/{publicId}",
+        "GET /users/me/subscription"
       ],
       "board": "PageForms",
       "shots": [
@@ -861,14 +910,19 @@
         "web/src/pages/AutomationsPage.tsx",
         "web/src/components/automations/*",
         "web/src/hooks/useAutomationQueries.ts",
-        "web/src/api/automations.ts"
+        "web/src/api/automations.ts",
+        "web/src/components/subscription/PaywallDialog.tsx",
+        "web/src/lib/subscriptionErrors.ts",
+        "web/src/components/subscription/PaywallCard.tsx",
+        "web/src/hooks/useSubscriptionQueries.ts"
       ],
       "endpoints": [
         "GET /trainer/automations/rules",
         "POST /trainer/automations/rules",
         "GET /trainer/automations/rules/{ruleId}",
         "PUT /trainer/automations/rules/{ruleId}",
-        "DELETE /trainer/automations/rules/{ruleId}"
+        "DELETE /trainer/automations/rules/{ruleId}",
+        "GET /users/me/subscription"
       ],
       "board": "PageAutomations",
       "shots": [
@@ -902,6 +956,144 @@
         "POST /payments/discounts/{discountId}/archive"
       ],
       "board": "PagePackages",
+      "shots": [
+        { "name": "default" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "web.admin.plans",
+      "app": "web",
+      "area": "Admin",
+      "title": "Plans",
+      "route": "/admin/plans",
+      "roles": ["Admin"],
+      "files": [
+        "web/src/pages/AdminPlansPage.tsx",
+        "web/src/components/admin-plans/*",
+        "web/src/components/package-catalog/catalogParts.tsx",
+        "web/src/components/package-catalog/packageFormParts.tsx",
+        "web/src/components/automations/automationFormParts.tsx",
+        "web/src/api/admin-subscription-plans.ts",
+        "web/src/lib/money.ts",
+        "web/src/components/subscription/planFeatures.ts"
+      ],
+      "endpoints": [
+        "GET /admin/subscription-plans",
+        "POST /admin/subscription-plans",
+        "PUT /admin/subscription-plans/{code}",
+        "DELETE /admin/subscription-plans/{code}"
+      ],
+      "board": "PageAdminPlans",
+      "shots": [
+        { "name": "default" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "web.admin.coaches",
+      "app": "web",
+      "area": "Admin",
+      "title": "Coaches",
+      "route": "/admin/coach-accounts",
+      "roles": ["Admin"],
+      "files": [
+        "web/src/pages/AdminCoachesPage.tsx",
+        "web/src/components/admin-coaches/*",
+        "web/src/api/admin-coaches.ts",
+        "web/src/components/subscription/planFeatures.ts",
+        "web/src/hooks/useScrollEdgeFade.ts"
+      ],
+      "endpoints": [
+        "GET /admin/coaches"
+      ],
+      "board": "PageAdminCoaches",
+      "shots": [
+        { "name": "default" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "web.admin.coach-profile",
+      "app": "web",
+      "area": "Admin",
+      "title": "Coach detail",
+      "route": "/admin/coach-accounts/:coachId",
+      "roles": ["Admin"],
+      "files": [
+        "web/src/pages/AdminCoachProfilePage.tsx",
+        "web/src/components/admin-coaches/*",
+        "web/src/api/admin-coaches.ts",
+        "web/src/components/admin-plans/planFeatureLabels.ts",
+        "web/src/components/subscription/planFeatures.ts",
+        "web/src/hooks/useScrollEdgeFade.ts"
+      ],
+      "endpoints": [
+        "GET /admin/coaches/{coachId}",
+        "PUT /admin/coaches/{coachId}/subscription",
+        "POST /admin/coaches/{coachId}/give-free",
+        "POST /admin/coaches/{coachId}/end-plan",
+        "POST /admin/coaches/{coachId}/cancel-renewal",
+        "POST /admin/coaches/{coachId}/disable",
+        "GET /admin/subscription-plans"
+      ],
+      "board": "PageAdminCoachProfile",
+      "shots": [
+        { "name": "default" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "web.plan.choose",
+      "app": "web",
+      "area": "Account",
+      "title": "Choose a plan",
+      "route": "/plan/choose",
+      "roles": ["Trainer", "Nutritionist"],
+      "files": [
+        "web/src/pages/PlanChoicePage.tsx",
+        "web/src/routes/PlanChoiceGuard.tsx",
+        "web/src/components/subscription/PlanCard.tsx",
+        "web/src/components/subscription/KeepClientsTable.tsx",
+        "web/src/components/subscription/planFeatures.ts",
+        "web/src/hooks/useSubscriptionQueries.ts",
+        "web/src/components/subscription/money.ts",
+        "web/src/components/subscription/planLinks.ts",
+        "web/src/components/subscription/planNames.ts",
+        "web/src/lib/subscriptionErrors.ts"
+      ],
+      "endpoints": [
+        "GET /users/me/subscription",
+        "GET /users/me/subscription/plans",
+        "POST /users/me/subscription/choose-free",
+        "GET /users/me/subscription/keep-clients",
+        "PUT /users/me/subscription/keep-clients"
+      ],
+      "board": "PagePlanDecision",
+      "shots": [
+        { "name": "default" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "web.plan.keep-clients",
+      "app": "web",
+      "area": "Account",
+      "title": "Keep clients",
+      "route": "/plan/keep-clients",
+      "roles": ["Trainer", "Nutritionist"],
+      "files": [
+        "web/src/pages/LapseKeepClientsPage.tsx",
+        "web/src/components/subscription/KeepClientsTable.tsx",
+        "web/src/hooks/useSubscriptionQueries.ts",
+        "web/src/lib/subscriptionErrors.ts"
+      ],
+      "endpoints": [
+        "GET /users/me/subscription",
+        "GET /users/me/subscription/keep-clients",
+        "PUT /users/me/subscription/keep-clients"
+      ],
+      "board": "PageLapseKeepClients",
       "shots": [
         { "name": "default" }
       ],
@@ -955,14 +1147,20 @@
         "web/src/hooks/useInboxQueries.ts",
         "web/src/hooks/useActiveRoles.ts",
         "web/src/api/conversations.ts",
-        "web/src/api/roles.ts"
+        "web/src/api/roles.ts",
+        "web/src/components/subscription/SidebarPlanRow.tsx",
+        "web/src/hooks/useScrollEdgeFade.ts",
+        "web/src/hooks/useSubscriptionQueries.ts",
+        "web/src/components/subscription/UsageBar.tsx",
+        "web/src/components/subscription/planLinks.ts"
       ],
       "endpoints": [
         "GET /client/notifications",
         "POST /client/notifications/{id}/read",
         "POST /client/notifications/read-all",
         "GET /conversations/filter-counts",
-        "GET /users/me/roles"
+        "GET /users/me/roles",
+        "GET /users/me/subscription"
       ],
       "board": "PageNotificationsPopover",
       "shots": [
@@ -1012,7 +1210,8 @@
         "web/src/hooks/useClientPaymentQueries.ts",
         "web/src/hooks/useQuestionnaireQueries.ts",
         "web/src/api/client-payments.ts",
-        "web/src/api/questionnaires.ts"
+        "web/src/api/questionnaires.ts",
+        "web/src/lib/subscriptionErrors.ts"
       ],
       "endpoints": [
         "GET /conversations",
@@ -1436,7 +1635,8 @@
         "mobile/src/components/photoRequest/format.ts",
         "mobile/src/components/photoRequest/hooks.ts",
         "mobile/src/components/photoRequest/model.ts",
-        "mobile/src/components/today/PhotoRequestBanner.tsx"
+        "mobile/src/components/today/PhotoRequestBanner.tsx",
+        "mobile/src/components/today/PlanRunsUntilCard.tsx"
       ],
       "endpoints": [
         "GET /users/me",

@@ -37,12 +37,13 @@ public class AcceptClientRequestProposalEndpoint(
             s.Summary = "Accept a package proposal";
             s.Description = "Accepts the coach's package proposal: the client-professional link starts, the proposed form is assigned " +
                 "and the proposed terms apply. A package or discount that is no longer usable means the link starts without terms.";
-            s.Responses[StatusCodes.Status204NoContent] = "Proposal accepted";
-            s.Responses[StatusCodes.Status400BadRequest] =
-                "The client already has an active professional in this profession (PROFESSION_ALREADY_OCCUPIED)";
-            s.Responses[StatusCodes.Status403Forbidden] = "The coach role was removed (COACH_ROLE_REMOVED)";
-            s.Responses[StatusCodes.Status404NotFound] = "The request is unknown or not the caller's (CLIENT_REQUEST_NOT_FOUND)";
-            s.Responses[StatusCodes.Status409Conflict] = "The request has no open proposal (CLIENT_REQUEST_INVALID_STATE)";
+            s.Response(StatusCodes.Status204NoContent, "Proposal accepted");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest,
+                "The client already has an active professional in this profession (PROFESSION_ALREADY_OCCUPIED)");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status403Forbidden, "The coach role was removed (COACH_ROLE_REMOVED), or the coach is at the active-client limit (CLIENT_LIMIT_REACHED)");
+            s.Response(StatusCodes.Status404NotFound, "The request is unknown or not the caller's (CLIENT_REQUEST_NOT_FOUND)");
+            s.Response(StatusCodes.Status409Conflict, "The request has no open proposal (CLIENT_REQUEST_INVALID_STATE)");
         });
     }
 
@@ -93,6 +94,11 @@ public class AcceptClientRequestProposalEndpoint(
         if (currentStatus != ClientRequestStatus.PackageProposed)
         {
             await SendInvalidStateAsync(ct);
+            return;
+        }
+
+        if (await this.RespondIfClientLimitReachedAsync(db, professional.Id, clientRequest.ClientProfileId, ct))
+        {
             return;
         }
 

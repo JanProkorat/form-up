@@ -1,5 +1,8 @@
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
+import { Lock } from 'lucide-react';
+import { PLAN_BILLING_PATH } from '@/components/subscription/planLinks';
 import type { OnboardingDataDto } from '@/api/generated';
 import AboutClientCard from '@/components/client-plan-editor/AboutClientCard';
 import { formatCalendarDate, planEndDate, startHasArrived } from '@/components/client-plan-editor/clientPlanDates';
@@ -97,6 +100,8 @@ interface Props extends InfoPanelContext {
   savedStartDate?: string;
   /** Id of the template the plan was created from, if any. */
   sourceTemplateId?: string;
+  /** The client is outside the coach's plan: shows a note that a higher plan unlocks editing and publishing. */
+  outsidePlanNote?: boolean;
 }
 
 /** The info tab of the client plan editor: name, the client's profile, dates and daily target. */
@@ -111,6 +116,7 @@ export default function ClientPlanInfoPanel({
   onboarding,
   savedStartDate,
   sourceTemplateId,
+  outsidePlanNote = false,
 }: Props) {
   const { t, i18n } = useTranslation();
   const baseId = useId();
@@ -150,6 +156,20 @@ export default function ClientPlanInfoPanel({
   return (
     <div data-testid="client-plan-info" className="flex min-h-0 flex-1 flex-col">
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pt-3 pb-4.5">
+        {outsidePlanNote && (
+          <p data-testid="outside-plan-note" className="flex items-start gap-2 rounded-md bg-sunken p-3 text-meta text-muted-foreground">
+            <Lock className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+            <span>
+              {t('clientPlanEditor.info.outsidePlan', { name: clientFirstName })}{' '}
+              <Link
+                to={PLAN_BILLING_PATH}
+                className="rounded-xs font-semibold text-ink underline underline-offset-2 outline-none hover:no-underline focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
+                {t('subscription.outsidePlan.upgrade')}
+              </Link>
+            </span>
+          </p>
+        )}
         <div className="flex flex-col gap-1">
           <Label htmlFor={nameId}>
             {t('clientPlanEditor.info.name')} <span className="text-destructive">*</span>

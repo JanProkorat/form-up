@@ -38,26 +38,31 @@ async function getClientsListNamesOnCurrentTab(page: Page): Promise<string[]> {
 
 /**
  * The clients-list roster for a given filter chip, unioned across the
- * Active and Paused tabs — matching the population contract's "live links,
+ * Active and Outside plan tabs — matching the population contract's "live links,
  * archived links excluded" (docs: GetConversationsEndpoint's roster-filter
- * path; a Paused client is still a *live* link, per
- * `ClientStatusClassifier.Classify` returning Archived only when the LINK
- * itself is no longer live). The inbox's own filter has no tab concept —
- * it always spans this same union, never just the Active tab alone.
+ * path; a client outside the plan is still a *live* link). The All tab is not
+ * used because it also lists archived clients. The inbox's own filter has no
+ * tab concept — it always spans this same union, never just the Active tab alone.
+ *
+ * The clients page no longer has chips for most of these filters (#2084), but the API still does, so the
+ * roster request is rewritten to carry the filter and the page renders the filtered list.
  */
-async function getClientsListNamesForChip(page: Page, chipLabel: RegExp): Promise<string[]> {
+async function getClientsListNamesForFilter(page: Page, filterParam: string): Promise<string[]> {
+  const rosterRequest = /\/trainer\/clients\?/;
+  await page.route(rosterRequest, (route) => {
+    const url = new URL(route.request().url());
+    url.searchParams.set('filter', filterParam);
+    return route.continue({ url: url.toString() });
+  });
   const names: string[] = [];
-  for (const tab of ['Active', 'Paused'] as const) {
-    await page.goto(`/clients?tab=${tab}`);
-    await page.waitForLoadState('networkidle');
-    const chip = page.getByRole('button', { name: chipLabel });
-    const isZeroAndInactive = (await chip.getAttribute('disabled')) !== null;
-    if (isZeroAndInactive) {
-      continue;
+  try {
+    for (const tab of ['Active', 'OutsidePlan'] as const) {
+      await page.goto(`/clients?tab=${tab}`);
+      await page.waitForLoadState('networkidle');
+      names.push(...(await getClientsListNamesOnCurrentTab(page)));
     }
-    await chip.click();
-    await page.waitForLoadState('networkidle');
-    names.push(...(await getClientsListNamesOnCurrentTab(page)));
+  } finally {
+    await page.unroute(rosterRequest);
   }
   return names.sort();
 }
@@ -136,17 +141,12 @@ async function isThreadScrolledToBottom(page: Page): Promise<boolean> {
   }, SCROLL_BOTTOM_SLACK_PX);
 }
 
-const FILTERS: Array<{ name: string; inboxLabel: RegExp; chipLabel: RegExp; filterParam: string }> = [
-  { name: 'No messages', inboxLabel: /^No messages/, chipLabel: /No messages/, filterParam: 'NoMessages' },
-  { name: 'Unread messages', inboxLabel: /^Unread messages/, chipLabel: /Unread messages/, filterParam: 'UnreadMessages' },
-  { name: 'New check-ins', inboxLabel: /^New check-ins/, chipLabel: /New check-ins/, filterParam: 'NewCheckIns' },
-  {
-    name: 'Missing check-ins',
-    inboxLabel: /^Missing check-ins/,
-    chipLabel: /Missing check-ins/,
-    filterParam: 'MissingCheckIns',
-  },
-  { name: 'Ending soon', inboxLabel: /^Ending soon/, chipLabel: /Ending soon/, filterParam: 'EndingSoon' },
+const FILTERS: Array<{ name: string; inboxLabel: RegExp; filterParam: string }> = [
+  { name: 'No messages', inboxLabel: /^No messages/, filterParam: 'NoMessages' },
+  { name: 'Unread messages', inboxLabel: /^Unread messages/, filterParam: 'UnreadMessages' },
+  { name: 'New check-ins', inboxLabel: /^New check-ins/, filterParam: 'NewCheckIns' },
+  { name: 'Missing check-ins', inboxLabel: /^Missing check-ins/, filterParam: 'MissingCheckIns' },
+  { name: 'Ending soon', inboxLabel: /^Ending soon/, filterParam: 'EndingSoon' },
 ];
 
 test.describe('inbox page', () => {
@@ -270,7 +270,7 @@ test.describe('inbox page', () => {
     }
   });
 
-  for (const { name, inboxLabel, chipLabel, filterParam } of FILTERS) {
+  for (const { name, inboxLabel, filterParam } of FILTERS) {
     test(`a live filter returns the clients-list chip set restricted to clients with a conversation (#1095): ${name}`, async ({
       page,
     }) => {
@@ -278,7 +278,7 @@ test.describe('inbox page', () => {
       // "has a conversation" population the filtered set is restricted to.
       const withConversation = await getInboxRowNames(page);
 
-      const clientsNames = (await getClientsListNamesForChip(page, chipLabel)).filter((n) =>
+      const clientsNames = (await getClientsListNamesForFilter(page, filterParam)).filter((n) =>
         withConversation.includes(n),
       );
 
@@ -331,7 +331,10 @@ test.describe('inbox page', () => {
     const listRow = page.getByRole('row', { name: QA_CLIENT_NAME }).filter({
       has: page.getByRole('link', { name: 'QA Client', exact: true }),
     });
-    const listStatusText = (await listRow.locator('[data-slot="badge"]').first().innerText()).trim();
+    // The list pill reads "Active plans" where the panel pill reads "Active"; "No plan" and "Archived" match.
+    const listStatusText = (await listRow.locator('[data-slot="badge"]').first().innerText())
+      .trim()
+      .replace(/^Active plans$/, 'Active');
     const qaClientHref = await listRow.getByRole('link', { name: 'QA Client', exact: true }).getAttribute('href');
     const qaClientId = qaClientHref?.split('/').pop();
     if (!qaClientId) {

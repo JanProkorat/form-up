@@ -8,6 +8,7 @@
     "publish": "Veröffentlichen",
     "publishNoStartDate": "Legen Sie das Startdatum des Plans fest, bevor Sie veröffentlichen.",
     "cancel": "Abbrechen",
+    "datePicker": { "placeholder": "Datum wählen", "clear": "Datum löschen", "previousMonth": "Vorheriger Monat", "nextMonth": "Nächster Monat" },
     "close": "Schließen",
     "optional": "optional",
     "send": "Senden",
@@ -190,6 +191,11 @@
     "navigationTitle": "Navigation"
   },
   "sidebar": {
+    "lockedInPlan": "Nicht in Ihrem Tarif enthalten",
+    "adminSection": "Form Up Admin",
+    "adminPlans": "Pläne",
+    "adminPromotions": "Aktionen",
+    "adminCoaches": "Trainer",
     "automations": "Automatisierungen",
     "dashboard": "Dashboard",
     "profile": "Profil",
@@ -244,11 +250,209 @@
     "nutritionist": "Ernährungsberater",
     "client": "Klient"
   },
+  "subscription": {
+    "seePlans": "Tarife ansehen",
+    "clientsOfLimit": "{{count}} von {{limit}} Klienten",
+    "status": {
+      "Trialing": "Testphase",
+      "Active": "Aktiv",
+      "PastDue": "Zahlung fehlgeschlagen",
+      "Canceled": "Gekündigt",
+      "Incomplete": "Unvollständig"
+    },
+    "paywall": {
+      "notOnPlan": "Nicht in Ihrem Tarif {{plan}}",
+      "forms": {
+        "title": "Formulare gehören zu einem höheren Tarif",
+        "body": "Stellen Sie Ihren Klienten die richtigen Fragen, bevor Sie den Plan erstellen, und erfahren Sie von ihrer Woche, bevor sie beginnt.",
+        "benefit1": "Fragebögen und Einführungsformulare senden",
+        "benefit2": "Wöchentliche Check-ins, mit den Antworten in der Karte jedes Klienten"
+      },
+      "checkIns": {
+        "title": "Wöchentliche Check-ins gehören zu einem höheren Tarif",
+        "body": "Erfahren Sie, wie die Woche jedes Klienten lief, bevor die nächste beginnt.",
+        "benefit1": "Ein wöchentlicher Check-in nach Ihrem Zeitplan",
+        "benefit2": "Antworten in der Karte jedes Klienten"
+      }
+    },
+    "clientLimit": {
+      "title": "Ihr Tarif ist voll",
+      "description": "Ihr Tarif {{plan}} umfasst {{limit}} aktive Klienten.",
+      "descriptionUnknown": "In Ihrem Tarif {{plan}} ist kein Platz mehr für einen weiteren Klienten.",
+      "hintAccept": "Die Anfrage von {{name}} bleibt in Ihrem Posteingang. Sie können auch die Zusammenarbeit mit einem Klienten beenden, um einen Platz frei zu machen.",
+      "hintInvite": "Sie können auch die Zusammenarbeit mit einem Klienten beenden, um einen Platz frei zu machen.",
+      "notNow": "Jetzt nicht"
+    },
+    "checkIns": {
+      "locked": "Formulare für den wöchentlichen Check-in gehören zu einem höheren Tarif.",
+      "overrideLocked": "Diesen Check-in für einen einzelnen Klienten anzupassen, gehört zu einem höheren Tarif."
+    },
+    "sidebar": {
+      "plan": "Tarif {{plan}}",
+      "usage": "{{used}} von {{limit}} Klienten",
+      "unlimited": "Klienten: {{count}} · ohne Limit",
+      "aria": "Tarif {{plan}}, {{detail}}. Tarif und Abrechnung öffnen",
+      "ariaLapsed": "Tarif {{plan}}, {{detail}}. Klienten zum Behalten auswählen"
+    },
+    "planChoice": {
+      "bannerTitle": "Ihr kostenloser Tarif {{plan}} endete am {{date}}. Wählen Sie einen Tarif, um fortzufahren.",
+      "bannerTitleNoDate": "Ihr kostenloser Tarif {{plan}} ist beendet. Wählen Sie einen Tarif, um fortzufahren.",
+      "title": "Ihr Tarif hat sich geändert",
+      "decision": {
+        "lapse_one": "Ihr Tarif {{plan}} ist beendet, daher sind Sie jetzt auf Free. Free erlaubt {{count}} Klienten und Sie haben {{have}}. Behalten Sie Free und wählen Sie die {{count}} aus, die Sie behalten möchten, oder wählen Sie einen anderen Tarif.",
+        "lapse_other": "Ihr Tarif {{plan}} ist beendet, daher sind Sie jetzt auf Free. Free erlaubt {{count}} Klienten und Sie haben {{have}}. Behalten Sie Free und wählen Sie die {{count}} aus, die Sie behalten möchten, oder wählen Sie einen anderen Tarif.",
+        "free_one": "Sie sind auf Free, das {{count}} Klienten erlaubt, und Sie haben {{have}}. Behalten Sie Free und wählen Sie die {{count}} aus, die Sie behalten möchten, oder wählen Sie einen anderen Tarif.",
+        "free_other": "Sie sind auf Free, das {{count}} Klienten erlaubt, und Sie haben {{have}}. Behalten Sie Free und wählen Sie die {{count}} aus, die Sie behalten möchten, oder wählen Sie einen anderen Tarif.",
+        "smaller_one": "Ihr Tarif hat sich auf {{plan}} geändert. {{plan}} erlaubt {{count}} Klienten und Sie haben {{have}}. Behalten Sie {{plan}} und wählen Sie die {{count}} aus, die Sie behalten möchten, oder wählen Sie einen anderen Tarif.",
+        "smaller_other": "Ihr Tarif hat sich auf {{plan}} geändert. {{plan}} erlaubt {{count}} Klienten und Sie haben {{have}}. Behalten Sie {{plan}} und wählen Sie die {{count}} aus, die Sie behalten möchten, oder wählen Sie einen anderen Tarif."
+      },
+      "loadError": "Die Tarife konnten nicht geladen werden. Bitte versuchen Sie es erneut.",
+      "chooseError": "Der Tarif konnte nicht gewechselt werden. Bitte versuchen Sie es erneut.",
+      "header": {
+        "nav": "Konto",
+        "messages": "Nachrichten",
+        "settings": "Einstellungen"
+      },
+      "card": {
+        "current": "Ihr Tarif jetzt",
+        "upgrade": "Auf {{plan}} upgraden",
+        "switchFree": "Zu Free wechseln",
+        "keepAll": "{{plan}} behalten",
+        "keep_one": "{{plan}} behalten, {{count}} Klienten wählen",
+        "keep_other": "{{plan}} behalten, {{count}} Klienten wählen",
+        "per": {
+          "month": "/ Monat",
+          "year": "/ Jahr"
+        },
+        "bothRoles": "Beide Rollen inklusive",
+        "secondRoleAddOn": "Zweite Rolle +{{amount}}",
+        "unlimitedClients": "Keine Klientenbegrenzung",
+        "clientCap_one": "Bis zu {{count}} Klient",
+        "clientCap_other": "Bis zu {{count}} Klienten",
+        "notIncluded": "Nicht enthalten:"
+      },
+      "keep": {
+        "back": "Zurück zu den Tarifen",
+        "confirm_one": "Zu Free wechseln und diesen Klienten behalten",
+        "confirm_other": "Zu Free wechseln und diese {{count}} behalten",
+        "save_one": "{{plan}} und diesen Klienten behalten",
+        "save_other": "{{plan}} und diese {{count}} behalten"
+      }
+    },
+    "lapse": {
+      "bannerTitle": "Ihr Tarif {{plan}} endete am {{date}}",
+      "bannerTitleNoDate": "Ihr Tarif {{plan}} ist beendet",
+      "overCapBanner_one": "Sie nutzen den kostenlosen Tarif mit mehr Klienten, als er erlaubt. Wählen Sie, welcher {{count}} Klient voll aktiv bleibt.",
+      "overCapBanner_other": "Sie nutzen den kostenlosen Tarif mit mehr Klienten, als er erlaubt. Wählen Sie, welche {{count}} Klienten voll aktiv bleiben.",
+      "bannerBody_one": "Sie nutzen jetzt den kostenlosen Tarif: {{count}} aktiver Klient, beide Rollen.",
+      "bannerBody_other": "Sie nutzen jetzt den kostenlosen Tarif: {{count}} aktive Klienten, beide Rollen.",
+      "resubscribe": "Erneut abonnieren",
+      "title_one": "Wählen Sie {{count}} Klienten zum Behalten aus",
+      "title_other": "Wählen Sie {{count}} Klienten zum Behalten aus",
+      "subtitle": "Bei diesen bleibt alles wie bisher. Die übrigen behalten die bereits veröffentlichten Wochen, danach sind ihre Pläne nur noch lesbar.",
+      "table": {
+        "keep": "Behalten",
+        "client": "Klient",
+        "roles": "Rollen",
+        "publishedEnd": "Veröffentlichte Wochen bis",
+        "after": "Danach"
+      },
+      "keepAria": "{{name}} behalten",
+      "notPublished": "Nicht veröffentlicht",
+      "after": {
+        "fullAccess": "Bleibt aktiv",
+        "runsUntil": "Nur lesbar ab {{date}}",
+        "runsUntilNoDate": "Nur lesbar nach den veröffentlichten Wochen",
+        "readOnly": "Jetzt nur lesbar"
+      },
+      "selected": "{{count}} von {{cap}} ausgewählt",
+      "changeLater": "Sie können Ihre Auswahl hier später ändern.",
+      "preselectedHint_one": "Wir haben den {{count}} Klienten vorausgewählt, mit dem Sie am längsten zusammenarbeiten. Sie können die Auswahl ändern.",
+      "preselectedHint_other": "Wir haben die {{count}} Klienten vorausgewählt, mit denen Sie am längsten zusammenarbeiten. Sie können die Auswahl ändern.",
+      "save_one": "Diesen Klienten behalten",
+      "save_other": "Diese {{count}} behalten",
+      "saveSuccess": "Ihre Auswahl ist gespeichert",
+      "saveError": "Die Auswahl konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.",
+      "choiceLockedError": "Bereits behaltene Klienten lassen sich nicht mehr ändern; Sie können nur Klienten außerhalb des Tarifs auf freie Plätze setzen. Laden Sie die Seite neu.",
+      "lockedTitle_one": "Wählen Sie {{count}} Klienten für den freien Platz",
+      "lockedTitle_other": "Wählen Sie {{count}} Klienten für die freien Plätze",
+      "lockedSubtitle": "Bereits behaltene Klienten bleiben unverändert. Wählen Sie für die freien Plätze Klienten, die außerhalb Ihres Tarifs liegen.",
+      "lockedSave": "Auswahl behalten",
+      "loadError": "Die Klienten konnten nicht geladen werden.",
+      "retry": "Erneut versuchen",
+      "notLapsed": "Ihr Tarif ist nicht abgelaufen, daher gibt es nichts auszuwählen.",
+      "backToClients": "Zurück zu den Klienten",
+      "noClients": "Sie haben keine Klienten, aus denen Sie auswählen könnten."
+    },
+    "outsidePlan": {
+      "titleLimit_one": "Der Tarif {{plan}} umfasst {{count}} Klienten.",
+      "titleLimit_other": "Der Tarif {{plan}} umfasst {{count}} Klienten.",
+      "titleOutside_one": "{{count}} Klient liegt außerhalb des Tarifs.",
+      "titleOutside_other": "{{count}} Klienten liegen außerhalb des Tarifs.",
+      "detailTitle": "{{name}} liegt außerhalb Ihres Tarifs {{plan}}.",
+      "body": "Die Pläne von Klienten außerhalb Ihres Tarifs laufen bis zur letzten veröffentlichten Woche weiter und sind danach nur noch lesbar.",
+      "upgrade": "Höherer Tarif",
+      "showClients": "Diese Klienten anzeigen",
+      "pickClient": "Klienten für den freien Platz wählen",
+      "pendingTitle_one": "Ihr Tarif {{plan}} umfasst {{count}} Klienten. Sie haben noch nicht bestätigt, welche.",
+      "pendingTitle_other": "Ihr Tarif {{plan}} umfasst {{count}} Klienten. Sie haben noch nicht bestätigt, welche.",
+      "pendingBody": "Bis dahin behalten Sie die Klienten, mit denen Sie am längsten zusammenarbeiten. Die anderen behalten ihre veröffentlichten Wochen, danach sind sie nur lesbar.",
+      "chooseClients": "Klienten auswählen"
+    },
+    "plan": {
+      "title": "Tarif und Abrechnung",
+      "description": "Was Sie Form Up zahlen. Ihre Klienten zahlen nie für die App.",
+      "loadError": "Ihr Tarif konnte nicht geladen werden. Bitte laden Sie die Seite neu.",
+      "renews": "Monatlich · Verlängerung am {{date}}",
+      "ends": "Endet am {{date}}",
+      "freeUntil": "Inklusive bis {{date}}",
+      "setByFormUpUntil": "Bis {{date}} · Von Form Up gesetzt",
+      "setByFormUp": "Von Form Up gesetzt",
+      "endedByFormUp": "Form Up hat Ihren Tarif {{plan}} beendet. Sie nutzen jetzt Free.",
+      "changePlan": "Tarif ändern",
+      "manageBilling": "Abrechnung verwalten",
+      "bill": {
+        "title": "Ihre monatliche Rechnung",
+        "free": "Keine monatliche Gebühr.",
+        "plan": "Tarif {{plan}}",
+        "secondRole": "Zweite Rolle",
+        "total": "Gesamt",
+        "perMonth": "{{amount}} / Monat",
+        "secondRoleUnavailable": "Eine zweite Berufsrolle ist in diesem Tarif nicht enthalten."
+      },
+      "clients": {
+        "title": "Klienten",
+        "ofLimit": "von {{limit}} aktiven Klienten",
+        "unlimited": "aktive Klienten · ohne Limit",
+        "countsOnce": "Ein Klient, den Sie in beiden Rollen betreuen, zählt einmal."
+      },
+      "features": {
+        "plans": "Trainings- und Ernährungspläne",
+        "messaging": "Chat, Fortschrittsfotos, Messwerte",
+        "forms": "Formulare",
+        "checkIns": "Wöchentliche Check-ins",
+        "perClientCheckIns": "Check-in-Einstellungen pro Klient",
+        "payments": "Zahlungen"
+      },
+      "code": {
+        "label": "Haben Sie einen Code?",
+        "placeholder": "Code eingeben",
+        "hint": "Immer nur ein Angebot. Ein Code ersetzt beim Einlösen das aktuelle Angebot.",
+        "apply": "Einlösen"
+      },
+      "card": {
+        "title": "Karte, Rechnungen und Kündigung",
+        "description": "Verfügbar, sobald die Tarifauswahl öffnet."
+      }
+    }
+  },
   "accountMenu": {
     "trigger": "Kontomenü",
     "title": "Konto",
     "profile": "Ihr Profil",
     "settings": "Einstellungen",
+    "planBilling": "Tarif und Abrechnung",
+    "keepClients": "Klienten zum Behalten wählen",
     "language": "Sprache",
     "theme": "Design",
     "languages": {
@@ -537,18 +741,28 @@
       "all": "Alle",
       "active": "Aktiv",
       "paused": "Ohne Plan",
+      "outsidePlan": "Außerhalb des Tarifs",
       "archived": "Archiviert",
       "pending": "Ausstehend"
     },
     "searchPlaceholder": "Klienten suchen...",
-    "chips": {
-      "groupLabel": "Klienten filtern",
-      "all": "Alle",
-      "unreadMessages": "Ungelesene Nachrichten",
-      "noMessages": "Keine Nachrichten",
-      "newCheckIns": "Neue Check-ins",
-      "missingCheckIns": "Fehlende Check-ins",
-      "endingSoon": "Endet bald"
+    "filterMenu": {
+      "label": "Filter",
+      "plansGroup": "Pläne",
+      "plans": {
+        "all": "Alle Pläne",
+        "active": "Aktive Pläne",
+        "none": "Ohne Plan",
+        "endingSoon": "Pläne enden bald"
+      },
+      "clearAll": "Filter zurücksetzen",
+      "remove": "Filter {{name}} entfernen"
+    },
+    "outsidePlan": {
+      "chip": "Außerhalb des Tarifs",
+      "readOnlyFrom": "Nur lesbar ab {{date}}",
+      "readOnlyTooltip": "Außerhalb Ihres Tarifs. Veröffentlichte Wochen laufen bis {{date}}, danach sind die Pläne nur lesbar.",
+      "tooltip": "Die Pläne dieses Klienten laufen bis zur letzten veröffentlichten Woche weiter und sind danach nur noch lesbar."
     },
     "tagFilter": {
       "label": "Tags auswählen",
@@ -2677,6 +2891,7 @@
       "copiedFrom": "Aus dem Profil von {{name}} übernommen",
       "resetToProfile": "auf Profil zurücksetzen",
       "startedFromTemplate": "Aus Vorlage {{name}} erstellt",
+      "outsidePlan": "{{name}} liegt außerhalb Ihres Tarifs. Bearbeiten und Veröffentlichen schaltet ein höherer Tarif frei.",
       "about": {
         "heading": "Über {{name}}",
         "goal": "Ziel",
@@ -3178,6 +3393,11 @@
     }
   },
   "apiErrors": {
+    "FREE_PLAN_LOCKED": "Der Plan Free lässt sich so nicht ändern: Sein Preis bleibt bei 0 und er wird immer angeboten.",
+    "SUBSCRIPTION_PLAN_CODE_ALREADY_EXISTS": "Ein Plan mit diesem Code existiert bereits.",
+    "SUBSCRIPTION_PLAN_NOT_FOUND": "Dieser Plan existiert nicht mehr.",
+    "NO_RENEWING_SUBSCRIPTION": "Dieser Trainer hat keinen sich verlängernden bezahlten Plan, daher gibt es keine Verlängerung zu kündigen.",
+    "SECOND_ROLE_OPTION_INVALID": "Wählen Sie entweder ein kostenpflichtiges Zusatzangebot für die zweite Rolle oder die zweite Rolle im Preis inklusive.",
     "PAYMENTS_NOT_ENTITLED": "Zahlungen sind im Tarif nicht enthalten.",
     "BANK_ACCOUNT_NOT_SET": "Vor einer Zahlungsanforderung muss in den Einstellungen ein Bankkonto hinterlegt sein.",
     "PAYMENT_ALREADY_PAID": "Diese Zahlung wurde bereits als bezahlt markiert.",
@@ -3223,8 +3443,13 @@
     "CHECK_IN_RULE_EXISTS": "Sie haben bereits eine aktive Regel für den wöchentlichen Check-in. Schalten Sie sie zuerst aus oder bearbeiten Sie diese.",
     "AUTOMATION_CHECK_IN_INVALID": "Ein wöchentlicher Check-in braucht einen Wochentag, eine Uhrzeit, ein Antwortfenster und ein wöchentliches Intervall.",
     "AUTOMATION_CHECK_IN_FIELDS_NOT_ALLOWED": "Wochentag, Antwortfenster und Erinnerung gehören nur zu Regeln für den wöchentlichen Check-in.",
-    "CHECK_INS_NOT_ENTITLED": "Wöchentliche Check-ins sind in Ihrem Tarif nicht enthalten.",
-    "PER_CLIENT_CHECK_IN_CONFIG_NOT_ENTITLED": "Den wöchentlichen Check-in für einen einzelnen Klienten anzupassen, ist in Ihrem Tarif nicht enthalten.",
+    "SUBSCRIPTION_REQUIRED": "Das ist in Ihrem Tarif nicht enthalten.",
+    "CLIENT_LIMIT_REACHED": "Ihr Tarif ist voll. Es ist kein Platz für einen weiteren Klienten.",
+    "CLIENT_OVER_PLAN_LIMIT": "Dieser Klient liegt über dem Limit Ihres kostenlosen Tarifs, daher können Sie seinen Plan nicht ändern. Wählen Sie im Kontomenü die Klienten aus, die Sie behalten.",
+    "KEEP_CLIENTS_COUNT_INVALID": "Wählen Sie genau so viele Klienten aus, wie Ihr kostenloser Tarif umfasst.",
+    "SUBSCRIPTION_NOT_LAPSED": "Ihr Tarif ist nicht abgelaufen, daher gibt es nichts auszuwählen.",
+    "PLAN_CHOICE_REQUIRED": "Ihr kostenloser Tarif ist beendet. Wählen Sie einen Tarif, um fortzufahren.",
+    "PLAN_CHOICE_NOT_REQUIRED": "Sie haben bereits einen Tarif gewählt.",
     "CHECK_IN_ANSWER_WINDOW_CLOSED": "Die Zeit zum Beantworten dieses Check-ins ist abgelaufen.",
     "INVALID_CREDENTIALS": "Ungültige E-Mail oder Passwort.",
     "ACCOUNT_DEACTIVATED": "Ihr Konto wurde deaktiviert.",
@@ -4027,6 +4252,8 @@
     "reviewInClients": "In Kunden ansehen",
     "seeInClientActivity": "In der Klientenaktivität ansehen",
     "seePhotos": "Fotos ansehen",
+    "seeYourPlan": "Ihren Tarif ansehen",
+    "pickClientsToKeep": "Klienten zum Behalten auswählen",
     "markRead": "Als gelesen markieren",
     "markAllReadShort": "Alle gelesen",
     "unreadCount": "{{count}} ungelesen"
@@ -4226,6 +4453,15 @@
     }
   },
   "clientDetail": {
+    "outsidePlanPaywall": {
+      "title": "Einen neuen Plan für {{name}} erstellen Sie mit einem höheren Tarif",
+      "editTitle": "Den Plan von {{name}} bearbeiten Sie mit einem höheren Tarif",
+      "body": "{{name}} liegt außerhalb Ihres Tarifs {{plan}}. Nach dem Upgrade können Sie wieder neue Pläne erstellen und veröffentlichen.",
+      "lead": "Klienten bleiben dort, wo ihr nächster Plan immer bereitliegt. Lassen Sie sie nicht warten.",
+      "benefit1": "{{name}} bekommt sofort einen neuen Plan, ohne Unterbrechung der Zusammenarbeit.",
+      "benefit2": "Platz für die nächsten Klienten, die zu Ihnen kommen.",
+      "benefit3": "Höhere Tarife schalten weitere Werkzeuge für die Arbeit mit Klienten frei."
+    },
     "automations": {
       "introBefore": "Regeln von Ihrer Seite ",
       "introLink": "Automatisierungen",
@@ -6304,6 +6540,326 @@
         "note": "Notiz",
         "notePlaceholder": "Zum Beispiel Knieverletzung"
       }
+    }
+  },
+  "adminCoaches": {
+    "title": "Trainer",
+    "subtitle": "Pläne und Zahlungen aller Trainerkonten. Die Daten ihrer Kunden bleiben privat.",
+    "loadError": "Die Trainer konnten nicht geladen werden.",
+    "retry": "Erneut versuchen",
+    "empty": "Kein Trainer passt.",
+    "search": "Trainer suchen",
+    "stats": {
+      "paying": "Zahlende Trainer",
+      "noPlans": "Noch keine zahlenden Trainer",
+      "revenue": "Monatlicher Umsatz",
+      "revenueNote": "Nur zahlende Trainer",
+      "failed": "Zahlung fehlgeschlagen",
+      "failedNote": "Zählen weiterhin als zahlend",
+      "free": "Kostenlos und von Form Up gesetzt",
+      "freeNote": "Nicht im Umsatz enthalten"
+    },
+    "filters": {
+      "label": "Trainer nach Status filtern",
+      "All": "Alle",
+      "Paying": "Zahlend",
+      "PaymentFailed": "Zahlung fehlgeschlagen",
+      "Cancelling": "Wird gekündigt",
+      "Free": "Kostenlos",
+      "GivenFree": "Von Form Up gesetzt"
+    },
+    "status": {
+      "Paying": "Aktiv",
+      "PaymentFailed": "Zahlung fehlgeschlagen",
+      "Cancelling": "Wird gekündigt",
+      "Free": "Kostenlos",
+      "GivenFree": "Von Form Up gesetzt",
+      "cancellingOn": "Endet {{date}}"
+    },
+    "roles": {
+      "Trainer": "Trainer",
+      "Nutritionist": "Ernährungsberater"
+    },
+    "table": {
+      "coach": "Trainer",
+      "roles": "Rollen",
+      "plan": "Plan",
+      "status": "Status",
+      "clients": "Kunden",
+      "promotion": "Aktion",
+      "renewsEnds": "Verlängerung / Ende",
+      "clientsOf": "{{used}} / {{max}}",
+      "renews": "Verlängert am {{date}}",
+      "ends": "Endet am {{date}}",
+      "until": "Bis {{date}}",
+      "noEnd": "Ohne Ende"
+    },
+    "profile": {
+      "back": "Zurück zu den Trainern",
+      "joined": "Registriert am {{date}}",
+      "freeNote": "Im Plan Kostenlos. Es wird nichts abgerechnet.",
+      "actionsHint": "Jede Aktion verlangt Ihre Bestätigung und einen Grund. Beides landet im Verlauf.",
+      "nextPayment": "Nächste Zahlung",
+      "promotion": "Aktion",
+      "promotionNone": "Keine",
+      "promotionNoneNote": "Voller Preis",
+      "noValue": "—",
+      "nextNote": {
+        "renews": "Verlängert sich",
+        "ends": "Plan endet, keine Verlängerung",
+        "giftEnds": "Plan endet",
+        "giftNoEnd": "Von Form Up gesetzt",
+        "nothing": "Nichts zu zahlen"
+      }
+    },
+    "giveFree": {
+      "description": "Der neue Plan gilt sofort, und das geöffnete Portal von {{name}} aktualisiert sich ohne Neuladen. Ohne Enddatum läuft er nie ab.",
+      "plan": "Plan",
+      "until": "Bis",
+      "selected": "Ausgewählt",
+      "current": "Aktueller Plan",
+      "perMonth": "/ Monat",
+      "clientsUpTo_one": "Bis zu {{count}} Kunde",
+      "clientsUpTo_other": "Bis zu {{count}} Kunden",
+      "clientsUnlimited": "Unbegrenzt viele Kunden",
+      "included": " (enthalten)",
+      "notIncluded": " (nicht enthalten)",
+      "counter": "Pläne {{from}}–{{to}} von {{total}}",
+      "previous": "Vorherige Pläne",
+      "next": "Nächste Pläne",
+      "summaryNone": "Wählen Sie einen Plan.",
+      "summaryUntil": "ab heute bis {{date}}. Danach wählt {{name}} einen Plan.",
+      "summaryNoEnd": "ab heute, ohne Enddatum.",
+      "summaryPickDate": "ab heute. Wählen Sie das Enddatum.",
+      "confirm": "Auf {{plan}} wechseln",
+      "keepUntil": "bleibt, neu bis {{date}}. Danach wählt {{name}} einen Plan.",
+      "keepNoEnd": "bleibt, jetzt ohne Enddatum.",
+      "keepPickDate": "bleibt. Wählen Sie das neue Enddatum.",
+      "confirmKeep": "Enddatum ändern"
+    },
+    "drawer": {
+      "titleFallback": "Trainer",
+      "loading": "Wird geladen...",
+      "loadError": "Dieser Trainer konnte nicht geladen werden.",
+      "joined": "seit {{date}}",
+      "plan": "Plan",
+      "perMonth": "{{price}} / Monat",
+      "perYear": "{{price}} / Jahr",
+      "renews": "Verlängert sich am {{date}}.",
+      "endsOn": "Der bezahlte Plan läuft bis {{date}}, danach wechselt der Trainer auf Kostenlos.",
+      "givenUntil": "Von Form Up gesetzt bis {{date}}.",
+      "givenNoEnd": "Von Form Up gesetzt, ohne Enddatum.",
+      "clients": "Kunden",
+      "clientsOf": "{{used}} von {{max}}",
+      "clientsUnlimited": "{{used}}, unbegrenzt",
+      "actions": "Aktionen",
+      "privacy": "Namen und Daten der Kunden sehen Administratoren nicht. Nur Zahlen.",
+      "openInStripe": "In Stripe öffnen"
+    },
+    "actions": {
+      "reason": "Grund",
+      "giveFree": {
+        "title": "Plan ändern",
+        "description": "Wählen Sie den Plan, bis wann und warum. Gilt sofort.",
+        "noEnd": "Ohne Enddatum",
+        "button": "Plan ändern",
+        "success": "Der Plan wurde geändert.",
+        "error": "Der Plan konnte nicht geändert werden."
+      },
+      "promotion": {
+        "title": "Aktion anwenden",
+        "description": "Nur für diesen Trainer, z. B. nach einem Supportfall.",
+        "button": "Anwenden"
+      },
+      "cancelRenewal": {
+        "title": "Verlängerung kündigen",
+        "description": "Endet mit dem bezahlten Monat. Pläne laufen bis zum Ende.",
+        "button": "Verlängerung kündigen",
+        "none": "Dieser Trainer hat keinen sich verlängernden bezahlten Plan.",
+        "already": "Die Verlängerung ist bereits gekündigt.",
+        "success": "Die Verlängerung wurde gekündigt.",
+        "alreadySuccess": "Die Verlängerung war bereits gekündigt.",
+        "error": "Die Verlängerung konnte nicht gekündigt werden.",
+        "dialogTitle": "Verlängerung kündigen?",
+        "dialogDescription": "Der Plan {{plan}} endet am {{date}}, am Ende des bezahlten Zeitraums. Danach wird nichts mehr abgerechnet, und die Pläne der Kunden des Trainers laufen bis zum Ende.",
+        "dialogDescriptionNoDate": "Der Plan {{plan}} endet am Ende des bezahlten Zeitraums. Danach wird nichts mehr abgerechnet, und die Pläne der Kunden des Trainers laufen bis zum Ende.",
+        "placeholder": "Warum kündigen Sie die Verlängerung?",
+        "keep": "Verlängerung behalten"
+      },
+      "endPlan": {
+        "title": "Plan jetzt beenden",
+        "description": "Setzt den Trainer heute auf Kostenlos. Über dem Limit von Kostenlos wählt er, welche Kunden er behält.",
+        "button": "Plan beenden",
+        "none": "Dieser Trainer hat keinen bezahlten oder geschenkten Plan, der beendet werden könnte.",
+        "success": "Der Plan wurde beendet.",
+        "error": "Der Plan konnte nicht beendet werden.",
+        "dialogTitle": "Plan jetzt beenden?",
+        "dialogDescription": "{{name}} wechselt heute vom Plan {{plan}} auf Kostenlos und wird nicht mehr belastet.",
+        "callout_one": "{{name}} hat {{count}} Kunde und Kostenlos erlaubt {{max}}. Bei der nächsten Anmeldung wählt der Trainer aus, welche er behält. Die Pläne der übrigen Kunden laufen bis zur letzten veröffentlichten Woche.",
+        "callout_other": "{{name}} hat {{count}} Kunden und Kostenlos erlaubt {{max}}. Bei der nächsten Anmeldung wählt der Trainer aus, welche er behält. Die Pläne der übrigen Kunden laufen bis zur letzten veröffentlichten Woche.",
+        "placeholder": "Warum beenden Sie den Plan?",
+        "cancel": "Abbrechen",
+        "confirm": "Plan jetzt beenden"
+      },
+      "disable": {
+        "title": "Trainerkonto deaktivieren",
+        "description": "Entfernt alle Rollen. Entspricht der eigenen Schaltfläche Deaktivieren des Trainers.",
+        "button": "Deaktivieren",
+        "success": "Das Trainerkonto wurde deaktiviert.",
+        "error": "Das Trainerkonto konnte nicht deaktiviert werden.",
+        "dialogTitle": "Trainerkonto deaktivieren?",
+        "dialogDescription": "Die Rollen des Trainers werden entfernt, bei einem bezahlten Zeitraum an dessen Ende. Es funktioniert wie die eigene Schaltfläche Deaktivieren des Trainers.",
+        "placeholder": "Warum deaktivieren Sie das Konto?",
+        "confirm": "Konto deaktivieren"
+      }
+    },
+    "history": {
+      "title": "Verlauf",
+      "empty": "Noch nichts aufgezeichnet.",
+      "byCoach": "Vom Trainer",
+      "byAdmin": "Von {{name}}",
+      "reason": "Grund: {{reason}}",
+      "kind": {
+        "joined": "Registriert",
+        "givenFree_until": "Auf Plan {{plan}} geändert bis {{date}}",
+        "givenFree_plain": "Auf Plan {{plan}} geändert, ohne Enddatum",
+        "planAssigned": "Plan geändert auf {{plan}}",
+        "planEnded": "Plan beendet: {{plan}}",
+        "renewalCancelled_until": "Verlängerung gekündigt, Plan endet am {{date}}",
+        "renewalCancelled_plain": "Verlängerung gekündigt",
+        "accountDisabled_until": "Konto deaktiviert, aktiv bis {{date}}",
+        "accountDisabled_plain": "Konto deaktiviert",
+        "accountKept": "Konto behalten",
+        "roleAdded": "Rolle hinzugefügt: {{role}}",
+        "roleRemoved": "Rolle entfernt: {{role}}",
+        "unknown": "Aktualisiert"
+      }
+    },
+    "validation": {
+      "planRequired": "Wählen Sie einen Plan.",
+      "dateRequired": "Geben Sie das Enddatum an oder wählen Sie Ohne Enddatum.",
+      "dateFuture": "Das Enddatum muss in der Zukunft liegen.",
+      "reasonRequired": "Geben Sie einen Grund an.",
+      "reasonTooLong": "Der Grund darf höchstens 300 Zeichen lang sein."
+    },
+    "errors": {
+      "noActiveRole": "Dieser Trainer hat keine aktive Trainerrolle, daher gibt es nichts zu deaktivieren.",
+      "noPlanToEnd": "Dieser Trainer hat keinen bezahlten oder geschenkten Plan, der beendet werden könnte, daher gibt es nichts zu tun."
+    }
+  },
+  "adminPlans": {
+    "title": "Pläne",
+    "subtitle": "Was Trainer kaufen können. Eine Preisänderung erzeugt in Stripe einen neuen Preis; Trainer, die schon zahlen, behalten ihren.",
+    "newPlan": "Neuer Plan",
+    "note": "Jeder Trainer startet mit Free. Aktionen senken diese Preise für eine Weile; sie ändern sie nie.",
+    "loadError": "Die Pläne konnten nicht geladen werden.",
+    "retry": "Erneut versuchen",
+    "empty": "Noch keine Pläne.",
+    "unlimited": "Unbegrenzt",
+    "saveSuccess": "Plan gespeichert.",
+    "saveError": "Der Plan konnte nicht gespeichert werden.",
+    "stopSuccess": "Der Plan wird nicht mehr angeboten.",
+    "stopError": "Das Angebot des Plans konnte nicht beendet werden.",
+    "table": {
+      "plan": "Plan",
+      "perMonth": "Pro Monat",
+      "secondRole": "Zweite Rolle",
+      "clients": "Klienten",
+      "features": "Funktionen",
+      "coaches": "Trainer",
+      "status": "Status",
+      "actions": "Aktionen",
+      "code": "Code: {{code}}",
+      "included": "Inklusive"
+    },
+    "status": {
+      "active": "Aktiv",
+      "stopped": "Nicht angeboten"
+    },
+    "rowMenu": {
+      "open": "Menü für Plan {{name}} öffnen",
+      "edit": "Bearbeiten",
+      "stopOffering": "Nicht mehr anbieten"
+    },
+    "features": {
+      "plans": "Trainings- und Ernährungspläne",
+      "chat": "Chat, Fortschrittsfotos, Messungen",
+      "forms": "Formulare",
+      "formsHint": "Fragebögen und Onboarding-Formulare",
+      "checkIns": "Wöchentliche Check-ins",
+      "perClientCheckIns": "Check-in-Einstellungen pro Klient",
+      "perClientCheckInsHint": "Erfordert wöchentliche Check-ins",
+      "payments": "Zahlungen und Pakete",
+      "paymentsHint": "Leistungspakete und Zahlungen von Klienten",
+      "chip": {
+        "plans": "Pläne",
+        "chat": "Chat",
+        "forms": "Formulare",
+        "checkIns": "Check-ins",
+        "perClientCheckIns": "Individuelle Check-ins",
+        "payments": "Zahlungen",
+        "everything": "Alles"
+      }
+    },
+    "drawer": {
+      "titleNew": "Neuer Plan",
+      "titleEdit": "Plan bearbeiten · {{name}}",
+      "descriptionNew": "Was Trainer künftig kaufen können.",
+      "coaches_one": "{{count}} Trainer in diesem Plan",
+      "coaches_other": "{{count}} Trainer in diesem Plan",
+      "sectionPlan": "Plan",
+      "nameCs": "Name · Tschechisch",
+      "nameEn": "Name · Englisch",
+      "nameDe": "Name · Deutsch",
+      "code": "Code",
+      "codeHint": "Wird von der App und von Stripe verwendet. Nach dem Anlegen des Plans nicht mehr änderbar.",
+      "sectionPrice": "Preis",
+      "perMonth": "Pro Monat",
+      "freePriceHint": "Free kostet immer 0.",
+      "billing": "Abrechnung",
+      "billingMonthly": "Monatlich",
+      "billingAnnualLater": "Jährliche Abrechnung folgt später.",
+      "secondRole": "Zweite Rolle",
+      "secondRoleAddOn": "Kostenpflichtiges Zusatzangebot",
+      "secondRoleIncluded": "Im Preis inklusive",
+      "addOnPrice": "Zweite Rolle pro Monat",
+      "sectionClients": "Klienten",
+      "activeClients": "Aktive Klienten",
+      "activeClientsHint": "Ein Klient in beiden Rollen zählt einmal.",
+      "sectionFeatures": "Funktionen",
+      "sectionPreview": "So sehen es Trainer",
+      "offer": "Trainern anbieten",
+      "offerHint": "Aus blendet den Plan in der Planauswahl aus. Trainer, die ihn schon haben, behalten ihn.",
+      "offerFreeHint": "Der Plan Free wird immer angeboten.",
+      "stopOffering": "Nicht mehr anbieten",
+      "saving": "Wird gespeichert…",
+      "save": "Plan speichern"
+    },
+    "preview": {
+      "price": "{{price}} / Monat",
+      "secondRole": "zweite Rolle +{{price}}",
+      "secondRoleIncluded": "zweite Rolle inklusive",
+      "clients_one": "bis zu {{count}} Klient",
+      "clients_other": "bis zu {{count}} Klienten",
+      "unlimitedClients": "unbegrenzt Klienten",
+      "offered": "Angeboten",
+      "notOffered": "Nicht angeboten"
+    },
+    "priceChange": {
+      "title": "Der Preis ändert sich von {{from}} auf {{to}}",
+      "body_one": "Beim Speichern entsteht in Stripe ein neuer Preis. Neue Trainer zahlen {{to}}. Der {{count}} Trainer, der bereits im Plan {{name}} ist, behält {{from}}.",
+      "body_other": "Beim Speichern entsteht in Stripe ein neuer Preis. Neue Trainer zahlen {{to}}. Die {{count}} Trainer, die bereits im Plan {{name}} sind, behalten {{from}}.",
+      "move": "Bei der nächsten Verlängerung auf {{price}} umstellen",
+      "moveHint": "Wir informieren jeden Trainer vor der Änderung per E-Mail."
+    },
+    "validation": {
+      "nameRequired": "Geben Sie einen Namen ein.",
+      "nameTooLong": "Der Name darf höchstens 200 Zeichen lang sein.",
+      "codeInvalid": "Der Code darf nur Kleinbuchstaben, Ziffern und Bindestriche enthalten (höchstens 50 Zeichen).",
+      "codeTaken": "Ein Plan mit diesem Code existiert bereits.",
+      "priceInvalid": "Geben Sie einen Preis von 0 bis 1.000.000 ein.",
+      "addOnInvalid": "Geben Sie einen Preis für die zweite Rolle über 0 ein oder wählen Sie „Im Preis inklusive“.",
+      "clientsInvalid": "Geben Sie eine Klientenzahl ab 1 ein oder wählen Sie Unbegrenzt."
     }
   }
 }

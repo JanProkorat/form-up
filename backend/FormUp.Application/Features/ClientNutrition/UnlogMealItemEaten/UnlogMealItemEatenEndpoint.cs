@@ -41,11 +41,11 @@ internal sealed class UnlogMealItemEatenEndpoint(
             s.Summary = "Unmark one meal item as eaten";
             s.Description = "Unticks a single food or recipe of a meal in the client's current plan. Safe to replay "
                 + "with the same clientRequestId.";
-            s.Responses[StatusCodes.Status200OK] = "Eaten state of the meal after the untick";
-            s.Responses[StatusCodes.Status400BadRequest] = "Invalid request";
-            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
-            s.Responses[StatusCodes.Status404NotFound] =
-                "No client profile, or the meal is not in the client's current plan, or (errorCode MEAL_ITEM_NOT_FOUND) the item is not in the meal";
+            s.Response<UnlogMealItemEatenResponse>(StatusCodes.Status200OK, "Eaten state of the meal after the untick");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Invalid request");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status404NotFound,
+                "No client profile, or the meal is not in the client's current plan, or (errorCode MEAL_ITEM_NOT_FOUND) the item is not in the meal");
         });
     }
 
@@ -214,7 +214,7 @@ internal sealed class UnlogMealItemEatenEndpoint(
     {
         var professionalUserIds = await db.ClientProfessionalLinks
             .AsNoTracking()
-            .Where(l => l.ClientProfileId == clientProfileId && l.IsActive)
+            .Where(l => l.ClientProfileId == clientProfileId && l.ConnectionState != ConnectionState.Ended)
             .Join(db.ProfessionalProfiles.AsNoTracking(),
                 link => link.ProfessionalProfileId,
                 prof => prof.Id,

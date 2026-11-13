@@ -5,6 +5,7 @@ using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Documents;
 using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
+using FormUp.Application.Domain.Services;
 using FormUp.Application.Features.Client.Plans.GetClientPlans;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Application.Infrastructure.Data.MongoDb;
@@ -12,6 +13,7 @@ using FormUp.Application.Infrastructure.Services;
 using FormUp.Tests.Builders;
 using FormUp.Tests.Endpoints.NutritionPlans;
 using FormUp.Tests.Endpoints.TrainingPlans;
+using Microsoft.Extensions.Logging.Abstractions;
 using MongoDB.Driver;
 using NSubstitute;
 
@@ -38,7 +40,8 @@ public class GetClientPlansEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_userId, AppRoles.Client))),
-            mongo, db, TimeProvider.System, new MacroCalculatorService());
+            mongo, db, TimeProvider.System, new MacroCalculatorService(),
+            new EntitlementService(db, TimeProvider.System, NullLogger<EntitlementService>.Instance));
     }
 
     // ── Helpers to build mock Mongo contexts ────────────────────────────

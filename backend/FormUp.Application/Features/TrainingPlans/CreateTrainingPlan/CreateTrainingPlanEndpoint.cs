@@ -41,6 +41,13 @@ public class CreateTrainingPlanEndpoint(
         {
             s.Summary = "Create a training plan";
             s.Description = "Creates a new training plan in Draft status for a client.";
+            s.Response<TrainingPlanSummaryDto>(StatusCodes.Status201Created, "The new Draft plan");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Invalid request, or the questionnaire response is not found or not submitted");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status403Forbidden,
+                "The subscription does not include plans (SUBSCRIPTION_REQUIRED), or the client is over the Free plan's client limit (CLIENT_OVER_PLAN_LIMIT)");
+            s.Response(StatusCodes.Status404NotFound, "Client not found, or not accessible to the caller");
+            s.Response(StatusCodes.Status409Conflict, "The start date window overlaps another plan of the client (PLAN_OVERLAP)");
         });
     }
 
@@ -68,6 +75,13 @@ public class CreateTrainingPlanEndpoint(
             return;
         }
 
+        if (await this.RespondIfFeatureNotEntitledAsync(
+                db, trainerId, entitlements => entitlements.CanCreatePlans,
+                "The current subscription does not include creating plans.", ct))
+        {
+            return;
+        }
+
         // req.ClientId is the trainer-facing ClientProfile.PublicId — resolve to
         // ApplicationUser.Id, the canonical clientId key for Mongo documents (#840).
         var clientProfile = await db.ClientProfiles
@@ -81,6 +95,11 @@ public class CreateTrainingPlanEndpoint(
         }
 
         var clientUserId = clientProfile.UserId;
+
+        if (await this.RespondIfClientOverPlanLimitAsync(db, trainerId, clientUserId, ct))
+        {
+            return;
+        }
 
         // Validate questionnaire response link if provided
         if (req.QuestionnaireResponseId.HasValue)

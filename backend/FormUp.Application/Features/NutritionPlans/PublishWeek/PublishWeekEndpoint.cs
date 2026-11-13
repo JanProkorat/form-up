@@ -41,6 +41,14 @@ public class PublishWeekEndpoint(
         {
             s.Summary = "Publish a week of a nutrition plan";
             s.Description = "Sets the week's status to Published. Archives other Active plans for the same client whose date window overlaps this plan's.";
+            s.Response<GetPlanResponse>(StatusCodes.Status200OK, "The plan with the week published");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest,
+                "The week is missing or already published, or the start date is unset or the week starts in the past");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status403Forbidden,
+                "The subscription does not include plans (SUBSCRIPTION_REQUIRED), or the client is over the Free plan's client limit (CLIENT_OVER_PLAN_LIMIT)");
+            s.Response(StatusCodes.Status404NotFound, "Plan not found, or not editable by the caller");
+            s.Response(StatusCodes.Status409Conflict, "The plan was changed concurrently (PLAN_VERSION_CONFLICT)");
         });
     }
 
@@ -71,13 +79,22 @@ public class PublishWeekEndpoint(
             var capabilities = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
                 nutritionistId, plan.ClientId, authorizeCt);
 
-            if (capabilities is { CanViewNutritionPlans: true })
+            if (capabilities is not { CanViewNutritionPlans: true })
             {
-                return true;
+                await Send.NotFoundAsync(authorizeCt);
+                return false;
             }
 
-            await Send.NotFoundAsync(authorizeCt);
-            return false;
+            // The subscription gate comes after the lookup, so a missing or foreign plan still answers 404.
+            if (await this.RespondIfFeatureNotEntitledAsync(
+                    db, nutritionistId, entitlements => entitlements.CanCreatePlans,
+                    "The current subscription does not include publishing plans.", authorizeCt))
+            {
+                return false;
+            }
+
+            // A client over the Free plan's cap after a lapse gets no new published weeks.
+            return !await this.RespondIfClientOverPlanLimitAsync(db, nutritionistId, plan.ClientId, authorizeCt);
         }
 
         Task<bool> Validate(NutritionPlan plan, CancellationToken validateCt)

@@ -61,7 +61,7 @@ public class EndCollaborationEndpoint(
                 .ThenInclude(pp => pp.User)
             .FirstOrDefaultAsync(l => l.PublicId == publicId
                                    && l.ClientProfileId == clientProfile.Id
-                                   && l.IsActive, ct);
+                                   && l.ConnectionState != ConnectionState.Ended, ct);
 
         if (link is null)
         {
@@ -70,7 +70,7 @@ public class EndCollaborationEndpoint(
         }
 
         // Archive BEFORE deactivating the link, not after. The link lookup above requires
-        // IsActive, so if the Mongo write failed after the link had already been committed as
+        // a live ConnectionState, so if the Mongo write failed after the link had already been committed as
         // inactive, the retry would 404 here and the plans would stay Active with nobody able to
         // reach them — exactly the half-state this archival exists to prevent, and unrepairable.
         //
@@ -95,7 +95,7 @@ public class EndCollaborationEndpoint(
         await ClientPaymentTermsCloser.CloseAsync(
             db, audit, link.ProfessionalProfileId, clientProfile.Id, userGuid, DateTime.UtcNow, ct);
 
-        link.IsActive = false;
+        link.ConnectionState = ConnectionState.Ended;
         await db.SaveChangesAsync(ct);
 
         // Notify the professional

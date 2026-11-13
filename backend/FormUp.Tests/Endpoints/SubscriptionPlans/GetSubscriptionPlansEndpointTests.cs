@@ -6,6 +6,7 @@ using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Features.SubscriptionPlans.GetSubscriptionPlans;
 using FormUp.Application.Infrastructure.Data;
+using FormUp.Tests.Builders;
 using FormUp.Tests.Infrastructure;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
@@ -59,16 +60,56 @@ public class GetSubscriptionPlansEndpointTests(FitnessApiFactory factory)
         body.Plans.Should().Contain(p => p.Code == inactiveCode && !p.IsActive);
     }
 
-    private static SubscriptionPlan MakePlan(string code, bool isActive) => new()
+    [Fact]
+    public async Task List_ReturnsPerPlanCoachCountOfLiveSubscriptionsOnly()
     {
-        Code = code,
-        NameCs = "Test",
-        NameEn = "Test",
-        NameDe = "Test",
-        ApplicableRoles = ApplicableRoles.Both,
-        Currency = "CZK",
-        PriceMinorUnits = 0,
-        BillingInterval = BillingInterval.Monthly,
-        IsActive = isActive,
-    };
+        var code = $"counted-{Guid.NewGuid():N}";
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            db.SubscriptionPlans.Add(MakePlan(code, isActive: true));
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        foreach (var status in new[]
+                 {
+                     SubscriptionStatus.Trialing, SubscriptionStatus.Active, SubscriptionStatus.PastDue,
+                     SubscriptionStatus.Canceled, SubscriptionStatus.Incomplete,
+                 })
+        {
+            var coach = await TestActors.Trainer(factory).CreateAsync();
+            await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, code, status);
+        }
+
+        var client = await TestHelpers.RegisterAdminAsync(factory, TestContext.Current.CancellationToken);
+
+        var response = await client.GetAsync(
+            "/admin/subscription-plans", TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<GetSubscriptionPlansResponse>(
+            JsonOptions, TestContext.Current.CancellationToken);
+
+        body!.Plans.Single(p => p.Code == code).CoachCount.Should().Be(3);
+    }
+
+    private static SubscriptionPlan MakePlan(string code, bool isActive)
+    {
+        var plan = new SubscriptionPlan
+        {
+            Code = code,
+            NameCs = "Test",
+            NameEn = "Test",
+            NameDe = "Test",
+            BothRolesIncluded = true,
+            Currency = "CZK",
+            PriceMinorUnits = 0,
+            BillingInterval = BillingInterval.Monthly,
+            IsActive = isActive,
+        };
+        SubscriptionPlanPriceBuilder.OpenPriceFor(plan);
+        return plan;
+    }
 }
