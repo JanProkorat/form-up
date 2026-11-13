@@ -1,50 +1,35 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Eyebrow, StoreLinks } from '@/components/home/MockupParts';
-import {
-  CheckInPhone,
-  CoachCheckInPhone,
-  CoachClientsPhone,
-  TodayPhone,
-} from '@/components/home/HomePhones';
+import { Loop, StoreLinks } from '@/components/home/MockupParts';
+import { ClientAppPhone, CoachAppPhone } from '@/components/home/HomePhones';
 
-// Scales only the aria-hidden phone pair so the badge and caption keep their type-scale size.
-// Row = 2 x (2 x 250 + 26) x zoom + 113 = 1052 x zoom + 113; every step keeps at least 16px spare.
-// The width ladder sets --mz; home-zoom-phones caps it by window height (see index.css).
+// The phones are 250 wide; the pair is 548 wide. Below lg they wrap and keep their size, from lg the
+// width ladder zooms them to the room beside the text column (420 + 80 gap), capped by window height.
 const PHONES_ZOOM =
-  'lg:home-zoom-phones lg:[--mz:0.71] lg:@min-[960px]:[--mz:0.78] lg:@min-[1040px]:[--mz:0.86] lg:@min-[1120px]:[--mz:0.93] lg:@min-[1182px]:[--mz:1] lg:@min-[1340px]:[--mz:1.03] lg:@min-[1472px]:[--mz:1.1] lg:@min-[1592px]:[--mz:1.2] lg:@min-[1760px]:[--mz:1.3] lg:@min-[1940px]:[--mz:1.45]';
+  'lg:home-zoom-mock lg:[--mz:0.7] lg:@min-[960px]:[--mz:0.82] lg:@min-[1040px]:[--mz:0.96] lg:@min-[1100px]:[--mz:1] lg:@min-[1340px]:[--mz:1.03] lg:@min-[1472px]:[--mz:1.1] lg:@min-[1592px]:[--mz:1.2] lg:@min-[1760px]:[--mz:1.3] lg:@min-[1940px]:[--mz:1.45]';
 
-function PhoneGroup({
-  badge,
-  badgeTone,
-  caption,
-  phonesClassName,
+function LabelledPhone({
+  label,
+  floatClassName,
+  className = '',
   children,
 }: {
-  badge: string;
-  badgeTone: string;
-  caption: string;
-  phonesClassName: string;
+  label: string;
+  floatClassName: string;
+  className?: string;
   children: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center gap-4.5">
-      <div className="flex flex-col items-center gap-1">
-        <span
-          className={`rounded-full px-3 py-1.25 text-home-meta font-bold tracking-badge uppercase ${badgeTone}`}
-        >
-          {badge}
-        </span>
-        <span className="text-home-body text-muted-foreground">{caption}</span>
-      </div>
-      <div className={`flex flex-wrap items-start justify-center gap-6.5 ${phonesClassName}`}>
+    <div className={`flex flex-col items-center gap-3.5 ${className}`}>
+      <span className="text-home-body font-bold text-muted-foreground">{label}</span>
+      <div aria-hidden="true" className={floatClassName}>
         {children}
       </div>
     </div>
   );
 }
 
-/** "The mobile app": one app, a client view and a coach view, shown as four phones. */
+/** "The mobile app": one app, a client view and a coach view, as two gently floating phones. */
 export default function HomeMobileApp() {
   const { t } = useTranslation();
 
@@ -52,39 +37,29 @@ export default function HomeMobileApp() {
     <section
       id="mobile-app"
       tabIndex={-1}
-      className="flex flex-col justify-center px-4 pt-14 pb-16 outline-none sm:px-10 lg:home-section-pad lg:min-h-svh lg:px-16"
+      className="flex flex-col justify-center overflow-x-clip px-4 py-14 outline-none sm:px-10 lg:home-section-pad lg:min-h-svh lg:px-16"
     >
-      <div className="@container home-tier-phones mx-auto flex w-full max-w-home flex-col items-center gap-12 lg:gap-[clamp(1.5rem,4svh,3rem)]">
-        <div className="flex flex-col items-center gap-3.5 text-center">
-          <Eyebrow className="text-marker">{t('home.app.eyebrow')}</Eyebrow>
-          <h2 className="font-display text-home-heading font-semibold tracking-heading text-ink">
-            {t('home.app.title')}
-          </h2>
-          <p className="max-w-170 text-home-lead text-ink-2">{t('home.app.lead')}</p>
-          <div className="flex flex-wrap justify-center gap-2.5">
-            <StoreLinks appStore={t('home.app.appStore')} googlePlay={t('home.app.googlePlay')} />
+      <div className="@container home-tier mx-auto flex w-full max-w-home flex-col">
+        <div className="flex flex-col gap-12 lg:flex-row lg:items-center lg:gap-20">
+          <div className="flex max-w-105 @min-[1340px]:max-w-109 @min-[1472px]:max-w-115.5 @min-[1592px]:max-w-126 @min-[1760px]:max-w-136.5 @min-[1940px]:max-w-152 shrink-0 flex-col gap-4.5">
+            <h2 className="font-display text-home-heading font-semibold tracking-heading text-ink">
+              {t('home.app.title')}
+            </h2>
+            <p className="text-home-lead text-ink-2">{t('home.app.lead')}</p>
+            <div className="flex flex-wrap gap-2.5 pt-1.5">
+              <StoreLinks appStore={t('home.app.appStore')} googlePlay={t('home.app.googlePlay')} tone="solid" />
+            </div>
           </div>
-        </div>
-        <div className="flex flex-col items-center gap-14 lg:flex-row lg:items-start">
-          <PhoneGroup
-            badge={t('home.app.clients.badge')}
-            badgeTone="bg-primary text-primary-foreground"
-            caption={t('home.app.clients.caption')}
-            phonesClassName={PHONES_ZOOM}
-          >
-            <TodayPhone />
-            <CheckInPhone />
-          </PhoneGroup>
-          <span className="hidden w-px self-stretch bg-border lg:block" />
-          <PhoneGroup
-            badge={t('home.app.you.badge')}
-            badgeTone="bg-marker-solid text-on-dark"
-            caption={t('home.app.you.caption')}
-            phonesClassName={PHONES_ZOOM}
-          >
-            <CoachClientsPhone />
-            <CoachCheckInPhone />
-          </PhoneGroup>
+          <Loop className="flex min-w-0 grow justify-center">
+            <div className={`flex flex-wrap items-start justify-center gap-x-12 gap-y-8 ${PHONES_ZOOM}`}>
+              <LabelledPhone label={t('home.app.phones.client')} floatClassName="hm-float-1">
+                <ClientAppPhone />
+              </LabelledPhone>
+              <LabelledPhone label={t('home.app.phones.you')} floatClassName="hm-float-2" className="lg:pt-[50px]">
+                <CoachAppPhone />
+              </LabelledPhone>
+            </div>
+          </Loop>
         </div>
       </div>
     </section>

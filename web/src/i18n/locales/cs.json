@@ -6107,19 +6107,11 @@
       "themeToLight": "Přepnout na světlý vzhled"
     },
     "hero": {
-      "eyebrow": "Pro osobní trenéry a nutriční poradce",
       "headline": "Vaši klienti, pryč od tabulek",
       "headlineAccent": "a WhatsAppu.",
-      "sub": "Sestavujte jídelníčky a tréninkové plány na webu. Vaši klienti je mají v telefonu, odškrtávají každé jídlo i trénink a jednou týdně vám pošlou check-in.",
+      "sub": "Plánujte na webu. Vaši klienti plán následují v telefonu.",
       "createAccount": "Vytvořit účet",
-      "seeInAction": "Podívat se, jak to funguje",
-      "note": "Webový portál pro plánování, mobilní aplikace pro vás i vaše klienty.",
-      "steps": {
-        "build": "Přetáhněte recept do dne",
-        "publish": "Jedním klikem je v jejich telefonu",
-        "follow": "Jídla a tréninky odškrtnuté",
-        "see": "Check-iny chodí k vám"
-      }
+      "seeInAction": "Podívat se, jak to funguje"
     },
     "steps": {
       "build": { "title": "Sestavíte" },
@@ -6128,95 +6120,54 @@
       "see": { "title": "Vidíte to" }
     },
     "how": {
-      "eyebrow": "Jak to funguje",
-      "title": "Jeden týden s klientem ve čtyřech krocích",
+      "title": "Jeden týden s klientem",
       "steps": {
-        "build": "Přetahujte recepty a cviky do týdne. Makra se sčítají samy.",
-        "publish": "Hotové týdny se jedním klikem objeví v telefonu klienta. Rozpracované zůstávají skryté.",
-        "follow": "Klient odškrtává jídla a tréninky. Vy to vidíte v reálném čase.",
-        "see": "Jednou týdně dorazí check-in: váha, fotky a jaký týden byl."
+        "build": "Přetáhněte recepty a cviky do týdne.",
+        "publish": "Jedno kliknutí. Rozpracované zůstanou skryté.",
+        "follow": "Jídla a tréninky odškrtnuté.",
+        "see": "Váha, fotky a jaký týden byl."
       },
-      "phone": {
-        "label": "V telefonu klienta",
-        "empty": "Zatím nic. Rozpracované týdny zůstávají skryté, dokud je nezveřejníte.",
-        "ready": { "title": "Týden 5 je připraven", "body": "Jan zveřejnil 7 dní jídel a 3 tréninky." },
-        "workout": { "title": "Trénink hotový", "body": "Horní polovina těla A · 52 min · všechny série zapsány." },
-        "checkin": { "title": "Check-in odeslán", "body": "68,4 kg · energie 4/5 · 3 fotky pokroku." }
+      "stage": {
+        "planWeek": "Redukce — týden 5",
+        "draft": "Rozpracováno",
+        "readyBody": "7 dní jídel a 3 tréninky",
+        "monday": "Pondělí",
+        "today": "Dnes",
+        "mealsOnTrack": { "title": "Jídla podle plánu", "body": "Petra · 3 ze 4 dnes" },
+        "workoutDone": {
+          "title": "Trénink hotový",
+          "body": "Horní polovina těla A · 52 min · všechny série zapsány"
+        },
+        "checkinTitle": "Check-in od Petry",
+        "checkinNote": "„V pátek jsem měla těžké nohy.“ · energie 4/5 · spánek 7 h"
       }
     },
     "coaches": {
-      "eyebrow": "Pro trenéry",
       "title": "Tréninkové plány, které klienti opravdu dodržují",
-      "lead": "Naplánujte týden v portálu. V posilovně má klient každý cvik, video i váhu v telefonu.",
-      "features": {
-        "sessions": {
-          "title": "Tréninky sestavíte přetahováním",
-          "desc": "Vyberte cviky z knihovny — každý s videem — a nastavte série, opakování, váhu a pauzu."
-        },
-        "templates": {
-          "title": "Šablony k opakovanému použití",
-          "desc": "Uložte trénink nebo celý plán a dejte ho dalšímu klientovi jedním klikem."
-        },
-        "watch": {
-          "title": "Sledujte to v reálném čase",
-          "desc": "Klient zapisuje každou sérii během tréninku. Vidíte, co zvedl a jak se mu dařilo."
-        },
-        "library": {
-          "title": "Knihovna cviků s videi",
-          "desc": "Ke každému cviku patří krátké video, takže klient uvidí správné provedení ještě před první sérií."
-        },
-        "progress": {
-          "title": "Pokrok v čase",
-          "desc": "Váha, tělesné míry a fotky pokroku v grafech po týdnech u každého klienta."
-        },
-        "intake": {
-          "title": "Vstupní dotazníky",
-          "desc": "Pošlete úvodní dotazník před první schůzkou a odpovědi si přečtěte v profilu klienta."
-        }
+      "lead": "Plánujte v portálu. Klienti zapisují každou sérii přímo v posilovně.",
+      "points": {
+        "sessions": "Tréninky sestavíte přetahováním",
+        "library": "Knihovna cviků s videi",
+        "watch": "Sledujte to živě"
       }
     },
     "nutritionists": {
-      "eyebrow": "Pro nutriční poradce",
       "title": "Jídelníčky, které sedí",
-      "lead": "Recepty, suroviny a cíle na jednom místě. Klient dostane plán i nákupní seznam na celý týden.",
-      "features": {
-        "plans": {
-          "title": "Jídelníčky po týdnech",
-          "desc": "Naplňte týden svými recepty a surovinami. Zveřejněte jen týdny, které jsou hotové."
-        },
-        "macros": {
-          "title": "Makra na první pohled",
-          "desc": "Každé jídlo ukazuje, zda je v cíli, nad ním nebo pod ním — dřív, než ho uvidí klient."
-        },
-        "alongside": {
-          "title": "Spolupráce s trenérem",
-          "desc": "Klient může mít nutričního poradce i trenéra. Každý z vás vlastní svůj plán."
-        },
-        "foods": {
-          "title": "Databáze potravin v aplikaci",
-          "desc": "Vyhledávejte produkty z Open Food Facts nebo přidejte vlastní suroviny s jejich makry."
-        },
-        "templates": {
-          "title": "Šablony jídel",
-          "desc": "Uložte snídani nebo celý den jednou a vložte je do plánu kteréhokoli klienta."
-        },
-        "diary": {
-          "title": "Fotodeník",
-          "desc": "Požádejte klienta o fotky jídel a uvidíte, co ten den skutečně snědl."
-        }
+      "lead": "Recepty, makra a cíle na jednom místě.",
+      "points": {
+        "foods": "Databáze potravin v aplikaci",
+        "macros": "Makra na první pohled",
+        "shopping": "Nákupní seznam pro klienta"
       }
     },
     "app": {
-      "eyebrow": "Mobilní aplikace",
       "title": "Jedna aplikace pro vaše klienty — i pro vás",
-      "lead": "Pro klienty je aplikace místem, kde se děje všechno: dnešní jídla a tréninky, chat s vámi a týdenní check-in. Vy dostanete stejnou aplikaci s pohledem trenéra — uvidíte, kdo vás potřebuje, projdete check-iny a odpovíte odkudkoli.",
+      "lead": "Pro klienty zdarma. Vy dostanete stejnou aplikaci s pohledem trenéra.",
       "appStore": "App Store",
       "googlePlay": "Google Play",
-      "clients": { "badge": "Vaši klienti", "caption": "Jejich hlavní nástroj, každý den" },
-      "you": { "badge": "Vy", "caption": "Vaši klienti v kapse" }
+      "phones": { "client": "Váš klient", "you": "Vy" }
     },
     "questions": {
-      "eyebrow": "Dotazy",
       "title": "Než začnete",
       "items": {
         "pay": { "q": "Platí můj klient za aplikaci?", "a": "Ne. Mobilní aplikace je pro vaše klienty zdarma." },
@@ -6242,104 +6193,76 @@
         }
       }
     },
-    "join": {
-      "title": "Připojte se ke komunitě trenérů a nutričních poradců",
-      "sub": "Založte si účet, pozvěte prvního klienta a sestavte mu první týden ještě dnes odpoledne.",
-      "cta": "Vytvořit účet"
-    },
+    "join": { "title": "Sestavte prvnímu klientovi týden ještě dnes odpoledne.", "cta": "Vytvořit účet" },
     "footer": {
       "copyright": "© {{year}} Form Up",
       "getApp": "Stáhněte si aplikaci Form Up:"
     },
     "mock": {
       "planTitle": "Redukce — 12 týdnů",
-      "planWeek": "· Týden 5",
-      "nutritionView": "· Týden 5 · Pohled výživy",
+      "weekShort": "Týden 5",
       "published": "ZVEŘEJNĚNO",
       "days": { "mon": "Po", "tue": "Út", "wed": "St", "thu": "Čt" },
-      "day": "Den",
       "meals": { "breakfast": "Snídaně", "snack": "Svačina", "lunch": "Oběd", "dinner": "Večeře" },
       "foods": {
         "oatBowl": "Ovesná kaše",
         "yogurtBowl": "Jogurtová miska",
         "eggToast": "Toast s vejcem",
         "appleAlmonds": "Jablko, mandle",
-        "proteinShake": "Proteinový shake",
-        "yogurtHoney": "Jogurt, med",
         "lentilCurry": "Čočkové kari",
         "tunaSalad": "Tuňákový salát",
         "chickenBowl": "Kuřecí bowl",
+        "salmon": "Losos",
         "salmonPotatoes": "Losos, brambory",
         "beefStirFry": "Hovězí na woku",
         "tofuNoodles": "Nudle s tofu"
       },
       "kcal": "kcal",
-      "onTarget": "v cíli",
-      "notifBadge": "FU",
+      "recipes": "Recepty",
+      "publishWeek": "Zveřejnit týden 5",
+      "weekReady": "Týden 5 · 7 dní připraveno",
+      "planName": "Redukce",
+      "planShort": "Redukce · Týden 5",
+      "notifReadyTitle": "Týden 5 je připraven",
+      "notifReadyBody": "Jan zveřejnil váš plán",
+      "dayWednesday": "Středa",
+      "dayThursday": "Čtvrtek",
+      "todaysMeals": "Dnešní jídla",
       "kg": "kg",
       "weightValue": "68,4",
       "weightDelta": "−0,6 kg",
       "weightDeltaShort": "−0,6",
-      "notifApp": "Form Up",
-      "notifNow": "teď",
-      "notifBody": "Jan upravil čtvrteční oběd — Kuřecí bowl, 640 kcal",
       "checkinSent": "Petra poslala check-in",
-      "checkinSummary": "68,4 kg · −0,6 kg za týden · energie 4/5",
-      "date": "Čtvrtek 2. října",
+      "checkinEnergy": "energie 4/5",
+      "petraInitial": "P",
       "greeting": "Dobré ráno, Petro",
-      "todaysMeals": "Dnešní jídla",
-      "mealsProgress": "2 ze 4",
       "workoutName": "Horní polovina těla A",
-      "workoutMeta": "45 min · 6 cviků",
+      "workoutMinutes": "45 min",
       "start": "Začít",
-      "weekReady": "Týden 5 · 7 dní připraveno",
-      "publishWeek": "Zveřejnit týden 5",
-      "dayProgress": "1 100 / 2 100 kcal",
-      "checkinNote": "Energie 4/5 · spánek 7 h · „V pátek jsem měla těžké nohy.“",
-      "sessionKind": "· Šablona tréninku",
-      "exerciseLibrary": "Knihovna cviků",
-      "blockA": "Blok A · Síla",
+      "sessionTemplate": "Šablona tréninku",
+      "liveTitle": "Živě · Petra právě cvičí",
       "exercises": {
         "benchPress": "Bench press",
         "barbellRow": "Přítah s velkou činkou",
-        "facePull": "Face pull",
-        "pullUp": "Shyb",
-        "overheadPress": "Tlak nad hlavu"
+        "overheadPress": "Tlak nad hlavu",
+        "pullUp": "Shyb"
       },
-      "muscles": { "chest": "Hrudník", "back": "Záda", "shoulders": "Ramena" },
-      "bodyweight": "vlastní váha",
       "setsMax": "3 × max",
-      "rest": { "min": "{{value}} min", "s": "{{value}} s" },
-      "liveTitle": "Živě · Petra právě cvičí",
-      "liveSet": "Bench press · série 3 ze 4",
-      "liveReps": "60 kg × 8 opakování",
+      "next": "další",
+      "todayMeta": "Dnes · 45 min",
+      "blockA": "Blok A · Síla",
+      "setN": "Série {{n}}",
+      "setDetail": "8 × 60 kg",
+      "grams": "{{value}} g",
+      "logSet": "Zapsat sérii",
       "shoppingList": "Nákupní seznam · Týden 5",
       "shopping": {
         "chickenBreast": "Kuřecí prsa",
         "basmatiRice": "Rýže basmati",
-        "greekYogurt": "Řecký jogurt",
-        "blueberries": "Borůvky"
+        "greekYogurt": "Řecký jogurt"
       },
-      "sundayWeek": "Týden 5",
-      "todayMeta": "Dnes · 45 min",
-      "blockProgress": "2 ze 4",
-      "setNext": "3 × 10 · další je 1. série",
-      "logSet": "Zapsat sérii",
-      "lunchOnTarget": "Oběd · v cíli",
       "macros": { "protein": "Bílkoviny", "carbs": "Sacharidy", "fat": "Tuky" },
-      "ingredients": {
-        "title": "Suroviny",
-        "chickenBreast": "Kuřecí prsa",
-        "basmatiRice": "Rýže basmati",
-        "broccoli": "Brokolice",
-        "oliveOil": "Olivový olej"
-      },
-      "markEaten": "Označit jako snězené",
-      "weeklyCheckIn": "Týdenní check-in",
-      "weight": "Váha",
-      "progressPhotos": "Fotky pokroku",
-      "energyThisWeek": "Energie tento týden",
-      "sendToCoach": "Odeslat Janovi",
+      "dropHere": "Oběd — přetáhněte sem jídlo",
       "coachClients": "Trenér · 12 klientů",
       "clientsTitle": "Klienti",
       "needsYou": "Potřebují vás · 2",
@@ -6347,14 +6270,9 @@
       "clientNotes": {
         "checkinWaiting": "Čeká check-in",
         "missedMeals": "Vynechal 2 jídla",
-        "workoutDone": "Trénink hotový · 52 min",
+        "workoutDone": "Trénink hotový",
         "allMeals": "Všechna dnešní jídla"
-      },
-      "reviewSubtitle": "Petra N. · týden 5",
-      "reviewTitle": "Check-in",
-      "trendDelta": "−2,1 za 6 týdnů",
-      "reviewQuote": "„V pátek jsem měla těžké nohy.“ · energie 4/5",
-      "replyPlaceholder": "Odpovědět Petře…"
+      }
     }
   },
   "packages": {

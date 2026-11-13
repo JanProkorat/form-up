@@ -5891,19 +5891,11 @@
       "themeToLight": "Switch to light"
     },
     "hero": {
-      "eyebrow": "For personal trainers and nutritionists",
       "headline": "Your clients, out of spreadsheets",
       "headlineAccent": "and WhatsApp.",
-      "sub": "Build meal and training plans on the web. Your clients follow them on their phone, tick off every meal and workout, and send you a check-in each week.",
+      "sub": "Plan on the web. Your clients follow it on their phone.",
       "createAccount": "Create account",
-      "seeInAction": "See it in action",
-      "note": "Web portal for planning, mobile app for you and your clients.",
-      "steps": {
-        "build": "Drag a recipe into the day",
-        "publish": "One click — it’s on their phone",
-        "follow": "Meals and workouts ticked off",
-        "see": "Check-ins come to you"
-      }
+      "seeInAction": "See it in action"
     },
     "steps": {
       "build": { "title": "Build" },
@@ -5912,95 +5904,51 @@
       "see": { "title": "You see it" }
     },
     "how": {
-      "eyebrow": "How it works",
-      "title": "One week with a client, in four moments",
+      "title": "One week with a client",
       "steps": {
-        "build": "Drag recipes and exercises into the week. Macros add up as you go.",
-        "publish": "Finished weeks go to your client’s phone in one click. Drafts stay hidden.",
-        "follow": "Your client ticks off meals and workouts. You see it as it happens.",
-        "see": "Once a week the check-in arrives: weight, photos and how the week felt."
+        "build": "Drag recipes and exercises into the week.",
+        "publish": "One click. Drafts stay hidden.",
+        "follow": "Meals and workouts ticked off.",
+        "see": "Weight, photos, how the week felt."
       },
-      "phone": {
-        "label": "On your client’s phone",
-        "empty": "Nothing yet. Drafts stay hidden until you publish.",
-        "ready": { "title": "Week 5 is ready", "body": "Jan published 7 days of meals and 3 workouts." },
-        "workout": { "title": "Workout done", "body": "Upper body A · 52 min · all sets logged." },
-        "checkin": { "title": "Check-in sent", "body": "68.4 kg · energy 4/5 · 3 progress photos." }
+      "stage": {
+        "planWeek": "Lean cut — Week 5",
+        "draft": "Draft",
+        "readyBody": "7 days of meals and 3 workouts",
+        "monday": "Monday",
+        "today": "Today",
+        "mealsOnTrack": { "title": "Meals on track", "body": "Petra · 3 of 4 today" },
+        "workoutDone": { "title": "Workout done", "body": "Upper body A · 52 min · all sets logged" },
+        "checkinTitle": "Petra’s check-in",
+        "checkinNote": "“Legs felt heavy on Friday.” · energy 4/5 · sleep 7 h"
       }
     },
     "coaches": {
-      "eyebrow": "For coaches",
       "title": "Training plans your clients actually follow",
-      "lead": "Plan the week in the portal. On the gym floor, your client has every exercise, video and weight on their phone.",
-      "features": {
-        "sessions": {
-          "title": "Build sessions by dragging",
-          "desc": "Pick exercises from the library — each with a video — and set sets, reps, weight and rest."
-        },
-        "templates": {
-          "title": "Templates you reuse",
-          "desc": "Save a session or a whole plan and give it to the next client in one click."
-        },
-        "watch": {
-          "title": "Watch it happen",
-          "desc": "Your client logs every set during the workout. You see what they lifted, and how it felt."
-        },
-        "library": {
-          "title": "Exercise library with videos",
-          "desc": "Every exercise comes with a short video, so your client sees the form before the first set."
-        },
-        "progress": {
-          "title": "Progress over time",
-          "desc": "Weight, body measurements and progress photos, charted week by week for every client."
-        },
-        "intake": {
-          "title": "Intake questionnaires",
-          "desc": "Send an onboarding form before the first session and read the answers in the client’s profile."
-        }
+      "lead": "Plan in the portal. Clients log every set on the gym floor.",
+      "points": {
+        "sessions": "Build sessions by dragging",
+        "library": "Exercise library with videos",
+        "watch": "Watch it happen, live"
       }
     },
     "nutritionists": {
-      "eyebrow": "For nutritionists",
       "title": "Meal plans that add up",
-      "lead": "Recipes, ingredients and targets in one place. Your client gets the plan and a shopping list for the week.",
-      "features": {
-        "plans": {
-          "title": "Meal plans by the week",
-          "desc": "Fill the week from your recipes and ingredients. Publish only the weeks that are finished."
-        },
-        "macros": {
-          "title": "Macros at a glance",
-          "desc": "Every meal shows if it is on target, over or under — before your client ever sees it."
-        },
-        "alongside": {
-          "title": "Work alongside the trainer",
-          "desc": "A client can have a nutritionist and a coach. Each of you owns your own plan."
-        },
-        "foods": {
-          "title": "Food database built in",
-          "desc": "Search products from Open Food Facts, or add your own ingredients with their macros."
-        },
-        "templates": {
-          "title": "Meal templates",
-          "desc": "Save a breakfast or a whole day once, then drop it into any client’s plan."
-        },
-        "diary": {
-          "title": "Photo diary",
-          "desc": "Ask your client for photos of their meals and see what they really ate that day."
-        }
+      "lead": "Recipes, macros and targets in one place.",
+      "points": {
+        "foods": "Food database built in",
+        "macros": "Macros at a glance",
+        "shopping": "Shopping list for the client"
       }
     },
     "app": {
-      "eyebrow": "The mobile app",
       "title": "One app for your clients — and for you",
-      "lead": "For your clients, the app is where everything happens: today’s meals and workouts, the chat with you and the weekly check-in. You get the same app with a coach view — see who needs you, review check-ins and reply from anywhere.",
+      "lead": "Free for clients. You get the same app with a coach view.",
       "appStore": "App Store",
       "googlePlay": "Google Play",
-      "clients": { "badge": "Your clients", "caption": "Their main tool, every day" },
-      "you": { "badge": "You", "caption": "Your clients in your pocket" }
+      "phones": { "client": "Your client", "you": "You" }
     },
     "questions": {
-      "eyebrow": "Questions",
       "title": "Before you start",
       "items": {
         "pay": { "q": "Does my client pay for the app?", "a": "No. The mobile app is free for your clients." },
@@ -6026,104 +5974,76 @@
         }
       }
     },
-    "join": {
-      "title": "Join our community of coaches and nutritionists",
-      "sub": "Set up your account, invite your first client and build their first week this afternoon.",
-      "cta": "Create account"
-    },
+    "join": { "title": "Build your first client’s week this afternoon.", "cta": "Create account" },
     "footer": {
       "copyright": "© {{year}} Form Up",
       "getApp": "Get the Form Up app:"
     },
     "mock": {
       "planTitle": "Lean cut — 12 weeks",
-      "planWeek": "· Week 5",
-      "nutritionView": "· Week 5 · Nutrition view",
+      "weekShort": "Week 5",
       "published": "PUBLISHED",
       "days": { "mon": "Mon", "tue": "Tue", "wed": "Wed", "thu": "Thu" },
-      "day": "Day",
       "meals": { "breakfast": "Breakfast", "snack": "Snack", "lunch": "Lunch", "dinner": "Dinner" },
       "foods": {
         "oatBowl": "Oat bowl",
         "yogurtBowl": "Yogurt bowl",
         "eggToast": "Egg toast",
         "appleAlmonds": "Apple, almonds",
-        "proteinShake": "Protein shake",
-        "yogurtHoney": "Yogurt, honey",
         "lentilCurry": "Lentil curry",
         "tunaSalad": "Tuna salad",
         "chickenBowl": "Chicken bowl",
+        "salmon": "Salmon",
         "salmonPotatoes": "Salmon, potatoes",
         "beefStirFry": "Beef stir-fry",
         "tofuNoodles": "Tofu noodles"
       },
       "kcal": "kcal",
-      "onTarget": "on target",
-      "notifBadge": "FU",
+      "recipes": "Recipes",
+      "publishWeek": "Publish week 5",
+      "weekReady": "Week 5 · 7 days ready",
+      "planName": "Lean cut",
+      "planShort": "Lean cut · Week 5",
+      "notifReadyTitle": "Week 5 is ready",
+      "notifReadyBody": "Jan published your plan",
+      "dayWednesday": "Wednesday",
+      "dayThursday": "Thursday",
+      "todaysMeals": "Today’s meals",
       "kg": "kg",
       "weightValue": "68.4",
       "weightDelta": "−0.6 kg",
       "weightDeltaShort": "−0.6",
-      "notifApp": "Form Up",
-      "notifNow": "now",
-      "notifBody": "Jan updated Thursday’s lunch — Chicken bowl, 640 kcal",
       "checkinSent": "Petra sent her check-in",
-      "checkinSummary": "68.4 kg · −0.6 kg this week · energy 4/5",
-      "date": "Thursday, 2 Oct",
+      "checkinEnergy": "energy 4/5",
+      "petraInitial": "P",
       "greeting": "Good morning, Petra",
-      "todaysMeals": "Today’s meals",
-      "mealsProgress": "2 of 4",
       "workoutName": "Upper body A",
-      "workoutMeta": "45 min · 6 exercises",
+      "workoutMinutes": "45 min",
       "start": "Start",
-      "weekReady": "Week 5 · 7 days ready",
-      "publishWeek": "Publish week 5",
-      "dayProgress": "1,100 / 2,100 kcal",
-      "checkinNote": "Energy 4/5 · sleep 7 h · “Legs felt heavy on Friday.”",
-      "sessionKind": "· Session template",
-      "exerciseLibrary": "Exercise library",
-      "blockA": "Block A · Strength",
+      "sessionTemplate": "Session template",
+      "liveTitle": "Live · Petra is training",
       "exercises": {
         "benchPress": "Bench press",
         "barbellRow": "Barbell row",
-        "facePull": "Face pull",
-        "pullUp": "Pull-up",
-        "overheadPress": "Overhead press"
+        "overheadPress": "Overhead press",
+        "pullUp": "Pull-up"
       },
-      "muscles": { "chest": "Chest", "back": "Back", "shoulders": "Shoulders" },
-      "bodyweight": "body",
       "setsMax": "3 × max",
-      "rest": { "min": "{{value}} min", "s": "{{value}} s" },
-      "liveTitle": "Live · Petra is training",
-      "liveSet": "Bench press · set 3 of 4",
-      "liveReps": "60 kg × 8 reps",
+      "next": "next",
+      "todayMeta": "Today · 45 min",
+      "blockA": "Block A · Strength",
+      "setN": "Set {{n}}",
+      "setDetail": "8 × 60 kg",
+      "grams": "{{value}} g",
+      "logSet": "Log set",
       "shoppingList": "Shopping list · Week 5",
       "shopping": {
         "chickenBreast": "Chicken breast",
         "basmatiRice": "Basmati rice",
-        "greekYogurt": "Greek yogurt",
-        "blueberries": "Blueberries"
+        "greekYogurt": "Greek yogurt"
       },
-      "sundayWeek": "Week 5",
-      "todayMeta": "Today · 45 min",
-      "blockProgress": "2 of 4",
-      "setNext": "3 × 10 · set 1 next",
-      "logSet": "Log set",
-      "lunchOnTarget": "Lunch · on target",
       "macros": { "protein": "Protein", "carbs": "Carbs", "fat": "Fat" },
-      "ingredients": {
-        "title": "Ingredients",
-        "chickenBreast": "Chicken breast",
-        "basmatiRice": "Basmati rice",
-        "broccoli": "Broccoli",
-        "oliveOil": "Olive oil"
-      },
-      "markEaten": "Mark as eaten",
-      "weeklyCheckIn": "Weekly check-in",
-      "weight": "Weight",
-      "progressPhotos": "Progress photos",
-      "energyThisWeek": "Energy this week",
-      "sendToCoach": "Send to Jan",
+      "dropHere": "Lunch — drop a meal here",
       "coachClients": "Coach · 12 clients",
       "clientsTitle": "Clients",
       "needsYou": "Needs you · 2",
@@ -6131,14 +6051,9 @@
       "clientNotes": {
         "checkinWaiting": "Check-in waiting",
         "missedMeals": "Missed 2 meals",
-        "workoutDone": "Workout done · 52 min",
+        "workoutDone": "Workout done",
         "allMeals": "All meals today"
-      },
-      "reviewSubtitle": "Petra N. · week 5",
-      "reviewTitle": "Check-in",
-      "trendDelta": "−2.1 in 6 weeks",
-      "reviewQuote": "“Legs felt heavy on Friday.” · energy 4/5",
-      "replyPlaceholder": "Reply to Petra…"
+      }
     }
   },
   "packages": {
