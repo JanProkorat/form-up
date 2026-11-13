@@ -10,7 +10,7 @@ namespace FormUp.Tests.Validators.AdminCoaches;
 /// </summary>
 public class GiveCoachPlanFreeValidatorTests
 {
-    private readonly GiveCoachPlanFreeValidator _validator = new();
+    private readonly GiveCoachPlanFreeValidator _validator = new(TimeProvider.System);
 
     private static GiveCoachPlanFreeRequest Valid() => new()
     {

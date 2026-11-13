@@ -5,7 +5,6 @@ using FormUp.Application.Domain.Enums;
 using FormUp.Application.Features.PhotoDiaryRequests.Shared;
 using FormUp.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
-using FormUp.Application.Domain.Enums;
 
 namespace FormUp.Application.Features.PhotoDiaryRequests.ListClientRequests;
 

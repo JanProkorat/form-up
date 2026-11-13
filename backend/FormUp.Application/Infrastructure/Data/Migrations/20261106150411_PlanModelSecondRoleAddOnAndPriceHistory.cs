@@ -13,7 +13,8 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             // The legacy placeholder plans (and any dev subscriptions on them) are replaced by the
-            // free/start/pro/studio seed, which re-inserts them on the next boot. No production data.
+            // free/start/pro/studio seed, which is re-created by running the app with `--seed` after
+            // migrating (the seed does not run on a normal boot). No production data.
             migrationBuilder.Sql(
                 """
                 DELETE FROM coach_subscriptions

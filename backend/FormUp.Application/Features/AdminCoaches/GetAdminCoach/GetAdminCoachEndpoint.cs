@@ -196,7 +196,8 @@ internal sealed class GetAdminCoachEndpoint(
 
         try
         {
-            return new AuditValues(JsonDocument.Parse(json).RootElement.Clone());
+            using var document = JsonDocument.Parse(json);
+            return new AuditValues(document.RootElement.Clone());
         }
         catch (JsonException ex)
         {

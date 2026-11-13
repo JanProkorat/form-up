@@ -15,7 +15,8 @@ internal sealed class GiveCoachPlanFreeValidator : Validator<GiveCoachPlanFreeRe
     /// <summary>
     /// Initializes validation rules for giving a plan for free.
     /// </summary>
-    public GiveCoachPlanFreeValidator()
+    /// <param name="timeProvider">Clock.</param>
+    public GiveCoachPlanFreeValidator(TimeProvider timeProvider)
     {
         RuleFor(x => x.CoachId)
             .NotEmpty().WithErrorCode(ErrorCodes.Required);
@@ -28,7 +29,7 @@ internal sealed class GiveCoachPlanFreeValidator : Validator<GiveCoachPlanFreeRe
             .WithMessage("The Free plan cannot be given for free.");
 
         RuleFor(x => x.FreeUntil)
-            .Must(freeUntil => freeUntil!.Value > DateTimeOffset.UtcNow).WithErrorCode(ErrorCodes.OutOfRange)
+            .Must(freeUntil => freeUntil!.Value > timeProvider.GetUtcNow()).WithErrorCode(ErrorCodes.OutOfRange)
             .WithMessage("The end of the gift must be in the future.")
             .When(x => x.FreeUntil.HasValue);
 
