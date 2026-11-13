@@ -116,7 +116,7 @@ export default function AdminCoachesPage() {
             isPending={coachesQuery.isPending}
             isError={coachesQuery.isError}
             onRetry={() => void coachesQuery.refetch()}
-            onOpen={(coachId) => navigate(`/admin/coaches/${coachId}`)}
+            onOpen={(coachId) => navigate(`/admin/coach-accounts/${coachId}`)}
           />
         </div>
         <Pagination

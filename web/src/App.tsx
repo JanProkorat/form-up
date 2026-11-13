@@ -115,8 +115,8 @@ const router = createBrowserRouter(
           </Route>
           <Route element={<RoleGuard allowedRoles={['Admin']} />}>
             <Route path="/admin/plans" element={<AdminPlansPage />} />
-            <Route path="/admin/coaches" element={<AdminCoachesPage />} />
-            <Route path="/admin/coaches/:coachId" element={<AdminCoachProfilePage />} />
+            <Route path="/admin/coach-accounts" element={<AdminCoachesPage />} />
+            <Route path="/admin/coach-accounts/:coachId" element={<AdminCoachProfilePage />} />
           </Route>
           <Route element={<RoleGuard allowedRoles={['Trainer', 'Nutritionist']} />}>
             <Route path={KEEP_CLIENTS_PATH} element={<LapseKeepClientsPage />} />
