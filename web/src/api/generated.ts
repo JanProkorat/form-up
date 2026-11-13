@@ -27309,7 +27309,7 @@ export interface GetRecipeResponse {
     /** Estimated preparation/cooking time in minutes. */
     prepTimeMinutes?: number | undefined;
     /** Ordered preparation steps. */
-    steps?: string[] | undefined;
+    steps?: RecipeStepDto[] | undefined;
     /** Optional tip or note. */
     note?: string | undefined;
     /** List of food items with denormalized nutrient snapshots. */
@@ -27348,6 +27348,16 @@ Clients of the API can use this flag to decide whether to show edit/delete affor
     isSystem?: boolean;
     /** The caller's own tags on this recipe, ordered by name. Never another coach's tags. */
     tags?: FoodTagDto[];
+}
+
+/** Wire shape of one recipe preparation step. */
+export interface RecipeStepDto {
+    /** Optional short title of the step (at most 120 characters). */
+    title?: string | undefined;
+    /** Instruction text of the step (at most 2000 characters). */
+    description?: string;
+    /** Optional time the step takes, in whole minutes (1 to 180). */
+    minutes?: number | undefined;
 }
 
 /** A food item within a meal — denormalized snapshot of food data at the time of addition. */
@@ -27479,9 +27489,9 @@ export interface UpdateRecipeRequest {
     mealTypes: RecipeMealType[];
     /** Dietary preferences the recipe satisfies. */
     dietaryPreferences?: DietaryPreference[];
-    /** Ordered preparation steps (list order is step order). Blank steps are dropped; at most 50,
-each at most 2000 characters. */
-    steps?: string[] | undefined;
+    /** Ordered preparation steps (list order is step order). Steps with neither title nor description are dropped; at most 50,
+title at most 120 and description at most 2000 characters, optional minutes 1 to 180. */
+    steps?: RecipeStepDto[] | undefined;
     /** Optional tip or note. */
     note?: string | undefined;
     /** Updated list of food items in the recipe. */
@@ -27630,9 +27640,9 @@ export interface CreateRecipeRequest {
     mealTypes: RecipeMealType[];
     /** Dietary preferences the recipe satisfies. */
     dietaryPreferences?: DietaryPreference[];
-    /** Ordered preparation steps (list order is step order). Blank steps are dropped; at most 50,
-each at most 2000 characters. */
-    steps?: string[] | undefined;
+    /** Ordered preparation steps (list order is step order). Steps with neither title nor description are dropped; at most 50,
+title at most 120 and description at most 2000 characters, optional minutes 1 to 180. */
+    steps?: RecipeStepDto[] | undefined;
     /** Optional tip or note. */
     note?: string | undefined;
     /** List of food items to include in the recipe. At least one is required. */

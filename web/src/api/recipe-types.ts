@@ -21,6 +21,7 @@ export type {
   CreateRecipeRequest,
   UpdateRecipeRequest,
   RecipeFoodDto,
+  RecipeStepDto,
   MealFood,
   NutrientTotals,
   UploadRecipeImageUrlRequest,

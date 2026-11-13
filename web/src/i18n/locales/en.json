@@ -1859,7 +1859,13 @@
       "addStep": "+ Add step",
       "removeStep": "Remove step {{number}}",
       "reorderStep": "Reorder step {{number}}",
-      "hint": "Steps are shown to the client in the app, in this order.",
+      "titlePlaceholder": "Step title (optional)",
+      "titleLabel": "Step {{number}} title",
+      "minutesLabel": "Step {{number}} time in minutes",
+      "minutesUnit": "min",
+      "minutesInvalid": "Enter a whole number of minutes from {{min}} to {{max}}.",
+      "titleTooLong": "The title can be at most {{max}} characters.",
+      "hint": "Steps are shown to the client in the app, in this order. A step with minutes gets a timer in the app's cook mode.",
       "times": "Prep {{prep}} · Cook {{cook}}"
     },
     "deleteDialog": {

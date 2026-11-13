@@ -1940,7 +1940,13 @@
       "addStep": "+ Přidat krok",
       "removeStep": "Odebrat krok {{number}}",
       "reorderStep": "Přesunout krok {{number}}",
-      "hint": "Kroky se klientovi zobrazují v aplikaci v tomto pořadí.",
+      "titlePlaceholder": "Název kroku (volitelné)",
+      "titleLabel": "Název kroku {{number}}",
+      "minutesLabel": "Čas kroku {{number}} v minutách",
+      "minutesUnit": "min",
+      "minutesInvalid": "Zadejte celé číslo minut od {{min}} do {{max}}.",
+      "titleTooLong": "Název může mít nejvýše {{max}} znaků.",
+      "hint": "Kroky se klientovi zobrazují v aplikaci v tomto pořadí. Krok s minutami dostane v kuchařském režimu aplikace časovač.",
       "times": "Příprava {{prep}} · Vaření {{cook}}"
     },
     "deleteDialog": {

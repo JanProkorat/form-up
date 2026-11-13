@@ -98,7 +98,7 @@ async function createRecipe(baseURL: string, name: string): Promise<string> {
         mealTypes: ['Lunch'],
         dietaryPreferences: [],
         foods: [{ foodExternalId: foodId, amountGrams: 200 }],
-        steps: ['Whisk the secret sauce.'],
+        steps: [{ description: 'Whisk the secret sauce.' }],
       },
     });
     if (!response.ok()) {

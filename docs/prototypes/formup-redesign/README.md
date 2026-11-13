@@ -37,6 +37,11 @@ re-export before relying on this copy (see Rebuilding).
 re-exported, from web portal 1794399291-7102. Every other board is still from the
 versions above.
 
+**Partial update, 2026-11-11 (#2071):** only `GlassRecipeDetail`, `GlassCookingSteps`
+(client app 1794404545-f55b) and `PageRecipeDrawerTabs` (web portal 1794404068-898e)
+were re-exported, light and dark. `GlassRecipeDetail` is now 1280 px tall; the merged
+`canvas.json` keeps the old row positions, so it overlaps the row below there only.
+
 | Path | Contents |
 |---|---|
 | `index.html` | Gallery of every board, grouped by app and module |

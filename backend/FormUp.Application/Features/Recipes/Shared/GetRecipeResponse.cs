@@ -33,7 +33,7 @@ public class GetRecipeResponse
     /// <summary>
     /// Ordered preparation steps.
     /// </summary>
-    public List<string>? Steps { get; set; }
+    public List<RecipeStepDto>? Steps { get; set; }
 
     /// <summary>
     /// Optional tip or note.
@@ -127,6 +127,9 @@ public class GetRecipeResponse
     /// </summary>
     public List<FoodTagDto> Tags { get; set; } = [];
 
+    private static List<RecipeStepDto>? ToStepDtos(List<RecipeStep>? steps) =>
+        steps?.Select(step => new RecipeStepDto { Title = step.Title, Description = step.Description, Minutes = step.Minutes }).ToList();
+
     /// <summary>
     /// Maps a <see cref="Recipe"/> document to a <see cref="GetRecipeResponse"/>.
     /// </summary>
@@ -141,7 +144,7 @@ public class GetRecipeResponse
         Name = recipe.Name,
         Description = recipe.Description,
         PrepTimeMinutes = recipe.PrepTimeMinutes,
-        Steps = recipe.Steps,
+        Steps = ToStepDtos(recipe.Steps),
         Note = recipe.Note,
         Foods = recipe.Foods,
         TotalNutrients = recipe.TotalNutrients,
@@ -175,7 +178,7 @@ public class GetRecipeResponse
         Name = recipe.Name,
         Description = recipe.Description,
         PrepTimeMinutes = recipe.PrepTimeMinutes,
-        Steps = recipe.Steps,
+        Steps = ToStepDtos(recipe.Steps),
         Note = recipe.Note,
         Servings = recipe.Servings,
         Difficulty = recipe.Difficulty,

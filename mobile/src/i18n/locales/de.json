@@ -1744,7 +1744,23 @@
       "grams": "{{value}} g"
     },
     "steps": {
-      "title": "Zubereitung"
+      "title": "Zubereitung",
+      "count_one": "{{count}} Schritt",
+      "count_other": "{{count}} Schritte",
+      "about": "etwa {{value}} Min.",
+      "cookMode": "Kochmodus"
+    },
+    "cook": {
+      "forPortions": "Für {{value}} Portionen",
+      "progress": "Schritt {{current}} von {{total}}",
+      "awake": "Bildschirm bleibt an",
+      "back": "Zurück zum Rezept",
+      "start": "{{value}} Min. starten",
+      "running": "Noch {{time}}",
+      "done": "Fertig · {{value}} Min.",
+      "next": "Nächster Schritt",
+      "finish": "Abschließen",
+      "stepDone": "Schritt erledigt"
     }
   },
   "nutritionRecipes": {

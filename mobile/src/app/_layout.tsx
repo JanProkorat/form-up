@@ -65,6 +65,7 @@ function AppStack({ phase, onRetry }: { phase: ReturnType<typeof useAuthPhase>['
         <Stack.Screen name="nutrition/recipes" />
         <Stack.Screen name="nutrition/food/[foodId]" />
         <Stack.Screen name="nutrition/recipe/[recipeId]" />
+        <Stack.Screen name="nutrition/cook/[recipeId]" />
         <Stack.Screen name="nutrition/shopping-list" />
         <Stack.Screen name="questionnaire/[linkPublicId]" />
         <Stack.Screen name="photo-request/[id]" />

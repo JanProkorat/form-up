@@ -53,7 +53,7 @@ public class Recipe
     /// </summary>
     [BsonElement("steps")]
     [BsonIgnoreIfNull]
-    public List<string>? Steps { get; set; }
+    public List<RecipeStep>? Steps { get; set; }
 
     /// <summary>
     /// Optional tip or note about the recipe.

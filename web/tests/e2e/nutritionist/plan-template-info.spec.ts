@@ -96,7 +96,7 @@ async function createRecipe(baseURL: string, name: string, mealType: string): Pr
         mealTypes: [mealType],
         dietaryPreferences: [],
         foods: [{ foodExternalId: foodId, amountGrams: 200 }],
-        steps: ['Mix.'],
+        steps: [{ description: 'Mix.' }],
       },
     });
     if (!response.ok()) {

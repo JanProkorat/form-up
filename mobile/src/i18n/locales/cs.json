@@ -1809,7 +1809,25 @@
       "grams": "{{value}} g"
     },
     "steps": {
-      "title": "Postup"
+      "title": "Postup",
+      "count_one": "{{count}} krok",
+      "count_few": "{{count}} kroky",
+      "count_many": "{{count}} kroku",
+      "count_other": "{{count}} kroků",
+      "about": "asi {{value}} min",
+      "cookMode": "Režim vaření"
+    },
+    "cook": {
+      "forPortions": "Na {{value}} porcí",
+      "progress": "Krok {{current}} z {{total}}",
+      "awake": "Displej zůstane svítit",
+      "back": "Zpět na recept",
+      "start": "Spustit {{value}} min",
+      "running": "Zbývá {{time}}",
+      "done": "Hotovo · {{value}} min",
+      "next": "Další krok",
+      "finish": "Dokončit",
+      "stepDone": "Krok je hotový"
     }
   },
   "nutritionRecipes": {

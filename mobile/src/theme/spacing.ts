@@ -23,6 +23,7 @@ export const opacity = {
   busyOverlay: 0.7,
   disabled: 0.4,
   missed: 0.75,
+  cookDone: 0.55,
   chartBand: 0.12,
 } as const;
 
