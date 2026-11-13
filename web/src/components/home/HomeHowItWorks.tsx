@@ -15,7 +15,8 @@ const SCROLL_LOCK_MS = 1100;
 const STAGE_ZOOM =
   'max-lg:[--mz:0.4] max-lg:@min-[340px]:[--mz:0.46] max-lg:@min-[360px]:[--mz:0.48] max-lg:@min-[420px]:[--mz:0.58] max-lg:@min-[500px]:[--mz:0.7] max-lg:@min-[580px]:[--mz:0.8] max-lg:@min-[660px]:[--mz:0.93] max-lg:@min-[720px]:[--mz:1] lg:[--mz:0.65] lg:@min-[960px]:[--mz:0.74] lg:@min-[1040px]:[--mz:0.85] lg:@min-[1120px]:[--mz:0.97] lg:@min-[1160px]:[--mz:1] lg:@min-[1340px]:[--mz:1.03] lg:@min-[1472px]:[--mz:1.1] lg:@min-[1592px]:[--mz:1.2] lg:@min-[1760px]:[--mz:1.3] lg:@min-[1940px]:[--mz:1.45]';
 
-const delay = (seconds: number) => ({ animationDelay: `${seconds}s` });
+// Delays are the board's, played 1.5x faster like the durations in home-animations.css.
+const delay = (seconds: number) => ({ animationDelay: `${(seconds / 1.5).toFixed(2)}s` });
 
 type FoodKey =
   | 'oatBowl'

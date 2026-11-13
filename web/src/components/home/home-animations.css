@@ -1,5 +1,6 @@
 /*
- * Landing-page story animations, ported from the PageHome boards.
+ * Landing-page story animations, ported from the PageHome boards and played 1.5x faster
+ * (keyframe stops unchanged, durations divided by 1.5).
  *
  * Reduced motion: every rule that starts an animation lives inside the
  * `prefers-reduced-motion: no-preference` block, so with reduced motion nothing runs and each
@@ -246,52 +247,52 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .hm-chip { animation: h-drag 10s ease-in-out infinite; }
-  .hm-hole { animation: h-hole 10s linear infinite; }
-  .hm-cursor { animation: h-cursor 10s ease-in-out infinite; }
-  .hm-press { animation: h-press 10s ease-out infinite; }
-  .hm-badge { animation: h-badge 10s ease-out infinite; }
-  .hm-notif { animation: h-notif 10s cubic-bezier(.2, .8, .2, 1) infinite; }
-  .hm-t1 { animation: h-t1 10s ease-out infinite; }
-  .hm-t2 { animation: h-t2 10s ease-out infinite; }
-  .hm-t3 { animation: h-t3 10s ease-out infinite; }
-  .hm-new { animation: h-new 10s ease-out infinite; }
-  .hm-checkin { animation: h-checkin 10s cubic-bezier(.2, .8, .2, 1) infinite; }
-  .hm-s1 { animation: h-s1 10s linear infinite; }
-  .hm-s2 { animation: h-s2 10s linear infinite; }
-  .hm-s3 { animation: h-s3 10s linear infinite; }
-  .hm-s4 { animation: h-s4 10s linear infinite; }
+  .hm-chip { animation: h-drag 6.67s ease-in-out infinite; }
+  .hm-hole { animation: h-hole 6.67s linear infinite; }
+  .hm-cursor { animation: h-cursor 6.67s ease-in-out infinite; }
+  .hm-press { animation: h-press 6.67s ease-out infinite; }
+  .hm-badge { animation: h-badge 6.67s ease-out infinite; }
+  .hm-notif { animation: h-notif 6.67s cubic-bezier(.2, .8, .2, 1) infinite; }
+  .hm-t1 { animation: h-t1 6.67s ease-out infinite; }
+  .hm-t2 { animation: h-t2 6.67s ease-out infinite; }
+  .hm-t3 { animation: h-t3 6.67s ease-out infinite; }
+  .hm-new { animation: h-new 6.67s ease-out infinite; }
+  .hm-checkin { animation: h-checkin 6.67s cubic-bezier(.2, .8, .2, 1) infinite; }
+  .hm-s1 { animation: h-s1 6.67s linear infinite; }
+  .hm-s2 { animation: h-s2 6.67s linear infinite; }
+  .hm-s3 { animation: h-s3 6.67s linear infinite; }
+  .hm-s4 { animation: h-s4 6.67s linear infinite; }
 
-  .hm-fill { animation: m-fill 3.6s linear forwards; }
-  .hm-in { animation: m-in .5s cubic-bezier(.2, .8, .2, 1) both; }
-  .hm-pop { animation: m-pop .45s cubic-bezier(.2, .8, .2, 1.3) both; }
-  .hm-slide { animation: m-slide .55s cubic-bezier(.2, .8, .2, 1) both; }
-  .hm-m-press { animation: m-press .3s ease-out both; }
-  .hm-bar { animation: m-bar 1.4s cubic-bezier(.2, .8, .2, 1) both; }
-  .hm-draw { animation: m-draw 1.6s ease-out both; }
+  .hm-fill { animation: m-fill 2.4s linear forwards; }
+  .hm-in { animation: m-in .33s cubic-bezier(.2, .8, .2, 1) both; }
+  .hm-pop { animation: m-pop .3s cubic-bezier(.2, .8, .2, 1.3) both; }
+  .hm-slide { animation: m-slide .37s cubic-bezier(.2, .8, .2, 1) both; }
+  .hm-m-press { animation: m-press .2s ease-out both; }
+  .hm-bar { animation: m-bar .93s cubic-bezier(.2, .8, .2, 1) both; }
+  .hm-draw { animation: m-draw 1.07s ease-out both; }
 
-  .hm-live { animation: c-pulse 1.6s ease-out infinite; }
-  .hm-c1 { animation: c-1 8s ease-out infinite; }
-  .hm-c2 { animation: c-2 8s ease-out infinite; }
-  .hm-c3 { animation: c-3 8s ease-out infinite; }
-  .hm-c4 { animation: c-4 8s ease-out infinite; }
-  .hm-f1 { animation: f-1 8s ease-out infinite; }
-  .hm-f2 { animation: f-2 8s ease-out infinite; }
-  .hm-f3 { animation: f-3 8s ease-out infinite; }
-  .hm-f4 { animation: f-4 8s ease-out infinite; }
+  .hm-live { animation: c-pulse 1.07s ease-out infinite; }
+  .hm-c1 { animation: c-1 5.33s ease-out infinite; }
+  .hm-c2 { animation: c-2 5.33s ease-out infinite; }
+  .hm-c3 { animation: c-3 5.33s ease-out infinite; }
+  .hm-c4 { animation: c-4 5.33s ease-out infinite; }
+  .hm-f1 { animation: f-1 5.33s ease-out infinite; }
+  .hm-f2 { animation: f-2 5.33s ease-out infinite; }
+  .hm-f3 { animation: f-3 5.33s ease-out infinite; }
+  .hm-f4 { animation: f-4 5.33s ease-out infinite; }
 
-  .hm-drop { animation: n-drop 8s cubic-bezier(.2, .8, .2, 1) infinite; }
-  .hm-nhole { animation: n-hole 8s linear infinite; }
-  .hm-nbar { animation: n-bar 8s cubic-bezier(.2, .8, .2, 1) infinite; }
-  .hm-plus { animation: n-plus 8s ease-out infinite; }
-  .hm-old { animation: n-old 8s linear infinite; }
-  .hm-new-total { animation: n-new 8s linear infinite; }
-  .hm-s-1 { animation: s-1 8s ease-out infinite; }
-  .hm-s-2 { animation: s-2 8s ease-out infinite; }
-  .hm-s-3 { animation: s-3 8s ease-out infinite; }
+  .hm-drop { animation: n-drop 5.33s cubic-bezier(.2, .8, .2, 1) infinite; }
+  .hm-nhole { animation: n-hole 5.33s linear infinite; }
+  .hm-nbar { animation: n-bar 5.33s cubic-bezier(.2, .8, .2, 1) infinite; }
+  .hm-plus { animation: n-plus 5.33s ease-out infinite; }
+  .hm-old { animation: n-old 5.33s linear infinite; }
+  .hm-new-total { animation: n-new 5.33s linear infinite; }
+  .hm-s-1 { animation: s-1 5.33s ease-out infinite; }
+  .hm-s-2 { animation: s-2 5.33s ease-out infinite; }
+  .hm-s-3 { animation: s-3 5.33s ease-out infinite; }
 
-  .hm-float-1 { animation: fl 6s ease-in-out infinite alternate; }
-  .hm-float-2 { animation: fl 6s ease-in-out -3s infinite alternate; }
+  .hm-float-1 { animation: fl 4s ease-in-out infinite alternate; }
+  .hm-float-2 { animation: fl 4s ease-in-out -2s infinite alternate; }
 
   /* Pause every loop (and entrance) inside a Loop that is off screen. */
   .hm-loop[data-in-view='false'] * {
