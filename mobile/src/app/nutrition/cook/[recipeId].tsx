@@ -11,7 +11,6 @@ import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { getErrorStatus } from '@/api/errors';
 import type { GetRecipeResponse } from '@/api/generated';
 import { isNutritionId } from '@/api/nutrition';
-import { BackButton } from '@/components/BackButton';
 import { Button } from '@/components/Button';
 import { DetailState } from '@/components/nutrition/meal/DetailState';
 import { formatAmount } from '@/components/nutrition/meal/format';
@@ -19,6 +18,7 @@ import { CookStepCard } from '@/components/nutrition/recipe/cook/CookStepCard';
 import type { CookStepState } from '@/components/nutrition/recipe/cook/CookStepCard';
 import { normalizeSteps } from '@/components/nutrition/recipe/steps';
 import type { RecipeStep } from '@/components/nutrition/recipe/steps';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { Text } from '@/components/Text';
 import { useRecipeDetail } from '@/hooks/useRecipeDetail';
 import { useStepTimers } from '@/hooks/useStepTimers';
@@ -112,23 +112,30 @@ function CookModeContent({ recipe, steps, portions, onExit }: CookModeContentPro
 
   return (
     <View style={styles.root}>
-      <ScrollView
-        ref={scrollRef}
-        contentInsetAdjustmentBehavior="never"
-        contentContainerStyle={[
-          styles.content,
-          { paddingTop: insets.top + theme.sizes.backButton + theme.spacing.xl, paddingBottom: clearance },
+      <View
+        style={[
+          styles.header,
+          {
+            paddingTop: insets.top + theme.spacing.safeAreaGap,
+            paddingLeft: insets.left + theme.spacing.xl,
+            paddingRight: insets.right + theme.spacing.xl,
+          },
         ]}
       >
-        <View style={styles.titleBlock}>
-          <Text variant="label" color="muted">
-            {recipe.name ?? ''}
-          </Text>
-          <Text variant="title" accessibilityRole="header">
-            {t('nutritionRecipe.steps.title')}
-          </Text>
-        </View>
+        <ScreenHeader
+          title={recipe.name ?? ''}
+          subtitle={t('nutritionRecipe.steps.title')}
+          backLabel={t('nutritionRecipe.cook.back')}
+          onBack={onExit}
+        />
+      </View>
 
+      <ScrollView
+        ref={scrollRef}
+        style={styles.scroll}
+        contentInsetAdjustmentBehavior="never"
+        contentContainerStyle={[styles.content, { paddingBottom: clearance }]}
+      >
         <View style={styles.meta}>
           <View style={styles.chip}>
             <Text variant="captionStrong" color="nutritionInk">
@@ -163,10 +170,6 @@ function CookModeContent({ recipe, steps, portions, onExit }: CookModeContentPro
           })}
         </View>
       </ScrollView>
-
-      <View style={[styles.topBar, { top: insets.top + theme.spacing.xs }]}>
-        <BackButton label={t('nutritionRecipe.cook.back')} onPress={onExit} />
-      </View>
 
       <View pointerEvents="none" style={[styles.fade, { height: clearance }]}>
         <Svg width="100%" height="100%">
@@ -207,12 +210,14 @@ const makeStyles = (theme: Theme) =>
       flex: 1,
       backgroundColor: theme.colors.ground,
     },
+    header: {
+      paddingBottom: theme.spacing.xl,
+    },
+    scroll: {
+      flex: 1,
+    },
     content: {
       gap: theme.spacing.md,
-    },
-    titleBlock: {
-      gap: theme.spacing.xxs,
-      paddingHorizontal: theme.spacing.xxl,
     },
     meta: {
       flexDirection: 'row',
@@ -235,13 +240,6 @@ const makeStyles = (theme: Theme) =>
     steps: {
       gap: theme.spacing.xs,
       paddingHorizontal: theme.spacing.xl,
-    },
-    topBar: {
-      position: 'absolute',
-      left: theme.spacing.xl,
-      right: theme.spacing.xl,
-      flexDirection: 'row',
-      alignItems: 'center',
     },
     fade: {
       position: 'absolute',
