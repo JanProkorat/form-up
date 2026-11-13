@@ -4527,9 +4527,12 @@ export class ApiClient {
     returned when explicitly requested.
      * @param filter (optional) Optional filter chip narrowing the current tab further. Its own count is reported in
     FilterCounts without this filter applied.
-     * @return Success
+     * @param tab (optional) Optional clients-page tab. Cannot be combined with Status. Omitted means
+    the legacy Status selection.
+     * @param plan (optional) Optional plan filter, applied after the tab. Archived rows never match.
+     * @return Client page with tab, plan and chip counts
      */
-    getClientsEndpoint(page: number, pageSize: number, tagIds: string[], search?: string | null | undefined, status?: ClientListStatus | null | undefined, filter?: ClientListFilter | null | undefined, signal?: AbortSignal): Promise<GetClientsResponse> {
+    getClientsEndpoint(page: number, pageSize: number, tagIds: string[], search?: string | null | undefined, status?: ClientListStatus | null | undefined, filter?: ClientListFilter | null | undefined, tab?: ClientListTab | null | undefined, plan?: ClientPlanFilter | null | undefined, signal?: AbortSignal): Promise<GetClientsResponse> {
         let url_ = this.baseUrl + "/trainer/clients?";
         if (page === undefined || page === null)
             throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
@@ -4549,6 +4552,10 @@ export class ApiClient {
             url_ += "status=" + encodeURIComponent("" + status) + "&";
         if (filter !== undefined && filter !== null)
             url_ += "filter=" + encodeURIComponent("" + filter) + "&";
+        if (tab !== undefined && tab !== null)
+            url_ += "tab=" + encodeURIComponent("" + tab) + "&";
+        if (plan !== undefined && plan !== null)
+            url_ += "plan=" + encodeURIComponent("" + plan) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -4593,11 +4600,11 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid paging, enum value, or tab combined with status", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
@@ -14963,7 +14970,10 @@ export class ApiClient {
 
         } else if (status === 409) {
             const _responseText = response.data;
-            return throwException("The paid plan has not lapsed and the Free plan is within its cap (SUBSCRIPTION_NOT_LAPSED)", status, _responseText, _headers);
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = JSON.parse(resultData409);
+            return throwException("The paid plan has not lapsed and the Free plan is within its cap (SUBSCRIPTION_NOT_LAPSED), or the choice is locked and the request drops a kept client or adds an unrestricted one (KEEP_CLIENTS_CHOICE_LOCKED)", status, _responseText, _headers, result409);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -23432,9 +23442,9 @@ export class ApiClient {
     }
 
     /**
-     * Give a coach a plan for free
+     * Change a coach's plan
      * @param coachId Route parameter — the coach's user id; matches {CoachId} in the route exactly.
-     * @return The gift as it now stands
+     * @return The plan as it now stands
      */
     giveCoachPlanFreeEndpoint(coachId: string, giveCoachPlanFreeRequest: GiveCoachPlanFreeRequest, signal?: AbortSignal): Promise<GiveCoachPlanFreeResponse> {
         let url_ = this.baseUrl + "/admin/coaches/{coachId}/give-free";
@@ -23576,6 +23586,92 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<GetAdminCoachResponse>(null as any);
+    }
+
+    /**
+     * End a coach's plan now
+     * @param coachId Route parameter — the coach's user id; matches {CoachId} in the route exactly.
+     * @return The plan that was ended
+     */
+    endCoachPlanEndpoint(coachId: string, endCoachPlanRequest: EndCoachPlanRequest, signal?: AbortSignal): Promise<EndCoachPlanResponse> {
+        let url_ = this.baseUrl + "/admin/coaches/{coachId}/end-plan";
+        if (coachId === undefined || coachId === null)
+            throw new globalThis.Error("The parameter 'coachId' must be defined.");
+        url_ = url_.replace("{coachId}", encodeURIComponent("" + coachId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(endCoachPlanRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processEndCoachPlanEndpoint(_response);
+        });
+    }
+
+    protected processEndCoachPlanEndpoint(response: AxiosResponse): Promise<EndCoachPlanResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<EndCoachPlanResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request body", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Caller is not an Admin", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("The coach is unknown (PROFESSIONAL_NOT_FOUND)", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = JSON.parse(resultData409);
+            return throwException("No plan to end: no subscription, the Free plan, an ended paid plan, or a gift that has expired (NO_PLAN_TO_END)", status, _responseText, _headers, result409);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<EndCoachPlanResponse>(null as any);
     }
 
     /**
@@ -24269,6 +24365,8 @@ export interface GetMySubscriptionResponse {
     cancelAtPeriodEnd?: boolean;
     /** While now is before this instant the assigned plan's features apply whatever the status is. */
     freeUntil?: string | undefined;
+    /** True when an admin set the plan (given free) and it still applies. */
+    isSetByFormUp?: boolean;
     /** True when the paid plan has lapsed (Canceled or Incomplete with no free-features deadline in force). The plan
 fields then describe the Free plan and ActiveClientCount is the number of kept clients. */
     isLapsed?: boolean;
@@ -24289,8 +24387,14 @@ the ended plan. Never true together with IsLapsed. */
     endedPlanNameEn?: string | undefined;
     /** German name of the ended given plan; null unless PlanChoiceRequired. */
     endedPlanNameDe?: string | undefined;
-    /** Live clients above the Free plan's cap; zero unless IsLapsed or the coach is on an explicit Free plan with clients over the cap. */
+    /** True while the coach has live clients over the cap of the plan in force and at least one of them has no kept or
+released decision yet. Never true together with PlanChoiceRequired. */
+    keepClientsChoiceRequired?: boolean;
+    /** Live clients above the cap of the plan in force; zero unless IsLapsed or the coach has more live clients than the plan's limit. */
     overCapClientCount?: number;
+    /** Kept slots still empty while clients are over the cap (cap minus kept clients); zero when nobody is over
+the cap, the plan is unlimited or a plan choice is required. */
+    freeSlotCount?: number;
     /** Distinct active clients across all the coach's roles; the kept clients while lapsed. */
     activeClientCount?: number;
     /** Active-client limit that applies now; null means unlimited. */
@@ -25926,6 +26030,9 @@ existing linked clients, and pending rows are not clients yet. */
 tagIds applied but the chip filter itself NOT applied — this is what lets the web
 client grey out a chip whose count is zero without losing the ability to select it. */
     filterCounts?: ClientFilterCounts;
+    /** Counts per plan filter over the selected tab (or legacy status selection), with search and
+tags applied but neither the plan filter nor the filter chip. */
+    planCounts?: ClientPlanCounts;
 }
 
 /** Summary of a client in the trainer's client list. */
@@ -25966,6 +26073,12 @@ link does not grant CanViewTrainingPlans. */
     /** The client's currently in-window Active plans, one per visible domain, for the row's
 hover popover. Omits any domain the link does not grant. */
     activePlans?: ClientActivePlanDto[];
+    /** True when this live client is outside the plan in force (over its client cap): the coach can
+still see them but not work on them. Never true for an Archived row. */
+    isOutsidePlan?: boolean;
+    /** For a live outside-plan client whose published plan weeks still run: the last day those weeks
+cover, after which the plans turn read-only. Null for every other row. */
+    readOnlyFrom?: string | undefined;
 }
 
 /** Derived status of a client on the trainer's clients list. Never stored — computed per request from the link's ConnectionState plus whether an in-window Active plan exists in a domain the link grants (see GetClientsEndpoint). */
@@ -26003,12 +26116,19 @@ export enum Profession {
 
 /** Per-tab client counts. See TabCounts for scoping rules. */
 export interface ClientTabCounts {
-    /** Number of clients in the Active tab. */
+    /** Number of links in the All tab, archived included. */
+    all?: number;
+    /** Number of live clients inside the plan in force (the Active tab). */
+    inPlan?: number;
+    /** Number of clients with Active status (current plan). */
     active?: number;
     /** Number of clients in the Paused tab. */
     paused?: number;
     /** Number of clients in the Archived tab. */
     archived?: number;
+    /** Number of live clients outside the plan in force (over its client cap), across Active and
+Paused, with search and tags applied. Archived rows are never counted. */
+    outsidePlan?: number;
     /** Number of pending rows (unaccepted invites plus incoming pending requests) for the
 caller. Unfiltered by search or tags — see TabCounts. */
     pending?: number;
@@ -26030,6 +26150,18 @@ export interface ClientFilterCounts {
     endingSoon?: number;
 }
 
+/** Per-plan-filter client counts. See PlanCounts. */
+export interface ClientPlanCounts {
+    /** Total rows in the selected tab. */
+    all?: number;
+    /** Rows with a current plan. */
+    active?: number;
+    /** Rows with no current plan. */
+    none?: number;
+    /** Rows whose current plan ends within 14 days. */
+    endingSoon?: number;
+}
+
 /** Request model for retrieving a trainer's client list with pagination. */
 export interface GetClientsRequest {
 }
@@ -26041,6 +26173,21 @@ export enum ClientListFilter {
     NoMessages = "NoMessages",
     NewCheckIns = "NewCheckIns",
     MissingCheckIns = "MissingCheckIns",
+    EndingSoon = "EndingSoon",
+}
+
+/** The clients-page tabs served by GET /trainer/clients. Pending invitations are not a tab here — they come from a different endpoint. */
+export enum ClientListTab {
+    All = "All",
+    Active = "Active",
+    OutsidePlan = "OutsidePlan",
+    Archived = "Archived",
+}
+
+/** Filters the clients list by the state of the client's training or nutrition plan. Archived rows never match. */
+export enum ClientPlanFilter {
+    Active = "Active",
+    None = "None",
     EndingSoon = "EndingSoon",
 }
 
@@ -26211,6 +26358,9 @@ endpoints — it differs from ClientPublicId. */
     linkedAt?: string;
     /** Whether the trainer-client relationship is currently active. */
     isActive?: boolean;
+    /** True when the client is outside the plan in force (over its client cap): visible to the
+coach but not workable. Same source as the CLIENT_OVER_PLAN_LIMIT gate. */
+    isOutsidePlan?: boolean;
     /** Derived Active/Paused/Archived status — computed by
 Classify, the same derivation
 GetClientsEndpoint uses, so this value always agrees with the caller's clients-list
@@ -30139,6 +30289,11 @@ export interface SetCoachSubscriptionRequest {
 export interface GetKeepClientsResponse {
     /** How many clients the Free plan keeps; null means unlimited. */
     cap?: number | undefined;
+    /** True once a choice was saved (some live link is kept or released): the kept clients can no longer be swapped,
+only free slots can be filled with restricted clients. A new plan change unlocks it again. */
+    isChoiceLocked?: boolean;
+    /** Kept slots still empty while clients are over the cap; zero otherwise. */
+    freeSlotCount?: number;
     /** The caller's live clients, one entry per client even when linked in both roles. */
     clients?: KeepClientDto[];
 }
@@ -33632,6 +33787,10 @@ export interface GetAdminCoachResponse {
     clientsUsed?: number;
     /** The plan's client limit; null means unlimited. */
     clientsMax?: number | undefined;
+    /** True when an admin can end the plan now: the coach pays, or has a gift in force. */
+    canEndPlanNow?: boolean;
+    /** The Free plan's client limit, to show what ending the plan leaves; null means unlimited. */
+    freePlanMaxActiveClients?: number | undefined;
     /** Newest first. Holds the admin and coach actions on the subscription and account, not payments. */
     history?: AdminCoachHistoryEntryDto[];
 }
@@ -33666,10 +33825,27 @@ export enum AdminCoachHistoryKind {
     AccountKept = "AccountKept",
     RoleAdded = "RoleAdded",
     RoleRemoved = "RoleRemoved",
+    PlanEnded = "PlanEnded",
 }
 
 /** Request for one coach's admin detail. */
 export interface GetAdminCoachRequest {
+}
+
+/** What was ended. */
+export interface EndCoachPlanResponse {
+    /** The coach's user id. */
+    coachId?: string;
+    /** Code of the plan that was ended. */
+    planCode?: string;
+    /** True when the ended plan was a gift rather than a paid plan. */
+    wasGivenFree?: boolean;
+}
+
+/** Request for ending a coach's paid or given plan now. */
+export interface EndCoachPlanRequest {
+    /** Why the plan is ended, at most 300 characters. Stored in the coach's history. */
+    reason: string;
 }
 
 /** Outcome of disabling a coach account as an admin. */

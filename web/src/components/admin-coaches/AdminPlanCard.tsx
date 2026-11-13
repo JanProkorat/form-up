@@ -37,7 +37,7 @@ export default function AdminPlanCard({ plan, color, selected, current = false, 
       data-plan-card
       className={cn(
         'relative flex w-62.5 shrink-0 cursor-pointer snap-start flex-col gap-3 overflow-hidden rounded-xl border border-line bg-card p-4 shadow-panel focus-within:ring-3 focus-within:ring-ring/50',
-        highlighted && ['border-2 p-[15px]', color.selected],
+        highlighted && ['border-2 p-3.75', color.selected],
       )}
     >
       <span className={cn('-mx-4 -mt-4 flex flex-col gap-2 px-4 py-4', color.band)}>
