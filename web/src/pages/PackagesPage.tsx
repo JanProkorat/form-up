@@ -14,6 +14,8 @@ import {
   showApiError,
   showSuccess,
 } from '@/lib/api-errors';
+import { isSubscriptionRequired } from '@/lib/subscriptionErrors';
+import { useSubscription } from '@/hooks/useSubscriptionQueries';
 import { billingSuffix } from '@/components/client-detail/payment/paymentModel';
 import { formatMoney } from '@/lib/money';
 import FeaturePaywall from '@/components/paywall/FeaturePaywall';
@@ -58,8 +60,11 @@ export default function PackagesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const tab: TabValue = searchParams.get('tab') === 'discounts' ? 'discounts' : 'packages';
 
-  const packagesQuery = useCoachPackages();
-  const discountsQuery = useCoachDiscounts();
+  const { isEntitled } = useSubscription();
+  // isEntitled stays true while the plan loads; a refusal from the server locks the page too.
+  const planAllows = isEntitled('canUsePackages');
+  const packagesQuery = useCoachPackages(planAllows);
+  const discountsQuery = useCoachDiscounts(planAllows);
   const fromPriceQuery = useProfileFromPrice();
   const createPackage = useCreatePackage();
   const updatePackage = useUpdatePackage();
@@ -77,7 +82,8 @@ export default function PackagesPage() {
   const discounts = discountsQuery.data ?? [];
 
   const activeQuery = tab === 'packages' ? packagesQuery : discountsQuery;
-  const paywalled = activeQuery.isError && isNotEntitled(activeQuery.error);
+  const paywalled =
+    !planAllows || (activeQuery.isError && (isNotEntitled(activeQuery.error) || isSubscriptionRequired(activeQuery.error)));
 
   const handleSavePackage = async (values: PackageFormValues): Promise<SaveOutcome> => {
     const request = formValuesToRequest(values);

@@ -273,6 +273,54 @@
         "body": "Zjistěte, jak se každému klientovi vedlo, než začne další týden.",
         "benefit1": "Týdenní check-in odesílaný podle vašeho rozvrhu",
         "benefit2": "Odpovědi v kartě každého klienta"
+      },
+      "chat": {
+        "title": "Psaní klientům je součástí vyššího tarifu",
+        "body": "Pište klientům a odpovídejte jim ve Zprávách.",
+        "benefit1": "Posílejte zprávy a zahajujte konverzace s klienty",
+        "benefit2": "Hromadná zpráva více klientům"
+      },
+      "recipes": {
+        "title": "Vlastní recepty jsou součástí vyššího tarifu",
+        "body": "Vytvořte si knihovnu receptů a používejte ji v jídelníčcích klientů.",
+        "benefit1": "Vytvářejte a upravujte vlastní recepty",
+        "benefit2": "Přidávejte je do libovolného plánu výživy"
+      },
+      "ingredients": {
+        "title": "Vlastní suroviny jsou součástí vyššího tarifu",
+        "body": "Přidejte potraviny, které v databázi chybí, včetně jejich nutričních hodnot.",
+        "benefit1": "Vytvářejte vlastní suroviny a potraviny",
+        "benefit2": "Používejte je v receptech a plánech výživy"
+      },
+      "planTemplates": {
+        "title": "Šablony plánů jsou součástí vyššího tarifu",
+        "body": "Uložte plán výživy jednou a přiřaďte ho mnoha klientům.",
+        "benefit1": "Znovupoužitelné šablony plánů",
+        "benefit2": "Přiřazení šablony klientovi na pár kliknutí"
+      },
+      "automations": {
+        "title": "Automatizace jsou součástí vyššího tarifu",
+        "body": "Nechte Form Up posílat formuláře a žádat o fotky nebo míry podle vašeho rozvrhu.",
+        "benefit1": "Pravidla, která posílají formuláře podle rozvrhu",
+        "benefit2": "Žádosti o fotky a míry bez ručního připomínání"
+      },
+      "progressPhotos": {
+        "title": "Fotky pokroku jsou součástí vyššího tarifu",
+        "body": "Sledujte pokrok klientů a žádejte o nové fotky.",
+        "benefit1": "Záložka Fotky u každého klienta",
+        "benefit2": "Žádosti o fotky klientům"
+      },
+      "measurements": {
+        "title": "Váha a míry jsou součástí vyššího tarifu",
+        "body": "Sledujte, jak se mění váha a tělesné míry každého klienta.",
+        "benefit1": "Váha a statistiky v přehledu klienta",
+        "benefit2": "Historie měření v kartě klienta"
+      },
+      "payments": {
+        "title": "Platby klientů jsou součástí vyššího tarifu",
+        "body": "Mějte přehled, co vám který klient platí.",
+        "benefit1": "Záložka Platby u každého klienta",
+        "benefit2": "Platební žádosti s QR kódem"
       }
     },
     "clientLimit": {
@@ -6341,11 +6389,11 @@
     },
     "paywall": {
       "badge": "Není ve vašem tarifu",
-      "title": "Platby nejsou součástí vašeho tarifu",
-      "description": "Nastavte si balíčky a slevy a sledujte, co vám který klient platí.",
+      "title": "Balíčky nejsou součástí vašeho tarifu",
+      "description": "Nastavte si balíčky a slevy a nabízejte je s pozvánkou.",
       "bullet1": "Balíčky s cenou a cyklem fakturace",
       "bullet2": "Slevy pro jednotlivé klienty nebo kampaně",
-      "bullet3": "Žádosti o platbu a přehled u každého klienta"
+      "bullet3": "Balíček přiložený ke každé pozvánce"
     },
     "validation": {
       "nameRequired": "Zadejte název.",

@@ -5,6 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuthStore } from '@/stores/auth';
 import { getErrorStatus } from '@/lib/api-errors';
+import { isSubscriptionRequired } from '@/lib/subscriptionErrors';
+import { useSubscription } from '@/hooks/useSubscriptionQueries';
+import PaywallPanel from '@/components/subscription/PaywallPanel';
 import { usePlanTemplateListParams } from '@/hooks/usePlanTemplateListParams';
 import { usePlanTemplates } from '@/hooks/usePlanTemplatesQueries';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
@@ -48,8 +51,14 @@ export default function PlanTemplatesPage() {
     }
   });
 
-  const templatesQuery = usePlanTemplates(filters, isNutritionist);
-  const isForbidden = !isNutritionist || (templatesQuery.isError && getErrorStatus(templatesQuery.error) === 403);
+  const { isEntitled } = useSubscription();
+  const planAllows = isEntitled('canUsePlanTemplates');
+  const templatesQuery = usePlanTemplates(filters, isNutritionist && planAllows);
+  // isEntitled is true while the plan loads, so a refusal from the server locks the page as well.
+  const isLocked =
+    isNutritionist && (!planAllows || (templatesQuery.isError && isSubscriptionRequired(templatesQuery.error)));
+  const isForbidden =
+    !isNutritionist || (!isLocked && templatesQuery.isError && getErrorStatus(templatesQuery.error) === 403);
 
   const templates = templatesQuery.data?.templates ?? [];
   const totalCount = templatesQuery.data?.totalCount ?? 0;
@@ -61,6 +70,15 @@ export default function PlanTemplatesPage() {
     filters.inUse !== null;
   const showEmptyState =
     !templatesQuery.isPending && !templatesQuery.isError && totalCount === 0 && !hasActiveFilter;
+
+  if (isLocked) {
+    return (
+      <div className="flex h-full flex-col gap-4">
+        <PageHeader eyebrow={t('library.eyebrow')} title={t('planTemplates.title')} />
+        <PaywallPanel feature="planTemplates" />
+      </div>
+    );
+  }
 
   if (isForbidden) {
     return (

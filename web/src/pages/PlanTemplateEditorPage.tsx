@@ -11,6 +11,9 @@ import CopyMealsDialog from '@/components/plan-templates/CopyMealsDialog';
 import { usePlanTemplateEditor } from '@/hooks/usePlanTemplateEditor';
 import { usePlanTemplate } from '@/hooks/usePlanTemplatesQueries';
 import { getErrorStatus } from '@/lib/api-errors';
+import { isSubscriptionRequired } from '@/lib/subscriptionErrors';
+import { useSubscription } from '@/hooks/useSubscriptionQueries';
+import PaywallPanel from '@/components/subscription/PaywallPanel';
 import { useAuthStore } from '@/stores/auth';
 
 interface LoadedProps {
@@ -64,10 +67,23 @@ export default function PlanTemplateEditorPage() {
   const { templateId } = useParams();
   const roles = useAuthStore((state) => state.user?.roles ?? []);
   const isNutritionist = roles.includes('Nutritionist');
-  const templateQuery = usePlanTemplate(templateId, isNutritionist);
+  const { isEntitled } = useSubscription();
+  const planAllows = isEntitled('canUsePlanTemplates');
+  const templateQuery = usePlanTemplate(templateId, isNutritionist && planAllows);
   const [reloadCount, setReloadCount] = useState(0);
 
   const status = templateQuery.isError ? getErrorStatus(templateQuery.error) : null;
+  const isLocked =
+    isNutritionist && (!planAllows || (templateQuery.isError && isSubscriptionRequired(templateQuery.error)));
+
+  if (isLocked) {
+    return (
+      <div className="flex h-full flex-col gap-4 p-6">
+        <PageHeader eyebrow={t('planTemplates.title')} title={t('planTemplates.editor.title')} />
+        <PaywallPanel feature="planTemplates" />
+      </div>
+    );
+  }
 
   if (!isNutritionist || status === 403) {
     return (

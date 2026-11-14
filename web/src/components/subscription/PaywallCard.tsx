@@ -5,7 +5,17 @@ import { Button } from '@/components/ui/button';
 import { useSubscription } from '@/hooks/useSubscriptionQueries';
 import { cn } from '@/lib/utils';
 
-export type PaywallFeature = 'forms' | 'checkIns';
+export type PaywallFeature =
+  | 'forms'
+  | 'checkIns'
+  | 'chat'
+  | 'recipes'
+  | 'ingredients'
+  | 'planTemplates'
+  | 'automations'
+  | 'progressPhotos'
+  | 'measurements'
+  | 'payments';
 
 const BENEFIT_KEYS = ['benefit1', 'benefit2'] as const;
 

@@ -273,6 +273,54 @@
         "body": "Hear how each client's week went before the next one starts.",
         "benefit1": "A weekly check-in sent on your schedule",
         "benefit2": "Answers in each client's card"
+      },
+      "chat": {
+        "title": "Messaging clients comes with a higher plan",
+        "body": "Write to your clients and answer them in the Inbox.",
+        "benefit1": "Send messages and start conversations with clients",
+        "benefit2": "Broadcast one message to many clients"
+      },
+      "recipes": {
+        "title": "Your own recipes come with a higher plan",
+        "body": "Build a recipe library and use it in your clients' meal plans.",
+        "benefit1": "Create and edit your own recipes",
+        "benefit2": "Add them to any meal plan"
+      },
+      "ingredients": {
+        "title": "Your own ingredients come with a higher plan",
+        "body": "Add foods that are missing from the database, with their nutrition values.",
+        "benefit1": "Create your own ingredients and foods",
+        "benefit2": "Use them in recipes and meal plans"
+      },
+      "planTemplates": {
+        "title": "Plan templates come with a higher plan",
+        "body": "Save a nutrition plan once and assign it to many clients.",
+        "benefit1": "Reusable plan templates",
+        "benefit2": "Assign a template to a client in a few clicks"
+      },
+      "automations": {
+        "title": "Automations come with a higher plan",
+        "body": "Let Form Up send forms and ask for photos or measurements on your schedule.",
+        "benefit1": "Rules that send forms on a schedule",
+        "benefit2": "Photo and measurement requests without chasing clients"
+      },
+      "progressPhotos": {
+        "title": "Progress photos come with a higher plan",
+        "body": "Follow your clients' progress and ask for new photos.",
+        "benefit1": "A Photos tab on every client",
+        "benefit2": "Photo requests to your clients"
+      },
+      "measurements": {
+        "title": "Weight and measurements come with a higher plan",
+        "body": "Follow how each client's weight and body measurements change.",
+        "benefit1": "Weight and stats on the client overview",
+        "benefit2": "Measurement history in the client's card"
+      },
+      "payments": {
+        "title": "Client payments come with a higher plan",
+        "body": "Keep track of what each client pays you.",
+        "benefit1": "A Payment tab on every client",
+        "benefit2": "QR payment requests"
       }
     },
     "clientLimit": {
@@ -6118,11 +6166,11 @@
     },
     "paywall": {
       "badge": "Not on your plan",
-      "title": "Payments are not included in your plan",
-      "description": "Set up packages and discounts, and keep track of what each client pays you.",
+      "title": "Packages are not included in your plan",
+      "description": "Set up packages and discounts, and offer them with an invite.",
       "bullet1": "Packages with a price and billing cycle",
       "bullet2": "Discounts for single clients or campaigns",
-      "bullet3": "Payment requests and an overview on every client"
+      "bullet3": "A package attached to every invite"
     },
     "validation": {
       "nameRequired": "Enter a name.",

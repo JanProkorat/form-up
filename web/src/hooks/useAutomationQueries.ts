@@ -15,6 +15,7 @@ import {
   type PauseClientAutomationRequest,
   type UpdateAutomationRuleRequest,
 } from '@/api/automations';
+import { useSubscription } from '@/hooks/useSubscriptionQueries';
 import { useAuthStore } from '@/stores/auth';
 
 export const automationRulesKey = ['automations', 'rules'] as const;
@@ -24,10 +25,12 @@ export function useAutomationRules() {
   const isProfessional = useAuthStore(
     (state) => state.user?.roles.some((role) => role === 'Trainer' || role === 'Nutritionist') ?? false,
   );
+  // A plan without automations is refused with 403, so the request is not sent at all.
+  const { isEntitled } = useSubscription();
   return useQuery({
     queryKey: automationRulesKey,
     queryFn: getAutomationRules,
-    enabled: isProfessional,
+    enabled: isProfessional && isEntitled('canUseAutomations'),
     retry: false,
   });
 }
@@ -36,10 +39,11 @@ export const clientAutomationsKey = (clientId: string) => ['automations', 'clien
 
 /** A client's effective rules and 30-day summary. Fails with 403 when the link gives no automation coverage. */
 export function useClientAutomations(clientId: string) {
+  const { isEntitled } = useSubscription();
   return useQuery({
     queryKey: clientAutomationsKey(clientId),
     queryFn: () => getClientAutomations(clientId),
-    enabled: Boolean(clientId),
+    enabled: Boolean(clientId) && isEntitled('canUseAutomations'),
     retry: false,
   });
 }

@@ -159,7 +159,12 @@ export default function Sidebar({ onNavigate, collapsed = false, onToggleCollaps
   // isEntitled stays true while the subscription loads or fails, so no lock flashes in.
   const isLocked = (to: string) =>
     (to === '/forms' && !isEntitled('canSendQuestionnaires')) ||
-    (to === '/packages' && !isEntitled('canUsePayments'));
+    (to === '/packages' && !isEntitled('canUsePackages')) ||
+    (to === '/recipes' && !isEntitled('canUseRecipes')) ||
+    (to === '/ingredients' && !isEntitled('canUseIngredients')) ||
+    (to === '/plan-templates' && !isEntitled('canUsePlanTemplates')) ||
+    (to === '/automations' && !isEntitled('canUseAutomations')) ||
+    (to === '/inbox' && !isEntitled('canMessage'));
   // The rail shows no text, so its accessible name carries the locked state.
   const navLabel = (labelKey: string, to: string) =>
     isLocked(to) ? `${t(labelKey)}, ${t('sidebar.lockedInPlan')}` : t(labelKey);

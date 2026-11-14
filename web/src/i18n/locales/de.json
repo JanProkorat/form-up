@@ -273,6 +273,54 @@
         "body": "Erfahren Sie, wie die Woche jedes Klienten lief, bevor die nächste beginnt.",
         "benefit1": "Ein wöchentlicher Check-in nach Ihrem Zeitplan",
         "benefit2": "Antworten in der Karte jedes Klienten"
+      },
+      "chat": {
+        "title": "Nachrichten an Klienten gehören zu einem höheren Tarif",
+        "body": "Schreiben Sie Ihren Klienten und antworten Sie im Posteingang.",
+        "benefit1": "Nachrichten senden und Unterhaltungen mit Klienten beginnen",
+        "benefit2": "Eine Nachricht an viele Klienten senden"
+      },
+      "recipes": {
+        "title": "Eigene Rezepte gehören zu einem höheren Tarif",
+        "body": "Bauen Sie eine Rezeptbibliothek auf und nutzen Sie sie in den Ernährungsplänen Ihrer Klienten.",
+        "benefit1": "Eigene Rezepte erstellen und bearbeiten",
+        "benefit2": "In jeden Ernährungsplan aufnehmen"
+      },
+      "ingredients": {
+        "title": "Eigene Zutaten gehören zu einem höheren Tarif",
+        "body": "Ergänzen Sie Lebensmittel, die in der Datenbank fehlen, samt Nährwerten.",
+        "benefit1": "Eigene Zutaten und Lebensmittel anlegen",
+        "benefit2": "In Rezepten und Ernährungsplänen verwenden"
+      },
+      "planTemplates": {
+        "title": "Planvorlagen gehören zu einem höheren Tarif",
+        "body": "Speichern Sie einen Ernährungsplan einmal und weisen Sie ihn vielen Klienten zu.",
+        "benefit1": "Wiederverwendbare Planvorlagen",
+        "benefit2": "Eine Vorlage mit wenigen Klicks einem Klienten zuweisen"
+      },
+      "automations": {
+        "title": "Automatisierungen gehören zu einem höheren Tarif",
+        "body": "Lassen Sie Form Up Formulare senden und nach Fotos oder Maßen fragen, ganz nach Ihrem Zeitplan.",
+        "benefit1": "Regeln, die Formulare nach Zeitplan senden",
+        "benefit2": "Foto- und Maßanfragen ohne Nachfassen"
+      },
+      "progressPhotos": {
+        "title": "Fortschrittsfotos gehören zu einem höheren Tarif",
+        "body": "Verfolgen Sie den Fortschritt Ihrer Klienten und fragen Sie nach neuen Fotos.",
+        "benefit1": "Ein Tab Fotos bei jedem Klienten",
+        "benefit2": "Fotoanfragen an Ihre Klienten"
+      },
+      "measurements": {
+        "title": "Gewicht und Maße gehören zu einem höheren Tarif",
+        "body": "Verfolgen Sie, wie sich Gewicht und Körpermaße jedes Klienten verändern.",
+        "benefit1": "Gewicht und Statistiken in der Klientenübersicht",
+        "benefit2": "Messverlauf in der Karte des Klienten"
+      },
+      "payments": {
+        "title": "Klientenzahlungen gehören zu einem höheren Tarif",
+        "body": "Behalten Sie im Blick, was jeder Klient Ihnen zahlt.",
+        "benefit1": "Ein Tab Zahlungen bei jedem Klienten",
+        "benefit2": "Zahlungsanfragen mit QR-Code"
       }
     },
     "clientLimit": {
@@ -6123,11 +6171,11 @@
     },
     "paywall": {
       "badge": "Nicht in Ihrem Tarif",
-      "title": "Zahlungen sind in Ihrem Tarif nicht enthalten",
-      "description": "Legen Sie Pakete und Rabatte an und behalten Sie im Blick, was jeder Klient Ihnen zahlt.",
+      "title": "Pakete sind in Ihrem Tarif nicht enthalten",
+      "description": "Legen Sie Pakete und Rabatte an und bieten Sie sie mit einer Einladung an.",
       "bullet1": "Pakete mit Preis und Abrechnungszyklus",
       "bullet2": "Rabatte für einzelne Klienten oder Aktionen",
-      "bullet3": "Zahlungsanfragen und eine Übersicht bei jedem Klienten"
+      "bullet3": "Ein Paket an jeder Einladung"
     },
     "validation": {
       "nameRequired": "Geben Sie einen Namen ein.",
