@@ -1,4 +1,5 @@
 using FormUp.Application.Domain.Enums;
+using FormUp.Application.Infrastructure.Services.Billing;
 
 namespace FormUp.Application.Features.Users.GetMySubscription;
 
@@ -19,6 +20,15 @@ public class GetMySubscriptionResponse
 
     /// <summary>German plan name.</summary>
     public string NameDe { get; set; } = string.Empty;
+
+    /// <summary>When the provider retries a failed payment next; null unless the last payment failed.</summary>
+    public DateTimeOffset? NextPaymentAttemptAt { get; set; }
+
+    /// <summary>VAT handling, so the plan page knows whether to show a VAT line.</summary>
+    public BillingTaxMode TaxMode { get; set; }
+
+    /// <summary>True when the coach has a billing customer, so the billing portal can be opened.</summary>
+    public bool HasBillingAccount { get; set; }
 
     /// <summary>Subscription status, or null when the coach has no subscription and is on Free by default.</summary>
     public SubscriptionStatus? Status { get; set; }

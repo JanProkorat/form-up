@@ -766,6 +766,39 @@ public static class ErrorCodes
     /// <summary>The coach has no payment-provider customer yet, so there is no portal to open.</summary>
     public const string BillingCustomerNotFound = "BILLING_CUSTOMER_NOT_FOUND";
 
+    /// <summary>An admin-given plan is in force, so the coach cannot change, discount or extend it through billing.</summary>
+    public const string BillingGiftInForce = "BILLING_GIFT_IN_FORCE";
+
+    /// <summary>The coach has no live paid subscription to change, cancel, discount or extend.</summary>
+    public const string BillingNoSubscription = "BILLING_NO_SUBSCRIPTION";
+
+    /// <summary>The requested plan is the one the coach is already on.</summary>
+    public const string BillingPlanUnchanged = "BILLING_PLAN_UNCHANGED";
+
+    /// <summary>The subscription is already set to end at the close of the period.</summary>
+    public const string BillingCancellationPending = "BILLING_CANCELLATION_PENDING";
+
+    /// <summary>A plan change is already scheduled for the next renewal, so the subscription cannot be extended first.</summary>
+    public const string BillingPlanChangePending = "BILLING_PLAN_CHANGE_PENDING";
+
+    /// <summary>The promotion code is empty, too long or has characters a code never contains.</summary>
+    public const string PromotionCodeInvalid = "PROMOTION_CODE_INVALID";
+
+    /// <summary>The promotion code is unknown or no longer active.</summary>
+    public const string PromotionCodeNotFound = "PROMOTION_CODE_NOT_FOUND";
+
+    /// <summary>The plan has no second-role add-on to buy: both roles are included, or it has no add-on price.</summary>
+    public const string BillingAddOnNotAvailable = "BILLING_ADD_ON_NOT_AVAILABLE";
+
+    /// <summary>The coach already pays for the second-role add-on.</summary>
+    public const string BillingAddOnAlreadyPaid = "BILLING_ADD_ON_ALREADY_PAID";
+
+    /// <summary>The card was declined; nothing was charged or applied.</summary>
+    public const string BillingPaymentDeclined = "BILLING_PAYMENT_DECLINED";
+
+    /// <summary>The card needs authentication that an immediate charge cannot do; nothing was charged or applied.</summary>
+    public const string BillingPaymentAuthenticationRequired = "BILLING_PAYMENT_AUTHENTICATION_REQUIRED";
+
     // ── Onboarding form choice ──────────────────────────────────────────
     /// <summary>The request skips the onboarding form and also names a questionnaire.</summary>
     public const string SkipOnboardingFormWithQuestionnaire = "SKIP_ONBOARDING_FORM_WITH_QUESTIONNAIRE";

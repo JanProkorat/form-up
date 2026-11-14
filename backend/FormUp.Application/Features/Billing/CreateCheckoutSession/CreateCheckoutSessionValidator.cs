@@ -16,5 +16,8 @@ internal sealed class CreateCheckoutSessionValidator : Validator<CreateCheckoutS
         RuleFor(x => x.PlanCode)
             .NotEmpty()
             .MaximumLength(100);
+
+        RuleFor(x => x.Flow)
+            .IsInEnum();
     }
 }

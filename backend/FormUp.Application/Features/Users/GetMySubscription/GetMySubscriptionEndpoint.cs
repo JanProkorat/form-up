@@ -3,7 +3,9 @@ using FastEndpoints;
 using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Services;
 using FormUp.Application.Infrastructure.Data;
+using FormUp.Application.Infrastructure.Services.Billing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace FormUp.Application.Features.Users.GetMySubscription;
 
@@ -13,8 +15,12 @@ namespace FormUp.Application.Features.Users.GetMySubscription;
 /// <param name="db">Application database context.</param>
 /// <param name="entitlementService">Resolves entitlements, client usage and the second-role state.</param>
 /// <param name="timeProvider">Clock.</param>
+/// <param name="billingOptions">Billing settings, for the tax mode.</param>
 internal sealed class GetMySubscriptionEndpoint(
-    IApplicationDbContext db, EntitlementService entitlementService, TimeProvider timeProvider)
+    IApplicationDbContext db,
+    EntitlementService entitlementService,
+    TimeProvider timeProvider,
+    IOptions<BillingOptions> billingOptions)
     : EndpointWithoutRequest<GetMySubscriptionResponse>
 {
     /// <inheritdoc />
@@ -69,6 +75,8 @@ internal sealed class GetMySubscriptionEndpoint(
             await Send.NotFoundAsync(ct);
             return;
         }
+
+        response.TaxMode = billingOptions.Value.TaxMode;
 
         var entitlements = await entitlementService.GetEntitlementsAsync(profileId.Value, ct);
 
@@ -172,6 +180,8 @@ internal sealed class GetMySubscriptionEndpoint(
                 cs.FreeUntil,
                 cs.GivenFreeAt,
                 cs.PaysSecondRoleAddOn,
+                cs.NextPaymentAttemptAt,
+                HasBillingAccount = cs.ExternalCustomerId != null,
                 cs.SubscriptionPlanPrice.PriceMinorUnits,
                 cs.SubscriptionPlanPrice.SecondRoleAddOnPriceMinorUnits,
                 cs.SubscriptionPlanPrice.Currency,
@@ -190,6 +200,8 @@ internal sealed class GetMySubscriptionEndpoint(
                 CurrentPeriodEndsAt = subscription.CurrentPeriodEndsAt,
                 CancelAtPeriodEnd = subscription.CancelAtPeriodEnd,
                 FreeUntil = subscription.FreeUntil,
+                NextPaymentAttemptAt = subscription.NextPaymentAttemptAt,
+                HasBillingAccount = subscription.HasBillingAccount,
                 IsSetByFormUp = subscription.GivenFreeAt is not null
                     && CoachSubscriptionStatusClassifier.PlanApplies(
                         subscription.Status, subscription.FreeUntil, subscription.GivenFreeAt, timeProvider.GetUtcNow()),

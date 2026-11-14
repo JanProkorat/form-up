@@ -2156,6 +2156,10 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("last_external_event_at");
 
+                    b.Property<DateTimeOffset?>("NextPaymentAttemptAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("next_payment_attempt_at");
+
                     b.Property<bool>("PaysSecondRoleAddOn")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")

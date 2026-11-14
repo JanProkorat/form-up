@@ -201,6 +201,19 @@ builder.Services.AddRateLimiter(options =>
                     QueueLimit = 0
                 }));
 
+    // Promotion codes: partitioned by the coach's UserId, see AppPolicies.PromotionCodeRateLimit.
+    options.AddPolicy(AppPolicies.PromotionCodeRateLimit, context =>
+        rateLimitingDisabled
+            ? RateLimitPartition.GetNoLimiter("disabled")
+            : RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: context.User.FindFirst(AppClaims.UserId)?.Value ?? GetPartitionKey(context),
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 10,
+                    Window = TimeSpan.FromMinutes(15),
+                    QueueLimit = 0
+                }));
+
     // Anonymous notification email links: see AppPolicies.EmailLinkRateLimit for why this is not the auth budget.
     options.AddPolicy(AppPolicies.EmailLinkRateLimit, context =>
         rateLimitingDisabled

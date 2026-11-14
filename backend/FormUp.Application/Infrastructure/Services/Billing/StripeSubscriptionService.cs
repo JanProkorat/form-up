@@ -47,6 +47,7 @@ public sealed class StripeSubscriptionService(
         string currency,
         BillingInterval interval,
         string? couponId,
+        CheckoutFlow flow,
         string? language,
         CancellationToken ct) =>
         RunAsync("create-checkout-session", async stripe =>
@@ -61,7 +62,7 @@ public sealed class StripeSubscriptionService(
             var session = await stripe.V1.Checkout.Sessions.CreateAsync(
                 StripeRequestBuilder.Checkout(
                     customerId, userId, planCode, planPriceExternalId, addOnPriceId, couponId,
-                    StripeRequestBuilder.Locale(language), settings),
+                    StripeRequestBuilder.Locale(language), flow, settings),
                 cancellationToken: ct);
 
             return session.Url;
@@ -210,6 +211,82 @@ public sealed class StripeSubscriptionService(
             return true;
         });
     }
+
+    /// <inheritdoc />
+    public Task CancelAtPeriodEndAsync(string subscriptionId, CancellationToken ct) =>
+        RunAsync("cancel-at-period-end", async stripe =>
+        {
+            var subscription = await GetSubscriptionAsync(stripe, subscriptionId, ct);
+
+            // A subscription managed by a schedule cannot take the flag itself; the coach is leaving, so the schedule goes.
+            if (subscription.ScheduleId is { } scheduleId)
+            {
+                await stripe.V1.SubscriptionSchedules.ReleaseAsync(
+                    scheduleId, new SubscriptionScheduleReleaseOptions(), cancellationToken: ct);
+            }
+
+            await stripe.V1.Subscriptions.UpdateAsync(
+                subscriptionId, new SubscriptionUpdateOptions { CancelAtPeriodEnd = true }, cancellationToken: ct);
+
+            return true;
+        });
+
+    /// <inheritdoc />
+    public Task<SecondRoleAddOnPreview> PreviewSecondRoleAddOnAsync(
+        string customerId,
+        string subscriptionId,
+        string planCode,
+        long addOnAmountMinorUnits,
+        string currency,
+        BillingInterval interval,
+        CancellationToken ct) =>
+        RunAsync("preview-second-role", async stripe =>
+        {
+            var addOnPriceId = await EnsureAddOnPriceAsync(stripe, planCode, addOnAmountMinorUnits, currency, interval, ct);
+            var invoice = await stripe.V1.Invoices.CreatePreviewAsync(
+                StripeRequestBuilder.SecondRolePreview(customerId, subscriptionId, addOnPriceId, settings),
+                cancellationToken: ct);
+            var tax = (invoice.TotalTaxes ?? []).Sum(total => total.Amount);
+
+            return new SecondRoleAddOnPreview(invoice.Total, tax, currency);
+        });
+
+    /// <inheritdoc />
+    public Task<AddOnChargeOutcome> ChargeSecondRoleAddOnAsync(
+        string subscriptionId,
+        string planCode,
+        long addOnAmountMinorUnits,
+        string currency,
+        BillingInterval interval,
+        string idempotencyKey,
+        CancellationToken ct) =>
+        RunAsync("charge-second-role", async stripe =>
+        {
+            var addOnPriceId = await EnsureAddOnPriceAsync(stripe, planCode, addOnAmountMinorUnits, currency, interval, ct);
+
+            try
+            {
+                await stripe.V1.Subscriptions.UpdateAsync(
+                    subscriptionId,
+                    StripeRequestBuilder.SecondRoleCharge(addOnPriceId, settings),
+                    new RequestOptions { IdempotencyKey = idempotencyKey },
+                    ct);
+
+                return AddOnChargeOutcome.Charged;
+            }
+            catch (StripeException ex) when (IsCardError(ex))
+            {
+                logger.LogInformation(
+                    "Second-role charge was not completed: {StatusCode} {ErrorCode}", ex.HttpStatusCode, ex.StripeError?.Code);
+
+                return ex.StripeError?.Code is "subscription_payment_intent_requires_action" or "authentication_required"
+                    ? AddOnChargeOutcome.AuthenticationRequired
+                    : AddOnChargeOutcome.Declined;
+            }
+        });
+
+    private static bool IsCardError(StripeException ex) =>
+        ex.HttpStatusCode == HttpStatusCode.PaymentRequired || ex.StripeError?.Type == "card_error";
 
     private static bool IsAddOn(SubscriptionItem item) =>
         item.Price?.LookupKey?.StartsWith(StripeRequestBuilder.AddOnLookupPrefix, StringComparison.Ordinal) == true;

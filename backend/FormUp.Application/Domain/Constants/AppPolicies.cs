@@ -54,6 +54,13 @@ public static class AppPolicies
     public const string PushTokenRemoveRateLimit = "push-token-remove";
 
     /// <summary>
+    /// Rate limiting policy for applying a promotion code to the caller's subscription.
+    /// Partitioned per authenticated coach (not per IP) — the abuse case is one account guessing codes, so the account is
+    /// the meaningful bucket. 10 requests per 15 minutes per coach: a typo or two is normal, guessing is not.
+    /// </summary>
+    public const string PromotionCodeRateLimit = "promotion-code";
+
+    /// <summary>
     /// CORS policy for the web application.
     /// </summary>
     public const string AllowWebApp = nameof(AllowWebApp);

@@ -132,6 +132,7 @@ internal sealed class CreateCheckoutSessionEndpoint(IApplicationDbContext db, IS
                 price.Currency,
                 price.BillingInterval,
                 couponId: null,
+                req.Flow,
                 coach.Language,
                 ct);
 
