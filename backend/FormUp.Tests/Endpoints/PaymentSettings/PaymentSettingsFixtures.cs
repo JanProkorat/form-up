@@ -49,6 +49,7 @@ internal static class PaymentSettingsFixtures
             BothRolesIncluded = true,
             CanUsePayments = canUsePayments,
             CanUsePackages = canUsePackages ?? canUsePayments,
+            CanMessage = true,
             CanUsePlanTemplates = true,
             CanUseRecipes = true,
             CanUseIngredients = true,
