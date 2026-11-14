@@ -59,10 +59,13 @@ public class CreatePromotionEndpointTests(FitnessApiFactory factory) : IDisposab
 
     private static string UniqueName() => $"Promo {Guid.NewGuid():N}"[..20];
 
-    /// <summary>A paid plan priced in Stripe, plus another active paid plan, so selecting the first never covers every plan.</summary>
+    /// <summary>
+    /// A paid plan priced in Stripe, plus another plan that is also priced in Stripe, so selecting the first never covers
+    /// every purchasable plan whatever else is in the shared database.
+    /// </summary>
     private async Task<(string Code, string PriceId)> SubsetPlanAsync()
     {
-        await PaidPlanBuilder.CreateAsync(factory);
+        await BillingTestData.StripePlanAsync(factory);
 
         return await BillingTestData.StripePlanAsync(factory);
     }
@@ -154,31 +157,49 @@ public class CreatePromotionEndpointTests(FitnessApiFactory factory) : IDisposab
     }
 
     [Fact]
-    public async Task Create_CoveringEveryPaidPlan_LeavesTheCouponUnrestricted_SoItAlsoDiscountsTheAddOn()
+    public async Task Create_CoveringEveryPurchasablePlan_LeavesTheCouponUnrestricted_SoItAlsoDiscountsTheAddOn()
     {
         var fake = BillingTestData.ResetProvider(factory);
         var admin = await TestActors.Admin(factory).CreateAsync(Ct);
         await BillingTestData.StripePlanAsync(factory);
         var name = UniqueName();
 
-        List<string> everyPaidPlan;
+        // Purchasable = active, paid and priced in Stripe. Plans other tests insert without a Stripe price are not part of
+        // it, so they can neither change the outcome nor put an invalid code into the request. The set is only read, never
+        // modified, and every class that shares this database runs one after another in TestCollection.
+        List<string> everyPurchasablePlan;
 
         using (var scope = factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            everyPaidPlan = await db.SubscriptionPlanPrices
+            everyPurchasablePlan = await db.SubscriptionPlanPrices
                 .AsNoTracking()
                 .Where(price => price.ValidTo == null && price.SubscriptionPlan.IsActive
-                                && price.SubscriptionPlan.Code != "free" && price.PriceMinorUnits > 0)
+                                && price.SubscriptionPlan.Code != "free" && price.PriceMinorUnits > 0
+                                && price.ExternalPriceId != null && price.ExternalPriceId != "")
                 .Select(price => price.SubscriptionPlan.Code)
                 .ToListAsync(Ct);
         }
 
-        var response = await admin.Http.PostAsJsonAsync(Route, Body(name, everyPaidPlan), Ct);
+        var response = await admin.Http.PostAsJsonAsync(Route, Body(name, everyPurchasablePlan), Ct);
 
         response.StatusCode.Should().Be(HttpStatusCode.Created, await response.Content.ReadAsStringAsync(Ct));
         fake.Coupons.Should().ContainSingle().Which.Spec.PlanPriceExternalIds.Should().BeNull();
         (await PromotionsNamedAsync(name)).Should().ContainSingle().Which.CoversSecondRoleAddOn.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Create_WhenAPaidPlanHasNoStripePrice_ThatPlanCannotBePartOfASubset()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var (pricedPlan, _) = await SubsetPlanAsync();
+        var unpricedPlan = await PaidPlanBuilder.CreateAsync(factory);
+
+        var response = await admin.Http.PostAsJsonAsync(Route, Body(UniqueName(), [pricedPlan, unpricedPlan]), Ct);
+
+        await AssertErrorAsync(response, HttpStatusCode.BadRequest, "PROMOTION_PLANS_INVALID");
+        fake.Coupons.Should().BeEmpty();
     }
 
     [Fact]

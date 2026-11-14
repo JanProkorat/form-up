@@ -41,7 +41,8 @@ internal sealed class CreatePromotionEndpoint(
             s.Summary = "Create a promotion";
             s.Description = "Creates the Stripe coupon (and, in code mode, a promotion code), then saves our copy and writes an audit " +
                             "row. Max uses, the claim end, the covered plans and new-coaches-only are pushed to Stripe; when every " +
-                            "paid plan is covered the coupon has no product restriction, so it also discounts the second-role add-on. " +
+                            "purchasable plan (active, paid, priced in Stripe) is covered the coupon has no product restriction, so " +
+                            "it also discounts the second-role add-on. " +
                             "One use per coach and the claim start are enforced by Form Up only. A Stripe failure saves nothing.";
             s.Response<PromotionDto>(StatusCodes.Status201Created, "The promotion that was created");
             s.Response<ProblemDetails>(StatusCodes.Status400BadRequest,
@@ -115,7 +116,7 @@ internal sealed class CreatePromotionEndpoint(
             ClaimFrom = req.ClaimFrom,
             ClaimUntil = req.ClaimUntil,
             PlanCodes = plans.Selected.Select(plan => plan.Code).ToList(),
-            CoversSecondRoleAddOn = plans.CoversAllPaidPlans,
+            CoversSecondRoleAddOn = plans.CoversEveryPurchasablePlan,
             MaxUses = req.MaxUses,
             NewCoachesOnly = req.NewCoachesOnly,
             OneUsePerCoach = req.OneUsePerCoach,
@@ -150,8 +151,9 @@ internal sealed class CreatePromotionEndpoint(
     }
 
     /// <summary>
-    /// Loads the selected plans. Answers 400 <see cref="ErrorCodes.PromotionPlansInvalid"/> and returns null when a code
-    /// is not an active paid plan or a plan has no Stripe price to restrict the coupon to.
+    /// Loads the active paid plans and resolves the selection (<see cref="PromotionPlanScope"/>). Answers 400
+    /// <see cref="ErrorCodes.PromotionPlansInvalid"/> and returns null when a code is not an active paid plan or a plan
+    /// has no Stripe price to restrict the coupon to.
     /// </summary>
     private async Task<SelectedPlans?> LoadPaidPlansAsync(List<string> requestedCodes, CancellationToken ct)
     {
@@ -161,20 +163,16 @@ internal sealed class CreatePromotionEndpoint(
                             && price.SubscriptionPlan.IsActive
                             && price.SubscriptionPlan.Code != SubscriptionPlanCodes.Free
                             && price.PriceMinorUnits > 0)
-            .Select(price => new PaidPlan(price.SubscriptionPlan.Code, price.ExternalPriceId))
+            .Select(price => new PromotionPlanOption(price.SubscriptionPlan.Code, price.ExternalPriceId))
             .ToListAsync(ct);
 
-        var requested = requestedCodes.Select(code => code.Trim().ToLowerInvariant()).Distinct().ToList();
-        var selected = paid.Where(plan => requested.Contains(plan.Code.ToLowerInvariant())).ToList();
-        var coversAll = paid.Count > 0 && paid.All(plan => selected.Contains(plan));
-
-        if (selected.Count != requested.Count || (!coversAll && selected.Any(plan => string.IsNullOrEmpty(plan.PriceId))))
+        if (PromotionPlanScope.Resolve(paid, requestedCodes) is not var (selected, coversEveryPurchasablePlan))
         {
             this.ThrowErrorWithCode(ErrorCodes.PromotionPlansInvalid, "Select active paid plans that are priced in Stripe.");
             return null;
         }
 
-        return new SelectedPlans(selected, coversAll);
+        return new SelectedPlans(selected, coversEveryPurchasablePlan);
     }
 
     /// <summary>
@@ -225,7 +223,7 @@ internal sealed class CreatePromotionEndpoint(
                     req.Duration == PromotionDuration.Months ? req.DurationMonths : null,
                     req.MaxUses,
                     req.ClaimUntil,
-                    plans.CoversAllPaidPlans ? null : plans.Selected.Select(plan => plan.PriceId!).ToList(),
+                    plans.CoversEveryPurchasablePlan ? null : plans.Selected.Select(plan => plan.StripePriceId!).ToList(),
                     $"formup-coupon-{publicId}"),
                 ct);
         }
@@ -274,9 +272,7 @@ internal sealed class CreatePromotionEndpoint(
         }
     }
 
-    private sealed record PaidPlan(string Code, string? PriceId);
-
-    private sealed record SelectedPlans(List<PaidPlan> Selected, bool CoversAllPaidPlans);
+    private sealed record SelectedPlans(IReadOnlyList<PromotionPlanOption> Selected, bool CoversEveryPurchasablePlan);
 
     private sealed record StripeIds(string CouponId, string? PromotionCodeId);
 }
