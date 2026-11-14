@@ -186,6 +186,13 @@ public class MockDbBuilder
         CanCreatePlans = true,
         CanMessage = true,
         CanUsePayments = true,
+        CanUsePlanTemplates = true,
+        CanUseRecipes = true,
+        CanUseIngredients = true,
+        CanUseProgressPhotos = true,
+        CanUseWeightAndMeasurements = true,
+        CanUseAutomations = true,
+        CanUsePackages = true,
         MaxActiveClients = 2,
     };
 

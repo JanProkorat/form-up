@@ -27,10 +27,15 @@ internal static class PaymentSettingsFixtures
     public const string Password = "CoachPass1!";
 
     /// <summary>
-    /// Subscribes the coach to a fresh plan whose payments flag and subscription status are as given.
+    /// Subscribes the coach to a fresh plan whose payments flag and subscription status are as given. The packages
+    /// flag follows the payments flag unless <paramref name="canUsePackages"/> is set.
     /// </summary>
     public static async Task SubscribeAsync(
-        FitnessApiFactory factory, Actor coach, bool canUsePayments, SubscriptionStatus status = SubscriptionStatus.Active)
+        FitnessApiFactory factory,
+        Actor coach,
+        bool canUsePayments,
+        SubscriptionStatus status = SubscriptionStatus.Active,
+        bool? canUsePackages = null)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -43,6 +48,13 @@ internal static class PaymentSettingsFixtures
             NameDe = "Plan",
             BothRolesIncluded = true,
             CanUsePayments = canUsePayments,
+            CanUsePackages = canUsePackages ?? canUsePayments,
+            CanUsePlanTemplates = true,
+            CanUseRecipes = true,
+            CanUseIngredients = true,
+            CanUseProgressPhotos = true,
+            CanUseWeightAndMeasurements = true,
+            CanUseAutomations = true,
             PriceMinorUnits = 99900,
             Currency = "CZK",
             BillingInterval = BillingInterval.Monthly,
