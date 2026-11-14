@@ -7,6 +7,8 @@ interface RegisterShellProps {
   children: ReactNode;
   /** Hide the "Already have an account? Sign in" link (the get-the-app page has no portal link). */
   showSignIn?: boolean;
+  /** Replaces the sign-in link on the right of the header, e.g. "Signed in as …" once the account exists. */
+  trailing?: ReactNode;
 }
 
 /**
@@ -14,7 +16,7 @@ interface RegisterShellProps {
  * the home hero, the wordmark and the "Already have an account? Sign in"
  * header. Sign in goes to /login, which opens the landing page's dialog.
  */
-export default function RegisterShell({ children, showSignIn = true }: RegisterShellProps) {
+export default function RegisterShell({ children, showSignIn = true, trailing }: RegisterShellProps) {
   const { t } = useTranslation();
 
   return (
@@ -25,7 +27,8 @@ export default function RegisterShell({ children, showSignIn = true }: RegisterS
       />
       <header className="flex h-19 shrink-0 items-center short:h-13 gap-4 px-4 sm:px-10 lg:px-16">
         <Wordmark to="/" />
-        {showSignIn && (
+        {trailing && <p className="ml-auto text-right text-meta text-muted-foreground sm:text-copy">{trailing}</p>}
+        {showSignIn && !trailing && (
           <p className="ml-auto text-right text-meta text-muted-foreground sm:text-copy">
             {t('entry.register.haveAccount')}{' '}
             <Link to="/login" className="font-bold text-ink underline underline-offset-2">

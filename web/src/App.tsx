@@ -41,7 +41,18 @@ import ClientPlanEditorPage from '@/pages/ClientPlanEditorPage';
 import LapseKeepClientsPage from '@/pages/LapseKeepClientsPage';
 import PlanChoicePage from '@/pages/PlanChoicePage';
 import PlanChoiceGuard from '@/routes/PlanChoiceGuard';
-import { KEEP_CLIENTS_PATH, PLAN_CHOICE_PATH } from '@/components/subscription/planLinks';
+import PlanPickerPage from '@/pages/PlanPickerPage';
+import RegisterPlanPage from '@/pages/RegisterPlanPage';
+import BillingReturnPage from '@/pages/BillingReturnPage';
+import {
+  BILLING_CANCEL_PATH,
+  BILLING_PORTAL_RETURN_PATH,
+  BILLING_SUCCESS_PATH,
+  KEEP_CLIENTS_PATH,
+  PLAN_CHOICE_PATH,
+  PLAN_PICKER_PATH,
+  REGISTER_PLAN_PATH,
+} from '@/components/subscription/planLinks';
 import ProfilePage from '@/pages/ProfilePage';
 import SettingsPage from '@/pages/SettingsPage';
 import NotFoundPage from '@/pages/NotFoundPage';
@@ -90,6 +101,14 @@ const router = createBrowserRouter(
       <Route path="/download-app" element={<DownloadAppPage />} />
 
       <Route element={<ProtectedRoute />}>
+       {/* Outside PlanChoiceGuard on purpose: the sign-up plan step and the Stripe return pages must stay reachable
+           while a plan decision is pending, or the guard would bounce the coach before the purchase registers. */}
+       <Route element={<RoleGuard allowedRoles={['Trainer', 'Nutritionist']} />}>
+        <Route path={REGISTER_PLAN_PATH} element={<RegisterPlanPage />} />
+        <Route path={BILLING_SUCCESS_PATH} element={<BillingReturnPage />} />
+        <Route path={BILLING_CANCEL_PATH} element={<BillingReturnPage />} />
+        <Route path={BILLING_PORTAL_RETURN_PATH} element={<BillingReturnPage />} />
+       </Route>
        {/* Keeps a coach with an ended given plan on the picker; the picker route itself is full screen, no AppShell. */}
        <Route element={<PlanChoiceGuard />}>
         <Route element={<RoleGuard allowedRoles={['Trainer', 'Nutritionist']} />}>
@@ -120,6 +139,7 @@ const router = createBrowserRouter(
           </Route>
           <Route element={<RoleGuard allowedRoles={['Trainer', 'Nutritionist']} />}>
             <Route path={KEEP_CLIENTS_PATH} element={<LapseKeepClientsPage />} />
+            <Route path={PLAN_PICKER_PATH} element={<PlanPickerPage />} />
           </Route>
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/settings" element={<SettingsPage />} />

@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import RegisterShell from '@/components/register/RegisterShell';
 import GetAppState from '@/components/register/GetAppState';
 import CoachVerifiedState from '@/components/register/CoachVerifiedState';
+import { REGISTER_PLAN_PATH } from '@/components/subscription/planLinks';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 
 interface VerifyMutationResult {
@@ -206,7 +207,7 @@ export default function VerifyEmailPage() {
         <RegisterShell showSignIn={false}>
           <CoachVerifiedState
             firstName={verifyQuery.data.firstName}
-            profileTo={verifyQuery.data.staleSession ? '/login' : '/profile'}
+            planTo={verifyQuery.data.staleSession ? '/login' : REGISTER_PLAN_PATH}
             skipTo={verifyQuery.data.staleSession ? '/login' : '/clients'}
           />
         </RegisterShell>
