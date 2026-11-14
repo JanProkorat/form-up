@@ -12,6 +12,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import type { GetClientDashboardResponse } from '@/api/generated';
 import type { ClientPlanItem } from '@/api/client-plans';
+import { isSubscriptionRequired } from '@/lib/subscriptionErrors';
+import PaywallPanel from '@/components/subscription/PaywallPanel';
 import PhotoCard from '@/components/client-detail/photos/PhotoCard';
 import PhotoCompareDialog from '@/components/client-detail/photos/PhotoCompareDialog';
 import PhotoRequestBanner from '@/components/client-detail/photos/PhotoRequestBanner';
@@ -76,6 +78,10 @@ export default function ClientPhotosTab({ clientId, dashboard, plans }: Props) {
         </div>
       </div>
     );
+  }
+
+  if (query.isError && isSubscriptionRequired(query.error)) {
+    return <PaywallPanel feature="progressPhotos" />;
   }
 
   if (query.isError) {

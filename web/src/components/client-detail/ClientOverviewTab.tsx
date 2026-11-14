@@ -1,4 +1,6 @@
 import type { UseQueryResult } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
+import LockedFeatureCard from '@/components/client-detail/LockedFeatureCard';
 import ClientOverviewStats from '@/components/client-detail/ClientOverviewStats';
 import MealPlanCard from '@/components/client-detail/MealPlanCard';
 import LatestWorkoutCard from '@/components/client-detail/LatestWorkoutCard';
@@ -15,6 +17,8 @@ interface Props {
   role: ClientOverviewRole;
   plansQuery: UseQueryResult<ListClientPlansResponse>;
   measurementsQuery: UseQueryResult<GetMeasurementsResponse>;
+  /** The coach's plan has no weight and measurements: the weight card shows the paywall notice. */
+  measurementsLocked?: boolean;
 }
 
 /**
@@ -24,7 +28,15 @@ interface Props {
  * nutritionist-only link gets its own domain's card at full width
  * (PageClientDetailTrainerC / D, PageClientDetailNutritionistC / D).
  */
-export default function ClientOverviewTab({ clientId, dashboard, role, plansQuery, measurementsQuery }: Props) {
+export default function ClientOverviewTab({
+  clientId,
+  dashboard,
+  role,
+  plansQuery,
+  measurementsQuery,
+  measurementsLocked = false,
+}: Props) {
+  const { t } = useTranslation();
   const canViewNutritionPlans = plansQuery.data?.canViewNutritionPlans ?? false;
   const canViewTrainingPlans = plansQuery.data?.canViewTrainingPlans ?? false;
   const activeNutritionPlan = plansQuery.data?.plans?.find((p) => p.planType === 'Nutrition' && p.status === 'Active');
@@ -74,13 +86,17 @@ export default function ClientOverviewTab({ clientId, dashboard, role, plansQuer
           <CheckInTrendCard clientUserId={dashboard.clientUserId ?? ''} />
         </div>
         <div className="lg:col-span-2">
-          <WeightCard
-            dashboard={dashboard}
-            measurements={measurementsQuery.data?.items ?? []}
-            isPending={measurementsQuery.isPending}
-            isError={measurementsQuery.isError}
-            onRetry={() => void measurementsQuery.refetch()}
-          />
+          {measurementsLocked ? (
+            <LockedFeatureCard feature="measurements" title={t('clientDetail.overview.weight.heading')} />
+          ) : (
+            <WeightCard
+              dashboard={dashboard}
+              measurements={measurementsQuery.data?.items ?? []}
+              isPending={measurementsQuery.isPending}
+              isError={measurementsQuery.isError}
+              onRetry={() => void measurementsQuery.refetch()}
+            />
+          )}
         </div>
       </div>
 

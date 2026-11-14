@@ -2,6 +2,7 @@ import { useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getClientPhotoGroups } from '@/api/client-photos';
 import { getClientMeasurements } from '@/api/measurements';
+import { useMeasurementsGate } from '@/hooks/useMeasurementsGate';
 import {
   flattenGroups,
   nearestWeighIn,
@@ -47,11 +48,13 @@ export function useClientPhotos(clientId: string, range: PhotoRange) {
 /** The weigh-in (a measurement with a weight) closest to a photo's date, within a window around it. */
 export function useNearestWeighIn(clientId: string, takenAt: string | undefined) {
   const window = weighInWindow(takenAt);
+  const measurementsGate = useMeasurementsGate();
 
   const query = useQuery({
     queryKey: ['client-measurements', clientId, 'around', window?.from ?? null, window?.to ?? null],
     queryFn: () => getClientMeasurements(clientId, 1, WEIGH_IN_PAGE_SIZE, window?.from, window?.to),
-    enabled: Boolean(clientId) && window !== undefined,
+    enabled: Boolean(clientId) && window !== undefined && measurementsGate.enabled,
+    placeholderData: measurementsGate.placeholderData,
   });
 
   const measurement = useMemo(() => nearestWeighIn(query.data?.items, takenAt), [query.data, takenAt]);

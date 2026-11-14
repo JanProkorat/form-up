@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import Composer from '@/components/inbox/Composer';
+import PlanLockedComposer from '@/components/inbox/PlanLockedComposer';
 import DateSeparator from '@/components/inbox/DateSeparator';
 import EventBanner from '@/components/inbox/EventBanner';
 import MessageBubble from '@/components/inbox/MessageBubble';
@@ -27,6 +28,8 @@ interface Props {
   isOtherPartyTyping: boolean;
   /** `ConversationDto.isSendLocked` — the server would refuse a send here. */
   isSendLocked?: boolean;
+  /** The coach's plan has no chat, so sending is refused; the composer shows the paywall notice. */
+  isPlanLocked?: boolean;
   isFormer?: boolean;
   /** The conversation's newest invite or request; supplies an invite card's requested scope. */
   cooperation?: ConversationCooperationDto;
@@ -59,6 +62,7 @@ export default function ThreadPane({
   onToggleClientPanel,
   isOtherPartyTyping,
   isSendLocked = false,
+  isPlanLocked = false,
   isFormer = false,
   cooperation,
   deferMarkRead = false,
@@ -332,15 +336,19 @@ export default function ThreadPane({
 
       {isOtherPartyTyping && <TypingIndicator />}
 
-      <Composer
-        conversationId={conversationId}
-        onSend={async (payload) => {
-          await sendMessageMutation.mutateAsync(payload);
-        }}
-        isSending={sendMessageMutation.isPending}
-        onTyping={handleTyping}
-        isLocked={isSendLocked}
-      />
+      {isPlanLocked ? (
+        <PlanLockedComposer />
+      ) : (
+        <Composer
+          conversationId={conversationId}
+          onSend={async (payload) => {
+            await sendMessageMutation.mutateAsync(payload);
+          }}
+          isSending={sendMessageMutation.isPending}
+          onTyping={handleTyping}
+          isLocked={isSendLocked}
+        />
+      )}
     </div>
   );
 }

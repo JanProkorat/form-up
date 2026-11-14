@@ -13,6 +13,7 @@ export type PaywallFeature =
   | 'ingredients'
   | 'planTemplates'
   | 'automations'
+  | 'packages'
   | 'progressPhotos'
   | 'measurements'
   | 'payments';

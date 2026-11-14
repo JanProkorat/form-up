@@ -18,7 +18,7 @@ import { isSubscriptionRequired } from '@/lib/subscriptionErrors';
 import { useSubscription } from '@/hooks/useSubscriptionQueries';
 import { billingSuffix } from '@/components/client-detail/payment/paymentModel';
 import { formatMoney } from '@/lib/money';
-import FeaturePaywall from '@/components/paywall/FeaturePaywall';
+import PaywallPanel from '@/components/subscription/PaywallPanel';
 import DiscountDrawer from '@/components/package-catalog/DiscountDrawer';
 import DiscountsTable from '@/components/package-catalog/DiscountsTable';
 import PackageDrawer from '@/components/package-catalog/PackageDrawer';
@@ -352,13 +352,5 @@ export default function PackagesPage() {
 }
 
 function PackagesPaywall() {
-  const { t } = useTranslation();
-  return (
-    <FeaturePaywall
-      badge={t('packages.paywall.badge')}
-      title={t('packages.paywall.title')}
-      description={t('packages.paywall.description')}
-      bullets={[t('packages.paywall.bullet1'), t('packages.paywall.bullet2'), t('packages.paywall.bullet3')]}
-    />
-  );
+  return <PaywallPanel feature="packages" />;
 }

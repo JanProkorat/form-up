@@ -321,6 +321,12 @@
         "body": "Keep track of what each client pays you.",
         "benefit1": "A Payment tab on every client",
         "benefit2": "QR payment requests"
+      },
+      "packages": {
+        "title": "Packages come with a higher plan",
+        "body": "Set up packages and discounts, and offer them with an invite.",
+        "benefit1": "Packages with a price and billing cycle",
+        "benefit2": "A package attached to every invite"
       }
     },
     "clientLimit": {
@@ -5535,6 +5541,8 @@
       "attachImageAriaLabel": "Attach image",
       "sendError": "Could not send the message. Please try again.",
       "lockedNotice": "You can reply once the client accepts your invitation.",
+      "planLockedNotice": "Your plan does not include messaging clients. You can still read your conversations.",
+      "planLockedAction": "See what is included",
       "imagePreviewAlt": "Image preview",
       "removeImageAriaLabel": "Remove image",
       "imageUploadError": "Could not upload the image. Please try again."
@@ -6166,11 +6174,11 @@
     },
     "paywall": {
       "badge": "Not on your plan",
-      "title": "Packages are not included in your plan",
-      "description": "Set up packages and discounts, and offer them with an invite.",
+      "title": "Payments are not included in your plan",
+      "description": "Set up packages and discounts, and keep track of what each client pays you.",
       "bullet1": "Packages with a price and billing cycle",
       "bullet2": "Discounts for single clients or campaigns",
-      "bullet3": "A package attached to every invite"
+      "bullet3": "Payment requests and an overview on every client"
     },
     "validation": {
       "nameRequired": "Enter a name.",

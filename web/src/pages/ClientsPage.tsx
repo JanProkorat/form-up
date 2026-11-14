@@ -10,6 +10,7 @@ import { useClients, usePendingClients } from '@/hooks/useClientsQueries';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useSubscription } from '@/hooks/useSubscriptionQueries';
 import OutsidePlanBanner from '@/components/subscription/OutsidePlanBanner';
+import PaywallDialog from '@/components/subscription/PaywallDialog';
 import { cn } from '@/lib/utils';
 import ClientFilterMenu, { ClientActiveFilters } from '@/components/clients/ClientFilterMenu';
 import ClientTagFilterPopover from '@/components/clients/ClientTagFilterPopover';
@@ -53,6 +54,7 @@ export default function ClientsPage() {
   const [searchInput, setSearchInput] = useState(filters.search);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [broadcastOpen, setBroadcastOpen] = useState(false);
+  const [chatPaywallOpen, setChatPaywallOpen] = useState(false);
   const [addClientOpen, setAddClientOpen] = useState(false);
 
   // Selection is page-local UI state, not a URL filter — clear it whenever
@@ -332,7 +334,7 @@ export default function ClientsPage() {
 
       <ClientSelectionBar
         count={selectedIds.size}
-        onBroadcast={() => setBroadcastOpen(true)}
+        onBroadcast={() => (subscription.isEntitled('canMessage') ?setBroadcastOpen(true) : setChatPaywallOpen(true))}
         onCancel={() => setSelectedIds(new Set())}
       />
       <BroadcastDrawer
@@ -341,6 +343,7 @@ export default function ClientsPage() {
         clientPublicIds={[...selectedIds]}
         onSent={() => setSelectedIds(new Set())}
       />
+      <PaywallDialog open={chatPaywallOpen} onOpenChange={setChatPaywallOpen} feature="chat" />
       <AddClientDrawer open={addClientOpen} onOpenChange={setAddClientOpen} />
     </div>
   );

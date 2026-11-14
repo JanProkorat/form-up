@@ -17,6 +17,9 @@ import {
   useStartConversation,
 } from '@/hooks/useInboxQueries';
 import { useSignalR } from '@/hooks/useSignalR';
+import { useSubscription } from '@/hooks/useSubscriptionQueries';
+import { isSubscriptionRequired } from '@/lib/subscriptionErrors';
+import PaywallDialog from '@/components/subscription/PaywallDialog';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
@@ -77,6 +80,8 @@ export default function InboxPage() {
   const deepLinkHandledRef = useRef(false);
   /** True while the open thread was preselected on entry and the trainer has not engaged with it yet. */
   const [isAutoSelected, setIsAutoSelected] = useState(false);
+  const [paywallOpen, setPaywallOpen] = useState(false);
+  const { isEntitled } = useSubscription();
 
   const conversationsQuery = useConversations(archived, filter);
   const countsQuery = useConversationFilterCounts();
@@ -119,8 +124,16 @@ export default function InboxPage() {
     if (existingRow?.id) {
       setIsAutoSelected(false);
       setSelectedParticipantId(existingRow.participant?.id);
+    } else if (!isEntitled('canMessage')) {
+      // Starting a conversation is a coach send: explain with the paywall instead of a refused request.
+      setPaywallOpen(true);
     } else {
       startConversationMutation.mutate(clientParam, {
+        onError: (error) => {
+          if (isSubscriptionRequired(error)) {
+            setPaywallOpen(true);
+          }
+        },
         onSuccess: async (conversation) => {
           setIsAutoSelected(false);
           setSelectedParticipantId(conversation.participant?.id);
@@ -274,6 +287,7 @@ export default function InboxPage() {
           onToggleClientPanel={() => setClientPanelOverride(!showClientPanel)}
           isOtherPartyTyping={isOtherPartyTyping}
           isSendLocked={selectedConversation.isSendLocked ?? false}
+          isPlanLocked={!isEntitled('canMessage') && Boolean(selectedConversation.participant.clientPublicId)}
           isFormer={selectedConversation.isFormer ?? false}
           cooperation={selectedCooperation}
           deferMarkRead={isAutoSelected}
@@ -304,6 +318,8 @@ export default function InboxPage() {
           </div>
         </aside>
       )}
+
+      <PaywallDialog open={paywallOpen} onOpenChange={setPaywallOpen} feature="chat" />
     </div>
   );
 }

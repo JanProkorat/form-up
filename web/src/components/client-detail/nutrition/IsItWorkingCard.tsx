@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getClientMeasurements } from '@/api/measurements';
+import { useMeasurementsGate } from '@/hooks/useMeasurementsGate';
 import type { ClientPlanItem } from '@/api/generated';
 import { formatSignedNumber } from '@/lib/client-metrics';
 import IsItWorkingChart from '@/components/client-detail/nutrition/IsItWorkingChart';
@@ -28,10 +29,12 @@ export default function IsItWorkingCard({ clientId, plans, targetWeightKg }: Pro
   const headingId = useId();
   const locale = i18n.language;
 
+  const measurementsGate = useMeasurementsGate();
   const measurementsQuery = useQuery({
     queryKey: ['client-measurements', clientId],
     queryFn: () => getClientMeasurements(clientId, 1, MEASUREMENTS_PAGE_SIZE),
-    enabled: Boolean(clientId),
+    enabled: Boolean(clientId) && measurementsGate.enabled,
+    placeholderData: measurementsGate.placeholderData,
   });
 
   const items = measurementsQuery.data?.items;

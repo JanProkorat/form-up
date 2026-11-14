@@ -321,6 +321,12 @@
         "body": "Behalten Sie im Blick, was jeder Klient Ihnen zahlt.",
         "benefit1": "Ein Tab Zahlungen bei jedem Klienten",
         "benefit2": "Zahlungsanfragen mit QR-Code"
+      },
+      "packages": {
+        "title": "Pakete gehören zu einem höheren Tarif",
+        "body": "Legen Sie Pakete und Rabatte an und bieten Sie sie mit einer Einladung an.",
+        "benefit1": "Pakete mit Preis und Abrechnungszyklus",
+        "benefit2": "Ein Paket an jeder Einladung"
       }
     },
     "clientLimit": {
@@ -5534,6 +5540,8 @@
       "attachImageAriaLabel": "Bild anhängen",
       "sendError": "Die Nachricht konnte nicht gesendet werden. Bitte versuchen Sie es erneut.",
       "lockedNotice": "Sie können antworten, sobald der Klient Ihre Einladung annimmt.",
+      "planLockedNotice": "Ihr Tarif enthält keine Nachrichten an Klienten. Ihre Unterhaltungen können Sie weiterhin lesen.",
+      "planLockedAction": "Was enthalten ist",
       "imagePreviewAlt": "Bildvorschau",
       "removeImageAriaLabel": "Bild entfernen",
       "imageUploadError": "Das Bild konnte nicht hochgeladen werden. Bitte versuchen Sie es erneut."
@@ -6171,11 +6179,11 @@
     },
     "paywall": {
       "badge": "Nicht in Ihrem Tarif",
-      "title": "Pakete sind in Ihrem Tarif nicht enthalten",
-      "description": "Legen Sie Pakete und Rabatte an und bieten Sie sie mit einer Einladung an.",
+      "title": "Zahlungen sind in Ihrem Tarif nicht enthalten",
+      "description": "Legen Sie Pakete und Rabatte an und behalten Sie im Blick, was jeder Klient Ihnen zahlt.",
       "bullet1": "Pakete mit Preis und Abrechnungszyklus",
       "bullet2": "Rabatte für einzelne Klienten oder Aktionen",
-      "bullet3": "Ein Paket an jeder Einladung"
+      "bullet3": "Zahlungsanfragen und eine Übersicht bei jedem Klienten"
     },
     "validation": {
       "nameRequired": "Geben Sie einen Namen ein.",

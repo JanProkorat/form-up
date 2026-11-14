@@ -321,6 +321,12 @@
         "body": "Mějte přehled, co vám který klient platí.",
         "benefit1": "Záložka Platby u každého klienta",
         "benefit2": "Platební žádosti s QR kódem"
+      },
+      "packages": {
+        "title": "Balíčky jsou součástí vyššího tarifu",
+        "body": "Nastavte si balíčky a slevy a nabízejte je s pozvánkou.",
+        "benefit1": "Balíčky s cenou a cyklem fakturace",
+        "benefit2": "Balíček přiložený ke každé pozvánce"
       }
     },
     "clientLimit": {
@@ -5751,6 +5757,8 @@
       "attachImageAriaLabel": "Přiložit obrázek",
       "sendError": "Zprávu se nepodařilo odeslat. Zkuste to prosím znovu.",
       "lockedNotice": "Odpovědět můžete, jakmile klient vaši pozvánku přijme.",
+      "planLockedNotice": "Váš tarif nezahrnuje psaní klientům. Konverzace si můžete dál číst.",
+      "planLockedAction": "Co tarif obsahuje",
       "imagePreviewAlt": "Náhled obrázku",
       "removeImageAriaLabel": "Odebrat obrázek",
       "imageUploadError": "Obrázek se nepodařilo nahrát. Zkuste to prosím znovu."
@@ -6389,11 +6397,11 @@
     },
     "paywall": {
       "badge": "Není ve vašem tarifu",
-      "title": "Balíčky nejsou součástí vašeho tarifu",
-      "description": "Nastavte si balíčky a slevy a nabízejte je s pozvánkou.",
+      "title": "Platby nejsou součástí vašeho tarifu",
+      "description": "Nastavte si balíčky a slevy a sledujte, co vám který klient platí.",
       "bullet1": "Balíčky s cenou a cyklem fakturace",
       "bullet2": "Slevy pro jednotlivé klienty nebo kampaně",
-      "bullet3": "Balíček přiložený ke každé pozvánce"
+      "bullet3": "Žádosti o platbu a přehled u každého klienta"
     },
     "validation": {
       "nameRequired": "Zadejte název.",

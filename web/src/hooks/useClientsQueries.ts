@@ -29,7 +29,7 @@ import { paymentDiscountsKey, paymentPackagesKey } from '@/hooks/useClientPaymen
 import { invitePaymentFailure, offerPaymentFailure } from '@/components/client-detail/payment/paymentErrors';
 import { subscriptionKeys } from '@/api/subscription';
 import { showApiError, showError, showSuccess } from '@/lib/api-errors';
-import { isClientLimitReached } from '@/lib/subscriptionErrors';
+import { isClientLimitReached, isSubscriptionRequired } from '@/lib/subscriptionErrors';
 import type { ClientListFilters, ClientsPageTab } from '@/hooks/useClientListParams';
 
 /**
@@ -262,6 +262,11 @@ export function useBroadcastMessage() {
       showSuccess('clients.broadcast.success');
     },
     onError: (error) => {
+      if (isSubscriptionRequired(error)) {
+        // The plan has no chat: the drawer shows the paywall instead of a toast.
+        void queryClient.invalidateQueries({ queryKey: subscriptionKeys.mine });
+        return;
+      }
       showApiError(error, 'clients.broadcast.error');
     },
   });
