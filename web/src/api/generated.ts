@@ -22281,7 +22281,7 @@ export class ApiClient {
 
         } else if (status === 404) {
             const _responseText = response.data;
-            return throwException("No promotion has this code, or its claim window has closed (PROMOTION_CODE_NOT_FOUND)", status, _responseText, _headers);
+            return throwException("No promotion has this code, its claim window has closed, or an admin ended it (PROMOTION_CODE_NOT_FOUND)", status, _responseText, _headers);
 
         } else if (status === 409) {
             const _responseText = response.data;
@@ -24086,6 +24086,102 @@ export class ApiClient {
             let resultData503  = _responseText;
             result503 = JSON.parse(resultData503);
             return throwException("Stripe is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers, result503);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<PromotionDto>(null as any);
+    }
+
+    /**
+     * End a promotion
+     * @param promotionId Route parameter — the promotion's public id; matches {PromotionId} in the route exactly.
+     * @return The promotion, now Ended
+     */
+    endPromotionEndpoint(promotionId: string, signal?: AbortSignal): Promise<PromotionDto> {
+        let url_ = this.baseUrl + "/admin/promotions/{promotionId}/end";
+        if (promotionId === undefined || promotionId === null)
+            throw new globalThis.Error("The parameter 'promotionId' must be defined.");
+        url_ = url_.replace("{promotionId}", encodeURIComponent("" + promotionId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processEndPromotionEndpoint(_response);
+        });
+    }
+
+    protected processEndPromotionEndpoint(response: AxiosResponse): Promise<PromotionDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<PromotionDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("The promotion id is empty", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Caller is not an Admin", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("No promotion has this id", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = JSON.parse(resultData409);
+            return throwException("The promotion has already ended (PROMOTION_ALREADY_ENDED)", status, _responseText, _headers, result409);
+
+        } else if (status === 502) {
+            const _responseText = response.data;
+            let result502: any = null;
+            let resultData502  = _responseText;
+            result502 = JSON.parse(resultData502);
+            return throwException("Stripe failed; nothing was saved (BILLING_PROVIDER_ERROR)", status, _responseText, _headers, result502);
+
+        } else if (status === 503) {
+            const _responseText = response.data;
+            let result503: any = null;
+            let resultData503  = _responseText;
+            result503 = JSON.parse(resultData503);
+            return throwException("A code promotion needs Stripe, which is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers, result503);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -34628,6 +34724,10 @@ export enum PromotionStatusFilter {
     Active = "Active",
     Scheduled = "Scheduled",
     Ended = "Ended",
+}
+
+/** Request for ending a promotion early. */
+export interface EndPromotionRequest {
 }
 
 /** Request for creating a promotion. */

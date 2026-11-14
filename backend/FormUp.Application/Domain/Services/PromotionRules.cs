@@ -10,14 +10,15 @@ namespace FormUp.Application.Domain.Services;
 public static class PromotionRules
 {
     /// <summary>
-    /// Scheduled before the claim window opens; Ended after it closes or once every use is taken; otherwise Active.
+    /// Ended when an admin ended it, after the claim window closes or once every use is taken; Scheduled before the
+    /// window opens; otherwise Active.
     /// </summary>
     /// <param name="promotion">The promotion.</param>
     /// <param name="usedCount">How many coaches claimed it.</param>
     /// <param name="now">The current instant.</param>
     public static PromotionStatus StatusAt(Promotion promotion, int usedCount, DateTimeOffset now)
     {
-        if (HasClaimWindowClosed(promotion, now) || IsUsedUp(promotion, usedCount))
+        if (promotion.EndedAt is not null || HasClaimWindowClosed(promotion, now) || IsUsedUp(promotion, usedCount))
         {
             return PromotionStatus.Ended;
         }

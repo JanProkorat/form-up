@@ -3165,6 +3165,10 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("duration_months");
 
+                    b.Property<DateTimeOffset?>("EndedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ended_at");
+
                     b.Property<int>("Kind")
                         .HasColumnType("integer")
                         .HasColumnName("kind");

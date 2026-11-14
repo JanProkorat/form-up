@@ -3586,6 +3586,7 @@
     "PROMOTION_CODE_NEW_COACHES_ONLY": "This code is only for new coaches.",
     "PROMOTION_CODE_ALREADY_USED": "You have already used this code.",
     "PROMOTION_CODE_TAKEN": "Another promotion that has not ended uses this code.",
+    "PROMOTION_ALREADY_ENDED": "This promotion has already ended.",
     "PROMOTION_VALUE_INVALID": "Check the value of the promotion.",
     "PROMOTION_MODE_INVALID": "Check the code: it is required with a code and not allowed for an automatic promotion.",
     "PROMOTION_MONTHS_INVALID": "Enter a number of months from 2 to 36.",
@@ -7048,6 +7049,7 @@
       "codeSubline": "Code",
       "automatic": "Automatic",
       "allPaidPlans": "All paid plans",
+      "actions": "Actions",
       "usedOf": "{{count}} of {{max}}"
     },
     "lasts": {
@@ -7064,6 +7066,18 @@
       "start": "Start",
       "pro": "Pro",
       "studio": "Studio"
+    },
+    "end": {
+      "action": "End {{name}}",
+      "tooltip": "End promotion",
+      "title": "End “{{name}}”?",
+      "description": "It stops applying at checkout today, and no new coach can claim it. Its status changes to Ended.",
+      "note_one": "The {{count}} coach who already has it keeps their discount until it runs out.",
+      "note_other": "The {{count}} coaches who already have it keep their discount until it runs out.",
+      "confirm": "End promotion",
+      "success": "Promotion ended.",
+      "notFound": "This promotion no longer exists.",
+      "error": "Could not end the promotion."
     },
     "drawer": {
       "titleNew": "New promotion",

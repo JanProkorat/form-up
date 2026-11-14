@@ -211,6 +211,17 @@ public sealed class StripeSubscriptionService(
         });
 
     /// <inheritdoc />
+    public Task DeactivatePromotionCodeAsync(string promotionCodeId, CancellationToken ct) =>
+        RunAsync("deactivate-promotion-code", async stripe =>
+        {
+            // Setting active=false on an inactive code is a no-op at Stripe, so a retry cannot fail.
+            await stripe.V1.PromotionCodes.UpdateAsync(
+                promotionCodeId, new PromotionCodeUpdateOptions { Active = false }, cancellationToken: ct);
+
+            return true;
+        });
+
+    /// <inheritdoc />
     public Task DeleteCouponAsync(string couponId, CancellationToken ct) =>
         RunAsync("delete-coupon", async stripe =>
         {
