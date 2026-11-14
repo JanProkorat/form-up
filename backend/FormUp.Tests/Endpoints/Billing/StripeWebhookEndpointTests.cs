@@ -8,7 +8,6 @@ using FormUp.Application.Domain.Services;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Tests.Builders;
 using FormUp.Tests.Infrastructure;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -492,25 +491,15 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
     [Fact]
     public async Task Webhook_WhenProcessingThrows_Returns500_AndStoresNoEventId()
     {
+        // An event id longer than the 255-character column makes the single save fail after the change was staged.
+        // A second host would replace FastEndpoints' process-wide service provider, so the failure is forced in the data.
         var scenario = await ArrangeOnPaidPlanAsync();
-        await UpdateRowAsync(scenario.Coach.ProfileId, row =>
-        {
-            row.GivenFreeAt = DateTimeOffset.UtcNow.AddDays(-1);
-            row.FreeUntil = DateTimeOffset.UtcNow.AddDays(30);
-        });
-        var eventId = NewEventId();
-        using var failing = factory.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
-            services.AddSingleton<TimeProvider>(new ThrowingTimeProvider())));
+        var eventId = $"evt_{new string('x', 300)}";
 
-        var response = await PostAsync(
-            SubscriptionEvent(eventId, "customer.subscription.updated", scenario, "active"), client: failing.CreateClient());
+        var response = await PostAsync(InvoiceEvent(eventId, "invoice.payment_failed", scenario));
 
         response.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
         (await ProcessedCountAsync(eventId)).Should().Be(0, "a retry from Stripe must be able to reprocess the event");
-    }
-
-    private sealed class ThrowingTimeProvider : TimeProvider
-    {
-        public override DateTimeOffset GetUtcNow() => throw new InvalidOperationException("clock failure");
+        (await ReadRowAsync(scenario.Coach.ProfileId)).Status.Should().Be(SubscriptionStatus.Active, "the staged change rolls back with the event id");
     }
 }
