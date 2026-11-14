@@ -110,6 +110,27 @@ public class CoachSubscription : TimestampableEntity
     public DateTimeOffset? NextPaymentAttemptAt { get; set; }
 
     /// <summary>
+    /// The promotion discounting the provider subscription now, or null. Set from the provider's subscription event.
+    /// </summary>
+    public long? CurrentPromotionId { get; set; }
+
+    /// <summary>
+    /// Navigation to the promotion discounting the subscription now.
+    /// </summary>
+    public Promotion? CurrentPromotion { get; set; }
+
+    /// <summary>
+    /// When the current promotion's discount ends, as the provider reports it; null for a forever discount.
+    /// </summary>
+    public DateTimeOffset? CurrentPromotionEndsAt { get; set; }
+
+    /// <summary>
+    /// When a provider subscription of this coach was first seen live. Null for a coach who never paid, which is what
+    /// "new coaches only" promotions test.
+    /// </summary>
+    public DateTimeOffset? FirstPaidAt { get; set; }
+
+    /// <summary>
     /// True while an admin-given plan applies: <see cref="GivenFreeAt"/> is set and <see cref="FreeUntil"/> is null or
     /// still in the future.
     /// </summary>
