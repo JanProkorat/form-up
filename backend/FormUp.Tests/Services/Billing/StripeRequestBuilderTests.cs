@@ -56,7 +56,7 @@ public class StripeRequestBuilderTests
     [Fact]
     public void Checkout_BuildsASubscriptionWithNoTrialAndBillingDetailsCollection()
     {
-        var session = StripeRequestBuilder.Checkout("cus_1", UserId, "pro", "price_plan", null, null, "cs", Options());
+        var session = StripeRequestBuilder.Checkout("cus_1", UserId, "pro", "price_plan", null, null, "cs", CheckoutFlow.Settings, Options());
 
         session.Mode.Should().Be("subscription");
         session.Customer.Should().Be("cus_1");
@@ -69,16 +69,57 @@ public class StripeRequestBuilderTests
         session.SubscriptionData!.TrialPeriodDays.Should().BeNull();
         session.SubscriptionData.TrialEnd.Should().BeNull();
         session.Locale.Should().Be("cs");
-        session.SuccessUrl.Should().Be("https://app.example/billing/success");
-        session.CancelUrl.Should().Be("https://app.example/billing/cancel");
+        session.SuccessUrl.Should().Be("https://app.example/billing/success?flow=settings");
+        session.CancelUrl.Should().Be("https://app.example/billing/cancel?flow=settings");
         session.SubscriptionData.Metadata.Should().Contain("planCode", "pro");
         session.LineItems.Should().ContainSingle().Which.Price.Should().Be("price_plan");
     }
 
     [Fact]
+    public void Checkout_SignUpFlow_IsAppendedToBothReturnUrls()
+    {
+        var session = StripeRequestBuilder.Checkout("cus_1", UserId, "pro", "price_plan", null, null, "cs", CheckoutFlow.SignUp, Options());
+
+        session.SuccessUrl.Should().Be("https://app.example/billing/success?flow=signup");
+        session.CancelUrl.Should().Be("https://app.example/billing/cancel?flow=signup");
+    }
+
+    [Theory]
+    [InlineData("https://app.example/billing/success?session={CHECKOUT_SESSION_ID}", "https://app.example/billing/success?session={CHECKOUT_SESSION_ID}&flow=settings")]
+    [InlineData("https://app.example/billing?x=1#done", "https://app.example/billing?x=1&flow=settings#done")]
+    public void ReturnUrl_KeepsTheConfiguredQueryAndFragment(string configured, string expected)
+    {
+        StripeRequestBuilder.ReturnUrl(configured, CheckoutFlow.Settings).Should().Be(expected);
+    }
+
+    [Fact]
+    public void SecondRolePreview_AddsTheAddOnLineAndInvoicesTheProrationNow()
+    {
+        var preview = StripeRequestBuilder.SecondRolePreview("cus_1", "sub_1", "price_addon", Options(BillingTaxMode.Vat21));
+
+        preview.Customer.Should().Be("cus_1");
+        preview.Subscription.Should().Be("sub_1");
+        preview.SubscriptionDetails!.ProrationBehavior.Should().Be("always_invoice");
+        var item = preview.SubscriptionDetails.Items.Should().ContainSingle().Subject;
+        item.Price.Should().Be("price_addon");
+        item.Id.Should().BeNull("a new line, existing items stay");
+        item.TaxRates.Should().Equal("txr_test");
+    }
+
+    [Fact]
+    public void SecondRoleCharge_FailsInsteadOfLeavingTheSubscriptionHalfChanged()
+    {
+        var update = StripeRequestBuilder.SecondRoleCharge("price_addon", Options());
+
+        update.PaymentBehavior.Should().Be("error_if_incomplete");
+        update.ProrationBehavior.Should().Be("always_invoice");
+        update.Items.Should().ContainSingle().Which.Price.Should().Be("price_addon");
+    }
+
+    [Fact]
     public void Checkout_WithAddOn_AddsASecondLine()
     {
-        var session = StripeRequestBuilder.Checkout("cus_1", UserId, "pro", "price_plan", "price_addon", null, "cs", Options());
+        var session = StripeRequestBuilder.Checkout("cus_1", UserId, "pro", "price_plan", "price_addon", null, "cs", CheckoutFlow.Settings, Options());
 
         session.LineItems.Select(line => line.Price).Should().Equal("price_plan", "price_addon");
     }
@@ -86,7 +127,7 @@ public class StripeRequestBuilderTests
     [Fact]
     public void Checkout_WithAutomaticPromotion_AppliesTheCouponInsteadOfPromotionCodes()
     {
-        var session = StripeRequestBuilder.Checkout("cus_1", UserId, "pro", "price_plan", null, "coupon_1", "cs", Options());
+        var session = StripeRequestBuilder.Checkout("cus_1", UserId, "pro", "price_plan", null, "coupon_1", "cs", CheckoutFlow.Settings, Options());
 
         session.Discounts.Should().ContainSingle().Which.Coupon.Should().Be("coupon_1");
         session.AllowPromotionCodes.Should().BeNull("Stripe refuses discounts together with allow_promotion_codes");
@@ -95,8 +136,8 @@ public class StripeRequestBuilderTests
     [Fact]
     public void Checkout_TaxRateComesFromConfiguration()
     {
-        var withVat = StripeRequestBuilder.Checkout("cus_1", UserId, "pro", "price_plan", "price_addon", null, "cs", Options(BillingTaxMode.Vat21));
-        var withoutVat = StripeRequestBuilder.Checkout("cus_1", UserId, "pro", "price_plan", "price_addon", null, "cs", Options());
+        var withVat = StripeRequestBuilder.Checkout("cus_1", UserId, "pro", "price_plan", "price_addon", null, "cs", CheckoutFlow.Settings, Options(BillingTaxMode.Vat21));
+        var withoutVat = StripeRequestBuilder.Checkout("cus_1", UserId, "pro", "price_plan", "price_addon", null, "cs", CheckoutFlow.Settings, Options());
 
         withVat.LineItems.Should().OnlyContain(line => line.TaxRates!.SequenceEqual(new[] { "txr_test" }));
         withoutVat.LineItems.Should().OnlyContain(line => line.TaxRates == null);

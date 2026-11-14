@@ -1,7 +1,9 @@
 using FastEndpoints;
 using FormUp.Application.Domain.Constants;
 using FormUp.Application.Infrastructure.Data;
+using FormUp.Application.Infrastructure.Services.Billing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace FormUp.Application.Features.CoachSubscriptions.GetCoachPlans;
 
@@ -10,7 +12,9 @@ namespace FormUp.Application.Features.CoachSubscriptions.GetCoachPlans;
 /// client app never sees a price.
 /// </summary>
 /// <param name="db">Application database context.</param>
-internal sealed class GetCoachPlansEndpoint(IApplicationDbContext db) : EndpointWithoutRequest<GetCoachPlansResponse>
+/// <param name="billingOptions">Billing settings, for the tax mode.</param>
+internal sealed class GetCoachPlansEndpoint(IApplicationDbContext db, IOptions<BillingOptions> billingOptions)
+    : EndpointWithoutRequest<GetCoachPlansResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -57,6 +61,6 @@ internal sealed class GetCoachPlansEndpoint(IApplicationDbContext db) : Endpoint
             })
             .ToListAsync(ct);
 
-        await Send.OkAsync(new GetCoachPlansResponse { Plans = plans }, ct);
+        await Send.OkAsync(new GetCoachPlansResponse { Plans = plans, TaxMode = billingOptions.Value.TaxMode }, ct);
     }
 }

@@ -206,6 +206,7 @@ internal sealed class StripeWebhookEndpoint(
 
         row.LastExternalEventAt = StripeWebhookMapper.ToUtc(stripeEvent.Created);
         row.ExternalSubscriptionId = null;
+        row.NextPaymentAttemptAt = null;
 
         if (IsGiftInForce(row))
         {
@@ -252,11 +253,14 @@ internal sealed class StripeWebhookEndpoint(
             row.Status = SubscriptionStatus.Active;
         }
 
+        row.NextPaymentAttemptAt = paymentFailed && invoice.NextPaymentAttempt is { } nextAttempt
+            ? StripeWebhookMapper.ToUtc(nextAttempt)
+            : null;
+
         return true;
     }
 
-    private bool IsGiftInForce(CoachSubscription row) =>
-        row.GivenFreeAt is not null && (row.FreeUntil is null || row.FreeUntil > timeProvider.GetUtcNow());
+    private bool IsGiftInForce(CoachSubscription row) => row.IsGiftInForce(timeProvider.GetUtcNow());
 
     private bool IsStale(Event stripeEvent, CoachSubscription row)
     {

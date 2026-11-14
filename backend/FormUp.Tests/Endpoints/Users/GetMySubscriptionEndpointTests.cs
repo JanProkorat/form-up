@@ -6,10 +6,13 @@ using FluentAssertions;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Features.Users.GetMySubscription;
 using FormUp.Application.Infrastructure.Data;
+using FormUp.Application.Infrastructure.Services.Billing;
 using FormUp.Tests.Builders;
+using FormUp.Tests.Endpoints.Billing;
 using FormUp.Tests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace FormUp.Tests.Endpoints.Users;
 
@@ -150,6 +153,60 @@ public class GetMySubscriptionEndpointTests(FitnessApiFactory factory)
         block.LapsedPlanNameEn.Should().BeNull();
         block.OverCapClientCount.Should().Be(0);
         block.FreeSlotCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Get_PastDueWithARetryDate_ReportsItWithTheBillingAccountAndTheTaxMode()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        fake.IsConfigured = false;
+        var options = factory.Services.GetRequiredService<IOptions<BillingOptions>>().Value;
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var plan = await PaidPlanBuilder.CreateAsync(factory);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, plan, SubscriptionStatus.PastDue);
+        var retryAt = DateTimeOffset.UtcNow.AddDays(3);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            await db.CoachSubscriptions.Where(cs => cs.ProfessionalProfileId == coach.ProfileId)
+                .ExecuteUpdateAsync(
+                    s => s.SetProperty(cs => cs.NextPaymentAttemptAt, retryAt).SetProperty(cs => cs.ExternalCustomerId, "cus_billing"),
+                    Ct);
+        }
+
+        var original = options.TaxMode;
+
+        try
+        {
+            options.TaxMode = BillingTaxMode.Vat21;
+
+            var block = await GetAsync(coach);
+
+            block.Status.Should().Be(SubscriptionStatus.PastDue);
+            block.NextPaymentAttemptAt.Should().BeCloseTo(retryAt, TimeSpan.FromSeconds(1));
+            block.HasBillingAccount.Should().BeTrue();
+            block.TaxMode.Should().Be(BillingTaxMode.Vat21);
+        }
+        finally
+        {
+            options.TaxMode = original;
+            BillingTestData.ResetProvider(factory);
+        }
+    }
+
+    [Fact]
+    public async Task Get_CoachWithoutABillingCustomer_HasNoBillingAccountAndNoRetryDate()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var plan = await PaidPlanBuilder.CreateAsync(factory);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, plan);
+
+        var block = await GetAsync(coach);
+
+        block.HasBillingAccount.Should().BeFalse();
+        block.NextPaymentAttemptAt.Should().BeNull();
+        block.TaxMode.Should().Be(BillingTaxMode.None);
     }
 
     [Fact]

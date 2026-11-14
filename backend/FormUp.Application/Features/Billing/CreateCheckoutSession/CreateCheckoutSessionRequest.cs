@@ -1,3 +1,5 @@
+using FormUp.Application.Domain.Enums;
+
 namespace FormUp.Application.Features.Billing.CreateCheckoutSession;
 
 /// <summary>
@@ -10,4 +12,7 @@ public class CreateCheckoutSessionRequest
 
     /// <summary>True to add the second-role add-on line. Refused on a plan that already includes both roles.</summary>
     public bool IncludeSecondRoleAddOn { get; set; }
+
+    /// <summary>Where the coach started, so the return URL lands on the right page. Never a URL.</summary>
+    public CheckoutFlow Flow { get; set; } = CheckoutFlow.Settings;
 }

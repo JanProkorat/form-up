@@ -1,6 +1,8 @@
+import { Link } from 'react-router-dom';
 import { Dialog as DialogPrimitive } from 'radix-ui';
 import { useTranslation } from 'react-i18next';
 import { Check, Lock } from 'lucide-react';
+import { PLAN_PICKER_PATH } from '@/components/subscription/planLinks';
 import { Button } from '@/components/ui/button';
 import { useSubscription } from '@/hooks/useSubscriptionQueries';
 import { cn } from '@/lib/utils';
@@ -21,7 +23,7 @@ const BODY_CLASS = 'text-copy text-muted-foreground';
 
 /**
  * The feature paywall body, shared by the page-level card and the dialog: the coach's current plan,
- * what the feature gives, and a "See plans" action that stays disabled until plan selection exists.
+ * what the feature gives, and a "See plans" link to the plan picker.
  */
 export default function PaywallCard({ feature, inDialog = false, className }: Props) {
   const { t } = useTranslation();
@@ -60,8 +62,8 @@ export default function PaywallCard({ feature, inDialog = false, className }: Pr
         ))}
       </ul>
       <div className="flex items-center justify-end gap-2 border-t border-border pt-4.5">
-        <Button type="button" size="lg" className="px-3.5 font-semibold" disabled>
-          {t('subscription.seePlans')}
+        <Button asChild size="lg" className="px-3.5 font-semibold">
+          <Link to={PLAN_PICKER_PATH}>{t('subscription.seePlans')}</Link>
         </Button>
       </div>
     </div>

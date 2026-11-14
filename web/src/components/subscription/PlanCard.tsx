@@ -14,47 +14,75 @@ interface Props {
   actionLabel: string;
   /** Dark primary button when true, outline otherwise. */
   primary: boolean;
-  /** Plans that cannot be taken yet (no billing) keep a disabled button. */
+  /** Disables the button, for the plan the coach is on and for plans that cannot be taken right now. */
   actionDisabled: boolean;
   busy: boolean;
   onAction: () => void;
+  /** Price to show instead of the plan's own, for example with the second-role add-on included. */
+  priceMinorUnits?: number;
+  /** Small line under the price, already translated. */
+  priceNote?: string;
+  /** Second-role line, already translated; null hides it, undefined derives it from the plan. */
+  secondRoleText?: string | null;
+  /** Pill next to the plan name, already translated; defaults to the "Your plan now" pill for the current plan. */
+  badge?: string;
+  /** Heavy outline: the plan the coach is on, or the one preselected. Defaults to `current`. */
+  emphasized?: boolean;
 }
 
 const FEATURES = PLAN_FEATURES;
 
 /** One plan of the picker: name, price, second-role line, client cap, included features and the choose button. */
-export default function PlanCard({ plan, current = false, actionLabel, primary, actionDisabled, busy, onAction }: Props) {
+export default function PlanCard({
+  plan,
+  current = false,
+  actionLabel,
+  primary,
+  actionDisabled,
+  busy,
+  onAction,
+  priceMinorUnits,
+  priceNote,
+  secondRoleText,
+  badge,
+  emphasized,
+}: Props) {
   const { t, i18n } = useTranslation();
   const name = coachPlanName(plan, i18n.language);
   const currency = plan.currency ?? 'CZK';
-  const price = formatMoney(plan.priceMinorUnits ?? 0, currency, i18n.language);
+  const price = formatMoney(priceMinorUnits ?? plan.priceMinorUnits ?? 0, currency, i18n.language);
   const interval = plan.billingInterval === BillingInterval.Annual ? 'year' : 'month';
   const addOn = plan.secondRoleAddOnPriceMinorUnits;
-  const secondRole =
+  const derivedSecondRole =
     addOn !== undefined && addOn !== null
       ? t('subscription.planChoice.card.secondRoleAddOn', { amount: formatMoney(addOn, currency, i18n.language) })
       : plan.bothRolesIncluded
         ? t('subscription.planChoice.card.bothRoles')
         : null;
+  const secondRole = secondRoleText === undefined ? derivedSecondRole : secondRoleText;
+  const pill = badge ?? (current ? t('subscription.planChoice.card.current') : null);
+  const heavy = emphasized ?? current;
   const cap = plan.maxActiveClients;
 
   return (
     <article
       aria-label={name}
-      className="flex flex-col gap-4 rounded-2xl border border-line bg-card p-5 shadow-panel"
+      className={`flex flex-col gap-4 rounded-2xl bg-card p-5 shadow-panel ${heavy ? 'border-2 border-ink' : 'border border-line'}`}
     >
       <div className="flex items-center gap-2">
         <h2 className="text-card-title font-semibold text-ink">{name}</h2>
-        {current && (
-          <span className="rounded-full bg-sunken px-2.5 py-0.5 text-body font-semibold text-ink-2">
-            {t('subscription.planChoice.card.current')}
-          </span>
+        {pill && (
+          <span className="ml-auto rounded-full bg-sunken px-2.5 py-0.5 text-body font-semibold text-ink-2">{pill}</span>
         )}
       </div>
 
-      <div className="flex items-baseline gap-2">
-        <span className="text-stat font-semibold text-ink">{price}</span>
-        <span className="text-body text-muted-foreground">{t(`subscription.planChoice.card.per.${interval}`)}</span>
+      <div className="flex flex-col gap-1">
+        <div className="flex items-baseline gap-2">
+          <span className="text-stat font-semibold text-ink">{price}</span>
+          <span className="text-body text-muted-foreground">{t(`subscription.planChoice.card.per.${interval}`)}</span>
+        </div>
+        {/* Two lines are reserved for the note so the buttons line up across the cards. */}
+        <span className="min-h-9 text-meta text-muted-foreground">{priceNote}</span>
       </div>
 
       {/* Two lines are reserved for the price note so the buttons line up across the cards. */}

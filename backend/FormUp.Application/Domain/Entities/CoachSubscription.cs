@@ -102,4 +102,24 @@ public class CoachSubscription : TimestampableEntity
     /// Creation time of the newest provider event applied to this subscription. An older event arriving later is skipped.
     /// </summary>
     public DateTimeOffset? LastExternalEventAt { get; set; }
+
+    /// <summary>
+    /// When the provider will retry a failed payment next. Set by a failed invoice, cleared once an invoice is paid or the
+    /// subscription ends.
+    /// </summary>
+    public DateTimeOffset? NextPaymentAttemptAt { get; set; }
+
+    /// <summary>
+    /// True while an admin-given plan applies: <see cref="GivenFreeAt"/> is set and <see cref="FreeUntil"/> is null or
+    /// still in the future.
+    /// </summary>
+    /// <param name="now">The current instant.</param>
+    public bool IsGiftInForce(DateTimeOffset now) => GivenFreeAt is not null && (FreeUntil is null || FreeUntil > now);
+
+    /// <summary>
+    /// True while the provider subscription is live: it has a provider id and the status is Active, Trialing or PastDue.
+    /// </summary>
+    public bool HasLiveProviderSubscription =>
+        ExternalSubscriptionId is not null
+        && Status is SubscriptionStatus.Active or SubscriptionStatus.Trialing or SubscriptionStatus.PastDue;
 }

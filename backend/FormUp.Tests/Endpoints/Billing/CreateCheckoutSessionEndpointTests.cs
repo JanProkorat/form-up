@@ -90,6 +90,35 @@ public class CreateCheckoutSessionEndpointTests(FitnessApiFactory factory) : IDi
     }
 
     [Fact]
+    public async Task Checkout_WithTheSignUpFlow_PassesItToTheProvider_AndDefaultsToSettings()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (plan, _) = await StripePlanAsync();
+
+        var signUp = await coach.Http.PostAsJsonAsync(Route, new { PlanCode = plan, Flow = "SignUp" }, Ct);
+        var defaulted = await coach.Http.PostAsJsonAsync(Route, Body(plan), Ct);
+
+        signUp.StatusCode.Should().Be(HttpStatusCode.OK);
+        defaulted.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.Checkouts.Where(call => call.UserId == coach.UserId).Select(call => call.Flow)
+            .Should().Equal(CheckoutFlow.SignUp, CheckoutFlow.Settings);
+    }
+
+    [Fact]
+    public async Task Checkout_WithAnUnknownFlow_Returns400()
+    {
+        BillingTestData.ResetProvider(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (plan, _) = await StripePlanAsync();
+
+        var response = await coach.Http.PostAsJsonAsync(Route, new { PlanCode = plan, Flow = 99 }, Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
     public async Task Checkout_WithTheSecondRoleAddOn_PassesTheAddOnAmount()
     {
         var fake = BillingTestData.ResetProvider(factory);

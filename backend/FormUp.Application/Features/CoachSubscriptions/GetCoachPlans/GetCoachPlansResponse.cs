@@ -1,4 +1,5 @@
 using FormUp.Application.Domain.Enums;
+using FormUp.Application.Infrastructure.Services.Billing;
 
 namespace FormUp.Application.Features.CoachSubscriptions.GetCoachPlans;
 
@@ -9,6 +10,9 @@ public class GetCoachPlansResponse
 {
     /// <summary>Active plans, cheapest first.</summary>
     public List<CoachPlanDto> Plans { get; set; } = [];
+
+    /// <summary>VAT handling: with <see cref="BillingTaxMode.None"/> the listed prices carry no VAT line.</summary>
+    public BillingTaxMode TaxMode { get; set; }
 }
 
 /// <summary>

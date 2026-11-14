@@ -33,6 +33,7 @@ public interface ISubscriptionService
     /// <param name="currency">ISO 4217 currency of the add-on price.</param>
     /// <param name="interval">Billing cadence of the add-on price.</param>
     /// <param name="couponId">Automatic promotion coupon id, or null.</param>
+    /// <param name="flow">Where the coach started, appended to the configured return URLs as a query parameter.</param>
     /// <param name="language">The coach's language (cs, en, de) for the hosted page, or null for Czech.</param>
     /// <param name="ct">Cancellation token.</param>
     Task<string> CreateCheckoutSessionAsync(
@@ -44,6 +45,7 @@ public interface ISubscriptionService
         string currency,
         BillingInterval interval,
         string? couponId,
+        CheckoutFlow flow,
         string? language,
         CancellationToken ct);
 
@@ -104,4 +106,52 @@ public interface ISubscriptionService
     /// <param name="freeUntil">End of the gift, or null for none.</param>
     /// <param name="ct">Cancellation token.</param>
     Task ApplyGivenFreeAsync(string subscriptionId, DateTimeOffset? freeUntil, CancellationToken ct);
+
+    /// <summary>
+    /// Ends the subscription at the close of the current period instead of renewing it. A scheduled plan change on the
+    /// subscription is dropped, because the coach is leaving.
+    /// </summary>
+    /// <param name="subscriptionId">The provider subscription id.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task CancelAtPeriodEndAsync(string subscriptionId, CancellationToken ct);
+
+    /// <summary>
+    /// Previews what adding the second-role add-on to an existing subscription would charge today, prorated, with tax as
+    /// configured. Changes nothing at the provider.
+    /// </summary>
+    /// <param name="customerId">The provider customer id.</param>
+    /// <param name="subscriptionId">The provider subscription id.</param>
+    /// <param name="planCode">The plan code the add-on belongs to.</param>
+    /// <param name="addOnAmountMinorUnits">The add-on price per billing interval.</param>
+    /// <param name="currency">ISO 4217 currency of the add-on price.</param>
+    /// <param name="interval">Billing cadence of the add-on price.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task<SecondRoleAddOnPreview> PreviewSecondRoleAddOnAsync(
+        string customerId,
+        string subscriptionId,
+        string planCode,
+        long addOnAmountMinorUnits,
+        string currency,
+        BillingInterval interval,
+        CancellationToken ct);
+
+    /// <summary>
+    /// Adds the second-role add-on to an existing subscription and charges the prorated amount now. When the card is
+    /// declined or needs authentication nothing is applied and the outcome says which; any other provider failure throws.
+    /// </summary>
+    /// <param name="subscriptionId">The provider subscription id.</param>
+    /// <param name="planCode">The plan code the add-on belongs to.</param>
+    /// <param name="addOnAmountMinorUnits">The add-on price per billing interval.</param>
+    /// <param name="currency">ISO 4217 currency of the add-on price.</param>
+    /// <param name="interval">Billing cadence of the add-on price.</param>
+    /// <param name="idempotencyKey">Repeating a call with the same key returns the first result instead of charging twice.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task<AddOnChargeOutcome> ChargeSecondRoleAddOnAsync(
+        string subscriptionId,
+        string planCode,
+        long addOnAmountMinorUnits,
+        string currency,
+        BillingInterval interval,
+        string idempotencyKey,
+        CancellationToken ct);
 }

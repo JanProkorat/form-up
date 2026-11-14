@@ -5611,6 +5611,13 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("The Free plan cannot be repriced or deactivated", status, _responseText, _headers);
 
+        } else if (status === 502) {
+            const _responseText = response.data;
+            let result502: any = null;
+            let resultData502  = _responseText;
+            result502 = JSON.parse(resultData502);
+            return throwException("Stripe failed; nothing was saved (BILLING_PROVIDER_ERROR)", status, _responseText, _headers, result502);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -5820,6 +5827,13 @@ export class ApiClient {
         } else if (status === 409) {
             const _responseText = response.data;
             return throwException("A plan with this Code already exists", status, _responseText, _headers);
+
+        } else if (status === 502) {
+            const _responseText = response.data;
+            let result502: any = null;
+            let resultData502  = _responseText;
+            result502 = JSON.parse(resultData502);
+            return throwException("Stripe could not create the price; nothing was saved (BILLING_PROVIDER_ERROR)", status, _responseText, _headers, result502);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -21733,6 +21747,566 @@ export class ApiClient {
     }
 
     /**
+     * Switch my paid subscription to Free at period end
+     * @return The cancellation is scheduled
+     */
+    scheduleSwitchToFreeEndpoint(signal?: AbortSignal): Promise<ScheduleSwitchToFreeResponse> {
+        let url_ = this.baseUrl + "/billing/switch-to-free";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processScheduleSwitchToFreeEndpoint(_response);
+        });
+    }
+
+    protected processScheduleSwitchToFreeEndpoint(response: AxiosResponse): Promise<ScheduleSwitchToFreeResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<ScheduleSwitchToFreeResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The caller is not a trainer or nutritionist, or the coach role was removed", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("No live paid subscription (BILLING_NO_SUBSCRIPTION), an admin gift is in force (BILLING_GIFT_IN_FORCE), or a cancellation is already pending (BILLING_CANCELLATION_PENDING)", status, _responseText, _headers);
+
+        } else if (status === 502) {
+            const _responseText = response.data;
+            return throwException("Stripe failed; nothing was saved (BILLING_PROVIDER_ERROR)", status, _responseText, _headers);
+
+        } else if (status === 503) {
+            const _responseText = response.data;
+            return throwException("Stripe is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ScheduleSwitchToFreeResponse>(null as any);
+    }
+
+    /**
+     * Preview adding the second role
+     * @return The preview
+     */
+    previewSecondRoleAddOnEndpoint(signal?: AbortSignal): Promise<PreviewSecondRoleAddOnResponse> {
+        let url_ = this.baseUrl + "/billing/second-role/preview";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processPreviewSecondRoleAddOnEndpoint(_response);
+        });
+    }
+
+    protected processPreviewSecondRoleAddOnEndpoint(response: AxiosResponse): Promise<PreviewSecondRoleAddOnResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<PreviewSecondRoleAddOnResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The caller is not a trainer or nutritionist, or the coach role was removed", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("No live paid subscription (BILLING_NO_SUBSCRIPTION), an admin gift is in force (BILLING_GIFT_IN_FORCE), the plan has no add-on (BILLING_ADD_ON_NOT_AVAILABLE) or the add-on is already paid (BILLING_ADD_ON_ALREADY_PAID)", status, _responseText, _headers);
+
+        } else if (status === 502) {
+            const _responseText = response.data;
+            return throwException("Stripe failed (BILLING_PROVIDER_ERROR)", status, _responseText, _headers);
+
+        } else if (status === 503) {
+            const _responseText = response.data;
+            return throwException("Stripe is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<PreviewSecondRoleAddOnResponse>(null as any);
+    }
+
+    /**
+     * Open the Stripe Customer Portal
+     * @return The portal page to redirect to
+     */
+    createPortalSessionEndpoint(signal?: AbortSignal): Promise<CreatePortalSessionResponse> {
+        let url_ = this.baseUrl + "/billing/portal-session";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCreatePortalSessionEndpoint(_response);
+        });
+    }
+
+    protected processCreatePortalSessionEndpoint(response: AxiosResponse): Promise<CreatePortalSessionResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<CreatePortalSessionResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The caller is not a trainer or nutritionist", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("The coach has no Stripe customer yet (BILLING_CUSTOMER_NOT_FOUND)", status, _responseText, _headers);
+
+        } else if (status === 502) {
+            const _responseText = response.data;
+            return throwException("Stripe failed (BILLING_PROVIDER_ERROR)", status, _responseText, _headers);
+
+        } else if (status === 503) {
+            const _responseText = response.data;
+            return throwException("Stripe is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<CreatePortalSessionResponse>(null as any);
+    }
+
+    /**
+     * Start a Stripe Checkout
+     * @return The Checkout page to redirect to
+     */
+    createCheckoutSessionEndpoint(createCheckoutSessionRequest: CreateCheckoutSessionRequest, signal?: AbortSignal): Promise<CreateCheckoutSessionResponse> {
+        let url_ = this.baseUrl + "/billing/checkout-session";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(createCheckoutSessionRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCreateCheckoutSessionEndpoint(_response);
+        });
+    }
+
+    protected processCreateCheckoutSessionEndpoint(response: AxiosResponse): Promise<CreateCheckoutSessionResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<CreateCheckoutSessionResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid body, or the plan cannot be bought: unknown, Free, inactive, not priced in Stripe, or an add-on on a plan that includes both roles (PLAN_NOT_PURCHASABLE)", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The caller is not a trainer or nutritionist, or the coach role was removed", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("The caller has no professional profile, or the Free plan is missing", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("The coach already has a live paid subscription (BILLING_ALREADY_SUBSCRIBED)", status, _responseText, _headers);
+
+        } else if (status === 502) {
+            const _responseText = response.data;
+            return throwException("Stripe failed; nothing was started (BILLING_PROVIDER_ERROR)", status, _responseText, _headers);
+
+        } else if (status === 503) {
+            const _responseText = response.data;
+            return throwException("Stripe is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<CreateCheckoutSessionResponse>(null as any);
+    }
+
+    /**
+     * Pay for the second role
+     * @return The add-on is paid
+     */
+    confirmSecondRoleAddOnEndpoint(confirmSecondRoleAddOnRequest: ConfirmSecondRoleAddOnRequest, signal?: AbortSignal): Promise<ConfirmSecondRoleAddOnResponse> {
+        let url_ = this.baseUrl + "/billing/second-role/confirm";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(confirmSecondRoleAddOnRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processConfirmSecondRoleAddOnEndpoint(_response);
+        });
+    }
+
+    protected processConfirmSecondRoleAddOnEndpoint(response: AxiosResponse): Promise<ConfirmSecondRoleAddOnResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<ConfirmSecondRoleAddOnResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid body", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 402) {
+            const _responseText = response.data;
+            return throwException("The card was declined (BILLING_PAYMENT_DECLINED) or needs authentication (BILLING_PAYMENT_AUTHENTICATION_REQUIRED); nothing was applied", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The caller is not a trainer or nutritionist, or the coach role was removed", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("No live paid subscription (BILLING_NO_SUBSCRIPTION), an admin gift is in force (BILLING_GIFT_IN_FORCE), the plan has no add-on (BILLING_ADD_ON_NOT_AVAILABLE), the add-on is already paid (BILLING_ADD_ON_ALREADY_PAID) or a plan change is scheduled (BILLING_PLAN_CHANGE_PENDING)", status, _responseText, _headers);
+
+        } else if (status === 502) {
+            const _responseText = response.data;
+            return throwException("Stripe failed; nothing was saved (BILLING_PROVIDER_ERROR)", status, _responseText, _headers);
+
+        } else if (status === 503) {
+            const _responseText = response.data;
+            return throwException("Stripe is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ConfirmSecondRoleAddOnResponse>(null as any);
+    }
+
+    /**
+     * Change the plan of my paid subscription
+     * @return The change was applied or scheduled
+     */
+    changePlanEndpoint(changePlanRequest: ChangePlanRequest, signal?: AbortSignal): Promise<ChangePlanResponse> {
+        let url_ = this.baseUrl + "/billing/change-plan";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(changePlanRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processChangePlanEndpoint(_response);
+        });
+    }
+
+    protected processChangePlanEndpoint(response: AxiosResponse): Promise<ChangePlanResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<ChangePlanResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid body, or the plan cannot be bought: unknown, Free, inactive, not priced in Stripe, or it has no add-on price for a paid add-on (PLAN_NOT_PURCHASABLE)", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The caller is not a trainer or nutritionist, or the coach role was removed", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("No live paid subscription (BILLING_NO_SUBSCRIPTION), an admin gift is in force (BILLING_GIFT_IN_FORCE), or the plan is the current one (BILLING_PLAN_UNCHANGED)", status, _responseText, _headers);
+
+        } else if (status === 502) {
+            const _responseText = response.data;
+            return throwException("Stripe failed; nothing was saved (BILLING_PROVIDER_ERROR)", status, _responseText, _headers);
+
+        } else if (status === 503) {
+            const _responseText = response.data;
+            return throwException("Stripe is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ChangePlanResponse>(null as any);
+    }
+
+    /**
+     * Apply a promotion code to my subscription
+     * @return The code was applied
+     */
+    applyPromotionCodeEndpoint(applyPromotionCodeRequest: ApplyPromotionCodeRequest, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/billing/promotion-code";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(applyPromotionCodeRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processApplyPromotionCodeEndpoint(_response);
+        });
+    }
+
+    protected processApplyPromotionCodeEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("The code is empty, too long or has invalid characters (PROMOTION_CODE_INVALID)", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The caller is not a trainer or nutritionist, or the coach role was removed", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("The code is unknown or no longer active (PROMOTION_CODE_NOT_FOUND)", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("No live paid subscription (BILLING_NO_SUBSCRIPTION), or an admin gift is in force (BILLING_GIFT_IN_FORCE)", status, _responseText, _headers);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("The per-account rate limit was exceeded", status, _responseText, _headers);
+
+        } else if (status === 502) {
+            const _responseText = response.data;
+            return throwException("Stripe failed (BILLING_PROVIDER_ERROR)", status, _responseText, _headers);
+
+        } else if (status === 503) {
+            const _responseText = response.data;
+            return throwException("Stripe is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Update an automation rule
      * @param ruleId Route parameter: public id of the rule.
      * @return The updated rule
@@ -23513,6 +24087,13 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("The coach or the plan code is unknown (PROFESSIONAL_NOT_FOUND, SUBSCRIPTION_PLAN_NOT_FOUND)", status, _responseText, _headers);
 
+        } else if (status === 502) {
+            const _responseText = response.data;
+            let result502: any = null;
+            let resultData502  = _responseText;
+            result502 = JSON.parse(resultData502);
+            return throwException("Stripe failed; nothing was saved (BILLING_PROVIDER_ERROR)", status, _responseText, _headers, result502);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -24357,6 +24938,12 @@ export interface GetMySubscriptionResponse {
     nameEn?: string;
     /** German plan name. */
     nameDe?: string;
+    /** When the provider retries a failed payment next; null unless the last payment failed. */
+    nextPaymentAttemptAt?: string | undefined;
+    /** VAT handling, so the plan page knows whether to show a VAT line. */
+    taxMode?: BillingTaxMode;
+    /** True when the coach has a billing customer, so the billing portal can be opened. */
+    hasBillingAccount?: boolean;
     /** Subscription status, or null when the coach has no subscription and is on Free by default. */
     status?: SubscriptionStatus | undefined;
     /** When the current billing period ends, if known. */
@@ -24405,6 +24992,12 @@ the cap, the plan is unlimited or a plan choice is required. */
     priceLines?: SubscriptionPriceLineDto[];
     /** The feature flags that currently apply. */
     features?: SubscriptionFeaturesDto;
+}
+
+/** How VAT is handled on Stripe subscriptions and invoices. Selected by configuration, never by code. */
+export enum BillingTaxMode {
+    None = "None",
+    Vat21 = "Vat21",
 }
 
 /** Lifecycle status of a coach's subscription. */
@@ -26769,7 +27362,8 @@ in the body. An explicit null means unlimited; omitting the field entirely 400s.
     currency?: string;
     /** Billing cadence for this plan. */
     billingInterval?: BillingInterval;
-    /** External payment-provider price identifier, once billing integration ships. */
+    /** Ignored. The backend creates the Stripe price itself when a price row opens; the field stays only so existing
+clients keep working. The response returns the price id the backend stored. */
     externalPriceId?: string | undefined;
     /** Whether the plan is currently offered/selectable. Required — reactivation/deactivation
 happens through this field, and an omitted value must not silently deactivate a live
@@ -26830,7 +27424,8 @@ and SecondRoleAddOnPriceMinorUnits must be set. */
     currency?: string;
     /** Billing cadence for this plan. */
     billingInterval?: BillingInterval;
-    /** External payment-provider price identifier, once billing integration ships. */
+    /** Ignored. The backend creates the Stripe price itself when a price row opens; the field stays only so existing
+clients keep working. The response returns the price id the backend stored. */
     externalPriceId?: string | undefined;
     /** Whether the plan is currently offered/selectable. Defaults to true on create. */
     isActive?: boolean;
@@ -30337,6 +30932,8 @@ export enum KeepClientAfterLapse {
 export interface GetCoachPlansResponse {
     /** Active plans, cheapest first. */
     plans?: CoachPlanDto[];
+    /** VAT handling: with None the listed prices carry no VAT line. */
+    taxMode?: BillingTaxMode;
 }
 
 /** One plan a coach can choose: names, current price, client cap and feature flags. */
@@ -33041,6 +33638,103 @@ export enum DayOfWeek {
     Thursday = "Thursday",
     Friday = "Friday",
     Saturday = "Saturday",
+}
+
+/** The outcome of scheduling a switch to the Free plan. */
+export interface ScheduleSwitchToFreeResponse {
+    /** When the paid plan ends and Free starts (the period end); null when unknown. */
+    endsAt?: string | undefined;
+}
+
+/** What adding the second-role add-on would cost: the new bill and today's prorated charge. */
+export interface PreviewSecondRoleAddOnResponse {
+    /** The plan line of the bill, per billing interval, in the smallest currency unit. */
+    planAmountMinorUnits?: number;
+    /** The add-on line of the bill, per billing interval. */
+    addOnAmountMinorUnits?: number;
+    /** The recurring total after the add-on: plan plus add-on, before any tax. */
+    newTotalMinorUnits?: number;
+    /** How often the bill recurs. */
+    billingInterval?: BillingInterval;
+    /** ISO 4217 currency of every amount. */
+    currency?: string;
+    /** The prorated amount due today including tax. */
+    todayAmountMinorUnits?: number;
+    /** The tax part of TodayAmountMinorUnits; zero when no VAT is charged. */
+    todayTaxMinorUnits?: number;
+    /** When the current billing period ends and the new total starts to recur; null when unknown. */
+    periodEndsAt?: string | undefined;
+    /** VAT handling: with None there is no VAT line. */
+    taxMode?: BillingTaxMode;
+}
+
+/** The Stripe Customer Portal page to send the coach to. */
+export interface CreatePortalSessionResponse {
+    /** URL of the portal session. */
+    url?: string;
+}
+
+/** The hosted Stripe Checkout page to send the coach to. */
+export interface CreateCheckoutSessionResponse {
+    /** URL of the Checkout session. */
+    url?: string;
+}
+
+/** Request for starting a Stripe Checkout for the caller's own subscription. */
+export interface CreateCheckoutSessionRequest {
+    /** Code of the paid plan to buy. Never the Free plan. */
+    planCode: string;
+    /** True to add the second-role add-on line. Refused on a plan that already includes both roles. */
+    includeSecondRoleAddOn?: boolean;
+    /** Where the coach started, so the return URL lands on the right page. Never a URL. */
+    flow?: CheckoutFlow;
+}
+
+/** Where in the web app a coach started a checkout, so the return URL lands on the right page. */
+export enum CheckoutFlow {
+    Settings = "Settings",
+    SignUp = "SignUp",
+}
+
+/** The outcome of paying the second-role add-on. */
+export interface ConfirmSecondRoleAddOnResponse {
+    /** True once the add-on is paid; the client then adds the role through POST /users/me/roles. */
+    paysSecondRoleAddOn?: boolean;
+}
+
+/** Request for paying the second-role add-on now. */
+export interface ConfirmSecondRoleAddOnRequest {
+    /** One id per confirm attempt, made by the client when the dialog opens. Repeating a request with the same id never
+charges twice; after a declined card the client sends a new id. */
+    attemptId: string;
+}
+
+/** The outcome of a plan change request. */
+export interface ChangePlanResponse {
+    /** Code of the plan the coach asked for. */
+    planCode?: string;
+    /** Whether the change applied now (upgrade) or is scheduled for the next renewal (downgrade). */
+    timing?: PlanChangeTiming;
+    /** When the new plan starts: now for an upgrade, the period end for a scheduled change (null when unknown). */
+    effectiveAt?: string | undefined;
+}
+
+/** When a coach's plan change takes effect. */
+export enum PlanChangeTiming {
+    Now = "Now",
+    AtNextRenewal = "AtNextRenewal",
+}
+
+/** Request for moving the caller's live paid subscription to another paid plan. */
+export interface ChangePlanRequest {
+    /** Code of the paid plan to move to. Never the Free plan. */
+    planCode: string;
+}
+
+/** Request for applying a promotion code to the caller's own live subscription. */
+export interface ApplyPromotionCodeRequest {
+    /** The code as the coach typed it. Letters, digits, hyphen and underscore only. */
+    code: string;
 }
 
 /** A coach's automation rule as returned by the management endpoints. */

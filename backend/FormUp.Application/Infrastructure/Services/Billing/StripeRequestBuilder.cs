@@ -1,4 +1,5 @@
 using FormUp.Application.Domain.Enums;
+using Microsoft.AspNetCore.WebUtilities;
 using Stripe;
 using Stripe.Checkout;
 
@@ -82,6 +83,7 @@ public static class StripeRequestBuilder
     /// <param name="addOnPriceId">The provider price id of the add-on line, or null.</param>
     /// <param name="couponId">Automatic promotion coupon id, or null.</param>
     /// <param name="locale">The Stripe locale.</param>
+    /// <param name="flow">Where the coach started; appended to both return URLs as <c>flow</c>.</param>
     /// <param name="options">Billing settings.</param>
     public static SessionCreateOptions Checkout(
         string customerId,
@@ -91,6 +93,7 @@ public static class StripeRequestBuilder
         string? addOnPriceId,
         string? couponId,
         string locale,
+        CheckoutFlow flow,
         BillingOptions options)
     {
         var taxRates = TaxRates(options);
@@ -126,12 +129,61 @@ public static class StripeRequestBuilder
             TaxIdCollection = new SessionTaxIdCollectionOptions { Enabled = true },
             CustomerUpdate = new SessionCustomerUpdateOptions { Address = "auto", Name = "auto" },
             Locale = locale,
-            SuccessUrl = options.CheckoutSuccessUrl,
-            CancelUrl = options.CheckoutCancelUrl,
+            SuccessUrl = ReturnUrl(options.CheckoutSuccessUrl, flow),
+            CancelUrl = ReturnUrl(options.CheckoutCancelUrl, flow),
             Metadata = metadata,
             SubscriptionData = new SessionSubscriptionDataOptions { Metadata = metadata },
         };
     }
+
+    /// <summary>The value of the <c>flow</c> query parameter for a checkout flow.</summary>
+    /// <param name="flow">The flow.</param>
+    public static string FlowName(CheckoutFlow flow) => flow == CheckoutFlow.SignUp ? "signup" : "settings";
+
+    /// <summary>
+    /// A configured return URL with the checkout flow appended as <c>flow</c>. The base never comes from a request; a null
+    /// base (billing not configured) stays null.
+    /// </summary>
+    /// <param name="configuredUrl">The configured success or cancel URL.</param>
+    /// <param name="flow">The flow.</param>
+    public static string? ReturnUrl(string? configuredUrl, CheckoutFlow flow) =>
+        configuredUrl is null ? null : QueryHelpers.AddQueryString(configuredUrl, "flow", FlowName(flow));
+
+    /// <summary>
+    /// An invoice preview of adding the second-role add-on line to a subscription, with the proration that would be
+    /// invoiced now. Existing items are untouched, as in the real update.
+    /// </summary>
+    /// <param name="customerId">The provider customer id.</param>
+    /// <param name="subscriptionId">The provider subscription id.</param>
+    /// <param name="addOnPriceId">The provider price id of the add-on line.</param>
+    /// <param name="options">Billing settings.</param>
+    public static InvoiceCreatePreviewOptions SecondRolePreview(
+        string customerId, string subscriptionId, string addOnPriceId, BillingOptions options) => new()
+    {
+        Customer = customerId,
+        Subscription = subscriptionId,
+        SubscriptionDetails = new InvoiceSubscriptionDetailsOptions
+        {
+            Items =
+            [
+                new InvoiceSubscriptionDetailsItemOptions { Price = addOnPriceId, Quantity = 1, TaxRates = TaxRates(options) },
+            ],
+            ProrationBehavior = "always_invoice",
+        },
+    };
+
+    /// <summary>
+    /// A subscription update that adds the second-role add-on line, invoices the proration immediately and fails instead of
+    /// leaving the subscription half-changed when the payment does not go through.
+    /// </summary>
+    /// <param name="addOnPriceId">The provider price id of the add-on line.</param>
+    /// <param name="options">Billing settings.</param>
+    public static SubscriptionUpdateOptions SecondRoleCharge(string addOnPriceId, BillingOptions options) => new()
+    {
+        Items = [new SubscriptionItemOptions { Price = addOnPriceId, Quantity = 1, TaxRates = TaxRates(options) }],
+        ProrationBehavior = "always_invoice",
+        PaymentBehavior = "error_if_incomplete",
+    };
 
     /// <summary>A Customer Portal session that returns to the configured URL.</summary>
     /// <param name="customerId">The provider customer id.</param>

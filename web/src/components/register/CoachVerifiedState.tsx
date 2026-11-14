@@ -4,12 +4,13 @@ import type { LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import RegisterStepper from '@/components/register/RegisterStepper';
+import { REGISTER_PLAN_PATH } from '@/components/subscription/planLinks';
 
 interface CoachVerifiedStateProps {
   firstName: string;
-  /** Primary action target; "/login" (carrying return-to /profile) when the stored session is stale. */
-  profileTo: '/profile' | '/login';
-  /** Skip link target; "/login" when the stored session is stale and cannot pass the auth guard. */
+  /** Primary action target (the plan step); "/login" (carrying return-to the plan step) when the stored session is stale. */
+  planTo: typeof REGISTER_PLAN_PATH | '/login';
+  /** Skip link target (start on Free); "/login" when the stored session is stale and cannot pass the auth guard. */
   skipTo: '/clients' | '/login';
 }
 
@@ -28,7 +29,7 @@ function NextStep({ icon: Icon, title, hint }: { icon: LucideIcon; title: string
 }
 
 /** Final register step for coaches: the account is verified, next they set up a profile or enter the portal. */
-export default function CoachVerifiedState({ firstName, profileTo, skipTo }: CoachVerifiedStateProps) {
+export default function CoachVerifiedState({ firstName, planTo, skipTo }: CoachVerifiedStateProps) {
   const { t } = useTranslation();
 
   return (
@@ -54,11 +55,11 @@ export default function CoachVerifiedState({ firstName, profileTo, skipTo }: Coa
 
         <Button asChild className="h-12 gap-2 self-stretch rounded-field text-subhead font-bold">
           <Link
-            to={profileTo}
+            to={planTo}
             replace
-            state={profileTo === '/login' ? { from: '/profile' } : undefined}
+            state={planTo === '/login' ? { from: REGISTER_PLAN_PATH } : undefined}
           >
-            {t('entry.verifyEmail.coach.setUpProfile')}
+            {t('entry.verifyEmail.coach.choosePlan')}
             <ChevronRightIcon aria-hidden="true" />
           </Link>
         </Button>
