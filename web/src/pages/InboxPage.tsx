@@ -20,6 +20,7 @@ import { useSignalR } from '@/hooks/useSignalR';
 import { useSubscription } from '@/hooks/useSubscriptionQueries';
 import { isSubscriptionRequired } from '@/lib/subscriptionErrors';
 import PaywallDialog from '@/components/subscription/PaywallDialog';
+import PaywallPanel from '@/components/subscription/PaywallPanel';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
@@ -259,6 +260,15 @@ export default function InboxPage() {
   // panel takes the list's place.
   const showConversationList = isPanelDocked || !isClientPanelOpen;
 
+  // Chat locked and the default (Active, All) view loaded empty: explain the lock instead of a blank thread pane.
+  // Only the default view counts, so an empty filtered or archived view never triggers it.
+  const isChatLockedWithNoConversations =
+    !isEntitled('canMessage') &&
+    !archived &&
+    filter === ClientListFilter.All &&
+    conversationsQuery.isSuccess &&
+    conversations.length === 0;
+
   return (
     <div className="-m-6 flex h-screen overflow-hidden bg-background">
       {showConversationList && (
@@ -293,6 +303,8 @@ export default function InboxPage() {
           deferMarkRead={isAutoSelected}
           onEngage={() => setIsAutoSelected(false)}
         />
+      ) : isChatLockedWithNoConversations ? (
+        <PaywallPanel feature="chat" />
       ) : (
         <ThreadEmptyState />
       )}
