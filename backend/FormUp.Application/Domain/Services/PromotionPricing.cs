@@ -36,6 +36,36 @@ public static class PromotionPricing
         return (planPriceMinorUnits - planOff, discountedAddOn);
     }
 
+    /// <summary>
+    /// What a coach's promotion takes off one billing period of their current price lines, and the resulting total.
+    /// The plan line is discounted when the coupon covers the plan, which an unrestricted coupon does for every plan; the
+    /// add-on line follows <see cref="Promotion.CoversSecondRoleAddOn"/>. A fixed amount in another currency than the plan
+    /// takes nothing off, because Stripe cannot apply it.
+    /// </summary>
+    /// <param name="promotion">The coach's current promotion.</param>
+    /// <param name="planCode">The coach's plan code.</param>
+    /// <param name="currency">ISO 4217 currency of the price lines.</param>
+    /// <param name="planPriceMinorUnits">The plan line.</param>
+    /// <param name="addOnPriceMinorUnits">The second-role add-on line when the coach pays it, otherwise null.</param>
+    public static (long Discount, long DiscountedTotal) ForSubscription(
+        Promotion promotion, string planCode, string currency, long planPriceMinorUnits, long? addOnPriceMinorUnits)
+    {
+        var total = planPriceMinorUnits + (addOnPriceMinorUnits ?? 0);
+        var currencyFits = promotion.Kind == PromotionKind.Percent
+                           || string.Equals(promotion.Currency, currency, StringComparison.OrdinalIgnoreCase);
+        var planCovered = promotion.CoversSecondRoleAddOn || PromotionRules.CoversPlan(promotion, planCode);
+
+        if (!currencyFits || !planCovered)
+        {
+            return (0, total);
+        }
+
+        var (plan, addOn) = Apply(promotion, planPriceMinorUnits, addOnPriceMinorUnits);
+        var discountedTotal = plan + (addOn ?? 0);
+
+        return (total - discountedTotal, discountedTotal);
+    }
+
     private static long Reduce(long price, long percent) =>
         price - (long)Math.Round(price * percent / 100m, MidpointRounding.AwayFromZero);
 }

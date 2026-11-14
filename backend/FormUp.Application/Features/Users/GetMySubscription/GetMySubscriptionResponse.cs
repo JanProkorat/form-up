@@ -137,6 +137,16 @@ public class CurrentPromotionDto
 
     /// <summary>When the discount ends, as Stripe reports it; null for a forever discount.</summary>
     public DateTimeOffset? EndsAt { get; set; }
+
+    /// <summary>
+    /// Display-only amount the promotion takes off one billing period: the plan line plus the add-on line where the coupon
+    /// covers it, in the currency of <see cref="GetMySubscriptionResponse.PriceLines"/>. Zero when the promotion does not
+    /// apply to the coach's plan. Stripe computes the real charge.
+    /// </summary>
+    public long DiscountMinorUnits { get; set; }
+
+    /// <summary>Display-only total of the price lines after <see cref="DiscountMinorUnits"/>.</summary>
+    public long DiscountedTotalMinorUnits { get; set; }
 }
 
 /// <summary>
