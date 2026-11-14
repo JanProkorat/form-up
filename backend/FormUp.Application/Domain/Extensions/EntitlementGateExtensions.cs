@@ -39,9 +39,8 @@ public static class EntitlementGateExtensions
 
     /// <summary>
     /// Answers 403 <see cref="ErrorCodes.SubscriptionRequired"/> when the caller's subscription lacks the feature,
-    /// using the request's own <see cref="EntitlementService"/>. For endpoints that hold no database context. A
-    /// request without that service (an endpoint unit test built without a host) is not gated; every real
-    /// request has it.
+    /// using the request's own <see cref="EntitlementService"/>. For endpoints that hold no database context. Fails
+    /// closed: a request without that service throws.
     /// </summary>
     /// <param name="endpoint">The endpoint instance.</param>
     /// <param name="userId">The caller's <c>ApplicationUser.Id</c>.</param>
@@ -55,12 +54,7 @@ public static class EntitlementGateExtensions
         string detail,
         CancellationToken ct)
     {
-        var entitlementService = endpoint.HttpContext.RequestServices?.GetService<EntitlementService>();
-
-        if (entitlementService is null)
-        {
-            return false;
-        }
+        var entitlementService = endpoint.HttpContext.RequestServices.GetRequiredService<EntitlementService>();
 
         var entitlements = await entitlementService.GetEntitlementsForUserAsync(userId, ct);
 

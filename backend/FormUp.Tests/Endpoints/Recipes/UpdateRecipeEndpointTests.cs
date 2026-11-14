@@ -37,10 +37,10 @@ public class UpdateRecipeEndpointTests
         };
         var mongo = RecipeTestHelpers.CreateMockMongo(recipes: [recipe], foods: [food]);
 
-        var ep = Factory.Create<UpdateRecipeEndpoint>(
+        var ep = Factory.Create<UpdateRecipeEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist)))),
             mongo);
 
         var request = new UpdateRecipeRequest
@@ -82,10 +82,10 @@ public class UpdateRecipeEndpointTests
         };
         var mongo = RecipeTestHelpers.CreateMockMongo(recipes: [recipe], foods: [food]);
 
-        var ep = Factory.Create<UpdateRecipeEndpoint>(
+        var ep = Factory.Create<UpdateRecipeEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist)))),
             mongo);
 
         var request = new UpdateRecipeRequest
@@ -130,14 +130,14 @@ public class UpdateRecipeEndpointTests
         var mongo = RecipeTestHelpers.CreateMockMongo(recipes: [recipe], foods: [food]);
 
         using var responseBody = new MemoryStream();
-        var ep = Factory.Create<UpdateRecipeEndpoint>(
+        var ep = Factory.Create<UpdateRecipeEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx =>
             {
                 ctx.Request.HttpContext.User = new ClaimsPrincipal(
                     new ClaimsIdentity(
                         EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist)));
                 ctx.Request.HttpContext.Response.Body = responseBody;
-            },
+            }),
             mongo);
 
         var request = new UpdateRecipeRequest
@@ -187,14 +187,14 @@ public class UpdateRecipeEndpointTests
             recipes: [recipe], foods: [food], modifiedCount: 0);
 
         using var responseBody = new MemoryStream();
-        var ep = Factory.Create<UpdateRecipeEndpoint>(
+        var ep = Factory.Create<UpdateRecipeEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx =>
             {
                 ctx.Request.HttpContext.User = new ClaimsPrincipal(
                     new ClaimsIdentity(
                         EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist)));
                 ctx.Request.HttpContext.Response.Body = responseBody;
-            },
+            }),
             mongo);
 
         var request = new UpdateRecipeRequest
@@ -222,10 +222,10 @@ public class UpdateRecipeEndpointTests
         // Recipe belongs to a different nutritionist — owner filter returns nothing.
         var mongo = RecipeTestHelpers.CreateMockMongo();
 
-        var ep = Factory.Create<UpdateRecipeEndpoint>(
+        var ep = Factory.Create<UpdateRecipeEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist)))),
             mongo);
 
         var request = new UpdateRecipeRequest

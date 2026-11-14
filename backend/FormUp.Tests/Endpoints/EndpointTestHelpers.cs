@@ -1,4 +1,8 @@
 using System.Security.Claims;
+using FastEndpoints;
+using FormUp.Tests.Builders;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
@@ -16,6 +20,19 @@ namespace FormUp.Tests.Endpoints;
 /// </summary>
 public static class EndpointTestHelpers
 {
+    /// <summary>
+    /// Wraps a <c>Factory.Create</c> context setup so the request also carries an <see cref="EntitlementService"/>
+    /// over the default mock database (a Free plan with every feature on), as the coach-feature gate requires.
+    /// </summary>
+    /// <param name="inner">The test's own context setup, if any.</param>
+    public static Action<DefaultHttpContext> WithEntitlements(Action<DefaultHttpContext>? inner = null) =>
+        context =>
+        {
+            inner?.Invoke(context);
+            var entitlementService = EntitlementServiceBuilder.For(new MockDbBuilder().Build());
+            context.AddTestServices(services => services.AddSingleton(entitlementService));
+        };
+
     /// <summary>
     /// Creates a substitute UserManager with common default behaviors.
     /// </summary>

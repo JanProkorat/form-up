@@ -113,10 +113,10 @@ public class GetTrainerClientPhotosEndpointTests
             .With(clientProfile)
             .Build();
 
-        var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(
+        var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(otherTrainerId, AppRoles.Trainer))),
+                    EndpointTestHelpers.FakeUserClaims(otherTrainerId, AppRoles.Trainer)))),
             db,
             CreateLinkAuthorizationService(db),
             new FakeBlobStorageService(),
@@ -154,10 +154,10 @@ public class GetTrainerClientPhotosEndpointTests
             .With(inactiveLink)
             .Build();
 
-        var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(
+        var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
+                    EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer)))),
             db,
             CreateLinkAuthorizationService(db),
             new FakeBlobStorageService(),
@@ -183,10 +183,10 @@ public class GetTrainerClientPhotosEndpointTests
         var (builder, _, _) = CreateLinkedSetup(canViewNutritionPlans: false, canViewTrainingPlans: false);
         var db = builder.Build();
 
-        var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(
+        var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
+                    EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer)))),
             db,
             CreateLinkAuthorizationService(db),
             new FakeBlobStorageService(),
@@ -209,10 +209,10 @@ public class GetTrainerClientPhotosEndpointTests
         var photo2 = MakePhoto(2, PlanPhotoCategory.Food);
         var db = builder.WithViewedPhoto(_trainerUserId, photo1).WithViewedPhoto(_trainerUserId, photo2).Build();
 
-        var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(
+        var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
+                    EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer)))),
             db,
             CreateLinkAuthorizationService(db),
             new FakeBlobStorageService(),
@@ -239,10 +239,10 @@ public class GetTrainerClientPhotosEndpointTests
 
         var blobStorage = new FakeBlobStorageService();
 
-        var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(
+        var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
+                    EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer)))),
             db,
             CreateLinkAuthorizationService(db),
             blobStorage,
@@ -271,10 +271,10 @@ public class GetTrainerClientPhotosEndpointTests
         var (builder, _, _) = CreateLinkedSetup();
         var db = builder.Build(); // no photos
 
-        var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(
+        var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
+                    EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer)))),
             db,
             CreateLinkAuthorizationService(db),
             new FakeBlobStorageService(),
@@ -304,10 +304,10 @@ public class GetTrainerClientPhotosEndpointTests
 
         var db = builder.Build();
 
-        var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(
+        var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
+                    EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer)))),
             db,
             CreateLinkAuthorizationService(db),
             new FakeBlobStorageService(),
@@ -337,10 +337,10 @@ public class GetTrainerClientPhotosEndpointTests
 
         var db = builder.Build();
 
-        var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(
+        var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
+                    EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer)))),
             db,
             CreateLinkAuthorizationService(db),
             new FakeBlobStorageService(),
@@ -366,10 +366,10 @@ public class GetTrainerClientPhotosEndpointTests
         builder.WithViewedPhoto(_trainerUserId, MakePhoto(2, PlanPhotoCategory.FreeForm));
         var db = builder.Build();
 
-        var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(
+        var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
+                    EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer)))),
             db,
             CreateLinkAuthorizationService(db),
             new FakeBlobStorageService(),
@@ -410,10 +410,10 @@ public class GetTrainerClientPhotosEndpointTests
         builder.WithViewedPhoto(_trainerUserId, MakePhoto(2, PlanPhotoCategory.Body));
         var db = builder.Build();
 
-        var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(
+        var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
+                    EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer)))),
             db,
             CreateLinkAuthorizationService(db),
             new FakeBlobStorageService(),
@@ -447,10 +447,10 @@ public class GetTrainerClientPhotosEndpointTests
         builder.WithViewedPhoto(_trainerUserId, MakePhoto(2, PlanPhotoCategory.Body));
         var db = builder.Build();
 
-        var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(
+        var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
+                    EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer)))),
             db,
             CreateLinkAuthorizationService(db),
             new FakeBlobStorageService(),
@@ -481,10 +481,10 @@ public class GetTrainerClientPhotosEndpointTests
         builder.WithViewedPhoto(_trainerUserId, MakePhoto(2, takenAt: anchor.AddDays(20)));   // after range
         var db = builder.Build();
 
-        var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(
+        var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
+                    EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer)))),
             db,
             CreateLinkAuthorizationService(db),
             new FakeBlobStorageService(),
@@ -517,10 +517,10 @@ public class GetTrainerClientPhotosEndpointTests
         builder.WithViewedPhoto(_trainerUserId, MakePhoto(2, takenAt: new DateTime(2026, 2, 5, 0, 0, 0, DateTimeKind.Utc)));
         var db = builder.Build();
 
-        var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(
+        var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
+                    EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer)))),
             db,
             CreateLinkAuthorizationService(db),
             new FakeBlobStorageService(),
@@ -553,10 +553,10 @@ public class GetTrainerClientPhotosEndpointTests
         builder.WithViewedPhoto(_trainerUserId, MakePhoto(2, takenAt: new DateTime(2026, 1, 10, 0, 0, 0, DateTimeKind.Utc)));
         var db = builder.Build();
 
-        var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(
+        var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
+                    EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer)))),
             db,
             CreateLinkAuthorizationService(db),
             new FakeBlobStorageService(),
@@ -587,10 +587,10 @@ public class GetTrainerClientPhotosEndpointTests
         builder.WithViewedPhoto(_trainerUserId, MakePhoto(2, takenAt: new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc)));
         var db = builder.Build();
 
-        var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(
+        var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
+                    EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer)))),
             db,
             CreateLinkAuthorizationService(db),
             new FakeBlobStorageService(),
@@ -626,10 +626,10 @@ public class GetTrainerClientPhotosEndpointTests
         builder.WithViewedPhoto(_trainerUserId, MakePhoto(2, PlanPhotoCategory.Food));
         var db = builder.Build();
 
-        var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(
+        var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
+                    EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer)))),
             db,
             CreateLinkAuthorizationService(db),
             new FakeBlobStorageService(),
@@ -672,10 +672,10 @@ public class GetTrainerClientPhotosEndpointTests
 
         var db = builder.Build();
 
-        var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(
+        var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
+                    EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer)))),
             db,
             CreateLinkAuthorizationService(db),
             new FakeBlobStorageService(),

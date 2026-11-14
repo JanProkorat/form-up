@@ -26,10 +26,10 @@ public class DeleteFoodEndpointTests
             nutritionistId: _nutritionistId);
         var mongo = FoodTestHelpers.CreateMockMongo(food);
 
-        var ep = Factory.Create<DeleteFoodEndpoint>(
+        var ep = Factory.Create<DeleteFoodEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist)))),
             mongo);
 
         await ep.HandleAsync(new DeleteFoodRequest { FoodId = foodId }, TestContext.Current.CancellationToken);
@@ -52,10 +52,10 @@ public class DeleteFoodEndpointTests
             nutritionistId: Guid.NewGuid()); // different owner
         var mongo = FoodTestHelpers.CreateMockMongo(food);
 
-        var ep = Factory.Create<DeleteFoodEndpoint>(
+        var ep = Factory.Create<DeleteFoodEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist)))),
             mongo);
 
         var act = () => ep.HandleAsync(new DeleteFoodRequest { FoodId = foodId }, TestContext.Current.CancellationToken);
@@ -68,10 +68,10 @@ public class DeleteFoodEndpointTests
     {
         var mongo = FoodTestHelpers.CreateMockMongo();
 
-        var ep = Factory.Create<DeleteFoodEndpoint>(
+        var ep = Factory.Create<DeleteFoodEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist)))),
             mongo);
 
         await ep.HandleAsync(new DeleteFoodRequest { FoodId = Guid.NewGuid() }, TestContext.Current.CancellationToken);

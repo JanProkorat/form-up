@@ -492,9 +492,9 @@ public class OwnerScopedVisibilityFilterTests : IAsyncLifetime
             DateCreated = DateTime.UtcNow,
         }, cancellationToken: ct);
 
-        var ep = Factory.Create<GetFoodTagsEndpoint>(
+        var ep = Factory.Create<GetFoodTagsEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(secondCoachId, AppRoles.Nutritionist))),
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(secondCoachId, AppRoles.Nutritionist)))),
             _mongoContext);
 
         await ep.HandleAsync(ct);
@@ -536,9 +536,9 @@ public class OwnerScopedVisibilityFilterTests : IAsyncLifetime
             },
         ], cancellationToken: ct);
 
-        var ep = Factory.Create<GetFoodTagsEndpoint>(
+        var ep = Factory.Create<GetFoodTagsEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(ownerId, AppRoles.Nutritionist))),
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(ownerId, AppRoles.Nutritionist)))),
             _mongoContext);
 
         await ep.HandleAsync(ct);
