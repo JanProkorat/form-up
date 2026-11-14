@@ -4,6 +4,7 @@ using System.Text;
 using FluentAssertions;
 using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
+using FormUp.Application.Domain.Interfaces;
 using FormUp.Application.Domain.Services;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Tests.Builders;
@@ -42,7 +43,8 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
         long? created = null,
         IEnumerable<string>? extraPriceIds = null,
         bool cancelAtPeriodEnd = false,
-        string? userId = null)
+        string? userId = null,
+        string[]? discountIds = null)
     {
         var periodEnd = DateTimeOffset.UtcNow.AddDays(20).ToUnixTimeSeconds();
         var periodStart = DateTimeOffset.UtcNow.AddDays(-10).ToUnixTimeSeconds();
@@ -65,6 +67,7 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
             CancelAtPeriodEnd = cancelAtPeriodEnd,
             Metadata = userId is null ? new Dictionary<string, string>() : new Dictionary<string, string> { ["userId"] = userId },
             Items = new { Object = "list", Data = items, HasMore = false, Url = "/v1/subscription_items" },
+            Discounts = discountIds ?? [],
         });
     }
 
@@ -526,5 +529,99 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
         response.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
         (await ProcessedCountAsync(eventId)).Should().Be(0, "a retry from Stripe must be able to reprocess the event");
         (await ReadRowAsync(scenario.Coach.ProfileId)).Status.Should().Be(SubscriptionStatus.Active, "the staged change rolls back with the event id");
+    }
+
+    private async Task<int> RedemptionCountAsync(long promotionId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        return await db.PromotionRedemptions.CountAsync(r => r.PromotionId == promotionId, Ct);
+    }
+
+    /// <summary>A coach about to subscribe, a code promotion for their plan, and the discount the fake provider reports.</summary>
+    private async Task<(Scenario Scenario, Promotion Promotion, DateTimeOffset EndsAt)> ArrangeDiscountAsync(bool reportedAsCode = true)
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var scenario = await ArrangeOnFreePlanAsync();
+        var promotion = await PromotionBuilder.CreateAsync(factory, [scenario.PlanCode]);
+        var endsAt = DateTimeOffset.UtcNow.AddMonths(3);
+        fake.SubscriptionDiscounts[scenario.SubscriptionId] = new SubscriptionDiscount(
+            promotion.StripeCouponId, reportedAsCode ? promotion.StripePromotionCodeId : null, endsAt);
+
+        return (scenario, promotion, endsAt);
+    }
+
+    [Fact]
+    public async Task Webhook_SubscriptionWithOurPromotionCode_RecordsTheRedemption_AndSetsTheCurrentPromotion()
+    {
+        var (scenario, promotion, endsAt) = await ArrangeDiscountAsync();
+
+        var response = await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.created", scenario, "active", discountIds: ["di_1"]));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var row = await ReadRowAsync(scenario.Coach.ProfileId);
+        row.CurrentPromotionId.Should().Be(promotion.Id);
+        row.CurrentPromotionEndsAt.Should().BeCloseTo(endsAt, TimeSpan.FromSeconds(1));
+        row.FirstPaidAt.Should().NotBeNull("a live provider subscription means the coach has now paid");
+        (await RedemptionCountAsync(promotion.Id)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Webhook_AnAutomaticCouponWithoutAPromotionCode_IsMappedByItsCouponId()
+    {
+        var (scenario, promotion, _) = await ArrangeDiscountAsync(reportedAsCode: false);
+
+        await PostAsync(SubscriptionEvent(NewEventId(), "customer.subscription.created", scenario, "active", discountIds: ["di_1"]));
+
+        (await ReadRowAsync(scenario.Coach.ProfileId)).CurrentPromotionId.Should().Be(promotion.Id);
+        (await RedemptionCountAsync(promotion.Id)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Webhook_TheSamePromotionOnALaterEvent_StaysOneRedemptionPerCoach()
+    {
+        var (scenario, promotion, _) = await ArrangeDiscountAsync();
+
+        await PostAsync(SubscriptionEvent(NewEventId(), "customer.subscription.created", scenario, "active", discountIds: ["di_1"]));
+        var second = await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.updated", scenario, "active", discountIds: ["di_1"], created: DateTimeOffset.UtcNow.AddMinutes(1).ToUnixTimeSeconds()));
+
+        second.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await RedemptionCountAsync(promotion.Id)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Webhook_ASubscriptionWithoutADiscount_ClearsTheCurrentPromotion()
+    {
+        var (scenario, promotion, _) = await ArrangeDiscountAsync();
+        await UpdateRowAsync(scenario.Coach.ProfileId, row =>
+        {
+            row.CurrentPromotionId = promotion.Id;
+            row.CurrentPromotionEndsAt = DateTimeOffset.UtcNow.AddDays(5);
+        });
+
+        await PostAsync(SubscriptionEvent(NewEventId(), "customer.subscription.updated", scenario, "active"));
+
+        var row = await ReadRowAsync(scenario.Coach.ProfileId);
+        row.CurrentPromotionId.Should().BeNull();
+        row.CurrentPromotionEndsAt.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Webhook_ADiscountThatIsNotOurPromotion_SetsNoPromotionAndRecordsNothing()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var scenario = await ArrangeOnFreePlanAsync();
+        var promotion = await PromotionBuilder.CreateAsync(factory, [scenario.PlanCode]);
+        fake.SubscriptionDiscounts[scenario.SubscriptionId] = new SubscriptionDiscount("formup-gift-100", null, null);
+
+        var response = await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.created", scenario, "active", discountIds: ["di_1"]));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await ReadRowAsync(scenario.Coach.ProfileId)).CurrentPromotionId.Should().BeNull();
+        (await RedemptionCountAsync(promotion.Id)).Should().Be(0);
     }
 }
