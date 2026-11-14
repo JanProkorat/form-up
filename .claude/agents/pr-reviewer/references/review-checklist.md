@@ -169,11 +169,14 @@ Hits → **BLOCKING**. Use ProblemDetails / `Send.NotFoundAsync` / etc.
 **Citation:** [`rules/merge-strategy.md#exclusion-list`](../../../rules/merge-strategy.md#exclusion-list)
 
 ```bash
-gh pr view <N> --json files --jq '.files[].path' | grep -E 'backend/.*Migrations/|backend/.*Scripts/|backend/.*DataMigrations/'
+gh pr view <N> --json files --jq '.files[].path' | grep -E 'backend/.*Scripts/|backend/.*DataMigrations/'
 ```
 
 Hits → **BLOCKED** verdict (not a finding — terminate review with
-`blocked_reason`). User merges manually.
+`blocked_reason`). User merges manually. Also check for one-shot data
+commands per the rule. EF migrations (`backend/**/Migrations/**`) are
+**not** excluded — list them in the verdict so the user sees the schema
+change, and continue.
 
 Same for any diff containing `db\\.\\w+\\.update`, `bulkWrite`,
 `deleteMany` calls in MongoContext / Services.
