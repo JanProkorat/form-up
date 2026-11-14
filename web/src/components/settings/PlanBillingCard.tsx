@@ -103,6 +103,10 @@ export default function PlanBillingCard() {
   const currency = lines[0]?.currency ?? '';
   const total = lines.reduce((sum, line) => sum + (line.amountMinorUnits ?? 0), 0);
   const promotion = data?.promotion;
+  // A promotion that does not cover the coach's plan takes nothing off, so it gets no line.
+  const discount = promotion?.discountMinorUnits ?? 0;
+  const offerActive = promotion !== undefined && discount > 0;
+  const billTotal = offerActive ? (promotion.discountedTotalMinorUnits ?? total) : total;
   const offerValue = promotion ? promotionValueText(t, promotion, language) : '';
   const offerName = promotion?.name ?? '';
   const offerLabel = !promotion
@@ -187,19 +191,25 @@ export default function PlanBillingCard() {
                           </span>
                         </div>
                       ))}
-                      {promotion && (
+                      {offerActive && (
                         <div className="flex items-baseline gap-3 text-copy text-success-ink">
                           <span>{offerLabel}</span>
-                          <span className="ml-auto font-semibold whitespace-nowrap">{offerValue}</span>
+                          <span className="ml-auto font-semibold whitespace-nowrap">
+                            {t('subscription.promotion.amountOff', {
+                              amount: formatMoney(discount, currency, language),
+                            })}
+                          </span>
                         </div>
                       )}
                       <div className="flex items-baseline gap-3 border-t border-border pt-2.5 text-subhead font-semibold text-ink">
-                        <span>{t(promotion ? 'subscription.plan.bill.fullPrice' : 'subscription.plan.bill.total')}</span>
+                        <span>{t('subscription.plan.bill.total')}</span>
                         <span className="ml-auto whitespace-nowrap">
-                          {t('subscription.plan.bill.perMonth', { amount: formatMoney(total, currency, language) })}
+                          {t('subscription.plan.bill.perMonth', {
+                            amount: formatMoney(billTotal, currency, language),
+                          })}
                         </span>
                       </div>
-                      {promotion && promotion.endsAt && (
+                      {offerActive && promotion?.endsAt && (
                         <span className="text-meta text-muted-foreground">
                           {t('subscription.plan.bill.afterOffer', {
                             date: dateFormat.format(new Date(promotion.endsAt)),

@@ -525,7 +525,6 @@
         "total": "Gesamt",
         "perMonth": "{{amount}} / Monat",
         "secondRoleUnavailable": "Eine zweite Berufsrolle ist in diesem Tarif nicht enthalten.",
-        "fullPrice": "Preis ohne Angebot",
         "afterOffer": "Ab {{date}}: {{amount}} / Monat.",
         "offer": {
           "months_one": "{{name}} {{value}} · noch {{left}} von {{count}} Monat",

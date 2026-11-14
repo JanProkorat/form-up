@@ -563,7 +563,6 @@
         "total": "Celkem",
         "perMonth": "{{amount}} / měsíc",
         "secondRoleUnavailable": "Druhá profesní role není součástí tohoto tarifu.",
-        "fullPrice": "Cena bez akce",
         "afterOffer": "Od {{date}}: {{amount}} / měsíc.",
         "offer": {
           "months_one": "{{name}} {{value}} · zbývá {{left}} z {{count}} měsíců",
