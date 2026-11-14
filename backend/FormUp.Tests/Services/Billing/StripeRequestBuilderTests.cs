@@ -159,12 +159,11 @@ public class StripeRequestBuilderTests
     [InlineData(BillingInterval.Annual, "year")]
     public void Price_IsARecurringCzkAmountInTheBillingInterval(BillingInterval interval, string expected)
     {
-        var price = StripeRequestBuilder.Price("pro", 49900, "CZK", interval);
+        var price = StripeRequestBuilder.Price("pro", "formup-plan-pro", 49900, "CZK", interval);
 
         price.Currency.Should().Be("czk");
         price.UnitAmount.Should().Be(49900);
         price.Recurring!.Interval.Should().Be(expected);
-        price.ProductData!.Name.Should().Be("Form Up pro");
     }
 
     [Theory]
@@ -172,9 +171,48 @@ public class StripeRequestBuilderTests
     [InlineData(-5)]
     public void Price_ZeroOrNegative_IsRefused(long amount)
     {
-        var build = () => StripeRequestBuilder.Price("free", amount, "CZK", BillingInterval.Monthly);
+        var build = () => StripeRequestBuilder.Price("free", "formup-plan-free", amount, "CZK", BillingInterval.Monthly);
 
         build.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void PlanProductId_IsTheSameForTheSamePlanCode_AndDiffersPerPlan()
+    {
+        StripeRequestBuilder.PlanProductId("pro").Should().Be("formup-plan-pro");
+        StripeRequestBuilder.PlanProductId("pro").Should().Be(StripeRequestBuilder.PlanProductId("pro"));
+        StripeRequestBuilder.PlanProductId("pro").Should().NotBe(StripeRequestBuilder.PlanProductId("team"));
+    }
+
+    [Fact]
+    public void PlanProduct_IsCreatedUnderTheStableId()
+    {
+        var product = StripeRequestBuilder.PlanProduct("pro");
+
+        product.Id.Should().Be(StripeRequestBuilder.PlanProductId("pro"));
+        product.Name.Should().Be("Form Up pro");
+        product.Metadata.Should().Contain("planCode", "pro");
+    }
+
+    [Fact]
+    public void Price_IsCreatedOnTheGivenProduct_WithoutNewProductData()
+    {
+        var price = StripeRequestBuilder.Price("pro", StripeRequestBuilder.PlanProductId("pro"), 49900, "CZK", BillingInterval.Monthly);
+
+        price.Product.Should().Be("formup-plan-pro");
+        price.ProductData.Should().BeNull("every price row of a plan must stay on the plan's one product");
+    }
+
+    [Fact]
+    public void ACouponLimitedToAPlan_AfterAPriceChange_StillNamesThePlansProduct()
+    {
+        var productId = StripeRequestBuilder.PlanProductId("pro");
+        var coupon = StripeRequestBuilder.Coupon(Spec(), [productId]);
+        var oldPrice = StripeRequestBuilder.Price("pro", productId, 49900, "CZK", BillingInterval.Monthly);
+        var newPrice = StripeRequestBuilder.Price("pro", productId, 59900, "CZK", BillingInterval.Monthly);
+
+        coupon.AppliesTo!.Products.Should().Contain(oldPrice.Product);
+        coupon.AppliesTo!.Products.Should().Contain(newPrice.Product);
     }
 
     [Fact]
