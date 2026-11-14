@@ -3738,6 +3738,7 @@
     "PROMOTION_CODE_NEW_COACHES_ONLY": "Tento kód je jen pro nové trenéry.",
     "PROMOTION_CODE_ALREADY_USED": "Tento kód jste už použili.",
     "PROMOTION_CODE_TAKEN": "Tento kód už používá jiná akce, která neskončila.",
+    "PROMOTION_ALREADY_ENDED": "Tato akce už skončila.",
     "PROMOTION_VALUE_INVALID": "Zkontrolujte hodnotu akce.",
     "PROMOTION_MODE_INVALID": "Zkontrolujte kód: u akce s kódem je povinný, u automatické akce ho zadat nelze.",
     "PROMOTION_MONTHS_INVALID": "Zadejte počet měsíců od 2 do 36.",
@@ -7313,6 +7314,7 @@
       "codeSubline": "Kód",
       "automatic": "Automaticky",
       "allPaidPlans": "Všechny placené plány",
+      "actions": "Možnosti",
       "usedOf": "{{count}} z {{max}}"
     },
     "lasts": {
@@ -7331,6 +7333,20 @@
       "start": "Start",
       "pro": "Pro",
       "studio": "Studio"
+    },
+    "end": {
+      "action": "Ukončit {{name}}",
+      "tooltip": "Ukončit akci",
+      "title": "Ukončit akci „{{name}}“?",
+      "description": "Od dnešního dne se přestane uplatňovat při platbě a žádný další trenér ji už nezíská. Její stav se změní na Ukončená.",
+      "note_one": "Trenér, který ji už má, si slevu ponechá, dokud neskončí.",
+      "note_few": "{{count}} trenéři, kteří ji už mají, si slevu ponechají, dokud neskončí.",
+      "note_many": "{{count}} trenéra, kteří ji už mají, si slevu ponechají, dokud neskončí.",
+      "note_other": "{{count}} trenérů, kteří ji už mají, si slevu ponechají, dokud neskončí.",
+      "confirm": "Ukončit akci",
+      "success": "Akce byla ukončena.",
+      "notFound": "Tato akce už neexistuje.",
+      "error": "Akci se nepodařilo ukončit."
     },
     "drawer": {
       "titleNew": "Nová akce",

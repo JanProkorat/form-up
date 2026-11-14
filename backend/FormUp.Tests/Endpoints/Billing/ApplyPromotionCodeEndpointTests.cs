@@ -105,6 +105,17 @@ public class ApplyPromotionCodeEndpointTests(FitnessApiFactory factory) : IDispo
     }
 
     [Fact]
+    public async Task ApplyCode_AfterAnAdminEndedThePromotion_Returns404_WithoutCallingStripe()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var (coach, _, promotion) = await ArrangeAsync(p => p.EndedAt = DateTimeOffset.UtcNow.AddMinutes(-5));
+
+        await AssertErrorAsync(
+            await coach.Http.PostAsJsonAsync(Route, Body(promotion.Code!), Ct), HttpStatusCode.NotFound, "PROMOTION_CODE_NOT_FOUND");
+        fake.AppliedPromotionCodeIds.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task ApplyCode_BeforeTheClaimWindowOpens_Returns409()
     {
         var fake = BillingTestData.ResetProvider(factory);

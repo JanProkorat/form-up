@@ -103,6 +103,14 @@ public interface ISubscriptionService
         string couponId, string code, DateTimeOffset? expiresAt, bool firstTimeOnly, CancellationToken ct);
 
     /// <summary>
+    /// Deactivates a promotion code so nobody can redeem it any more. The coupon and discounts already on subscriptions
+    /// are untouched. Deactivating an already inactive code succeeds, so a retry is safe.
+    /// </summary>
+    /// <param name="promotionCodeId">The provider promotion code id.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task DeactivatePromotionCodeAsync(string promotionCodeId, CancellationToken ct);
+
+    /// <summary>
     /// Deletes a coupon that no subscription uses yet; the cleanup after a promotion code could not be created.
     /// </summary>
     /// <param name="couponId">The provider coupon id.</param>

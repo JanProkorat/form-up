@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Tag } from 'lucide-react';
+import { CircleMinus, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -14,7 +14,7 @@ import { PROMOTION_PLAN_CODES } from '@/components/admin-promotions/promotionFor
 import { formatNameList, promotionValueText } from '@/components/subscription/promotionText';
 import { cn } from '@/lib/utils';
 
-const COLUMN_COUNT = 8;
+const COLUMN_COUNT = 9;
 
 const STATUS_TONE: Record<PromotionStatus, string> = {
   [PromotionStatus.Active]: 'bg-success-soft text-success-ink',
@@ -27,10 +27,12 @@ interface Props {
   isPending: boolean;
   isError: boolean;
   onRetry: () => void;
+  /** Opens the confirm dialog to end this promotion. */
+  onEnd: (promotion: PromotionDto) => void;
 }
 
 /** The promotions of the chosen tab: name, how coaches get it, value, length, window, plans, uses and status. */
-export default function PromotionsTable({ promotions, isPending, isError, onRetry }: Props) {
+export default function PromotionsTable({ promotions, isPending, isError, onRetry, onEnd }: Props) {
   const { t, i18n } = useTranslation();
   const language = i18n.language;
   const dateFormat = new Intl.DateTimeFormat(language, { dateStyle: 'medium' });
@@ -73,6 +75,9 @@ export default function PromotionsTable({ promotions, isPending, isError, onRetr
           <TableHead className={HEAD_CLASS}>{t('adminPromotions.table.plans')}</TableHead>
           <TableHead className={HEAD_CLASS}>{t('adminPromotions.table.used')}</TableHead>
           <TableHead className={HEAD_CLASS}>{t('adminPromotions.table.status')}</TableHead>
+          <TableHead className={cn(HEAD_CLASS, 'w-14')}>
+            <span className="sr-only">{t('adminPromotions.table.actions')}</span>
+          </TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -155,6 +160,21 @@ export default function PromotionsTable({ promotions, isPending, isError, onRetr
                     <span className="size-1.5 rounded-full bg-current" aria-hidden="true" />
                     {t(`adminPromotions.status.${status}`)}
                   </span>
+                </TableCell>
+                <TableCell className={cn(CELL_CLASS, 'text-right')}>
+                  {status !== PromotionStatus.Ended && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="text-error hover:bg-error-soft hover:text-error"
+                      aria-label={t('adminPromotions.end.action', { name: promotion.name })}
+                      title={t('adminPromotions.end.tooltip')}
+                      onClick={() => onEnd(promotion)}
+                    >
+                      <CircleMinus className="size-4.5" aria-hidden="true" />
+                    </Button>
+                  )}
                 </TableCell>
               </TableRow>
             );

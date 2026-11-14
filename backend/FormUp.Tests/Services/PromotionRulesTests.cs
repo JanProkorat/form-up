@@ -47,6 +47,17 @@ public class PromotionRulesTests
         PromotionRules.StatusAt(Make(Now.AddDays(1), maxUses: 1), 1, Now).Should().Be(PromotionStatus.Ended);
 
     [Theory]
+    [InlineData(-1)]
+    [InlineData(1)]
+    public void StatusAt_WhenAnAdminEndedIt_IsEndedWhateverTheWindow(int claimFromDays)
+    {
+        var promotion = Make(Now.AddDays(claimFromDays));
+        promotion.EndedAt = Now.AddHours(-1);
+
+        PromotionRules.StatusAt(promotion, 0, Now).Should().Be(PromotionStatus.Ended);
+    }
+
+    [Theory]
     [InlineData("start", true)]
     [InlineData("PRO", true)]
     [InlineData("studio", false)]

@@ -589,6 +589,28 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task Webhook_DiscountOfAPromotionAnAdminEnded_IsStillLinked_SoCoachesKeepIt()
+    {
+        var (scenario, promotion, _) = await ArrangeDiscountAsync();
+        await EndPromotionAsync(promotion.Id);
+
+        await PostAsync(SubscriptionEvent(NewEventId(), "customer.subscription.created", scenario, "active", discountIds: ["di_1"]));
+
+        (await ReadRowAsync(scenario.Coach.ProfileId)).CurrentPromotionId.Should().Be(promotion.Id);
+        (await RedemptionCountAsync(promotion.Id)).Should().Be(1);
+    }
+
+    private async Task EndPromotionAsync(long promotionId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        await db.Promotions
+            .Where(p => p.Id == promotionId)
+            .ExecuteUpdateAsync(set => set.SetProperty(p => p.EndedAt, DateTimeOffset.UtcNow.AddMinutes(-5)), Ct);
+    }
+
+    [Fact]
     public async Task Webhook_AnAutomaticCouponWithoutAPromotionCode_IsMappedByItsCouponId()
     {
         var (scenario, promotion, _) = await ArrangeDiscountAsync(reportedAsCode: false);

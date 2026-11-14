@@ -42,6 +42,9 @@ public class Promotion : PublicTimestampableEntity
     /// <summary>When the promotion stops being claimable; null for no end.</summary>
     public DateTimeOffset? ClaimUntil { get; set; }
 
+    /// <summary>When an admin ended the promotion early; null while it has not been ended by hand.</summary>
+    public DateTimeOffset? EndedAt { get; set; }
+
     /// <summary>Codes of the plans the promotion covers.</summary>
     public List<string> PlanCodes { get; set; } = [];
 

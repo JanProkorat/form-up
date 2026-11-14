@@ -43,7 +43,7 @@ internal sealed class ApplyPromotionCodeEndpoint(IApplicationDbContext db, ISubs
                 "The code is empty, too long or has invalid characters (PROMOTION_CODE_INVALID)");
             s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
             s.Response(StatusCodes.Status403Forbidden, "The caller is not a trainer or nutritionist, or the coach role was removed");
-            s.Response(StatusCodes.Status404NotFound, "No promotion has this code, or its claim window has closed (PROMOTION_CODE_NOT_FOUND)");
+            s.Response(StatusCodes.Status404NotFound, "No promotion has this code, its claim window has closed, or an admin ended it (PROMOTION_CODE_NOT_FOUND)");
             s.Response(StatusCodes.Status409Conflict,
                 "No live paid subscription (BILLING_NO_SUBSCRIPTION), an admin gift is in force (BILLING_GIFT_IN_FORCE), or the " +
                 "code fails a rule: PROMOTION_CODE_NOT_STARTED, PROMOTION_CODE_PLAN_NOT_ELIGIBLE, PROMOTION_CODE_USED_UP, " +
@@ -110,7 +110,7 @@ internal sealed class ApplyPromotionCodeEndpoint(IApplicationDbContext db, ISubs
     }
 
     /// <summary>
-    /// The code-mode promotion with this code whose claim window has not closed; the latest claim-from when several
+    /// The code-mode promotion with this code that no admin ended and whose claim window has not closed; the latest claim-from when several
     /// promotions once shared the code. Null when there is none.
     /// </summary>
     private async Task<Promotion?> FindPromotionAsync(string code, DateTimeOffset now, CancellationToken ct)
@@ -118,7 +118,8 @@ internal sealed class ApplyPromotionCodeEndpoint(IApplicationDbContext db, ISubs
         var normalized = code.ToUpperInvariant();
         var sameCode = await db.Promotions
             .AsNoTracking()
-            .Where(p => p.Mode == PromotionMode.Code && p.CodeNormalized == normalized && p.StripePromotionCodeId != null)
+            .Where(p => p.Mode == PromotionMode.Code && p.CodeNormalized == normalized && p.StripePromotionCodeId != null
+                        && p.EndedAt == null)
             .ToListAsync(ct);
 
         return sameCode

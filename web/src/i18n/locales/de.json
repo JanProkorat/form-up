@@ -3585,6 +3585,7 @@
     "PROMOTION_CODE_NEW_COACHES_ONLY": "Dieser Code gilt nur für neue Trainer.",
     "PROMOTION_CODE_ALREADY_USED": "Sie haben diesen Code bereits verwendet.",
     "PROMOTION_CODE_TAKEN": "Diesen Code verwendet bereits eine andere Aktion, die noch nicht beendet ist.",
+    "PROMOTION_ALREADY_ENDED": "Diese Aktion ist bereits beendet.",
     "PROMOTION_VALUE_INVALID": "Prüfen Sie den Wert der Aktion.",
     "PROMOTION_MODE_INVALID": "Prüfen Sie den Code: Bei einer Aktion mit Code ist er Pflicht, bei einer automatischen Aktion nicht erlaubt.",
     "PROMOTION_MONTHS_INVALID": "Geben Sie eine Monatszahl von 2 bis 36 ein.",
@@ -7047,6 +7048,7 @@
       "codeSubline": "Code",
       "automatic": "Automatisch",
       "allPaidPlans": "Alle kostenpflichtigen Tarife",
+      "actions": "Optionen",
       "usedOf": "{{count}} von {{max}}"
     },
     "lasts": {
@@ -7063,6 +7065,18 @@
       "start": "Start",
       "pro": "Pro",
       "studio": "Studio"
+    },
+    "end": {
+      "action": "{{name}} beenden",
+      "tooltip": "Aktion beenden",
+      "title": "„{{name}}“ beenden?",
+      "description": "Sie gilt ab heute beim Bezahlen nicht mehr, und kein weiterer Trainer kann sie erhalten. Ihr Status wechselt zu Beendet.",
+      "note_one": "Der {{count}} Trainer, der sie bereits hat, behält seinen Rabatt, bis er ausläuft.",
+      "note_other": "Die {{count}} Trainer, die sie bereits haben, behalten ihren Rabatt, bis er ausläuft.",
+      "confirm": "Aktion beenden",
+      "success": "Aktion beendet.",
+      "notFound": "Diese Aktion gibt es nicht mehr.",
+      "error": "Die Aktion konnte nicht beendet werden."
     },
     "drawer": {
       "titleNew": "Neue Aktion",

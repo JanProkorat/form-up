@@ -103,6 +103,19 @@ public class ListPromotionsEndpointTests(FitnessApiFactory factory) : IDisposabl
     }
 
     [Fact]
+    public async Task List_ShowsAPromotionAnAdminEndedAsEnded()
+    {
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        await PromotionBuilder.ClearAsync(factory);
+        var ended = await PromotionBuilder.CreateAsync(factory, ["pro"], configure: p => p.EndedAt = DateTimeOffset.UtcNow.AddMinutes(-5));
+
+        var listed = await ListAsync(admin, "Ended");
+
+        listed.Should().ContainSingle().Which.PromotionId.Should().Be(ended.PublicId);
+        (await ListAsync(admin, "Active")).Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task List_WithAnUnknownStatus_Returns400()
     {
         var admin = await TestActors.Admin(factory).CreateAsync(Ct);

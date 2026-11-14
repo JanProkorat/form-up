@@ -47,7 +47,7 @@ public static class PromotionSelector
     {
         var open = await db.Promotions
             .AsNoTracking()
-            .Where(p => p.Mode == PromotionMode.Automatic && p.ClaimFrom <= now && (p.ClaimUntil == null || p.ClaimUntil >= now))
+            .Where(p => p.Mode == PromotionMode.Automatic && p.EndedAt == null && p.ClaimFrom <= now && (p.ClaimUntil == null || p.ClaimUntil >= now))
             .ToListAsync(ct);
 
         if (open.Count == 0)
