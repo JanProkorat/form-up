@@ -43,8 +43,9 @@ Hard-rule gate hits (union of both passes):
 
 Merge exclusion check:
   - base branch = main             <✅ no | ❌ yes — excluded, human-only>
-  - touches backend/**/Migrations  <✅ no | ❌ yes — excluded, human-only>
   - Mongo data-mutation script     <✅ no | ❌ yes — excluded, human-only>
+  - one-shot data command          <✅ no | ❌ yes — excluded, human-only>
+  - EF migrations (not excluded)   <none | list each backend/**/Migrations/** file>
   - user opted out this turn       <✅ no | ❌ yes>
 
 Recommended next step:
