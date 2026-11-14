@@ -47,7 +47,7 @@ public class ChangePlanEndpointTests(FitnessApiFactory factory) : IDisposable
         var response = await coach.Http.PostAsJsonAsync(Route, Body(target), Ct);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var body = (await response.Content.ReadFromJsonAsync<ChangePlanResponse>(Ct))!;
+        var body = (await response.Content.ReadFromJsonAsync<ChangePlanResponse>(BillingTestData.Json, Ct))!;
         body.PlanCode.Should().Be(target);
         body.Timing.Should().Be(PlanChangeTiming.Now);
         fake.PlanChanges.Should().ContainSingle().Which.Should().BeEquivalentTo(
@@ -70,7 +70,7 @@ public class ChangePlanEndpointTests(FitnessApiFactory factory) : IDisposable
         var response = await coach.Http.PostAsJsonAsync(Route, Body(target), Ct);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var body = (await response.Content.ReadFromJsonAsync<ChangePlanResponse>(Ct))!;
+        var body = (await response.Content.ReadFromJsonAsync<ChangePlanResponse>(BillingTestData.Json, Ct))!;
         body.Timing.Should().Be(PlanChangeTiming.AtNextRenewal);
         body.EffectiveAt.Should().NotBeNull("the period end is when the cheaper plan starts");
         fake.PlanChanges.Should().ContainSingle().Which.AtNextRenewal.Should().BeTrue();

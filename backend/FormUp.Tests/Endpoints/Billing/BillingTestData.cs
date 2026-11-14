@@ -13,6 +13,13 @@ namespace FormUp.Tests.Endpoints.Billing;
 /// </summary>
 internal static class BillingTestData
 {
+    /// <summary>Reads responses the way the API writes them: camelCase names and string enums.</summary>
+    public static readonly System.Text.Json.JsonSerializerOptions Json = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() },
+    };
+
     /// <summary>The fake payment provider the test host uses, reset to its defaults.</summary>
     /// <param name="factory">The test host.</param>
     public static FakeSubscriptionService ResetProvider(FitnessApiFactory factory)

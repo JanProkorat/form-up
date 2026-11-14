@@ -45,7 +45,7 @@ public class PreviewSecondRoleAddOnEndpointTests(FitnessApiFactory factory) : ID
         var response = await coach.Http.PostAsJsonAsync(Route, new { }, Ct);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var body = (await response.Content.ReadFromJsonAsync<PreviewSecondRoleAddOnResponse>(Ct))!;
+        var body = (await response.Content.ReadFromJsonAsync<PreviewSecondRoleAddOnResponse>(BillingTestData.Json, Ct))!;
         body.PlanAmountMinorUnits.Should().Be(29900);
         body.AddOnAmountMinorUnits.Should().Be(9900);
         body.NewTotalMinorUnits.Should().Be(39800);
