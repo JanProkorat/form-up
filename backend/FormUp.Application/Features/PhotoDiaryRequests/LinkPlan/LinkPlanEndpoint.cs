@@ -42,6 +42,13 @@ public class LinkPlanEndpoint(
         if (userId is null) { await Send.UnauthorizedAsync(ct); return; }
         var professionalId = Guid.Parse(userId);
 
+        if (await this.RespondIfCoachFeatureNotEntitledAsync(
+                professionalId, entitlements => entitlements.CanUseProgressPhotos,
+                "The current subscription does not include progress photos.", ct))
+        {
+            return;
+        }
+
         // Load the diary request with its link → client profile chain, needed to resolve the
         // client's PublicId for the plan-ownership check below.
         var request = await db.PhotoDiaryRequests

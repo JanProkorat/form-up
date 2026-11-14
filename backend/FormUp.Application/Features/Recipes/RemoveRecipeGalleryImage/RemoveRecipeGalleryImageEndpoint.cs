@@ -47,6 +47,13 @@ public class RemoveRecipeGalleryImageEndpoint(IMongoContext mongo) : Endpoint<Re
 
         var nutritionistId = Guid.Parse(userId);
 
+        if (await this.RespondIfCoachFeatureNotEntitledAsync(
+                nutritionistId, entitlements => entitlements.CanUseRecipes,
+                "The current subscription does not include recipes.", ct))
+        {
+            return;
+        }
+
         using var cursor = await mongo.Recipes.FindAsync(
             Builders<Recipe>.Filter.Eq(r => r.ExternalId, req.RecipeId), cancellationToken: ct);
         var recipe = await cursor.FirstOrDefaultAsync(ct);

@@ -51,6 +51,13 @@ public class CopyTemplateEndpoint(IMongoContext mongo, TimeProvider timeProvider
         }
 
         var callerId = Guid.Parse(userId);
+
+        if (await this.RespondIfCoachFeatureNotEntitledAsync(
+                callerId, entitlements => entitlements.CanUsePlanTemplates,
+                "The current subscription does not include nutrition plan templates.", ct))
+        {
+            return;
+        }
         var templateId = Route<Guid>("templateId");
 
         var source = await this.LoadLibraryEntryForReadOrRespondAsync(

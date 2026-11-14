@@ -49,6 +49,13 @@ public class PromoteFoodGalleryImageEndpoint(IMongoContext mongo) : Endpoint<Pro
 
         var nutritionistId = Guid.Parse(userId);
 
+        if (await this.RespondIfCoachFeatureNotEntitledAsync(
+                nutritionistId, entitlements => entitlements.CanUseIngredients,
+                "The current subscription does not include ingredients.", ct))
+        {
+            return;
+        }
+
         var activeFood = Builders<Food>.Filter.Eq(f => f.ExternalId, req.FoodId)
             & Builders<Food>.Filter.Eq(f => f.IsDeleted, false);
 

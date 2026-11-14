@@ -44,6 +44,13 @@ public class DeleteTemplateEndpoint(IMongoContext mongo) : EndpointWithoutReques
         }
 
         var ownerId = Guid.Parse(userId);
+
+        if (await this.RespondIfCoachFeatureNotEntitledAsync(
+                ownerId, entitlements => entitlements.CanUsePlanTemplates,
+                "The current subscription does not include nutrition plan templates.", ct))
+        {
+            return;
+        }
         var templateId = Route<Guid>("templateId");
 
         var template = await this.LoadLibraryEntryForWriteOrRespondAsync(

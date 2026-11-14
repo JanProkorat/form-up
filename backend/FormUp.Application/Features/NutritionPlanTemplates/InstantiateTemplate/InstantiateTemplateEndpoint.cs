@@ -46,7 +46,7 @@ public class InstantiateTemplateEndpoint(
             s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Invalid request");
             s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
             s.Response(StatusCodes.Status403Forbidden,
-                "The subscription does not include plans (SUBSCRIPTION_REQUIRED), or the client is over the Free plan's client limit (CLIENT_OVER_PLAN_LIMIT)");
+                "The subscription does not include plan templates or plans (SUBSCRIPTION_REQUIRED), or the client is over the Free plan's client limit (CLIENT_OVER_PLAN_LIMIT)");
             s.Response(StatusCodes.Status404NotFound, "Template or client not found, or not accessible to the caller");
             s.Response(StatusCodes.Status409Conflict, "The start date window overlaps another plan of the client (PLAN_OVERLAP)");
         });
@@ -90,6 +90,13 @@ public class InstantiateTemplateEndpoint(
         }
 
         // After the template and client-link checks, so a missing template or unlinked client still answers 404.
+        if (await this.RespondIfFeatureNotEntitledAsync(
+                db, nutritionistId, entitlements => entitlements.CanUsePlanTemplates,
+                "The current subscription does not include plan templates.", ct))
+        {
+            return;
+        }
+
         if (await this.RespondIfFeatureNotEntitledAsync(
                 db, nutritionistId, entitlements => entitlements.CanCreatePlans,
                 "The current subscription does not include creating plans.", ct))

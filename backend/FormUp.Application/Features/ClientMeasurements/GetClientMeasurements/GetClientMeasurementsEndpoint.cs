@@ -49,6 +49,13 @@ public class GetClientMeasurementsEndpoint(
 
         var trainerId = Guid.Parse(userId);
 
+        if (await this.RespondIfCoachFeatureNotEntitledAsync(
+                trainerId, entitlements => entitlements.CanUseWeightAndMeasurements,
+                "The current subscription does not include weight and measurements.", ct))
+        {
+            return;
+        }
+
         var clientProfile = await db.ClientProfiles
             .FirstOrDefaultAsync(cp => cp.PublicId == req.ClientId, ct);
 

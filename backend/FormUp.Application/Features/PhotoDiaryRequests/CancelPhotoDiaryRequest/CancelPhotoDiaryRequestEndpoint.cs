@@ -48,6 +48,13 @@ internal sealed class CancelPhotoDiaryRequestEndpoint(IApplicationDbContext db, 
 
         var professionalId = Guid.Parse(userId);
 
+        if (await this.RespondIfCoachFeatureNotEntitledAsync(
+                professionalId, entitlements => entitlements.CanUseProgressPhotos,
+                "The current subscription does not include progress photos.", ct))
+        {
+            return;
+        }
+
         var request = await db.PhotoDiaryRequests.FirstOrDefaultAsync(r => r.Id == req.Id, ct);
 
         // 404 for unknown and foreign ids alike — existence must not leak.

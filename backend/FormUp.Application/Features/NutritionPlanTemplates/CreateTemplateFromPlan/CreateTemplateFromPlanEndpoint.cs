@@ -59,6 +59,13 @@ public class CreateTemplateFromPlanEndpoint(
 
         var ownerId = Guid.Parse(userId);
 
+        if (await this.RespondIfCoachFeatureNotEntitledAsync(
+                ownerId, entitlements => entitlements.CanUsePlanTemplates,
+                "The current subscription does not include nutrition plan templates.", ct))
+        {
+            return;
+        }
+
         // NutritionPlan is not an ILibraryDocument, so ownership is checked directly against
         // NutritionistId in the fetch filter — a missing plan and an unowned plan are
         // indistinguishable, both routed through the same shaped 404 this library uses.

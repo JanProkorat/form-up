@@ -1,3 +1,4 @@
+using FormUp.Application.Domain.Extensions;
 using System.Security.Claims;
 using FastEndpoints;
 using FormUp.Application.Domain.Constants;
@@ -72,6 +73,13 @@ public class GetTrainerClientPhotosEndpoint(
         }
 
         var trainerUserId = Guid.Parse(userId);
+
+        if (await this.RespondIfCoachFeatureNotEntitledAsync(
+                trainerUserId, entitlements => entitlements.CanUseProgressPhotos,
+                "The current subscription does not include progress photos.", ct))
+        {
+            return;
+        }
 
         // Verify active trainer-client link, and read its capability flags rather than only its
         // existence — the caller supplies the category filter, so an existence check alone let a

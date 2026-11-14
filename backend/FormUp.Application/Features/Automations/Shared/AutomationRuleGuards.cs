@@ -15,7 +15,11 @@ namespace FormUp.Application.Features.Automations.Shared;
 /// </summary>
 public static class AutomationRuleGuards
 {
-    /// <summary>Loads the caller's professional profile, or answers 404.</summary>
+    /// <summary>
+    /// Loads the caller's professional profile, or answers 404; answers 403
+    /// (<see cref="ErrorCodes.SubscriptionRequired"/>) when the subscription does not include automations.
+    /// Every coach automation endpoint starts here, reads included.
+    /// </summary>
     public static async Task<ProfessionalProfile?> LoadCallerProfileOrRespondAsync(
         this IEndpoint endpoint, IApplicationDbContext db, Guid userId, CancellationToken ct)
     {
@@ -26,6 +30,14 @@ public static class AutomationRuleGuards
         if (profile is null)
         {
             await endpoint.HttpContext.Response.SendNotFoundAsync(ct);
+            return null;
+        }
+
+        if (await endpoint.RespondIfFeatureNotEntitledAsync(
+                db, profile.Id, entitlements => entitlements.CanUseAutomations,
+                "The current subscription does not include automations.", ct))
+        {
+            return null;
         }
 
         return profile;

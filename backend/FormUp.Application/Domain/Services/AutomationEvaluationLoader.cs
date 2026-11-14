@@ -14,7 +14,7 @@ public static class AutomationEvaluationLoader
     /// <summary>
     /// Loads the evaluation, or null when the rule is gone or the client is not reachable any more:
     /// no live link that grants access, the coach role of every such link removed, an audience
-    /// that no longer includes the client, or a check-in rule whose coach lost the check-in feature.
+    /// that no longer includes the client, a coach whose subscription lacks automations, or a check-in rule whose coach lost the check-in feature.
     /// </summary>
     /// <param name="db">Application database context.</param>
     /// <param name="entitlementService">Resolves the coach's subscription entitlements.</param>
@@ -63,18 +63,14 @@ public static class AutomationEvaluationLoader
             .AsNoTracking()
             .FirstOrDefaultAsync(o => o.AutomationRuleId == ruleId && o.ClientProfileId == clientProfileId, ct);
 
-        // Only a check-in rule depends on the subscription, so other rules cost no extra query.
-        if (AutomationCheckInGate.IsCheckInRule(rule))
+        var entitlements = await entitlementService.GetEntitlementsAsync(coach.Id, ct);
+
+        if (!AutomationCheckInGate.MaySend(rule, entitlements))
         {
-            var entitlements = await entitlementService.GetEntitlementsAsync(coach.Id, ct);
-
-            if (!AutomationCheckInGate.MaySend(rule, entitlements))
-            {
-                return null;
-            }
-
-            clientOverride = AutomationCheckInGate.ApplicableOverride(rule, clientOverride, entitlements);
+            return null;
         }
+
+        clientOverride = AutomationCheckInGate.ApplicableOverride(rule, clientOverride, entitlements);
 
         var zone = ClientLocalDateResolver.ResolveTimeZone(client.TimeZoneId);
         var localToday = ClientLocalDateResolver.ResolveLocalDate(nowUtc, zone);

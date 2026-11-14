@@ -53,6 +53,13 @@ public class UploadRecipeImageUrlEndpoint(IMongoContext mongo, IImageUploadServi
 
         var nutritionistId = Guid.Parse(userId);
 
+        if (await this.RespondIfCoachFeatureNotEntitledAsync(
+                nutritionistId, entitlements => entitlements.CanUseRecipes,
+                "The current subscription does not include recipes.", ct))
+        {
+            return;
+        }
+
         var filter = Builders<Recipe>.Filter.Eq(r => r.ExternalId, req.RecipeId);
 
         using var cursor = await mongo.Recipes.FindAsync(filter, cancellationToken: ct);

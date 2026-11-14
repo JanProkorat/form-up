@@ -1,3 +1,4 @@
+using FormUp.Application.Domain.Extensions;
 using FormUp.Application.Domain.Authorization;
 using FormUp.Application.Domain.Enums;
 using System.Security.Claims;
@@ -41,6 +42,13 @@ public class DeleteRecipeEndpoint(IMongoContext mongo)
         }
 
         var nutritionistId = Guid.Parse(userId);
+
+        if (await this.RespondIfCoachFeatureNotEntitledAsync(
+                nutritionistId, entitlements => entitlements.CanUseRecipes,
+                "The current subscription does not include recipes.", ct))
+        {
+            return;
+        }
 
         var filter = Builders<Recipe>.Filter.Eq(r => r.ExternalId, req.RecipeId)
             & Builders<Recipe>.Filter.Eq(r => r.NutritionistId, nutritionistId);

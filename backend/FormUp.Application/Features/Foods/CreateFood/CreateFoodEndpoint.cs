@@ -46,6 +46,13 @@ public class CreateFoodEndpoint(IMongoContext mongo) : Endpoint<CreateFoodReques
 
         var nutritionistId = Guid.Parse(userId);
 
+        if (await this.RespondIfCoachFeatureNotEntitledAsync(
+                nutritionistId, entitlements => entitlements.CanUseIngredients,
+                "The current subscription does not include ingredients.", ct))
+        {
+            return;
+        }
+
         var food = new Food
         {
             ExternalId = Guid.NewGuid(),

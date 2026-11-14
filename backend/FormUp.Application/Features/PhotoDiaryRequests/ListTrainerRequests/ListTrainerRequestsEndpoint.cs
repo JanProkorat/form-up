@@ -1,3 +1,4 @@
+using FormUp.Application.Domain.Extensions;
 using System.Security.Claims;
 using FastEndpoints;
 using FormUp.Application.Domain.Constants;
@@ -31,6 +32,13 @@ public class ListTrainerRequestsEndpoint(IApplicationDbContext db, TimeProvider 
         var userId = User.FindFirstValue(AppClaims.UserId);
         if (userId is null) { await Send.UnauthorizedAsync(ct); return; }
         var professionalId = Guid.Parse(userId);
+
+        if (await this.RespondIfCoachFeatureNotEntitledAsync(
+                professionalId, entitlements => entitlements.CanUseProgressPhotos,
+                "The current subscription does not include progress photos.", ct))
+        {
+            return;
+        }
 
         var query = db.PhotoDiaryRequests
             .AsNoTracking()

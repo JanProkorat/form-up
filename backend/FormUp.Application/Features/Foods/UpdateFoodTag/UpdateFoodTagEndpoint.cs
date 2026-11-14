@@ -48,6 +48,13 @@ public class UpdateFoodTagEndpoint(IMongoContext mongo) : Endpoint<UpdateFoodTag
 
         var ownerUserId = Guid.Parse(userId);
 
+        if (await this.RespondIfCoachFeatureNotEntitledAsync(
+                ownerUserId, entitlements => entitlements.CanUseIngredients,
+                "The current subscription does not include ingredients.", ct))
+        {
+            return;
+        }
+
         // Single owner-filtered query — a tag owned by a different nutritionist is
         // indistinguishable from one that does not exist at all.
         var tag = await mongo.FoodTags

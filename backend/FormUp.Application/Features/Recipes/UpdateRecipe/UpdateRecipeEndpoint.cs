@@ -49,6 +49,13 @@ public class UpdateRecipeEndpoint(IMongoContext mongo)
 
         var nutritionistId = Guid.Parse(userId);
 
+        if (await this.RespondIfCoachFeatureNotEntitledAsync(
+                nutritionistId, entitlements => entitlements.CanUseRecipes,
+                "The current subscription does not include recipes.", ct))
+        {
+            return;
+        }
+
         // Find existing recipe owned by this nutritionist
         var filter = Builders<Recipe>.Filter.Eq(r => r.ExternalId, req.RecipeId)
             & Builders<Recipe>.Filter.Eq(r => r.NutritionistId, nutritionistId);

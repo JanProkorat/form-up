@@ -70,10 +70,10 @@ public sealed class AutomationCheckInSweeper(
             return;
         }
 
-        // A coach who lost the check-in feature sends no more reminders or missed-week notices.
+        // A coach who lost the automations or the check-in feature sends no more reminders or missed-week notices.
         var entitlements = await entitlementService.GetEntitlementsAsync(rule.OwnerProfessionalProfileId, ct);
 
-        if (!entitlements.CanUseWeeklyCheckIns)
+        if (!entitlements.CanUseAutomations || !entitlements.CanUseWeeklyCheckIns)
         {
             return;
         }

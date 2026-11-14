@@ -52,6 +52,7 @@ public class BroadcastMessageEndpoint(
             s.Responses[StatusCodes.Status200OK] = "Message sent; SentCount is the distinct recipient count.";
             s.Responses[StatusCodes.Status400BadRequest] = "Empty/too-long text, more than 50 recipients, or a " +
                                                              "recipient's substituted text exceeds the storage limit.";
+            s.Responses[StatusCodes.Status403Forbidden] = "The subscription does not include messaging (SUBSCRIPTION_REQUIRED).";
             s.Responses[StatusCodes.Status404NotFound] = "One or more recipients are not a live client of the caller.";
         });
     }
@@ -68,6 +69,14 @@ public class BroadcastMessageEndpoint(
         }
 
         var professionalUserId = Guid.Parse(userId);
+
+        if (await this.RespondIfFeatureNotEntitledAsync(
+                db, professionalUserId, entitlements => entitlements.CanMessage,
+                "The current subscription does not include messaging.", ct))
+        {
+            return;
+        }
+
         var distinctClientPublicIds = req.ClientPublicIds.Distinct().ToList();
 
         var clientProfiles = await db.ClientProfiles

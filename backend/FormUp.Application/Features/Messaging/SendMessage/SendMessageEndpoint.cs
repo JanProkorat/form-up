@@ -43,7 +43,7 @@ public class SendMessageEndpoint(
         {
             s.Summary = "Send a message";
             s.Description = "Sends a text message, an image, or both, in a conversation.";
-            s.Responses[StatusCodes.Status403Forbidden] = "CONVERSATION_LOCKED: professional caller in an invite-only thread";
+            s.Responses[StatusCodes.Status403Forbidden] = "CONVERSATION_LOCKED: professional caller in an invite-only thread; SUBSCRIPTION_REQUIRED: coach whose subscription does not include messaging";
         });
     }
 
@@ -71,6 +71,13 @@ public class SendMessageEndpoint(
 
         if (senderIsProfessional)
         {
+            if (await this.RespondIfFeatureNotEntitledAsync(
+                    db, userGuid, entitlements => entitlements.CanMessage,
+                    "The current subscription does not include messaging.", ct))
+            {
+                return;
+            }
+
             var access = await this.RequireProfessionalAccessOrRespondAsync(
                 db, userGuid, conversation.ClientUserId, ct);
 
