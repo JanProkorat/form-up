@@ -180,6 +180,11 @@ public interface IApplicationDbContext
     DbSet<CoachSubscription> CoachSubscriptions { get; set; }
 
     /// <summary>
+    /// Ids of the payment-provider webhook events already applied, so a repeated delivery is a no-op.
+    /// </summary>
+    DbSet<ProcessedWebhookEvent> ProcessedWebhookEvents { get; set; }
+
+    /// <summary>
     /// Coach-owned tags used to label clients.
     /// </summary>
     DbSet<ClientTag> ClientTags { get; set; }

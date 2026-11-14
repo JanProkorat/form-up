@@ -2152,6 +2152,10 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("given_free_at");
 
+                    b.Property<DateTimeOffset?>("LastExternalEventAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_external_event_at");
+
                     b.Property<bool>("PaysSecondRoleAddOn")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
@@ -2184,6 +2188,12 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_coach_subscriptions");
+
+                    b.HasIndex("ExternalCustomerId")
+                        .HasDatabaseName("ix_coach_subscriptions_external_customer_id");
+
+                    b.HasIndex("ExternalSubscriptionId")
+                        .HasDatabaseName("ix_coach_subscriptions_external_subscription_id");
 
                     b.HasIndex("PendingSubscriptionPlanPriceId")
                         .HasDatabaseName("ix_coach_subscriptions_pending_subscription_plan_price_id");
@@ -2928,6 +2938,49 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                         .HasDatabaseName("ix_plan_photo_viewers_plan_photo_id_professional_user_id");
 
                     b.ToTable("plan_photo_viewers", (string)null);
+                });
+
+            modelBuilder.Entity("FormUp.Application.Domain.Entities.ProcessedWebhookEvent", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("DateCreated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_created");
+
+                    b.Property<DateTime?>("DateUpdated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_updated");
+
+                    b.Property<DateTimeOffset>("EventCreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("event_created_at");
+
+                    b.Property<string>("EventId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("event_id");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("event_type");
+
+                    b.HasKey("Id")
+                        .HasName("pk_processed_webhook_events");
+
+                    b.HasIndex("EventId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_processed_webhook_events_event_id");
+
+                    b.ToTable("processed_webhook_events", (string)null);
                 });
 
             modelBuilder.Entity("FormUp.Application.Domain.Entities.ProfessionalProfile", b =>

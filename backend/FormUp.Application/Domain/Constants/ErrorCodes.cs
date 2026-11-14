@@ -747,6 +747,22 @@ public static class ErrorCodes
     /// <summary>The client-reported occurrence time is older than the 7-day offline window.</summary>
     public const string OccurredAtTooOld = "OCCURRED_AT_TOO_OLD";
 
+    // ── Billing ─────────────────────────────────────────────────────────
+    /// <summary>The payment-provider webhook signature is missing or does not match the body.</summary>
+    public const string WebhookSignatureInvalid = "WEBHOOK_SIGNATURE_INVALID";
+
+    /// <summary>Billing is not configured on this server (no payment-provider keys).</summary>
+    public const string BillingNotConfigured = "BILLING_NOT_CONFIGURED";
+
+    /// <summary>The payment provider refused or failed a call; nothing was saved.</summary>
+    public const string BillingProviderError = "BILLING_PROVIDER_ERROR";
+
+    /// <summary>The plan cannot be bought: it is the Free plan, inactive, or has no open paid price.</summary>
+    public const string PlanNotPurchasable = "PLAN_NOT_PURCHASABLE";
+
+    /// <summary>The coach has no payment-provider customer yet, so there is no portal to open.</summary>
+    public const string BillingCustomerNotFound = "BILLING_CUSTOMER_NOT_FOUND";
+
     // ── Onboarding form choice ──────────────────────────────────────────
     /// <summary>The request skips the onboarding form and also names a questionnaire.</summary>
     public const string SkipOnboardingFormWithQuestionnaire = "SKIP_ONBOARDING_FORM_WITH_QUESTIONNAIRE";

@@ -16,6 +16,11 @@ public class CoachSubscriptionConfiguration : IEntityTypeConfiguration<CoachSubs
         builder.HasIndex(cs => cs.ProfessionalProfileId)
             .IsUnique();
 
+        // Webhooks find the coach by the provider's customer or subscription id.
+        builder.HasIndex(cs => cs.ExternalCustomerId);
+
+        builder.HasIndex(cs => cs.ExternalSubscriptionId);
+
         builder.Property(cs => cs.CancelAtPeriodEnd)
             .HasDefaultValue(false);
 

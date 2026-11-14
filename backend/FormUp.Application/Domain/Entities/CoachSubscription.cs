@@ -97,4 +97,9 @@ public class CoachSubscription : TimestampableEntity
     /// External payment-provider subscription identifier.
     /// </summary>
     public string? ExternalSubscriptionId { get; set; }
+
+    /// <summary>
+    /// Creation time of the newest provider event applied to this subscription. An older event arriving later is skipped.
+    /// </summary>
+    public DateTimeOffset? LastExternalEventAt { get; set; }
 }
