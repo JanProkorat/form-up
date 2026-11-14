@@ -77,8 +77,11 @@ internal sealed class CreatePromotionValidator : Validator<CreatePromotionReques
             .WithMessage("An automatic promotion has no code.")
             .When(x => x.Mode == PromotionMode.Automatic);
 
+        // WithErrorCode applies to the rule just before it, so the null check and the range check each carry their own.
         RuleFor(x => x.DurationMonths)
             .NotNull()
+            .WithErrorCode(ErrorCodes.PromotionMonthsInvalid)
+            .WithMessage("Several months needs a month count from 2 to 36.")
             .InclusiveBetween(MinMonths, MaxMonths)
             .WithErrorCode(ErrorCodes.PromotionMonthsInvalid)
             .WithMessage("Several months needs a month count from 2 to 36.")

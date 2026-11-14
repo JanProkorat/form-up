@@ -141,7 +141,7 @@ internal sealed class CreatePromotionEndpoint(
                     ["mode"] = promotion.Mode.ToString(),
                     ["duration"] = promotion.Duration.ToString(),
                     ["claimFrom"] = promotion.ClaimFrom.ToString("O"),
-                    ["plans"] = string.Join(",", promotion.PlanCodes),
+                    ["planCount"] = promotion.PlanCodes.Count,
                 },
                 null),
             ct: ct);
