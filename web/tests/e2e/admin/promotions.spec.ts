@@ -116,18 +116,27 @@ interface Harness {
   listStatuses: string[];
   /** The JSON body of every create request, in order. */
   created: Record<string, unknown>[];
+  /** Every end request: its path, content type and raw body, in order. */
+  ended: { path: string; contentType: string | undefined; body: string | null }[];
+}
+
+interface Outcome {
+  status: number;
+  body?: unknown;
 }
 
 /**
- * Mocks the admin reads and the create. `createOutcome` lets a test turn the create into a refusal; a successful
- * create is added to the list, so the refetch after it shows the new row.
+ * Mocks the admin reads, the create and the end. `createOutcome` / `endOutcome` let a test turn the write into a
+ * refusal; a successful create is added to the list and a successful end turns the row Ended, so the refetch after
+ * either shows the change.
  */
 async function mockAdminPromotions(
   page: Page,
-  createOutcome: { status: number; body: unknown } | null = null,
+  createOutcome: Outcome | null = null,
+  endOutcome: Outcome | null = null,
 ): Promise<Harness> {
-  const harness: Harness = { listStatuses: [], created: [] };
-  const promotions = [...PROMOTIONS];
+  const harness: Harness = { listStatuses: [], created: [], ended: [] };
+  const promotions = PROMOTIONS.map((promotion) => ({ ...promotion }));
 
   await page.route(/\/users\/me\/roles$/, (route) =>
     route.request().method() === 'GET'
@@ -141,6 +150,30 @@ async function mockAdminPromotions(
         })
       : route.fallback(),
   );
+
+  await page.route(/\/admin\/promotions\/[0-9a-f-]+\/end$/, async (route) => {
+    const request = route.request();
+    harness.ended.push({
+      path: new URL(request.url()).pathname,
+      contentType: request.headers()['content-type'],
+      body: request.postData(),
+    });
+    if (endOutcome) {
+      const hasBody = endOutcome.body !== undefined;
+      return route.fulfill({
+        status: endOutcome.status,
+        contentType: hasBody ? 'application/problem+json' : 'text/plain',
+        body: hasBody ? JSON.stringify(endOutcome.body) : '',
+      });
+    }
+    const id = new URL(request.url()).pathname.split('/').at(-2);
+    const target = promotions.find((promotion) => promotion.promotionId === id);
+    if (!target) {
+      return route.fulfill({ status: 404, body: '' });
+    }
+    target.status = 'Ended';
+    return json(route, target);
+  });
 
   await page.route(/\/admin\/promotions(\?.*)?$/, async (route) => {
     // The page navigation to /admin/promotions is not an API call; only fetch and XHR are mocked.
@@ -212,8 +245,87 @@ trainerTest.describe('admin promotions', () => {
     await expect(summer.getByText('Start and Pro')).toBeVisible();
     await expect(summer.getByText('Ended', { exact: true })).toBeVisible();
 
-    // A promotion has no edit or end action yet, so a row carries no menu button.
+    // No row menu; a row that has not ended carries a direct End button, an ended row none.
     await expect(page.getByRole('button', { name: /Open menu/ })).toHaveCount(0);
+    await expect(launch.getByRole('button', { name: 'End Launch offer' })).toHaveAttribute('title', 'End promotion');
+    await expect(page.getByRole('row', { name: /Black Friday/ }).getByRole('button', { name: 'End Black Friday' })).toBeVisible();
+    await expect(summer.getByRole('button', { name: /^End / })).toHaveCount(0);
+  });
+
+  trainerTest('ending a promotion confirms, posts an empty JSON body and refetches the list', async ({ page }) => {
+    const harness = await mockAdminPromotions(page);
+    await page.goto('/admin/promotions');
+    await expect(page.getByRole('row', { name: /Launch offer/ })).toBeVisible();
+    const readsBefore = harness.listStatuses.length;
+
+    await page.getByRole('button', { name: 'End Launch offer' }).click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog.getByRole('heading', { name: 'End “Launch offer”?' })).toBeVisible();
+    await expect(dialog.getByText('The 12 coaches who already have it keep their discount until it runs out.')).toBeVisible();
+    expect(harness.ended).toHaveLength(0);
+
+    await dialog.getByRole('button', { name: 'End promotion' }).click();
+
+    await expect(page.getByText('Promotion ended.')).toBeVisible();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    expect(harness.ended).toHaveLength(1);
+    expect(harness.ended[0]?.path).toBe('/admin/promotions/00000000-0000-4000-8000-000000000001/end');
+    expect(harness.ended[0]?.contentType).toContain('application/json');
+    expect(harness.ended[0]?.body).toBe('{}');
+
+    // The refetch shows the row as Ended, and an Ended row has no End button.
+    const launch = page.getByRole('row', { name: /Launch offer/ });
+    await expect(launch.getByText('Ended', { exact: true })).toBeVisible();
+    await expect(launch.getByRole('button', { name: /^End / })).toHaveCount(0);
+    expect(harness.listStatuses.length).toBeGreaterThan(readsBefore);
+  });
+
+  trainerTest('the note is hidden when nobody has the promotion yet, and Cancel ends nothing', async ({ page }) => {
+    const harness = await mockAdminPromotions(page);
+    await page.goto('/admin/promotions');
+
+    await page.getByRole('button', { name: 'End Black Friday' }).click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog.getByRole('heading', { name: 'End “Black Friday”?' })).toBeVisible();
+    await expect(dialog.getByText(/already have it|already has it/)).toHaveCount(0);
+
+    await dialog.getByRole('button', { name: 'Cancel' }).click();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    expect(harness.ended).toHaveLength(0);
+  });
+
+  trainerTest('a promotion that already ended shows a toast and refetches', async ({ page }) => {
+    const harness = await mockAdminPromotions(page, null, {
+      status: 409,
+      body: { status: 409, title: 'Conflict', errorCode: 'PROMOTION_ALREADY_ENDED' },
+    });
+    await page.goto('/admin/promotions');
+    const readsBefore = harness.listStatuses.length;
+
+    await page.getByRole('button', { name: 'End Partner code' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'End promotion' }).click();
+
+    await expect(page.getByText('This promotion has already ended.')).toBeVisible();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect.poll(() => harness.listStatuses.length).toBeGreaterThan(readsBefore);
+  });
+
+  trainerTest('a payment-provider failure keeps the dialog open and the row unchanged', async ({ page }) => {
+    const harness = await mockAdminPromotions(page, null, {
+      status: 502,
+      body: { status: 502, title: 'Bad Gateway', errorCode: 'BILLING_PROVIDER_ERROR' },
+    });
+    await page.goto('/admin/promotions');
+    await expect(page.getByRole('row', { name: /Partner code/ })).toBeVisible();
+    const readsBefore = harness.listStatuses.length;
+
+    await page.getByRole('button', { name: 'End Partner code' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'End promotion' }).click();
+
+    await expect(page.getByText("The payment provider didn't answer. Please try again in a moment.")).toBeVisible();
+    await expect(page.getByRole('dialog')).toBeVisible();
+    expect(harness.listStatuses.length).toBe(readsBefore);
+    await expect(page.getByRole('row', { name: /Partner code/ }).getByText('Active', { exact: true })).toBeVisible();
   });
 
   trainerTest('the tabs ask the server for that status and show only its promotions', async ({ page }) => {
