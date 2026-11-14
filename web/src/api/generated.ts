@@ -22190,7 +22190,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Invalid body, or the plan cannot be bought: unknown, Free, inactive, not priced in Stripe, or it has no add-on price for a paid add-on (PLAN_NOT_PURCHASABLE)", status, _responseText, _headers, result400);
+            return throwException("Invalid body, or the plan cannot be bought: unknown, Free, inactive, not priced in Stripe, or the caller has two active roles and the plan has no add-on price (PLAN_NOT_PURCHASABLE)", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -31162,7 +31162,7 @@ export interface CoachPlanDto {
 the real charge. */
     discountedPriceMinorUnits?: number | undefined;
     /** Display-only second-role add-on price after the promotion; null when no promotion covers this plan or the plan has
-no add-on. Equal to the add-on price when the promotion does not discount the add-on line. */
+no add-on. A promotion that covers a plan always discounts its add-on line too. */
     discountedSecondRoleAddOnPriceMinorUnits?: number | undefined;
     /** How often the plan is billed. */
     billingInterval?: BillingInterval;
@@ -31200,8 +31200,6 @@ export interface CoachPromotionDto {
     durationMonths?: number | undefined;
     /** Last moment the offer can be claimed; null for no end. */
     claimUntil?: string | undefined;
-    /** True when the second-role add-on line is discounted too. */
-    coversSecondRoleAddOn?: boolean;
     /** Codes of the plans the promotion covers. */
     planCodes?: string[];
 }

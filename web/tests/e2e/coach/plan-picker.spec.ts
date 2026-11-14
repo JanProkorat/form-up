@@ -98,7 +98,6 @@ async function mockPickerReads(page: Page, taxMode: 'None' | 'Vat21', offer?: Of
           duration: 'Months',
           durationMonths: 3,
           claimUntil: '2026-12-31T12:00:00Z',
-          coversSecondRoleAddOn: true,
           planCodes: offer === 'all' ? ['start', 'pro', 'studio'] : ['pro'],
         },
       }),
