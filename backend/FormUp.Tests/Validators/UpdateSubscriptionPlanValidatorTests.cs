@@ -27,6 +27,13 @@ public class UpdateSubscriptionPlanValidatorTests
         CanUseWeeklyCheckIns = true,
         CanUsePerClientCheckInConfig = true,
         CanUsePayments = true,
+        CanUsePlanTemplates = true,
+        CanUseRecipes = true,
+        CanUseIngredients = true,
+        CanUseProgressPhotos = true,
+        CanUseWeightAndMeasurements = true,
+        CanUseAutomations = true,
+        CanUsePackages = true,
         Currency = "CZK",
         PriceMinorUnits = 29900,
         BillingInterval = BillingInterval.Monthly,
@@ -39,6 +46,49 @@ public class UpdateSubscriptionPlanValidatorTests
     {
         var result = _validator.TestValidate(ValidRequest());
         result.IsValid.Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData(nameof(UpdateSubscriptionPlanRequest.CanUsePlanTemplates))]
+    [InlineData(nameof(UpdateSubscriptionPlanRequest.CanUseRecipes))]
+    [InlineData(nameof(UpdateSubscriptionPlanRequest.CanUseIngredients))]
+    [InlineData(nameof(UpdateSubscriptionPlanRequest.CanUseProgressPhotos))]
+    [InlineData(nameof(UpdateSubscriptionPlanRequest.CanUseWeightAndMeasurements))]
+    [InlineData(nameof(UpdateSubscriptionPlanRequest.CanUseAutomations))]
+    [InlineData(nameof(UpdateSubscriptionPlanRequest.CanUsePackages))]
+    public void FeatureFlag_Omitted_FailsWithRequiredCode(string flag)
+    {
+        var req = ValidRequest();
+        typeof(UpdateSubscriptionPlanRequest).GetProperty(flag)!.SetValue(req, null);
+
+        var result = _validator.TestValidate(req);
+
+        result.Errors.Should().ContainSingle(e => e.ErrorCode == ErrorCodes.Required);
+    }
+
+    [Fact]
+    public void PerClientCheckInConfig_WithoutWeeklyCheckIns_FailsWithCoupledCode()
+    {
+        var req = ValidRequest();
+        req.CanUsePerClientCheckInConfig = true;
+        req.CanUseWeeklyCheckIns = false;
+
+        var result = _validator.TestValidate(req);
+
+        result.Errors.Should().ContainSingle(e => e.ErrorCode == ErrorCodes.PerClientCheckInRequiresWeeklyCheckIns);
+    }
+
+    [Theory]
+    [InlineData(true, true)]
+    [InlineData(false, true)]
+    [InlineData(false, false)]
+    public void PerClientCheckInConfig_ConsistentWithWeeklyCheckIns_Passes(bool perClient, bool weekly)
+    {
+        var req = ValidRequest();
+        req.CanUsePerClientCheckInConfig = perClient && weekly;
+        req.CanUseWeeklyCheckIns = weekly;
+
+        _validator.TestValidate(req).IsValid.Should().BeTrue();
     }
 
     [Fact]

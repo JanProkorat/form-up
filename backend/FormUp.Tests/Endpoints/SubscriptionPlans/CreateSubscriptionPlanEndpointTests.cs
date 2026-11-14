@@ -41,6 +41,13 @@ public class CreateSubscriptionPlanEndpointTests(FitnessApiFactory factory)
         CanUseWeeklyCheckIns: false,
         CanUsePerClientCheckInConfig: false,
         CanUsePayments: true,
+        CanUsePlanTemplates: true,
+        CanUseRecipes: false,
+        CanUseIngredients: true,
+        CanUseProgressPhotos: false,
+        CanUseWeightAndMeasurements: true,
+        CanUseAutomations: false,
+        CanUsePackages: true,
         MaxActiveClients: 10,
         PriceMinorUnits: 29900,
         Currency: "CZK",
@@ -76,6 +83,28 @@ public class CreateSubscriptionPlanEndpointTests(FitnessApiFactory factory)
         persisted.SecondRoleAddOnPriceMinorUnits.Should().BeNull();
         persisted.IsActive.Should().BeTrue();
         persisted.CanUsePayments.Should().BeTrue();
+        persisted.CanUsePlanTemplates.Should().BeTrue();
+        persisted.CanUseRecipes.Should().BeFalse();
+        persisted.CanUseIngredients.Should().BeTrue();
+        persisted.CanUseProgressPhotos.Should().BeFalse();
+        persisted.CanUseWeightAndMeasurements.Should().BeTrue();
+        persisted.CanUseAutomations.Should().BeFalse();
+        persisted.CanUsePackages.Should().BeTrue();
+        body.CanUsePackages.Should().BeTrue();
+        body.CanUseRecipes.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Create_PerClientCheckInsWithoutWeeklyCheckIns_Returns400()
+    {
+        var client = await TestHelpers.RegisterAdminAsync(factory, TestContext.Current.CancellationToken);
+
+        var response = await client.PostAsJsonAsync(
+            "/admin/subscription-plans",
+            ValidPayload(UniqueCode()) with { CanUsePerClientCheckInConfig = true, CanUseWeeklyCheckIns = false },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Fact]
@@ -211,6 +240,13 @@ public class CreateSubscriptionPlanEndpointTests(FitnessApiFactory factory)
         bool CanUseWeeklyCheckIns,
         bool CanUsePerClientCheckInConfig,
         bool CanUsePayments,
+        bool CanUsePlanTemplates,
+        bool CanUseRecipes,
+        bool CanUseIngredients,
+        bool CanUseProgressPhotos,
+        bool CanUseWeightAndMeasurements,
+        bool CanUseAutomations,
+        bool CanUsePackages,
         int? MaxActiveClients,
         long PriceMinorUnits,
         string Currency,

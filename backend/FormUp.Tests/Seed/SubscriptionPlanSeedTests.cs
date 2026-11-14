@@ -58,6 +58,22 @@ public class SubscriptionPlanSeedTests(FitnessApiFactory factory)
         plans["pro"].CanUsePayments.Should().BeTrue();
         plans["studio"].CanUsePayments.Should().BeTrue();
 
+        // Packages follow client payments; every other new feature is on from Free up.
+        plans["free"].CanUsePackages.Should().BeFalse();
+        plans["start"].CanUsePackages.Should().BeFalse();
+        plans["pro"].CanUsePackages.Should().BeTrue();
+        plans["studio"].CanUsePackages.Should().BeTrue();
+
+        foreach (var plan in plans.Values)
+        {
+            plan.CanUsePlanTemplates.Should().BeTrue();
+            plan.CanUseRecipes.Should().BeTrue();
+            plan.CanUseIngredients.Should().BeTrue();
+            plan.CanUseProgressPhotos.Should().BeTrue();
+            plan.CanUseWeightAndMeasurements.Should().BeTrue();
+            plan.CanUseAutomations.Should().BeTrue();
+        }
+
         plans["studio"].PriceMinorUnits.Should().Be(99900);
         plans["studio"].BothRolesIncluded.Should().BeTrue();
         plans["studio"].MaxActiveClients.Should().BeNull();

@@ -34,6 +34,31 @@ public class CreateSubscriptionPlanValidatorTests
     }
 
     [Fact]
+    public void PerClientCheckInConfig_WithoutWeeklyCheckIns_FailsWithCoupledCode()
+    {
+        var req = ValidRequest();
+        req.CanUsePerClientCheckInConfig = true;
+        req.CanUseWeeklyCheckIns = false;
+
+        var result = _validator.TestValidate(req);
+
+        result.Errors.Should().ContainSingle(e => e.ErrorCode == ErrorCodes.PerClientCheckInRequiresWeeklyCheckIns);
+    }
+
+    [Theory]
+    [InlineData(true, true)]
+    [InlineData(false, true)]
+    [InlineData(false, false)]
+    public void PerClientCheckInConfig_ConsistentWithWeeklyCheckIns_Passes(bool perClient, bool weekly)
+    {
+        var req = ValidRequest();
+        req.CanUsePerClientCheckInConfig = perClient;
+        req.CanUseWeeklyCheckIns = weekly;
+
+        _validator.TestValidate(req).IsValid.Should().BeTrue();
+    }
+
+    [Fact]
     public void Code_Empty_FailsWithRequiredCode()
     {
         var req = ValidRequest();

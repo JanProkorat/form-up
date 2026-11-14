@@ -1350,6 +1350,59 @@ public static class CoachSubscriptionBuilder
     }
 
     /// <summary>
+    /// Moves the coach to a fresh active plan with every feature on, then lets <paramref name="configure"/> switch
+    /// the ones a test wants off. Replaces any earlier subscription of the coach.
+    /// </summary>
+    /// <param name="factory">The test host.</param>
+    /// <param name="coach">The coach to move.</param>
+    /// <param name="configure">Adjusts the plan's flags.</param>
+    public static async Task MoveToPlanAsync(FitnessApiFactory factory, Actor coach, Action<SubscriptionPlan> configure)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var plan = new SubscriptionPlan
+        {
+            Code = $"features-{Guid.NewGuid():N}",
+            NameCs = "Plán",
+            NameEn = "Plan",
+            NameDe = "Plan",
+            BothRolesIncluded = true,
+            CanCreatePlans = true,
+            CanMessage = true,
+            CanSendQuestionnaires = true,
+            CanUseWeeklyCheckIns = true,
+            CanUsePerClientCheckInConfig = true,
+            CanUsePayments = true,
+            CanUsePlanTemplates = true,
+            CanUseRecipes = true,
+            CanUseIngredients = true,
+            CanUseProgressPhotos = true,
+            CanUseWeightAndMeasurements = true,
+            CanUseAutomations = true,
+            CanUsePackages = true,
+            PriceMinorUnits = 99900,
+            Currency = "CZK",
+            BillingInterval = BillingInterval.Monthly,
+            IsActive = true,
+        };
+        configure(plan);
+        var price = SubscriptionPlanPriceBuilder.OpenPriceFor(plan);
+        db.SubscriptionPlans.Add(plan);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        await ReplaceSubscriptionAsync(db, coach);
+        db.CoachSubscriptions.Add(new CoachSubscription
+        {
+            ProfessionalProfileId = coach.ProfileId,
+            SubscriptionPlanId = plan.Id,
+            SubscriptionPlanPriceId = price.Id,
+            Status = SubscriptionStatus.Active,
+        });
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>
     /// Moves the coach to a fresh active plan whose payments feature is off.
     /// </summary>
     /// <param name="factory">The test host.</param>
