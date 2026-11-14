@@ -15,8 +15,11 @@ namespace FormUp.Tests.Endpoints.Billing;
 /// payment provider.
 /// </summary>
 [Collection(TestCollection.Name)]
-public class CreatePortalSessionEndpointTests(FitnessApiFactory factory)
+public class CreatePortalSessionEndpointTests(FitnessApiFactory factory) : IDisposable
 {
+    /// <summary>Leaves the shared fake provider in its defaults for the next test class.</summary>
+    public void Dispose() => BillingTestData.ResetProvider(factory);
+
     private const string Route = "/billing/portal-session";
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

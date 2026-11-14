@@ -19,6 +19,9 @@ public sealed class FakeSubscriptionService : ISubscriptionService
     /// <summary>When true every call throws <see cref="BillingProviderException"/>.</summary>
     public bool Fail { get; set; }
 
+    /// <summary>When true only <see cref="ISubscriptionService.ChangePlanAsync"/> throws <see cref="BillingProviderException"/>.</summary>
+    public bool FailPlanChanges { get; set; }
+
     /// <summary>Recorded <see cref="ISubscriptionService.CreateCustomerAsync"/> calls.</summary>
     public List<CustomerCall> Customers { get; } = [];
 
@@ -66,6 +69,7 @@ public sealed class FakeSubscriptionService : ISubscriptionService
         {
             IsConfigured = true;
             Fail = false;
+            FailPlanChanges = false;
             Customers.Clear();
             Checkouts.Clear();
             Portals.Clear();
@@ -136,6 +140,11 @@ public sealed class FakeSubscriptionService : ISubscriptionService
         CancellationToken ct)
     {
         ThrowIfFailing();
+
+        if (FailPlanChanges)
+        {
+            throw new BillingProviderException("Fake plan change failure.");
+        }
 
         lock (gate)
         {

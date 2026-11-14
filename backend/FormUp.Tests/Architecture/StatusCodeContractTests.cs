@@ -52,7 +52,7 @@ public class StatusCodeContractTests(FitnessApiFactory factory)
     [InlineData("put", "/admin/coaches/{coachId}/subscription", "200,400,401,403,404", true, Body)]
     [InlineData("get", "/admin/coaches", "200,400,401,403", true, Body)]
     [InlineData("get", "/admin/coaches/{coachId}", "200,401,403,404", true, Absent)]
-    [InlineData("post", "/admin/coaches/{coachId}/give-free", "200,400,401,403,404", true, Body)]
+    [InlineData("post", "/admin/coaches/{coachId}/give-free", "200,400,401,403,404,502", true, Body)]
     [InlineData("post", "/billing/checkout-session", "200,400,401,403,404,409,502,503", true, Body)]
     [InlineData("post", "/billing/portal-session", "200,401,403,404,502,503", true, Absent)]
     [InlineData("post", "/admin/coaches/{coachId}/cancel-renewal", "200,400,401,403,404,409", true, Body)]
