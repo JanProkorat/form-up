@@ -7128,8 +7128,7 @@
       "body_few": "Uložením vznikne ve Stripe nová cena. Noví trenéři budou platit {{to}}. {{count}} trenéři, kteří už jsou na plánu {{name}}, zůstanou na {{from}}.",
       "body_many": "Uložením vznikne ve Stripe nová cena. Noví trenéři budou platit {{to}}. {{count}} trenéra, kteří už jsou na plánu {{name}}, zůstanou na {{from}}.",
       "body_other": "Uložením vznikne ve Stripe nová cena. Noví trenéři budou platit {{to}}. {{count}} trenérů, kteří už jsou na plánu {{name}}, zůstane na {{from}}.",
-      "move": "Přesunout je na {{price}} při další obnově",
-      "moveHint": "Každému trenérovi před změnou pošleme e-mail."
+      "move": "Přesunout je na {{price}} při další obnově"
     },
     "validation": {
       "nameRequired": "Zadejte název.",

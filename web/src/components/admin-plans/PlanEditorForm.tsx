@@ -473,7 +473,6 @@ function PriceChangeWarning({ control, from, to, coachCount, planLabel }: Warnin
         render={({ field }) => (
           <PlanCheckRow
             label={t('adminPlans.priceChange.move', { price: to })}
-            hint={t('adminPlans.priceChange.moveHint')}
             checked={field.value}
             onCheckedChange={field.onChange}
           />

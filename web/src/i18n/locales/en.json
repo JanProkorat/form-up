@@ -6866,8 +6866,7 @@
       "title": "Price changes from {{from}} to {{to}}",
       "body_one": "Saving creates a new price in Stripe. New coaches pay {{to}}. The {{count}} coach already on {{name}} keeps {{from}}.",
       "body_other": "Saving creates a new price in Stripe. New coaches pay {{to}}. The {{count}} coaches already on {{name}} keep {{from}}.",
-      "move": "Move them to {{price}} at their next renewal",
-      "moveHint": "We email each coach before the change."
+      "move": "Move them to {{price}} at their next renewal"
     },
     "validation": {
       "nameRequired": "Enter a name.",

@@ -6871,8 +6871,7 @@
       "title": "Der Preis ändert sich von {{from}} auf {{to}}",
       "body_one": "Beim Speichern entsteht in Stripe ein neuer Preis. Neue Trainer zahlen {{to}}. Der {{count}} Trainer, der bereits im Plan {{name}} ist, behält {{from}}.",
       "body_other": "Beim Speichern entsteht in Stripe ein neuer Preis. Neue Trainer zahlen {{to}}. Die {{count}} Trainer, die bereits im Plan {{name}} sind, behalten {{from}}.",
-      "move": "Bei der nächsten Verlängerung auf {{price}} umstellen",
-      "moveHint": "Wir informieren jeden Trainer vor der Änderung per E-Mail."
+      "move": "Bei der nächsten Verlängerung auf {{price}} umstellen"
     },
     "validation": {
       "nameRequired": "Geben Sie einen Namen ein.",
