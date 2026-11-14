@@ -83,6 +83,44 @@
   status = 200
   force = true
 
+# Narrow on purpose: Stripe sends the coach back to the SPA pages /billing, /billing/success and
+# /billing/cancel, so a blanket /billing/* would send those page loads to the backend.
+[[redirects]]
+  from = "/billing/checkout-session"
+  to = "https://dev-fitnessplatform.onrender.com/billing/checkout-session"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/billing/portal-session"
+  to = "https://dev-fitnessplatform.onrender.com/billing/portal-session"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/billing/change-plan"
+  to = "https://dev-fitnessplatform.onrender.com/billing/change-plan"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/billing/switch-to-free"
+  to = "https://dev-fitnessplatform.onrender.com/billing/switch-to-free"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/billing/promotion-code"
+  to = "https://dev-fitnessplatform.onrender.com/billing/promotion-code"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/billing/second-role/*"
+  to = "https://dev-fitnessplatform.onrender.com/billing/second-role/:splat"
+  status = 200
+  force = true
+
 # Narrow on purpose: the SPA page lives at /admin/plans, so a blanket /admin/* would
 # send a page reload to the backend (Netlify cannot tell navigation from an API call).
 [[redirects]]

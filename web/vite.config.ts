@@ -38,6 +38,7 @@ export default defineConfig({
       '/recipes': apiProxy(),
       '/client': apiProxy(),
       '/payments': apiProxy(),
+      '/billing': apiProxy(),
       '/admin': apiProxy(),
       '/exercises': apiProxy(),
       '/training': apiProxy(),
