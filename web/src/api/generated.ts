@@ -1210,7 +1210,7 @@ export class ApiClient {
 
     /**
      * Get my coach subscription
-     * @return The caller's subscription block
+     * @return The caller's subscription block, with the current promotion and its display-only discount while the paid subscription is live
      */
     getMySubscriptionEndpoint(signal?: AbortSignal): Promise<GetMySubscriptionResponse> {
         let url_ = this.baseUrl + "/users/me/subscription";
@@ -25230,6 +25230,12 @@ export interface CurrentPromotionDto {
     durationMonths?: number | undefined;
     /** When the discount ends, as Stripe reports it; null for a forever discount. */
     endsAt?: string | undefined;
+    /** Display-only amount the promotion takes off one billing period: the plan line plus the add-on line where the coupon
+covers it, in the currency of PriceLines. Zero when the promotion does not
+apply to the coach's plan. Stripe computes the real charge. */
+    discountMinorUnits?: number;
+    /** Display-only total of the price lines after DiscountMinorUnits. */
+    discountedTotalMinorUnits?: number;
 }
 
 /** How a Promotion takes money off the bill. */
