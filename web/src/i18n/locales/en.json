@@ -3401,6 +3401,7 @@
   },
   "apiErrors": {
     "FREE_PLAN_LOCKED": "The Free plan cannot be changed this way: its price stays at 0 and it is always offered.",
+    "PER_CLIENT_CHECK_IN_REQUIRES_WEEKLY_CHECK_INS": "Per-client check-in settings need weekly check-ins. Turn on weekly check-ins first.",
     "SUBSCRIPTION_PLAN_CODE_ALREADY_EXISTS": "A plan with this code already exists.",
     "SUBSCRIPTION_PLAN_NOT_FOUND": "This plan no longer exists.",
     "NO_RENEWING_SUBSCRIPTION": "This coach has no renewing paid plan, so there is no renewal to cancel.",
@@ -6757,6 +6758,44 @@
       "saving": "Saving…",
       "save": "Save plan"
     },
+    "editor": {
+      "back": "Back to plans",
+      "backToPlans": "Back to plans",
+      "titleNew": "New plan",
+      "subtitleNew": "Coaches see it in the plan picker once you offer it.",
+      "create": "Create plan",
+      "untitled": "Untitled plan",
+      "codeHintNew": "Lowercase letters, digits and dashes. Used by the app and Stripe. Can’t change after the plan is created.",
+      "codePlaceholder": "e.g. elite",
+      "noPrice": "— {{currency}}",
+      "perMonthSuffix": "/ month",
+      "secondRoleLine": "Second role +{{price}} / month",
+      "secondRoleIncludedLine": "Second role included",
+      "unlimitedClientsLine": "Unlimited active clients",
+      "clientsLine_one": "Up to {{count}} active client",
+      "clientsLine_other": "Up to {{count}} active clients",
+      "summaryHint": "Set a price and a client limit to see the summary.",
+      "featuresIncluded": "{{count}} of {{total}} features included",
+      "featuresOn": "{{count}} of {{total}} on",
+      "offerHintNew": "Leave off until the plan is ready. Off hides it from the plan picker.",
+      "notFoundTitle": "Plan not found",
+      "notFoundBody": "No plan has this code. It may have been removed.",
+      "features": {
+        "chat": { "label": "Chat", "hint": "Inbox and messages with clients" },
+        "nutritionPlans": { "label": "Nutrition plans", "hint": "Client plan editor and the Nutrition tab" },
+        "planTemplates": { "label": "Plan templates", "hint": "Reusable plans to assign to clients" },
+        "recipes": { "label": "Recipes", "hint": "Recipe library" },
+        "ingredients": { "label": "Ingredients", "hint": "Own ingredients and foods" },
+        "progressPhotos": { "label": "Progress photos", "hint": "Photos tab and photo requests" },
+        "measurements": { "label": "Weight and measurements", "hint": "Weight and stats on the client overview" },
+        "forms": { "label": "Forms", "hint": "Questionnaires and onboarding forms" },
+        "checkIns": { "label": "Weekly check-ins", "hint": "Check-in form and review" },
+        "perClientCheckIns": { "label": "Per-client check-in settings", "hint": "Needs weekly check-ins" },
+        "automations": { "label": "Automations", "hint": "Rules page and the client Automations tab" },
+        "packages": { "label": "Packages", "hint": "Packages offered with an invite" },
+        "payments": { "label": "Client payments", "hint": "Payment tab and QR payment requests" }
+      }
+    },
     "preview": {
       "price": "{{price}} / month",
       "secondRole": "second role +{{price}}",
@@ -6781,7 +6820,8 @@
       "codeTaken": "A plan with this code already exists.",
       "priceInvalid": "Enter a price from 0 to 1,000,000.",
       "addOnInvalid": "Enter a second-role price above 0, or choose Included in the price.",
-      "clientsInvalid": "Enter a number of clients from 1, or tick Unlimited."
+      "clientsInvalid": "Enter a number of clients from 1, or tick Unlimited.",
+      "perClientNeedsWeekly": "Per-client check-in settings need weekly check-ins."
     }
   }
 }

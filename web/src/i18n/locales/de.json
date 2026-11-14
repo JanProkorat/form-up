@@ -3400,6 +3400,7 @@
   },
   "apiErrors": {
     "FREE_PLAN_LOCKED": "Der Plan Free lässt sich so nicht ändern: Sein Preis bleibt bei 0 und er wird immer angeboten.",
+    "PER_CLIENT_CHECK_IN_REQUIRES_WEEKLY_CHECK_INS": "Check-in-Einstellungen pro Klient setzen wöchentliche Check-ins voraus. Aktivieren Sie zuerst die wöchentlichen Check-ins.",
     "SUBSCRIPTION_PLAN_CODE_ALREADY_EXISTS": "Ein Plan mit diesem Code existiert bereits.",
     "SUBSCRIPTION_PLAN_NOT_FOUND": "Dieser Plan existiert nicht mehr.",
     "NO_RENEWING_SUBSCRIPTION": "Dieser Trainer hat keinen sich verlängernden bezahlten Plan, daher gibt es keine Verlängerung zu kündigen.",
@@ -6762,6 +6763,44 @@
       "saving": "Wird gespeichert…",
       "save": "Plan speichern"
     },
+    "editor": {
+      "back": "Zurück zu den Plänen",
+      "backToPlans": "Zurück zu den Plänen",
+      "titleNew": "Neuer Plan",
+      "subtitleNew": "Trainer sehen ihn in der Planauswahl, sobald Sie ihn anbieten.",
+      "create": "Plan anlegen",
+      "untitled": "Plan ohne Namen",
+      "codeHintNew": "Kleinbuchstaben, Ziffern und Bindestriche. Wird von der App und von Stripe verwendet. Nach dem Anlegen des Plans nicht mehr änderbar.",
+      "codePlaceholder": "z. B. elite",
+      "noPrice": "— {{currency}}",
+      "perMonthSuffix": "/ Monat",
+      "secondRoleLine": "Zweite Rolle +{{price}} / Monat",
+      "secondRoleIncludedLine": "Zweite Rolle inklusive",
+      "unlimitedClientsLine": "Unbegrenzt viele aktive Klienten",
+      "clientsLine_one": "Bis zu {{count}} aktiver Klient",
+      "clientsLine_other": "Bis zu {{count}} aktive Klienten",
+      "summaryHint": "Legen Sie einen Preis und ein Klientenlimit fest, um die Zusammenfassung zu sehen.",
+      "featuresIncluded": "{{count}} von {{total}} Funktionen enthalten",
+      "featuresOn": "{{count}} von {{total}} aktiv",
+      "offerHintNew": "Lassen Sie es aus, bis der Plan fertig ist. Aus blendet den Plan in der Planauswahl aus.",
+      "notFoundTitle": "Plan nicht gefunden",
+      "notFoundBody": "Kein Plan hat diesen Code. Möglicherweise wurde er entfernt.",
+      "features": {
+        "chat": { "label": "Chat", "hint": "Posteingang und Nachrichten mit Klienten" },
+        "nutritionPlans": { "label": "Ernährungspläne", "hint": "Planeditor für Klienten und der Tab Ernährung" },
+        "planTemplates": { "label": "Planvorlagen", "hint": "Wiederverwendbare Pläne zum Zuweisen an Klienten" },
+        "recipes": { "label": "Rezepte", "hint": "Rezeptbibliothek" },
+        "ingredients": { "label": "Zutaten", "hint": "Eigene Zutaten und Lebensmittel" },
+        "progressPhotos": { "label": "Fortschrittsfotos", "hint": "Tab Fotos und Fotoanfragen" },
+        "measurements": { "label": "Gewicht und Maße", "hint": "Gewicht und Statistiken in der Klientenübersicht" },
+        "forms": { "label": "Formulare", "hint": "Fragebögen und Aufnahmeformulare" },
+        "checkIns": { "label": "Wöchentliche Check-ins", "hint": "Check-in-Formular und Auswertung" },
+        "perClientCheckIns": { "label": "Check-in-Einstellungen pro Klient", "hint": "Setzt wöchentliche Check-ins voraus" },
+        "automations": { "label": "Automatisierungen", "hint": "Regelseite und der Tab Automatisierungen beim Klienten" },
+        "packages": { "label": "Pakete", "hint": "Pakete, die mit einer Einladung angeboten werden" },
+        "payments": { "label": "Klientenzahlungen", "hint": "Tab Zahlungen und QR-Zahlungsanfragen" }
+      }
+    },
     "preview": {
       "price": "{{price}} / Monat",
       "secondRole": "zweite Rolle +{{price}}",
@@ -6786,7 +6825,8 @@
       "codeTaken": "Ein Plan mit diesem Code existiert bereits.",
       "priceInvalid": "Geben Sie einen Preis von 0 bis 1.000.000 ein.",
       "addOnInvalid": "Geben Sie einen Preis für die zweite Rolle über 0 ein oder wählen Sie „Im Preis inklusive“.",
-      "clientsInvalid": "Geben Sie eine Klientenzahl ab 1 ein oder wählen Sie Unbegrenzt."
+      "clientsInvalid": "Geben Sie eine Klientenzahl ab 1 ein oder wählen Sie Unbegrenzt.",
+      "perClientNeedsWeekly": "Check-in-Einstellungen pro Klient setzen wöchentliche Check-ins voraus."
     }
   }
 }

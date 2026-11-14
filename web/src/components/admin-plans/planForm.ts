@@ -38,6 +38,13 @@ const planShape = z.object({
   canUseWeeklyCheckIns: z.boolean(),
   canUsePerClientCheckInConfig: z.boolean(),
   canUsePayments: z.boolean(),
+  canUsePlanTemplates: z.boolean(),
+  canUseRecipes: z.boolean(),
+  canUseIngredients: z.boolean(),
+  canUseProgressPhotos: z.boolean(),
+  canUseWeightAndMeasurements: z.boolean(),
+  canUseAutomations: z.boolean(),
+  canUsePackages: z.boolean(),
   isActive: z.boolean(),
   moveExistingCoaches: z.boolean(),
 });
@@ -75,6 +82,10 @@ export function createPlanSchema(isNew: boolean) {
       }
     }
 
+    if (values.canUsePerClientCheckInConfig && !values.canUseWeeklyCheckIns) {
+      fail('canUsePerClientCheckInConfig', 'adminPlans.validation.perClientNeedsWeekly');
+    }
+
     if (!values.unlimited) {
       const cap = values.maxActiveClients.trim();
       if (!INT_PATTERN.test(cap) || Number(cap) < 1 || Number(cap) > 100_000) {
@@ -95,13 +106,20 @@ export function defaultPlanValues(): PlanFormValues {
     addOnPrice: '',
     unlimited: false,
     maxActiveClients: '',
-    canCreatePlans: true,
-    canMessage: true,
+    canCreatePlans: false,
+    canMessage: false,
     canSendQuestionnaires: false,
     canUseWeeklyCheckIns: false,
     canUsePerClientCheckInConfig: false,
     canUsePayments: false,
-    isActive: true,
+    canUsePlanTemplates: false,
+    canUseRecipes: false,
+    canUseIngredients: false,
+    canUseProgressPhotos: false,
+    canUseWeightAndMeasurements: false,
+    canUseAutomations: false,
+    canUsePackages: false,
+    isActive: false,
     moveExistingCoaches: false,
   };
 }
@@ -137,22 +155,40 @@ export function planToFormValues(plan: SubscriptionPlanDto): PlanFormValues {
     canMessage: plan.canMessage ?? false,
     canSendQuestionnaires: plan.canSendQuestionnaires ?? false,
     canUseWeeklyCheckIns: plan.canUseWeeklyCheckIns ?? false,
-    canUsePerClientCheckInConfig: plan.canUsePerClientCheckInConfig ?? false,
+    // A saved plan with per-client settings but no weekly check-ins would fail the form's own rule.
+    canUsePerClientCheckInConfig: (plan.canUseWeeklyCheckIns ?? false) && (plan.canUsePerClientCheckInConfig ?? false),
     canUsePayments: plan.canUsePayments ?? false,
+    canUsePlanTemplates: plan.canUsePlanTemplates ?? false,
+    canUseRecipes: plan.canUseRecipes ?? false,
+    canUseIngredients: plan.canUseIngredients ?? false,
+    canUseProgressPhotos: plan.canUseProgressPhotos ?? false,
+    canUseWeightAndMeasurements: plan.canUseWeightAndMeasurements ?? false,
+    canUseAutomations: plan.canUseAutomations ?? false,
+    canUsePackages: plan.canUsePackages ?? false,
     isActive: plan.isActive ?? true,
     moveExistingCoaches: false,
   };
 }
 
-/** Per-client check-in settings only make sense with weekly check-ins; the server does not enforce it. */
+/**
+ * The feature flags of a plan. Per-client check-in settings need weekly check-ins: the schema blocks the
+ * combination, and the server also refuses it with 400 PER_CLIENT_CHECK_IN_REQUIRES_WEEKLY_CHECK_INS.
+ */
 function featureFlags(values: PlanFormValues) {
   return {
     canCreatePlans: values.canCreatePlans,
     canMessage: values.canMessage,
     canSendQuestionnaires: values.canSendQuestionnaires,
     canUseWeeklyCheckIns: values.canUseWeeklyCheckIns,
-    canUsePerClientCheckInConfig: values.canUseWeeklyCheckIns && values.canUsePerClientCheckInConfig,
+    canUsePerClientCheckInConfig: values.canUsePerClientCheckInConfig,
     canUsePayments: values.canUsePayments,
+    canUsePlanTemplates: values.canUsePlanTemplates,
+    canUseRecipes: values.canUseRecipes,
+    canUseIngredients: values.canUseIngredients,
+    canUseProgressPhotos: values.canUseProgressPhotos,
+    canUseWeightAndMeasurements: values.canUseWeightAndMeasurements,
+    canUseAutomations: values.canUseAutomations,
+    canUsePackages: values.canUsePackages,
   };
 }
 
@@ -178,7 +214,7 @@ export function formValuesToCreateRequest(values: PlanFormValues): CreateSubscri
 }
 
 /**
- * Builds the update body. Fields the drawer does not edit (currency, billing, external price id)
+ * Builds the update body. Fields the editor does not edit (currency, billing, external price id)
  * keep the saved plan's value, and the cap key is always present.
  */
 export function formValuesToUpdateRequest(
