@@ -174,7 +174,9 @@ gh pr view <N> --json files --jq '.files[].path' | grep -E 'backend/.*Scripts/|b
 
 Hits → **BLOCKED** verdict (not a finding — terminate review with
 `blocked_reason`). User merges manually. Also check for one-shot data
-commands per the rule. EF migrations (`backend/**/Migrations/**`) are
+commands per the rule — start with
+`gh pr view <N> --json files --jq '.files[].path' | grep -E 'backend/.*Infrastructure/Cli/'`,
+then read any new startup or CLI routine that writes, renames or drops data. EF migrations (`backend/**/Migrations/**`) are
 **not** excluded — list them in the verdict so the user sees the schema
 change, and continue.
 

@@ -142,6 +142,7 @@ Authorization recorded: "<user's same-turn phrase>"
 CI: all pass on <sha> | <detail>
 Base current under the green run: ✅ | ❌
 Stacked PRs on this branch: none | <list>
+EF migrations (not excluded): none | <each backend/**/Migrations/** file>
 
 Command for the main thread:
   gh pr merge <n> --squash --delete-branch --match-head-commit <sha>

@@ -134,6 +134,10 @@ The agent never merges these — user does it manually:
   exactly as destructive. Two already exist:
   `RunDropLegacyTrainingCollectionsAsync` (#847) drops two collections, and
   the rename command in #1033 moves a third. Same — `develop` only.
+  EF Core migrations under `backend/**/Migrations/**` are not "one-shot
+  commands" for this bullet, even though they run at startup and may
+  change data (`migrationBuilder.Sql`, `DeleteData`, a backfill); see the
+  note below the list.
 - Any PR where the user has said in the current turn "I'll merge this
   one myself".
 
