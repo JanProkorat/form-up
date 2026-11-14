@@ -47,9 +47,6 @@ public class CoachPromotionDto
     /// <summary>Last moment the offer can be claimed; null for no end.</summary>
     public DateTimeOffset? ClaimUntil { get; set; }
 
-    /// <summary>True when the second-role add-on line is discounted too.</summary>
-    public bool CoversSecondRoleAddOn { get; set; }
-
     /// <summary>Codes of the plans the promotion covers.</summary>
     public List<string> PlanCodes { get; set; } = [];
 }
@@ -88,7 +85,7 @@ public class CoachPlanDto
 
     /// <summary>
     /// Display-only second-role add-on price after the promotion; null when no promotion covers this plan or the plan has
-    /// no add-on. Equal to the add-on price when the promotion does not discount the add-on line.
+    /// no add-on. A promotion that covers a plan always discounts its add-on line too.
     /// </summary>
     public long? DiscountedSecondRoleAddOnPriceMinorUnits { get; set; }
 

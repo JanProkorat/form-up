@@ -122,7 +122,6 @@ public class CreatePromotionEndpointTests(FitnessApiFactory factory) : IDisposab
         saved.StripePromotionCodeId.Should().Be(code.PromotionCodeId);
         saved.CodeNormalized.Should().Be("COACH20");
         saved.PlanCodes.Should().Equal(plan);
-        saved.CoversSecondRoleAddOn.Should().BeFalse();
         saved.OneUsePerCoach.Should().BeTrue();
 
         var body = await response.Content.ReadFromJsonAsync<JsonElement>(BillingTestData.Json, Ct);
@@ -157,7 +156,7 @@ public class CreatePromotionEndpointTests(FitnessApiFactory factory) : IDisposab
     }
 
     [Fact]
-    public async Task Create_CoveringEveryPurchasablePlan_LeavesTheCouponUnrestricted_SoItAlsoDiscountsTheAddOn()
+    public async Task Create_CoveringEveryPurchasablePlan_LeavesTheCouponUnrestricted()
     {
         var fake = BillingTestData.ResetProvider(factory);
         var admin = await TestActors.Admin(factory).CreateAsync(Ct);
@@ -185,7 +184,7 @@ public class CreatePromotionEndpointTests(FitnessApiFactory factory) : IDisposab
 
         response.StatusCode.Should().Be(HttpStatusCode.Created, await response.Content.ReadAsStringAsync(Ct));
         fake.Coupons.Should().ContainSingle().Which.Spec.PlanPriceExternalIds.Should().BeNull();
-        (await PromotionsNamedAsync(name)).Should().ContainSingle().Which.CoversSecondRoleAddOn.Should().BeTrue();
+        (await PromotionsNamedAsync(name)).Should().ContainSingle().Which.PlanCodes.Should().BeEquivalentTo(everyPurchasablePlan);
     }
 
     [Fact]

@@ -82,42 +82,39 @@ public class GetMySubscriptionPromotionTests(FitnessApiFactory factory) : IDispo
     }
 
     [Fact]
-    public async Task Get_PromotionCoveringTheAddOn_DiscountsPlanAndAddOnLines()
+    public async Task Get_APromotionLimitedToTheCoachsPlan_DiscountsPlanAndAddOnLines()
     {
         var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
         var plan = await PaidPlanBuilder.CreateAsync(factory, priceMinorUnits: 29900, addOnMinorUnits: 9900, bothRolesIncluded: false);
         await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, plan, paysSecondRoleAddOn: true);
-        var promotion = await PromotionBuilder.CreateAsync(factory, [plan], PromotionMode.Automatic, p =>
-        {
-            p.Value = 30;
-            p.CoversSecondRoleAddOn = true;
-        });
+        var promotion = await PromotionBuilder.CreateAsync(factory, [plan], PromotionMode.Automatic, p => p.Value = 30);
         await SetCurrentPromotionAsync(coach.ProfileId, promotion.Id, null);
 
         var response = await GetAsync(coach);
 
         response.PriceLines.Should().HaveCount(2);
-        response.Promotion!.DiscountMinorUnits.Should().Be(11940, "30 % of 29 900 plus 30 % of 9 900");
+        response.Promotion!.DiscountMinorUnits.Should().Be(11940, "30 % of 29 900 plus 30 % of 9 900, though the promotion lists only this plan");
         response.Promotion.DiscountedTotalMinorUnits.Should().Be(27860);
     }
 
     [Fact]
-    public async Task Get_PromotionNotCoveringTheAddOn_DiscountsOnlyThePlanLine()
+    public async Task Get_AFixedAmountPromotion_ComesOffThePlanLineThenTheAddOnLine()
     {
         var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
         var plan = await PaidPlanBuilder.CreateAsync(factory, priceMinorUnits: 29900, addOnMinorUnits: 9900, bothRolesIncluded: false);
         await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, plan, paysSecondRoleAddOn: true);
         var promotion = await PromotionBuilder.CreateAsync(factory, [plan], PromotionMode.Automatic, p =>
         {
-            p.Value = 30;
-            p.CoversSecondRoleAddOn = false;
+            p.Kind = PromotionKind.FixedAmount;
+            p.Value = 30000;
+            p.Currency = "CZK";
         });
         await SetCurrentPromotionAsync(coach.ProfileId, promotion.Id, null);
 
         var response = await GetAsync(coach);
 
-        response.Promotion!.DiscountMinorUnits.Should().Be(8970);
-        response.Promotion.DiscountedTotalMinorUnits.Should().Be(30830, "the add-on line keeps its full price");
+        response.Promotion!.DiscountMinorUnits.Should().Be(30000);
+        response.Promotion.DiscountedTotalMinorUnits.Should().Be(9800);
     }
 
     [Fact]

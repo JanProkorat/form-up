@@ -3144,10 +3144,6 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("code_normalized");
 
-                    b.Property<bool>("CoversSecondRoleAddOn")
-                        .HasColumnType("boolean")
-                        .HasColumnName("covers_second_role_add_on");
-
                     b.Property<string>("Currency")
                         .HasMaxLength(3)
                         .HasColumnType("character varying(3)")

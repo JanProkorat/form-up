@@ -45,12 +45,6 @@ public class Promotion : PublicTimestampableEntity
     /// <summary>Codes of the plans the promotion covers.</summary>
     public List<string> PlanCodes { get; set; } = [];
 
-    /// <summary>
-    /// True when Stripe discounts the second-role add-on line too: the coupon has no product restriction because every
-    /// paid plan was selected. When false only the plan line is discounted.
-    /// </summary>
-    public bool CoversSecondRoleAddOn { get; set; }
-
     /// <summary>Total number of coaches who may claim it; null for no limit.</summary>
     public int? MaxUses { get; set; }
 

@@ -113,7 +113,6 @@ internal sealed class GetCoachPlansEndpoint(IApplicationDbContext db, IOptions<B
         Duration = promotion.Duration,
         DurationMonths = promotion.DurationMonths,
         ClaimUntil = promotion.ClaimUntil,
-        CoversSecondRoleAddOn = promotion.CoversSecondRoleAddOn,
         PlanCodes = promotion.PlanCodes.ToList(),
     };
 }

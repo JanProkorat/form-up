@@ -40,9 +40,10 @@ internal sealed class CreatePromotionEndpoint(
         {
             s.Summary = "Create a promotion";
             s.Description = "Creates the Stripe coupon (and, in code mode, a promotion code), then saves our copy and writes an audit " +
-                            "row. Max uses, the claim end, the covered plans and new-coaches-only are pushed to Stripe; when every " +
-                            "purchasable plan (active, paid, priced in Stripe) is covered the coupon has no product restriction, so " +
-                            "it also discounts the second-role add-on. " +
+                            "row. Max uses, the claim end, the covered plans and new-coaches-only are pushed to Stripe. A covered plan " +
+                            "is discounted together with its second-role add-on, because the add-on price lives on the plan's own " +
+                            "Stripe product. When every purchasable plan (active, paid, priced in Stripe) is covered the coupon has " +
+                            "no product restriction. " +
                             "One use per coach and the claim start are enforced by Form Up only. A Stripe failure saves nothing.";
             s.Response<PromotionDto>(StatusCodes.Status201Created, "The promotion that was created");
             s.Response<ProblemDetails>(StatusCodes.Status400BadRequest,
@@ -116,7 +117,6 @@ internal sealed class CreatePromotionEndpoint(
             ClaimFrom = req.ClaimFrom,
             ClaimUntil = req.ClaimUntil,
             PlanCodes = plans.Selected.Select(plan => plan.Code).ToList(),
-            CoversSecondRoleAddOn = plans.CoversEveryPurchasablePlan,
             MaxUses = req.MaxUses,
             NewCoachesOnly = req.NewCoachesOnly,
             OneUsePerCoach = req.OneUsePerCoach,

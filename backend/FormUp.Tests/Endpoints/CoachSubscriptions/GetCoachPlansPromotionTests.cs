@@ -53,7 +53,6 @@ public class GetCoachPlansPromotionTests(FitnessApiFactory factory) : IDisposabl
             p.Value = 30;
             p.Duration = PromotionDuration.Months;
             p.DurationMonths = 3;
-            p.CoversSecondRoleAddOn = true;
             p.ClaimUntil = DateTimeOffset.UtcNow.AddDays(20);
         });
 
@@ -75,21 +74,46 @@ public class GetCoachPlansPromotionTests(FitnessApiFactory factory) : IDisposabl
     }
 
     [Fact]
-    public async Task Get_WhenThePromotionDoesNotDiscountTheAddOn_TheAddOnStaysAtFullPrice()
+    public async Task Get_APromotionLimitedToSomePlans_DiscountsTheAddOnOfEachCoveredPlan_AndOnlyThose()
+    {
+        await PromotionBuilder.ClearAsync(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var first = await PlanWithAddOnAsync();
+        var second = await PlanWithAddOnAsync();
+        var left = await PlanWithAddOnAsync();
+        await PromotionBuilder.CreateAsync(factory, [first, second], PromotionMode.Automatic, p => p.Value = 30);
+
+        var plans = (await GetAsync(coach)).Plans;
+
+        foreach (var code in new[] { first, second })
+        {
+            var covered = plans.Single(item => item.Code == code);
+            covered.DiscountedPriceMinorUnits.Should().Be(20930);
+            covered.DiscountedSecondRoleAddOnPriceMinorUnits.Should().Be(6930, "the add-on is discounted with its plan");
+        }
+
+        var uncovered = plans.Single(item => item.Code == left);
+        uncovered.DiscountedPriceMinorUnits.Should().BeNull();
+        uncovered.DiscountedSecondRoleAddOnPriceMinorUnits.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Get_AFixedAmountPromotion_ComesOffThePlanLineFirstAndThenTheAddOn()
     {
         await PromotionBuilder.ClearAsync(factory);
         var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
         var plan = await PlanWithAddOnAsync();
         await PromotionBuilder.CreateAsync(factory, [plan], PromotionMode.Automatic, p =>
         {
-            p.Value = 30;
-            p.CoversSecondRoleAddOn = false;
+            p.Kind = PromotionKind.FixedAmount;
+            p.Value = 30000;
+            p.Currency = "CZK";
         });
 
         var covered = (await GetAsync(coach)).Plans.Single(item => item.Code == plan);
 
-        covered.DiscountedPriceMinorUnits.Should().Be(20930);
-        covered.DiscountedSecondRoleAddOnPriceMinorUnits.Should().Be(9900);
+        covered.DiscountedPriceMinorUnits.Should().Be(0);
+        covered.DiscountedSecondRoleAddOnPriceMinorUnits.Should().Be(9800);
     }
 
     [Fact]
