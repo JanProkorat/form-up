@@ -3,6 +3,7 @@ using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Extensions;
+using FormUp.Application.Domain.Interfaces;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Application.Infrastructure.Services.Billing;
 using Microsoft.EntityFrameworkCore;
@@ -18,11 +19,13 @@ namespace FormUp.Application.Features.Billing.StripeWebhook;
 /// </summary>
 /// <param name="db">Application database context.</param>
 /// <param name="options">Billing settings holding the webhook signing secret.</param>
+/// <param name="subscriptions">The payment provider seam, read to see which discount a subscription carries.</param>
 /// <param name="timeProvider">Clock.</param>
 /// <param name="logger">Logger; receives event ids and types only, never the payload.</param>
 internal sealed class StripeWebhookEndpoint(
     IApplicationDbContext db,
     IOptions<BillingOptions> options,
+    ISubscriptionService subscriptions,
     TimeProvider timeProvider,
     ILogger<StripeWebhookEndpoint> logger) : EndpointWithoutRequest
 {
@@ -186,7 +189,78 @@ internal sealed class StripeWebhookEndpoint(
             row.PendingSubscriptionPlanPriceId = null;
         }
 
+        if (row.Status is SubscriptionStatus.Active or SubscriptionStatus.Trialing or SubscriptionStatus.PastDue)
+        {
+            row.FirstPaidAt ??= StripeWebhookMapper.ToUtc(stripeEvent.Created);
+        }
+
+        await ApplyDiscountAsync(stripeEvent, row, subscription, ct);
+
         return true;
+    }
+
+    /// <summary>
+    /// Mirrors the subscription's discount onto the coach: the current promotion (cleared when the subscription has no
+    /// discount or one of ours does not match) and, once per coach and promotion, a redemption row. Covers codes typed on
+    /// Stripe Checkout and automatic coupons. A provider failure propagates so Stripe retries the event.
+    /// </summary>
+    private async Task ApplyDiscountAsync(Event stripeEvent, CoachSubscription row, Subscription subscription, CancellationToken ct)
+    {
+        var hasDiscount = (subscription.DiscountIds?.Count ?? 0) > 0 || (subscription.Discounts?.Count ?? 0) > 0;
+
+        if (!hasDiscount)
+        {
+            ClearPromotion(row);
+            return;
+        }
+
+        if (!subscriptions.IsConfigured)
+        {
+            return;
+        }
+
+        var discount = await subscriptions.GetSubscriptionDiscountAsync(subscription.Id, ct);
+        var promotion = discount is null ? null : await FindPromotionAsync(discount, ct);
+
+        if (discount is null || promotion is null)
+        {
+            ClearPromotion(row);
+            return;
+        }
+
+        row.CurrentPromotionId = promotion.Id;
+        row.CurrentPromotionEndsAt = discount.EndsAt;
+
+        var alreadyRecorded = await db.PromotionRedemptions
+            .AnyAsync(r => r.PromotionId == promotion.Id && r.ProfessionalProfileId == row.ProfessionalProfileId, ct);
+
+        if (!alreadyRecorded)
+        {
+            db.PromotionRedemptions.Add(new PromotionRedemption
+            {
+                PromotionId = promotion.Id,
+                ProfessionalProfileId = row.ProfessionalProfileId,
+                RedeemedAt = StripeWebhookMapper.ToUtc(stripeEvent.Created),
+            });
+        }
+    }
+
+    private static void ClearPromotion(CoachSubscription row)
+    {
+        row.CurrentPromotionId = null;
+        row.CurrentPromotionEndsAt = null;
+    }
+
+    private async Task<Promotion?> FindPromotionAsync(SubscriptionDiscount discount, CancellationToken ct)
+    {
+        var promotionCodeId = discount.PromotionCodeId;
+        var couponId = discount.CouponId;
+
+        return await db.Promotions
+            .AsNoTracking()
+            .Where(p => (promotionCodeId != null && p.StripePromotionCodeId == promotionCodeId)
+                        || (couponId != null && p.StripeCouponId == couponId))
+            .FirstOrDefaultAsync(ct);
     }
 
     private async Task<bool> ApplyDeletedAsync(Event stripeEvent, Subscription subscription, CancellationToken ct)

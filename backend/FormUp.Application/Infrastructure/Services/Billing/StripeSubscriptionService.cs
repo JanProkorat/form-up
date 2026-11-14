@@ -56,7 +56,8 @@ public sealed class StripeSubscriptionService(
 
             if (addOnAmountMinorUnits is { } amount)
             {
-                addOnPriceId = await EnsureAddOnPriceAsync(stripe, planCode, amount, currency, interval, ct);
+                var productId = await ProductOfPriceAsync(stripe, planPriceExternalId, ct);
+                addOnPriceId = await EnsureAddOnPriceAsync(stripe, planCode, productId, amount, currency, interval, ct);
             }
 
             var session = await stripe.V1.Checkout.Sessions.CreateAsync(
@@ -100,7 +101,8 @@ public sealed class StripeSubscriptionService(
 
             if (addOnAmountMinorUnits is { } amount)
             {
-                addOnPriceId = await EnsureAddOnPriceAsync(stripe, planCode, amount, currency, interval, ct);
+                var productId = await ProductOfPriceAsync(stripe, planPriceExternalId, ct);
+                addOnPriceId = await EnsureAddOnPriceAsync(stripe, planCode, productId, amount, currency, interval, ct);
             }
 
             if (atNextRenewal)
@@ -153,29 +155,83 @@ public sealed class StripeSubscriptionService(
         });
 
     /// <inheritdoc />
-    public Task<bool> ApplyPromotionCodeAsync(string subscriptionId, string promotionCode, CancellationToken ct) =>
+    public Task ApplyPromotionCodeAsync(string subscriptionId, string promotionCodeId, CancellationToken ct) =>
         RunAsync("apply-promotion-code", async stripe =>
         {
-            var codes = await stripe.V1.PromotionCodes.ListAsync(
-                new PromotionCodeListOptions { Code = promotionCode, Active = true, Limit = 1 },
-                cancellationToken: ct);
-            var code = codes.Data.FirstOrDefault();
-
-            if (code is null)
-            {
-                return false;
-            }
-
-            var subscription = await GetSubscriptionAsync(stripe, subscriptionId, ct);
-            var discounts = (subscription.DiscountIds ?? [])
-                .Select(id => new SubscriptionDiscountOptions { Discount = id })
-                .Append(new SubscriptionDiscountOptions { PromotionCode = code.Id })
-                .ToList();
-
+            // Setting the full list replaces the discount already there, so a repeat or a switch cannot stack two.
             await stripe.V1.Subscriptions.UpdateAsync(
-                subscriptionId, new SubscriptionUpdateOptions { Discounts = discounts }, cancellationToken: ct);
+                subscriptionId,
+                new SubscriptionUpdateOptions
+                {
+                    Discounts = [new SubscriptionDiscountOptions { PromotionCode = promotionCodeId }],
+                },
+                cancellationToken: ct);
 
             return true;
+        });
+
+    /// <inheritdoc />
+    public Task<string> CreateCouponAsync(CouponSpec spec, CancellationToken ct) =>
+        RunAsync("create-coupon", async stripe =>
+        {
+            List<string>? productIds = null;
+
+            if (spec.PlanPriceExternalIds is { Count: > 0 } priceIds)
+            {
+                productIds = [];
+
+                foreach (var priceId in priceIds)
+                {
+                    var price = await stripe.V1.Prices.GetAsync(priceId, cancellationToken: ct);
+
+                    if (!productIds.Contains(price.ProductId))
+                    {
+                        productIds.Add(price.ProductId);
+                    }
+                }
+            }
+
+            var coupon = await stripe.V1.Coupons.CreateAsync(
+                StripeRequestBuilder.Coupon(spec, productIds),
+                new RequestOptions { IdempotencyKey = spec.IdempotencyKey },
+                ct);
+
+            return coupon.Id;
+        });
+
+    /// <inheritdoc />
+    public Task<string> CreatePromotionCodeAsync(
+        string couponId, string code, DateTimeOffset? expiresAt, bool firstTimeOnly, CancellationToken ct) =>
+        RunAsync("create-promotion-code", async stripe =>
+        {
+            var created = await stripe.V1.PromotionCodes.CreateAsync(
+                StripeRequestBuilder.PromotionCode(couponId, code, expiresAt, firstTimeOnly), cancellationToken: ct);
+
+            return created.Id;
+        });
+
+    /// <inheritdoc />
+    public Task DeleteCouponAsync(string couponId, CancellationToken ct) =>
+        RunAsync("delete-coupon", async stripe =>
+        {
+            await stripe.V1.Coupons.DeleteAsync(couponId, cancellationToken: ct);
+
+            return true;
+        });
+
+    /// <inheritdoc />
+    public Task<SubscriptionDiscount?> GetSubscriptionDiscountAsync(string subscriptionId, CancellationToken ct) =>
+        RunAsync("get-subscription-discount", async stripe =>
+        {
+            var subscription = await GetSubscriptionAsync(stripe, subscriptionId, ct);
+            var discount = subscription.Discounts?.FirstOrDefault();
+
+            return discount is null
+                ? null
+                : new SubscriptionDiscount(
+                    discount.Source?.CouponId,
+                    discount.PromotionCodeId,
+                    discount.End is { } end ? StripeWebhookMapper.ToUtc(end) : null);
         });
 
     /// <inheritdoc />
@@ -242,7 +298,8 @@ public sealed class StripeSubscriptionService(
         CancellationToken ct) =>
         RunAsync("preview-second-role", async stripe =>
         {
-            var addOnPriceId = await EnsureAddOnPriceAsync(stripe, planCode, addOnAmountMinorUnits, currency, interval, ct);
+            var addOnPriceId = await EnsureAddOnPriceOnSubscriptionPlanAsync(
+                stripe, subscriptionId, planCode, addOnAmountMinorUnits, currency, interval, ct);
             var invoice = await stripe.V1.Invoices.CreatePreviewAsync(
                 StripeRequestBuilder.SecondRolePreview(customerId, subscriptionId, addOnPriceId, settings),
                 cancellationToken: ct);
@@ -262,7 +319,8 @@ public sealed class StripeSubscriptionService(
         CancellationToken ct) =>
         RunAsync("charge-second-role", async stripe =>
         {
-            var addOnPriceId = await EnsureAddOnPriceAsync(stripe, planCode, addOnAmountMinorUnits, currency, interval, ct);
+            var addOnPriceId = await EnsureAddOnPriceOnSubscriptionPlanAsync(
+                stripe, subscriptionId, planCode, addOnAmountMinorUnits, currency, interval, ct);
 
             try
             {
@@ -320,10 +378,39 @@ public sealed class StripeSubscriptionService(
         await stripe.V1.Subscriptions.GetAsync(
             subscriptionId, new SubscriptionGetOptions { Expand = ["discounts"] }, cancellationToken: ct);
 
-    private static async Task<string> EnsureAddOnPriceAsync(
-        StripeClient stripe, string planCode, long amount, string currency, BillingInterval interval, CancellationToken ct)
+    private static async Task<string> ProductOfPriceAsync(StripeClient stripe, string priceId, CancellationToken ct) =>
+        (await stripe.V1.Prices.GetAsync(priceId, cancellationToken: ct)).ProductId;
+
+    /// <summary>
+    /// Finds or creates the add-on price on the product of the plan the subscription is on, read from its plan item. The
+    /// add-on lives on the plan's product so a coupon limited to that product discounts both lines.
+    /// </summary>
+    private static async Task<string> EnsureAddOnPriceOnSubscriptionPlanAsync(
+        StripeClient stripe,
+        string subscriptionId,
+        string planCode,
+        long amount,
+        string currency,
+        BillingInterval interval,
+        CancellationToken ct)
     {
-        var lookupKey = StripeRequestBuilder.AddOnLookupKey(planCode, amount, currency, interval);
+        var subscription = await GetSubscriptionAsync(stripe, subscriptionId, ct);
+        var productId = subscription.Items.Data.FirstOrDefault(item => !IsAddOn(item))?.Price?.ProductId
+                        ?? throw new BillingProviderException("The subscription has no plan item.");
+
+        return await EnsureAddOnPriceAsync(stripe, planCode, productId, amount, currency, interval, ct);
+    }
+
+    private static async Task<string> EnsureAddOnPriceAsync(
+        StripeClient stripe,
+        string planCode,
+        string productId,
+        long amount,
+        string currency,
+        BillingInterval interval,
+        CancellationToken ct)
+    {
+        var lookupKey = StripeRequestBuilder.AddOnLookupKey(planCode, productId, amount, currency, interval);
         var existing = await stripe.V1.Prices.ListAsync(
             new PriceListOptions { LookupKeys = [lookupKey], Active = true, Limit = 1 }, cancellationToken: ct);
 
@@ -333,7 +420,7 @@ public sealed class StripeSubscriptionService(
         }
 
         var created = await stripe.V1.Prices.CreateAsync(
-            StripeRequestBuilder.AddOnPrice(planCode, amount, currency, interval),
+            StripeRequestBuilder.AddOnPrice(planCode, productId, amount, currency, interval),
             new RequestOptions { IdempotencyKey = lookupKey },
             ct);
 

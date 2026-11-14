@@ -6,6 +6,7 @@ using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Extensions;
 using FormUp.Application.Domain.Interfaces;
+using FormUp.Application.Domain.Services;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Application.Infrastructure.Services.Billing;
 using Microsoft.EntityFrameworkCore;
@@ -18,8 +19,9 @@ namespace FormUp.Application.Features.Billing.CreateCheckoutSession;
 /// </summary>
 /// <param name="db">Application database context.</param>
 /// <param name="subscriptions">The payment provider seam.</param>
+/// <param name="timeProvider">Clock.</param>
 [RemovedCoachRole(RemovedCoachRoleMode.Refuse)]
-internal sealed class CreateCheckoutSessionEndpoint(IApplicationDbContext db, ISubscriptionService subscriptions)
+internal sealed class CreateCheckoutSessionEndpoint(IApplicationDbContext db, ISubscriptionService subscriptions, TimeProvider timeProvider)
     : Endpoint<CreateCheckoutSessionRequest, CreateCheckoutSessionResponse>
 {
     /// <inheritdoc />
@@ -31,8 +33,9 @@ internal sealed class CreateCheckoutSessionEndpoint(IApplicationDbContext db, IS
         {
             s.Summary = "Start a Stripe Checkout";
             s.Description = "Creates a hosted Checkout session for a paid plan, with an optional second-role add-on line and no trial. " +
-                            "Promotion codes are allowed, billing address and tax id are collected. Acts only on the caller's own " +
-                            "profile. Reachable while a plan choice is required.";
+                            "Promotion codes are allowed unless an automatic promotion applies (the latest claim-from the coach qualifies " +
+                            "for, covering the chosen plan), whose coupon is then attached. Billing address and tax id are collected. " +
+                            "Acts only on the caller's own profile. Reachable while a plan choice is required.";
             s.Response<CreateCheckoutSessionResponse>(StatusCodes.Status200OK, "The Checkout page to redirect to");
             s.Response<ProblemDetails>(StatusCodes.Status400BadRequest,
                 "Invalid body, or the plan cannot be bought: unknown, Free, inactive, not priced in Stripe, or an add-on on a plan that includes both roles (PLAN_NOT_PURCHASABLE)");
@@ -131,7 +134,7 @@ internal sealed class CreateCheckoutSessionEndpoint(IApplicationDbContext db, IS
                 req.IncludeSecondRoleAddOn ? price.AddOnAmount : null,
                 price.Currency,
                 price.BillingInterval,
-                couponId: null,
+                await AutomaticCouponIdAsync(coach.ProfileId, price.Code, ct),
                 req.Flow,
                 coach.Language,
                 ct);
@@ -143,6 +146,17 @@ internal sealed class CreateCheckoutSessionEndpoint(IApplicationDbContext db, IS
             await this.SendProblemAsync(
                 StatusCodes.Status502BadGateway, ErrorCodes.BillingProviderError, "The payment provider failed.", ct);
         }
+    }
+
+    /// <summary>
+    /// The Stripe coupon of the coach's winning automatic promotion, or null. The winner is picked per coach, so a plan the
+    /// winner does not cover gets no coupon and keeps the promotion-code field on Checkout.
+    /// </summary>
+    private async Task<string?> AutomaticCouponIdAsync(long profileId, string planCode, CancellationToken ct)
+    {
+        var winner = await PromotionSelector.PickForCoachAsync(db, profileId, timeProvider.GetUtcNow(), ct);
+
+        return winner is not null && PromotionRules.CoversPlan(winner, planCode) ? winner.StripeCouponId : null;
     }
 
     /// <summary>

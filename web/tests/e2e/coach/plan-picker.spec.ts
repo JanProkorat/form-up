@@ -46,8 +46,18 @@ function json(route: Route, body: unknown, status = 200, contentType = 'applicat
   return route.fulfill({ status, contentType, body: JSON.stringify(body) });
 }
 
-/** Mocks the reads behind the picker: a coach on Free with one role, and the four plans. */
-async function mockPickerReads(page: Page, taxMode: 'None' | 'Vat21') {
+/** Display prices after a 30 % automatic promotion: the server sends them, the page never computes them. */
+const DISCOUNTED_MINOR_UNITS: Record<string, { price: number; addOn?: number }> = {
+  start: { price: 20900, addOn: 10400 },
+  pro: { price: 41900, addOn: 20900 },
+  studio: { price: 69900 },
+};
+
+/** Which plans the mocked automatic promotion covers: all paid plans, or only Pro. */
+type OfferCoverage = 'all' | 'proOnly';
+
+/** Mocks the reads behind the picker: a coach on Free with one role, and the four plans (with an offer, if asked). */
+async function mockPickerReads(page: Page, taxMode: 'None' | 'Vat21', offer?: OfferCoverage) {
   await page.route(/\/users\/me\/subscription$/, (route) =>
     json(route, {
       planCode: 'free',
@@ -80,18 +90,39 @@ async function mockPickerReads(page: Page, taxMode: 'None' | 'Vat21') {
   await page.route(/\/users\/me\/subscription\/plans$/, (route) =>
     json(route, {
       taxMode,
-      plans: PLANS.map((plan) => ({
-        ...plan,
-        nameCs: plan.nameEn,
-        nameDe: plan.nameEn,
-        currency: 'CZK',
-        billingInterval: 'Monthly',
-        canCreatePlans: true,
-        canMessage: true,
-        canUseWeeklyCheckIns: plan.canSendQuestionnaires,
-        canUsePerClientCheckInConfig: plan.code === 'studio',
-        canUsePayments: false,
-      })),
+      ...(offer && {
+        promotion: {
+          name: 'Launch offer',
+          kind: 'Percent',
+          value: 30,
+          duration: 'Months',
+          durationMonths: 3,
+          claimUntil: '2026-12-31T12:00:00Z',
+          planCodes: offer === 'all' ? ['start', 'pro', 'studio'] : ['pro'],
+        },
+      }),
+      plans: PLANS.map((plan) => {
+        const covered = offer !== undefined && (offer === 'all' || plan.code === 'pro') && plan.code !== 'free';
+        const discounted = DISCOUNTED_MINOR_UNITS[plan.code];
+        return {
+          ...plan,
+          nameCs: plan.nameEn,
+          nameDe: plan.nameEn,
+          currency: 'CZK',
+          billingInterval: 'Monthly',
+          canCreatePlans: true,
+          canMessage: true,
+          canUseWeeklyCheckIns: plan.canSendQuestionnaires,
+          canUsePerClientCheckInConfig: plan.code === 'studio',
+          canUsePayments: false,
+          ...(covered && discounted
+            ? {
+                discountedPriceMinorUnits: discounted.price,
+                discountedSecondRoleAddOnPriceMinorUnits: discounted.addOn,
+              }
+            : {}),
+        };
+      }),
     }),
   );
   await page.route(/\/users\/me\/roles$/, (route) =>
@@ -130,6 +161,47 @@ trainerTest.describe('plan picker', () => {
 
     await expect(page.getByRole('article', { name: 'Pro' })).toBeVisible();
     await expect(page.getByText(/Prices without VAT/)).toHaveCount(0);
+  });
+
+  trainerTest('shows no banner and no crossed-out price when no promotion applies', async ({ page }) => {
+    await mockPickerReads(page, 'Vat21');
+    await page.goto('/plan');
+
+    await expect(page.getByRole('article', { name: 'Pro' })).toBeVisible();
+    await expect(page.getByText(/Launch offer/)).toHaveCount(0);
+    await expect(page.locator('article s')).toHaveCount(0);
+  });
+
+  trainerTest('an automatic promotion shows the banner and crossed-out prices on every paid plan', async ({ page }) => {
+    await mockPickerReads(page, 'Vat21', 'all');
+    await page.goto('/plan');
+
+    const banner = page.getByRole('status').filter({ hasText: 'Launch offer' });
+    await expect(banner.getByText('Launch offer: −30 % for your first 3 months')).toBeVisible();
+    await expect(banner.getByText(/Applied at checkout on every paid plan\. Claim it by .*2026\./)).toBeVisible();
+
+    for (const name of ['Start', 'Pro', 'Studio']) {
+      const card = page.getByRole('article', { name });
+      await expect(card.locator('s')).toHaveCount(1);
+      await expect(card.getByText('−30 % for 3 months')).toBeVisible();
+    }
+    // The server's discounted price is the big one; the plan's own price is the crossed-out one.
+    const pro = page.getByRole('article', { name: 'Pro' });
+    await expect(pro.locator('s')).toContainText('599');
+    await expect(pro.getByText(/419/)).toBeVisible();
+
+    // Free is never discounted.
+    await expect(page.getByRole('article', { name: 'Free' }).locator('s')).toHaveCount(0);
+  });
+
+  trainerTest('a promotion that covers only Pro crosses out only the Pro price and names the plan', async ({ page }) => {
+    await mockPickerReads(page, 'Vat21', 'proOnly');
+    await page.goto('/plan');
+
+    await expect(page.getByText(/Applied at checkout on Pro\./)).toBeVisible();
+    await expect(page.getByRole('article', { name: 'Pro' }).locator('s')).toHaveCount(1);
+    await expect(page.getByRole('article', { name: 'Start' }).locator('s')).toHaveCount(0);
+    await expect(page.getByRole('article', { name: 'Studio' }).locator('s')).toHaveCount(0);
   });
 
   trainerTest('a paid plan posts the checkout request and follows the returned URL', async ({ page }) => {

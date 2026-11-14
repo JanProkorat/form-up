@@ -1210,7 +1210,7 @@ export class ApiClient {
 
     /**
      * Get my coach subscription
-     * @return The caller's subscription block
+     * @return The caller's subscription block, with the current promotion and its display-only discount while the paid subscription is live
      */
     getMySubscriptionEndpoint(signal?: AbortSignal): Promise<GetMySubscriptionResponse> {
         let url_ = this.baseUrl + "/users/me/subscription";
@@ -22190,7 +22190,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Invalid body, or the plan cannot be bought: unknown, Free, inactive, not priced in Stripe, or it has no add-on price for a paid add-on (PLAN_NOT_PURCHASABLE)", status, _responseText, _headers, result400);
+            return throwException("Invalid body, or the plan cannot be bought: unknown, Free, inactive, not priced in Stripe, or the caller has two active roles and the plan has no add-on price (PLAN_NOT_PURCHASABLE)", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -22221,7 +22221,7 @@ export class ApiClient {
 
     /**
      * Apply a promotion code to my subscription
-     * @return The code was applied
+     * @return The code was applied, or is already the current promotion
      */
     applyPromotionCodeEndpoint(applyPromotionCodeRequest: ApplyPromotionCodeRequest, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/billing/promotion-code";
@@ -22281,11 +22281,11 @@ export class ApiClient {
 
         } else if (status === 404) {
             const _responseText = response.data;
-            return throwException("The code is unknown or no longer active (PROMOTION_CODE_NOT_FOUND)", status, _responseText, _headers);
+            return throwException("No promotion has this code, or its claim window has closed (PROMOTION_CODE_NOT_FOUND)", status, _responseText, _headers);
 
         } else if (status === 409) {
             const _responseText = response.data;
-            return throwException("No live paid subscription (BILLING_NO_SUBSCRIPTION), or an admin gift is in force (BILLING_GIFT_IN_FORCE)", status, _responseText, _headers);
+            return throwException("No live paid subscription (BILLING_NO_SUBSCRIPTION), an admin gift is in force (BILLING_GIFT_IN_FORCE), or the code fails a rule: PROMOTION_CODE_NOT_STARTED, PROMOTION_CODE_PLAN_NOT_ELIGIBLE, PROMOTION_CODE_USED_UP, PROMOTION_CODE_NEW_COACHES_ONLY, PROMOTION_CODE_ALREADY_USED", status, _responseText, _headers);
 
         } else if (status === 429) {
             const _responseText = response.data;
@@ -23931,6 +23931,170 @@ export class ApiClient {
     }
 
     /**
+     * List promotions
+     * @param status Tab to show; All when omitted.
+     * @return The promotions of the tab
+     */
+    listPromotionsEndpoint(status: PromotionStatusFilter, signal?: AbortSignal): Promise<ListPromotionsResponse> {
+        let url_ = this.baseUrl + "/admin/promotions?";
+        if (status === undefined || status === null)
+            throw new globalThis.Error("The parameter 'status' must be defined and cannot be null.");
+        else
+            url_ += "status=" + encodeURIComponent("" + status) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processListPromotionsEndpoint(_response);
+        });
+    }
+
+    protected processListPromotionsEndpoint(response: AxiosResponse): Promise<ListPromotionsResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<ListPromotionsResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid status filter", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Caller is not an Admin", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ListPromotionsResponse>(null as any);
+    }
+
+    /**
+     * Create a promotion
+     * @return The promotion that was created
+     */
+    createPromotionEndpoint(createPromotionRequest: CreatePromotionRequest, signal?: AbortSignal): Promise<PromotionDto> {
+        let url_ = this.baseUrl + "/admin/promotions";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(createPromotionRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCreatePromotionEndpoint(_response);
+        });
+    }
+
+    protected processCreatePromotionEndpoint(response: AxiosResponse): Promise<PromotionDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<PromotionDto>(result201);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request: name, value, code, month count, claim window, plans or max uses (PROMOTION_VALUE_INVALID, PROMOTION_CODE_INVALID, PROMOTION_MODE_INVALID, PROMOTION_MONTHS_INVALID, PROMOTION_WINDOW_INVALID, PROMOTION_PLANS_INVALID, PROMOTION_MAX_USES_INVALID)", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Caller is not an Admin", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = JSON.parse(resultData409);
+            return throwException("Another promotion that has not ended uses this code (PROMOTION_CODE_TAKEN)", status, _responseText, _headers, result409);
+
+        } else if (status === 502) {
+            const _responseText = response.data;
+            let result502: any = null;
+            let resultData502  = _responseText;
+            result502 = JSON.parse(resultData502);
+            return throwException("Stripe failed; nothing was saved (BILLING_PROVIDER_ERROR)", status, _responseText, _headers, result502);
+
+        } else if (status === 503) {
+            const _responseText = response.data;
+            let result503: any = null;
+            let resultData503  = _responseText;
+            result503 = JSON.parse(resultData503);
+            return throwException("Stripe is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers, result503);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<PromotionDto>(null as any);
+    }
+
+    /**
      * List coaches
      * @param page Page number (1-based). Defaults to 1.
      * @param pageSize Number of rows per page, 1 to 100. Defaults to 20.
@@ -24992,6 +25156,8 @@ the cap, the plan is unlimited or a plan choice is required. */
     priceLines?: SubscriptionPriceLineDto[];
     /** The feature flags that currently apply. */
     features?: SubscriptionFeaturesDto;
+    /** The promotion discounting the live subscription now; null when there is none. */
+    promotion?: CurrentPromotionDto | undefined;
 }
 
 /** How VAT is handled on Stripe subscriptions and invoices. Selected by configuration, never by code. */
@@ -25046,6 +25212,43 @@ export interface SubscriptionFeaturesDto {
     canUsePerClientCheckInConfig?: boolean;
     /** The payments feature. */
     canUsePayments?: boolean;
+}
+
+/** The promotion discounting the coach's subscription. */
+export interface CurrentPromotionDto {
+    /** Promotion name. */
+    name?: string;
+    /** Percentage or fixed amount. */
+    kind?: PromotionKind;
+    /** Percent (1 to 100), or the amount in the smallest unit of Currency. */
+    value?: number;
+    /** ISO 4217 currency of a fixed amount; null for a percentage. */
+    currency?: string | undefined;
+    /** How long the discount lasts for this coach. */
+    duration?: PromotionDuration;
+    /** Months the discount lasts; set only for Months. */
+    durationMonths?: number | undefined;
+    /** When the discount ends, as Stripe reports it; null for a forever discount. */
+    endsAt?: string | undefined;
+    /** Display-only amount the promotion takes off one billing period: the plan line plus the add-on line where the coupon
+covers it, in the currency of PriceLines. Zero when the promotion does not
+apply to the coach's plan. Stripe computes the real charge. */
+    discountMinorUnits?: number;
+    /** Display-only total of the price lines after DiscountMinorUnits. */
+    discountedTotalMinorUnits?: number;
+}
+
+/** How a Promotion takes money off the bill. */
+export enum PromotionKind {
+    Percent = "Percent",
+    FixedAmount = "FixedAmount",
+}
+
+/** How long a Promotion discounts a coach's bill once claimed. */
+export enum PromotionDuration {
+    FirstMonth = "FirstMonth",
+    Months = "Months",
+    Forever = "Forever",
 }
 
 /** The caller's active coach roles with client counts. */
@@ -30934,6 +31137,9 @@ export interface GetCoachPlansResponse {
     plans?: CoachPlanDto[];
     /** VAT handling: with None the listed prices carry no VAT line. */
     taxMode?: BillingTaxMode;
+    /** The automatic promotion that applies to the caller, or null. One wins per coach; a plan it does not cover shows
+full price (no discounted price on that plan). */
+    promotion?: CoachPromotionDto | undefined;
 }
 
 /** One plan a coach can choose: names, current price, client cap and feature flags. */
@@ -30952,6 +31158,12 @@ export interface CoachPlanDto {
     secondRoleAddOnPriceMinorUnits?: number | undefined;
     /** ISO 4217 currency code. */
     currency?: string;
+    /** Display-only plan price after the automatic promotion; null when no promotion covers this plan. Stripe computes
+the real charge. */
+    discountedPriceMinorUnits?: number | undefined;
+    /** Display-only second-role add-on price after the promotion; null when no promotion covers this plan or the plan has
+no add-on. A promotion that covers a plan always discounts its add-on line too. */
+    discountedSecondRoleAddOnPriceMinorUnits?: number | undefined;
     /** How often the plan is billed. */
     billingInterval?: BillingInterval;
     /** Active-client cap; null means unlimited. */
@@ -30970,6 +31182,26 @@ export interface CoachPlanDto {
     canUsePerClientCheckInConfig?: boolean;
     /** The payments feature. */
     canUsePayments?: boolean;
+}
+
+/** The automatic promotion shown on the plan picker. */
+export interface CoachPromotionDto {
+    /** Promotion name. */
+    name?: string;
+    /** Percentage or fixed amount. */
+    kind?: PromotionKind;
+    /** Percent (1 to 100), or the amount in the smallest unit of Currency. */
+    value?: number;
+    /** ISO 4217 currency of a fixed amount; null for a percentage. */
+    currency?: string | undefined;
+    /** How long the discount lasts once claimed. */
+    duration?: PromotionDuration;
+    /** Months the discount lasts; set only for Months. */
+    durationMonths?: number | undefined;
+    /** Last moment the offer can be claimed; null for no end. */
+    claimUntil?: string | undefined;
+    /** Codes of the plans the promotion covers. */
+    planCodes?: string[];
 }
 
 /** The coach's choice of the Free plan after an admin-given plan ended. */
@@ -34325,6 +34557,109 @@ export interface AcceptInvitationResponse {
 export interface AcceptInvitationRequest {
     /** The one-time invitation token received from the trainer. */
     token: string;
+}
+
+/** The promotions of one admin list tab. */
+export interface ListPromotionsResponse {
+    /** Promotions matching the tab, newest claim window first. */
+    items?: PromotionDto[];
+}
+
+/** One promotion as the admin list and the create response show it. */
+export interface PromotionDto {
+    /** Public id of the promotion. */
+    promotionId?: string;
+    /** Admin-facing name. */
+    name?: string;
+    /** Percentage or fixed amount. */
+    kind?: PromotionKind;
+    /** Percent (1 to 100), or the amount in the smallest unit of Currency. */
+    value?: number;
+    /** ISO 4217 currency of a fixed amount; null for a percentage. */
+    currency?: string | undefined;
+    /** Automatic at checkout, or claimed with a code. */
+    mode?: PromotionMode;
+    /** The code; null in automatic mode. */
+    code?: string | undefined;
+    /** How long the discount lasts for a coach. */
+    duration?: PromotionDuration;
+    /** Months the discount lasts; set only for Months. */
+    durationMonths?: number | undefined;
+    /** When the promotion becomes claimable. */
+    claimFrom?: string;
+    /** When the promotion stops being claimable; null for no end. */
+    claimUntil?: string | undefined;
+    /** Codes of the plans the promotion covers. */
+    planCodes?: string[];
+    /** Most coaches who may claim it; null for no limit. */
+    maxUses?: number | undefined;
+    /** How many coaches claimed it. */
+    usedCount?: number;
+    /** True when only coaches who never paid before may claim it. */
+    newCoachesOnly?: boolean;
+    /** True when a coach may claim it once. */
+    oneUsePerCoach?: boolean;
+    /** Derived status: Scheduled, Active or Ended. */
+    status?: PromotionStatus;
+    /** When the promotion was created (UTC). */
+    createdAt?: string;
+}
+
+/** How coaches get a Promotion. */
+export enum PromotionMode {
+    Automatic = "Automatic",
+    Code = "Code",
+}
+
+/** Where a Promotion stands now. Never stored; derived from the claim window and the uses. */
+export enum PromotionStatus {
+    Active = "Active",
+    Scheduled = "Scheduled",
+    Ended = "Ended",
+}
+
+/** Request for the admin Promotions list. */
+export interface ListPromotionsRequest {
+}
+
+/** The tab of the admin Promotions list. */
+export enum PromotionStatusFilter {
+    All = "All",
+    Active = "Active",
+    Scheduled = "Scheduled",
+    Ended = "Ended",
+}
+
+/** Request for creating a promotion. */
+export interface CreatePromotionRequest {
+    /** Admin-facing name, up to 200 characters. */
+    name: string;
+    /** Percentage or fixed amount. */
+    kind?: PromotionKind;
+    /** Percent (1 to 100), or the amount in the smallest unit of Currency. */
+    value?: number;
+    /** Currency of a fixed amount; only CZK is accepted. Ignored for a percentage. */
+    currency?: string | undefined;
+    /** Automatic at checkout, or claimed with a code. */
+    mode?: PromotionMode;
+    /** The code, letters and digits only; required in code mode and absent in automatic mode. */
+    code?: string | undefined;
+    /** How long the discount lasts for a coach. */
+    duration?: PromotionDuration;
+    /** Months the discount lasts, 2 to 36; required for Months, absent otherwise. */
+    durationMonths?: number | undefined;
+    /** When the promotion becomes claimable. */
+    claimFrom?: string;
+    /** When the promotion stops being claimable; null for no end. Must be after ClaimFrom. */
+    claimUntil?: string | undefined;
+    /** Codes of the paid plans the promotion covers; at least one. */
+    planCodes: string[];
+    /** Most coaches who may claim it, at least 1; null for no limit. */
+    maxUses?: number | undefined;
+    /** True to limit it to coaches who never paid before. */
+    newCoachesOnly?: boolean;
+    /** True to let a coach claim it once. */
+    oneUsePerCoach?: boolean;
 }
 
 /** One page of coaches plus the stats over all coaches. */

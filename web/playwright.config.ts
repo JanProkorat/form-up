@@ -274,6 +274,20 @@ export default defineConfig({
       },
     },
 
+    // ─── Admin specs ──────────────────────────────────────────────────────────
+    // Picks up only tests/e2e/admin/**. The e2e test data has no admin account
+    // yet, so these specs sign in as the QA trainer (`trainerTest`, which needs
+    // the `setup` project's `.auth/trainer.json` template), fake the Admin role
+    // through a mocked /users/me/roles and mock the admin API they read.
+    {
+      name: 'admin',
+      dependencies: ['setup'],
+      testMatch: /admin\/.+\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+      },
+    },
+
     // ─── Nutritionist chat specs ──────────────────────────────────────────────
     // client-detail-meal-plan and inbox-cooperation-events both use the
     // qa.client2 roster: the meal-plan spec matches a loose /QA Client/ row,

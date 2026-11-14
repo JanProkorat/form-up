@@ -1390,3 +1390,98 @@ public static class EntitlementServiceBuilder
     public static FormUp.Application.Domain.Services.EntitlementService For(IApplicationDbContext db) =>
         new(db, TimeProvider.System, Microsoft.Extensions.Logging.Abstractions.NullLogger<FormUp.Application.Domain.Services.EntitlementService>.Instance);
 }
+
+/// <summary>
+/// Writes promotions and their redemptions straight to the database. Automatic promotions are global (one wins per coach),
+/// so a test that creates one calls <see cref="ClearAsync"/> before and after to stay out of other tests' way.
+/// </summary>
+public static class PromotionBuilder
+{
+    /// <summary>
+    /// Creates a promotion, a code-mode 20 % one for the given plans from yesterday with no end by default, and returns it.
+    /// </summary>
+    /// <param name="factory">The test host.</param>
+    /// <param name="planCodes">Codes of the plans it covers.</param>
+    /// <param name="mode">Automatic or code.</param>
+    /// <param name="configure">Adjusts the promotion before it is saved.</param>
+    public static async Task<Promotion> CreateAsync(
+        FitnessApiFactory factory,
+        IEnumerable<string> planCodes,
+        PromotionMode mode = PromotionMode.Code,
+        Action<Promotion>? configure = null)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var suffix = Guid.NewGuid().ToString("N");
+        var code = mode == PromotionMode.Code ? $"CODE{suffix[..12].ToUpperInvariant()}" : null;
+        var promotion = new Promotion
+        {
+            Name = $"Promotion {suffix[..8]}",
+            Kind = PromotionKind.Percent,
+            Value = 20,
+            Mode = mode,
+            Code = code,
+            CodeNormalized = code,
+            Duration = PromotionDuration.Forever,
+            ClaimFrom = DateTimeOffset.UtcNow.AddDays(-1),
+            PlanCodes = planCodes.ToList(),
+            StripeCouponId = $"coupon_test_{suffix}",
+            StripePromotionCodeId = code is null ? null : $"promo_test_{suffix}",
+        };
+        configure?.Invoke(promotion);
+
+        db.Promotions.Add(promotion);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        return promotion;
+    }
+
+    /// <summary>
+    /// Records that a coach claimed a promotion.
+    /// </summary>
+    /// <param name="factory">The test host.</param>
+    /// <param name="promotionId">The promotion's internal id.</param>
+    /// <param name="profileId">The coach's profile id.</param>
+    public static async Task AddRedemptionAsync(FitnessApiFactory factory, long promotionId, long profileId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        db.PromotionRedemptions.Add(new PromotionRedemption
+        {
+            PromotionId = promotionId,
+            ProfessionalProfileId = profileId,
+            RedeemedAt = DateTimeOffset.UtcNow,
+        });
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>
+    /// Marks the coach as having paid before.
+    /// </summary>
+    /// <param name="factory">The test host.</param>
+    /// <param name="profileId">The coach's profile id.</param>
+    public static async Task MarkPaidBeforeAsync(FitnessApiFactory factory, long profileId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        await db.CoachSubscriptions
+            .Where(cs => cs.ProfessionalProfileId == profileId)
+            .ExecuteUpdateAsync(
+                setters => setters.SetProperty(cs => cs.FirstPaidAt, DateTimeOffset.UtcNow.AddDays(-30)),
+                TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>
+    /// Deletes every promotion (redemptions go with them; coaches' current promotion is cleared).
+    /// </summary>
+    /// <param name="factory">The test host.</param>
+    public static async Task ClearAsync(FitnessApiFactory factory)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        await db.Promotions.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+    }
+}

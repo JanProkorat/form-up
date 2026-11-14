@@ -252,6 +252,35 @@
   },
   "subscription": {
     "seePlans": "Zobrazit tarify",
+    "promotion": {
+      "percentOff": "−{{value}} %",
+      "amountOff": "−{{amount}}",
+      "short": {
+        "firstMonth": "{{value}} na první měsíc",
+        "months_one": "{{value}} na {{count}} měsíc",
+        "months_few": "{{value}} na {{count}} měsíce",
+        "months_many": "{{value}} na {{count}} měsíce",
+        "months_other": "{{value}} na {{count}} měsíců",
+        "forever": "{{value}} navždy"
+      },
+      "banner": {
+        "firstMonth": "{{name}}: {{value}} na váš první měsíc",
+        "months_one": "{{name}}: {{value}} na váš první {{count}} měsíc",
+        "months_few": "{{name}}: {{value}} na první {{count}} měsíce",
+        "months_many": "{{name}}: {{value}} na prvních {{count}} měsíce",
+        "months_other": "{{name}}: {{value}} na prvních {{count}} měsíců",
+        "forever": "{{name}}: {{value}} po celou dobu",
+        "allPlans": "Uplatní se při platbě u každého placeného tarifu.",
+        "somePlans": "Uplatní se při platbě u tarifů {{plans}}.",
+        "claimBy": "Využít ji můžete do {{date}}.",
+        "taken": "Sleva je už odečtena od cen placených tarifů níže.",
+        "takenSomePlans": "Sleva je už odečtena od cen tarifů {{plans}} níže."
+      },
+      "card": {
+        "then": "{{short}}, poté {{price}}",
+        "regularPrice": "Běžná cena"
+      }
+    },
     "billing": {
       "vat": "Ceny jsou bez DPH, připočítá se {{rate}} % DPH.",
       "codeAtCheckout": "Máte kód? Zadejte ho při platbě.",
@@ -533,7 +562,16 @@
         "secondRole": "Druhá role",
         "total": "Celkem",
         "perMonth": "{{amount}} / měsíc",
-        "secondRoleUnavailable": "Druhá profesní role není součástí tohoto tarifu."
+        "secondRoleUnavailable": "Druhá profesní role není součástí tohoto tarifu.",
+        "afterOffer": "Od {{date}}: {{amount}} / měsíc.",
+        "offer": {
+          "months_one": "{{name}} {{value}} · zbývá {{left}} z {{count}} měsíců",
+          "months_few": "{{name}} {{value}} · zbývá {{left}} z {{count}} měsíců",
+          "months_many": "{{name}} {{value}} · zbývá {{left}} z {{count}} měsíců",
+          "months_other": "{{name}} {{value}} · zbývá {{left}} z {{count}} měsíců",
+          "firstMonth": "{{name}} {{value}} · první měsíc",
+          "forever": "{{name}} {{value}}"
+        }
       },
       "clients": {
         "title": "Klienti",
@@ -3694,6 +3732,18 @@
     "BILLING_PLAN_CHANGE_PENDING": "Změna tarifu je už naplánovaná. Zkuste to znovu, až se projeví.",
     "PROMOTION_CODE_INVALID": "Tento kód nelze použít.",
     "PROMOTION_CODE_NOT_FOUND": "Tento kód neznáme. Zkontrolujte ho a zkuste to znovu.",
+    "PROMOTION_CODE_NOT_STARTED": "Tato nabídka ještě nezačala.",
+    "PROMOTION_CODE_PLAN_NOT_ELIGIBLE": "Tento kód se na váš tarif nevztahuje.",
+    "PROMOTION_CODE_USED_UP": "Tento kód už je vyčerpaný.",
+    "PROMOTION_CODE_NEW_COACHES_ONLY": "Tento kód je jen pro nové trenéry.",
+    "PROMOTION_CODE_ALREADY_USED": "Tento kód jste už použili.",
+    "PROMOTION_CODE_TAKEN": "Tento kód už používá jiná akce, která neskončila.",
+    "PROMOTION_VALUE_INVALID": "Zkontrolujte hodnotu akce.",
+    "PROMOTION_MODE_INVALID": "Zkontrolujte kód: u akce s kódem je povinný, u automatické akce ho zadat nelze.",
+    "PROMOTION_MONTHS_INVALID": "Zadejte počet měsíců od 2 do 36.",
+    "PROMOTION_WINDOW_INVALID": "Doba, kdy lze akci uplatnit, musí končit v budoucnu a po svém začátku.",
+    "PROMOTION_PLANS_INVALID": "Vyberte alespoň jeden placený plán.",
+    "PROMOTION_MAX_USES_INVALID": "Maximální počet použití musí být alespoň 1.",
     "BILLING_RATE_LIMITED": "Příliš mnoho pokusů. Chvíli počkejte a zkuste to znovu.",
     "BILLING_ADD_ON_NOT_AVAILABLE": "Váš tarif placenou druhou roli nenabízí.",
     "BILLING_ADD_ON_ALREADY_PAID": "Druhá role je už zaplacená.",
@@ -7226,6 +7276,112 @@
       "priceInvalid": "Zadejte cenu od 0 do 1 000 000.",
       "addOnInvalid": "Zadejte cenu druhé role vyšší než 0, nebo zvolte „V ceně“.",
       "clientsInvalid": "Zadejte počet klientů od 1, nebo zvolte Neomezeně."
+    }
+  },
+  "adminPromotions": {
+    "title": "Akce",
+    "subtitle": "Slevy na plány Form Up pro trenéry. Slevy, které trenér nabízí svým klientům, jsou něco jiného.",
+    "newPromotion": "Nová akce",
+    "note": "Každý trenér má vždy jen jednu akci. Týká se celé platby, včetně druhé role.",
+    "loadError": "Akce se nepodařilo načíst.",
+    "retry": "Zkusit znovu",
+    "empty": "Zatím tu nejsou žádné akce.",
+    "saveSuccess": "Akce byla uložena.",
+    "saveError": "Akci se nepodařilo uložit.",
+    "filters": {
+      "label": "Filtr akcí",
+      "All": "Vše",
+      "Active": "Aktivní",
+      "Scheduled": "Naplánované",
+      "Ended": "Ukončené"
+    },
+    "status": {
+      "Active": "Aktivní",
+      "Scheduled": "Naplánovaná",
+      "Ended": "Ukončená"
+    },
+    "table": {
+      "promotion": "Akce",
+      "how": "Jak",
+      "value": "Hodnota",
+      "lasts": "Trvá",
+      "window": "Platnost nabídky",
+      "plans": "Plány",
+      "used": "Využito",
+      "status": "Stav",
+      "everyone": "Pro všechny při platbě",
+      "codeSubline": "Kód",
+      "automatic": "Automaticky",
+      "allPaidPlans": "Všechny placené plány",
+      "usedOf": "{{count}} z {{max}}"
+    },
+    "lasts": {
+      "firstMonth": "První měsíc",
+      "months_one": "{{count}} měsíc",
+      "months_few": "{{count}} měsíce",
+      "months_many": "{{count}} měsíce",
+      "months_other": "{{count}} měsíců",
+      "forever": "Navždy"
+    },
+    "window": {
+      "range": "{{from}} – {{to}}",
+      "noEnd": "Bez konce"
+    },
+    "plans": {
+      "start": "Start",
+      "pro": "Pro",
+      "studio": "Studio"
+    },
+    "drawer": {
+      "titleNew": "Nová akce",
+      "description": "Při uložení se vytvoří ve Stripe",
+      "sectionPromotion": "Akce",
+      "name": "Název",
+      "nameHint": "Trenéři tento název vidí ve výběru plánu a v Nastavení a může být i na jejich faktuře. Je to zároveň název kupónu ve Stripe.",
+      "type": "Typ",
+      "typePercent": "Procenta",
+      "typeFixed": "Pevná částka",
+      "value": "Hodnota",
+      "sectionHow": "Jak ji trenéři získají",
+      "claimed": "Uplatnění",
+      "automatic": "Automaticky pro všechny",
+      "withCode": "S kódem",
+      "code": "Kód",
+      "codeHint": "Písmena a čísla. Na velikosti písmen nezáleží.",
+      "sectionLasts": "Jak dlouho trvá u trenéra",
+      "lasts": "Trvá",
+      "firstMonth": "První měsíc",
+      "months": "Několik měsíců",
+      "forever": "Navždy",
+      "monthCount": "Počet měsíců",
+      "monthCountHint": "Od {{min}} do {{max}}.",
+      "sectionWindow": "Platnost nabídky",
+      "claimFrom": "Uplatnit od",
+      "claimUntil": "Uplatnit do",
+      "optional": "Volitelné",
+      "sectionLimits": "Plány a omezení",
+      "plans": "Plány",
+      "maxUses": "Max. počet použití",
+      "maxUsesHint": "Prázdné = bez omezení",
+      "newCoachesOnly": "Jen noví trenéři",
+      "oneUsePerCoach": "Jedno použití na trenéra",
+      "coversBill": "Týká se celé platby, včetně druhé role",
+      "save": "Uložit akci",
+      "saving": "Ukládám…"
+    },
+    "validation": {
+      "nameRequired": "Zadejte název.",
+      "nameTooLong": "Název může mít nejvýše 200 znaků.",
+      "valuePercent": "Zadejte celé procento od 1 do 100.",
+      "valueAmount": "Zadejte částku větší než 0.",
+      "codeRequired": "Zadejte kód.",
+      "codeInvalid": "Použijte jen písmena a čísla, nejvýše 50 znaků.",
+      "codeTaken": "Tento kód už používá jiná akce, která neskončila.",
+      "monthsInvalid": "Zadejte celý počet měsíců od 2 do 36.",
+      "claimFromRequired": "Vyberte datum začátku.",
+      "windowInvalid": "Datum konce musí být po začátku a v budoucnu.",
+      "plansRequired": "Vyberte alespoň jeden plán.",
+      "maxUsesInvalid": "Zadejte celé číslo od 1, nebo pole nechte prázdné."
     }
   }
 }

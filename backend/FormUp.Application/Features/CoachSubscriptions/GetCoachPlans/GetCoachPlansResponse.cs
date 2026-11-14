@@ -13,6 +13,42 @@ public class GetCoachPlansResponse
 
     /// <summary>VAT handling: with <see cref="BillingTaxMode.None"/> the listed prices carry no VAT line.</summary>
     public BillingTaxMode TaxMode { get; set; }
+
+    /// <summary>
+    /// The automatic promotion that applies to the caller, or null. One wins per coach; a plan it does not cover shows
+    /// full price (no discounted price on that plan).
+    /// </summary>
+    public CoachPromotionDto? Promotion { get; set; }
+}
+
+/// <summary>
+/// The automatic promotion shown on the plan picker.
+/// </summary>
+public class CoachPromotionDto
+{
+    /// <summary>Promotion name.</summary>
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>Percentage or fixed amount.</summary>
+    public PromotionKind Kind { get; set; }
+
+    /// <summary>Percent (1 to 100), or the amount in the smallest unit of <see cref="Currency"/>.</summary>
+    public long Value { get; set; }
+
+    /// <summary>ISO 4217 currency of a fixed amount; null for a percentage.</summary>
+    public string? Currency { get; set; }
+
+    /// <summary>How long the discount lasts once claimed.</summary>
+    public PromotionDuration Duration { get; set; }
+
+    /// <summary>Months the discount lasts; set only for <see cref="PromotionDuration.Months"/>.</summary>
+    public int? DurationMonths { get; set; }
+
+    /// <summary>Last moment the offer can be claimed; null for no end.</summary>
+    public DateTimeOffset? ClaimUntil { get; set; }
+
+    /// <summary>Codes of the plans the promotion covers.</summary>
+    public List<string> PlanCodes { get; set; } = [];
 }
 
 /// <summary>
@@ -40,6 +76,18 @@ public class CoachPlanDto
 
     /// <summary>ISO 4217 currency code.</summary>
     public string Currency { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Display-only plan price after the automatic promotion; null when no promotion covers this plan. Stripe computes
+    /// the real charge.
+    /// </summary>
+    public long? DiscountedPriceMinorUnits { get; set; }
+
+    /// <summary>
+    /// Display-only second-role add-on price after the promotion; null when no promotion covers this plan or the plan has
+    /// no add-on. A promotion that covers a plan always discounts its add-on line too.
+    /// </summary>
+    public long? DiscountedSecondRoleAddOnPriceMinorUnits { get; set; }
 
     /// <summary>How often the plan is billed.</summary>
     public BillingInterval BillingInterval { get; set; }

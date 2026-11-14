@@ -94,7 +94,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
     requiredRole: 'Admin',
     items: [
       { to: '/admin/plans', labelKey: 'sidebar.adminPlans', Icon: Layers },
-      { to: '/admin/promotions', labelKey: 'sidebar.adminPromotions', Icon: Tag, disabled: true },
+      { to: '/admin/promotions', labelKey: 'sidebar.adminPromotions', Icon: Tag },
       { to: '/admin/coach-accounts', labelKey: 'sidebar.adminCoaches', Icon: Users },
     ],
   },

@@ -6,7 +6,14 @@ import PlanCard from '@/components/subscription/PlanCard';
 import TaxNote from '@/components/subscription/TaxNote';
 import { formatMoney } from '@/components/subscription/money';
 import { coachPlanName } from '@/components/subscription/planNames';
-import { FREE_PLAN_CODE, planDisplayPrice, secondRoleAddOnOf } from '@/components/subscription/planPricing';
+import {
+  FREE_PLAN_CODE,
+  planDiscountedPrice,
+  planDisplayPrice,
+  secondRoleAddOnOf,
+} from '@/components/subscription/planPricing';
+import PromotionBanner from '@/components/subscription/PromotionBanner';
+import { promotionShortText } from '@/components/subscription/promotionText';
 import { usePlanSelection } from '@/components/subscription/usePlanSelection';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -30,6 +37,7 @@ export default function PlanPickerPage() {
 
   const data = subscription.data;
   const plans = plansQuery.data?.plans ?? [];
+  const promotion = plansQuery.data?.promotion;
   const currentCode = data?.planCode ?? FREE_PLAN_CODE;
   const currentPlan = plans.find((plan) => plan.code === currentCode);
   const currentPrice = currentPlan ? planDisplayPrice(currentPlan, bothRoles) : 0;
@@ -89,6 +97,8 @@ export default function PlanPickerPage() {
         </Button>
       </div>
 
+      {promotion && <PromotionBanner promotion={promotion} plans={plans} variant="picker" />}
+
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
         <p className="text-copy text-muted-foreground">{rolesLine}</p>
         <p className="ml-auto text-body text-muted-foreground">{t('subscription.billing.codeAtCheckout')}</p>
@@ -116,16 +126,22 @@ export default function PlanPickerPage() {
             const current = plan.code === currentCode;
             const currency = plan.currency ?? 'CZK';
             const addOn = secondRoleAddOnOf(plan);
+            const fullPrice = planDisplayPrice(plan, bothRoles);
+            const discounted = planDiscountedPrice(plan, bothRoles);
+            const offer = promotion && discounted !== null && discounted < fullPrice ? promotion : null;
+            const breakdown =
+              bothRoles && addOn !== null
+                ? t('subscription.billing.picker.breakdown', {
+                    plan: coachPlanName(plan, i18n.language),
+                    base: formatMoney(plan.priceMinorUnits ?? 0, currency, i18n.language),
+                    addOn: formatMoney(addOn, currency, i18n.language),
+                  })
+                : null;
             const note =
               (plan.priceMinorUnits ?? 0) === 0
                 ? t('subscription.billing.picker.noCard')
-                : bothRoles && addOn !== null
-                  ? t('subscription.billing.picker.breakdown', {
-                      plan: coachPlanName(plan, i18n.language),
-                      base: formatMoney(plan.priceMinorUnits ?? 0, currency, i18n.language),
-                      addOn: formatMoney(addOn, currency, i18n.language),
-                    })
-                  : undefined;
+                : [breakdown, offer ? promotionShortText(t, offer, i18n.language) : null].filter(Boolean).join(' · ') ||
+                  undefined;
             return (
               <PlanCard
                 key={plan.code}
@@ -136,7 +152,8 @@ export default function PlanPickerPage() {
                 primary={action.primary}
                 actionDisabled={action.disabled}
                 busy={selection.busy}
-                priceMinorUnits={planDisplayPrice(plan, bothRoles)}
+                priceMinorUnits={offer ? (discounted ?? fullPrice) : fullPrice}
+                originalPriceMinorUnits={offer ? fullPrice : undefined}
                 priceNote={note}
                 onAction={action.onClick}
               />

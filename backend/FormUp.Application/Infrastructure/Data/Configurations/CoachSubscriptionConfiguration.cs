@@ -40,6 +40,12 @@ public class CoachSubscriptionConfiguration : IEntityTypeConfiguration<CoachSubs
             .HasForeignKey(cs => cs.SubscriptionPlanPriceId)
             .OnDelete(DeleteBehavior.NoAction);
 
+        // A promotion is never deleted; if one ever is, the coach's row just loses the reference.
+        builder.HasOne(cs => cs.CurrentPromotion)
+            .WithMany()
+            .HasForeignKey(cs => cs.CurrentPromotionId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         builder.HasOne(cs => cs.PendingSubscriptionPlanPrice)
             .WithMany()
             .HasForeignKey(cs => cs.PendingSubscriptionPlanPriceId)

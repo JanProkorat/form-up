@@ -1,4 +1,5 @@
 using FormUp.Application.Domain.Enums;
+using FormUp.Application.Domain.Interfaces;
 using FormUp.Application.Infrastructure.Services.Billing;
 using FluentAssertions;
 
@@ -177,12 +178,53 @@ public class StripeRequestBuilderTests
     }
 
     [Fact]
-    public void AddOnPrice_CanBeFoundAgainByLookupKey()
+    public void AddOnPrice_CanBeFoundAgainByLookupKey_WhichNamesTheProduct()
     {
-        var price = StripeRequestBuilder.AddOnPrice("pro", 9900, "CZK", BillingInterval.Monthly);
+        var price = StripeRequestBuilder.AddOnPrice("pro", "prod_pro", 9900, "CZK", BillingInterval.Monthly);
 
-        price.LookupKey.Should().Be("formup-addon-pro-czk-9900-month");
+        price.LookupKey.Should().Be("formup-addon-pro-czk-9900-month-prod_pro");
         price.LookupKey.Should().StartWith(StripeRequestBuilder.AddOnLookupPrefix);
+    }
+
+    [Fact]
+    public void AddOnPrice_IsCreatedOnThePlansOwnProduct_SoACouponLimitedToThatProductCoversIt()
+    {
+        var price = StripeRequestBuilder.AddOnPrice("pro", "prod_pro", 9900, "CZK", BillingInterval.Monthly);
+
+        price.Product.Should().Be("prod_pro");
+        price.ProductData.Should().BeNull("a new product would sit outside the coupon's product list");
+        price.UnitAmount.Should().Be(9900);
+        price.Currency.Should().Be("czk");
+        price.Recurring.Interval.Should().Be("month");
+    }
+
+    [Fact]
+    public void ACouponLimitedToAPlansProduct_NamesTheSameProductAsThePlansAddOnPrice()
+    {
+        const string planProduct = "prod_pro";
+        var coupon = StripeRequestBuilder.Coupon(Spec(), [planProduct]);
+        var addOn = StripeRequestBuilder.AddOnPrice("pro", planProduct, 9900, "CZK", BillingInterval.Monthly);
+
+        coupon.AppliesTo!.Products.Should().Contain(addOn.Product, "the add-on line sits on a product the coupon covers");
+    }
+
+    [Fact]
+    public void AddOnLookupKey_DiffersPerProduct_SoAnOldPriceOnAnotherProductIsNeverReused()
+    {
+        var older = StripeRequestBuilder.AddOnLookupKey("pro", "prod_old", 9900, "CZK", BillingInterval.Monthly);
+        var current = StripeRequestBuilder.AddOnLookupKey("pro", "prod_pro", 9900, "CZK", BillingInterval.Monthly);
+
+        older.Should().NotBe(current);
+    }
+
+    [Theory]
+    [InlineData(0, "prod_pro")]
+    [InlineData(9900, "")]
+    public void AddOnPrice_WithoutAnAmountOrProduct_IsRefused(long amount, string productId)
+    {
+        var build = () => StripeRequestBuilder.AddOnPrice("pro", productId, amount, "CZK", BillingInterval.Monthly);
+
+        build.Should().Throw<ArgumentException>();
     }
 
     [Fact]
@@ -238,5 +280,84 @@ public class StripeRequestBuilderTests
         };
 
         options.IsConfigured.Should().Be(expected);
+    }
+
+    private static CouponSpec Spec(
+        PromotionKind kind = PromotionKind.Percent,
+        long value = 30,
+        PromotionDuration duration = PromotionDuration.Forever,
+        int? months = null,
+        int? maxUses = null,
+        DateTimeOffset? claimUntil = null) =>
+        new("Launch offer", kind, value, kind == PromotionKind.FixedAmount ? "CZK" : null, duration, months, maxUses, claimUntil, null, "key");
+
+    [Theory]
+    [InlineData(PromotionDuration.FirstMonth, "once", null)]
+    [InlineData(PromotionDuration.Months, "repeating", 3)]
+    [InlineData(PromotionDuration.Forever, "forever", null)]
+    public void Coupon_MapsTheDurationToStripesOnceRepeatingOrForever(PromotionDuration duration, string expected, int? months)
+    {
+        var coupon = StripeRequestBuilder.Coupon(Spec(duration: duration, months: months), null);
+
+        coupon.Duration.Should().Be(expected);
+        coupon.DurationInMonths.Should().Be(months);
+    }
+
+    [Fact]
+    public void Coupon_Percentage_SetsPercentOffOnly()
+    {
+        var coupon = StripeRequestBuilder.Coupon(Spec(value: 30), null);
+
+        coupon.PercentOff.Should().Be(30);
+        coupon.AmountOff.Should().BeNull();
+        coupon.Currency.Should().BeNull();
+    }
+
+    [Fact]
+    public void Coupon_FixedAmount_SetsAmountOffInLowerCaseCurrency()
+    {
+        var coupon = StripeRequestBuilder.Coupon(Spec(PromotionKind.FixedAmount, 50000), null);
+
+        coupon.AmountOff.Should().Be(50000);
+        coupon.Currency.Should().Be("czk");
+        coupon.PercentOff.Should().BeNull();
+    }
+
+    [Fact]
+    public void Coupon_PushesMaxUsesClaimEndAndProductsToStripe()
+    {
+        var until = new DateTimeOffset(2026, 12, 31, 22, 59, 0, TimeSpan.Zero);
+
+        var coupon = StripeRequestBuilder.Coupon(Spec(maxUses: 50, claimUntil: until), ["prod_a", "prod_b"]);
+
+        coupon.MaxRedemptions.Should().Be(50);
+        coupon.RedeemBy.Should().Be(until.UtcDateTime);
+        coupon.AppliesTo!.Products.Should().Equal("prod_a", "prod_b");
+    }
+
+    [Fact]
+    public void Coupon_WithoutProducts_IsNotRestricted()
+    {
+        StripeRequestBuilder.Coupon(Spec(), null).AppliesTo.Should().BeNull();
+    }
+
+    [Fact]
+    public void PromotionCode_ForNewCoachesOnly_RestrictsToAFirstTimeTransaction()
+    {
+        var until = new DateTimeOffset(2026, 12, 31, 22, 59, 0, TimeSpan.Zero);
+
+        var code = StripeRequestBuilder.PromotionCode("coupon_1", "COACH20", until, firstTimeOnly: true);
+
+        code.Code.Should().Be("COACH20");
+        code.Promotion.Type.Should().Be("coupon");
+        code.Promotion.Coupon.Should().Be("coupon_1");
+        code.ExpiresAt.Should().Be(until.UtcDateTime);
+        code.Restrictions!.FirstTimeTransaction.Should().BeTrue();
+    }
+
+    [Fact]
+    public void PromotionCode_ForEveryone_HasNoRestrictions()
+    {
+        StripeRequestBuilder.PromotionCode("coupon_1", "COACH20", null, firstTimeOnly: false).Restrictions.Should().BeNull();
     }
 }

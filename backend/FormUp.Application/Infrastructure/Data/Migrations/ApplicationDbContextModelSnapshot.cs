@@ -2128,6 +2128,14 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("current_period_ends_at");
 
+                    b.Property<DateTimeOffset?>("CurrentPromotionEndsAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("current_promotion_ends_at");
+
+                    b.Property<long?>("CurrentPromotionId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("current_promotion_id");
+
                     b.Property<DateTime>("DateCreated")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("date_created");
@@ -2143,6 +2151,10 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                     b.Property<string>("ExternalSubscriptionId")
                         .HasColumnType("text")
                         .HasColumnName("external_subscription_id");
+
+                    b.Property<DateTimeOffset?>("FirstPaidAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("first_paid_at");
 
                     b.Property<DateTimeOffset?>("FreeUntil")
                         .HasColumnType("timestamp with time zone")
@@ -2192,6 +2204,9 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_coach_subscriptions");
+
+                    b.HasIndex("CurrentPromotionId")
+                        .HasDatabaseName("ix_coach_subscriptions_current_promotion_id");
 
                     b.HasIndex("ExternalCustomerId")
                         .HasDatabaseName("ix_coach_subscriptions_external_customer_id");
@@ -3100,6 +3115,165 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                         .HasDatabaseName("ix_professional_profiles_user_id");
 
                     b.ToTable("professional_profiles", (string)null);
+                });
+
+            modelBuilder.Entity("FormUp.Application.Domain.Entities.Promotion", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTimeOffset>("ClaimFrom")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("claim_from");
+
+                    b.Property<DateTimeOffset?>("ClaimUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("claim_until");
+
+                    b.Property<string>("Code")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("code");
+
+                    b.Property<string>("CodeNormalized")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("code_normalized");
+
+                    b.Property<string>("Currency")
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasColumnName("currency");
+
+                    b.Property<DateTime>("DateCreated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_created");
+
+                    b.Property<DateTime?>("DateUpdated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_updated");
+
+                    b.Property<int>("Duration")
+                        .HasColumnType("integer")
+                        .HasColumnName("duration");
+
+                    b.Property<int?>("DurationMonths")
+                        .HasColumnType("integer")
+                        .HasColumnName("duration_months");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("integer")
+                        .HasColumnName("kind");
+
+                    b.Property<int?>("MaxUses")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_uses");
+
+                    b.Property<int>("Mode")
+                        .HasColumnType("integer")
+                        .HasColumnName("mode");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<bool>("NewCoachesOnly")
+                        .HasColumnType("boolean")
+                        .HasColumnName("new_coaches_only");
+
+                    b.Property<bool>("OneUsePerCoach")
+                        .HasColumnType("boolean")
+                        .HasColumnName("one_use_per_coach");
+
+                    b.PrimitiveCollection<List<string>>("PlanCodes")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("plan_codes");
+
+                    b.Property<Guid>("PublicId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("public_id");
+
+                    b.Property<string>("StripeCouponId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("stripe_coupon_id");
+
+                    b.Property<string>("StripePromotionCodeId")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("stripe_promotion_code_id");
+
+                    b.Property<long>("Value")
+                        .HasColumnType("bigint")
+                        .HasColumnName("value");
+
+                    b.HasKey("Id")
+                        .HasName("pk_promotions");
+
+                    b.HasIndex("CodeNormalized")
+                        .HasDatabaseName("ix_promotions_code_normalized");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_promotions_public_id");
+
+                    b.HasIndex("StripeCouponId")
+                        .HasDatabaseName("ix_promotions_stripe_coupon_id");
+
+                    b.HasIndex("StripePromotionCodeId")
+                        .HasDatabaseName("ix_promotions_stripe_promotion_code_id");
+
+                    b.ToTable("promotions", (string)null);
+                });
+
+            modelBuilder.Entity("FormUp.Application.Domain.Entities.PromotionRedemption", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("DateCreated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_created");
+
+                    b.Property<DateTime?>("DateUpdated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_updated");
+
+                    b.Property<long>("ProfessionalProfileId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("professional_profile_id");
+
+                    b.Property<long>("PromotionId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("promotion_id");
+
+                    b.Property<DateTimeOffset>("RedeemedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("redeemed_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_promotion_redemptions");
+
+                    b.HasIndex("ProfessionalProfileId")
+                        .HasDatabaseName("ix_promotion_redemptions_professional_profile_id");
+
+                    b.HasIndex("PromotionId", "ProfessionalProfileId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_promotion_redemptions_promotion_id_professional_profile_id");
+
+                    b.ToTable("promotion_redemptions", (string)null);
                 });
 
             modelBuilder.Entity("FormUp.Application.Domain.Entities.Questionnaire", b =>
@@ -4279,6 +4453,12 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("FormUp.Application.Domain.Entities.CoachSubscription", b =>
                 {
+                    b.HasOne("FormUp.Application.Domain.Entities.Promotion", "CurrentPromotion")
+                        .WithMany()
+                        .HasForeignKey("CurrentPromotionId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_coach_subscriptions_promotions_current_promotion_id");
+
                     b.HasOne("FormUp.Application.Domain.Entities.SubscriptionPlanPrice", "PendingSubscriptionPlanPrice")
                         .WithMany()
                         .HasForeignKey("PendingSubscriptionPlanPriceId")
@@ -4305,6 +4485,8 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired()
                         .HasConstraintName("fk_coach_subscriptions_subscription_plan_prices_subscription_p");
+
+                    b.Navigation("CurrentPromotion");
 
                     b.Navigation("PendingSubscriptionPlanPrice");
 
@@ -4545,6 +4727,27 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("FormUp.Application.Domain.Entities.PromotionRedemption", b =>
+                {
+                    b.HasOne("FormUp.Application.Domain.Entities.ProfessionalProfile", "ProfessionalProfile")
+                        .WithMany()
+                        .HasForeignKey("ProfessionalProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_promotion_redemptions_professional_profiles_professional_pr");
+
+                    b.HasOne("FormUp.Application.Domain.Entities.Promotion", "Promotion")
+                        .WithMany("Redemptions")
+                        .HasForeignKey("PromotionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_promotion_redemptions_promotions_promotion_id");
+
+                    b.Navigation("ProfessionalProfile");
+
+                    b.Navigation("Promotion");
+                });
+
             modelBuilder.Entity("FormUp.Application.Domain.Entities.Questionnaire", b =>
                 {
                     b.HasOne("FormUp.Application.Domain.Entities.ApplicationUser", "Professional")
@@ -4777,6 +4980,11 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                     b.Navigation("InvitationTokens");
 
                     b.Navigation("PendingInvites");
+                });
+
+            modelBuilder.Entity("FormUp.Application.Domain.Entities.Promotion", b =>
+                {
+                    b.Navigation("Redemptions");
                 });
 
             modelBuilder.Entity("FormUp.Application.Domain.Entities.Questionnaire", b =>

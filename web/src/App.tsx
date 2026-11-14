@@ -31,6 +31,7 @@ import AutomationsPage from '@/pages/AutomationsPage';
 import PackagesPage from '@/pages/PackagesPage';
 import AdminPlansPage from '@/pages/AdminPlansPage';
 import AdminCoachesPage from '@/pages/AdminCoachesPage';
+import AdminPromotionsPage from '@/pages/AdminPromotionsPage';
 import AdminCoachProfilePage from '@/pages/AdminCoachProfilePage';
 import FormBuilderPage from '@/pages/FormBuilderPage';
 import IngredientsPage from '@/pages/IngredientsPage';
@@ -134,6 +135,7 @@ const router = createBrowserRouter(
           </Route>
           <Route element={<RoleGuard allowedRoles={['Admin']} />}>
             <Route path="/admin/plans" element={<AdminPlansPage />} />
+            <Route path="/admin/promotions" element={<AdminPromotionsPage />} />
             <Route path="/admin/coach-accounts" element={<AdminCoachesPage />} />
             <Route path="/admin/coach-accounts/:coachId" element={<AdminCoachProfilePage />} />
           </Route>

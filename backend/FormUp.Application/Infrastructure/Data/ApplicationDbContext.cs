@@ -166,6 +166,16 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public virtual DbSet<ProcessedWebhookEvent> ProcessedWebhookEvents { get; set; } = null!;
 
     /// <summary>
+    /// Our copy of the Stripe coupons that discount coach plans.
+    /// </summary>
+    public virtual DbSet<Promotion> Promotions { get; set; } = null!;
+
+    /// <summary>
+    /// Coaches who claimed a <see cref="Promotion"/>, one row per coach and promotion.
+    /// </summary>
+    public virtual DbSet<PromotionRedemption> PromotionRedemptions { get; set; } = null!;
+
+    /// <summary>
     /// Coach-owned tags used to label clients.
     /// </summary>
     public virtual DbSet<ClientTag> ClientTags { get; set; } = null!;

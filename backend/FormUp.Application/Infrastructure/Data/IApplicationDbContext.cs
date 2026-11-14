@@ -185,6 +185,16 @@ public interface IApplicationDbContext
     DbSet<ProcessedWebhookEvent> ProcessedWebhookEvents { get; set; }
 
     /// <summary>
+    /// Our copy of the Stripe coupons that discount coach plans.
+    /// </summary>
+    DbSet<Promotion> Promotions { get; set; }
+
+    /// <summary>
+    /// Coaches who claimed a <see cref="Promotion"/>, one row per coach and promotion.
+    /// </summary>
+    DbSet<PromotionRedemption> PromotionRedemptions { get; set; }
+
+    /// <summary>
     /// Coach-owned tags used to label clients.
     /// </summary>
     DbSet<ClientTag> ClientTags { get; set; }

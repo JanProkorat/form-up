@@ -19,8 +19,12 @@ namespace FormUp.Tests.Endpoints.Billing;
 [Collection(TestCollection.Name)]
 public class CreateCheckoutSessionEndpointTests(FitnessApiFactory factory) : IDisposable
 {
-    /// <summary>Leaves the shared fake provider in its defaults for the next test class.</summary>
-    public void Dispose() => BillingTestData.ResetProvider(factory);
+    /// <summary>Leaves the shared fake provider and the promotions table in their defaults for the next test class.</summary>
+    public void Dispose()
+    {
+        BillingTestData.ResetProvider(factory);
+        PromotionBuilder.ClearAsync(factory).GetAwaiter().GetResult();
+    }
 
     private const string Route = "/billing/checkout-session";
 
@@ -262,5 +266,74 @@ public class CreateCheckoutSessionEndpointTests(FitnessApiFactory factory) : IDi
         var response = await factory.CreateClient().PostAsJsonAsync(Route, Body("anything"), Ct);
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task Checkout_WithAnAutomaticPromotionCoveringThePlan_PassesItsCoupon()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
+        await PromotionBuilder.ClearAsync(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (plan, _) = await StripePlanAsync();
+        var promotion = await PromotionBuilder.CreateAsync(factory, [plan], PromotionMode.Automatic);
+
+        var response = await coach.Http.PostAsJsonAsync(Route, Body(plan), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.Checkouts.Should().ContainSingle(call => call.UserId == coach.UserId).Which.CouponId.Should().Be(promotion.StripeCouponId);
+    }
+
+    [Fact]
+    public async Task Checkout_WhenTwoAutomaticPromotionsOverlap_PassesTheLatestClaimFrom()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
+        await PromotionBuilder.ClearAsync(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (plan, _) = await StripePlanAsync();
+        await PromotionBuilder.CreateAsync(factory, [plan], PromotionMode.Automatic, p => p.ClaimFrom = DateTimeOffset.UtcNow.AddDays(-20));
+        var newer = await PromotionBuilder.CreateAsync(factory, [plan], PromotionMode.Automatic, p => p.ClaimFrom = DateTimeOffset.UtcNow.AddDays(-2));
+
+        var response = await coach.Http.PostAsJsonAsync(Route, Body(plan), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.Checkouts.Should().ContainSingle(call => call.UserId == coach.UserId).Which.CouponId.Should().Be(newer.StripeCouponId);
+    }
+
+    [Fact]
+    public async Task Checkout_ForAPlanTheWinningPromotionDoesNotCover_PassesNoCoupon_AndDoesNotFallBackToAnotherPromotion()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
+        await PromotionBuilder.ClearAsync(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (plan, _) = await StripePlanAsync();
+        var (otherPlan, _) = await StripePlanAsync();
+        await PromotionBuilder.CreateAsync(factory, [plan], PromotionMode.Automatic, p => p.ClaimFrom = DateTimeOffset.UtcNow.AddDays(-20));
+        await PromotionBuilder.CreateAsync(factory, [otherPlan], PromotionMode.Automatic, p => p.ClaimFrom = DateTimeOffset.UtcNow.AddDays(-2));
+
+        var response = await coach.Http.PostAsJsonAsync(Route, Body(plan), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.Checkouts.Should().ContainSingle(call => call.UserId == coach.UserId).Which.CouponId.Should().BeNull(
+            "the newer promotion wins per coach and does not cover this plan");
+    }
+
+    [Fact]
+    public async Task Checkout_IgnoresCodePromotionsAndPromotionsThatAreNotClaimableYet()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
+        await PromotionBuilder.ClearAsync(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (plan, _) = await StripePlanAsync();
+        await PromotionBuilder.CreateAsync(factory, [plan], PromotionMode.Code);
+        await PromotionBuilder.CreateAsync(factory, [plan], PromotionMode.Automatic, p => p.ClaimFrom = DateTimeOffset.UtcNow.AddDays(3));
+
+        var response = await coach.Http.PostAsJsonAsync(Route, Body(plan), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.Checkouts.Should().ContainSingle(call => call.UserId == coach.UserId).Which.CouponId.Should().BeNull();
     }
 }

@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FormUp.Application.Domain.Constants;
+using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Services;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Application.Infrastructure.Services.Billing;
@@ -40,7 +41,7 @@ internal sealed class GetMySubscriptionEndpoint(
                             "kept count and the over-cap count too, as does a coach on a smaller paid plan than their client count. " +
                             "keepClientsChoiceRequired is true while some over-cap client has no kept or released decision yet " +
                             "(never together with planChoiceRequired).";
-            s.Response<GetMySubscriptionResponse>(StatusCodes.Status200OK, "The caller's subscription block");
+            s.Response<GetMySubscriptionResponse>(StatusCodes.Status200OK, "The caller's subscription block, with the current promotion and its display-only discount while the paid subscription is live");
             s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
             s.Response(StatusCodes.Status403Forbidden, "The caller is not a trainer or nutritionist");
             s.Response(StatusCodes.Status404NotFound, "The caller has no professional profile, or the Free plan is missing");
@@ -77,6 +78,7 @@ internal sealed class GetMySubscriptionEndpoint(
         }
 
         response.TaxMode = billingOptions.Value.TaxMode;
+        response.Promotion = await LoadPromotionAsync(profileId.Value, response, ct);
 
         var entitlements = await entitlementService.GetEntitlementsAsync(profileId.Value, ct);
 
@@ -119,6 +121,49 @@ internal sealed class GetMySubscriptionEndpoint(
         };
 
         await Send.OkAsync(response, ct);
+    }
+
+    /// <summary>
+    /// The promotion discounting the coach's live provider subscription, or null, with the display-only discount worked out
+    /// from the response's own price lines. A subscription that is not live (Free, canceled, incomplete) shows none.
+    /// </summary>
+    private async Task<CurrentPromotionDto?> LoadPromotionAsync(long profileId, GetMySubscriptionResponse response, CancellationToken ct)
+    {
+        if (response.Status is not (SubscriptionStatus.Active or SubscriptionStatus.Trialing or SubscriptionStatus.PastDue))
+        {
+            return null;
+        }
+
+        var current = await db.CoachSubscriptions
+            .AsNoTracking()
+            .Where(cs => cs.ProfessionalProfileId == profileId && cs.CurrentPromotionId != null)
+            .Select(cs => new { Promotion = cs.CurrentPromotion!, cs.CurrentPromotionEndsAt })
+            .FirstOrDefaultAsync(ct);
+
+        if (current is null)
+        {
+            return null;
+        }
+
+        var planLine = response.PriceLines.FirstOrDefault(line => line.Kind == SubscriptionPriceLineKind.Plan);
+        var addOnLine = response.PriceLines.FirstOrDefault(line => line.Kind == SubscriptionPriceLineKind.SecondRoleAddOn);
+        var (discount, discountedTotal) = planLine is null
+            ? (0L, 0L)
+            : PromotionPricing.ForSubscription(
+                current.Promotion, response.PlanCode, planLine.Currency, planLine.AmountMinorUnits, addOnLine?.AmountMinorUnits);
+
+        return new CurrentPromotionDto
+        {
+            Name = current.Promotion.Name,
+            Kind = current.Promotion.Kind,
+            Value = current.Promotion.Value,
+            Currency = current.Promotion.Currency,
+            Duration = current.Promotion.Duration,
+            DurationMonths = current.Promotion.DurationMonths,
+            EndsAt = current.CurrentPromotionEndsAt,
+            DiscountMinorUnits = discount,
+            DiscountedTotalMinorUnits = discountedTotal,
+        };
     }
 
     /// <summary>

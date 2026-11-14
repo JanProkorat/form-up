@@ -252,6 +252,31 @@
   },
   "subscription": {
     "seePlans": "See plans",
+    "promotion": {
+      "percentOff": "−{{value}} %",
+      "amountOff": "−{{amount}}",
+      "short": {
+        "firstMonth": "{{value}} for the first month",
+        "months_one": "{{value}} for {{count}} month",
+        "months_other": "{{value}} for {{count}} months",
+        "forever": "{{value}} forever"
+      },
+      "banner": {
+        "firstMonth": "{{name}}: {{value}} for your first month",
+        "months_one": "{{name}}: {{value}} for your first {{count}} month",
+        "months_other": "{{name}}: {{value}} for your first {{count}} months",
+        "forever": "{{name}}: {{value}} for as long as you stay",
+        "allPlans": "Applied at checkout on every paid plan.",
+        "somePlans": "Applied at checkout on {{plans}}.",
+        "claimBy": "Claim it by {{date}}.",
+        "taken": "Already taken off the paid prices below.",
+        "takenSomePlans": "Already taken off the prices of {{plans}} below."
+      },
+      "card": {
+        "then": "{{short}}, then {{price}}",
+        "regularPrice": "Regular price"
+      }
+    },
     "billing": {
       "vat": "Prices without VAT, {{rate}} % VAT is added.",
       "codeAtCheckout": "Have a code? Enter it at checkout.",
@@ -499,7 +524,14 @@
         "secondRole": "Second role",
         "total": "Total",
         "perMonth": "{{amount}} / month",
-        "secondRoleUnavailable": "A second professional role is not part of this plan."
+        "secondRoleUnavailable": "A second professional role is not part of this plan.",
+        "afterOffer": "From {{date}}: {{amount}} / month.",
+        "offer": {
+          "months_one": "{{name}} {{value}} · {{left}} of {{count}} month left",
+          "months_other": "{{name}} {{value}} · {{left}} of {{count}} months left",
+          "firstMonth": "{{name}} {{value}} · first month",
+          "forever": "{{name}} {{value}}"
+        }
       },
       "clients": {
         "title": "Clients",
@@ -3548,6 +3580,18 @@
     "BILLING_PLAN_CHANGE_PENDING": "A plan change is already scheduled. Try again once it has taken effect.",
     "PROMOTION_CODE_INVALID": "This code can't be used.",
     "PROMOTION_CODE_NOT_FOUND": "We don't know this code. Check it and try again.",
+    "PROMOTION_CODE_NOT_STARTED": "This offer hasn't started yet.",
+    "PROMOTION_CODE_PLAN_NOT_ELIGIBLE": "This code doesn't apply to your plan.",
+    "PROMOTION_CODE_USED_UP": "This code has been used up.",
+    "PROMOTION_CODE_NEW_COACHES_ONLY": "This code is only for new coaches.",
+    "PROMOTION_CODE_ALREADY_USED": "You have already used this code.",
+    "PROMOTION_CODE_TAKEN": "Another promotion that has not ended uses this code.",
+    "PROMOTION_VALUE_INVALID": "Check the value of the promotion.",
+    "PROMOTION_MODE_INVALID": "Check the code: it is required with a code and not allowed for an automatic promotion.",
+    "PROMOTION_MONTHS_INVALID": "Enter a number of months from 2 to 36.",
+    "PROMOTION_WINDOW_INVALID": "The claim window must end in the future, after it starts.",
+    "PROMOTION_PLANS_INVALID": "Pick at least one paid plan.",
+    "PROMOTION_MAX_USES_INVALID": "Max uses must be at least 1.",
     "BILLING_RATE_LIMITED": "Too many attempts. Wait a moment and try again.",
     "BILLING_ADD_ON_NOT_AVAILABLE": "Your plan doesn't offer a paid second role.",
     "BILLING_ADD_ON_ALREADY_PAID": "The second role is already paid for.",
@@ -6967,6 +7011,110 @@
       "priceInvalid": "Enter a price from 0 to 1,000,000.",
       "addOnInvalid": "Enter a second-role price above 0, or choose Included in the price.",
       "clientsInvalid": "Enter a number of clients from 1, or tick Unlimited."
+    }
+  },
+  "adminPromotions": {
+    "title": "Promotions",
+    "subtitle": "Discounts on Form Up plans, for coaches. A coach's own discounts for clients are separate.",
+    "newPromotion": "New promotion",
+    "note": "One promotion per coach at a time. It covers the whole bill, second role included.",
+    "loadError": "Could not load the promotions.",
+    "retry": "Try again",
+    "empty": "No promotions here yet.",
+    "saveSuccess": "Promotion saved.",
+    "saveError": "Could not save the promotion.",
+    "filters": {
+      "label": "Filter promotions",
+      "All": "All",
+      "Active": "Active",
+      "Scheduled": "Scheduled",
+      "Ended": "Ended"
+    },
+    "status": {
+      "Active": "Active",
+      "Scheduled": "Scheduled",
+      "Ended": "Ended"
+    },
+    "table": {
+      "promotion": "Promotion",
+      "how": "How",
+      "value": "Value",
+      "lasts": "Lasts",
+      "window": "Offer window",
+      "plans": "Plans",
+      "used": "Used",
+      "status": "Status",
+      "everyone": "For everyone at checkout",
+      "codeSubline": "Code",
+      "automatic": "Automatic",
+      "allPaidPlans": "All paid plans",
+      "usedOf": "{{count}} of {{max}}"
+    },
+    "lasts": {
+      "firstMonth": "First month",
+      "months_one": "{{count}} month",
+      "months_other": "{{count}} months",
+      "forever": "Forever"
+    },
+    "window": {
+      "range": "{{from}} – {{to}}",
+      "noEnd": "No end date"
+    },
+    "plans": {
+      "start": "Start",
+      "pro": "Pro",
+      "studio": "Studio"
+    },
+    "drawer": {
+      "titleNew": "New promotion",
+      "description": "Created in Stripe when you save",
+      "sectionPromotion": "Promotion",
+      "name": "Name",
+      "nameHint": "Coaches see this name in their plan picker and Settings, and it can appear on their invoice. It is also the Stripe coupon name.",
+      "type": "Type",
+      "typePercent": "Percentage",
+      "typeFixed": "Fixed amount",
+      "value": "Value",
+      "sectionHow": "How coaches get it",
+      "claimed": "Claimed",
+      "automatic": "Automatic for everyone",
+      "withCode": "With a code",
+      "code": "Code",
+      "codeHint": "Letters and numbers. Not case-sensitive.",
+      "sectionLasts": "How long it lasts for a coach",
+      "lasts": "Lasts",
+      "firstMonth": "First month",
+      "months": "Several months",
+      "forever": "Forever",
+      "monthCount": "Number of months",
+      "monthCountHint": "From {{min}} to {{max}}.",
+      "sectionWindow": "Offer window",
+      "claimFrom": "Claim from",
+      "claimUntil": "Claim until",
+      "optional": "Optional",
+      "sectionLimits": "Plans and limits",
+      "plans": "Plans",
+      "maxUses": "Max uses",
+      "maxUsesHint": "Empty = no limit",
+      "newCoachesOnly": "New coaches only",
+      "oneUsePerCoach": "One use per coach",
+      "coversBill": "Covers the whole bill, second role included",
+      "save": "Save promotion",
+      "saving": "Saving…"
+    },
+    "validation": {
+      "nameRequired": "Enter a name.",
+      "nameTooLong": "The name can be at most 200 characters.",
+      "valuePercent": "Enter a whole percentage from 1 to 100.",
+      "valueAmount": "Enter an amount above 0.",
+      "codeRequired": "Enter a code.",
+      "codeInvalid": "Use letters and numbers only, up to 50 characters.",
+      "codeTaken": "Another promotion that has not ended already uses this code.",
+      "monthsInvalid": "Enter a whole number of months from 2 to 36.",
+      "claimFromRequired": "Pick a start date.",
+      "windowInvalid": "The end date must be after the start date and in the future.",
+      "plansRequired": "Pick at least one plan.",
+      "maxUsesInvalid": "Enter a whole number from 1, or leave it empty."
     }
   }
 }

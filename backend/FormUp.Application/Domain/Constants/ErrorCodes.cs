@@ -787,6 +787,42 @@ public static class ErrorCodes
     /// <summary>The promotion code is unknown or no longer active.</summary>
     public const string PromotionCodeNotFound = "PROMOTION_CODE_NOT_FOUND";
 
+    /// <summary>Another promotion that has not ended already uses this code.</summary>
+    public const string PromotionCodeTaken = "PROMOTION_CODE_TAKEN";
+
+    /// <summary>The promotion's claim window has not opened yet.</summary>
+    public const string PromotionCodeNotStarted = "PROMOTION_CODE_NOT_STARTED";
+
+    /// <summary>The coach's current plan is not one of the promotion's plans.</summary>
+    public const string PromotionCodePlanNotEligible = "PROMOTION_CODE_PLAN_NOT_ELIGIBLE";
+
+    /// <summary>Every use of the promotion is taken.</summary>
+    public const string PromotionCodeUsedUp = "PROMOTION_CODE_USED_UP";
+
+    /// <summary>The promotion is for coaches who never paid, and this coach has.</summary>
+    public const string PromotionCodeNewCoachesOnly = "PROMOTION_CODE_NEW_COACHES_ONLY";
+
+    /// <summary>The promotion allows one use per coach, and this coach already claimed it.</summary>
+    public const string PromotionCodeAlreadyUsed = "PROMOTION_CODE_ALREADY_USED";
+
+    /// <summary>The promotion value is out of range for its type, or a fixed amount has no CZK currency.</summary>
+    public const string PromotionValueInvalid = "PROMOTION_VALUE_INVALID";
+
+    /// <summary>The month count is missing for "several months", present for another duration, or outside 2 to 36.</summary>
+    public const string PromotionMonthsInvalid = "PROMOTION_MONTHS_INVALID";
+
+    /// <summary>The claim window ends before it starts, or already ended.</summary>
+    public const string PromotionWindowInvalid = "PROMOTION_WINDOW_INVALID";
+
+    /// <summary>No plan is selected, or a selected plan code is not a paid plan.</summary>
+    public const string PromotionPlansInvalid = "PROMOTION_PLANS_INVALID";
+
+    /// <summary>Max uses is below 1.</summary>
+    public const string PromotionMaxUsesInvalid = "PROMOTION_MAX_USES_INVALID";
+
+    /// <summary>The mode and the code disagree: a code is missing in code mode or present in automatic mode.</summary>
+    public const string PromotionModeInvalid = "PROMOTION_MODE_INVALID";
+
     /// <summary>The plan has no second-role add-on to buy: both roles are included, or it has no add-on price.</summary>
     public const string BillingAddOnNotAvailable = "BILLING_ADD_ON_NOT_AVAILABLE";
 

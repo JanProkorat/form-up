@@ -78,12 +78,43 @@ public interface ISubscriptionService
         CancellationToken ct);
 
     /// <summary>
-    /// Applies a customer-entered promotion code to an existing subscription. Returns false when the code is unknown or inactive.
+    /// Makes a promotion code the subscription's only discount. The subscription's discount list is replaced, never
+    /// added to, so repeating the call or switching codes cannot stack discounts.
     /// </summary>
     /// <param name="subscriptionId">The provider subscription id.</param>
-    /// <param name="promotionCode">The code as the customer typed it.</param>
+    /// <param name="promotionCodeId">The provider promotion code id, not the text a customer types.</param>
     /// <param name="ct">Cancellation token.</param>
-    Task<bool> ApplyPromotionCodeAsync(string subscriptionId, string promotionCode, CancellationToken ct);
+    Task ApplyPromotionCodeAsync(string subscriptionId, string promotionCodeId, CancellationToken ct);
+
+    /// <summary>Creates a discount coupon and returns its id.</summary>
+    /// <param name="spec">What the coupon discounts, for how long, and the limits the provider can enforce.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task<string> CreateCouponAsync(CouponSpec spec, CancellationToken ct);
+
+    /// <summary>
+    /// Creates a customer-facing promotion code for a coupon and returns its id. The code is usable at Checkout.
+    /// </summary>
+    /// <param name="couponId">The provider coupon id.</param>
+    /// <param name="code">The code text customers type.</param>
+    /// <param name="expiresAt">Last moment the code works, or null for no end.</param>
+    /// <param name="firstTimeOnly">True to refuse customers who paid before.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task<string> CreatePromotionCodeAsync(
+        string couponId, string code, DateTimeOffset? expiresAt, bool firstTimeOnly, CancellationToken ct);
+
+    /// <summary>
+    /// Deletes a coupon that no subscription uses yet; the cleanup after a promotion code could not be created.
+    /// </summary>
+    /// <param name="couponId">The provider coupon id.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task DeleteCouponAsync(string couponId, CancellationToken ct);
+
+    /// <summary>
+    /// Reads the discount a subscription carries now, or null when it has none.
+    /// </summary>
+    /// <param name="subscriptionId">The provider subscription id.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task<SubscriptionDiscount?> GetSubscriptionDiscountAsync(string subscriptionId, CancellationToken ct);
 
     /// <summary>
     /// Creates a recurring provider price for a plan price row and returns its id. Calling it again with the same
