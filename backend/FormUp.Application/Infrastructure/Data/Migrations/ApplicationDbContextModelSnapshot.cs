@@ -3453,6 +3453,18 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("can_send_questionnaires");
 
+                    b.Property<bool>("CanUseAutomations")
+                        .HasColumnType("boolean")
+                        .HasColumnName("can_use_automations");
+
+                    b.Property<bool>("CanUseIngredients")
+                        .HasColumnType("boolean")
+                        .HasColumnName("can_use_ingredients");
+
+                    b.Property<bool>("CanUsePackages")
+                        .HasColumnType("boolean")
+                        .HasColumnName("can_use_packages");
+
                     b.Property<bool>("CanUsePayments")
                         .HasColumnType("boolean")
                         .HasColumnName("can_use_payments");
@@ -3461,9 +3473,25 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("can_use_per_client_check_in_config");
 
+                    b.Property<bool>("CanUsePlanTemplates")
+                        .HasColumnType("boolean")
+                        .HasColumnName("can_use_plan_templates");
+
+                    b.Property<bool>("CanUseProgressPhotos")
+                        .HasColumnType("boolean")
+                        .HasColumnName("can_use_progress_photos");
+
+                    b.Property<bool>("CanUseRecipes")
+                        .HasColumnType("boolean")
+                        .HasColumnName("can_use_recipes");
+
                     b.Property<bool>("CanUseWeeklyCheckIns")
                         .HasColumnType("boolean")
                         .HasColumnName("can_use_weekly_check_ins");
+
+                    b.Property<bool>("CanUseWeightAndMeasurements")
+                        .HasColumnType("boolean")
+                        .HasColumnName("can_use_weight_and_measurements");
 
                     b.Property<string>("Code")
                         .IsRequired()

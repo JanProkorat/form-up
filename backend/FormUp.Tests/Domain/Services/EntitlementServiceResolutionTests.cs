@@ -197,7 +197,7 @@ public class EntitlementServiceResolutionTests
     }
 
     [Fact]
-    public async Task GetPaymentsEntitledProfileIdsAsync_UsesTheSameResolutionAsTheSingleLookup()
+    public async Task GetPackagesEntitledProfileIdsAsync_UsesTheSameResolutionAsTheSingleLookup()
     {
         var free = Plan(1, "free", canUsePayments: true);
         var noPayments = Plan(2, "no-payments", canUsePayments: false);
@@ -208,7 +208,7 @@ public class EntitlementServiceResolutionTests
         };
         var service = CreateService([free, noPayments], subscriptions);
 
-        var entitled = await service.GetPaymentsEntitledProfileIdsAsync([10, 11, 12], TestContext.Current.CancellationToken);
+        var entitled = await service.GetPackagesEntitledProfileIdsAsync([10, 11, 12], TestContext.Current.CancellationToken);
 
         entitled.Should().BeEquivalentTo([10L, 12L], "10 has no row (Free), 11 keeps a plan without payments, 12 falls back to Free");
     }

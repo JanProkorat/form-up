@@ -45,8 +45,29 @@ public class CreateSubscriptionPlanRequest
     /// <summary>Whether the plan allows per-client check-in configuration.</summary>
     public bool CanUsePerClientCheckInConfig { get; set; }
 
-    /// <summary>Whether the plan allows the payments feature. Defaults to false.</summary>
+    /// <summary>Whether the plan allows client payments. Defaults to false.</summary>
     public bool CanUsePayments { get; set; }
+
+    /// <summary>Whether the plan allows nutrition plan templates. Defaults to false.</summary>
+    public bool CanUsePlanTemplates { get; set; }
+
+    /// <summary>Whether the plan allows the coach's own recipes. Defaults to false.</summary>
+    public bool CanUseRecipes { get; set; }
+
+    /// <summary>Whether the plan allows the coach's own ingredients. Defaults to false.</summary>
+    public bool CanUseIngredients { get; set; }
+
+    /// <summary>Whether the plan allows the coach side of progress photos. Defaults to false.</summary>
+    public bool CanUseProgressPhotos { get; set; }
+
+    /// <summary>Whether the plan allows the coach side of weight and measurements. Defaults to false.</summary>
+    public bool CanUseWeightAndMeasurements { get; set; }
+
+    /// <summary>Whether the plan allows automations. Defaults to false.</summary>
+    public bool CanUseAutomations { get; set; }
+
+    /// <summary>Whether the plan allows coach packages and discounts. Defaults to false.</summary>
+    public bool CanUsePackages { get; set; }
 
     /// <summary>Maximum number of active clients allowed under this plan. Null means unlimited.</summary>
     public int? MaxActiveClients { get; set; }

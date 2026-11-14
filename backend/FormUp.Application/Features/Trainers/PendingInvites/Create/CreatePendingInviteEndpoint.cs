@@ -404,7 +404,7 @@ public class CreatePendingInviteEndpoint(
                 .Include(d => d.Packages)
                 .FirstOrDefaultAsync(d => d.PublicId == discountId && d.ProfessionalProfileId == professionalProfileId, ct);
 
-        var failure = PackageTermsRules.Check(entitlements.CanUsePayments, package, req.DiscountId is not null, discount);
+        var failure = PackageTermsRules.Check(entitlements.CanUsePackages && entitlements.CanUsePayments, package, req.DiscountId is not null, discount);
 
         switch (failure)
         {

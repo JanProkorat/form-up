@@ -108,6 +108,13 @@ internal sealed class GetMySubscriptionEndpoint(
             CanUseWeeklyCheckIns = entitlements.CanUseWeeklyCheckIns,
             CanUsePerClientCheckInConfig = entitlements.CanUsePerClientCheckInConfig,
             CanUsePayments = entitlements.CanUsePayments,
+            CanUsePlanTemplates = entitlements.CanUsePlanTemplates,
+            CanUseRecipes = entitlements.CanUseRecipes,
+            CanUseIngredients = entitlements.CanUseIngredients,
+            CanUseProgressPhotos = entitlements.CanUseProgressPhotos,
+            CanUseWeightAndMeasurements = entitlements.CanUseWeightAndMeasurements,
+            CanUseAutomations = entitlements.CanUseAutomations,
+            CanUsePackages = entitlements.CanUsePackages,
         };
 
         await Send.OkAsync(response, ct);

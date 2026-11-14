@@ -63,9 +63,44 @@ public class SubscriptionPlan : TimestampableEntity
     public bool CanUsePerClientCheckInConfig { get; set; }
 
     /// <summary>
-    /// Whether the plan allows the payments feature (bank account and payment settings).
+    /// Whether the plan allows client payments (bank account, payment settings, client payment tracking).
     /// </summary>
     public bool CanUsePayments { get; set; }
+
+    /// <summary>
+    /// Whether the plan allows nutrition plan templates.
+    /// </summary>
+    public bool CanUsePlanTemplates { get; set; }
+
+    /// <summary>
+    /// Whether the plan allows a coach's own recipe library.
+    /// </summary>
+    public bool CanUseRecipes { get; set; }
+
+    /// <summary>
+    /// Whether the plan allows a coach's own ingredient (food) library.
+    /// </summary>
+    public bool CanUseIngredients { get; set; }
+
+    /// <summary>
+    /// Whether the plan allows the coach side of progress photos.
+    /// </summary>
+    public bool CanUseProgressPhotos { get; set; }
+
+    /// <summary>
+    /// Whether the plan allows the coach side of weight and body measurements.
+    /// </summary>
+    public bool CanUseWeightAndMeasurements { get; set; }
+
+    /// <summary>
+    /// Whether the plan allows automations.
+    /// </summary>
+    public bool CanUseAutomations { get; set; }
+
+    /// <summary>
+    /// Whether the plan allows coach packages and discounts.
+    /// </summary>
+    public bool CanUsePackages { get; set; }
 
     /// <summary>
     /// Maximum number of active clients allowed under this plan. Null means unlimited.
