@@ -334,6 +334,26 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task Webhook_RenewalToAOneRolePlanWithAnAddOnLine_SetsTheAddOnFlag_AndClearsThePendingId()
+    {
+        var scenario = await ArrangeOnPaidPlanAsync();
+        var (oneRolePlan, oneRolePriceId) = await BillingTestData.StripePlanAsync(
+            factory, price: 29900, addOn: 9900, bothRolesIncluded: false);
+        await BillingTestData.SetPendingPlanAsync(factory, scenario.Coach.ProfileId, oneRolePlan);
+        (await ReadRowAsync(scenario.Coach.ProfileId)).PaysSecondRoleAddOn.Should().BeFalse("the both-roles plan has no add-on line");
+
+        var renewal = scenario with { PriceId = oneRolePriceId };
+        var response = await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.updated", renewal, "active", extraPriceIds: ["price_addon_unknown_to_plans"]));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var after = await BillingTestData.ReadRowAsync(factory, scenario.Coach.ProfileId);
+        after.SubscriptionPlan.Code.Should().Be(oneRolePlan);
+        after.PaysSecondRoleAddOn.Should().BeTrue();
+        after.PendingSubscriptionPlanPriceId.Should().BeNull();
+    }
+
+    [Fact]
     public async Task Webhook_InvoicePaymentFailed_MakesTheSubscriptionPastDue_AndKeepsThePaidEntitlements()
     {
         var scenario = await ArrangeOnPaidPlanAsync();
