@@ -19,8 +19,10 @@ namespace FormUp.Application.Features.Billing.ChangePlan;
 /// <param name="db">Application database context.</param>
 /// <param name="subscriptions">The payment provider seam.</param>
 /// <param name="timeProvider">Clock.</param>
+/// <param name="coachRoleStatus">Resolves the coach roles that are not removed.</param>
 [RemovedCoachRole(RemovedCoachRoleMode.Refuse)]
-internal sealed class ChangePlanEndpoint(IApplicationDbContext db, ISubscriptionService subscriptions, TimeProvider timeProvider)
+internal sealed class ChangePlanEndpoint(
+    IApplicationDbContext db, ISubscriptionService subscriptions, TimeProvider timeProvider, ICoachRoleStatus coachRoleStatus)
     : Endpoint<ChangePlanRequest, ChangePlanResponse>
 {
     /// <inheritdoc />
@@ -32,11 +34,11 @@ internal sealed class ChangePlanEndpoint(IApplicationDbContext db, ISubscription
         {
             s.Summary = "Change the plan of my paid subscription";
             s.Description = "Moves the caller's own live paid subscription to another paid plan without a new Checkout. A dearer " +
-                            "plan applies now with proration; a cheaper or equal one is scheduled for the next renewal. A paid " +
-                            "second-role add-on is carried to the new plan.";
+                            "plan applies now with proration; a cheaper or equal one is scheduled for the next renewal. A coach " +
+                            "with two active roles pays the second-role add-on on a plan that does not include both roles.";
             s.Response<ChangePlanResponse>(StatusCodes.Status200OK, "The change was applied or scheduled");
             s.Response<ProblemDetails>(StatusCodes.Status400BadRequest,
-                "Invalid body, or the plan cannot be bought: unknown, Free, inactive, not priced in Stripe, or it has no add-on price for a paid add-on (PLAN_NOT_PURCHASABLE)");
+                "Invalid body, or the plan cannot be bought: unknown, Free, inactive, not priced in Stripe, or the caller has two active roles and the plan has no add-on price (PLAN_NOT_PURCHASABLE)");
             s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
             s.Response(StatusCodes.Status403Forbidden, "The caller is not a trainer or nutritionist, or the coach role was removed");
             s.Response(StatusCodes.Status409Conflict,
@@ -100,11 +102,12 @@ internal sealed class ChangePlanEndpoint(IApplicationDbContext db, ISubscription
             return;
         }
 
-        var carryAddOn = subscription.PaysSecondRoleAddOn && !target.BothRolesIncluded;
+        var activeRoles = await coachRoleStatus.GetActiveRolesAsync(userId, ct);
+        var carryAddOn = activeRoles.Count >= 2 && !target.BothRolesIncluded;
 
         if (carryAddOn && target.AddOnAmount is null or <= 0)
         {
-            this.ThrowErrorWithCode(ErrorCodes.PlanNotPurchasable, "This plan has no second-role add-on to carry over.");
+            this.ThrowErrorWithCode(ErrorCodes.PlanNotPurchasable, "This plan has no second-role add-on price.");
             return;
         }
 
