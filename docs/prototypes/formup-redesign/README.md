@@ -42,6 +42,10 @@ versions above.
 were re-exported, light and dark. `GlassRecipeDetail` is now 1280 px tall; the merged
 `canvas.json` keeps the old row positions, so it overlaps the row below there only.
 
+**Partial update, 2026-11-14 (#2113):** `PageAdminPromotionEnd` (C and D, frames "1 Row menu"
+and "2 End promotion") added from web portal 1794674126-fe33, source files only: no static
+export, no PNGs, and the merged `canvas.json` does not list it yet.
+
 | Path | Contents |
 |---|---|
 | `index.html` | Gallery of every board, grouped by app and module |
