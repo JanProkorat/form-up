@@ -1,4 +1,7 @@
 /**
+ * The e2e test data has no admin account yet, so this spec fakes the Admin role (see below) instead of
+ * signing in as a real admin.
+ *
  * Admin Promotions: the list renders with its columns, the status tabs ask the server for that tab, and the
  * new-promotion drawer creates a promotion (the code field shows only with a code) and flags a taken code inline.
  *
