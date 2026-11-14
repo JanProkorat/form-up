@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/api/client';
 import { getClientPlans } from '@/api/client-plans';
 import { getClientMeasurements } from '@/api/measurements';
+import { useMeasurementsGate } from '@/hooks/useMeasurementsGate';
 import { getErrorStatus } from '@/lib/api-errors';
 import { Skeleton } from '@/components/ui/skeleton';
 import NotAClientPanel from '@/components/inbox/panel/NotAClientPanel';
@@ -43,10 +44,12 @@ export default function ClientSidePanel({ clientPublicId, participantName }: Pro
     enabled: Boolean(clientPublicId),
   });
 
+  const measurementsGate = useMeasurementsGate();
   const measurementsQuery = useQuery({
     queryKey: ['client-measurements', clientPublicId],
     queryFn: () => getClientMeasurements(clientPublicId, 1, MEASUREMENTS_PAGE_SIZE),
-    enabled: Boolean(clientPublicId),
+    enabled: Boolean(clientPublicId) && measurementsGate.enabled,
+    placeholderData: measurementsGate.placeholderData,
   });
 
   if (dashboardQuery.isPending) {

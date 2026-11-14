@@ -320,7 +320,8 @@
         "web/src/components/subscription/OutsidePlanBanner.tsx",
         "web/src/components/client-detail/OutsidePlanPaywall.tsx",
         "web/src/components/subscription/planLinks.ts",
-        "web/src/hooks/useSubscriptionQueries.ts"
+        "web/src/hooks/useSubscriptionQueries.ts",
+        "web/src/hooks/useMeasurementsGate.ts"
       ],
       "endpoints": [
         "GET /trainer/clients/{clientId}",
@@ -370,7 +371,8 @@
         "web/src/components/subscription/OutsidePlanBanner.tsx",
         "web/src/components/client-detail/OutsidePlanPaywall.tsx",
         "web/src/components/subscription/planLinks.ts",
-        "web/src/hooks/useSubscriptionQueries.ts"
+        "web/src/hooks/useSubscriptionQueries.ts",
+        "web/src/hooks/useMeasurementsGate.ts"
       ],
       "endpoints": [
         "GET /trainer/clients",
@@ -650,14 +652,18 @@
         "web/src/hooks/useIngredientListParams.ts",
         "web/src/hooks/useViewMode.ts",
         "web/src/api/foods.ts",
-        "web/src/api/food-tags.ts"
+        "web/src/api/food-tags.ts",
+        "web/src/hooks/useSubscriptionQueries.ts",
+        "web/src/lib/subscriptionErrors.ts",
+        "web/src/components/subscription/PaywallPanel.tsx"
       ],
       "endpoints": [
         "GET /foods/search",
         "GET /trainer/food-tags",
         "POST /trainer/food-tags",
         "PUT /trainer/food-tags/{tagId}",
-        "DELETE /trainer/food-tags/{tagId}"
+        "DELETE /trainer/food-tags/{tagId}",
+        "GET /users/me/subscription"
       ],
       "board": "PageIngredients",
       "shots": [
@@ -714,6 +720,121 @@
       "notionPageId": null
     },
     {
+      "id": "web.nutrition.recipes",
+      "app": "web",
+      "area": "Nutrition",
+      "title": "Recipes list",
+      "route": "/recipes",
+      "roles": ["Nutritionist"],
+      "files": [
+        "web/src/pages/RecipesPage.tsx",
+        "web/src/components/recipes/RecipesTable.tsx",
+        "web/src/components/recipes/RecipesGrid.tsx",
+        "web/src/components/recipes/RecipeCard.tsx",
+        "web/src/components/library/PageHeader.tsx",
+        "web/src/components/library/FilterChip.tsx",
+        "web/src/components/library/OptionFilterPopover.tsx",
+        "web/src/components/library/LibraryTagFilterPopover.tsx",
+        "web/src/components/library/OwnerFilterPopover.tsx",
+        "web/src/components/library/Pagination.tsx",
+        "web/src/components/library/LibraryBadge.tsx",
+        "web/src/components/library/Thumbnail.tsx",
+        "web/src/components/library/SortableColumnHeader.tsx",
+        "web/src/components/library/sortAria.ts",
+        "web/src/components/library/NutrientDots.tsx",
+        "web/src/components/library/ViewModeToggle.tsx",
+        "web/src/components/library/CardParts.tsx",
+        "web/src/components/library/MacroBar.tsx",
+        "web/src/components/library/pictureUpload.ts",
+        "web/src/components/tags/TagPill.tsx",
+        "web/src/components/tags/TagFormDialog.tsx",
+        "web/src/hooks/useRecipesQueries.ts",
+        "web/src/hooks/useRecipeListParams.ts",
+        "web/src/hooks/useIngredientsQueries.ts",
+        "web/src/hooks/useIngredientListParams.ts",
+        "web/src/hooks/useDebouncedValue.ts",
+        "web/src/hooks/useImageVersion.ts",
+        "web/src/hooks/useViewMode.ts",
+        "web/src/lib/recipe-nutrition.ts",
+        "web/src/api/recipes.ts",
+        "web/src/api/foods.ts",
+        "web/src/api/food-tags.ts",
+        "web/src/hooks/useSubscriptionQueries.ts",
+        "web/src/lib/subscriptionErrors.ts",
+        "web/src/components/subscription/PaywallPanel.tsx"
+      ],
+      "endpoints": [
+        "GET /recipes",
+        "GET /trainer/food-tags",
+        "POST /trainer/food-tags",
+        "PUT /trainer/food-tags/{tagId}",
+        "DELETE /trainer/food-tags/{tagId}",
+        "GET /users/me/subscription"
+      ],
+      "board": "PageRecipes",
+      "shots": [
+        { "name": "default" },
+        { "name": "table", "steps": "sign in as the nutritionist, switch the view to the table with the view toggle and wait for the table to load" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "web.nutrition.recipe-drawer",
+      "app": "web",
+      "area": "Nutrition",
+      "title": "Recipe drawer",
+      "route": "/recipes",
+      "roles": ["Nutritionist"],
+      "files": [
+        "web/src/components/recipes/RecipeDrawer.tsx",
+        "web/src/components/recipes/recipe-form-types.ts",
+        "web/src/components/recipes/RecipeIngredientsTab.tsx",
+        "web/src/components/recipes/RecipePreparationTab.tsx",
+        "web/src/components/recipes/RecipePicturesTab.tsx",
+        "web/src/components/recipes/RecipePictureField.tsx",
+        "web/src/components/recipes/RecipeGalleryGrid.tsx",
+        "web/src/components/recipes/DeleteRecipeDialog.tsx",
+        "web/src/components/library/PictureField.tsx",
+        "web/src/components/library/GalleryGrid.tsx",
+        "web/src/components/library/StagedPicturesField.tsx",
+        "web/src/components/library/pictureUpload.ts",
+        "web/src/components/library/MultiSelectPopover.tsx",
+        "web/src/components/library/LibraryTagPickerPopover.tsx",
+        "web/src/components/library/VisibilityToggle.tsx",
+        "web/src/components/tags/TagPill.tsx",
+        "web/src/components/tags/TagFormDialog.tsx",
+        "web/src/hooks/useRecipesQueries.ts",
+        "web/src/hooks/useIngredientsQueries.ts",
+        "web/src/hooks/useDebouncedValue.ts",
+        "web/src/hooks/useImageVersion.ts",
+        "web/src/lib/recipe-nutrition.ts",
+        "web/src/api/recipes.ts",
+        "web/src/api/foods.ts",
+        "web/src/api/food-tags.ts"
+      ],
+      "endpoints": [
+        "GET /recipes/{recipeId}",
+        "POST /recipes",
+        "PUT /recipes/{recipeId}",
+        "DELETE /recipes/{recipeId}",
+        "PUT /trainer/recipes/{recipeId}/tags",
+        "GET /trainer/food-tags",
+        "POST /trainer/food-tags",
+        "GET /foods/search",
+        "POST /recipes/{recipeId}/image/upload-url",
+        "PUT /recipes/{recipeId}/image",
+        "DELETE /recipes/{recipeId}/image",
+        "DELETE /recipes/{recipeId}/gallery",
+        "POST /recipes/{recipeId}/gallery/promote"
+      ],
+      "board": "PageRecipeDrawerTabs",
+      "shots": [
+        { "name": "details", "steps": "sign in as the nutritionist, type 'Chicken, Rice' into the search box, wait for the list to reload, click 'Chicken, Rice & Broccoli Bowl' and wait for the drawer to open on the Detaily tab" },
+        { "name": "preparation", "steps": "sign in as the nutritionist, type 'Chicken, Rice' into the search box, wait for the list to reload, click 'Chicken, Rice & Broccoli Bowl', wait for the drawer to open, then click the tab 'Postup'" }
+      ],
+      "notionPageId": null
+    },
+    {
       "id": "web.nutrition.plan-templates",
       "app": "web",
       "area": "Nutrition",
@@ -728,12 +849,16 @@
         "web/src/components/library/FilterChip.tsx",
         "web/src/hooks/usePlanTemplatesQueries.ts",
         "web/src/hooks/usePlanTemplateListParams.ts",
-        "web/src/api/nutrition-plan-templates.ts"
+        "web/src/api/nutrition-plan-templates.ts",
+        "web/src/hooks/useSubscriptionQueries.ts",
+        "web/src/lib/subscriptionErrors.ts",
+        "web/src/components/subscription/PaywallPanel.tsx"
       ],
       "endpoints": [
         "GET /nutrition/plan-templates",
         "POST /nutrition/plan-templates/{templateId}/copy",
-        "DELETE /nutrition/plan-templates/{templateId}"
+        "DELETE /nutrition/plan-templates/{templateId}",
+        "GET /users/me/subscription"
       ],
       "board": "PageTemplates",
       "shots": [
@@ -783,7 +908,10 @@
         "web/src/api/nutrition-plan-templates.ts",
         "web/src/api/foods.ts",
         "web/src/api/food-tags.ts",
-        "web/src/api/recipes.ts"
+        "web/src/api/recipes.ts",
+        "web/src/hooks/useSubscriptionQueries.ts",
+        "web/src/lib/subscriptionErrors.ts",
+        "web/src/components/subscription/PaywallPanel.tsx"
       ],
       "endpoints": [
         "GET /nutrition/plan-templates",
@@ -792,7 +920,8 @@
         "GET /foods/search",
         "GET /trainer/food-tags",
         "GET /recipes",
-        "GET /recipes/{recipeId}"
+        "GET /recipes/{recipeId}",
+        "GET /users/me/subscription"
       ],
       "board": "PageTemplateEditor",
       "shots": [
@@ -943,7 +1072,10 @@
         "web/src/components/paywall/FeaturePaywall.tsx",
         "web/src/api/coach-packages.ts",
         "web/src/api/coach-discounts.ts",
-        "web/src/lib/money.ts"
+        "web/src/lib/money.ts",
+        "web/src/hooks/useSubscriptionQueries.ts",
+        "web/src/lib/subscriptionErrors.ts",
+        "web/src/components/subscription/PaywallPanel.tsx"
       ],
       "endpoints": [
         "GET /payments/packages",
@@ -953,7 +1085,8 @@
         "GET /payments/discounts",
         "POST /payments/discounts",
         "PUT /payments/discounts/{discountId}",
-        "POST /payments/discounts/{discountId}/archive"
+        "POST /payments/discounts/{discountId}/archive",
+        "GET /users/me/subscription"
       ],
       "board": "PagePackages",
       "shots": [
@@ -980,11 +1113,37 @@
       ],
       "endpoints": [
         "GET /admin/subscription-plans",
-        "POST /admin/subscription-plans",
-        "PUT /admin/subscription-plans/{code}",
         "DELETE /admin/subscription-plans/{code}"
       ],
       "board": "PageAdminPlans",
+      "shots": [
+        { "name": "default" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "web.admin.plan-editor",
+      "app": "web",
+      "area": "Admin",
+      "title": "Plan editor",
+      "route": "/admin/plans/:planId",
+      "roles": ["Admin"],
+      "files": [
+        "web/src/pages/AdminPlanEditorPage.tsx",
+        "web/src/components/admin-plans/*",
+        "web/src/components/package-catalog/catalogParts.tsx",
+        "web/src/components/package-catalog/packageFormParts.tsx",
+        "web/src/components/automations/automationFormParts.tsx",
+        "web/src/api/admin-subscription-plans.ts",
+        "web/src/lib/money.ts",
+        "web/src/components/subscription/planFeatures.ts"
+      ],
+      "endpoints": [
+        "GET /admin/subscription-plans",
+        "POST /admin/subscription-plans",
+        "PUT /admin/subscription-plans/{code}"
+      ],
+      "board": "PageAdminPlanEditor",
       "shots": [
         { "name": "default" }
       ],
@@ -1211,7 +1370,12 @@
         "web/src/hooks/useQuestionnaireQueries.ts",
         "web/src/api/client-payments.ts",
         "web/src/api/questionnaires.ts",
-        "web/src/lib/subscriptionErrors.ts"
+        "web/src/lib/subscriptionErrors.ts",
+        "web/src/hooks/useSubscriptionQueries.ts",
+        "web/src/components/subscription/PaywallPanel.tsx",
+        "web/src/components/subscription/PaywallDialog.tsx",
+        "web/src/components/client-detail/LockedFeatureCard.tsx",
+        "web/src/hooks/useMeasurementsGate.ts"
       ],
       "endpoints": [
         "GET /conversations",
@@ -1236,7 +1400,8 @@
         "GET /trainer/clients/{clientId}/measurements",
         "GET /nutrition/plans/{planId}",
         "GET /training/plans/{planId}",
-        "GET /users/me/roles"
+        "GET /users/me/roles",
+        "GET /users/me/subscription"
       ],
       "board": "PageInbox",
       "shots": [

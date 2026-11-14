@@ -68,7 +68,7 @@ public sealed class InvitePackageTermsApplier(
                     .Include(d => d.Packages)
                     .FirstOrDefaultAsync(d => d.Id == discountId && d.ProfessionalProfileId == professionalProfileId, ct);
 
-            var failure = PackageTermsRules.Check(entitlements.CanUsePayments, package, discountId is not null, discount);
+            var failure = PackageTermsRules.Check(entitlements.CanUsePackages && entitlements.CanUsePayments, package, discountId is not null, discount);
 
             if (failure != PackageTermsFailure.None)
             {

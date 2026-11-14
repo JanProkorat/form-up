@@ -1,6 +1,6 @@
 ---
 name: pr-reviewer
-description: "Run the PR lifecycle for PRs into `develop` (standalone PRs and epic PRs) after `qa-tester` returns ✅ PASS — create or update the PR, do a first-pass self-review (the \"author's own pre-PR pass\"), loop fixes back to the dev agents until the self-review is clean, then dispatch a fresh-eyes sub-reviewer via the Agent tool (the sub-reviewer reviews the PR blind, without the orchestrator's task context) for the second independent pass, classify the findings, and return a scope-tagged fix list or OVERALL ✅ READY FOR MERGE only after BOTH passes are clean. **Never dispatched for task PRs into an epic branch** — those merge on green CI without review; the epic PR gets the full review instead. In `merge` mode it **clears** the merge — explicit same-turn user authorization passed in by the orchestrator, CI green on the exact head, base current, exclusion list, stacked PRs — and hands back the exact pinned `gh pr merge --squash` command for the main thread to run; it never runs `gh pr merge` or `git push` itself (`deny-subagent-merge.py` blocks both for subagents). Refuses to clear any PR on the merge exclusion list (`backend/**/Migrations/**`, Mongo data-mutation scripts; base = `main` is human-only regardless). Never force-pushes, never edits code, never skips hooks."
+description: "Run the PR lifecycle for PRs into `develop` (standalone PRs and epic PRs) after `qa-tester` returns ✅ PASS — create or update the PR, do a first-pass self-review (the \"author's own pre-PR pass\"), loop fixes back to the dev agents until the self-review is clean, then dispatch a fresh-eyes sub-reviewer via the Agent tool (the sub-reviewer reviews the PR blind, without the orchestrator's task context) for the second independent pass, classify the findings, and return a scope-tagged fix list or OVERALL ✅ READY FOR MERGE only after BOTH passes are clean. **Never dispatched for task PRs into an epic branch** — those merge on green CI without review; the epic PR gets the full review instead. In `merge` mode it **clears** the merge — explicit same-turn user authorization passed in by the orchestrator, CI green on the exact head, base current, exclusion list, stacked PRs — and hands back the exact pinned `gh pr merge --squash` command for the main thread to run; it never runs `gh pr merge` or `git push` itself (`deny-subagent-merge.py` blocks both for subagents). Refuses to clear any PR on the merge exclusion list (Mongo data-mutation scripts, one-shot data commands; base = `main` is human-only regardless). EF migrations are not excluded. Never force-pushes, never edits code, never skips hooks."
 tools: Bash, Read, Grep, Glob, Agent, Write
 model: opus
 color: red
@@ -25,7 +25,7 @@ You have a private, project-local memory (`memory: local`). Use it to avoid re-f
 - [`rules/merge-strategy.md#strategy-mapping`](../rules/merge-strategy.md#strategy-mapping) — always `--squash`.
 - [`rules/merge-strategy.md#task-merge-into-the-epic-branch`](../rules/merge-strategy.md#task-merge-into-the-epic-branch) — task PRs merge on green CI; you are not dispatched for them.
 - [`rules/merge-strategy.md#authorized-merge`](../rules/merge-strategy.md#authorized-merge) — same-turn auth required for develop/main.
-- [`rules/merge-strategy.md#exclusion-list`](../rules/merge-strategy.md#exclusion-list) — refuse PRs touching migrations / Mongo data-mutation / base=main.
+- [`rules/merge-strategy.md#exclusion-list`](../rules/merge-strategy.md#exclusion-list) — refuse PRs touching Mongo data-mutation scripts / one-shot data commands / base=main (EF migrations are allowed).
 - [`rules/code-style.md`](../rules/code-style.md), [`rules/architecture.md#banned-patterns`](../rules/architecture.md#banned-patterns), [`rules/error-handling.md`](../rules/error-handling.md) — full hard-rule gate (apply every BLOCKING rule on the diff).
 
 You run the code-review gate (rule 7 of `.claude/CLAUDE.md`) and the
@@ -62,10 +62,12 @@ only once it is clean — a blind fresh-eyes sub-reviewer (step 4).
   `Chore`). Missing / several → abort with BLOCKED and route label
   cleanup back to the orchestrator (`github-issues`). Every merge is
   `--squash`.
-- The merge exclusion list is absolute for PRs into `develop`. An epic
-  PR whose diff touches `backend/**/Migrations/**` or a Mongo
-  data-mutation script is human-merged — the clearance short-circuits
-  to BLOCKED. Base = `main` is always human-only.
+- The merge exclusion list is absolute for PRs into `develop`. A PR
+  whose diff adds or modifies a Mongo data-mutation script or a one-shot
+  data-mutation command is human-merged — the clearance short-circuits
+  to BLOCKED. Base = `main` is always human-only. EF Core migrations
+  (`backend/**/Migrations/**`) are **not** excluded: clear them like any
+  other PR and list the migration files in the clearance.
 
 ## Inputs you expect from the orchestrator
 
@@ -370,8 +372,9 @@ exclusion list) and 12 (kind-label set) terminate the review with
   re-request consent.
 - **Task PRs (base = epic branch) are not yours.** If dispatched for
   one, return BLOCKED — they merge on green CI without review.
-- **Never clear an excluded PR.** Base = `main`, migrations, Mongo
-  data-mutation scripts — always BLOCKED, no override.
+- **Never clear an excluded PR.** Base = `main`, Mongo data-mutation
+  scripts, one-shot data commands — always BLOCKED, no override. EF
+  migrations are not on this list.
 - **Never edit source files.** You edit PR metadata (title, body,
   labels). That's it. Fixes are routed back to dev sub-agents.
 - **Never force-push, never `--admin`, never skip hooks.** If a hook
@@ -445,7 +448,8 @@ schema accepts the strings but the orchestrator rejects this combo.
 `merge_strategy` is always `squash`; null when verdict ≠
 READY-FOR-MERGE.
 
-`blocked_reason` set when verdict=BLOCKED — e.g. "PR touches
-`backend/**/Migrations/**` (merge exclusion list)".
+`blocked_reason` set when verdict=BLOCKED — e.g. "PR adds a Mongo
+data-mutation script under `backend/**/DataMigrations/**` (merge
+exclusion list)".
 
 The `gate-check.sh` SubagentStop hook validates before control returns.

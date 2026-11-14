@@ -385,6 +385,60 @@
         "body": "Zjistěte, jak se každému klientovi vedlo, než začne další týden.",
         "benefit1": "Týdenní check-in odesílaný podle vašeho rozvrhu",
         "benefit2": "Odpovědi v kartě každého klienta"
+      },
+      "chat": {
+        "title": "Psaní klientům je součástí vyššího tarifu",
+        "body": "Pište klientům a odpovídejte jim ve Zprávách.",
+        "benefit1": "Posílejte zprávy a zahajujte konverzace s klienty",
+        "benefit2": "Hromadná zpráva více klientům"
+      },
+      "recipes": {
+        "title": "Vlastní recepty jsou součástí vyššího tarifu",
+        "body": "Vytvořte si knihovnu receptů a používejte ji v jídelníčcích klientů.",
+        "benefit1": "Vytvářejte a upravujte vlastní recepty",
+        "benefit2": "Přidávejte je do libovolného plánu výživy"
+      },
+      "ingredients": {
+        "title": "Vlastní suroviny jsou součástí vyššího tarifu",
+        "body": "Přidejte potraviny, které v databázi chybí, včetně jejich nutričních hodnot.",
+        "benefit1": "Vytvářejte vlastní suroviny a potraviny",
+        "benefit2": "Používejte je v receptech a plánech výživy"
+      },
+      "planTemplates": {
+        "title": "Šablony plánů jsou součástí vyššího tarifu",
+        "body": "Uložte plán výživy jednou a přiřaďte ho mnoha klientům.",
+        "benefit1": "Znovupoužitelné šablony plánů",
+        "benefit2": "Přiřazení šablony klientovi na pár kliknutí"
+      },
+      "automations": {
+        "title": "Automatizace jsou součástí vyššího tarifu",
+        "body": "Nechte Form Up posílat formuláře a žádat o fotky nebo míry podle vašeho rozvrhu.",
+        "benefit1": "Pravidla, která posílají formuláře podle rozvrhu",
+        "benefit2": "Žádosti o fotky a míry bez ručního připomínání"
+      },
+      "progressPhotos": {
+        "title": "Fotky pokroku jsou součástí vyššího tarifu",
+        "body": "Sledujte pokrok klientů a žádejte o nové fotky.",
+        "benefit1": "Záložka Fotky u každého klienta",
+        "benefit2": "Žádosti o fotky klientům"
+      },
+      "measurements": {
+        "title": "Váha a míry jsou součástí vyššího tarifu",
+        "body": "Sledujte, jak se mění váha a tělesné míry každého klienta.",
+        "benefit1": "Váha a statistiky v přehledu klienta",
+        "benefit2": "Historie měření v kartě klienta"
+      },
+      "payments": {
+        "title": "Platby klientů jsou součástí vyššího tarifu",
+        "body": "Mějte přehled, co vám který klient platí.",
+        "benefit1": "Záložka Platby u každého klienta",
+        "benefit2": "Platební žádosti s QR kódem"
+      },
+      "packages": {
+        "title": "Balíčky jsou součástí vyššího tarifu",
+        "body": "Nastavte si balíčky a slevy a nabízejte je s pozvánkou.",
+        "benefit1": "Balíčky s cenou a cyklem fakturace",
+        "benefit2": "Balíček přiložený ke každé pozvánce"
       }
     },
     "clientLimit": {
@@ -3667,6 +3721,7 @@
   },
   "apiErrors": {
     "FREE_PLAN_LOCKED": "Plán Free nejde takto změnit: jeho cena zůstává 0 a vždy se nabízí.",
+    "PER_CLIENT_CHECK_IN_REQUIRES_WEEKLY_CHECK_INS": "Nastavení check-inů pro jednotlivé klienty vyžaduje týdenní check-iny. Nejdřív zapněte týdenní check-iny.",
     "SUBSCRIPTION_PLAN_CODE_ALREADY_EXISTS": "Plán s tímto kódem už existuje.",
     "SUBSCRIPTION_PLAN_NOT_FOUND": "Tento plán už neexistuje.",
     "NO_RENEWING_SUBSCRIPTION": "Tento trenér nemá žádný obnovující se placený plán, takže není co rušit.",
@@ -5854,6 +5909,8 @@
       "attachImageAriaLabel": "Přiložit obrázek",
       "sendError": "Zprávu se nepodařilo odeslat. Zkuste to prosím znovu.",
       "lockedNotice": "Odpovědět můžete, jakmile klient vaši pozvánku přijme.",
+      "planLockedNotice": "Váš tarif nezahrnuje psaní klientům. Konverzace si můžete dál číst.",
+      "planLockedAction": "Co tarif obsahuje",
       "imagePreviewAlt": "Náhled obrázku",
       "removeImageAriaLabel": "Odebrat obrázek",
       "imageUploadError": "Obrázek se nepodařilo nahrát. Zkuste to prosím znovu."
@@ -6260,19 +6317,11 @@
       "themeToLight": "Přepnout na světlý vzhled"
     },
     "hero": {
-      "eyebrow": "Pro osobní trenéry a nutriční poradce",
       "headline": "Vaši klienti, pryč od tabulek",
       "headlineAccent": "a WhatsAppu.",
-      "sub": "Sestavujte jídelníčky a tréninkové plány na webu. Vaši klienti je mají v telefonu, odškrtávají každé jídlo i trénink a jednou týdně vám pošlou check-in.",
+      "sub": "Plánujte na webu. Vaši klienti plán následují v telefonu.",
       "createAccount": "Vytvořit účet",
-      "seeInAction": "Podívat se, jak to funguje",
-      "note": "Webový portál pro plánování, mobilní aplikace pro vás i vaše klienty.",
-      "steps": {
-        "build": "Přetáhněte recept do dne",
-        "publish": "Jedním klikem je v jejich telefonu",
-        "follow": "Jídla a tréninky odškrtnuté",
-        "see": "Check-iny chodí k vám"
-      }
+      "seeInAction": "Podívat se, jak to funguje"
     },
     "steps": {
       "build": { "title": "Sestavíte" },
@@ -6281,95 +6330,54 @@
       "see": { "title": "Vidíte to" }
     },
     "how": {
-      "eyebrow": "Jak to funguje",
-      "title": "Jeden týden s klientem ve čtyřech krocích",
+      "title": "Jeden týden s klientem",
       "steps": {
-        "build": "Přetahujte recepty a cviky do týdne. Makra se sčítají samy.",
-        "publish": "Hotové týdny se jedním klikem objeví v telefonu klienta. Rozpracované zůstávají skryté.",
-        "follow": "Klient odškrtává jídla a tréninky. Vy to vidíte v reálném čase.",
-        "see": "Jednou týdně dorazí check-in: váha, fotky a jaký týden byl."
+        "build": "Přetáhněte recepty a cviky do týdne.",
+        "publish": "Jedno kliknutí. Rozpracované zůstanou skryté.",
+        "follow": "Jídla a tréninky odškrtnuté.",
+        "see": "Váha, fotky a jaký týden byl."
       },
-      "phone": {
-        "label": "V telefonu klienta",
-        "empty": "Zatím nic. Rozpracované týdny zůstávají skryté, dokud je nezveřejníte.",
-        "ready": { "title": "Týden 5 je připraven", "body": "Jan zveřejnil 7 dní jídel a 3 tréninky." },
-        "workout": { "title": "Trénink hotový", "body": "Horní polovina těla A · 52 min · všechny série zapsány." },
-        "checkin": { "title": "Check-in odeslán", "body": "68,4 kg · energie 4/5 · 3 fotky pokroku." }
+      "stage": {
+        "planWeek": "Redukce — týden 5",
+        "draft": "Rozpracováno",
+        "readyBody": "7 dní jídel a 3 tréninky",
+        "monday": "Pondělí",
+        "today": "Dnes",
+        "mealsOnTrack": { "title": "Jídla podle plánu", "body": "Petra · 3 ze 4 dnes" },
+        "workoutDone": {
+          "title": "Trénink hotový",
+          "body": "Horní polovina těla A · 52 min · všechny série zapsány"
+        },
+        "checkinTitle": "Check-in od Petry",
+        "checkinNote": "„V pátek jsem měla těžké nohy.“ · energie 4/5 · spánek 7 h"
       }
     },
     "coaches": {
-      "eyebrow": "Pro trenéry",
       "title": "Tréninkové plány, které klienti opravdu dodržují",
-      "lead": "Naplánujte týden v portálu. V posilovně má klient každý cvik, video i váhu v telefonu.",
-      "features": {
-        "sessions": {
-          "title": "Tréninky sestavíte přetahováním",
-          "desc": "Vyberte cviky z knihovny — každý s videem — a nastavte série, opakování, váhu a pauzu."
-        },
-        "templates": {
-          "title": "Šablony k opakovanému použití",
-          "desc": "Uložte trénink nebo celý plán a dejte ho dalšímu klientovi jedním klikem."
-        },
-        "watch": {
-          "title": "Sledujte to v reálném čase",
-          "desc": "Klient zapisuje každou sérii během tréninku. Vidíte, co zvedl a jak se mu dařilo."
-        },
-        "library": {
-          "title": "Knihovna cviků s videi",
-          "desc": "Ke každému cviku patří krátké video, takže klient uvidí správné provedení ještě před první sérií."
-        },
-        "progress": {
-          "title": "Pokrok v čase",
-          "desc": "Váha, tělesné míry a fotky pokroku v grafech po týdnech u každého klienta."
-        },
-        "intake": {
-          "title": "Vstupní dotazníky",
-          "desc": "Pošlete úvodní dotazník před první schůzkou a odpovědi si přečtěte v profilu klienta."
-        }
+      "lead": "Plánujte v portálu. Klienti zapisují každou sérii přímo v posilovně.",
+      "points": {
+        "sessions": "Tréninky sestavíte přetahováním",
+        "library": "Knihovna cviků s videi",
+        "watch": "Sledujte to živě"
       }
     },
     "nutritionists": {
-      "eyebrow": "Pro nutriční poradce",
       "title": "Jídelníčky, které sedí",
-      "lead": "Recepty, suroviny a cíle na jednom místě. Klient dostane plán i nákupní seznam na celý týden.",
-      "features": {
-        "plans": {
-          "title": "Jídelníčky po týdnech",
-          "desc": "Naplňte týden svými recepty a surovinami. Zveřejněte jen týdny, které jsou hotové."
-        },
-        "macros": {
-          "title": "Makra na první pohled",
-          "desc": "Každé jídlo ukazuje, zda je v cíli, nad ním nebo pod ním — dřív, než ho uvidí klient."
-        },
-        "alongside": {
-          "title": "Spolupráce s trenérem",
-          "desc": "Klient může mít nutričního poradce i trenéra. Každý z vás vlastní svůj plán."
-        },
-        "foods": {
-          "title": "Databáze potravin v aplikaci",
-          "desc": "Vyhledávejte produkty z Open Food Facts nebo přidejte vlastní suroviny s jejich makry."
-        },
-        "templates": {
-          "title": "Šablony jídel",
-          "desc": "Uložte snídani nebo celý den jednou a vložte je do plánu kteréhokoli klienta."
-        },
-        "diary": {
-          "title": "Fotodeník",
-          "desc": "Požádejte klienta o fotky jídel a uvidíte, co ten den skutečně snědl."
-        }
+      "lead": "Recepty, makra a cíle na jednom místě.",
+      "points": {
+        "foods": "Databáze potravin v aplikaci",
+        "macros": "Makra na první pohled",
+        "shopping": "Nákupní seznam pro klienta"
       }
     },
     "app": {
-      "eyebrow": "Mobilní aplikace",
       "title": "Jedna aplikace pro vaše klienty — i pro vás",
-      "lead": "Pro klienty je aplikace místem, kde se děje všechno: dnešní jídla a tréninky, chat s vámi a týdenní check-in. Vy dostanete stejnou aplikaci s pohledem trenéra — uvidíte, kdo vás potřebuje, projdete check-iny a odpovíte odkudkoli.",
+      "lead": "Pro klienty zdarma. Vy dostanete stejnou aplikaci s pohledem trenéra.",
       "appStore": "App Store",
       "googlePlay": "Google Play",
-      "clients": { "badge": "Vaši klienti", "caption": "Jejich hlavní nástroj, každý den" },
-      "you": { "badge": "Vy", "caption": "Vaši klienti v kapse" }
+      "phones": { "client": "Váš klient", "you": "Vy" }
     },
     "questions": {
-      "eyebrow": "Dotazy",
       "title": "Než začnete",
       "items": {
         "pay": { "q": "Platí můj klient za aplikaci?", "a": "Ne. Mobilní aplikace je pro vaše klienty zdarma." },
@@ -6395,104 +6403,76 @@
         }
       }
     },
-    "join": {
-      "title": "Připojte se ke komunitě trenérů a nutričních poradců",
-      "sub": "Založte si účet, pozvěte prvního klienta a sestavte mu první týden ještě dnes odpoledne.",
-      "cta": "Vytvořit účet"
-    },
+    "join": { "title": "Sestavte prvnímu klientovi týden ještě dnes odpoledne.", "cta": "Vytvořit účet" },
     "footer": {
       "copyright": "© {{year}} Form Up",
       "getApp": "Stáhněte si aplikaci Form Up:"
     },
     "mock": {
       "planTitle": "Redukce — 12 týdnů",
-      "planWeek": "· Týden 5",
-      "nutritionView": "· Týden 5 · Pohled výživy",
+      "weekShort": "Týden 5",
       "published": "ZVEŘEJNĚNO",
       "days": { "mon": "Po", "tue": "Út", "wed": "St", "thu": "Čt" },
-      "day": "Den",
       "meals": { "breakfast": "Snídaně", "snack": "Svačina", "lunch": "Oběd", "dinner": "Večeře" },
       "foods": {
         "oatBowl": "Ovesná kaše",
         "yogurtBowl": "Jogurtová miska",
         "eggToast": "Toast s vejcem",
         "appleAlmonds": "Jablko, mandle",
-        "proteinShake": "Proteinový shake",
-        "yogurtHoney": "Jogurt, med",
         "lentilCurry": "Čočkové kari",
         "tunaSalad": "Tuňákový salát",
         "chickenBowl": "Kuřecí bowl",
+        "salmon": "Losos",
         "salmonPotatoes": "Losos, brambory",
         "beefStirFry": "Hovězí na woku",
         "tofuNoodles": "Nudle s tofu"
       },
       "kcal": "kcal",
-      "onTarget": "v cíli",
-      "notifBadge": "FU",
+      "recipes": "Recepty",
+      "publishWeek": "Zveřejnit týden 5",
+      "weekReady": "Týden 5 · 7 dní připraveno",
+      "planName": "Redukce",
+      "planShort": "Redukce · Týden 5",
+      "notifReadyTitle": "Týden 5 je připraven",
+      "notifReadyBody": "Jan zveřejnil váš plán",
+      "dayWednesday": "Středa",
+      "dayThursday": "Čtvrtek",
+      "todaysMeals": "Dnešní jídla",
       "kg": "kg",
       "weightValue": "68,4",
       "weightDelta": "−0,6 kg",
       "weightDeltaShort": "−0,6",
-      "notifApp": "Form Up",
-      "notifNow": "teď",
-      "notifBody": "Jan upravil čtvrteční oběd — Kuřecí bowl, 640 kcal",
       "checkinSent": "Petra poslala check-in",
-      "checkinSummary": "68,4 kg · −0,6 kg za týden · energie 4/5",
-      "date": "Čtvrtek 2. října",
+      "checkinEnergy": "energie 4/5",
+      "petraInitial": "P",
       "greeting": "Dobré ráno, Petro",
-      "todaysMeals": "Dnešní jídla",
-      "mealsProgress": "2 ze 4",
       "workoutName": "Horní polovina těla A",
-      "workoutMeta": "45 min · 6 cviků",
+      "workoutMinutes": "45 min",
       "start": "Začít",
-      "weekReady": "Týden 5 · 7 dní připraveno",
-      "publishWeek": "Zveřejnit týden 5",
-      "dayProgress": "1 100 / 2 100 kcal",
-      "checkinNote": "Energie 4/5 · spánek 7 h · „V pátek jsem měla těžké nohy.“",
-      "sessionKind": "· Šablona tréninku",
-      "exerciseLibrary": "Knihovna cviků",
-      "blockA": "Blok A · Síla",
+      "sessionTemplate": "Šablona tréninku",
+      "liveTitle": "Živě · Petra právě cvičí",
       "exercises": {
         "benchPress": "Bench press",
         "barbellRow": "Přítah s velkou činkou",
-        "facePull": "Face pull",
-        "pullUp": "Shyb",
-        "overheadPress": "Tlak nad hlavu"
+        "overheadPress": "Tlak nad hlavu",
+        "pullUp": "Shyb"
       },
-      "muscles": { "chest": "Hrudník", "back": "Záda", "shoulders": "Ramena" },
-      "bodyweight": "vlastní váha",
       "setsMax": "3 × max",
-      "rest": { "min": "{{value}} min", "s": "{{value}} s" },
-      "liveTitle": "Živě · Petra právě cvičí",
-      "liveSet": "Bench press · série 3 ze 4",
-      "liveReps": "60 kg × 8 opakování",
+      "next": "další",
+      "todayMeta": "Dnes · 45 min",
+      "blockA": "Blok A · Síla",
+      "setN": "Série {{n}}",
+      "setDetail": "8 × 60 kg",
+      "grams": "{{value}} g",
+      "logSet": "Zapsat sérii",
       "shoppingList": "Nákupní seznam · Týden 5",
       "shopping": {
         "chickenBreast": "Kuřecí prsa",
         "basmatiRice": "Rýže basmati",
-        "greekYogurt": "Řecký jogurt",
-        "blueberries": "Borůvky"
+        "greekYogurt": "Řecký jogurt"
       },
-      "sundayWeek": "Týden 5",
-      "todayMeta": "Dnes · 45 min",
-      "blockProgress": "2 ze 4",
-      "setNext": "3 × 10 · další je 1. série",
-      "logSet": "Zapsat sérii",
-      "lunchOnTarget": "Oběd · v cíli",
       "macros": { "protein": "Bílkoviny", "carbs": "Sacharidy", "fat": "Tuky" },
-      "ingredients": {
-        "title": "Suroviny",
-        "chickenBreast": "Kuřecí prsa",
-        "basmatiRice": "Rýže basmati",
-        "broccoli": "Brokolice",
-        "oliveOil": "Olivový olej"
-      },
-      "markEaten": "Označit jako snězené",
-      "weeklyCheckIn": "Týdenní check-in",
-      "weight": "Váha",
-      "progressPhotos": "Fotky pokroku",
-      "energyThisWeek": "Energie tento týden",
-      "sendToCoach": "Odeslat Janovi",
+      "dropHere": "Oběd — přetáhněte sem jídlo",
       "coachClients": "Trenér · 12 klientů",
       "clientsTitle": "Klienti",
       "needsYou": "Potřebují vás · 2",
@@ -6500,14 +6480,9 @@
       "clientNotes": {
         "checkinWaiting": "Čeká check-in",
         "missedMeals": "Vynechal 2 jídla",
-        "workoutDone": "Trénink hotový · 52 min",
+        "workoutDone": "Trénink hotový",
         "allMeals": "Všechna dnešní jídla"
-      },
-      "reviewSubtitle": "Petra N. · týden 5",
-      "reviewTitle": "Check-in",
-      "trendDelta": "−2,1 za 6 týdnů",
-      "reviewQuote": "„V pátek jsem měla těžké nohy.“ · energie 4/5",
-      "replyPlaceholder": "Odpovědět Petře…"
+      }
     }
   },
   "packages": {
@@ -7248,6 +7223,46 @@
       "saving": "Ukládání…",
       "save": "Uložit plán"
     },
+    "editor": {
+      "back": "Zpět na plány",
+      "backToPlans": "Zpět na plány",
+      "titleNew": "Nový plán",
+      "subtitleNew": "Trenéři ho uvidí ve výběru plánů, jakmile ho začnete nabízet.",
+      "create": "Vytvořit plán",
+      "untitled": "Plán bez názvu",
+      "codeHintNew": "Malá písmena bez diakritiky, číslice a pomlčky. Používá ho aplikace a Stripe. Po vytvoření plánu už nejde změnit.",
+      "codePlaceholder": "např. elite",
+      "noPrice": "— {{currency}}",
+      "perMonthSuffix": "/ měsíc",
+      "secondRoleLine": "Druhá role +{{price}} / měsíc",
+      "secondRoleIncludedLine": "Druhá role v ceně",
+      "unlimitedClientsLine": "Neomezený počet aktivních klientů",
+      "clientsLine_one": "Až {{count}} aktivní klient",
+      "clientsLine_few": "Až {{count}} aktivní klienti",
+      "clientsLine_many": "Až {{count}} aktivního klienta",
+      "clientsLine_other": "Až {{count}} aktivních klientů",
+      "summaryHint": "Zadejte cenu a limit klientů a uvidíte shrnutí.",
+      "featuresIncluded": "{{count}} z {{total}} funkcí v ceně",
+      "featuresOn": "{{count}} z {{total}} zapnuto",
+      "offerHintNew": "Nechte vypnuté, dokud plán není hotový. Vypnuto = plán není ve výběru plánů.",
+      "notFoundTitle": "Plán nenalezen",
+      "notFoundBody": "Žádný plán s tímto kódem neexistuje. Možná byl odstraněn.",
+      "features": {
+        "chat": { "label": "Chat", "hint": "Zprávy a konverzace s klienty" },
+        "nutritionPlans": { "label": "Výživové plány", "hint": "Editor plánu klienta a záložka Výživa" },
+        "planTemplates": { "label": "Šablony plánů", "hint": "Znovupoužitelné plány k přiřazení klientům" },
+        "recipes": { "label": "Recepty", "hint": "Knihovna receptů" },
+        "ingredients": { "label": "Suroviny", "hint": "Vlastní suroviny a potraviny" },
+        "progressPhotos": { "label": "Fotky pokroku", "hint": "Záložka Fotky a žádosti o fotky" },
+        "measurements": { "label": "Váha a míry", "hint": "Váha a statistiky v přehledu klienta" },
+        "forms": { "label": "Formuláře", "hint": "Dotazníky a vstupní formuláře" },
+        "checkIns": { "label": "Týdenní check-iny", "hint": "Check-in formulář a vyhodnocení" },
+        "perClientCheckIns": { "label": "Check-iny pro jednotlivé klienty", "hint": "Vyžaduje týdenní check-iny" },
+        "automations": { "label": "Automatizace", "hint": "Stránka s pravidly a záložka Automatizace u klienta" },
+        "packages": { "label": "Balíčky", "hint": "Balíčky nabízené s pozvánkou" },
+        "payments": { "label": "Platby klientů", "hint": "Záložka Platby a QR platební žádosti" }
+      }
+    },
     "preview": {
       "price": "{{price}} / měsíc",
       "secondRole": "druhá role +{{price}}",
@@ -7266,8 +7281,7 @@
       "body_few": "Uložením vznikne ve Stripe nová cena. Noví trenéři budou platit {{to}}. {{count}} trenéři, kteří už jsou na plánu {{name}}, zůstanou na {{from}}.",
       "body_many": "Uložením vznikne ve Stripe nová cena. Noví trenéři budou platit {{to}}. {{count}} trenéra, kteří už jsou na plánu {{name}}, zůstanou na {{from}}.",
       "body_other": "Uložením vznikne ve Stripe nová cena. Noví trenéři budou platit {{to}}. {{count}} trenérů, kteří už jsou na plánu {{name}}, zůstane na {{from}}.",
-      "move": "Přesunout je na {{price}} při další obnově",
-      "moveHint": "Každému trenérovi před změnou pošleme e-mail."
+      "move": "Přesunout je na {{price}} při další obnově"
     },
     "validation": {
       "nameRequired": "Zadejte název.",
@@ -7276,7 +7290,8 @@
       "codeTaken": "Plán s tímto kódem už existuje.",
       "priceInvalid": "Zadejte cenu od 0 do 1 000 000.",
       "addOnInvalid": "Zadejte cenu druhé role vyšší než 0, nebo zvolte „V ceně“.",
-      "clientsInvalid": "Zadejte počet klientů od 1, nebo zvolte Neomezeně."
+      "clientsInvalid": "Zadejte počet klientů od 1, nebo zvolte Neomezeně.",
+      "perClientNeedsWeekly": "Check-iny pro jednotlivé klienty vyžadují týdenní check-iny."
     }
   },
   "adminPromotions": {

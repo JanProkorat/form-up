@@ -1,0 +1,301 @@
+/*
+ * Landing-page story animations, ported from the PageHome boards and played 1.5x faster
+ * (keyframe stops unchanged, durations divided by 1.5).
+ *
+ * Reduced motion: every rule that starts an animation lives inside the
+ * `prefers-reduced-motion: no-preference` block, so with reduced motion nothing runs and each
+ * element keeps its plain style. That plain style is the END state of its animation (ticks shown,
+ * bars full, badge visible); the keyframes carry the START state. Elements that are gone again at
+ * the end of a loop (drop hole, cursor, push notification, "+640", the old kcal total) are hidden
+ * in their plain style.
+ *
+ * Off-screen loops: Loop (MockupParts) sets data-in-view on its wrapper and everything inside
+ * pauses while it is "false".
+ */
+
+/* Hero mockup, 10 s loop. */
+@keyframes h-drag {
+  0%, 6% { transform: translateX(-410px); opacity: 0; }
+  8% { transform: translateX(-410px) rotate(-3deg); opacity: 1; }
+  20% { transform: translateX(0) rotate(-3deg); }
+  23% { transform: none; }
+  95% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes h-hole {
+  0%, 21% { opacity: 1; }
+  23%, 100% { opacity: 0; }
+}
+@keyframes h-cursor {
+  0%, 5% { opacity: 0; transform: translate(-360px, 24px); }
+  8% { opacity: 1; transform: translate(-360px, 24px); }
+  20% { transform: translate(50px, 24px); }
+  24% { transform: translate(50px, 24px); }
+  28% { transform: translate(150px, -128px); }
+  29% { transform: translate(150px, -128px) scale(.82); }
+  31% { opacity: 1; transform: translate(150px, -128px); }
+  36%, 100% { opacity: 0; transform: translate(150px, -128px); }
+}
+@keyframes h-press {
+  0%, 28% { transform: none; }
+  29.5% { transform: scale(.92); }
+  32%, 100% { transform: none; }
+}
+@keyframes h-badge {
+  0%, 30% { opacity: 0; transform: translateY(4px); }
+  33%, 95% { opacity: 1; transform: none; }
+  100% { opacity: 0; }
+}
+@keyframes h-notif {
+  0%, 40% { opacity: 0; transform: translateY(-130%); }
+  44%, 70% { opacity: 1; transform: none; }
+  74%, 100% { opacity: 0; transform: translateY(-130%); }
+}
+@keyframes h-new {
+  0%, 42% { opacity: .25; }
+  46%, 95% { opacity: 1; }
+  100% { opacity: .25; }
+}
+@keyframes h-t1 {
+  0%, 51% { opacity: 0; transform: scale(.3); }
+  54%, 95% { opacity: 1; transform: none; }
+  100% { opacity: 0; }
+}
+@keyframes h-t2 {
+  0%, 57% { opacity: 0; transform: scale(.3); }
+  60%, 95% { opacity: 1; transform: none; }
+  100% { opacity: 0; }
+}
+@keyframes h-t3 {
+  0%, 63% { opacity: 0; transform: scale(.3); }
+  66%, 95% { opacity: 1; transform: none; }
+  100% { opacity: 0; }
+}
+@keyframes h-checkin {
+  0%, 74% { opacity: 0; transform: translateY(18px) scale(.96); }
+  79%, 95% { opacity: 1; transform: none; }
+  100% { opacity: 0; }
+}
+@keyframes h-s1 {
+  0% { transform: scaleX(0); }
+  25%, 96% { transform: scaleX(1); }
+  100% { transform: scaleX(0); }
+}
+@keyframes h-s2 {
+  0%, 25% { transform: scaleX(0); }
+  50%, 96% { transform: scaleX(1); }
+  100% { transform: scaleX(0); }
+}
+@keyframes h-s3 {
+  0%, 50% { transform: scaleX(0); }
+  75%, 96% { transform: scaleX(1); }
+  100% { transform: scaleX(0); }
+}
+@keyframes h-s4 {
+  0%, 75% { transform: scaleX(0); }
+  96% { transform: scaleX(1); }
+  100% { transform: scaleX(0); }
+}
+
+/* How it works: step entrances, replayed by remounting the stage panel. */
+@keyframes m-fill {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+@keyframes m-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes m-pop {
+  from { opacity: 0; transform: scale(.3); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes m-slide {
+  from { opacity: 0; transform: translateY(-120%); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes m-press {
+  0% { transform: none; }
+  50% { transform: scale(.92); }
+  100% { transform: none; }
+}
+@keyframes m-bar {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+@keyframes m-draw {
+  from { stroke-dashoffset: 400; }
+  to { stroke-dashoffset: 0; }
+}
+
+/* Coaches, 8 s loop. */
+@keyframes c-pulse {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--gf-marker) 50%, transparent); }
+  100% { box-shadow: 0 0 0 10px color-mix(in srgb, var(--gf-marker) 0%, transparent); }
+}
+@keyframes c-1 {
+  0%, 8% { transform: scaleX(0); }
+  14%, 94% { transform: scaleX(1); }
+  100% { transform: scaleX(0); }
+}
+@keyframes c-2 {
+  0%, 28% { transform: scaleX(0); }
+  34%, 94% { transform: scaleX(1); }
+  100% { transform: scaleX(0); }
+}
+@keyframes c-3 {
+  0%, 48% { transform: scaleX(0); }
+  54%, 94% { transform: scaleX(1); }
+  100% { transform: scaleX(0); }
+}
+@keyframes c-4 {
+  0%, 68% { transform: scaleX(0); }
+  74%, 94% { transform: scaleX(1); }
+  100% { transform: scaleX(0); }
+}
+@keyframes f-1 {
+  0%, 8% { opacity: 0; transform: scale(.3); }
+  12%, 94% { opacity: 1; transform: none; }
+  100% { opacity: 0; }
+}
+@keyframes f-2 {
+  0%, 28% { opacity: 0; transform: scale(.3); }
+  32%, 94% { opacity: 1; transform: none; }
+  100% { opacity: 0; }
+}
+@keyframes f-3 {
+  0%, 48% { opacity: 0; transform: scale(.3); }
+  52%, 94% { opacity: 1; transform: none; }
+  100% { opacity: 0; }
+}
+@keyframes f-4 {
+  0%, 68% { opacity: 0; transform: scale(.3); }
+  72%, 94% { opacity: 1; transform: none; }
+  100% { opacity: 0; }
+}
+
+/* Nutritionists, 8 s loop. */
+@keyframes n-drop {
+  0%, 8% { opacity: 0; transform: translateY(-70px) rotate(-3deg); }
+  20% { opacity: 1; transform: translateY(0) rotate(-3deg); }
+  24% { transform: none; }
+  92% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes n-hole {
+  0%, 19% { opacity: 1; }
+  22%, 100% { opacity: 0; }
+}
+@keyframes n-bar {
+  0%, 20% { transform: scaleX(.62); }
+  28%, 92% { transform: scaleX(1); }
+  100% { transform: scaleX(.62); }
+}
+@keyframes n-plus {
+  0%, 20% { opacity: 0; transform: translateY(6px); }
+  24% { opacity: 1; transform: none; }
+  40%, 100% { opacity: 0; transform: translateY(-26px); }
+}
+@keyframes n-old {
+  0%, 20% { opacity: 1; }
+  23%, 94% { opacity: 0; }
+  100% { opacity: 1; }
+}
+@keyframes n-new {
+  0%, 20% { opacity: 0; }
+  23%, 94% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes s-1 {
+  0%, 40% { opacity: 0; transform: scale(.3); }
+  44%, 94% { opacity: 1; transform: none; }
+  100% { opacity: 0; }
+}
+@keyframes s-2 {
+  0%, 54% { opacity: 0; transform: scale(.3); }
+  58%, 94% { opacity: 1; transform: none; }
+  100% { opacity: 0; }
+}
+@keyframes s-3 {
+  0%, 68% { opacity: 0; transform: scale(.3); }
+  72%, 94% { opacity: 1; transform: none; }
+  100% { opacity: 0; }
+}
+
+/* Mobile app: the two phones float. */
+@keyframes fl {
+  from { transform: translateY(-10px); }
+  to { transform: translateY(10px); }
+}
+
+/* Plain styles: the end state of each animation. */
+.hm-hole,
+.hm-nhole,
+.hm-cursor,
+.hm-notif,
+.hm-plus,
+.hm-old {
+  opacity: 0;
+}
+.hm-bar,
+.hm-nbar,
+.hm-fill {
+  transform-origin: left;
+}
+.hm-draw {
+  stroke-dasharray: 400;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hm-chip { animation: h-drag 6.67s ease-in-out infinite; }
+  .hm-hole { animation: h-hole 6.67s linear infinite; }
+  .hm-cursor { animation: h-cursor 6.67s ease-in-out infinite; }
+  .hm-press { animation: h-press 6.67s ease-out infinite; }
+  .hm-badge { animation: h-badge 6.67s ease-out infinite; }
+  .hm-notif { animation: h-notif 6.67s cubic-bezier(.2, .8, .2, 1) infinite; }
+  .hm-t1 { animation: h-t1 6.67s ease-out infinite; }
+  .hm-t2 { animation: h-t2 6.67s ease-out infinite; }
+  .hm-t3 { animation: h-t3 6.67s ease-out infinite; }
+  .hm-new { animation: h-new 6.67s ease-out infinite; }
+  .hm-checkin { animation: h-checkin 6.67s cubic-bezier(.2, .8, .2, 1) infinite; }
+  .hm-s1 { animation: h-s1 6.67s linear infinite; }
+  .hm-s2 { animation: h-s2 6.67s linear infinite; }
+  .hm-s3 { animation: h-s3 6.67s linear infinite; }
+  .hm-s4 { animation: h-s4 6.67s linear infinite; }
+
+  .hm-fill { animation: m-fill 2.4s linear forwards; }
+  .hm-in { animation: m-in .33s cubic-bezier(.2, .8, .2, 1) both; }
+  .hm-pop { animation: m-pop .3s cubic-bezier(.2, .8, .2, 1.3) both; }
+  .hm-slide { animation: m-slide .37s cubic-bezier(.2, .8, .2, 1) both; }
+  .hm-m-press { animation: m-press .2s ease-out both; }
+  .hm-bar { animation: m-bar .93s cubic-bezier(.2, .8, .2, 1) both; }
+  .hm-draw { animation: m-draw 1.07s ease-out both; }
+
+  .hm-live { animation: c-pulse 1.07s ease-out infinite; }
+  .hm-c1 { animation: c-1 5.33s ease-out infinite; }
+  .hm-c2 { animation: c-2 5.33s ease-out infinite; }
+  .hm-c3 { animation: c-3 5.33s ease-out infinite; }
+  .hm-c4 { animation: c-4 5.33s ease-out infinite; }
+  .hm-f1 { animation: f-1 5.33s ease-out infinite; }
+  .hm-f2 { animation: f-2 5.33s ease-out infinite; }
+  .hm-f3 { animation: f-3 5.33s ease-out infinite; }
+  .hm-f4 { animation: f-4 5.33s ease-out infinite; }
+
+  .hm-drop { animation: n-drop 5.33s cubic-bezier(.2, .8, .2, 1) infinite; }
+  .hm-nhole { animation: n-hole 5.33s linear infinite; }
+  .hm-nbar { animation: n-bar 5.33s cubic-bezier(.2, .8, .2, 1) infinite; }
+  .hm-plus { animation: n-plus 5.33s ease-out infinite; }
+  .hm-old { animation: n-old 5.33s linear infinite; }
+  .hm-new-total { animation: n-new 5.33s linear infinite; }
+  .hm-s-1 { animation: s-1 5.33s ease-out infinite; }
+  .hm-s-2 { animation: s-2 5.33s ease-out infinite; }
+  .hm-s-3 { animation: s-3 5.33s ease-out infinite; }
+
+  .hm-float-1 { animation: fl 4s ease-in-out infinite alternate; }
+  .hm-float-2 { animation: fl 4s ease-in-out -2s infinite alternate; }
+
+  /* Pause every loop (and entrance) inside a Loop that is off screen. */
+  .hm-loop[data-in-view='false'] * {
+    animation-play-state: paused;
+  }
+}

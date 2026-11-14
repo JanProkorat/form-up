@@ -50,6 +50,8 @@ public class StartConversationEndpoint(
                              "one if it doesn't exist and the caller currently has a live link with " +
                              "the participant. Pass the participant's profile PublicId.";
             s.Responses[StatusCodes.Status200OK] = "The existing or newly created conversation.";
+            s.Responses[StatusCodes.Status403Forbidden] = "A coach whose subscription does not include " +
+                                                            "messaging starts a new conversation (SUBSCRIPTION_REQUIRED).";
             s.Responses[StatusCodes.Status404NotFound] = "The participant id does not resolve to a " +
                                                            "profile, or no conversation exists yet and " +
                                                            "the caller has no live link to the participant " +
@@ -152,6 +154,15 @@ public class StartConversationEndpoint(
                     404, ErrorCodes.NotLinkedToClient, "The caller has no active link with this participant.", ct);
                 return;
             }
+        }
+
+        // Only a coach starting a new thread needs the messaging feature; a client always may.
+        if (isProfessional
+            && await this.RespondIfFeatureNotEntitledAsync(
+                db, userGuid, entitlements => entitlements.CanMessage,
+                "The current subscription does not include messaging.", ct))
+        {
+            return;
         }
 
         var conversation = new Conversation

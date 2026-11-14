@@ -53,6 +53,13 @@ public class UpdateTemplateEndpoint(
 
         var ownerId = Guid.Parse(userId);
 
+        if (await this.RespondIfCoachFeatureNotEntitledAsync(
+                ownerId, entitlements => entitlements.CanUsePlanTemplates,
+                "The current subscription does not include nutrition plan templates.", ct))
+        {
+            return;
+        }
+
         var updated = await this.LoadAndReplaceLibraryEntryWithVersionGuardAsync(
             mongo.NutritionPlanTemplates,
             req.TemplateId,

@@ -41,10 +41,10 @@ public class UploadRecipeImageUrlEndpointTests
                 Arg.Any<CancellationToken>())
             .Returns(call => new BlobUploadUrl("https://storage/upload?token=abc", $"recipes/{call.ArgAt<string>(1)}"));
 
-        var ep = Factory.Create<UploadRecipeImageUrlEndpoint>(
+        var ep = Factory.Create<UploadRecipeImageUrlEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist)))),
             mongo, _imageUpload);
 
         await ep.HandleAsync(new UploadRecipeImageUrlRequest
@@ -78,10 +78,10 @@ public class UploadRecipeImageUrlEndpointTests
                 Arg.Any<CancellationToken>())
             .Returns(call => new BlobUploadUrl("https://storage/upload?token=xyz", $"recipes/{call.ArgAt<string>(1)}"));
 
-        var ep = Factory.Create<UploadRecipeImageUrlEndpoint>(
+        var ep = Factory.Create<UploadRecipeImageUrlEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist)))),
             mongo, _imageUpload);
 
         await ep.HandleAsync(new UploadRecipeImageUrlRequest
@@ -115,10 +115,10 @@ public class UploadRecipeImageUrlEndpointTests
                 Arg.Any<CancellationToken>())
             .Returns(call => new BlobUploadUrl("https://storage/upload", $"recipes/{call.ArgAt<string>(1)}"));
 
-        var ep = Factory.Create<UploadRecipeImageUrlEndpoint>(
+        var ep = Factory.Create<UploadRecipeImageUrlEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist)))),
             mongo, _imageUpload);
 
         await ep.HandleAsync(new UploadRecipeImageUrlRequest
@@ -150,10 +150,10 @@ public class UploadRecipeImageUrlEndpointTests
 
         var mongo = RecipeTestHelpers.CreateMockMongo(recipes: [recipe]);
 
-        var ep = Factory.Create<UploadRecipeImageUrlEndpoint>(
+        var ep = Factory.Create<UploadRecipeImageUrlEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist)))),
             mongo, _imageUpload);
 
         var act = () => ep.HandleAsync(new UploadRecipeImageUrlRequest
@@ -182,10 +182,10 @@ public class UploadRecipeImageUrlEndpointTests
         var recipe = RecipeTestHelpers.CreateRecipe(externalId: recipeId, nutritionistId: Guid.NewGuid());
         var mongo = RecipeTestHelpers.CreateMockMongo(recipes: [recipe]);
 
-        var ep = Factory.Create<UploadRecipeImageUrlEndpoint>(
+        var ep = Factory.Create<UploadRecipeImageUrlEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist)))),
             mongo, _imageUpload);
 
         var act = () => ep.HandleAsync(new UploadRecipeImageUrlRequest
@@ -208,10 +208,10 @@ public class UploadRecipeImageUrlEndpointTests
     {
         var mongo = RecipeTestHelpers.CreateMockMongo(); // no recipes
 
-        var ep = Factory.Create<UploadRecipeImageUrlEndpoint>(
+        var ep = Factory.Create<UploadRecipeImageUrlEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist)))),
             mongo, _imageUpload);
 
         await ep.HandleAsync(new UploadRecipeImageUrlRequest
@@ -253,10 +253,10 @@ public class UploadRecipeImageUrlEndpointTests
                 Arg.Any<CancellationToken>())
             .Returns(call => new BlobUploadUrl("https://storage/upload", $"recipes/{call.ArgAt<string>(1)}"));
 
-        var ep = Factory.Create<UploadRecipeImageUrlEndpoint>(
+        var ep = Factory.Create<UploadRecipeImageUrlEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist)))),
             mongo, _imageUpload);
 
         await ep.HandleAsync(new UploadRecipeImageUrlRequest
@@ -293,10 +293,10 @@ public class UploadRecipeImageUrlEndpointTests
                     { ErrorCode = ErrorCodes.InvalidImageContentType }],
                 "Invalid content type."));
 
-        var ep = Factory.Create<UploadRecipeImageUrlEndpoint>(
+        var ep = Factory.Create<UploadRecipeImageUrlEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist)))),
             mongo, _imageUpload);
 
         var act = () => ep.HandleAsync(new UploadRecipeImageUrlRequest
@@ -334,10 +334,10 @@ public class ConfirmRecipeImageEndpointTests
         _imageUpload.IsValidBlobUrlForSubPath(ImageUploadScope.Recipe, $"{recipeId}/main-{keyId:N}", blobUrl)
             .Returns(true);
 
-        var ep = Factory.Create<ConfirmRecipeImageEndpoint>(
+        var ep = Factory.Create<ConfirmRecipeImageEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist)))),
             mongo, _imageUpload);
 
         await ep.HandleAsync(new ConfirmRecipeImageRequest
@@ -369,10 +369,10 @@ public class ConfirmRecipeImageEndpointTests
         _imageUpload.IsValidBlobUrlForSubPath(ImageUploadScope.Recipe, $"{recipeId}/gallery-{keyId:N}", blobUrl)
             .Returns(true);
 
-        var ep = Factory.Create<ConfirmRecipeImageEndpoint>(
+        var ep = Factory.Create<ConfirmRecipeImageEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist)))),
             mongo, _imageUpload);
 
         await ep.HandleAsync(new ConfirmRecipeImageRequest
@@ -402,10 +402,10 @@ public class ConfirmRecipeImageEndpointTests
 
         var mongo = RecipeTestHelpers.CreateMockMongo(recipes: [recipe]);
 
-        var ep = Factory.Create<ConfirmRecipeImageEndpoint>(
+        var ep = Factory.Create<ConfirmRecipeImageEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist)))),
             mongo, _imageUpload);
 
         var act = () => ep.HandleAsync(new ConfirmRecipeImageRequest
@@ -435,10 +435,10 @@ public class ConfirmRecipeImageEndpointTests
         var recipe = RecipeTestHelpers.CreateRecipe(externalId: recipeId, nutritionistId: Guid.NewGuid());
         var mongo = RecipeTestHelpers.CreateMockMongo(recipes: [recipe]);
 
-        var ep = Factory.Create<ConfirmRecipeImageEndpoint>(
+        var ep = Factory.Create<ConfirmRecipeImageEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(Guid.NewGuid(), AppRoles.Nutritionist))),
+                    EndpointTestHelpers.FakeUserClaims(Guid.NewGuid(), AppRoles.Nutritionist)))),
             mongo, _imageUpload);
 
         var act = () => ep.HandleAsync(new ConfirmRecipeImageRequest
@@ -466,10 +466,10 @@ public class ConfirmRecipeImageEndpointTests
     {
         var mongo = RecipeTestHelpers.CreateMockMongo(); // no recipes
 
-        var ep = Factory.Create<ConfirmRecipeImageEndpoint>(
+        var ep = Factory.Create<ConfirmRecipeImageEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist)))),
             mongo, _imageUpload);
 
         await ep.HandleAsync(new ConfirmRecipeImageRequest
@@ -504,10 +504,10 @@ public class ConfirmRecipeImageEndpointTests
         var mongo = RecipeTestHelpers.CreateMockMongo(recipes: [recipe]);
         _imageUpload.IsValidBlobUrlForSubPath(Arg.Any<ImageUploadScope>(), Arg.Any<string>(), Arg.Any<string>()).Returns(true);
 
-        var ep = Factory.Create<ConfirmRecipeImageEndpoint>(
+        var ep = Factory.Create<ConfirmRecipeImageEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist)))),
             mongo, _imageUpload);
 
         var act = () => ep.HandleAsync(new ConfirmRecipeImageRequest
@@ -550,10 +550,10 @@ public class ConfirmRecipeImageEndpointTests
         var mongo = RecipeTestHelpers.CreateMockMongo(recipes: [recipe]);
         _imageUpload.IsValidBlobUrlForSubPath(Arg.Any<ImageUploadScope>(), Arg.Any<string>(), Arg.Any<string>()).Returns(true);
 
-        var ep = Factory.Create<ConfirmRecipeImageEndpoint>(
+        var ep = Factory.Create<ConfirmRecipeImageEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist)))),
             mongo, _imageUpload);
 
         var act = () => ep.HandleAsync(new ConfirmRecipeImageRequest
@@ -583,10 +583,10 @@ public class ConfirmRecipeImageEndpointTests
         var mongo = RecipeTestHelpers.CreateMockMongo(recipes: [recipe], modifiedCount: 0);
         _imageUpload.IsValidBlobUrlForSubPath(Arg.Any<ImageUploadScope>(), Arg.Any<string>(), Arg.Any<string>()).Returns(true);
 
-        var ep = Factory.Create<ConfirmRecipeImageEndpoint>(
+        var ep = Factory.Create<ConfirmRecipeImageEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist)))),
             mongo, _imageUpload);
 
         var act = () => ep.HandleAsync(new ConfirmRecipeImageRequest

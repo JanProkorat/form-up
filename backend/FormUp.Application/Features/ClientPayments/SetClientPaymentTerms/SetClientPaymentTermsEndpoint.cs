@@ -43,7 +43,7 @@ internal sealed class SetClientPaymentTermsEndpoint(
             s.Responses[StatusCodes.Status200OK] = "The terms in force";
             s.Responses[StatusCodes.Status400BadRequest] = "Invalid body: both a discount and a custom price, an amount out of range (PAYMENT_AMOUNT_INVALID), a first period in the past (PAYMENT_START_DATE_INVALID) or a fixed discount in another currency than the package (CURRENCY_MISMATCH)";
             s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
-            s.Responses[StatusCodes.Status403Forbidden] = "The subscription does not include payments (PAYMENTS_NOT_ENTITLED), or the coach role was removed";
+            s.Responses[StatusCodes.Status403Forbidden] = "The subscription does not include payments or packages (PAYMENTS_NOT_ENTITLED), or the coach role was removed";
             s.Responses[StatusCodes.Status404NotFound] = "No live link to the client, or the package or discount is unknown or belongs to another coach";
             s.Responses[StatusCodes.Status409Conflict] = "The package is archived (PACKAGE_ARCHIVED), the discount is archived (DISCOUNT_ARCHIVED) or does not apply to the package (DISCOUNT_PACKAGE_INVALID), or the coach has no client number left (PAYMENT_CLIENT_NUMBER_EXHAUSTED)";
         });
@@ -63,6 +63,16 @@ internal sealed class SetClientPaymentTermsEndpoint(
 
         if (context is null)
         {
+            return;
+        }
+
+        if (!(await entitlementService.GetEntitlementsAsync(context.ProfessionalProfileId, ct)).CanUsePackages)
+        {
+            await this.SendProblemAsync(
+                StatusCodes.Status403Forbidden,
+                ErrorCodes.PaymentsNotEntitled,
+                "The current subscription does not include packages.",
+                ct);
             return;
         }
 

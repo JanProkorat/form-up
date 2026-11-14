@@ -42,6 +42,11 @@ internal sealed class CreateSubscriptionPlanValidator : Validator<CreateSubscrip
             .WithErrorCode(ErrorCodes.SecondRoleOptionInvalid)
             .WithMessage("Set exactly one of bothRolesIncluded and secondRoleAddOnPriceMinorUnits.");
 
+        RuleFor(x => x)
+            .Must(x => !x.CanUsePerClientCheckInConfig || x.CanUseWeeklyCheckIns)
+            .WithErrorCode(ErrorCodes.PerClientCheckInRequiresWeeklyCheckIns)
+            .WithMessage("Per-client check-in settings require weekly check-ins.");
+
         RuleFor(x => x.BillingInterval)
             .IsInEnum().WithErrorCode(ErrorCodes.OutOfRange);
 

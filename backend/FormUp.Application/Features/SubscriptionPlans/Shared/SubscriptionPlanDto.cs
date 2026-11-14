@@ -39,8 +39,29 @@ public class SubscriptionPlanDto
     /// <summary>Whether the plan allows per-client check-in configuration.</summary>
     public bool CanUsePerClientCheckInConfig { get; set; }
 
-    /// <summary>Whether the plan allows the payments feature.</summary>
+    /// <summary>Whether the plan allows client payments.</summary>
     public bool CanUsePayments { get; set; }
+
+    /// <summary>Whether the plan allows: nutrition plan templates.</summary>
+    public bool CanUsePlanTemplates { get; set; }
+
+    /// <summary>Whether the plan allows: the coach's own recipes.</summary>
+    public bool CanUseRecipes { get; set; }
+
+    /// <summary>Whether the plan allows: the coach's own ingredients.</summary>
+    public bool CanUseIngredients { get; set; }
+
+    /// <summary>Whether the plan allows: the coach side of progress photos.</summary>
+    public bool CanUseProgressPhotos { get; set; }
+
+    /// <summary>Whether the plan allows: the coach side of weight and measurements.</summary>
+    public bool CanUseWeightAndMeasurements { get; set; }
+
+    /// <summary>Whether the plan allows: automations.</summary>
+    public bool CanUseAutomations { get; set; }
+
+    /// <summary>Whether the plan allows: coach packages and discounts.</summary>
+    public bool CanUsePackages { get; set; }
 
     /// <summary>Maximum number of active clients allowed under this plan. Null means unlimited.</summary>
     public int? MaxActiveClients { get; set; }
@@ -88,6 +109,13 @@ public class SubscriptionPlanDto
         CanUseWeeklyCheckIns = plan.CanUseWeeklyCheckIns,
         CanUsePerClientCheckInConfig = plan.CanUsePerClientCheckInConfig,
         CanUsePayments = plan.CanUsePayments,
+        CanUsePlanTemplates = plan.CanUsePlanTemplates,
+        CanUseRecipes = plan.CanUseRecipes,
+        CanUseIngredients = plan.CanUseIngredients,
+        CanUseProgressPhotos = plan.CanUseProgressPhotos,
+        CanUseWeightAndMeasurements = plan.CanUseWeightAndMeasurements,
+        CanUseAutomations = plan.CanUseAutomations,
+        CanUsePackages = plan.CanUsePackages,
         MaxActiveClients = plan.MaxActiveClients,
         PriceMinorUnits = plan.PriceMinorUnits,
         SecondRoleAddOnPriceMinorUnits = plan.SecondRoleAddOnPriceMinorUnits,

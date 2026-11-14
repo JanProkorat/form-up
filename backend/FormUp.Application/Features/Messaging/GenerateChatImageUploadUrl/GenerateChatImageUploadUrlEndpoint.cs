@@ -3,6 +3,7 @@ using FastEndpoints;
 using FluentValidation;
 using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Enums;
+using FormUp.Application.Domain.Extensions;
 using FormUp.Application.Domain.Interfaces;
 using FormUp.Application.Domain.Services;
 using FormUp.Application.Features.Messaging.Shared;
@@ -37,7 +38,7 @@ public class GenerateChatImageUploadUrlEndpoint(
                 + "image attachment, together with the uploadId to reference from POST "
                 + "/conversations/{ConversationId}/messages.";
             s.Responses[StatusCodes.Status200OK] = "Upload URL and uploadId";
-            s.Responses[StatusCodes.Status403Forbidden] = "CONVERSATION_LOCKED: professional caller in an invite-only thread";
+            s.Responses[StatusCodes.Status403Forbidden] = "CONVERSATION_LOCKED: professional caller in an invite-only thread; SUBSCRIPTION_REQUIRED: coach whose subscription does not include messaging";
             s.Responses[StatusCodes.Status404NotFound] = "Conversation not found, or caller is not a participant";
         });
     }
@@ -69,6 +70,13 @@ public class GenerateChatImageUploadUrlEndpoint(
 
         if (conversation.ProfessionalUserId == callerUserId)
         {
+            if (await this.RespondIfFeatureNotEntitledAsync(
+                    db, callerUserId, entitlements => entitlements.CanMessage,
+                    "The current subscription does not include messaging.", ct))
+            {
+                return;
+            }
+
             var access = await this.RequireProfessionalAccessOrRespondAsync(
                 db, callerUserId, conversation.ClientUserId, ct);
 

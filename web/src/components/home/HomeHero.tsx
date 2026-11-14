@@ -1,17 +1,18 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import HeroMockup from '@/components/home/HeroMockup';
-import { IconPeople, IconPlay } from '@/components/home/HomeIcons';
+import { IconPlay } from '@/components/home/HomeIcons';
+import { Loop } from '@/components/home/MockupParts';
 import { scrollToAnchor } from '@/components/home/smoothAnchor';
 
 const STEPS = [
-  { key: 'build', progress: 'w-full', bar: 'bg-ink' },
-  { key: 'publish', progress: 'w-[55%]', bar: 'bg-marker' },
-  { key: 'follow', progress: 'w-0', bar: 'bg-ink' },
-  { key: 'see', progress: 'w-0', bar: 'bg-ink' },
+  { key: 'build', fill: 'hm-s1' },
+  { key: 'publish', fill: 'hm-s2' },
+  { key: 'follow', fill: 'hm-s3' },
+  { key: 'see', fill: 'hm-s4' },
 ] as const;
 
-/** Home hero: headline, calls to action, product collage and the four-step strip. */
+/** Home hero: headline, calls to action, the 10 s product loop and the four-step strip that fills with it. */
 export default function HomeHero() {
   const { t } = useTranslation();
 
@@ -19,9 +20,6 @@ export default function HomeHero() {
     <section className="relative flex min-w-0 flex-col justify-center px-4 pt-6 pb-12 sm:px-10 lg:min-h-[calc(100svh-var(--spacing)*19)] lg:px-16">
       <div className="@container home-tier mx-auto flex w-full max-w-home flex-col gap-8 lg:flex-row lg:gap-12">
         <div className="flex max-w-117.5 @min-[1340px]:max-w-122.5 @min-[1472px]:max-w-129 @min-[1592px]:max-w-141 @min-[1760px]:max-w-153 @min-[1940px]:max-w-170.5 shrink-0 flex-col gap-5.5 pt-4 lg:pt-8.5">
-          <span className="text-home-meta font-semibold tracking-eyebrow text-muted-foreground uppercase">
-            {t('home.hero.eyebrow')}
-          </span>
           <h1 className="font-display text-home-hero font-semibold tracking-hero text-ink">
             {t('home.hero.headline')} <span className="text-marker">{t('home.hero.headlineAccent')}</span>
           </h1>
@@ -42,34 +40,27 @@ export default function HomeHero() {
               {t('home.hero.seeInAction')}
             </a>
           </div>
-          <span className="flex items-center gap-2 text-home-body text-muted-foreground">
-            <IconPeople size={15} />
-            {t('home.hero.note')}
-          </span>
         </div>
 
-        <div className="flex min-w-0 flex-col gap-5.5">
+        <Loop className="flex min-w-0 flex-col gap-5.5">
           <div className="hidden @min-[820px]:block">
             <HeroMockup />
           </div>
-          <ol className="grid max-w-191.5 @min-[1340px]:max-w-199 @min-[1472px]:max-w-210.5 @min-[1592px]:max-w-230 @min-[1760px]:max-w-249 @min-[1940px]:max-w-278 grid-cols-2 gap-x-4.5 gap-y-5 max-lg:@min-[820px]:grid-cols-4 lg:@min-[1060px]:grid-cols-4">
+          <ol
+            className="grid max-w-191.5 @min-[1340px]:max-w-199 @min-[1472px]:max-w-210.5 @min-[1592px]:max-w-230 @min-[1760px]:max-w-249 @min-[1940px]:max-w-278 grid-cols-2 gap-x-4.5 gap-y-5 max-lg:@min-[820px]:grid-cols-4 lg:@min-[1060px]:grid-cols-4"
+          >
             {STEPS.map((step, index) => (
-              <li key={step.key} className="flex flex-col gap-1.5">
-                <div className="h-0.75 rounded-xs bg-border">
-                  <div className={`h-0.75 rounded-xs ${step.progress} ${step.bar}`} />
+              <li key={step.key} className="flex flex-col gap-2">
+                <div aria-hidden="true" className="h-0.75 overflow-hidden rounded-xs bg-border">
+                  <i className={`${step.fill} block h-full origin-left bg-marker`} />
                 </div>
-                <span
-                  className={`text-home-body font-bold ${index < 2 ? 'text-ink' : 'text-muted-foreground'}`}
-                >
+                <span className="text-home-body font-bold text-ink">
                   {index + 1} · {t(`home.steps.${step.key}.title`)}
-                </span>
-                <span className="text-home-meta text-muted-foreground">
-                  {t(`home.hero.steps.${step.key}`)}
                 </span>
               </li>
             ))}
           </ol>
-        </div>
+        </Loop>
       </div>
     </section>
   );

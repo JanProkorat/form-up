@@ -10716,7 +10716,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("The subscription does not include plans (SUBSCRIPTION_REQUIRED), or the client is over the Free plan\'s client limit (CLIENT_OVER_PLAN_LIMIT)", status, _responseText, _headers);
+            return throwException("The subscription does not include plan templates or plans (SUBSCRIPTION_REQUIRED), or the client is over the Free plan\'s client limit (CLIENT_OVER_PLAN_LIMIT)", status, _responseText, _headers);
 
         } else if (status === 404) {
             const _responseText = response.data;
@@ -11753,7 +11753,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("A coach whose subscription does not include messaging starts a new conversation (SUBSCRIPTION_REQUIRED).", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -11909,7 +11909,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("CONVERSATION_LOCKED: professional caller in an invite-only thread", status, _responseText, _headers);
+            return throwException("CONVERSATION_LOCKED: professional caller in an invite-only thread; SUBSCRIPTION_REQUIRED: coach whose subscription does not include messaging", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -12311,7 +12311,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("CONVERSATION_LOCKED: professional caller in an invite-only thread", status, _responseText, _headers);
+            return throwException("CONVERSATION_LOCKED: professional caller in an invite-only thread; SUBSCRIPTION_REQUIRED: coach whose subscription does not include messaging", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -12382,7 +12382,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("The subscription does not include messaging (SUBSCRIPTION_REQUIRED).", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -17882,7 +17882,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("The subscription does not include payments (PAYMENTS_NOT_ENTITLED), or the coach role was removed", status, _responseText, _headers);
+            return throwException("The subscription does not include payments or packages (PAYMENTS_NOT_ENTITLED), or the coach role was removed", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -25306,8 +25306,22 @@ export interface SubscriptionFeaturesDto {
     canUseWeeklyCheckIns?: boolean;
     /** Per-client check-in configuration. */
     canUsePerClientCheckInConfig?: boolean;
-    /** The payments feature. */
+    /** Client payments. */
     canUsePayments?: boolean;
+    /** Nutrition plan templates. */
+    canUsePlanTemplates?: boolean;
+    /** The coach's own recipes. */
+    canUseRecipes?: boolean;
+    /** The coach's own ingredients. */
+    canUseIngredients?: boolean;
+    /** The coach side of progress photos. */
+    canUseProgressPhotos?: boolean;
+    /** The coach side of weight and measurements. */
+    canUseWeightAndMeasurements?: boolean;
+    /** Automations. */
+    canUseAutomations?: boolean;
+    /** Coach packages and discounts. */
+    canUsePackages?: boolean;
 }
 
 /** The promotion discounting the coach's subscription. */
@@ -27597,8 +27611,22 @@ export interface SubscriptionPlanDto {
     canUseWeeklyCheckIns?: boolean;
     /** Whether the plan allows per-client check-in configuration. */
     canUsePerClientCheckInConfig?: boolean;
-    /** Whether the plan allows the payments feature. */
+    /** Whether the plan allows client payments. */
     canUsePayments?: boolean;
+    /** Whether the plan allows: nutrition plan templates. */
+    canUsePlanTemplates?: boolean;
+    /** Whether the plan allows: the coach's own recipes. */
+    canUseRecipes?: boolean;
+    /** Whether the plan allows: the coach's own ingredients. */
+    canUseIngredients?: boolean;
+    /** Whether the plan allows: the coach side of progress photos. */
+    canUseProgressPhotos?: boolean;
+    /** Whether the plan allows: the coach side of weight and measurements. */
+    canUseWeightAndMeasurements?: boolean;
+    /** Whether the plan allows: automations. */
+    canUseAutomations?: boolean;
+    /** Whether the plan allows: coach packages and discounts. */
+    canUsePackages?: boolean;
     /** Maximum number of active clients allowed under this plan. Null means unlimited. */
     maxActiveClients?: number | undefined;
     /** Current plan price, expressed in the smallest unit of Currency. */
@@ -27650,8 +27678,22 @@ at their next renewal. Defaults to false: coaches keep the price row they pay. *
     canUseWeeklyCheckIns: boolean;
     /** Whether the plan allows per-client check-in configuration. Required. */
     canUsePerClientCheckInConfig: boolean;
-    /** Whether the plan allows the payments feature. Required. */
+    /** Whether the plan allows client payments. Required. */
     canUsePayments: boolean;
+    /** Whether the plan allows nutrition plan templates. Required. */
+    canUsePlanTemplates: boolean;
+    /** Whether the plan allows the coach's own recipes. Required. */
+    canUseRecipes: boolean;
+    /** Whether the plan allows the coach's own ingredients. Required. */
+    canUseIngredients: boolean;
+    /** Whether the plan allows the coach side of progress photos. Required. */
+    canUseProgressPhotos: boolean;
+    /** Whether the plan allows the coach side of weight and measurements. Required. */
+    canUseWeightAndMeasurements: boolean;
+    /** Whether the plan allows automations. Required. */
+    canUseAutomations: boolean;
+    /** Whether the plan allows coach packages and discounts. Required. */
+    canUsePackages: boolean;
     /** Maximum number of active clients allowed under this plan. Required — must be present
 in the body. An explicit null means unlimited; omitting the field entirely 400s. */
     maxActiveClients?: OptionalFieldOfNullableOfInt32;
@@ -27713,8 +27755,22 @@ and SecondRoleAddOnPriceMinorUnits must be set. */
     canUseWeeklyCheckIns?: boolean;
     /** Whether the plan allows per-client check-in configuration. */
     canUsePerClientCheckInConfig?: boolean;
-    /** Whether the plan allows the payments feature. Defaults to false. */
+    /** Whether the plan allows client payments. Defaults to false. */
     canUsePayments?: boolean;
+    /** Whether the plan allows nutrition plan templates. Defaults to false. */
+    canUsePlanTemplates?: boolean;
+    /** Whether the plan allows the coach's own recipes. Defaults to false. */
+    canUseRecipes?: boolean;
+    /** Whether the plan allows the coach's own ingredients. Defaults to false. */
+    canUseIngredients?: boolean;
+    /** Whether the plan allows the coach side of progress photos. Defaults to false. */
+    canUseProgressPhotos?: boolean;
+    /** Whether the plan allows the coach side of weight and measurements. Defaults to false. */
+    canUseWeightAndMeasurements?: boolean;
+    /** Whether the plan allows automations. Defaults to false. */
+    canUseAutomations?: boolean;
+    /** Whether the plan allows coach packages and discounts. Defaults to false. */
+    canUsePackages?: boolean;
     /** Maximum number of active clients allowed under this plan. Null means unlimited. */
     maxActiveClients?: number | undefined;
     /** Plan price, expressed in the smallest unit of Currency. */
@@ -31276,8 +31332,22 @@ no add-on. A promotion that covers a plan always discounts its add-on line too. 
     canUseWeeklyCheckIns?: boolean;
     /** Per-client check-in configuration. */
     canUsePerClientCheckInConfig?: boolean;
-    /** The payments feature. */
+    /** Client payments. */
     canUsePayments?: boolean;
+    /** Nutrition plan templates. */
+    canUsePlanTemplates?: boolean;
+    /** The coach's own recipes. */
+    canUseRecipes?: boolean;
+    /** The coach's own ingredients. */
+    canUseIngredients?: boolean;
+    /** The coach side of progress photos. */
+    canUseProgressPhotos?: boolean;
+    /** The coach side of weight and measurements. */
+    canUseWeightAndMeasurements?: boolean;
+    /** Automations. */
+    canUseAutomations?: boolean;
+    /** Coach packages and discounts. */
+    canUsePackages?: boolean;
 }
 
 /** The automatic promotion shown on the plan picker. */

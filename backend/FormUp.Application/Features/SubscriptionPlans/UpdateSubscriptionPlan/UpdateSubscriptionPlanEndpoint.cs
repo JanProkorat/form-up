@@ -128,6 +128,13 @@ internal sealed class UpdateSubscriptionPlanEndpoint(
         plan.CanUseWeeklyCheckIns = req.CanUseWeeklyCheckIns!.Value;
         plan.CanUsePerClientCheckInConfig = req.CanUsePerClientCheckInConfig!.Value;
         plan.CanUsePayments = req.CanUsePayments!.Value;
+        plan.CanUsePlanTemplates = req.CanUsePlanTemplates!.Value;
+        plan.CanUseRecipes = req.CanUseRecipes!.Value;
+        plan.CanUseIngredients = req.CanUseIngredients!.Value;
+        plan.CanUseProgressPhotos = req.CanUseProgressPhotos!.Value;
+        plan.CanUseWeightAndMeasurements = req.CanUseWeightAndMeasurements!.Value;
+        plan.CanUseAutomations = req.CanUseAutomations!.Value;
+        plan.CanUsePackages = req.CanUsePackages!.Value;
         plan.MaxActiveClients = req.MaxActiveClients.Value;
         plan.PriceMinorUnits = req.PriceMinorUnits;
         plan.SecondRoleAddOnPriceMinorUnits = req.SecondRoleAddOnPriceMinorUnits;

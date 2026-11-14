@@ -1,3 +1,4 @@
+using FormUp.Application.Domain.Extensions;
 using System.Security.Claims;
 using FastEndpoints;
 using FormUp.Application.Domain.Constants;
@@ -39,6 +40,13 @@ public class GetCustomFoodsEndpoint(IMongoContext mongo) : Endpoint<GetCustomFoo
         }
 
         var nutritionistId = Guid.Parse(userId);
+
+        if (await this.RespondIfCoachFeatureNotEntitledAsync(
+                nutritionistId, entitlements => entitlements.CanUseIngredients,
+                "The current subscription does not include ingredients.", ct))
+        {
+            return;
+        }
         var filter = Builders<Food>.Filter.Eq(f => f.NutritionistId, nutritionistId)
             & Builders<Food>.Filter.Eq(f => f.IsDeleted, false);
 

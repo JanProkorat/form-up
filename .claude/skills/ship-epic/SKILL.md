@@ -57,8 +57,10 @@ want a half-shipped epic on develop".
   skill pauses at READY FOR MERGE and hands back the PR URL. Task PRs
   into the epic branch need no authorization.
 - Does not bypass the merge exclusion list for the epic PR to
-  `develop`. An epic whose diff touches `backend/**/Migrations/**` or
-  Mongo data-mutation scripts is still merged to `develop` by the user.
+  `develop`. An epic whose diff touches Mongo data-mutation scripts or a
+  one-shot data command is still merged to `develop` by the user. EF
+  migrations alone are not excluded — they go through the normal
+  authorized merge.
 - Does not write code itself — dev sub-agents do.
 - Does not replace `github-issues`, `qa-tester`, or `pr-reviewer` — it
   calls them.
@@ -422,7 +424,8 @@ sub-agent's own verify skill plus CI.
 4. Green → merge it yourself, **without asking the user**:
    `gh pr merge <pr> --squash --delete-branch --match-head-commit <sha>`.
    This holds even when the diff touches migrations or Mongo data
-   scripts — those are caught at the epic PR, which the user merges.
+   scripts — Mongo data scripts are caught at the epic PR, which the
+   user merges.
 5. Fast-forward the local epic branch (`git pull --ff-only`), set the
    child's state entry to `status: "merged"`, and tear down the
    task's worktree and harness. **Prefer the `git-worktree` MCP's
@@ -537,7 +540,7 @@ When the user authorizes:
    named for the epic; `develop` history stays linear and one revert
    undoes the whole epic.
 3. If `pr-reviewer` returns BLOCKED on exclusions (rare for an epic,
-   but possible — e.g. an EF Core migration squashed into the diff),
+   but possible — e.g. a Mongo data-mutation script in the diff),
    tell the user and let them merge manually. Once they confirm the
    merge landed, continue to Phase 3.
 4. When MERGED:
@@ -585,8 +588,8 @@ manually for an excluded epic):
 - [ ] Every task merge into the epic branch used `--squash`.
 - [ ] The epic PR merged to `develop` with `--squash --delete-branch`
       so the develop history shows one commit per epic.
-- [ ] If the epic PR hit the merge exclusion list (migrations, Mongo
-      data-mutation scripts), the user merged it, not the skill.
+- [ ] If the epic PR hit the merge exclusion list (Mongo data-mutation
+      scripts, one-shot data commands), the user merged it, not the skill.
 - [ ] All `.worktrees/<N>-<short>/` directories removed.
 - [ ] Local `develop` is synced and clean. Local epic branch deleted.
 - [ ] A `notion-docs` update ran once, on the main thread, after the

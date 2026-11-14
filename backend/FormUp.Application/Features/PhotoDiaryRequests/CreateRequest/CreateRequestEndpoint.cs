@@ -61,6 +61,13 @@ public class CreateRequestEndpoint(
         if (userId is null) { await Send.UnauthorizedAsync(ct); return; }
         var professionalId = Guid.Parse(userId);
 
+        if (await this.RespondIfCoachFeatureNotEntitledAsync(
+                professionalId, entitlements => entitlements.CanUseProgressPhotos,
+                "The current subscription does not include progress photos.", ct))
+        {
+            return;
+        }
+
         // Resolve the professional's profile (needed for ownership checks on link/invite)
         var professionalProfile = await db.ProfessionalProfiles
             .Include(p => p.User)

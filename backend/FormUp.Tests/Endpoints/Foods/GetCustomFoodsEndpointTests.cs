@@ -21,10 +21,10 @@ public class GetCustomFoodsEndpointTests
         var food2 = FoodTestHelpers.CreateFood(name: "Custom B", nutritionistId: _nutritionistId);
         var mongo = FoodTestHelpers.CreateMockMongo(food1, food2);
 
-        var ep = Factory.Create<GetCustomFoodsEndpoint>(
+        var ep = Factory.Create<GetCustomFoodsEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist)))),
             mongo);
 
         await ep.HandleAsync(new GetCustomFoodsRequest(), TestContext.Current.CancellationToken);
@@ -38,10 +38,10 @@ public class GetCustomFoodsEndpointTests
     {
         var mongo = FoodTestHelpers.CreateMockMongo();
 
-        var ep = Factory.Create<GetCustomFoodsEndpoint>(
+        var ep = Factory.Create<GetCustomFoodsEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist)))),
             mongo);
 
         await ep.HandleAsync(new GetCustomFoodsRequest(), TestContext.Current.CancellationToken);

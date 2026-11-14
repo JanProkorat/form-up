@@ -18,6 +18,9 @@ import { getErrorStatus } from '@/lib/api-errors';
 import { useInvalidateClientLinkState } from '@/hooks/useClientPaymentQueries';
 import { useSignalR } from '@/hooks/useSignalR';
 import { useSubscription } from '@/hooks/useSubscriptionQueries';
+import { useMeasurementsGate } from '@/hooks/useMeasurementsGate';
+import PaywallPanel from '@/components/subscription/PaywallPanel';
+import PaymentsPaywall from '@/components/client-detail/payment/PaymentsPaywall';
 import OutsidePlanBanner from '@/components/subscription/OutsidePlanBanner';
 import { useClientNutritionRealtime } from '@/hooks/useClientNutritionRealtime';
 import ClientPhotosTab from '@/components/client-detail/photos/ClientPhotosTab';
@@ -71,10 +74,12 @@ export default function ClientDetailPage() {
     enabled: Boolean(clientId),
   });
 
+  const measurementsGate = useMeasurementsGate();
   const measurementsQuery = useQuery({
     queryKey: ['client-measurements', clientId],
     queryFn: () => getClientMeasurements(clientId, 1, MEASUREMENTS_PAGE_SIZE),
-    enabled: Boolean(clientId),
+    enabled: Boolean(clientId) && measurementsGate.enabled,
+    placeholderData: measurementsGate.placeholderData,
   });
 
   // Shares the Forms tab's cache entry. An ended link (404) just shows no dot.
@@ -160,13 +165,22 @@ export default function ClientDetailPage() {
       {activeTab === 'nutrition' ? (
         <ClientNutritionTab clientId={clientId} dashboard={dashboard} />
       ) : activeTab === 'photos' ? (
-        <ClientPhotosTab
-          clientId={clientId}
-          dashboard={dashboard}
-          plans={plansQuery.data?.plans}
-        />
+        // The tab's queries live in the child, so a locked plan never sends them.
+        subscription.isEntitled('canUseProgressPhotos') ? (
+          <ClientPhotosTab
+            clientId={clientId}
+            dashboard={dashboard}
+            plans={plansQuery.data?.plans}
+          />
+        ) : (
+          <PaywallPanel feature="progressPhotos" />
+        )
       ) : activeTab === 'payment' ? (
-        <ClientPaymentTab clientId={clientId} dashboard={dashboard} />
+        subscription.isEntitled('canUsePayments') ? (
+          <ClientPaymentTab clientId={clientId} dashboard={dashboard} />
+        ) : (
+          <PaymentsPaywall />
+        )
       ) : activeTab === 'automations' ? (
         <ClientAutomationsTab clientId={clientId} dashboard={dashboard} />
       ) : activeTab === 'forms' ? (
@@ -178,6 +192,7 @@ export default function ClientDetailPage() {
           role={role}
           plansQuery={plansQuery}
           measurementsQuery={measurementsQuery}
+          measurementsLocked={measurementsGate.locked}
         />
       )}
     </div>

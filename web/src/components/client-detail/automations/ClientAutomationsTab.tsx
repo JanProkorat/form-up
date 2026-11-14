@@ -22,6 +22,7 @@ import { useInvalidateSubscription, useSubscription } from '@/hooks/useSubscript
 import { getErrorStatus, getRfc7807ErrorCode, showApiError, showSuccess } from '@/lib/api-errors';
 import { isSubscriptionRequired } from '@/lib/subscriptionErrors';
 import PaywallDialog from '@/components/subscription/PaywallDialog';
+import PaywallPanel from '@/components/subscription/PaywallPanel';
 import AutomationRuleDrawer from '@/components/automations/AutomationRuleDrawer';
 import {
   clientItemToRule,
@@ -195,6 +196,11 @@ export default function ClientAutomationsTab({ clientId, dashboard }: Props) {
 
   const handleOpen = (item: ClientAutomationItem) =>
     setDrawer(item.source === AutomationRuleSource.OnlyThisClient ? { variant: 'clientOnly', item } : { variant: 'override', item });
+
+  // The query is off while the plan lacks automations, so its pending state must not show a skeleton forever.
+  if (!isEntitled('canUseAutomations') || (query.isError && isSubscriptionRequired(query.error))) {
+    return <PaywallPanel feature="automations" />;
+  }
 
   if (query.isPending) {
     return (

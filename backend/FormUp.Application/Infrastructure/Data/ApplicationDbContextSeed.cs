@@ -156,6 +156,14 @@ public static class ApplicationDbContextSeed
             CanUsePerClientCheckInConfig = perClientCheckInConfig,
             // Client payments (packages) come with Pro, like forms and check-ins.
             CanUsePayments = questionnairesAndCheckIns,
+            CanUsePlanTemplates = true,
+            CanUseRecipes = true,
+            CanUseIngredients = true,
+            CanUseProgressPhotos = true,
+            CanUseWeightAndMeasurements = true,
+            CanUseAutomations = true,
+            // Packages come with Pro, like client payments.
+            CanUsePackages = questionnairesAndCheckIns,
             MaxActiveClients = maxActiveClients,
             PriceMinorUnits = price,
             SecondRoleAddOnPriceMinorUnits = addOnPrice,

@@ -231,7 +231,8 @@ canvas (`HFzM8WqykBxJvkLdiqU85h`) is frozen; do not use it.
      it and returns a pinned `gh pr merge … --match-head-commit <sha>`;
      require explicit same-turn user authorization per
      [`rules/merge-strategy.md#authorized-merge`](rules/merge-strategy.md#authorized-merge).
-   - **Excluded PRs** (base=`main`, migrations, Mongo data-mutation scripts) →
+   - **Excluded PRs** (base=`main`, Mongo data-mutation scripts, one-shot
+     data commands; EF migrations are *not* excluded) →
      refuse and BLOCK per
      [`rules/merge-strategy.md#exclusion-list`](rules/merge-strategy.md#exclusion-list).
 

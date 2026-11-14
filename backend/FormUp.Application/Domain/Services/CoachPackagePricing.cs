@@ -48,7 +48,7 @@ public static class CoachPackagePricing
         long professionalProfileId,
         CancellationToken ct)
     {
-        var entitledIds = await entitlementService.GetPaymentsEntitledProfileIdsAsync([professionalProfileId], ct);
+        var entitledIds = await entitlementService.GetPackagesEntitledProfileIdsAsync([professionalProfileId], ct);
 
         if (entitledIds.Count == 0)
         {
@@ -79,7 +79,7 @@ public static class CoachPackagePricing
         Guid packagePublicId,
         CancellationToken ct)
     {
-        var entitledIds = await entitlementService.GetPaymentsEntitledProfileIdsAsync([professionalProfileId], ct);
+        var entitledIds = await entitlementService.GetPackagesEntitledProfileIdsAsync([professionalProfileId], ct);
 
         if (entitledIds.Count == 0)
         {
@@ -129,7 +129,7 @@ public static class CoachPackagePricing
             return [];
         }
 
-        var entitledIds = await entitlementService.GetPaymentsEntitledProfileIdsAsync(professionalProfileIds, ct);
+        var entitledIds = await entitlementService.GetPackagesEntitledProfileIdsAsync(professionalProfileIds, ct);
 
         if (entitledIds.Count == 0)
         {

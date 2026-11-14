@@ -5,6 +5,8 @@ import PageHeader from '@/components/library/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuthStore } from '@/stores/auth';
+import { useSubscription } from '@/hooks/useSubscriptionQueries';
+import PaywallPanel from '@/components/subscription/PaywallPanel';
 import { useIngredientListParams } from '@/hooks/useIngredientListParams';
 import { useIngredients } from '@/hooks/useIngredientsQueries';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
@@ -27,6 +29,23 @@ import IngredientDrawer from '@/components/ingredients/IngredientDrawer';
  * `ClientsPage` (`@/pages/ClientsPage.tsx`) for composition and state split.
  */
 export default function IngredientsPage() {
+  const { t } = useTranslation();
+  const { isEntitled } = useSubscription();
+
+  // The library's queries live in the child, so a locked plan never sends them (they would answer 403).
+  if (!isEntitled('canUseIngredients')) {
+    return (
+      <div className="flex h-full flex-col gap-4">
+        <PageHeader eyebrow={t('library.eyebrow')} title={t('ingredients.title')} />
+        <PaywallPanel feature="ingredients" />
+      </div>
+    );
+  }
+
+  return <IngredientsLibrary />;
+}
+
+function IngredientsLibrary() {
   const { t } = useTranslation();
   const { filters, setSearch, setCategories, setTags, setOwners, cycleSort, setPage, clearFilters } =
     useIngredientListParams();

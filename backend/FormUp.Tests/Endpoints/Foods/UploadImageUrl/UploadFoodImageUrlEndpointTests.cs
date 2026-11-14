@@ -31,10 +31,10 @@ public class UploadFoodImageUrlEndpointTests
         && FoodImageKeys.TryParse(subPath, slot, out _);
 
     private Endpoint<UploadFoodImageUrlRequest, UploadFoodImageUrlResponse> CreateEndpoint(IMongoContext mongo) =>
-        Factory.Create<UploadFoodImageUrlEndpoint>(
+        Factory.Create<UploadFoodImageUrlEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist)))),
             mongo, _imageUpload);
 
     // ── Happy path: upload URL — main slot ─────────────────────────────────
@@ -336,10 +336,10 @@ public class ConfirmFoodImageEndpointTests
     private static string NewKey(Guid foodId, string slot) => $"foods/{foodId}/{slot}-{Guid.NewGuid():N}.jpg";
 
     private Endpoint<ConfirmFoodImageRequest> CreateEndpoint(IMongoContext mongo) =>
-        Factory.Create<ConfirmFoodImageEndpoint>(
+        Factory.Create<ConfirmFoodImageEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist)))),
             mongo,
             _imageUpload);
 
@@ -520,10 +520,10 @@ public class ConfirmFoodImageEndpointTests
         var rejecting = Substitute.For<IImageUploadService>();
         rejecting.IsValidBlobUrlForSubPath(Arg.Any<ImageUploadScope>(), Arg.Any<string>(), Arg.Any<string>())
             .Returns(false);
-        var ep = Factory.Create<ConfirmFoodImageEndpoint>(
+        var ep = Factory.Create<ConfirmFoodImageEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist)))),
             mongo,
             rejecting);
 

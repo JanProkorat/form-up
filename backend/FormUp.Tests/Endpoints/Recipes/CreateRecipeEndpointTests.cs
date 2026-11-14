@@ -31,10 +31,10 @@ public class CreateRecipeEndpointTests
         };
         var mongo = RecipeTestHelpers.CreateMockMongo(foods: [food]);
 
-        var ep = Factory.Create<CreateRecipeEndpoint>(
+        var ep = Factory.Create<CreateRecipeEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist)))),
             mongo);
 
         var request = new CreateRecipeRequest
@@ -65,10 +65,10 @@ public class CreateRecipeEndpointTests
         };
         var mongo = RecipeTestHelpers.CreateMockMongo(foods: [food]);
 
-        var ep = Factory.Create<CreateRecipeEndpoint>(
+        var ep = Factory.Create<CreateRecipeEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist)))),
             mongo);
 
         var request = new CreateRecipeRequest

@@ -35,7 +35,8 @@ internal static class InvitePackageLoader
         }
 
         var coachIds = withPackage.Select(invite => invite.ProfessionalProfileId).Distinct().ToList();
-        var entitledIds = await entitlementService.GetPaymentsEntitledProfileIdsAsync(coachIds, ct);
+        var entitledIds = await entitlementService.GetEntitledProfileIdsAsync(
+            coachIds, entitlements => entitlements.CanUsePackages && entitlements.CanUsePayments, ct);
 
         var packageIds = withPackage.Select(invite => invite.CoachPackageId!.Value).Distinct().ToList();
         var packages = await db.CoachPackages

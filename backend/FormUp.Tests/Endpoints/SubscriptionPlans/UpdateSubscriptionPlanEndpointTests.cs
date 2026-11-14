@@ -85,6 +85,13 @@ public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory) : ID
         CanUseWeeklyCheckIns: true,
         CanUsePerClientCheckInConfig: true,
         CanUsePayments: true,
+        CanUsePlanTemplates: true,
+        CanUseRecipes: true,
+        CanUseIngredients: true,
+        CanUseProgressPhotos: true,
+        CanUseWeightAndMeasurements: true,
+        CanUseAutomations: true,
+        CanUsePackages: true,
         MaxActiveClients: 20,
         PriceMinorUnits: 50000,
         Currency: "EUR",
@@ -118,8 +125,24 @@ public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory) : ID
         persisted.PriceMinorUnits.Should().Be(50000);
         persisted.BillingInterval.Should().Be(BillingInterval.Annual);
         persisted.CanUsePayments.Should().BeTrue();
+        persisted.CanUsePackages.Should().BeTrue();
+        persisted.CanUseAutomations.Should().BeTrue();
         persisted.BothRolesIncluded.Should().BeTrue();
         persisted.SecondRoleAddOnPriceMinorUnits.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Update_PerClientCheckInsWithoutWeeklyCheckIns_Returns400()
+    {
+        var client = await TestHelpers.RegisterAdminAsync(factory, TestContext.Current.CancellationToken);
+        var code = await SeedPlanAsync();
+
+        var response = await client.PutAsJsonAsync(
+            $"/admin/subscription-plans/{code}",
+            UpdatedPayload(code) with { CanUsePerClientCheckInConfig = true, CanUseWeeklyCheckIns = false },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Fact]
@@ -484,6 +507,13 @@ public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory) : ID
                 CanUseWeeklyCheckIns = true,
                 CanUsePerClientCheckInConfig = true,
                 CanUsePayments = true,
+                CanUsePlanTemplates = true,
+                CanUseRecipes = true,
+                CanUseIngredients = true,
+                CanUseProgressPhotos = true,
+                CanUseWeightAndMeasurements = true,
+                CanUseAutomations = true,
+                CanUsePackages = true,
                 // MaxActiveClients intentionally omitted — must 400, not silently grant unlimited.
                 PriceMinorUnits = 50000,
                 Currency = "EUR",
@@ -516,6 +546,13 @@ public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory) : ID
                 CanUseWeeklyCheckIns = true,
                 CanUsePerClientCheckInConfig = true,
                 CanUsePayments = true,
+                CanUsePlanTemplates = true,
+                CanUseRecipes = true,
+                CanUseIngredients = true,
+                CanUseProgressPhotos = true,
+                CanUseWeightAndMeasurements = true,
+                CanUseAutomations = true,
+                CanUsePackages = true,
                 MaxActiveClients = 20,
                 PriceMinorUnits = 50000,
                 Currency = "EUR",
@@ -548,6 +585,13 @@ public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory) : ID
                 CanUseWeeklyCheckIns = true,
                 CanUsePerClientCheckInConfig = true,
                 CanUsePayments = true,
+                CanUsePlanTemplates = true,
+                CanUseRecipes = true,
+                CanUseIngredients = true,
+                CanUseProgressPhotos = true,
+                CanUseWeightAndMeasurements = true,
+                CanUseAutomations = true,
+                CanUsePackages = true,
                 MaxActiveClients = 20,
                 PriceMinorUnits = 50000,
                 Currency = "EUR",
@@ -580,6 +624,13 @@ public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory) : ID
                 CanUseWeeklyCheckIns = true,
                 CanUsePerClientCheckInConfig = true,
                 // CanUsePayments intentionally omitted — must 400, not silently revoke.
+                CanUsePlanTemplates = true,
+                CanUseRecipes = true,
+                CanUseIngredients = true,
+                CanUseProgressPhotos = true,
+                CanUseWeightAndMeasurements = true,
+                CanUseAutomations = true,
+                CanUsePackages = true,
                 MaxActiveClients = 20,
                 PriceMinorUnits = 50000,
                 Currency = "EUR",
@@ -626,6 +677,13 @@ public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory) : ID
         bool CanUseWeeklyCheckIns,
         bool CanUsePerClientCheckInConfig,
         bool CanUsePayments,
+        bool CanUsePlanTemplates,
+        bool CanUseRecipes,
+        bool CanUseIngredients,
+        bool CanUseProgressPhotos,
+        bool CanUseWeightAndMeasurements,
+        bool CanUseAutomations,
+        bool CanUsePackages,
         int? MaxActiveClients,
         long PriceMinorUnits,
         string Currency,

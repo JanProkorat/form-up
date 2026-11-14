@@ -295,6 +295,7 @@ MERGED = {
     **dict.fromkeys(["GlassNutritionEmpty", "GlassTrainingEmpty"], "GlassEmptyStates"),
     **dict.fromkeys(["GlassNutritionOffPlanSearch", "GlassNutritionOffPlanAmount"], "GlassNutritionAddFood"),
     **dict.fromkeys(["GlassRegisterCheckEmail", "GlassRegisterVerified", "GlassRegisterChangeEmail"], "GlassRegisterEmailSteps"),
+    "PageAdminPlanDrawer": "PageAdminPlanEditor",
 }
 
 # Output folder -> canvas pages (light, dark), board-name suffix pattern, shared nav, per-page maps, start page, phone frame.

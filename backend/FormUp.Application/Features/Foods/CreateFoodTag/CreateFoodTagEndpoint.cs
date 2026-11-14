@@ -45,6 +45,13 @@ public class CreateFoodTagEndpoint(IMongoContext mongo) : Endpoint<CreateFoodTag
             return;
         }
 
+        if (await this.RespondIfCoachFeatureNotEntitledAsync(
+                Guid.Parse(userId), entitlements => entitlements.CanUseIngredients,
+                "The current subscription does not include ingredients.", ct))
+        {
+            return;
+        }
+
         var name = req.Name.Trim();
 
         var tag = new FoodTag

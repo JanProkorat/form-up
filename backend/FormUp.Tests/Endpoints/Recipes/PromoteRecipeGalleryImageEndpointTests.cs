@@ -24,9 +24,9 @@ public class PromoteRecipeGalleryImageEndpointTests
         recipe.GalleryImageUrls.Add(galleryUrl);
         var mongo = RecipeTestHelpers.CreateMockMongo(recipes: [recipe], modifiedCount: 0);
 
-        var ep = Factory.Create<PromoteRecipeGalleryImageEndpoint>(
+        var ep = Factory.Create<PromoteRecipeGalleryImageEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist)))),
             mongo);
 
         await ep.HandleAsync(new PromoteRecipeGalleryImageRequest { RecipeId = recipeId, ImageUrl = galleryUrl },

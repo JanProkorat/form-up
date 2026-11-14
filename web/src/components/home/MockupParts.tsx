@@ -1,144 +1,161 @@
 // Pixel sizes and positions in this file are illustration drawing copied from the board, not layout tokens.
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
+import '@/components/home/home-animations.css';
 import { IconApple, IconCheck, IconPlay } from '@/components/home/HomeIcons';
+import { useInView } from '@/components/home/useInView';
 
-/** Three-segment protein / carbs / fat split bar used on every meal tile. */
-export function MacroBar({ height = 'h-[3px]' }: { height?: string }) {
+/** Wrapper for anything that animates: its loops and entrances pause while it is off screen. */
+export function Loop({ className = '', children }: { className?: string; children: ReactNode }) {
+  const [ref, inView] = useInView<HTMLDivElement>();
   return (
-    <div className={`flex gap-0.5 ${height}`}>
-      <span className="flex-[25] rounded-xs bg-macro-protein" />
-      <span className="flex-[45] rounded-xs bg-macro-carbs" />
-      <span className="flex-[30] rounded-xs bg-macro-fat" />
+    <div ref={ref} data-in-view={inView} className={`hm-loop ${className}`}>
+      {children}
     </div>
   );
 }
 
-interface WindowFrameProps {
-  title: string;
-  subtitle: string;
+type CellTone = 'filled' | 'outline' | 'accent';
+
+const CELL_TONE: Record<CellTone, string> = {
+  filled: 'bg-sunken',
+  outline: 'border border-border bg-transparent',
+  accent: 'bg-training-soft',
+};
+
+interface CellProps {
+  name: string;
+  kcal: string;
+  tone?: CellTone;
+  className?: string;
+  style?: CSSProperties;
+}
+
+/** Meal tile of the plan grids: name and energy. */
+export function Cell({ name, kcal, tone = 'filled', className = '', style }: CellProps) {
+  return (
+    <div
+      style={style}
+      className={`box-border flex min-w-0 flex-col gap-[3px] rounded-field px-2.5 py-[9px] ${CELL_TONE[tone]} ${className}`}
+    >
+      <span className="truncate text-meta font-semibold text-ink">{name}</span>
+      <span className="text-caption text-muted-foreground">{kcal}</span>
+    </div>
+  );
+}
+
+/** Row or column label of a plan grid. */
+export function GridLabel({ children, className = '' }: { children?: ReactNode; className?: string }) {
+  return (
+    <span className={`self-center text-caption font-semibold text-muted-foreground ${className}`}>
+      {children}
+    </span>
+  );
+}
+
+interface RingProps {
+  /** Shows the green tick. */
+  ticked?: boolean;
+  /** Animation class of the tick (keeps its plain style = ticked). */
+  tickClassName?: string;
+  tickStyle?: CSSProperties;
+}
+
+/** Round checkbox of a meal or set row. */
+export function Ring({ ticked = false, tickClassName = '', tickStyle }: RingProps) {
+  return (
+    <span className="relative box-border size-5 shrink-0 rounded-full border-2 border-border">
+      {ticked && (
+        <span
+          style={tickStyle}
+          className={`absolute -inset-0.5 flex items-center justify-center rounded-full bg-nutrition text-on-nutrition ${tickClassName}`}
+        >
+          <IconCheck size={11} strokeWidth={3.4} />
+        </span>
+      )}
+    </span>
+  );
+}
+
+type RowTone = 'subtle' | 'accent' | 'dark' | 'active';
+
+const ROW_TONE: Record<RowTone, string> = {
+  subtle: 'bg-sunken',
+  accent: 'bg-training-soft',
+  dark: 'bg-primary text-primary-foreground',
+  active: 'border-[1.5px] border-marker bg-surface',
+};
+
+/** One list row inside a mockup card or phone. */
+export function Row({
+  tone = 'subtle',
+  className = '',
+  children,
+}: {
+  tone?: RowTone;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className={`box-border flex items-center gap-2.5 rounded-xl px-3 py-[11px] ${ROW_TONE[tone]} ${className}`}
+    >
+      {children}
+    </div>
+  );
+}
+
+/** Two-line text block of a row: title and a small line, which sits above the title with `subFirst`. */
+export function RowText({ title, sub, subFirst = false }: { title: string; sub: string; subFirst?: boolean }) {
+  return (
+    <span className={`flex min-w-0 flex-1 gap-0.5 ${subFirst ? 'flex-col-reverse' : 'flex-col'}`}>
+      <span className="text-body font-semibold text-ink">{title}</span>
+      <span className="text-caption text-muted-foreground">{sub}</span>
+    </span>
+  );
+}
+
+interface PhoneShellProps {
+  /** `hero` is the 260 x 540 device of the hero collage, `stage` the 250 x 510 one. */
+  size?: 'hero' | 'stage';
   className?: string;
   children: ReactNode;
 }
 
-/** Browser-style window chrome around a web-portal mockup. */
-export function WindowFrame({ title, subtitle, className = '', children }: WindowFrameProps) {
+/** Decorative phone body; the screen content goes in `children`. */
+export function PhoneShell({ size = 'stage', className = '', children }: PhoneShellProps) {
+  const dimensions = size === 'hero' ? 'h-[540px] w-[260px]' : 'h-[510px] w-[250px]';
+  const screenTop = size === 'hero' ? 'pt-[46px]' : 'pt-[42px]';
   return (
     <div
-      className={`overflow-hidden rounded-2xl border border-border bg-surface shadow-card ${className}`}
+      className={`box-border shrink-0 rounded-[42px] bg-phone-bezel p-2.5 shadow-card ${dimensions} ${className}`}
     >
-      <div className="flex h-10 items-center gap-1.5 border-b border-border bg-surface px-4">
-        <span className="size-[9px] rounded-full bg-border" />
-        <span className="size-[9px] rounded-full bg-border" />
-        <span className="size-[9px] rounded-full bg-border" />
-        <span className="ml-3 text-meta font-semibold text-ink">{title}</span>
-        <span className="text-meta text-muted-foreground">{subtitle}</span>
-      </div>
-      {children}
-    </div>
-  );
-}
-
-/** Floating card that overlaps a window (check-in toast, shopping list, live set). */
-export function FloatCard({ className = '', children }: { className?: string; children: ReactNode }) {
-  return (
-    <div
-      className={`rounded-2xl border border-border bg-surface shadow-card ${className}`}
-    >
-      {children}
-    </div>
-  );
-}
-
-const PHONE_SCREEN_GLOW =
-  '[background-image:radial-gradient(240px_200px_at_0%_0%,var(--gf-phone-warm),transparent_70%),radial-gradient(240px_240px_at_100%_50%,var(--gf-phone-fresh),transparent_70%)]';
-
-interface PhoneFrameProps {
-  /** `hero` is the slightly wider device used in the hero collage. */
-  size?: 'hero' | 'standard';
-  /** Tailwind height class; the section phones are slightly shorter than the app-section ones. */
-  height?: string;
-  className?: string;
-  children: ReactNode;
-}
-
-/** Decorative phone body with a status bar; screen content goes in `children`. */
-export function PhoneFrame({ size = 'standard', height = 'h-[500px]', className = '', children }: PhoneFrameProps) {
-  const dimensions =
-    size === 'hero' ? 'w-[270px] rounded-phone-hero' : 'w-[250px] rounded-phone';
-  return (
-    <div
-      aria-hidden="true"
-      className={`relative flex ${height} shrink-0 flex-col gap-3 overflow-hidden border-[9px] border-phone-bezel bg-phone-screen p-3.5 text-ink shadow-dialog ${PHONE_SCREEN_GLOW} ${dimensions} ${className}`}
-    >
-      <div className="flex items-center justify-between px-2 text-caption font-semibold text-ink">
-        <span>9:41</span>
-        <span className="h-[18px] w-16 rounded-full bg-scrim" />
-        <span>100%</span>
-      </div>
-      {children}
-    </div>
-  );
-}
-
-/** Translucent card sitting on a phone screen. */
-export function GlassCard({ className = '', children }: { className?: string; children: ReactNode }) {
-  return (
-    <div className={`border border-on-dark/40 bg-glass ${className}`}>{children}</div>
-  );
-}
-
-/** Ticked / unticked meal dot. */
-export function MealDot({ done, size = 'size-5' }: { done: boolean; size?: string }) {
-  if (done) {
-    return (
-      <span
-        className={`flex ${size} shrink-0 items-center justify-center rounded-full bg-nutrition text-on-nutrition`}
+      <div
+        className={`relative box-border flex h-full flex-col gap-2 overflow-hidden rounded-[33px] bg-surface px-3.5 pb-3.5 ${screenTop}`}
       >
-        <IconCheck size={12} />
-      </span>
-    );
-  }
-  return (
-    <span className={`${size} shrink-0 rounded-full border-[1.5px] border-muted-foreground`} />
+        {children}
+      </div>
+    </div>
   );
 }
 
-/** Eyebrow label above a section title. */
-export function Eyebrow({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return (
-    <span className={`text-home-meta font-bold tracking-eyebrow uppercase ${className}`}>{children}</span>
-  );
-}
-
-interface FeatureItemProps {
+interface PointItemProps {
   icon: ReactNode;
   /** Tailwind classes for the icon tile background and glyph colour. */
   tone: string;
-  title: string;
-  description: string;
+  children: ReactNode;
 }
 
-/** Icon tile + title + one-line description in a section's feature list. */
-export function FeatureItem({ icon, tone, title, description }: FeatureItemProps) {
+/** Icon tile + one short point in a section's list. */
+export function PointItem({ icon, tone, children }: PointItemProps) {
   return (
-    <div className="flex gap-3.5">
-      <span className={`flex size-9.5 @min-[1340px]:size-10 @min-[1472px]:size-10.5 @min-[1592px]:size-11.5 @min-[1760px]:size-12.5 @min-[1940px]:size-14 shrink-0 items-center justify-center rounded-xl ${tone}`}>
+    <span className="flex items-center gap-3.5 text-home-feature-title font-semibold text-ink">
+      <span
+        className={`flex size-9.5 @min-[1340px]:size-10 @min-[1472px]:size-10.5 @min-[1592px]:size-11.5 @min-[1760px]:size-12.5 @min-[1940px]:size-14 shrink-0 items-center justify-center rounded-xl ${tone}`}
+      >
         {icon}
       </span>
-      <span className="flex flex-col gap-1">
-        <span className="text-home-feature-title font-bold text-ink">{title}</span>
-        <span className="text-home-copy leading-normal text-muted-foreground">{description}</span>
-      </span>
-    </div>
-  );
-}
-
-/** Full-width row of three more features under a section's mockup, set off by a hairline. */
-export function FeatureRow({ children }: { children: ReactNode }) {
-  return (
-    <div className="grid grid-cols-1 gap-6 border-t border-border pt-10 lg:pt-[clamp(1.25rem,4svh,2.5rem)] @min-[760px]:grid-cols-3 @min-[760px]:gap-10">
       {children}
-    </div>
+    </span>
   );
 }
 
@@ -146,15 +163,21 @@ interface StoreLinksProps {
   appStore: string;
   googlePlay: string;
   size?: 'md' | 'sm';
+  /** `solid` is the dark primary button of the mobile section. */
+  tone?: 'outline' | 'solid';
 }
 
 /** App Store / Google Play placeholders; real store URLs land with the app release. */
-export function StoreLinks({ appStore, googlePlay, size = 'md' }: StoreLinksProps) {
+export function StoreLinks({ appStore, googlePlay, size = 'md', tone = 'outline' }: StoreLinksProps) {
   const sizing =
     size === 'md'
       ? 'h-10 @min-[1340px]:h-10.5 @min-[1472px]:h-11 @min-[1592px]:h-12 @min-[1760px]:h-13 @min-[1940px]:h-14.5 px-3.5 text-home-body'
       : 'h-8.5 px-3.5 text-body';
-  const base = `inline-flex items-center gap-1.75 rounded-field border border-border bg-surface font-semibold whitespace-nowrap text-ink hover:bg-sunken ${sizing}`;
+  const look =
+    tone === 'solid'
+      ? 'rounded-xl bg-primary font-bold text-primary-foreground hover:opacity-90'
+      : 'rounded-field border border-border bg-surface font-semibold text-ink hover:bg-sunken';
+  const base = `inline-flex items-center gap-1.75 whitespace-nowrap ${look} ${sizing}`;
   return (
     <>
       <a href="#" className={base}>

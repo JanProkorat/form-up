@@ -8,7 +8,9 @@ import {
   sendMessage,
   startConversation,
 } from '@/api/conversations';
+import { subscriptionKeys } from '@/api/subscription';
 import { getRfc7807ErrorCode, showApiError } from '@/lib/api-errors';
+import { isSubscriptionRequired } from '@/lib/subscriptionErrors';
 import { useAuthStore } from '@/stores/auth';
 import type { ChatImageUploadUrlPayload, SendMessagePayload } from '@/api/conversations';
 import type { ClientListFilter } from '@/api/generated';
@@ -50,6 +52,11 @@ export function useStartConversation() {
       queryClient.invalidateQueries({ queryKey: ['conversations', 'list'] });
     },
     onError: (error) => {
+      if (isSubscriptionRequired(error)) {
+        // The plan has no chat: the caller shows the paywall instead of a toast.
+        void queryClient.invalidateQueries({ queryKey: subscriptionKeys.mine });
+        return;
+      }
       showApiError(error, 'inbox.deepLink.error');
     },
   });
@@ -83,6 +90,11 @@ export function useSendMessage(conversationId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ['conversations', 'list'] });
     },
     onError: (error) => {
+      if (isSubscriptionRequired(error)) {
+        // The plan has no chat: refreshing the plan swaps the composer for the paywall notice.
+        void queryClient.invalidateQueries({ queryKey: subscriptionKeys.mine });
+        return;
+      }
       showApiError(error, 'inbox.composer.sendError');
       if (getRfc7807ErrorCode(error) === 'CONVERSATION_LOCKED') {
         // The lock state changed under the open thread — refresh isSendLocked.

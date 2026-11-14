@@ -40,6 +40,13 @@ public class GetTemplateEndpoint(IMongoContext mongo)
 
         var callerId = Guid.Parse(userId);
 
+        if (await this.RespondIfCoachFeatureNotEntitledAsync(
+                callerId, entitlements => entitlements.CanUsePlanTemplates,
+                "The current subscription does not include nutrition plan templates.", ct))
+        {
+            return;
+        }
+
         var template = await this.LoadLibraryEntryForReadOrRespondAsync(
             mongo.NutritionPlanTemplates, req.TemplateId, callerId, NutritionPlanTemplateLibrary.Denial, ct);
 

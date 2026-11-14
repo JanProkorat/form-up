@@ -30,6 +30,7 @@ import FormsPage from '@/pages/FormsPage';
 import AutomationsPage from '@/pages/AutomationsPage';
 import PackagesPage from '@/pages/PackagesPage';
 import AdminPlansPage from '@/pages/AdminPlansPage';
+import AdminPlanEditorPage from '@/pages/AdminPlanEditorPage';
 import AdminCoachesPage from '@/pages/AdminCoachesPage';
 import AdminPromotionsPage from '@/pages/AdminPromotionsPage';
 import AdminCoachProfilePage from '@/pages/AdminCoachProfilePage';
@@ -135,6 +136,8 @@ const router = createBrowserRouter(
           </Route>
           <Route element={<RoleGuard allowedRoles={['Admin']} />}>
             <Route path="/admin/plans" element={<AdminPlansPage />} />
+            <Route path="/admin/plans/new" element={<AdminPlanEditorPage />} />
+            <Route path="/admin/plans/:planId" element={<AdminPlanEditorPage />} />
             <Route path="/admin/promotions" element={<AdminPromotionsPage />} />
             <Route path="/admin/coach-accounts" element={<AdminCoachesPage />} />
             <Route path="/admin/coach-accounts/:coachId" element={<AdminCoachProfilePage />} />

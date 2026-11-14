@@ -70,6 +70,13 @@ internal sealed class GetCoachPlansEndpoint(IApplicationDbContext db, IOptions<B
                 CanUseWeeklyCheckIns = p.CanUseWeeklyCheckIns,
                 CanUsePerClientCheckInConfig = p.CanUsePerClientCheckInConfig,
                 CanUsePayments = p.CanUsePayments,
+                CanUsePlanTemplates = p.CanUsePlanTemplates,
+                CanUseRecipes = p.CanUseRecipes,
+                CanUseIngredients = p.CanUseIngredients,
+                CanUseProgressPhotos = p.CanUseProgressPhotos,
+                CanUseWeightAndMeasurements = p.CanUseWeightAndMeasurements,
+                CanUseAutomations = p.CanUseAutomations,
+                CanUsePackages = p.CanUsePackages,
             })
             .ToListAsync(ct);
 

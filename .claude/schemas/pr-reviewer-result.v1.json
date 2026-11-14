@@ -52,7 +52,7 @@
     "blocked_reason": {
       "type": ["string", "null"],
       "maxLength": 400,
-      "description": "Set when verdict=BLOCKED — e.g. 'PR touches backend/Migrations/** (merge exclusion list)'."
+      "description": "Set when verdict=BLOCKED — e.g. 'PR adds a Mongo data-mutation script under backend/**/DataMigrations/** (merge exclusion list)'."
     },
     "ci_status": {
       "enum": ["pass", "fail", "pending", "n/a"],

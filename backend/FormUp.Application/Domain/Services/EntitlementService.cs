@@ -74,12 +74,23 @@ public class EntitlementService
 
     /// <summary>
     /// Resolves, with the same rules as <see cref="GetEntitlementsAsync"/>, which of the given professionals
-    /// may use the payments feature.
+    /// may use the packages feature.
     /// </summary>
     /// <param name="professionalProfileIds">The professionals' <c>ProfessionalProfile.Id</c> values.</param>
     /// <param name="ct">Cancellation token.</param>
-    public async Task<HashSet<long>> GetPaymentsEntitledProfileIdsAsync(
-        IReadOnlyCollection<long> professionalProfileIds, CancellationToken ct)
+    public Task<HashSet<long>> GetPackagesEntitledProfileIdsAsync(
+        IReadOnlyCollection<long> professionalProfileIds, CancellationToken ct) =>
+        GetEntitledProfileIdsAsync(professionalProfileIds, entitlements => entitlements.CanUsePackages, ct);
+
+    /// <summary>
+    /// Resolves, with the same rules as <see cref="GetEntitlementsAsync"/>, which of the given professionals
+    /// have the feature selected by <paramref name="feature"/>.
+    /// </summary>
+    /// <param name="professionalProfileIds">The professionals' <c>ProfessionalProfile.Id</c> values.</param>
+    /// <param name="feature">Reads the feature flag to require from the resolved entitlements.</param>
+    /// <param name="ct">Cancellation token.</param>
+    public async Task<HashSet<long>> GetEntitledProfileIdsAsync(
+        IReadOnlyCollection<long> professionalProfileIds, Func<CoachEntitlements, bool> feature, CancellationToken ct)
     {
         var rows = await db.CoachSubscriptions
             .AsNoTracking()
@@ -92,7 +103,7 @@ public class EntitlementService
         var free = needsFree ? await LoadFreePlanAsync(ct) : null;
 
         return professionalProfileIds
-            .Where(id => Resolve(rowsByProfile.GetValueOrDefault(id), free).Entitlements.CanUsePayments)
+            .Where(id => feature(Resolve(rowsByProfile.GetValueOrDefault(id), free).Entitlements))
             .ToHashSet();
     }
 
@@ -349,6 +360,13 @@ public class EntitlementService
                 p.CanUseWeeklyCheckIns,
                 p.CanUsePerClientCheckInConfig,
                 p.CanUsePayments,
+                p.CanUsePlanTemplates,
+                p.CanUseRecipes,
+                p.CanUseIngredients,
+                p.CanUseProgressPhotos,
+                p.CanUseWeightAndMeasurements,
+                p.CanUseAutomations,
+                p.CanUsePackages,
                 p.MaxActiveClients,
                 p.BothRolesIncluded))
             .FirstOrDefaultAsync(ct);
@@ -387,6 +405,13 @@ public class EntitlementService
                 cs.SubscriptionPlan.CanUseWeeklyCheckIns,
                 cs.SubscriptionPlan.CanUsePerClientCheckInConfig,
                 cs.SubscriptionPlan.CanUsePayments,
+                cs.SubscriptionPlan.CanUsePlanTemplates,
+                cs.SubscriptionPlan.CanUseRecipes,
+                cs.SubscriptionPlan.CanUseIngredients,
+                cs.SubscriptionPlan.CanUseProgressPhotos,
+                cs.SubscriptionPlan.CanUseWeightAndMeasurements,
+                cs.SubscriptionPlan.CanUseAutomations,
+                cs.SubscriptionPlan.CanUsePackages,
                 cs.SubscriptionPlan.MaxActiveClients,
                 cs.SubscriptionPlan.BothRolesIncluded));
 
@@ -397,6 +422,13 @@ public class EntitlementService
         bool CanUseWeeklyCheckIns,
         bool CanUsePerClientCheckInConfig,
         bool CanUsePayments,
+        bool CanUsePlanTemplates,
+        bool CanUseRecipes,
+        bool CanUseIngredients,
+        bool CanUseProgressPhotos,
+        bool CanUseWeightAndMeasurements,
+        bool CanUseAutomations,
+        bool CanUsePackages,
         int? MaxActiveClients,
         bool BothRolesIncluded)
     {
@@ -407,6 +439,13 @@ public class EntitlementService
             CanUseWeeklyCheckIns,
             CanUsePerClientCheckInConfig,
             CanUsePayments,
+            CanUsePlanTemplates,
+            CanUseRecipes,
+            CanUseIngredients,
+            CanUseProgressPhotos,
+            CanUseWeightAndMeasurements,
+            CanUseAutomations,
+            CanUsePackages,
             MaxActiveClients);
     }
 
