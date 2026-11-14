@@ -40,11 +40,26 @@ public sealed class FakeSubscriptionService : ISubscriptionService
     /// <summary>Recorded <see cref="ISubscriptionService.ApplyGivenFreeAsync"/> calls.</summary>
     public List<GivenFreeCall> GivenFree { get; } = [];
 
-    /// <summary>When true <see cref="ISubscriptionService.ApplyPromotionCodeAsync"/> answers "unknown or inactive code".</summary>
-    public bool RejectPromotionCodes { get; set; }
-
-    /// <summary>Recorded <see cref="ISubscriptionService.ApplyPromotionCodeAsync"/> calls (subscription ids only; never the code).</summary>
+    /// <summary>Recorded <see cref="ISubscriptionService.ApplyPromotionCodeAsync"/> calls (subscription ids only; never the code text).</summary>
     public List<string> PromotionCodeSubscriptions { get; } = [];
+
+    /// <summary>Recorded provider promotion code ids passed to <see cref="ISubscriptionService.ApplyPromotionCodeAsync"/>.</summary>
+    public List<string> AppliedPromotionCodeIds { get; } = [];
+
+    /// <summary>Recorded <see cref="ISubscriptionService.CreateCouponAsync"/> calls.</summary>
+    public List<CouponCall> Coupons { get; } = [];
+
+    /// <summary>Recorded <see cref="ISubscriptionService.CreatePromotionCodeAsync"/> calls.</summary>
+    public List<PromotionCodeCall> PromotionCodes { get; } = [];
+
+    /// <summary>Recorded <see cref="ISubscriptionService.DeleteCouponAsync"/> calls (coupon ids).</summary>
+    public List<string> DeletedCoupons { get; } = [];
+
+    /// <summary>When true only <see cref="ISubscriptionService.CreatePromotionCodeAsync"/> throws <see cref="BillingProviderException"/>.</summary>
+    public bool FailPromotionCodeCreation { get; set; }
+
+    /// <summary>What <see cref="ISubscriptionService.GetSubscriptionDiscountAsync"/> returns, by provider subscription id.</summary>
+    public Dictionary<string, SubscriptionDiscount> SubscriptionDiscounts { get; } = [];
 
     /// <summary>Recorded <see cref="ISubscriptionService.CancelAtPeriodEndAsync"/> calls (subscription ids).</summary>
     public List<string> CancelledAtPeriodEnd { get; } = [];
@@ -88,6 +103,12 @@ public sealed class FakeSubscriptionService : ISubscriptionService
     /// <summary>A recorded given-free call.</summary>
     public sealed record GivenFreeCall(string SubscriptionId, DateTimeOffset? FreeUntil);
 
+    /// <summary>A recorded coupon creation and the id the fake returned.</summary>
+    public sealed record CouponCall(CouponSpec Spec, string CouponId);
+
+    /// <summary>A recorded promotion code creation and the id the fake returned. Holds the code text a test chose.</summary>
+    public sealed record PromotionCodeCall(string CouponId, string Code, DateTimeOffset? ExpiresAt, bool FirstTimeOnly, string PromotionCodeId);
+
     /// <summary>Clears every recorded call and restores the defaults.</summary>
     public void Reset()
     {
@@ -102,8 +123,13 @@ public sealed class FakeSubscriptionService : ISubscriptionService
             PlanChanges.Clear();
             Prices.Clear();
             GivenFree.Clear();
-            RejectPromotionCodes = false;
             PromotionCodeSubscriptions.Clear();
+            AppliedPromotionCodeIds.Clear();
+            Coupons.Clear();
+            PromotionCodes.Clear();
+            DeletedCoupons.Clear();
+            FailPromotionCodeCreation = false;
+            SubscriptionDiscounts.Clear();
             CancelledAtPeriodEnd.Clear();
             PreviewResult = new SecondRoleAddOnPreview(12300, 0, "CZK");
             Previews.Clear();
@@ -189,16 +215,75 @@ public sealed class FakeSubscriptionService : ISubscriptionService
     }
 
     /// <inheritdoc />
-    public Task<bool> ApplyPromotionCodeAsync(string subscriptionId, string promotionCode, CancellationToken ct)
+    public Task ApplyPromotionCodeAsync(string subscriptionId, string promotionCodeId, CancellationToken ct)
     {
         ThrowIfFailing();
 
         lock (gate)
         {
             PromotionCodeSubscriptions.Add(subscriptionId);
+            AppliedPromotionCodeIds.Add(promotionCodeId);
         }
 
-        return Task.FromResult(!RejectPromotionCodes);
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public Task<string> CreateCouponAsync(CouponSpec spec, CancellationToken ct)
+    {
+        ThrowIfFailing();
+
+        lock (gate)
+        {
+            var couponId = $"coupon_fake_{++counter}";
+            Coupons.Add(new CouponCall(spec, couponId));
+
+            return Task.FromResult(couponId);
+        }
+    }
+
+    /// <inheritdoc />
+    public Task<string> CreatePromotionCodeAsync(
+        string couponId, string code, DateTimeOffset? expiresAt, bool firstTimeOnly, CancellationToken ct)
+    {
+        ThrowIfFailing();
+
+        if (FailPromotionCodeCreation)
+        {
+            throw new BillingProviderException("Fake promotion code failure.");
+        }
+
+        lock (gate)
+        {
+            var promotionCodeId = $"promo_fake_{++counter}";
+            PromotionCodes.Add(new PromotionCodeCall(couponId, code, expiresAt, firstTimeOnly, promotionCodeId));
+
+            return Task.FromResult(promotionCodeId);
+        }
+    }
+
+    /// <inheritdoc />
+    public Task DeleteCouponAsync(string couponId, CancellationToken ct)
+    {
+        ThrowIfFailing();
+
+        lock (gate)
+        {
+            DeletedCoupons.Add(couponId);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public Task<SubscriptionDiscount?> GetSubscriptionDiscountAsync(string subscriptionId, CancellationToken ct)
+    {
+        ThrowIfFailing();
+
+        lock (gate)
+        {
+            return Task.FromResult(SubscriptionDiscounts.GetValueOrDefault(subscriptionId));
+        }
     }
 
     /// <inheritdoc />

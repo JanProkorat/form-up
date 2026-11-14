@@ -1,5 +1,8 @@
+using System.Security.Claims;
 using FastEndpoints;
 using FormUp.Application.Domain.Constants;
+using FormUp.Application.Domain.Entities;
+using FormUp.Application.Domain.Services;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Application.Infrastructure.Services.Billing;
 using Microsoft.EntityFrameworkCore;
@@ -9,11 +12,12 @@ namespace FormUp.Application.Features.CoachSubscriptions.GetCoachPlans;
 
 /// <summary>
 /// Lists the active subscription plans with their current prices, for a coach choosing a plan. Coach-only: the
-/// client app never sees a price.
+/// client app never sees a price. Carries the caller's winning automatic promotion and the display-only discounted prices.
 /// </summary>
 /// <param name="db">Application database context.</param>
 /// <param name="billingOptions">Billing settings, for the tax mode.</param>
-internal sealed class GetCoachPlansEndpoint(IApplicationDbContext db, IOptions<BillingOptions> billingOptions)
+/// <param name="timeProvider">Clock.</param>
+internal sealed class GetCoachPlansEndpoint(IApplicationDbContext db, IOptions<BillingOptions> billingOptions, TimeProvider timeProvider)
     : EndpointWithoutRequest<GetCoachPlansResponse>
 {
     /// <inheritdoc />
@@ -25,7 +29,9 @@ internal sealed class GetCoachPlansEndpoint(IApplicationDbContext db, IOptions<B
         {
             s.Summary = "List the plans a coach can choose";
             s.Description = "Active plans with names in all locales, current price, second-role add-on price, currency, " +
-                            "client cap, feature flags and whether both roles are included.";
+                            "client cap, feature flags and whether both roles are included. When an automatic promotion applies to " +
+                            "the caller (the latest claim-from among those they qualify for) it is returned with a display-only " +
+                            "discounted price per plan it covers, second-role line included; other plans show no discounted price.";
             s.Response<GetCoachPlansResponse>(StatusCodes.Status200OK, "The active plans, cheapest first");
             s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
             s.Response(StatusCodes.Status403Forbidden, "The caller is not a trainer or nutritionist");
@@ -35,6 +41,12 @@ internal sealed class GetCoachPlansEndpoint(IApplicationDbContext db, IOptions<B
     /// <inheritdoc />
     public override async Task HandleAsync(CancellationToken ct)
     {
+        if (!Guid.TryParse(User.FindFirstValue(AppClaims.UserId), out var userId))
+        {
+            await Send.UnauthorizedAsync(ct);
+            return;
+        }
+
         var plans = await db.SubscriptionPlans
             .AsNoTracking()
             .Where(p => p.IsActive)
@@ -61,6 +73,47 @@ internal sealed class GetCoachPlansEndpoint(IApplicationDbContext db, IOptions<B
             })
             .ToListAsync(ct);
 
-        await Send.OkAsync(new GetCoachPlansResponse { Plans = plans, TaxMode = billingOptions.Value.TaxMode }, ct);
+        var profileId = await db.ProfessionalProfiles
+            .AsNoTracking()
+            .Where(p => p.UserId == userId)
+            .Select(p => (long?)p.Id)
+            .FirstOrDefaultAsync(ct);
+        var winner = await PromotionSelector.PickForCoachAsync(db, profileId, timeProvider.GetUtcNow(), ct);
+
+        if (winner is not null)
+        {
+            ApplyPromotion(plans, winner);
+        }
+
+        await Send.OkAsync(new GetCoachPlansResponse
+        {
+            Plans = plans,
+            TaxMode = billingOptions.Value.TaxMode,
+            Promotion = winner is null ? null : ToDto(winner),
+        }, ct);
     }
+
+    private static void ApplyPromotion(List<CoachPlanDto> plans, Promotion winner)
+    {
+        foreach (var plan in plans.Where(plan => PromotionRules.CoversPlan(winner, plan.Code)))
+        {
+            var (planPrice, addOnPrice) = PromotionPricing.Apply(winner, plan.PriceMinorUnits, plan.SecondRoleAddOnPriceMinorUnits);
+
+            plan.DiscountedPriceMinorUnits = planPrice;
+            plan.DiscountedSecondRoleAddOnPriceMinorUnits = addOnPrice;
+        }
+    }
+
+    private static CoachPromotionDto ToDto(Promotion promotion) => new()
+    {
+        Name = promotion.Name,
+        Kind = promotion.Kind,
+        Value = promotion.Value,
+        Currency = promotion.Currency,
+        Duration = promotion.Duration,
+        DurationMonths = promotion.DurationMonths,
+        ClaimUntil = promotion.ClaimUntil,
+        CoversSecondRoleAddOn = promotion.CoversSecondRoleAddOn,
+        PlanCodes = promotion.PlanCodes.ToList(),
+    };
 }

@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FormUp.Application.Domain.Constants;
+using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Services;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Application.Infrastructure.Services.Billing;
@@ -77,6 +78,7 @@ internal sealed class GetMySubscriptionEndpoint(
         }
 
         response.TaxMode = billingOptions.Value.TaxMode;
+        response.Promotion = await LoadPromotionAsync(profileId.Value, response.Status, ct);
 
         var entitlements = await entitlementService.GetEntitlementsAsync(profileId.Value, ct);
 
@@ -119,6 +121,46 @@ internal sealed class GetMySubscriptionEndpoint(
         };
 
         await Send.OkAsync(response, ct);
+    }
+
+    /// <summary>
+    /// The promotion discounting the coach's live provider subscription, or null. A subscription that is not live (Free,
+    /// canceled, incomplete) shows none.
+    /// </summary>
+    private async Task<CurrentPromotionDto?> LoadPromotionAsync(long profileId, SubscriptionStatus? status, CancellationToken ct)
+    {
+        if (status is not (SubscriptionStatus.Active or SubscriptionStatus.Trialing or SubscriptionStatus.PastDue))
+        {
+            return null;
+        }
+
+        var current = await db.CoachSubscriptions
+            .AsNoTracking()
+            .Where(cs => cs.ProfessionalProfileId == profileId && cs.CurrentPromotionId != null)
+            .Select(cs => new
+            {
+                cs.CurrentPromotion!.Name,
+                cs.CurrentPromotion.Kind,
+                cs.CurrentPromotion.Value,
+                cs.CurrentPromotion.Currency,
+                cs.CurrentPromotion.Duration,
+                cs.CurrentPromotion.DurationMonths,
+                cs.CurrentPromotionEndsAt,
+            })
+            .FirstOrDefaultAsync(ct);
+
+        return current is null
+            ? null
+            : new CurrentPromotionDto
+            {
+                Name = current.Name,
+                Kind = current.Kind,
+                Value = current.Value,
+                Currency = current.Currency,
+                Duration = current.Duration,
+                DurationMonths = current.DurationMonths,
+                EndsAt = current.CurrentPromotionEndsAt,
+            };
     }
 
     /// <summary>

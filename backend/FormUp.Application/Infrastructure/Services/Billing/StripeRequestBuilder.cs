@@ -1,4 +1,5 @@
 using FormUp.Application.Domain.Enums;
+using FormUp.Application.Domain.Interfaces;
 using Microsoft.AspNetCore.WebUtilities;
 using Stripe;
 using Stripe.Checkout;
@@ -236,6 +237,58 @@ public static class StripeRequestBuilder
         PercentOff = 100,
         Duration = "forever",
         Name = "Form Up given plan",
+    };
+
+    /// <summary>
+    /// A coupon for a promotion. The first month is Stripe's "once" (the first invoice), several months is "repeating".
+    /// Max uses and the claim end are enforced by Stripe at Checkout; a product list restricts the discount to those lines.
+    /// </summary>
+    /// <param name="spec">The promotion's coupon terms.</param>
+    /// <param name="productIds">Provider product ids the discount is limited to, or null for no restriction.</param>
+    public static CouponCreateOptions Coupon(CouponSpec spec, List<string>? productIds)
+    {
+        var options = new CouponCreateOptions
+        {
+            Name = spec.Name,
+            Duration = spec.Duration switch
+            {
+                PromotionDuration.FirstMonth => "once",
+                PromotionDuration.Months => "repeating",
+                _ => "forever",
+            },
+            DurationInMonths = spec.Duration == PromotionDuration.Months ? spec.DurationMonths : null,
+            MaxRedemptions = spec.MaxUses,
+            RedeemBy = spec.ClaimUntil?.UtcDateTime,
+            AppliesTo = productIds is null ? null : new CouponAppliesToOptions { Products = productIds },
+        };
+
+        if (spec.Kind == PromotionKind.Percent)
+        {
+            options.PercentOff = spec.Value;
+        }
+        else
+        {
+            options.AmountOff = spec.Value;
+            options.Currency = spec.Currency?.ToLowerInvariant();
+        }
+
+        return options;
+    }
+
+    /// <summary>
+    /// A customer-facing promotion code for a coupon, optionally limited to customers who never paid before.
+    /// </summary>
+    /// <param name="couponId">The provider coupon id.</param>
+    /// <param name="code">The code text.</param>
+    /// <param name="expiresAt">Last moment the code works, or null.</param>
+    /// <param name="firstTimeOnly">True to refuse customers who paid before.</param>
+    public static PromotionCodeCreateOptions PromotionCode(
+        string couponId, string code, DateTimeOffset? expiresAt, bool firstTimeOnly) => new()
+    {
+        Promotion = new PromotionCodePromotionOptions { Type = "coupon", Coupon = couponId },
+        Code = code,
+        ExpiresAt = expiresAt?.UtcDateTime,
+        Restrictions = firstTimeOnly ? new PromotionCodeRestrictionsOptions { FirstTimeTransaction = true } : null,
     };
 
     /// <summary>

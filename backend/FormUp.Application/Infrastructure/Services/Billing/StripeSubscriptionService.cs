@@ -153,29 +153,83 @@ public sealed class StripeSubscriptionService(
         });
 
     /// <inheritdoc />
-    public Task<bool> ApplyPromotionCodeAsync(string subscriptionId, string promotionCode, CancellationToken ct) =>
+    public Task ApplyPromotionCodeAsync(string subscriptionId, string promotionCodeId, CancellationToken ct) =>
         RunAsync("apply-promotion-code", async stripe =>
         {
-            var codes = await stripe.V1.PromotionCodes.ListAsync(
-                new PromotionCodeListOptions { Code = promotionCode, Active = true, Limit = 1 },
-                cancellationToken: ct);
-            var code = codes.Data.FirstOrDefault();
-
-            if (code is null)
-            {
-                return false;
-            }
-
-            var subscription = await GetSubscriptionAsync(stripe, subscriptionId, ct);
-            var discounts = (subscription.DiscountIds ?? [])
-                .Select(id => new SubscriptionDiscountOptions { Discount = id })
-                .Append(new SubscriptionDiscountOptions { PromotionCode = code.Id })
-                .ToList();
-
+            // Setting the full list replaces the discount already there, so a repeat or a switch cannot stack two.
             await stripe.V1.Subscriptions.UpdateAsync(
-                subscriptionId, new SubscriptionUpdateOptions { Discounts = discounts }, cancellationToken: ct);
+                subscriptionId,
+                new SubscriptionUpdateOptions
+                {
+                    Discounts = [new SubscriptionDiscountOptions { PromotionCode = promotionCodeId }],
+                },
+                cancellationToken: ct);
 
             return true;
+        });
+
+    /// <inheritdoc />
+    public Task<string> CreateCouponAsync(CouponSpec spec, CancellationToken ct) =>
+        RunAsync("create-coupon", async stripe =>
+        {
+            List<string>? productIds = null;
+
+            if (spec.PlanPriceExternalIds is { Count: > 0 } priceIds)
+            {
+                productIds = [];
+
+                foreach (var priceId in priceIds)
+                {
+                    var price = await stripe.V1.Prices.GetAsync(priceId, cancellationToken: ct);
+
+                    if (!productIds.Contains(price.ProductId))
+                    {
+                        productIds.Add(price.ProductId);
+                    }
+                }
+            }
+
+            var coupon = await stripe.V1.Coupons.CreateAsync(
+                StripeRequestBuilder.Coupon(spec, productIds),
+                new RequestOptions { IdempotencyKey = spec.IdempotencyKey },
+                ct);
+
+            return coupon.Id;
+        });
+
+    /// <inheritdoc />
+    public Task<string> CreatePromotionCodeAsync(
+        string couponId, string code, DateTimeOffset? expiresAt, bool firstTimeOnly, CancellationToken ct) =>
+        RunAsync("create-promotion-code", async stripe =>
+        {
+            var created = await stripe.V1.PromotionCodes.CreateAsync(
+                StripeRequestBuilder.PromotionCode(couponId, code, expiresAt, firstTimeOnly), cancellationToken: ct);
+
+            return created.Id;
+        });
+
+    /// <inheritdoc />
+    public Task DeleteCouponAsync(string couponId, CancellationToken ct) =>
+        RunAsync("delete-coupon", async stripe =>
+        {
+            await stripe.V1.Coupons.DeleteAsync(couponId, cancellationToken: ct);
+
+            return true;
+        });
+
+    /// <inheritdoc />
+    public Task<SubscriptionDiscount?> GetSubscriptionDiscountAsync(string subscriptionId, CancellationToken ct) =>
+        RunAsync("get-subscription-discount", async stripe =>
+        {
+            var subscription = await GetSubscriptionAsync(stripe, subscriptionId, ct);
+            var discount = subscription.Discounts?.FirstOrDefault();
+
+            return discount is null
+                ? null
+                : new SubscriptionDiscount(
+                    discount.Source?.CouponId,
+                    discount.PromotionCodeId,
+                    discount.End is { } end ? StripeWebhookMapper.ToUtc(end) : null);
         });
 
     /// <inheritdoc />

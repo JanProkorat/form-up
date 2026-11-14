@@ -107,6 +107,36 @@ public class GetMySubscriptionResponse
 
     /// <summary>The feature flags that currently apply.</summary>
     public SubscriptionFeaturesDto Features { get; set; } = new();
+
+    /// <summary>The promotion discounting the live subscription now; null when there is none.</summary>
+    public CurrentPromotionDto? Promotion { get; set; }
+}
+
+/// <summary>
+/// The promotion discounting the coach's subscription.
+/// </summary>
+public class CurrentPromotionDto
+{
+    /// <summary>Promotion name.</summary>
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>Percentage or fixed amount.</summary>
+    public PromotionKind Kind { get; set; }
+
+    /// <summary>Percent (1 to 100), or the amount in the smallest unit of <see cref="Currency"/>.</summary>
+    public long Value { get; set; }
+
+    /// <summary>ISO 4217 currency of a fixed amount; null for a percentage.</summary>
+    public string? Currency { get; set; }
+
+    /// <summary>How long the discount lasts for this coach.</summary>
+    public PromotionDuration Duration { get; set; }
+
+    /// <summary>Months the discount lasts; set only for <see cref="PromotionDuration.Months"/>.</summary>
+    public int? DurationMonths { get; set; }
+
+    /// <summary>When the discount ends, as Stripe reports it; null for a forever discount.</summary>
+    public DateTimeOffset? EndsAt { get; set; }
 }
 
 /// <summary>
