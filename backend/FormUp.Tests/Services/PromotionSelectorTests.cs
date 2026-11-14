@@ -63,6 +63,15 @@ public class PromotionSelectorTests
     }
 
     [Fact]
+    public void Pick_SkipsAPromotionAnAdminEnded_SoTheNextWinnerApplies()
+    {
+        var ended = Automatic(1, Now.AddDays(-1), p => p.EndedAt = Now.AddHours(-1));
+        var open = Automatic(2, Now.AddDays(-30));
+
+        Pick([(ended, 0), (open, 0)]).Should().BeSameAs(open);
+    }
+
+    [Fact]
     public void Pick_SkipsCodePromotions()
     {
         var code = Automatic(1, Now.AddDays(-1), p => p.Mode = PromotionMode.Code);

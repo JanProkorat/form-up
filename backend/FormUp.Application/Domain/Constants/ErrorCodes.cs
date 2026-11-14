@@ -823,6 +823,9 @@ public static class ErrorCodes
     /// <summary>The mode and the code disagree: a code is missing in code mode or present in automatic mode.</summary>
     public const string PromotionModeInvalid = "PROMOTION_MODE_INVALID";
 
+    /// <summary>The promotion has already ended, by an admin, its claim window or its use limit.</summary>
+    public const string PromotionAlreadyEnded = "PROMOTION_ALREADY_ENDED";
+
     /// <summary>The plan has no second-role add-on to buy: both roles are included, or it has no add-on price.</summary>
     public const string BillingAddOnNotAvailable = "BILLING_ADD_ON_NOT_AVAILABLE";
 

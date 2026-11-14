@@ -8,4 +8,7 @@ internal static class AdminPromotionAuditActions
 {
     /// <summary>An admin created a promotion.</summary>
     public const string Create = "AdminCreatePromotion";
+
+    /// <summary>An admin ended a promotion early.</summary>
+    public const string End = "AdminEndPromotion";
 }

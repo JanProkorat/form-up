@@ -55,6 +55,9 @@ public sealed class FakeSubscriptionService : ISubscriptionService
     /// <summary>Recorded <see cref="ISubscriptionService.DeleteCouponAsync"/> calls (coupon ids).</summary>
     public List<string> DeletedCoupons { get; } = [];
 
+    /// <summary>Recorded <see cref="ISubscriptionService.DeactivatePromotionCodeAsync"/> calls (provider promotion code ids).</summary>
+    public List<string> DeactivatedPromotionCodes { get; } = [];
+
     /// <summary>When true only <see cref="ISubscriptionService.CreatePromotionCodeAsync"/> throws <see cref="BillingProviderException"/>.</summary>
     public bool FailPromotionCodeCreation { get; set; }
 
@@ -128,6 +131,7 @@ public sealed class FakeSubscriptionService : ISubscriptionService
             Coupons.Clear();
             PromotionCodes.Clear();
             DeletedCoupons.Clear();
+            DeactivatedPromotionCodes.Clear();
             FailPromotionCodeCreation = false;
             SubscriptionDiscounts.Clear();
             CancelledAtPeriodEnd.Clear();
@@ -260,6 +264,19 @@ public sealed class FakeSubscriptionService : ISubscriptionService
 
             return Task.FromResult(promotionCodeId);
         }
+    }
+
+    /// <inheritdoc />
+    public Task DeactivatePromotionCodeAsync(string promotionCodeId, CancellationToken ct)
+    {
+        ThrowIfFailing();
+
+        lock (gate)
+        {
+            DeactivatedPromotionCodes.Add(promotionCodeId);
+        }
+
+        return Task.CompletedTask;
     }
 
     /// <inheritdoc />

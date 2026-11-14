@@ -285,6 +285,23 @@ public class CreateCheckoutSessionEndpointTests(FitnessApiFactory factory) : IDi
     }
 
     [Fact]
+    public async Task Checkout_AfterAnAdminEndedTheAutomaticPromotion_PassesNoCoupon()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
+        await PromotionBuilder.ClearAsync(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (plan, _) = await StripePlanAsync();
+        await PromotionBuilder.CreateAsync(
+            factory, [plan], PromotionMode.Automatic, p => p.EndedAt = DateTimeOffset.UtcNow.AddMinutes(-5));
+
+        var response = await coach.Http.PostAsJsonAsync(Route, Body(plan), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.Checkouts.Should().ContainSingle(call => call.UserId == coach.UserId).Which.CouponId.Should().BeNull();
+    }
+
+    [Fact]
     public async Task Checkout_WhenTwoAutomaticPromotionsOverlap_PassesTheLatestClaimFrom()
     {
         var fake = BillingTestData.ResetProvider(factory);
