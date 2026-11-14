@@ -79,7 +79,10 @@ public class UpdateSubscriptionPlanRequest
     /// <summary>Billing cadence for this plan.</summary>
     public BillingInterval BillingInterval { get; set; }
 
-    /// <summary>External payment-provider price identifier, once billing integration ships.</summary>
+    /// <summary>
+    /// Ignored. The backend creates the Stripe price itself when a price row opens; the field stays only so existing
+    /// clients keep working. The response returns the price id the backend stored.
+    /// </summary>
     public string? ExternalPriceId { get; set; }
 
     /// <summary>

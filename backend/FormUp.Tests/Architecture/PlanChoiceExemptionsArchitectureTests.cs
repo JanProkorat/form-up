@@ -22,6 +22,7 @@ public class PlanChoiceExemptionsArchitectureTests(FitnessApiFactory factory)
         "ChooseFreePlanEndpoint",
         "ConfirmAvatarEndpoint",
         "ConfirmProfessionalAvatarEndpoint",
+        "CreateCheckoutSessionEndpoint",
         "DeleteAccountEndpoint",
         "DeleteAvatarEndpoint",
         "DeleteProfessionalAvatarEndpoint",

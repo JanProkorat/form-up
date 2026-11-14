@@ -8,6 +8,7 @@ using FormUp.Application.Domain.Interfaces;
 using FormUp.Application.Domain.Services;
 using FormUp.Application.Features.AdminCoaches.Shared;
 using FormUp.Application.Infrastructure.Data;
+using FormUp.Application.Infrastructure.Services.Billing;
 using Microsoft.EntityFrameworkCore;
 
 namespace FormUp.Application.Features.AdminCoaches.GiveCoachPlanFree;
@@ -22,13 +23,15 @@ namespace FormUp.Application.Features.AdminCoaches.GiveCoachPlanFree;
 /// <param name="notifications">Notification service.</param>
 /// <param name="notifier">Realtime notifier.</param>
 /// <param name="logger">Logger.</param>
+/// <param name="subscriptionService">The payment provider seam.</param>
 internal sealed class GiveCoachPlanFreeEndpoint(
     IApplicationDbContext db,
     IAuditService audit,
     TimeProvider timeProvider,
     INotificationService notifications,
     IRealtimeNotifier notifier,
-    ILogger<GiveCoachPlanFreeEndpoint> logger)
+    ILogger<GiveCoachPlanFreeEndpoint> logger,
+    ISubscriptionService subscriptionService)
     : Endpoint<GiveCoachPlanFreeRequest, GiveCoachPlanFreeResponse>
 {
     /// <inheritdoc />
@@ -42,8 +45,12 @@ internal sealed class GiveCoachPlanFreeEndpoint(
             s.Description = "Puts the coach on the plan's open price row as a plan set by Form Up: Active, no pending price change, and the " +
                             "kept/released client choice made while lapsed is reset. The plan ends at FreeUntil, or never when it is null. The " +
                             "reason is recorded in the coach's history. Replaces any earlier subscription assignment. The coach gets an in-app " +
-                            "notification and a subscriptionchanged event; a failure to notify does not fail the call.";
+                            "notification and a subscriptionchanged event; a failure to notify does not fail the call. A coach with a " +
+                            "Stripe subscription gets a 100 % discount there first (ending on FreeUntil); if Stripe fails nothing is " +
+                            "saved. Without Stripe keys, or without a Stripe subscription, only the local change is made.";
             s.Response<GiveCoachPlanFreeResponse>(StatusCodes.Status200OK, "The plan as it now stands");
+            s.Response<ProblemDetails>(StatusCodes.Status502BadGateway,
+                "Stripe failed; nothing was saved (BILLING_PROVIDER_ERROR)");
             s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Invalid request body");
             s.Response(StatusCodes.Status401Unauthorized, "Missing or invalid credentials");
             s.Response(StatusCodes.Status403Forbidden, "Caller is not an Admin");
@@ -102,6 +109,13 @@ internal sealed class GiveCoachPlanFreeEndpoint(
             db.CoachSubscriptions.Add(subscription);
         }
 
+        if (!await TryApplyGiftInStripeAsync(subscription, req.FreeUntil, ct))
+        {
+            await this.SendProblemAsync(
+                StatusCodes.Status502BadGateway, ErrorCodes.BillingProviderError, "The payment provider failed; nothing was saved.", ct);
+            return;
+        }
+
         subscription.SubscriptionPlanId = openPrice.SubscriptionPlanId;
         subscription.SubscriptionPlanPriceId = openPrice.Id;
         subscription.PendingSubscriptionPlanPriceId = null;
@@ -138,5 +152,34 @@ internal sealed class GiveCoachPlanFreeEndpoint(
             GivenFreeAt = now,
             FreeUntil = req.FreeUntil,
         }, ct);
+    }
+
+    /// <summary>
+    /// Applies the 100 % discount at Stripe when the coach has a Stripe subscription. Returns false when Stripe failed, so
+    /// the caller saves nothing. Without keys the call is skipped with a warning and the local change still happens.
+    /// </summary>
+    private async Task<bool> TryApplyGiftInStripeAsync(CoachSubscription subscription, DateTimeOffset? freeUntil, CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(subscription.ExternalSubscriptionId))
+        {
+            return true;
+        }
+
+        if (!subscriptionService.IsConfigured)
+        {
+            logger.LogWarning("Stripe is not configured; the given plan is saved locally without a Stripe discount");
+            return true;
+        }
+
+        try
+        {
+            await subscriptionService.ApplyGivenFreeAsync(subscription.ExternalSubscriptionId, freeUntil, ct);
+
+            return true;
+        }
+        catch (BillingProviderException)
+        {
+            return false;
+        }
     }
 }

@@ -161,6 +161,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public virtual DbSet<CoachSubscription> CoachSubscriptions { get; set; } = null!;
 
     /// <summary>
+    /// Ids of the payment-provider webhook events already applied, so a repeated delivery is a no-op.
+    /// </summary>
+    public virtual DbSet<ProcessedWebhookEvent> ProcessedWebhookEvents { get; set; } = null!;
+
+    /// <summary>
     /// Coach-owned tags used to label clients.
     /// </summary>
     public virtual DbSet<ClientTag> ClientTags { get; set; } = null!;

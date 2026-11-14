@@ -8,6 +8,7 @@ using FormUp.Application.Domain.Enums;
 using FormUp.Application.Features.SubscriptionPlans.Shared;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Tests.Builders;
+using FormUp.Tests.Endpoints.Billing;
 using FormUp.Tests.Infrastructure;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -22,7 +23,7 @@ namespace FormUp.Tests.Endpoints.SubscriptionPlans;
 /// only way to prove the role gate is the real ASP.NET Core pipeline.
 /// </summary>
 [Collection(TestCollection.Name)]
-public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory)
+public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory) : IDisposable
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -140,7 +141,7 @@ public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory)
         prices[1].PriceMinorUnits.Should().Be(50000);
         prices[1].Currency.Should().Be("EUR");
         prices[1].SecondRoleAddOnPriceMinorUnits.Should().BeNull();
-        prices[1].ExternalPriceId.Should().Be("price_123");
+        prices[1].ExternalPriceId.Should().StartWith("price_fake_", "the typed ExternalPriceId is ignored; the backend creates the price");
 
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -176,8 +177,9 @@ public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task Update_PriceUnchanged_KeepsOneRowAndOnlyUpdatesExternalPriceId()
+    public async Task Update_PriceUnchangedAndRowHasNoStripePrice_KeepsOneRowAndBackfillsThePriceFromStripe()
     {
+        BillingTestData.ResetProvider(factory);
         var client = await TestHelpers.RegisterAdminAsync(factory, TestContext.Current.CancellationToken);
         var code = await SeedPlanAsync();
 
@@ -198,7 +200,7 @@ public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory)
         var prices = await ReadPricesAsync(code);
         var only = prices.Should().ContainSingle().Subject;
         only.ValidTo.Should().BeNull();
-        only.ExternalPriceId.Should().Be("price_same_row");
+        only.ExternalPriceId.Should().StartWith("price_fake_", "the typed ExternalPriceId is ignored");
     }
 
     [Fact]
@@ -246,6 +248,117 @@ public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory)
         var canceled = await ReadSubscriptionAsync(canceledCoach.ProfileId);
         canceled.PendingSubscriptionPlanPriceId.Should().BeNull();
     }
+
+    [Fact]
+    public async Task Update_PriceChange_CreatesTheStripePriceForTheNewRow()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var client = await TestHelpers.RegisterAdminAsync(factory, TestContext.Current.CancellationToken);
+        var code = await SeedPlanAsync();
+
+        var response = await client.PutAsJsonAsync(
+            $"/admin/subscription-plans/{code}", UpdatedPayload(code), TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.Prices.Should().ContainSingle(call => call.PlanCode == code)
+            .Which.Should().Be(new FakeSubscriptionService.PriceCall(code, 50000, "EUR", BillingInterval.Annual));
+    }
+
+    [Fact]
+    public async Task Update_WhenStripeIsNotConfigured_SavesLocallyWithoutAStripePrice()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        fake.IsConfigured = false;
+        var client = await TestHelpers.RegisterAdminAsync(factory, TestContext.Current.CancellationToken);
+        var code = await SeedPlanAsync();
+
+        var response = await client.PutAsJsonAsync(
+            $"/admin/subscription-plans/{code}", UpdatedPayload(code), TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.Prices.Should().BeEmpty();
+        (await ReadPricesAsync(code)).Single(p => p.ValidTo is null).ExternalPriceId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Update_WhenStripeFailsCreatingThePrice_Returns502_AndSavesNothing()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        fake.Fail = true;
+        var client = await TestHelpers.RegisterAdminAsync(factory, TestContext.Current.CancellationToken);
+        var code = await SeedPlanAsync();
+
+        var response = await client.PutAsJsonAsync(
+            $"/admin/subscription-plans/{code}", UpdatedPayload(code), TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadGateway);
+        (await ReadPricesAsync(code)).Should().ContainSingle().Which.ValidTo.Should().BeNull();
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        (await db.SubscriptionPlans.AsNoTracking().FirstAsync(p => p.Code == code, TestContext.Current.CancellationToken))
+            .NameEn.Should().Be("Original");
+    }
+
+    [Fact]
+    public async Task Update_MoveFlag_SchedulesTheRenewalAtStripeOnlyForCoachesWithAStripeSubscription()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var client = await TestHelpers.RegisterAdminAsync(factory, TestContext.Current.CancellationToken);
+        var code = await SeedPlanAsync();
+        var withStripe = await TestActors.Trainer(factory).CreateAsync();
+        var withoutStripe = await TestActors.Trainer(factory).CreateAsync();
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, withStripe, code);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, withoutStripe, code);
+        var subscriptionId = $"sub_{Guid.NewGuid():N}";
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            await db.CoachSubscriptions.Where(cs => cs.ProfessionalProfileId == withStripe.ProfileId)
+                .ExecuteUpdateAsync(s => s.SetProperty(cs => cs.ExternalSubscriptionId, subscriptionId), TestContext.Current.CancellationToken);
+        }
+
+        var response = await client.PutAsJsonAsync(
+            $"/admin/subscription-plans/{code}",
+            UpdatedPayload(code) with { MoveExistingCoachesAtNextRenewal = true },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var change = fake.PlanChanges.Should().ContainSingle().Subject;
+        change.SubscriptionId.Should().Be(subscriptionId);
+        change.AtNextRenewal.Should().BeTrue();
+        change.PlanPriceExternalId.Should().StartWith("price_fake_");
+        (await ReadSubscriptionAsync(withoutStripe.ProfileId)).PendingSubscriptionPlanPriceId.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task Update_MoveFlagWhenStripeFailsScheduling_Returns502_AndMarksNoCoach()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var client = await TestHelpers.RegisterAdminAsync(factory, TestContext.Current.CancellationToken);
+        var code = await SeedPlanAsync();
+        var coach = await TestActors.Trainer(factory).CreateAsync();
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, code);
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            await db.CoachSubscriptions.Where(cs => cs.ProfessionalProfileId == coach.ProfileId)
+                .ExecuteUpdateAsync(s => s.SetProperty(cs => cs.ExternalSubscriptionId, "sub_fail"), TestContext.Current.CancellationToken);
+        }
+
+        // The price is created first and succeeds; the schedule call then fails.
+        fake.FailPlanChanges = true;
+
+        var response = await client.PutAsJsonAsync(
+            $"/admin/subscription-plans/{code}",
+            UpdatedPayload(code) with { MoveExistingCoachesAtNextRenewal = true },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadGateway);
+        (await ReadSubscriptionAsync(coach.ProfileId)).PendingSubscriptionPlanPriceId.Should().BeNull();
+        (await ReadPricesAsync(code)).Should().ContainSingle();
+    }
+
+    public void Dispose() => BillingTestData.ResetProvider(factory);
 
     [Fact]
     public async Task Update_FreePlanWithNonZeroPrice_Returns409FreePlanLocked()
