@@ -23,6 +23,7 @@ public class EntitlementServiceResolutionTests
         string code,
         bool canSendQuestionnaires = false,
         bool canUsePayments = false,
+        bool canUsePackages = false,
         int? maxActiveClients = null,
         bool bothRolesIncluded = true) => new()
     {
@@ -35,6 +36,7 @@ public class EntitlementServiceResolutionTests
         CanCreatePlans = true,
         CanSendQuestionnaires = canSendQuestionnaires,
         CanUsePayments = canUsePayments,
+        CanUsePackages = canUsePackages,
         MaxActiveClients = maxActiveClients,
         BothRolesIncluded = bothRolesIncluded,
     };
@@ -199,18 +201,18 @@ public class EntitlementServiceResolutionTests
     [Fact]
     public async Task GetPackagesEntitledProfileIdsAsync_UsesTheSameResolutionAsTheSingleLookup()
     {
-        var free = Plan(1, "free", canUsePayments: true);
-        var noPayments = Plan(2, "no-payments", canUsePayments: false);
+        var free = Plan(1, "free", canUsePackages: true);
+        var noPackages = Plan(2, "no-packages", canUsePackages: false);
         var subscriptions = new[]
         {
-            Subscription(noPayments, SubscriptionStatus.Active, profileId: 11),
-            Subscription(noPayments, SubscriptionStatus.Canceled, profileId: 12),
+            Subscription(noPackages, SubscriptionStatus.Active, profileId: 11),
+            Subscription(noPackages, SubscriptionStatus.Canceled, profileId: 12),
         };
-        var service = CreateService([free, noPayments], subscriptions);
+        var service = CreateService([free, noPackages], subscriptions);
 
         var entitled = await service.GetPackagesEntitledProfileIdsAsync([10, 11, 12], TestContext.Current.CancellationToken);
 
-        entitled.Should().BeEquivalentTo([10L, 12L], "10 has no row (Free), 11 keeps a plan without payments, 12 falls back to Free");
+        entitled.Should().BeEquivalentTo([10L, 12L], "10 has no row (Free), 11 keeps a plan without packages, 12 falls back to Free");
     }
 
     [Fact]
