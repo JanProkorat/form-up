@@ -239,6 +239,16 @@ export default function PlanEditorForm({ plan, onSubmit, onCancel, isSaving }: P
               </div>
             </div>
 
+            {showPriceWarning && plan && (
+              <PriceChangeWarning
+                control={control}
+                from={formatPlanMoney(savedPriceMinor, currency, i18n.language)}
+                to={formatPlanMoney(newPriceMinor, currency, i18n.language)}
+                coachCount={coachCount}
+                planLabel={planName(plan, i18n.language)}
+              />
+            )}
+
             <div className="flex flex-col gap-1.5">
               <span className="text-body font-medium text-ink-2">{t('adminPlans.drawer.secondRole')}</span>
               <div role="group" aria-label={t('adminPlans.drawer.secondRole')} className="grid grid-cols-2 gap-2">
@@ -271,15 +281,6 @@ export default function PlanEditorForm({ plan, onSubmit, onCancel, isSaving }: P
               </div>
             )}
 
-            {showPriceWarning && plan && (
-              <PriceChangeWarning
-                control={control}
-                from={formatPlanMoney(savedPriceMinor, currency, i18n.language)}
-                to={formatPlanMoney(newPriceMinor, currency, i18n.language)}
-                coachCount={coachCount}
-                planLabel={planName(plan, i18n.language)}
-              />
-            )}
           </section>
         </div>
 
@@ -411,7 +412,13 @@ export default function PlanEditorForm({ plan, onSubmit, onCancel, isSaving }: P
               render={({ field }) => {
                 const isPerClient = flag === 'canUsePerClientCheckInConfig';
                 return (
-                  <div className="flex flex-col gap-1">
+                  <div
+                    className={cn(
+                      'flex flex-col gap-1',
+                      // Strike only the label span; the hint (second span) stays readable.
+                      isPerClient && !weeklyCheckIns && '[&_label>span:first-child]:line-through',
+                    )}
+                  >
                     <PlanCheckRow
                       label={t(editorFeatureLabelKey(key))}
                       hint={t(editorFeatureHintKey(key))}
