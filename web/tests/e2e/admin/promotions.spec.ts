@@ -107,6 +107,9 @@ const PROMOTIONS: PromotionMock[] = [
   },
 ];
 
+/** The visible toast with this text; the text also sits in a screen-reader live region, so a plain getByText is ambiguous. */
+const toastTitle = (page: Page, text: string) => page.locator('[data-slot="toast-title"]').filter({ hasText: text });
+
 function json(route: Route, body: unknown, status = 200, contentType = 'application/json') {
   return route.fulfill({ status, contentType, body: JSON.stringify(body) });
 }
@@ -266,7 +269,7 @@ trainerTest.describe('admin promotions', () => {
 
     await dialog.getByRole('button', { name: 'End promotion' }).click();
 
-    await expect(page.getByText('Promotion ended.')).toBeVisible();
+    await expect(toastTitle(page, 'Promotion ended.')).toBeVisible();
     await expect(page.getByRole('dialog')).toHaveCount(0);
     expect(harness.ended).toHaveLength(1);
     expect(harness.ended[0]?.path).toBe('/admin/promotions/00000000-0000-4000-8000-000000000001/end');
@@ -305,7 +308,7 @@ trainerTest.describe('admin promotions', () => {
     await page.getByRole('button', { name: 'End Partner code' }).click();
     await page.getByRole('dialog').getByRole('button', { name: 'End promotion' }).click();
 
-    await expect(page.getByText('This promotion has already ended.')).toBeVisible();
+    await expect(toastTitle(page, 'This promotion has already ended.')).toBeVisible();
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await expect.poll(() => harness.listStatuses.length).toBeGreaterThan(readsBefore);
   });
@@ -322,7 +325,7 @@ trainerTest.describe('admin promotions', () => {
     await page.getByRole('button', { name: 'End Partner code' }).click();
     await page.getByRole('dialog').getByRole('button', { name: 'End promotion' }).click();
 
-    await expect(page.getByText("The payment provider didn't answer. Please try again in a moment.")).toBeVisible();
+    await expect(toastTitle(page, "The payment provider didn't answer. Please try again in a moment.")).toBeVisible();
     await expect(page.getByRole('dialog')).toBeVisible();
     expect(harness.listStatuses.length).toBe(readsBefore);
     await expect(page.getByRole('row', { name: /Partner code/ }).getByText('Active', { exact: true })).toBeVisible();
@@ -373,7 +376,7 @@ trainerTest.describe('admin promotions', () => {
 
     await drawer.getByRole('button', { name: 'Save promotion' }).click();
 
-    await expect(page.getByText('Promotion saved.')).toBeVisible();
+    await expect(toastTitle(page, 'Promotion saved.')).toBeVisible();
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await expect(page.getByRole('row', { name: /Spring offer/ })).toBeVisible();
 
@@ -408,7 +411,7 @@ trainerTest.describe('admin promotions', () => {
     await drawer.getByLabel('Value', { exact: true }).fill('200');
     await drawer.getByRole('button', { name: 'Save promotion' }).click();
 
-    await expect(page.getByText('Promotion saved.')).toBeVisible();
+    await expect(toastTitle(page, 'Promotion saved.')).toBeVisible();
     expect(harness.created[0]).toMatchObject({ kind: 'FixedAmount', value: 20000, currency: 'CZK', mode: 'Automatic' });
   });
 
