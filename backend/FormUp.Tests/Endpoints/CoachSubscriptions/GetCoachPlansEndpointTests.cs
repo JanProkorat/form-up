@@ -88,7 +88,15 @@ public class GetCoachPlansEndpointTests(FitnessApiFactory factory)
             CanUseWeeklyCheckIns = pro.CanUseWeeklyCheckIns,
             CanUsePerClientCheckInConfig = pro.CanUsePerClientCheckInConfig,
             CanUsePayments = pro.CanUsePayments,
+            CanUsePlanTemplates = pro.CanUsePlanTemplates,
+            CanUseRecipes = pro.CanUseRecipes,
+            CanUseIngredients = pro.CanUseIngredients,
+            CanUseProgressPhotos = pro.CanUseProgressPhotos,
+            CanUseWeightAndMeasurements = pro.CanUseWeightAndMeasurements,
+            CanUseAutomations = pro.CanUseAutomations,
+            CanUsePackages = pro.CanUsePackages,
         });
+        pro.CanUsePackages.Should().BeTrue("the seeded Pro plan carries every new flag");
     }
 
     [Fact]

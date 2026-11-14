@@ -61,6 +61,27 @@ public class CoachPlanDto
     /// <summary>Per-client check-in configuration.</summary>
     public bool CanUsePerClientCheckInConfig { get; set; }
 
-    /// <summary>The payments feature.</summary>
+    /// <summary>Client payments.</summary>
     public bool CanUsePayments { get; set; }
+
+    /// <summary>Nutrition plan templates.</summary>
+    public bool CanUsePlanTemplates { get; set; }
+
+    /// <summary>The coach's own recipes.</summary>
+    public bool CanUseRecipes { get; set; }
+
+    /// <summary>The coach's own ingredients.</summary>
+    public bool CanUseIngredients { get; set; }
+
+    /// <summary>The coach side of progress photos.</summary>
+    public bool CanUseProgressPhotos { get; set; }
+
+    /// <summary>The coach side of weight and measurements.</summary>
+    public bool CanUseWeightAndMeasurements { get; set; }
+
+    /// <summary>Automations.</summary>
+    public bool CanUseAutomations { get; set; }
+
+    /// <summary>Coach packages and discounts.</summary>
+    public bool CanUsePackages { get; set; }
 }

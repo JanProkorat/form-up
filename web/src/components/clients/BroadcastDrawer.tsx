@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -14,6 +14,8 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { useBroadcastMessage } from '@/hooks/useClientsQueries';
+import { isSubscriptionRequired } from '@/lib/subscriptionErrors';
+import PaywallDialog from '@/components/subscription/PaywallDialog';
 
 interface FormValues {
   text: string;
@@ -40,6 +42,7 @@ interface Props {
 export default function BroadcastDrawer({ open, onOpenChange, clientPublicIds, onSent }: Props) {
   const { t } = useTranslation();
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const [paywallOpen, setPaywallOpen] = useState(false);
 
   const schema = z.object({
     text: z.string().min(1, t('clients.broadcastDrawer.validation.textRequired')),
@@ -82,11 +85,18 @@ export default function BroadcastDrawer({ open, onOpenChange, clientPublicIds, o
           onOpenChange(false);
           onSent();
         },
+        onError: (error) => {
+          if (isSubscriptionRequired(error)) {
+            setPaywallOpen(true);
+          }
+        },
       },
     );
   }
 
   return (
+    <>
+    <PaywallDialog open={paywallOpen} onOpenChange={setPaywallOpen} feature="chat" />
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent>
         <SheetHeader>
@@ -132,5 +142,6 @@ export default function BroadcastDrawer({ open, onOpenChange, clientPublicIds, o
         </SheetFooter>
       </SheetContent>
     </Sheet>
+    </>
   );
 }

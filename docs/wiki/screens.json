@@ -320,7 +320,8 @@
         "web/src/components/subscription/OutsidePlanBanner.tsx",
         "web/src/components/client-detail/OutsidePlanPaywall.tsx",
         "web/src/components/subscription/planLinks.ts",
-        "web/src/hooks/useSubscriptionQueries.ts"
+        "web/src/hooks/useSubscriptionQueries.ts",
+        "web/src/hooks/useMeasurementsGate.ts"
       ],
       "endpoints": [
         "GET /trainer/clients/{clientId}",
@@ -370,7 +371,8 @@
         "web/src/components/subscription/OutsidePlanBanner.tsx",
         "web/src/components/client-detail/OutsidePlanPaywall.tsx",
         "web/src/components/subscription/planLinks.ts",
-        "web/src/hooks/useSubscriptionQueries.ts"
+        "web/src/hooks/useSubscriptionQueries.ts",
+        "web/src/hooks/useMeasurementsGate.ts"
       ],
       "endpoints": [
         "GET /trainer/clients",
@@ -650,14 +652,18 @@
         "web/src/hooks/useIngredientListParams.ts",
         "web/src/hooks/useViewMode.ts",
         "web/src/api/foods.ts",
-        "web/src/api/food-tags.ts"
+        "web/src/api/food-tags.ts",
+        "web/src/hooks/useSubscriptionQueries.ts",
+        "web/src/lib/subscriptionErrors.ts",
+        "web/src/components/subscription/PaywallPanel.tsx"
       ],
       "endpoints": [
         "GET /foods/search",
         "GET /trainer/food-tags",
         "POST /trainer/food-tags",
         "PUT /trainer/food-tags/{tagId}",
-        "DELETE /trainer/food-tags/{tagId}"
+        "DELETE /trainer/food-tags/{tagId}",
+        "GET /users/me/subscription"
       ],
       "board": "PageIngredients",
       "shots": [
@@ -752,14 +758,18 @@
         "web/src/lib/recipe-nutrition.ts",
         "web/src/api/recipes.ts",
         "web/src/api/foods.ts",
-        "web/src/api/food-tags.ts"
+        "web/src/api/food-tags.ts",
+        "web/src/hooks/useSubscriptionQueries.ts",
+        "web/src/lib/subscriptionErrors.ts",
+        "web/src/components/subscription/PaywallPanel.tsx"
       ],
       "endpoints": [
         "GET /recipes",
         "GET /trainer/food-tags",
         "POST /trainer/food-tags",
         "PUT /trainer/food-tags/{tagId}",
-        "DELETE /trainer/food-tags/{tagId}"
+        "DELETE /trainer/food-tags/{tagId}",
+        "GET /users/me/subscription"
       ],
       "board": "PageRecipes",
       "shots": [
@@ -839,12 +849,16 @@
         "web/src/components/library/FilterChip.tsx",
         "web/src/hooks/usePlanTemplatesQueries.ts",
         "web/src/hooks/usePlanTemplateListParams.ts",
-        "web/src/api/nutrition-plan-templates.ts"
+        "web/src/api/nutrition-plan-templates.ts",
+        "web/src/hooks/useSubscriptionQueries.ts",
+        "web/src/lib/subscriptionErrors.ts",
+        "web/src/components/subscription/PaywallPanel.tsx"
       ],
       "endpoints": [
         "GET /nutrition/plan-templates",
         "POST /nutrition/plan-templates/{templateId}/copy",
-        "DELETE /nutrition/plan-templates/{templateId}"
+        "DELETE /nutrition/plan-templates/{templateId}",
+        "GET /users/me/subscription"
       ],
       "board": "PageTemplates",
       "shots": [
@@ -894,7 +908,10 @@
         "web/src/api/nutrition-plan-templates.ts",
         "web/src/api/foods.ts",
         "web/src/api/food-tags.ts",
-        "web/src/api/recipes.ts"
+        "web/src/api/recipes.ts",
+        "web/src/hooks/useSubscriptionQueries.ts",
+        "web/src/lib/subscriptionErrors.ts",
+        "web/src/components/subscription/PaywallPanel.tsx"
       ],
       "endpoints": [
         "GET /nutrition/plan-templates",
@@ -903,7 +920,8 @@
         "GET /foods/search",
         "GET /trainer/food-tags",
         "GET /recipes",
-        "GET /recipes/{recipeId}"
+        "GET /recipes/{recipeId}",
+        "GET /users/me/subscription"
       ],
       "board": "PageTemplateEditor",
       "shots": [
@@ -1054,7 +1072,10 @@
         "web/src/components/paywall/FeaturePaywall.tsx",
         "web/src/api/coach-packages.ts",
         "web/src/api/coach-discounts.ts",
-        "web/src/lib/money.ts"
+        "web/src/lib/money.ts",
+        "web/src/hooks/useSubscriptionQueries.ts",
+        "web/src/lib/subscriptionErrors.ts",
+        "web/src/components/subscription/PaywallPanel.tsx"
       ],
       "endpoints": [
         "GET /payments/packages",
@@ -1064,7 +1085,8 @@
         "GET /payments/discounts",
         "POST /payments/discounts",
         "PUT /payments/discounts/{discountId}",
-        "POST /payments/discounts/{discountId}/archive"
+        "POST /payments/discounts/{discountId}/archive",
+        "GET /users/me/subscription"
       ],
       "board": "PagePackages",
       "shots": [
@@ -1091,11 +1113,37 @@
       ],
       "endpoints": [
         "GET /admin/subscription-plans",
-        "POST /admin/subscription-plans",
-        "PUT /admin/subscription-plans/{code}",
         "DELETE /admin/subscription-plans/{code}"
       ],
       "board": "PageAdminPlans",
+      "shots": [
+        { "name": "default" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "web.admin.plan-editor",
+      "app": "web",
+      "area": "Admin",
+      "title": "Plan editor",
+      "route": "/admin/plans/:planId",
+      "roles": ["Admin"],
+      "files": [
+        "web/src/pages/AdminPlanEditorPage.tsx",
+        "web/src/components/admin-plans/*",
+        "web/src/components/package-catalog/catalogParts.tsx",
+        "web/src/components/package-catalog/packageFormParts.tsx",
+        "web/src/components/automations/automationFormParts.tsx",
+        "web/src/api/admin-subscription-plans.ts",
+        "web/src/lib/money.ts",
+        "web/src/components/subscription/planFeatures.ts"
+      ],
+      "endpoints": [
+        "GET /admin/subscription-plans",
+        "POST /admin/subscription-plans",
+        "PUT /admin/subscription-plans/{code}"
+      ],
+      "board": "PageAdminPlanEditor",
       "shots": [
         { "name": "default" }
       ],
@@ -1322,7 +1370,12 @@
         "web/src/hooks/useQuestionnaireQueries.ts",
         "web/src/api/client-payments.ts",
         "web/src/api/questionnaires.ts",
-        "web/src/lib/subscriptionErrors.ts"
+        "web/src/lib/subscriptionErrors.ts",
+        "web/src/hooks/useSubscriptionQueries.ts",
+        "web/src/components/subscription/PaywallPanel.tsx",
+        "web/src/components/subscription/PaywallDialog.tsx",
+        "web/src/components/client-detail/LockedFeatureCard.tsx",
+        "web/src/hooks/useMeasurementsGate.ts"
       ],
       "endpoints": [
         "GET /conversations",
@@ -1347,7 +1400,8 @@
         "GET /trainer/clients/{clientId}/measurements",
         "GET /nutrition/plans/{planId}",
         "GET /training/plans/{planId}",
-        "GET /users/me/roles"
+        "GET /users/me/roles",
+        "GET /users/me/subscription"
       ],
       "board": "PageInbox",
       "shots": [

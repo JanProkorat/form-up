@@ -42,6 +42,13 @@ versions above.
 were re-exported, light and dark. `GlassRecipeDetail` is now 1280 px tall; the merged
 `canvas.json` keeps the old row positions, so it overlaps the row below there only.
 
+**Partial update, 2026-11-14 (#2107):** `PageAdminPlanDrawer` was replaced by
+`PageAdminPlanEditor` and `PageAdminPlanEditorNew` (web portal 1794650599-2dcb), light
+and dark. The admin coach boards moved one column right (`39-06`…`39-08`, `40-06`…`40-08`).
+The editor boards are 1360 px tall; the merged `canvas.json` keeps the old row
+positions, so they overlap the dark admin row there only. Links to the old drawer
+open the editor (`MERGED` in `export_interactive.py`).
+
 | Path | Contents |
 |---|---|
 | `index.html` | Gallery of every board, grouped by app and module |

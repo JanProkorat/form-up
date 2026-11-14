@@ -1,3 +1,4 @@
+using FormUp.Application.Domain.Extensions;
 using System.Security.Claims;
 using FastEndpoints;
 using FormUp.Application.Domain.Constants;
@@ -36,6 +37,13 @@ public class GetFoodTagsEndpoint(IMongoContext mongo) : EndpointWithoutRequest<G
         if (!Guid.TryParse(userIdClaim, out var ownerUserId))
         {
             await Send.UnauthorizedAsync(ct);
+            return;
+        }
+
+        if (await this.RespondIfCoachFeatureNotEntitledAsync(
+                ownerUserId, entitlements => entitlements.CanUseIngredients,
+                "The current subscription does not include ingredients.", ct))
+        {
             return;
         }
 

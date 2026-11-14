@@ -34,9 +34,9 @@ public class PromoteFoodGalleryImageEndpointTests
                 Arg.Any<CancellationToken>())
             .Returns(missResult);
 
-        var ep = Factory.Create<PromoteFoodGalleryImageEndpoint>(
+        var ep = Factory.Create<PromoteFoodGalleryImageEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist)))),
             mongo);
 
         await ep.HandleAsync(new PromoteFoodGalleryImageRequest { FoodId = foodId, ImageUrl = galleryUrl },

@@ -29,10 +29,10 @@ public class UpdateFoodEndpointTests
             nutritionistId: _nutritionistId);
         var mongo = FoodTestHelpers.CreateMockMongo(food);
 
-        var ep = Factory.Create<UpdateFoodEndpoint>(
+        var ep = Factory.Create<UpdateFoodEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist)))),
             mongo);
 
         var request = new UpdateFoodRequest
@@ -60,10 +60,10 @@ public class UpdateFoodEndpointTests
             nutritionistId: Guid.NewGuid()); // different owner
         var mongo = FoodTestHelpers.CreateMockMongo(food);
 
-        var ep = Factory.Create<UpdateFoodEndpoint>(
+        var ep = Factory.Create<UpdateFoodEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist)))),
             mongo);
 
         var request = new UpdateFoodRequest
@@ -83,10 +83,10 @@ public class UpdateFoodEndpointTests
     {
         var mongo = FoodTestHelpers.CreateMockMongo();
 
-        var ep = Factory.Create<UpdateFoodEndpoint>(
+        var ep = Factory.Create<UpdateFoodEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist)))),
             mongo);
 
         var request = new UpdateFoodRequest
@@ -111,10 +111,10 @@ public class UpdateFoodEndpointTests
             visibility: FoodVisibility.Private);
         var mongo = FoodTestHelpers.CreateMockMongo(food);
 
-        var ep = Factory.Create<UpdateFoodEndpoint>(
+        var ep = Factory.Create<UpdateFoodEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist)))),
             mongo);
 
         var request = new UpdateFoodRequest
@@ -144,10 +144,10 @@ public class UpdateFoodEndpointTests
             visibility: FoodVisibility.Public);
         var mongo = FoodTestHelpers.CreateMockMongo(food);
 
-        var ep = Factory.Create<UpdateFoodEndpoint>(
+        var ep = Factory.Create<UpdateFoodEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist)))),
             mongo);
 
         var request = new UpdateFoodRequest

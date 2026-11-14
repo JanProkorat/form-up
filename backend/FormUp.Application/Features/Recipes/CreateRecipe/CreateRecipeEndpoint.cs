@@ -47,6 +47,13 @@ public class CreateRecipeEndpoint(IMongoContext mongo)
 
         var nutritionistId = Guid.Parse(userId);
 
+        if (await this.RespondIfCoachFeatureNotEntitledAsync(
+                nutritionistId, entitlements => entitlements.CanUseRecipes,
+                "The current subscription does not include recipes.", ct))
+        {
+            return;
+        }
+
         var foodLookup = await RecipeContent.LoadUsableFoodsAsync(
             mongo, req.Foods.Select(f => f.FoodExternalId), nutritionistId, ct);
 

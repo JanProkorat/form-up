@@ -11,7 +11,8 @@ import {
   useUpdateAutomationRule,
 } from '@/hooks/useAutomationQueries';
 import { useTrainerQuestionnaires } from '@/hooks/useQuestionnaireQueries';
-import { useInvalidateSubscription } from '@/hooks/useSubscriptionQueries';
+import { useInvalidateSubscription, useSubscription } from '@/hooks/useSubscriptionQueries';
+import PaywallPanel from '@/components/subscription/PaywallPanel';
 import { getRfc7807ErrorCode, showApiError, showSuccess } from '@/lib/api-errors';
 import { isSubscriptionRequired } from '@/lib/subscriptionErrors';
 import PaywallDialog from '@/components/subscription/PaywallDialog';
@@ -50,6 +51,9 @@ export default function AutomationsPage() {
   const [togglingIds, setTogglingIds] = useState<ReadonlySet<string>>(new Set());
   const [paywallOpen, setPaywallOpen] = useState(false);
   const invalidateSubscription = useInvalidateSubscription();
+  const { isEntitled } = useSubscription();
+  // isEntitled is true while the plan loads, so a refusal from the server locks the page as well.
+  const locked = !isEntitled('canUseAutomations') || (rulesQuery.isError && isSubscriptionRequired(rulesQuery.error));
 
   const formTitles = useMemo(
     () => new Map((formsQuery.data ?? []).map((form) => [form.publicId, form.title] as const)),
@@ -131,12 +135,18 @@ export default function AutomationsPage() {
           <h1 className="text-display font-semibold text-ink">{t('automations.title')}</h1>
           <p className="text-copy text-muted-foreground">{t('automations.subtitle')}</p>
         </div>
-        <Button type="button" size="lg" className="gap-1.75 px-3.5 font-semibold" onClick={() => setDrawer({})}>
-          <Plus aria-hidden="true" />
-          {t('automations.newRule')}
-        </Button>
+        {!locked && (
+          <Button type="button" size="lg" className="gap-1.75 px-3.5 font-semibold" onClick={() => setDrawer({})}>
+            <Plus aria-hidden="true" />
+            {t('automations.newRule')}
+          </Button>
+        )}
       </div>
 
+      {locked ? (
+        <PaywallPanel feature="automations" />
+      ) : (
+      <>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div role="group" aria-label={t('automations.filters.label')} className="flex flex-wrap gap-2">
           {FILTERS.map(({ value, labelKey }) => (
@@ -179,6 +189,8 @@ export default function AutomationsPage() {
           </p>
         )}
       </div>
+      </>
+      )}
 
       {drawer && (
         <AutomationRuleDrawer

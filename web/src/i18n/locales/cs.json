@@ -273,6 +273,60 @@
         "body": "Zjistěte, jak se každému klientovi vedlo, než začne další týden.",
         "benefit1": "Týdenní check-in odesílaný podle vašeho rozvrhu",
         "benefit2": "Odpovědi v kartě každého klienta"
+      },
+      "chat": {
+        "title": "Psaní klientům je součástí vyššího tarifu",
+        "body": "Pište klientům a odpovídejte jim ve Zprávách.",
+        "benefit1": "Posílejte zprávy a zahajujte konverzace s klienty",
+        "benefit2": "Hromadná zpráva více klientům"
+      },
+      "recipes": {
+        "title": "Vlastní recepty jsou součástí vyššího tarifu",
+        "body": "Vytvořte si knihovnu receptů a používejte ji v jídelníčcích klientů.",
+        "benefit1": "Vytvářejte a upravujte vlastní recepty",
+        "benefit2": "Přidávejte je do libovolného plánu výživy"
+      },
+      "ingredients": {
+        "title": "Vlastní suroviny jsou součástí vyššího tarifu",
+        "body": "Přidejte potraviny, které v databázi chybí, včetně jejich nutričních hodnot.",
+        "benefit1": "Vytvářejte vlastní suroviny a potraviny",
+        "benefit2": "Používejte je v receptech a plánech výživy"
+      },
+      "planTemplates": {
+        "title": "Šablony plánů jsou součástí vyššího tarifu",
+        "body": "Uložte plán výživy jednou a přiřaďte ho mnoha klientům.",
+        "benefit1": "Znovupoužitelné šablony plánů",
+        "benefit2": "Přiřazení šablony klientovi na pár kliknutí"
+      },
+      "automations": {
+        "title": "Automatizace jsou součástí vyššího tarifu",
+        "body": "Nechte Form Up posílat formuláře a žádat o fotky nebo míry podle vašeho rozvrhu.",
+        "benefit1": "Pravidla, která posílají formuláře podle rozvrhu",
+        "benefit2": "Žádosti o fotky a míry bez ručního připomínání"
+      },
+      "progressPhotos": {
+        "title": "Fotky pokroku jsou součástí vyššího tarifu",
+        "body": "Sledujte pokrok klientů a žádejte o nové fotky.",
+        "benefit1": "Záložka Fotky u každého klienta",
+        "benefit2": "Žádosti o fotky klientům"
+      },
+      "measurements": {
+        "title": "Váha a míry jsou součástí vyššího tarifu",
+        "body": "Sledujte, jak se mění váha a tělesné míry každého klienta.",
+        "benefit1": "Váha a statistiky v přehledu klienta",
+        "benefit2": "Historie měření v kartě klienta"
+      },
+      "payments": {
+        "title": "Platby klientů jsou součástí vyššího tarifu",
+        "body": "Mějte přehled, co vám který klient platí.",
+        "benefit1": "Záložka Platby u každého klienta",
+        "benefit2": "Platební žádosti s QR kódem"
+      },
+      "packages": {
+        "title": "Balíčky jsou součástí vyššího tarifu",
+        "body": "Nastavte si balíčky a slevy a nabízejte je s pozvánkou.",
+        "benefit1": "Balíčky s cenou a cyklem fakturace",
+        "benefit2": "Balíček přiložený ke každé pozvánce"
       }
     },
     "clientLimit": {
@@ -3545,6 +3599,7 @@
   },
   "apiErrors": {
     "FREE_PLAN_LOCKED": "Plán Free nejde takto změnit: jeho cena zůstává 0 a vždy se nabízí.",
+    "PER_CLIENT_CHECK_IN_REQUIRES_WEEKLY_CHECK_INS": "Nastavení check-inů pro jednotlivé klienty vyžaduje týdenní check-iny. Nejdřív zapněte týdenní check-iny.",
     "SUBSCRIPTION_PLAN_CODE_ALREADY_EXISTS": "Plán s tímto kódem už existuje.",
     "SUBSCRIPTION_PLAN_NOT_FOUND": "Tento plán už neexistuje.",
     "NO_RENEWING_SUBSCRIPTION": "Tento trenér nemá žádný obnovující se placený plán, takže není co rušit.",
@@ -5702,6 +5757,8 @@
       "attachImageAriaLabel": "Přiložit obrázek",
       "sendError": "Zprávu se nepodařilo odeslat. Zkuste to prosím znovu.",
       "lockedNotice": "Odpovědět můžete, jakmile klient vaši pozvánku přijme.",
+      "planLockedNotice": "Váš tarif nezahrnuje psaní klientům. Konverzace si můžete dál číst.",
+      "planLockedAction": "Co tarif obsahuje",
       "imagePreviewAlt": "Náhled obrázku",
       "removeImageAriaLabel": "Odebrat obrázek",
       "imageUploadError": "Obrázek se nepodařilo nahrát. Zkuste to prosím znovu."
@@ -7013,6 +7070,46 @@
       "saving": "Ukládání…",
       "save": "Uložit plán"
     },
+    "editor": {
+      "back": "Zpět na plány",
+      "backToPlans": "Zpět na plány",
+      "titleNew": "Nový plán",
+      "subtitleNew": "Trenéři ho uvidí ve výběru plánů, jakmile ho začnete nabízet.",
+      "create": "Vytvořit plán",
+      "untitled": "Plán bez názvu",
+      "codeHintNew": "Malá písmena bez diakritiky, číslice a pomlčky. Používá ho aplikace a Stripe. Po vytvoření plánu už nejde změnit.",
+      "codePlaceholder": "např. elite",
+      "noPrice": "— {{currency}}",
+      "perMonthSuffix": "/ měsíc",
+      "secondRoleLine": "Druhá role +{{price}} / měsíc",
+      "secondRoleIncludedLine": "Druhá role v ceně",
+      "unlimitedClientsLine": "Neomezený počet aktivních klientů",
+      "clientsLine_one": "Až {{count}} aktivní klient",
+      "clientsLine_few": "Až {{count}} aktivní klienti",
+      "clientsLine_many": "Až {{count}} aktivního klienta",
+      "clientsLine_other": "Až {{count}} aktivních klientů",
+      "summaryHint": "Zadejte cenu a limit klientů a uvidíte shrnutí.",
+      "featuresIncluded": "{{count}} z {{total}} funkcí v ceně",
+      "featuresOn": "{{count}} z {{total}} zapnuto",
+      "offerHintNew": "Nechte vypnuté, dokud plán není hotový. Vypnuto = plán není ve výběru plánů.",
+      "notFoundTitle": "Plán nenalezen",
+      "notFoundBody": "Žádný plán s tímto kódem neexistuje. Možná byl odstraněn.",
+      "features": {
+        "chat": { "label": "Chat", "hint": "Zprávy a konverzace s klienty" },
+        "nutritionPlans": { "label": "Výživové plány", "hint": "Editor plánu klienta a záložka Výživa" },
+        "planTemplates": { "label": "Šablony plánů", "hint": "Znovupoužitelné plány k přiřazení klientům" },
+        "recipes": { "label": "Recepty", "hint": "Knihovna receptů" },
+        "ingredients": { "label": "Suroviny", "hint": "Vlastní suroviny a potraviny" },
+        "progressPhotos": { "label": "Fotky pokroku", "hint": "Záložka Fotky a žádosti o fotky" },
+        "measurements": { "label": "Váha a míry", "hint": "Váha a statistiky v přehledu klienta" },
+        "forms": { "label": "Formuláře", "hint": "Dotazníky a vstupní formuláře" },
+        "checkIns": { "label": "Týdenní check-iny", "hint": "Check-in formulář a vyhodnocení" },
+        "perClientCheckIns": { "label": "Check-iny pro jednotlivé klienty", "hint": "Vyžaduje týdenní check-iny" },
+        "automations": { "label": "Automatizace", "hint": "Stránka s pravidly a záložka Automatizace u klienta" },
+        "packages": { "label": "Balíčky", "hint": "Balíčky nabízené s pozvánkou" },
+        "payments": { "label": "Platby klientů", "hint": "Záložka Platby a QR platební žádosti" }
+      }
+    },
     "preview": {
       "price": "{{price}} / měsíc",
       "secondRole": "druhá role +{{price}}",
@@ -7031,8 +7128,7 @@
       "body_few": "Uložením vznikne ve Stripe nová cena. Noví trenéři budou platit {{to}}. {{count}} trenéři, kteří už jsou na plánu {{name}}, zůstanou na {{from}}.",
       "body_many": "Uložením vznikne ve Stripe nová cena. Noví trenéři budou platit {{to}}. {{count}} trenéra, kteří už jsou na plánu {{name}}, zůstanou na {{from}}.",
       "body_other": "Uložením vznikne ve Stripe nová cena. Noví trenéři budou platit {{to}}. {{count}} trenérů, kteří už jsou na plánu {{name}}, zůstane na {{from}}.",
-      "move": "Přesunout je na {{price}} při další obnově",
-      "moveHint": "Každému trenérovi před změnou pošleme e-mail."
+      "move": "Přesunout je na {{price}} při další obnově"
     },
     "validation": {
       "nameRequired": "Zadejte název.",
@@ -7041,7 +7137,8 @@
       "codeTaken": "Plán s tímto kódem už existuje.",
       "priceInvalid": "Zadejte cenu od 0 do 1 000 000.",
       "addOnInvalid": "Zadejte cenu druhé role vyšší než 0, nebo zvolte „V ceně“.",
-      "clientsInvalid": "Zadejte počet klientů od 1, nebo zvolte Neomezeně."
+      "clientsInvalid": "Zadejte počet klientů od 1, nebo zvolte Neomezeně.",
+      "perClientNeedsWeekly": "Check-iny pro jednotlivé klienty vyžadují týdenní check-iny."
     }
   }
 }

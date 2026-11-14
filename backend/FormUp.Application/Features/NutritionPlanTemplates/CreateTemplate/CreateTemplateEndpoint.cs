@@ -1,3 +1,4 @@
+using FormUp.Application.Domain.Extensions;
 using FormUp.Application.Domain.Authorization;
 using FormUp.Application.Domain.Enums;
 using System.Security.Claims;
@@ -47,6 +48,13 @@ public class CreateTemplateEndpoint(IMongoContext mongo, TimeProvider timeProvid
         }
 
         var ownerId = Guid.Parse(userId);
+
+        if (await this.RespondIfCoachFeatureNotEntitledAsync(
+                ownerId, entitlements => entitlements.CanUsePlanTemplates,
+                "The current subscription does not include nutrition plan templates.", ct))
+        {
+            return;
+        }
 
         var weeks = req.Weeks is { Count: > 0 }
             ? TemplateRequestMapper.ToWeeks(req.Weeks)

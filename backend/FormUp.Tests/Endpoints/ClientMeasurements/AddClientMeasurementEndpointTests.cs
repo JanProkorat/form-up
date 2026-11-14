@@ -59,10 +59,10 @@ public class AddClientMeasurementEndpointTests
 
         var audit = Substitute.For<IAuditService>();
 
-        var ep = Factory.Create<AddClientMeasurementEndpoint>(
+        var ep = Factory.Create<AddClientMeasurementEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+                    EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer)))),
             db, audit, EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         var request = new AddClientMeasurementRequest
@@ -115,10 +115,10 @@ public class AddClientMeasurementEndpointTests
 
         var audit = Substitute.For<IAuditService>();
 
-        var ep = Factory.Create<AddClientMeasurementEndpoint>(
+        var ep = Factory.Create<AddClientMeasurementEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+                    EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer)))),
             db, audit, CreateDenyingLinkAuthorizationService());
 
         await ep.HandleAsync(
@@ -156,10 +156,10 @@ public class AddClientMeasurementEndpointTests
 
         var audit = Substitute.For<IAuditService>();
 
-        var ep = Factory.Create<AddClientMeasurementEndpoint>(
+        var ep = Factory.Create<AddClientMeasurementEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+                    EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer)))),
             db, audit, CreateDenyingLinkAuthorizationService());
 
         await ep.HandleAsync(
@@ -184,10 +184,10 @@ public class AddClientMeasurementEndpointTests
 
         var audit = Substitute.For<IAuditService>();
 
-        var ep = Factory.Create<AddClientMeasurementEndpoint>(
+        var ep = Factory.Create<AddClientMeasurementEndpoint>(EndpointTestHelpers.WithEntitlements(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+                    EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer)))),
             db, audit, EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         await ep.HandleAsync(

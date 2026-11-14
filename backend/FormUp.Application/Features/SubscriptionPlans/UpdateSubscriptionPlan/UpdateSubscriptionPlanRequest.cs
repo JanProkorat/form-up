@@ -61,8 +61,29 @@ public class UpdateSubscriptionPlanRequest
     /// <summary>Whether the plan allows per-client check-in configuration. Required.</summary>
     public bool? CanUsePerClientCheckInConfig { get; set; }
 
-    /// <summary>Whether the plan allows the payments feature. Required.</summary>
+    /// <summary>Whether the plan allows client payments. Required.</summary>
     public bool? CanUsePayments { get; set; }
+
+    /// <summary>Whether the plan allows nutrition plan templates. Required.</summary>
+    public bool? CanUsePlanTemplates { get; set; }
+
+    /// <summary>Whether the plan allows the coach's own recipes. Required.</summary>
+    public bool? CanUseRecipes { get; set; }
+
+    /// <summary>Whether the plan allows the coach's own ingredients. Required.</summary>
+    public bool? CanUseIngredients { get; set; }
+
+    /// <summary>Whether the plan allows the coach side of progress photos. Required.</summary>
+    public bool? CanUseProgressPhotos { get; set; }
+
+    /// <summary>Whether the plan allows the coach side of weight and measurements. Required.</summary>
+    public bool? CanUseWeightAndMeasurements { get; set; }
+
+    /// <summary>Whether the plan allows automations. Required.</summary>
+    public bool? CanUseAutomations { get; set; }
+
+    /// <summary>Whether the plan allows coach packages and discounts. Required.</summary>
+    public bool? CanUsePackages { get; set; }
 
     /// <summary>
     /// Maximum number of active clients allowed under this plan. Required — must be present

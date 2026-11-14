@@ -1,3 +1,4 @@
+using FormUp.Application.Domain.Extensions;
 using System.Security.Claims;
 using FastEndpoints;
 using FormUp.Application.Domain.Constants;
@@ -43,6 +44,13 @@ public class SearchTemplatesEndpoint(IMongoContext mongo)
         }
 
         var callerId = Guid.Parse(userId);
+
+        if (await this.RespondIfCoachFeatureNotEntitledAsync(
+                callerId, entitlements => entitlements.CanUsePlanTemplates,
+                "The current subscription does not include nutrition plan templates.", ct))
+        {
+            return;
+        }
 
         var filterBuilder = Builders<NutritionPlanTemplate>.Filter;
         FilterDefinition<NutritionPlanTemplate>? extraFilter = null;

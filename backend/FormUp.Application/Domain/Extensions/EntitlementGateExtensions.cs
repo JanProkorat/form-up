@@ -38,6 +38,30 @@ public static class EntitlementGateExtensions
     }
 
     /// <summary>
+    /// Answers 403 <see cref="ErrorCodes.SubscriptionRequired"/> when the caller's subscription lacks the feature,
+    /// using the request's own <see cref="EntitlementService"/>. For endpoints that hold no database context. Fails
+    /// closed: a request without that service throws.
+    /// </summary>
+    /// <param name="endpoint">The endpoint instance.</param>
+    /// <param name="userId">The caller's <c>ApplicationUser.Id</c>.</param>
+    /// <param name="feature">Reads the feature flag to require from the resolved entitlements.</param>
+    /// <param name="detail">Human-readable explanation.</param>
+    /// <param name="ct">Cancellation token.</param>
+    public static async Task<bool> RespondIfCoachFeatureNotEntitledAsync(
+        this IEndpoint endpoint,
+        Guid userId,
+        Func<CoachEntitlements, bool> feature,
+        string detail,
+        CancellationToken ct)
+    {
+        var entitlementService = endpoint.HttpContext.RequestServices.GetRequiredService<EntitlementService>();
+
+        var entitlements = await entitlementService.GetEntitlementsForUserAsync(userId, ct);
+
+        return await endpoint.RespondIfNotEntitledAsync(feature(entitlements), detail, ct);
+    }
+
+    /// <summary>
     /// Answers 403 <see cref="ErrorCodes.SubscriptionRequired"/> when the professional's subscription lacks the feature.
     /// </summary>
     /// <param name="endpoint">The endpoint instance.</param>

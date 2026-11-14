@@ -67,6 +67,33 @@ internal sealed class UpdateSubscriptionPlanValidator : Validator<UpdateSubscrip
         RuleFor(x => x.CanUsePayments)
             .NotNull().WithErrorCode(ErrorCodes.Required);
 
+        RuleFor(x => x.CanUsePlanTemplates)
+            .NotNull().WithErrorCode(ErrorCodes.Required);
+
+        RuleFor(x => x.CanUseRecipes)
+            .NotNull().WithErrorCode(ErrorCodes.Required);
+
+        RuleFor(x => x.CanUseIngredients)
+            .NotNull().WithErrorCode(ErrorCodes.Required);
+
+        RuleFor(x => x.CanUseProgressPhotos)
+            .NotNull().WithErrorCode(ErrorCodes.Required);
+
+        RuleFor(x => x.CanUseWeightAndMeasurements)
+            .NotNull().WithErrorCode(ErrorCodes.Required);
+
+        RuleFor(x => x.CanUseAutomations)
+            .NotNull().WithErrorCode(ErrorCodes.Required);
+
+        RuleFor(x => x.CanUsePackages)
+            .NotNull().WithErrorCode(ErrorCodes.Required);
+
+        RuleFor(x => x)
+            .Must(x => x.CanUsePerClientCheckInConfig != true || x.CanUseWeeklyCheckIns == true)
+            .WithErrorCode(ErrorCodes.PerClientCheckInRequiresWeeklyCheckIns)
+            .WithMessage("Per-client check-in settings require weekly check-ins.")
+            .When(x => x.CanUsePerClientCheckInConfig.HasValue && x.CanUseWeeklyCheckIns.HasValue);
+
         RuleFor(x => x.IsActive)
             .NotNull().WithErrorCode(ErrorCodes.Required);
 

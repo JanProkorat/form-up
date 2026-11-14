@@ -5,6 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuthStore } from '@/stores/auth';
 import { getErrorStatus } from '@/lib/api-errors';
+import { isSubscriptionRequired } from '@/lib/subscriptionErrors';
+import { useSubscription } from '@/hooks/useSubscriptionQueries';
+import PaywallPanel from '@/components/subscription/PaywallPanel';
 import { useRecipeListParams } from '@/hooks/useRecipeListParams';
 import { useRecipes } from '@/hooks/useRecipesQueries';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
@@ -67,8 +70,15 @@ export default function RecipesPage() {
     }
   });
 
-  const recipesQuery = useRecipes(filters, isNutritionist);
-  const isForbidden = !isNutritionist || (recipesQuery.isError && getErrorStatus(recipesQuery.error) === 403);
+  const { isEntitled } = useSubscription();
+  const planAllows = isEntitled('canUseRecipes');
+  const recipesQuery = useRecipes(filters, isNutritionist && planAllows);
+  // isEntitled is true while the plan loads, so a refusal from the server locks the page as well.
+  const isLocked =
+    isNutritionist &&
+    (!planAllows || (recipesQuery.isError && isSubscriptionRequired(recipesQuery.error)));
+  const isForbidden =
+    !isNutritionist || (!isLocked && recipesQuery.isError && getErrorStatus(recipesQuery.error) === 403);
 
   const recipes = recipesQuery.data?.recipes ?? [];
   const totalCount = recipesQuery.data?.totalCount ?? 0;
@@ -93,6 +103,15 @@ export default function RecipesPage() {
   // Creating (selectedRecipe === null) is always editable; the "not owned"
   // half only applies to an EXISTING recipe (system row, or a shared one).
   const drawerReadOnly = selectedRecipe !== null && !selectedRecipe.isOwnedByCurrentUser;
+
+  if (isLocked) {
+    return (
+      <div className="flex h-full flex-col gap-4">
+        <PageHeader eyebrow={t('library.eyebrow')} title={t('recipes.title')} />
+        <PaywallPanel feature="recipes" />
+      </div>
+    );
+  }
 
   if (isForbidden) {
     return (

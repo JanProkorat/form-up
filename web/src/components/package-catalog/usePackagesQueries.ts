@@ -20,13 +20,13 @@ import {
 } from '@/api/coach-discounts';
 
 /** The coach's packages, archived ones included. Errors are handled by the page (paywall, retry). */
-export function useCoachPackages() {
-  return useQuery({ queryKey: coachPackagesKey, queryFn: getCoachPackages, retry: false });
+export function useCoachPackages(enabled = true) {
+  return useQuery({ queryKey: coachPackagesKey, queryFn: getCoachPackages, retry: false, enabled });
 }
 
 /** The coach's discounts, archived ones included. */
-export function useCoachDiscounts() {
-  return useQuery({ queryKey: coachDiscountsKey, queryFn: getCoachDiscounts, retry: false });
+export function useCoachDiscounts(enabled = true) {
+  return useQuery({ queryKey: coachDiscountsKey, queryFn: getCoachDiscounts, retry: false, enabled });
 }
 
 /** The public profile's "from X" price with its billing unit, derived by the server in the coach's profile currency. */

@@ -273,6 +273,60 @@
         "body": "Hear how each client's week went before the next one starts.",
         "benefit1": "A weekly check-in sent on your schedule",
         "benefit2": "Answers in each client's card"
+      },
+      "chat": {
+        "title": "Messaging clients comes with a higher plan",
+        "body": "Write to your clients and answer them in the Inbox.",
+        "benefit1": "Send messages and start conversations with clients",
+        "benefit2": "Broadcast one message to many clients"
+      },
+      "recipes": {
+        "title": "Your own recipes come with a higher plan",
+        "body": "Build a recipe library and use it in your clients' meal plans.",
+        "benefit1": "Create and edit your own recipes",
+        "benefit2": "Add them to any meal plan"
+      },
+      "ingredients": {
+        "title": "Your own ingredients come with a higher plan",
+        "body": "Add foods that are missing from the database, with their nutrition values.",
+        "benefit1": "Create your own ingredients and foods",
+        "benefit2": "Use them in recipes and meal plans"
+      },
+      "planTemplates": {
+        "title": "Plan templates come with a higher plan",
+        "body": "Save a nutrition plan once and assign it to many clients.",
+        "benefit1": "Reusable plan templates",
+        "benefit2": "Assign a template to a client in a few clicks"
+      },
+      "automations": {
+        "title": "Automations come with a higher plan",
+        "body": "Let Form Up send forms and ask for photos or measurements on your schedule.",
+        "benefit1": "Rules that send forms on a schedule",
+        "benefit2": "Photo and measurement requests without chasing clients"
+      },
+      "progressPhotos": {
+        "title": "Progress photos come with a higher plan",
+        "body": "Follow your clients' progress and ask for new photos.",
+        "benefit1": "A Photos tab on every client",
+        "benefit2": "Photo requests to your clients"
+      },
+      "measurements": {
+        "title": "Weight and measurements come with a higher plan",
+        "body": "Follow how each client's weight and body measurements change.",
+        "benefit1": "Weight and stats on the client overview",
+        "benefit2": "Measurement history in the client's card"
+      },
+      "payments": {
+        "title": "Client payments come with a higher plan",
+        "body": "Keep track of what each client pays you.",
+        "benefit1": "A Payment tab on every client",
+        "benefit2": "QR payment requests"
+      },
+      "packages": {
+        "title": "Packages come with a higher plan",
+        "body": "Set up packages and discounts, and offer them with an invite.",
+        "benefit1": "Packages with a price and billing cycle",
+        "benefit2": "A package attached to every invite"
       }
     },
     "clientLimit": {
@@ -3401,6 +3455,7 @@
   },
   "apiErrors": {
     "FREE_PLAN_LOCKED": "The Free plan cannot be changed this way: its price stays at 0 and it is always offered.",
+    "PER_CLIENT_CHECK_IN_REQUIRES_WEEKLY_CHECK_INS": "Per-client check-in settings need weekly check-ins. Turn on weekly check-ins first.",
     "SUBSCRIPTION_PLAN_CODE_ALREADY_EXISTS": "A plan with this code already exists.",
     "SUBSCRIPTION_PLAN_NOT_FOUND": "This plan no longer exists.",
     "NO_RENEWING_SUBSCRIPTION": "This coach has no renewing paid plan, so there is no renewal to cancel.",
@@ -5486,6 +5541,8 @@
       "attachImageAriaLabel": "Attach image",
       "sendError": "Could not send the message. Please try again.",
       "lockedNotice": "You can reply once the client accepts your invitation.",
+      "planLockedNotice": "Your plan does not include messaging clients. You can still read your conversations.",
+      "planLockedAction": "See what is included",
       "imagePreviewAlt": "Image preview",
       "removeImageAriaLabel": "Remove image",
       "imageUploadError": "Could not upload the image. Please try again."
@@ -6757,6 +6814,44 @@
       "saving": "Saving…",
       "save": "Save plan"
     },
+    "editor": {
+      "back": "Back to plans",
+      "backToPlans": "Back to plans",
+      "titleNew": "New plan",
+      "subtitleNew": "Coaches see it in the plan picker once you offer it.",
+      "create": "Create plan",
+      "untitled": "Untitled plan",
+      "codeHintNew": "Lowercase letters, digits and dashes. Used by the app and Stripe. Can’t change after the plan is created.",
+      "codePlaceholder": "e.g. elite",
+      "noPrice": "— {{currency}}",
+      "perMonthSuffix": "/ month",
+      "secondRoleLine": "Second role +{{price}} / month",
+      "secondRoleIncludedLine": "Second role included",
+      "unlimitedClientsLine": "Unlimited active clients",
+      "clientsLine_one": "Up to {{count}} active client",
+      "clientsLine_other": "Up to {{count}} active clients",
+      "summaryHint": "Set a price and a client limit to see the summary.",
+      "featuresIncluded": "{{count}} of {{total}} features included",
+      "featuresOn": "{{count}} of {{total}} on",
+      "offerHintNew": "Leave off until the plan is ready. Off hides it from the plan picker.",
+      "notFoundTitle": "Plan not found",
+      "notFoundBody": "No plan has this code. It may have been removed.",
+      "features": {
+        "chat": { "label": "Chat", "hint": "Inbox and messages with clients" },
+        "nutritionPlans": { "label": "Nutrition plans", "hint": "Client plan editor and the Nutrition tab" },
+        "planTemplates": { "label": "Plan templates", "hint": "Reusable plans to assign to clients" },
+        "recipes": { "label": "Recipes", "hint": "Recipe library" },
+        "ingredients": { "label": "Ingredients", "hint": "Own ingredients and foods" },
+        "progressPhotos": { "label": "Progress photos", "hint": "Photos tab and photo requests" },
+        "measurements": { "label": "Weight and measurements", "hint": "Weight and stats on the client overview" },
+        "forms": { "label": "Forms", "hint": "Questionnaires and onboarding forms" },
+        "checkIns": { "label": "Weekly check-ins", "hint": "Check-in form and review" },
+        "perClientCheckIns": { "label": "Per-client check-in settings", "hint": "Needs weekly check-ins" },
+        "automations": { "label": "Automations", "hint": "Rules page and the client Automations tab" },
+        "packages": { "label": "Packages", "hint": "Packages offered with an invite" },
+        "payments": { "label": "Client payments", "hint": "Payment tab and QR payment requests" }
+      }
+    },
     "preview": {
       "price": "{{price}} / month",
       "secondRole": "second role +{{price}}",
@@ -6771,8 +6866,7 @@
       "title": "Price changes from {{from}} to {{to}}",
       "body_one": "Saving creates a new price in Stripe. New coaches pay {{to}}. The {{count}} coach already on {{name}} keeps {{from}}.",
       "body_other": "Saving creates a new price in Stripe. New coaches pay {{to}}. The {{count}} coaches already on {{name}} keep {{from}}.",
-      "move": "Move them to {{price}} at their next renewal",
-      "moveHint": "We email each coach before the change."
+      "move": "Move them to {{price}} at their next renewal"
     },
     "validation": {
       "nameRequired": "Enter a name.",
@@ -6781,7 +6875,8 @@
       "codeTaken": "A plan with this code already exists.",
       "priceInvalid": "Enter a price from 0 to 1,000,000.",
       "addOnInvalid": "Enter a second-role price above 0, or choose Included in the price.",
-      "clientsInvalid": "Enter a number of clients from 1, or tick Unlimited."
+      "clientsInvalid": "Enter a number of clients from 1, or tick Unlimited.",
+      "perClientNeedsWeekly": "Per-client check-in settings need weekly check-ins."
     }
   }
 }

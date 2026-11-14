@@ -453,6 +453,9 @@ public static class ErrorCodes
     /// <summary>A plan must either include both roles or carry a positive second-role add-on price, never both or neither.</summary>
     public const string SecondRoleOptionInvalid = "SECOND_ROLE_OPTION_INVALID";
 
+    /// <summary>Per-client check-in settings require weekly check-ins on the same plan.</summary>
+    public const string PerClientCheckInRequiresWeeklyCheckIns = "PER_CLIENT_CHECK_IN_REQUIRES_WEEKLY_CHECK_INS";
+
     /// <summary>The Free plan is fixed at price 0 and must stay offered; it cannot be repriced, hidden or deactivated.</summary>
     public const string FreePlanLocked = "FREE_PLAN_LOCKED";
 

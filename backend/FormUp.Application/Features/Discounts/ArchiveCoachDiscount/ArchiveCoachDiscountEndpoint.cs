@@ -52,7 +52,7 @@ internal sealed class ArchiveCoachDiscountEndpoint(
             return;
         }
 
-        var profileId = await this.LoadEntitledProfileIdOrRespondAsync(db, entitlementService, userId, ct);
+        var profileId = await this.LoadPackagesEntitledProfileIdOrRespondAsync(db, entitlementService, userId, ct);
 
         if (profileId is null)
         {

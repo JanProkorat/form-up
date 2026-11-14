@@ -52,6 +52,13 @@ public class ReplaceRecipeTagAssignmentsEndpoint(IMongoContext mongo)
         }
 
         var ownerUserId = Guid.Parse(userId);
+
+        if (await this.RespondIfCoachFeatureNotEntitledAsync(
+                ownerUserId, entitlements => entitlements.CanUseRecipes,
+                "The current subscription does not include recipes.", ct))
+        {
+            return;
+        }
         var distinctTagIds = req.TagIds.Distinct().ToList();
 
         var ownedTags = await FoodTagLookup.FindOwnedTagsAsync(mongo, ownerUserId, distinctTagIds, ct);

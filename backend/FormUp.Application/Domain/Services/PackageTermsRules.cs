@@ -12,7 +12,7 @@ public static class PackageTermsRules
     /// <summary>
     /// Checks the rules in the order the endpoints answer them.
     /// </summary>
-    /// <param name="entitled">Whether the coach's subscription includes payments.</param>
+    /// <param name="entitled">Whether the coach's subscription includes both packages and client payments.</param>
     /// <param name="package">The package loaded for this coach, or null when unknown or foreign.</param>
     /// <param name="discountRequested">Whether a discount was asked for.</param>
     /// <param name="discount">The discount loaded for this coach with its package links, or null when unknown or foreign.</param>

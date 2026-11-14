@@ -94,6 +94,13 @@ public class EntitlementServiceTests(FitnessApiFactory factory)
             CanUseWeeklyCheckIns = canUseWeeklyCheckIns,
             CanUsePerClientCheckInConfig = canUsePerClientCheckInConfig,
             CanUsePayments = canUsePayments,
+            CanUsePackages = canUsePayments,
+            CanUsePlanTemplates = true,
+            CanUseRecipes = true,
+            CanUseIngredients = true,
+            CanUseProgressPhotos = true,
+            CanUseWeightAndMeasurements = true,
+            CanUseAutomations = true,
             MaxActiveClients = maxActiveClients,
             PriceMinorUnits = 99900,
             Currency = "CZK",
@@ -212,7 +219,9 @@ public class EntitlementServiceTests(FitnessApiFactory factory)
 
         entitlements.Should().Be(new CoachEntitlements(
             free.CanCreatePlans, free.CanMessage, free.CanSendQuestionnaires, free.CanUseWeeklyCheckIns,
-            free.CanUsePerClientCheckInConfig, free.CanUsePayments, free.MaxActiveClients));
+            free.CanUsePerClientCheckInConfig, free.CanUsePayments, free.CanUsePlanTemplates, free.CanUseRecipes,
+            free.CanUseIngredients, free.CanUseProgressPhotos, free.CanUseWeightAndMeasurements,
+            free.CanUseAutomations, free.CanUsePackages, free.MaxActiveClients));
         scope.Dispose();
     }
 
