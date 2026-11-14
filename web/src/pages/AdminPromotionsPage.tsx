@@ -2,8 +2,16 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Info, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { PromotionStatusFilter } from '@/api/admin-promotions';
-import { getErrorCode, getErrorStatus, getRfc7807ErrorCode, showApiError, showSuccess } from '@/lib/api-errors';
+import { PromotionStatusFilter, type PromotionDto } from '@/api/admin-promotions';
+import {
+  getErrorCode,
+  getErrorStatus,
+  getRfc7807ErrorCode,
+  showApiError,
+  showError,
+  showSuccess,
+} from '@/lib/api-errors';
+import EndPromotionDialog from '@/components/admin-promotions/EndPromotionDialog';
 import { showBillingError } from '@/components/subscription/billingErrors';
 import PromotionDrawer, { type PromotionSaveOutcome } from '@/components/admin-promotions/PromotionDrawer';
 import PromotionsTable from '@/components/admin-promotions/PromotionsTable';
@@ -12,7 +20,7 @@ import {
   formValuesToCreateRequest,
   type PromotionFormValues,
 } from '@/components/admin-promotions/promotionForm';
-import { useAdminPromotions, useCreatePromotion } from '@/components/admin-promotions/useAdminPromotionsQueries';
+import { useAdminPromotions, useCreatePromotion, useEndPromotion } from '@/components/admin-promotions/useAdminPromotionsQueries';
 import { cn } from '@/lib/utils';
 
 const FILTERS: readonly PromotionStatusFilter[] = [
@@ -35,6 +43,8 @@ export default function AdminPromotionsPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const promotionsQuery = useAdminPromotions(status);
   const createPromotion = useCreatePromotion();
+  const endPromotion = useEndPromotion();
+  const [endTarget, setEndTarget] = useState<PromotionDto | null>(null);
   const promotions = promotionsQuery.data ?? [];
 
   const handleSave = async (values: PromotionFormValues): Promise<PromotionSaveOutcome> => {
@@ -59,6 +69,31 @@ export default function AdminPromotionsPage() {
         showApiError(error, 'adminPromotions.saveError');
       }
       return 'error';
+    }
+  };
+
+  /** Ends the promotion in the dialog; resolves true when the dialog should close. */
+  const handleEnd = async (): Promise<boolean> => {
+    if (!endTarget?.promotionId) {
+      return true;
+    }
+    try {
+      await endPromotion.mutateAsync(endTarget.promotionId);
+      showSuccess('adminPromotions.end.success');
+      return true;
+    } catch (error) {
+      const httpStatus = getErrorStatus(error);
+      if (httpStatus === 404) {
+        showError('adminPromotions.end.notFound');
+        return true;
+      }
+      if (httpStatus === 409) {
+        showApiError(error, 'adminPromotions.end.error');
+        return true;
+      }
+      // 502 and 503: the promotion is unchanged, so the dialog stays open for another try.
+      showBillingError(error, 'adminPromotions.end.error');
+      return false;
     }
   };
 
@@ -102,6 +137,7 @@ export default function AdminPromotionsPage() {
             isPending={promotionsQuery.isPending}
             isError={promotionsQuery.isError}
             onRetry={() => void promotionsQuery.refetch()}
+            onEnd={setEndTarget}
           />
         </div>
       </div>
@@ -110,6 +146,14 @@ export default function AdminPromotionsPage() {
         <Info className="size-4 shrink-0" aria-hidden="true" />
         {t('adminPromotions.note')}
       </p>
+
+      <EndPromotionDialog
+        promotion={endTarget ? { name: endTarget.name ?? '', usedCount: endTarget.usedCount ?? 0 } : null}
+        onOpenChange={(open) => {
+          if (!open) setEndTarget(null);
+        }}
+        run={handleEnd}
+      />
 
       {drawerOpen && (
         <PromotionDrawer

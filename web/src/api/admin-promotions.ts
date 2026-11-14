@@ -28,3 +28,12 @@ export async function getAdminPromotions(status: PromotionStatusFilter): Promise
 export async function createAdminPromotion(request: CreatePromotionRequest): Promise<PromotionDto> {
   return apiClient.createPromotionEndpoint(request);
 }
+
+/**
+ * Ends a promotion now via POST /admin/promotions/{id}/end. The generated call carries no body; the shared
+ * axios request interceptor (`attachToken` in `@/lib/api`) adds `{}` and the JSON content type, which the
+ * route-only request needs to bind (a missing body is a 415).
+ */
+export async function endAdminPromotion(promotionId: string): Promise<PromotionDto> {
+  return apiClient.endPromotionEndpoint(promotionId);
+}
