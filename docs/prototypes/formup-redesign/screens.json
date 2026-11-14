@@ -1362,6 +1362,18 @@
   "h": 1100
  },
  {
+  "html": "web/51-01-page-pricing-c.html",
+  "png": "web/51-01-page-pricing-c.png",
+  "w": 1440,
+  "h": 2120
+ },
+ {
+  "html": "web/52-01-page-pricing-d.html",
+  "png": "web/52-01-page-pricing-d.png",
+  "w": 1440,
+  "h": 2120
+ },
+ {
   "html": "mobile-light/01-01-launch-quiet.html",
   "png": "mobile-light/01-01-launch-quiet.png",
   "w": 390,

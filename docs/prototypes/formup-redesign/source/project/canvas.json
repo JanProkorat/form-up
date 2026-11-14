@@ -4287,6 +4287,22 @@
       "w": 1440,
       "x": 6080,
       "y": 68332
+    },
+    "PagePricingC.dc.html": {
+      "h": 2120,
+      "page": "web",
+      "title": "C · Pricing · public",
+      "w": 1440,
+      "x": 0,
+      "y": 84692
+    },
+    "PagePricingD.dc.html": {
+      "h": 2120,
+      "page": "web",
+      "title": "D · Pricing · public",
+      "w": 1440,
+      "x": 0,
+      "y": 87072
     }
   },
   "notes": {
@@ -5308,6 +5324,8 @@
     "CoachProfilePlanLight.dc.html",
     "CoachProfilePlanDark.dc.html",
     "PageAdminCoachDialogsC.dc.html",
-    "PageAdminCoachDialogsD.dc.html"
+    "PageAdminCoachDialogsD.dc.html",
+    "PagePricingC.dc.html",
+    "PagePricingD.dc.html"
   ]
 }
