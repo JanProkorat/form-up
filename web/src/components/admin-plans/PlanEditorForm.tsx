@@ -131,7 +131,7 @@ export default function PlanEditorForm({ plan, onSubmit, onCancel, isSaving }: P
         </Link>
         <span
           aria-hidden="true"
-          className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-nutrition-soft text-nutrition-ink"
+          className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-training-soft text-training-ink"
         >
           <Layers className="size-5" />
         </span>
@@ -283,7 +283,7 @@ export default function PlanEditorForm({ plan, onSubmit, onCancel, isSaving }: P
           </section>
         </div>
 
-        <div className="flex flex-col gap-5.5">
+        <div className="flex flex-col gap-5.5 lg:sticky lg:top-6">
           <section className={CARD_CLASS} aria-labelledby="plan-editor-preview">
             <SectionHeading icon={<Star className="size-4" />}>
               <span id="plan-editor-preview">{t('adminPlans.drawer.sectionPreview')}</span>
