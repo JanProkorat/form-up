@@ -1,14 +1,21 @@
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { CreditCard } from 'lucide-react';
-import { CheckoutFlow } from '@/api/generated';
+import { CheckoutFlow, PromotionDuration } from '@/api/generated';
 import RegisterShell from '@/components/register/RegisterShell';
 import RegisterStepper from '@/components/register/RegisterStepper';
 import PlanCard from '@/components/subscription/PlanCard';
 import TaxNote from '@/components/subscription/TaxNote';
 import { formatMoney } from '@/components/subscription/money';
 import { coachPlanName } from '@/components/subscription/planNames';
-import { FREE_PLAN_CODE, planDisplayPrice, secondRoleAddOnOf } from '@/components/subscription/planPricing';
+import {
+  FREE_PLAN_CODE,
+  planDiscountedPrice,
+  planDisplayPrice,
+  secondRoleAddOnOf,
+} from '@/components/subscription/planPricing';
+import PromotionBanner from '@/components/subscription/PromotionBanner';
+import { promotionShortText } from '@/components/subscription/promotionText';
 import { usePlanSelection } from '@/components/subscription/usePlanSelection';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -28,6 +35,7 @@ export default function RegisterPlanPage() {
   const plansQuery = useCoachPlans(subscription.isCoach);
   const selection = usePlanSelection(CheckoutFlow.SignUp);
   const plans = plansQuery.data?.plans ?? [];
+  const promotion = plansQuery.data?.promotion;
 
   const startFree = () => navigate('/profile', { replace: true });
 
@@ -48,6 +56,12 @@ export default function RegisterPlanPage() {
             <p className="text-subhead text-ink-2">{t('subscription.billing.register.subtitle')}</p>
           </div>
         </div>
+
+        {promotion && (
+          <div className="mx-auto w-full max-w-140">
+            <PromotionBanner promotion={promotion} plans={plans} variant="register" />
+          </div>
+        )}
 
         <p className="text-center text-body text-muted-foreground">{t('subscription.billing.codeAtCheckout')}</p>
 
@@ -83,6 +97,17 @@ export default function RegisterPlanPage() {
                 : addOn !== null
                   ? t('subscription.billing.register.secondRoleLater', { amount: formatMoney(addOn, currency, i18n.language) })
                   : undefined;
+              const fullPrice = planDisplayPrice(plan, false);
+              const discounted = planDiscountedPrice(plan, false);
+              const offer = promotion && discounted !== null && discounted < fullPrice ? promotion : null;
+              const offerNote = offer
+                ? offer.duration === PromotionDuration.Forever
+                  ? promotionShortText(t, offer, i18n.language)
+                  : t('subscription.promotion.card.then', {
+                      short: promotionShortText(t, offer, i18n.language),
+                      price: formatMoney(fullPrice, currency, i18n.language),
+                    })
+                : undefined;
               return (
                 <PlanCard
                   key={plan.code}
@@ -97,8 +122,9 @@ export default function RegisterPlanPage() {
                   primary={free}
                   actionDisabled={false}
                   busy={selection.busy}
-                  priceMinorUnits={planDisplayPrice(plan, false)}
-                  priceNote={free ? t('subscription.billing.picker.noCard') : undefined}
+                  priceMinorUnits={offer ? (discounted ?? fullPrice) : fullPrice}
+                  originalPriceMinorUnits={offer ? fullPrice : undefined}
+                  priceNote={free ? t('subscription.billing.picker.noCard') : offerNote}
                   secondRoleText={secondRoleText}
                   onAction={free ? startFree : () => selection.choosePaid(plan, false)}
                 />

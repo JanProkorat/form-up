@@ -252,6 +252,31 @@
   },
   "subscription": {
     "seePlans": "Tarife ansehen",
+    "promotion": {
+      "percentOff": "−{{value}} %",
+      "amountOff": "−{{amount}}",
+      "short": {
+        "firstMonth": "{{value}} im ersten Monat",
+        "months_one": "{{value}} für {{count}} Monat",
+        "months_other": "{{value}} für {{count}} Monate",
+        "forever": "{{value}} dauerhaft"
+      },
+      "banner": {
+        "firstMonth": "{{name}}: {{value}} im ersten Monat",
+        "months_one": "{{name}}: {{value}} im ersten {{count}} Monat",
+        "months_other": "{{name}}: {{value}} in den ersten {{count}} Monaten",
+        "forever": "{{name}}: {{value}} für die gesamte Laufzeit",
+        "allPlans": "Wird beim Bezahlen auf jeden kostenpflichtigen Tarif angewendet.",
+        "somePlans": "Wird beim Bezahlen auf {{plans}} angewendet.",
+        "claimBy": "Sichern Sie sich das Angebot bis {{date}}.",
+        "taken": "Bereits von den Preisen der kostenpflichtigen Tarife unten abgezogen.",
+        "takenSomePlans": "Bereits von den Preisen von {{plans}} unten abgezogen."
+      },
+      "card": {
+        "then": "{{short}}, danach {{price}}",
+        "regularPrice": "Regulärer Preis"
+      }
+    },
     "billing": {
       "vat": "Preise ohne MwSt., {{rate}} % MwSt. werden hinzugerechnet.",
       "codeAtCheckout": "Sie haben einen Code? Geben Sie ihn beim Bezahlen ein.",
@@ -499,7 +524,15 @@
         "secondRole": "Zweite Rolle",
         "total": "Gesamt",
         "perMonth": "{{amount}} / Monat",
-        "secondRoleUnavailable": "Eine zweite Berufsrolle ist in diesem Tarif nicht enthalten."
+        "secondRoleUnavailable": "Eine zweite Berufsrolle ist in diesem Tarif nicht enthalten.",
+        "fullPrice": "Preis ohne Angebot",
+        "afterOffer": "Ab {{date}}: {{amount}} / Monat.",
+        "offer": {
+          "months_one": "{{name}} {{value}} · noch {{left}} von {{count}} Monat",
+          "months_other": "{{name}} {{value}} · noch {{left}} von {{count}} Monaten",
+          "firstMonth": "{{name}} {{value}} · erster Monat",
+          "forever": "{{name}} {{value}}"
+        }
       },
       "clients": {
         "title": "Klienten",
@@ -3547,6 +3580,18 @@
     "BILLING_PLAN_CHANGE_PENDING": "Eine Tarifänderung ist bereits vorgemerkt. Versuchen Sie es erneut, sobald sie gilt.",
     "PROMOTION_CODE_INVALID": "Dieser Code kann nicht verwendet werden.",
     "PROMOTION_CODE_NOT_FOUND": "Diesen Code kennen wir nicht. Prüfen Sie ihn und versuchen Sie es erneut.",
+    "PROMOTION_CODE_NOT_STARTED": "Dieses Angebot hat noch nicht begonnen.",
+    "PROMOTION_CODE_PLAN_NOT_ELIGIBLE": "Dieser Code gilt nicht für Ihren Tarif.",
+    "PROMOTION_CODE_USED_UP": "Dieser Code ist aufgebraucht.",
+    "PROMOTION_CODE_NEW_COACHES_ONLY": "Dieser Code gilt nur für neue Trainer.",
+    "PROMOTION_CODE_ALREADY_USED": "Sie haben diesen Code bereits verwendet.",
+    "PROMOTION_CODE_TAKEN": "Diesen Code verwendet bereits eine andere Aktion, die noch nicht beendet ist.",
+    "PROMOTION_VALUE_INVALID": "Prüfen Sie den Wert der Aktion.",
+    "PROMOTION_MODE_INVALID": "Prüfen Sie den Code: Bei einer Aktion mit Code ist er Pflicht, bei einer automatischen Aktion nicht erlaubt.",
+    "PROMOTION_MONTHS_INVALID": "Geben Sie eine Monatszahl von 2 bis 36 ein.",
+    "PROMOTION_WINDOW_INVALID": "Das Einlösefenster muss nach seinem Beginn und in der Zukunft enden.",
+    "PROMOTION_PLANS_INVALID": "Wählen Sie mindestens einen kostenpflichtigen Tarif.",
+    "PROMOTION_MAX_USES_INVALID": "Die maximale Nutzungszahl muss mindestens 1 sein.",
     "BILLING_RATE_LIMITED": "Zu viele Versuche. Warten Sie einen Moment und versuchen Sie es erneut.",
     "BILLING_ADD_ON_NOT_AVAILABLE": "Ihr Tarif bietet keine kostenpflichtige zweite Rolle.",
     "BILLING_ADD_ON_ALREADY_PAID": "Die zweite Rolle ist bereits bezahlt.",
@@ -6966,6 +7011,110 @@
       "priceInvalid": "Geben Sie einen Preis von 0 bis 1.000.000 ein.",
       "addOnInvalid": "Geben Sie einen Preis für die zweite Rolle über 0 ein oder wählen Sie „Im Preis inklusive“.",
       "clientsInvalid": "Geben Sie eine Klientenzahl ab 1 ein oder wählen Sie Unbegrenzt."
+    }
+  },
+  "adminPromotions": {
+    "title": "Aktionen",
+    "subtitle": "Rabatte auf Form-Up-Tarife für Trainer. Die eigenen Rabatte eines Trainers für seine Kunden sind davon getrennt.",
+    "newPromotion": "Neue Aktion",
+    "note": "Pro Trainer gilt immer nur eine Aktion. Sie gilt für die gesamte Rechnung, einschließlich der zweiten Rolle.",
+    "loadError": "Die Aktionen konnten nicht geladen werden.",
+    "retry": "Erneut versuchen",
+    "empty": "Noch keine Aktionen.",
+    "saveSuccess": "Aktion gespeichert.",
+    "saveError": "Die Aktion konnte nicht gespeichert werden.",
+    "filters": {
+      "label": "Aktionen filtern",
+      "All": "Alle",
+      "Active": "Aktiv",
+      "Scheduled": "Geplant",
+      "Ended": "Beendet"
+    },
+    "status": {
+      "Active": "Aktiv",
+      "Scheduled": "Geplant",
+      "Ended": "Beendet"
+    },
+    "table": {
+      "promotion": "Aktion",
+      "how": "Wie",
+      "value": "Wert",
+      "lasts": "Dauer",
+      "window": "Angebotszeitraum",
+      "plans": "Tarife",
+      "used": "Genutzt",
+      "status": "Status",
+      "everyone": "Für alle beim Bezahlen",
+      "codeSubline": "Code",
+      "automatic": "Automatisch",
+      "allPaidPlans": "Alle kostenpflichtigen Tarife",
+      "usedOf": "{{count}} von {{max}}"
+    },
+    "lasts": {
+      "firstMonth": "Erster Monat",
+      "months_one": "{{count}} Monat",
+      "months_other": "{{count}} Monate",
+      "forever": "Dauerhaft"
+    },
+    "window": {
+      "range": "{{from}} – {{to}}",
+      "noEnd": "Kein Enddatum"
+    },
+    "plans": {
+      "start": "Start",
+      "pro": "Pro",
+      "studio": "Studio"
+    },
+    "drawer": {
+      "titleNew": "Neue Aktion",
+      "description": "Wird beim Speichern in Stripe angelegt",
+      "sectionPromotion": "Aktion",
+      "name": "Name",
+      "nameHint": "Trainer sehen diesen Namen in der Tarifauswahl und in den Einstellungen, und er kann auf ihrer Rechnung erscheinen. Er ist auch der Name des Coupons in Stripe.",
+      "type": "Art",
+      "typePercent": "Prozent",
+      "typeFixed": "Fester Betrag",
+      "value": "Wert",
+      "sectionHow": "Wie Trainer sie erhalten",
+      "claimed": "Einlösung",
+      "automatic": "Automatisch für alle",
+      "withCode": "Mit Code",
+      "code": "Code",
+      "codeHint": "Buchstaben und Zahlen. Groß- und Kleinschreibung spielt keine Rolle.",
+      "sectionLasts": "Wie lange sie für einen Trainer gilt",
+      "lasts": "Dauer",
+      "firstMonth": "Erster Monat",
+      "months": "Mehrere Monate",
+      "forever": "Dauerhaft",
+      "monthCount": "Anzahl der Monate",
+      "monthCountHint": "Von {{min}} bis {{max}}.",
+      "sectionWindow": "Angebotszeitraum",
+      "claimFrom": "Einlösbar ab",
+      "claimUntil": "Einlösbar bis",
+      "optional": "Optional",
+      "sectionLimits": "Tarife und Grenzen",
+      "plans": "Tarife",
+      "maxUses": "Max. Nutzungen",
+      "maxUsesHint": "Leer = keine Grenze",
+      "newCoachesOnly": "Nur neue Trainer",
+      "oneUsePerCoach": "Eine Nutzung pro Trainer",
+      "coversBill": "Gilt für die gesamte Rechnung, einschließlich der zweiten Rolle",
+      "save": "Aktion speichern",
+      "saving": "Wird gespeichert…"
+    },
+    "validation": {
+      "nameRequired": "Geben Sie einen Namen ein.",
+      "nameTooLong": "Der Name darf höchstens 200 Zeichen lang sein.",
+      "valuePercent": "Geben Sie eine ganze Prozentzahl von 1 bis 100 ein.",
+      "valueAmount": "Geben Sie einen Betrag über 0 ein.",
+      "codeRequired": "Geben Sie einen Code ein.",
+      "codeInvalid": "Verwenden Sie nur Buchstaben und Zahlen, höchstens 50 Zeichen.",
+      "codeTaken": "Diesen Code verwendet bereits eine andere Aktion, die noch nicht beendet ist.",
+      "monthsInvalid": "Geben Sie eine ganze Monatszahl von 2 bis 36 ein.",
+      "claimFromRequired": "Wählen Sie ein Startdatum.",
+      "windowInvalid": "Das Enddatum muss nach dem Startdatum und in der Zukunft liegen.",
+      "plansRequired": "Wählen Sie mindestens einen Tarif.",
+      "maxUsesInvalid": "Geben Sie eine ganze Zahl ab 1 ein oder lassen Sie das Feld leer."
     }
   }
 }

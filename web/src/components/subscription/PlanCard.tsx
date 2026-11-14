@@ -20,6 +20,8 @@ interface Props {
   onAction: () => void;
   /** Price to show instead of the plan's own, for example with the second-role add-on included. */
   priceMinorUnits?: number;
+  /** Full price to show crossed out next to a discounted `priceMinorUnits`; omitted when nothing is discounted. */
+  originalPriceMinorUnits?: number;
   /** Small line under the price, already translated. */
   priceNote?: string;
   /** Second-role line, already translated; null hides it, undefined derives it from the plan. */
@@ -42,6 +44,7 @@ export default function PlanCard({
   busy,
   onAction,
   priceMinorUnits,
+  originalPriceMinorUnits,
   priceNote,
   secondRoleText,
   badge,
@@ -51,6 +54,8 @@ export default function PlanCard({
   const name = coachPlanName(plan, i18n.language);
   const currency = plan.currency ?? 'CZK';
   const price = formatMoney(priceMinorUnits ?? plan.priceMinorUnits ?? 0, currency, i18n.language);
+  const originalPrice =
+    originalPriceMinorUnits === undefined ? null : formatMoney(originalPriceMinorUnits, currency, i18n.language);
   const interval = plan.billingInterval === BillingInterval.Annual ? 'year' : 'month';
   const addOn = plan.secondRoleAddOnPriceMinorUnits;
   const derivedSecondRole =
@@ -79,6 +84,12 @@ export default function PlanCard({
       <div className="flex flex-col gap-1">
         <div className="flex items-baseline gap-2">
           <span className="text-stat font-semibold text-ink">{price}</span>
+          {originalPrice && (
+            <s className="text-copy text-muted-foreground">
+              <span className="sr-only">{t('subscription.promotion.card.regularPrice')} </span>
+              {originalPrice}
+            </s>
+          )}
           <span className="text-body text-muted-foreground">{t(`subscription.planChoice.card.per.${interval}`)}</span>
         </div>
         {/* Two lines are reserved for the note so the buttons line up across the cards. */}

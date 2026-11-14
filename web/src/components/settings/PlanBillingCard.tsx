@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Check, CreditCard, ExternalLink, Ticket } from 'lucide-react';
+import { monthsUntil, promotionValueText } from '@/components/subscription/promotionText';
 import {
+  PromotionDuration,
   SecondRoleState,
   SubscriptionPriceLineKind,
   SubscriptionStatus,
@@ -100,6 +102,21 @@ export default function PlanBillingCard() {
   const lines = data?.priceLines ?? [];
   const currency = lines[0]?.currency ?? '';
   const total = lines.reduce((sum, line) => sum + (line.amountMinorUnits ?? 0), 0);
+  const promotion = data?.promotion;
+  const offerValue = promotion ? promotionValueText(t, promotion, language) : '';
+  const offerName = promotion?.name ?? '';
+  const offerLabel = !promotion
+    ? ''
+    : promotion.duration === PromotionDuration.Months && promotion.endsAt
+      ? t('subscription.plan.bill.offer.months', {
+          name: offerName,
+          value: offerValue,
+          left: Math.min(monthsUntil(promotion.endsAt, now), promotion.durationMonths ?? 0),
+          count: promotion.durationMonths ?? 0,
+        })
+      : promotion.duration === PromotionDuration.FirstMonth
+        ? t('subscription.plan.bill.offer.firstMonth', { name: offerName, value: offerValue })
+        : t('subscription.plan.bill.offer.forever', { name: offerName, value: offerValue });
   const includedFeatures = FEATURE_ROWS.filter((row) => data?.features?.[row.flag] === true);
   const full = clientLimit !== null && activeClientCount >= clientLimit;
 
@@ -170,12 +187,26 @@ export default function PlanBillingCard() {
                           </span>
                         </div>
                       ))}
+                      {promotion && (
+                        <div className="flex items-baseline gap-3 text-copy text-success-ink">
+                          <span>{offerLabel}</span>
+                          <span className="ml-auto font-semibold whitespace-nowrap">{offerValue}</span>
+                        </div>
+                      )}
                       <div className="flex items-baseline gap-3 border-t border-border pt-2.5 text-subhead font-semibold text-ink">
-                        <span>{t('subscription.plan.bill.total')}</span>
+                        <span>{t(promotion ? 'subscription.plan.bill.fullPrice' : 'subscription.plan.bill.total')}</span>
                         <span className="ml-auto whitespace-nowrap">
                           {t('subscription.plan.bill.perMonth', { amount: formatMoney(total, currency, language) })}
                         </span>
                       </div>
+                      {promotion && promotion.endsAt && (
+                        <span className="text-meta text-muted-foreground">
+                          {t('subscription.plan.bill.afterOffer', {
+                            date: dateFormat.format(new Date(promotion.endsAt)),
+                            amount: formatMoney(total, currency, language),
+                          })}
+                        </span>
+                      )}
                     </>
                   )}
                 </div>

@@ -34,6 +34,17 @@ export function planDisplayPrice(plan: CoachPlanDto, withSecondRole: boolean): n
 }
 
 /**
+ * What the plan costs per interval after the automatic promotion, in the same shape as {@link planDisplayPrice},
+ * or null when no promotion covers the plan. Display only: both parts come from the server.
+ */
+export function planDiscountedPrice(plan: CoachPlanDto, withSecondRole: boolean): number | null {
+  const base = plan.discountedPriceMinorUnits;
+  if (base === undefined || base === null) return null;
+  const addOn = withSecondRole ? (plan.discountedSecondRoleAddOnPriceMinorUnits ?? 0) : 0;
+  return base + addOn;
+}
+
+/**
  * True while the coach pays for a plan through a live Stripe subscription they can change in place:
  * a paid plan that is not given by Form Up and is neither lapsed nor never completed.
  */
