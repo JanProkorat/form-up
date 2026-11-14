@@ -47,6 +47,7 @@ public sealed class StripeSubscriptionService(
         string currency,
         BillingInterval interval,
         string? couponId,
+        string? language,
         CancellationToken ct) =>
         RunAsync("create-checkout-session", async stripe =>
         {
@@ -60,18 +61,18 @@ public sealed class StripeSubscriptionService(
             var session = await stripe.V1.Checkout.Sessions.CreateAsync(
                 StripeRequestBuilder.Checkout(
                     customerId, userId, planCode, planPriceExternalId, addOnPriceId, couponId,
-                    StripeRequestBuilder.Locale(null), settings),
+                    StripeRequestBuilder.Locale(language), settings),
                 cancellationToken: ct);
 
             return session.Url;
         });
 
     /// <inheritdoc />
-    public Task<string> CreatePortalSessionAsync(string customerId, CancellationToken ct) =>
+    public Task<string> CreatePortalSessionAsync(string customerId, string? language, CancellationToken ct) =>
         RunAsync("create-portal-session", async stripe =>
         {
             var session = await stripe.V1.BillingPortal.Sessions.CreateAsync(
-                StripeRequestBuilder.Portal(customerId, StripeRequestBuilder.Locale(null), settings),
+                StripeRequestBuilder.Portal(customerId, StripeRequestBuilder.Locale(language), settings),
                 cancellationToken: ct);
 
             return session.Url;

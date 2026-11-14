@@ -42,7 +42,13 @@ public sealed class FakeSubscriptionService : ISubscriptionService
 
     /// <summary>A recorded checkout session creation.</summary>
     public sealed record CheckoutCall(
-        string CustomerId, Guid UserId, string PlanCode, string PlanPriceExternalId, long? AddOnAmountMinorUnits, string? CouponId);
+        string CustomerId,
+        Guid UserId,
+        string PlanCode,
+        string PlanPriceExternalId,
+        long? AddOnAmountMinorUnits,
+        string? CouponId,
+        string? Language);
 
     /// <summary>A recorded plan change.</summary>
     public sealed record ChangePlanCall(string SubscriptionId, string PlanCode, string PlanPriceExternalId, bool AtNextRenewal);
@@ -92,20 +98,21 @@ public sealed class FakeSubscriptionService : ISubscriptionService
         string currency,
         BillingInterval interval,
         string? couponId,
+        string? language,
         CancellationToken ct)
     {
         ThrowIfFailing();
 
         lock (gate)
         {
-            Checkouts.Add(new CheckoutCall(customerId, userId, planCode, planPriceExternalId, addOnAmountMinorUnits, couponId));
+            Checkouts.Add(new CheckoutCall(customerId, userId, planCode, planPriceExternalId, addOnAmountMinorUnits, couponId, language));
         }
 
         return Task.FromResult("https://checkout.stripe.test/session");
     }
 
     /// <inheritdoc />
-    public Task<string> CreatePortalSessionAsync(string customerId, CancellationToken ct)
+    public Task<string> CreatePortalSessionAsync(string customerId, string? language, CancellationToken ct)
     {
         ThrowIfFailing();
 

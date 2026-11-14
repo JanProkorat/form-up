@@ -1,3 +1,4 @@
+using FormUp.Application.Features.Billing.CreateCheckoutSession;
 using FormUp.Application.Features.Client.Notifications.MarkAllRead;
 using FormUp.Application.Features.Client.Notifications.MarkRead;
 using FormUp.Application.Features.CoachSubscriptions.ChooseFreePlan;
@@ -19,7 +20,7 @@ using FormUp.Application.Features.Users.UpdateTimeZone;
 namespace FormUp.Application.Infrastructure.PlanChoice;
 
 /// <summary>
-/// The one list of writes a coach may still make while a plan choice is required: choosing a plan, replying in
+/// The one list of writes a coach may still make while a plan choice is required: choosing a plan or buying one, replying in
 /// existing chats, marking notifications read, and account housekeeping. Every other write is refused by <see cref="PlanChoiceWriteGateMiddleware"/>.
 /// Starting a new conversation, keep-clients and every coach feature stay refused. The list is pinned by an
 /// architecture test; add to it only on purpose.
@@ -50,5 +51,6 @@ public static class PlanChoiceExemptions
         typeof(DeleteProfessionalAvatarEndpoint),
         typeof(DisableCoachAccountEndpoint),
         typeof(RemoveCoachRoleEndpoint),
+        typeof(CreateCheckoutSessionEndpoint),
     };
 }

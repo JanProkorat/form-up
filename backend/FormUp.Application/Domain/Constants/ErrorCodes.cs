@@ -760,6 +760,9 @@ public static class ErrorCodes
     /// <summary>The plan cannot be bought: it is the Free plan, inactive, or has no open paid price.</summary>
     public const string PlanNotPurchasable = "PLAN_NOT_PURCHASABLE";
 
+    /// <summary>The coach already has a live paid subscription; changing it goes through the billing portal.</summary>
+    public const string BillingAlreadySubscribed = "BILLING_ALREADY_SUBSCRIBED";
+
     /// <summary>The coach has no payment-provider customer yet, so there is no portal to open.</summary>
     public const string BillingCustomerNotFound = "BILLING_CUSTOMER_NOT_FOUND";
 

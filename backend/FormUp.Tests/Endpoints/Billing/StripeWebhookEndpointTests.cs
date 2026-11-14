@@ -143,18 +143,7 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
         return scenario;
     }
 
-    private async Task<string> SetStripePriceAsync(string planCode)
-    {
-        var priceId = $"price_{Guid.NewGuid():N}";
-        using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-
-        await db.SubscriptionPlanPrices
-            .Where(p => p.SubscriptionPlan.Code == planCode && p.ValidTo == null)
-            .ExecuteUpdateAsync(setters => setters.SetProperty(p => p.ExternalPriceId, priceId), Ct);
-
-        return priceId;
-    }
+    private Task<string> SetStripePriceAsync(string planCode) => BillingTestData.SetStripePriceAsync(factory, planCode);
 
     private async Task UpdateRowAsync(long profileId, Action<CoachSubscription> change)
     {

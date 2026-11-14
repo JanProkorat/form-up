@@ -33,6 +33,7 @@ public interface ISubscriptionService
     /// <param name="currency">ISO 4217 currency of the add-on price.</param>
     /// <param name="interval">Billing cadence of the add-on price.</param>
     /// <param name="couponId">Automatic promotion coupon id, or null.</param>
+    /// <param name="language">The coach's language (cs, en, de) for the hosted page, or null for Czech.</param>
     /// <param name="ct">Cancellation token.</param>
     Task<string> CreateCheckoutSessionAsync(
         string customerId,
@@ -43,12 +44,14 @@ public interface ISubscriptionService
         string currency,
         BillingInterval interval,
         string? couponId,
+        string? language,
         CancellationToken ct);
 
     /// <summary>Creates a Customer Portal session and returns its URL.</summary>
     /// <param name="customerId">The provider customer id.</param>
+    /// <param name="language">The coach's language (cs, en, de) for the hosted page, or null for Czech.</param>
     /// <param name="ct">Cancellation token.</param>
-    Task<string> CreatePortalSessionAsync(string customerId, CancellationToken ct);
+    Task<string> CreatePortalSessionAsync(string customerId, string? language, CancellationToken ct);
 
     /// <summary>
     /// Moves an existing subscription to another plan price, immediately or scheduled for the next renewal. A scheduled
