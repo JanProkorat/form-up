@@ -68,12 +68,14 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
         });
     }
 
-    private static string InvoiceEvent(string eventId, string type, Scenario scenario, long? created = null) =>
+    private static string InvoiceEvent(
+        string eventId, string type, Scenario scenario, long? created = null, long? nextPaymentAttempt = null) =>
         Envelope(eventId, type, created, new
         {
             Id = $"in_{Guid.NewGuid():N}",
             Object = "invoice",
             Customer = scenario.CustomerId,
+            NextPaymentAttempt = nextPaymentAttempt,
             Parent = new
             {
                 Type = "subscription_details",
@@ -338,6 +340,40 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         (await ReadRowAsync(scenario.Coach.ProfileId)).Status.Should().Be(SubscriptionStatus.PastDue);
         (await MaxClientsAsync(scenario.Coach.ProfileId)).Should().Be(30, "the coach keeps the paid plan while Stripe retries");
+    }
+
+    [Fact]
+    public async Task Webhook_InvoicePaymentFailed_StoresTheNextRetryDate()
+    {
+        var scenario = await ArrangeOnPaidPlanAsync();
+        var retryAt = DateTimeOffset.UtcNow.AddDays(3).ToUnixTimeSeconds();
+
+        await PostAsync(InvoiceEvent(NewEventId(), "invoice.payment_failed", scenario, nextPaymentAttempt: retryAt));
+
+        (await ReadRowAsync(scenario.Coach.ProfileId)).NextPaymentAttemptAt
+            .Should().Be(DateTimeOffset.FromUnixTimeSeconds(retryAt));
+    }
+
+    [Fact]
+    public async Task Webhook_InvoicePaid_ClearsTheNextRetryDate()
+    {
+        var scenario = await ArrangeOnPaidPlanAsync(SubscriptionStatus.PastDue);
+        await UpdateRowAsync(scenario.Coach.ProfileId, row => row.NextPaymentAttemptAt = DateTimeOffset.UtcNow.AddDays(2));
+
+        await PostAsync(InvoiceEvent(NewEventId(), "invoice.paid", scenario));
+
+        (await ReadRowAsync(scenario.Coach.ProfileId)).NextPaymentAttemptAt.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Webhook_SubscriptionDeleted_ClearsTheNextRetryDate()
+    {
+        var scenario = await ArrangeOnPaidPlanAsync(SubscriptionStatus.PastDue);
+        await UpdateRowAsync(scenario.Coach.ProfileId, row => row.NextPaymentAttemptAt = DateTimeOffset.UtcNow.AddDays(2));
+
+        await PostAsync(SubscriptionEvent(NewEventId(), "customer.subscription.deleted", scenario, "canceled"));
+
+        (await ReadRowAsync(scenario.Coach.ProfileId)).NextPaymentAttemptAt.Should().BeNull();
     }
 
     [Fact]

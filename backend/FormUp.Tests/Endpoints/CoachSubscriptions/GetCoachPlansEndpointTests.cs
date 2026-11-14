@@ -8,10 +8,12 @@ using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Features.CoachSubscriptions.GetCoachPlans;
 using FormUp.Application.Infrastructure.Data;
+using FormUp.Application.Infrastructure.Services.Billing;
 using FormUp.Tests.Builders;
 using FormUp.Tests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace FormUp.Tests.Endpoints.CoachSubscriptions;
 
@@ -89,6 +91,27 @@ public class GetCoachPlansEndpointTests(FitnessApiFactory factory)
             CanUsePerClientCheckInConfig = pro.CanUsePerClientCheckInConfig,
             CanUsePayments = pro.CanUsePayments,
         });
+    }
+
+    [Fact]
+    public async Task Get_ReportsTheConfiguredTaxMode()
+    {
+        var options = factory.Services.GetRequiredService<IOptions<BillingOptions>>().Value;
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var original = options.TaxMode;
+
+        try
+        {
+            (await GetAsync(coach)).TaxMode.Should().Be(original);
+
+            options.TaxMode = BillingTaxMode.Vat21;
+
+            (await GetAsync(coach)).TaxMode.Should().Be(BillingTaxMode.Vat21);
+        }
+        finally
+        {
+            options.TaxMode = original;
+        }
     }
 
     [Fact]

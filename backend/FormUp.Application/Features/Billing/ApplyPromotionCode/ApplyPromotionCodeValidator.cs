@@ -24,7 +24,7 @@ internal sealed class ApplyPromotionCodeValidator : Validator<ApplyPromotionCode
             .MaximumLength(MaxCodeLength)
             .WithErrorCode(ErrorCodes.PromotionCodeInvalid)
             .WithMessage("The promotion code is too long.")
-            .Matches("^[A-Za-z0-9_-]+$")
+            .Matches(@"^[A-Za-z0-9_-]+\z")
             .WithErrorCode(ErrorCodes.PromotionCodeInvalid)
             .WithMessage("The promotion code may only contain letters, digits, hyphen and underscore.");
     }

@@ -40,6 +40,27 @@ public sealed class FakeSubscriptionService : ISubscriptionService
     /// <summary>Recorded <see cref="ISubscriptionService.ApplyGivenFreeAsync"/> calls.</summary>
     public List<GivenFreeCall> GivenFree { get; } = [];
 
+    /// <summary>When true <see cref="ISubscriptionService.ApplyPromotionCodeAsync"/> answers "unknown or inactive code".</summary>
+    public bool RejectPromotionCodes { get; set; }
+
+    /// <summary>Recorded <see cref="ISubscriptionService.ApplyPromotionCodeAsync"/> calls (subscription ids only; never the code).</summary>
+    public List<string> PromotionCodeSubscriptions { get; } = [];
+
+    /// <summary>Recorded <see cref="ISubscriptionService.CancelAtPeriodEndAsync"/> calls (subscription ids).</summary>
+    public List<string> CancelledAtPeriodEnd { get; } = [];
+
+    /// <summary>What <see cref="ISubscriptionService.PreviewSecondRoleAddOnAsync"/> returns.</summary>
+    public SecondRoleAddOnPreview PreviewResult { get; set; } = new(12300, 0, "CZK");
+
+    /// <summary>Recorded <see cref="ISubscriptionService.PreviewSecondRoleAddOnAsync"/> calls.</summary>
+    public List<AddOnCall> Previews { get; } = [];
+
+    /// <summary>What <see cref="ISubscriptionService.ChargeSecondRoleAddOnAsync"/> returns.</summary>
+    public AddOnChargeOutcome ChargeOutcome { get; set; } = AddOnChargeOutcome.Charged;
+
+    /// <summary>Recorded <see cref="ISubscriptionService.ChargeSecondRoleAddOnAsync"/> calls.</summary>
+    public List<AddOnCall> Charges { get; } = [];
+
     /// <summary>A recorded customer creation.</summary>
     public sealed record CustomerCall(Guid UserId, string Email, string? Name, string? Language);
 
@@ -51,10 +72,15 @@ public sealed class FakeSubscriptionService : ISubscriptionService
         string PlanPriceExternalId,
         long? AddOnAmountMinorUnits,
         string? CouponId,
-        string? Language);
+        string? Language,
+        CheckoutFlow Flow = CheckoutFlow.Settings);
 
     /// <summary>A recorded plan change.</summary>
-    public sealed record ChangePlanCall(string SubscriptionId, string PlanCode, string PlanPriceExternalId, bool AtNextRenewal);
+    public sealed record ChangePlanCall(
+        string SubscriptionId, string PlanCode, string PlanPriceExternalId, bool AtNextRenewal, long? AddOnAmountMinorUnits = null);
+
+    /// <summary>A recorded add-on preview or charge; the idempotency key is null for a preview.</summary>
+    public sealed record AddOnCall(string SubscriptionId, string PlanCode, long AmountMinorUnits, string? IdempotencyKey);
 
     /// <summary>A recorded price creation.</summary>
     public sealed record PriceCall(string PlanCode, long AmountMinorUnits, string Currency, BillingInterval Interval);
@@ -76,6 +102,13 @@ public sealed class FakeSubscriptionService : ISubscriptionService
             PlanChanges.Clear();
             Prices.Clear();
             GivenFree.Clear();
+            RejectPromotionCodes = false;
+            PromotionCodeSubscriptions.Clear();
+            CancelledAtPeriodEnd.Clear();
+            PreviewResult = new SecondRoleAddOnPreview(12300, 0, "CZK");
+            Previews.Clear();
+            ChargeOutcome = AddOnChargeOutcome.Charged;
+            Charges.Clear();
         }
     }
 
@@ -102,6 +135,7 @@ public sealed class FakeSubscriptionService : ISubscriptionService
         string currency,
         BillingInterval interval,
         string? couponId,
+        CheckoutFlow flow,
         string? language,
         CancellationToken ct)
     {
@@ -109,7 +143,7 @@ public sealed class FakeSubscriptionService : ISubscriptionService
 
         lock (gate)
         {
-            Checkouts.Add(new CheckoutCall(customerId, userId, planCode, planPriceExternalId, addOnAmountMinorUnits, couponId, language));
+            Checkouts.Add(new CheckoutCall(customerId, userId, planCode, planPriceExternalId, addOnAmountMinorUnits, couponId, language, flow));
         }
 
         return Task.FromResult("https://checkout.stripe.test/session");
@@ -148,7 +182,7 @@ public sealed class FakeSubscriptionService : ISubscriptionService
 
         lock (gate)
         {
-            PlanChanges.Add(new ChangePlanCall(subscriptionId, planCode, planPriceExternalId, atNextRenewal));
+            PlanChanges.Add(new ChangePlanCall(subscriptionId, planCode, planPriceExternalId, atNextRenewal, addOnAmountMinorUnits));
         }
 
         return Task.CompletedTask;
@@ -159,7 +193,12 @@ public sealed class FakeSubscriptionService : ISubscriptionService
     {
         ThrowIfFailing();
 
-        return Task.FromResult(true);
+        lock (gate)
+        {
+            PromotionCodeSubscriptions.Add(subscriptionId);
+        }
+
+        return Task.FromResult(!RejectPromotionCodes);
     }
 
     /// <inheritdoc />
@@ -187,6 +226,59 @@ public sealed class FakeSubscriptionService : ISubscriptionService
         }
 
         return Task.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public Task CancelAtPeriodEndAsync(string subscriptionId, CancellationToken ct)
+    {
+        ThrowIfFailing();
+
+        lock (gate)
+        {
+            CancelledAtPeriodEnd.Add(subscriptionId);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public Task<SecondRoleAddOnPreview> PreviewSecondRoleAddOnAsync(
+        string customerId,
+        string subscriptionId,
+        string planCode,
+        long addOnAmountMinorUnits,
+        string currency,
+        BillingInterval interval,
+        CancellationToken ct)
+    {
+        ThrowIfFailing();
+
+        lock (gate)
+        {
+            Previews.Add(new AddOnCall(subscriptionId, planCode, addOnAmountMinorUnits, null));
+        }
+
+        return Task.FromResult(PreviewResult with { Currency = currency });
+    }
+
+    /// <inheritdoc />
+    public Task<AddOnChargeOutcome> ChargeSecondRoleAddOnAsync(
+        string subscriptionId,
+        string planCode,
+        long addOnAmountMinorUnits,
+        string currency,
+        BillingInterval interval,
+        string idempotencyKey,
+        CancellationToken ct)
+    {
+        ThrowIfFailing();
+
+        lock (gate)
+        {
+            Charges.Add(new AddOnCall(subscriptionId, planCode, addOnAmountMinorUnits, idempotencyKey));
+        }
+
+        return Task.FromResult(ChargeOutcome);
     }
 
     private void ThrowIfFailing()
