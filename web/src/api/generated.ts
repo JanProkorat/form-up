@@ -5611,6 +5611,13 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("The Free plan cannot be repriced or deactivated", status, _responseText, _headers);
 
+        } else if (status === 502) {
+            const _responseText = response.data;
+            let result502: any = null;
+            let resultData502  = _responseText;
+            result502 = JSON.parse(resultData502);
+            return throwException("Stripe failed; nothing was saved (BILLING_PROVIDER_ERROR)", status, _responseText, _headers, result502);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -5820,6 +5827,13 @@ export class ApiClient {
         } else if (status === 409) {
             const _responseText = response.data;
             return throwException("A plan with this Code already exists", status, _responseText, _headers);
+
+        } else if (status === 502) {
+            const _responseText = response.data;
+            let result502: any = null;
+            let resultData502  = _responseText;
+            result502 = JSON.parse(resultData502);
+            return throwException("Stripe could not create the price; nothing was saved (BILLING_PROVIDER_ERROR)", status, _responseText, _headers, result502);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -21733,6 +21747,165 @@ export class ApiClient {
     }
 
     /**
+     * Open the Stripe Customer Portal
+     * @return The portal page to redirect to
+     */
+    createPortalSessionEndpoint(signal?: AbortSignal): Promise<CreatePortalSessionResponse> {
+        let url_ = this.baseUrl + "/billing/portal-session";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCreatePortalSessionEndpoint(_response);
+        });
+    }
+
+    protected processCreatePortalSessionEndpoint(response: AxiosResponse): Promise<CreatePortalSessionResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<CreatePortalSessionResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The caller is not a trainer or nutritionist", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("The coach has no Stripe customer yet (BILLING_CUSTOMER_NOT_FOUND)", status, _responseText, _headers);
+
+        } else if (status === 502) {
+            const _responseText = response.data;
+            return throwException("Stripe failed (BILLING_PROVIDER_ERROR)", status, _responseText, _headers);
+
+        } else if (status === 503) {
+            const _responseText = response.data;
+            return throwException("Stripe is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<CreatePortalSessionResponse>(null as any);
+    }
+
+    /**
+     * Start a Stripe Checkout
+     * @return The Checkout page to redirect to
+     */
+    createCheckoutSessionEndpoint(createCheckoutSessionRequest: CreateCheckoutSessionRequest, signal?: AbortSignal): Promise<CreateCheckoutSessionResponse> {
+        let url_ = this.baseUrl + "/billing/checkout-session";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(createCheckoutSessionRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCreateCheckoutSessionEndpoint(_response);
+        });
+    }
+
+    protected processCreateCheckoutSessionEndpoint(response: AxiosResponse): Promise<CreateCheckoutSessionResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<CreateCheckoutSessionResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid body, or the plan cannot be bought: unknown, Free, inactive, not priced in Stripe, or an add-on on a plan that includes both roles (PLAN_NOT_PURCHASABLE)", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The caller is not a trainer or nutritionist, or the coach role was removed", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("The caller has no professional profile, or the Free plan is missing", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("The coach already has a live paid subscription (BILLING_ALREADY_SUBSCRIBED)", status, _responseText, _headers);
+
+        } else if (status === 502) {
+            const _responseText = response.data;
+            return throwException("Stripe failed; nothing was started (BILLING_PROVIDER_ERROR)", status, _responseText, _headers);
+
+        } else if (status === 503) {
+            const _responseText = response.data;
+            return throwException("Stripe is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<CreateCheckoutSessionResponse>(null as any);
+    }
+
+    /**
      * Update an automation rule
      * @param ruleId Route parameter: public id of the rule.
      * @return The updated rule
@@ -23512,6 +23685,13 @@ export class ApiClient {
         } else if (status === 404) {
             const _responseText = response.data;
             return throwException("The coach or the plan code is unknown (PROFESSIONAL_NOT_FOUND, SUBSCRIPTION_PLAN_NOT_FOUND)", status, _responseText, _headers);
+
+        } else if (status === 502) {
+            const _responseText = response.data;
+            let result502: any = null;
+            let resultData502  = _responseText;
+            result502 = JSON.parse(resultData502);
+            return throwException("Stripe failed; nothing was saved (BILLING_PROVIDER_ERROR)", status, _responseText, _headers, result502);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -26769,7 +26949,8 @@ in the body. An explicit null means unlimited; omitting the field entirely 400s.
     currency?: string;
     /** Billing cadence for this plan. */
     billingInterval?: BillingInterval;
-    /** External payment-provider price identifier, once billing integration ships. */
+    /** Ignored. The backend creates the Stripe price itself when a price row opens; the field stays only so existing
+clients keep working. The response returns the price id the backend stored. */
     externalPriceId?: string | undefined;
     /** Whether the plan is currently offered/selectable. Required — reactivation/deactivation
 happens through this field, and an omitted value must not silently deactivate a live
@@ -26830,7 +27011,8 @@ and SecondRoleAddOnPriceMinorUnits must be set. */
     currency?: string;
     /** Billing cadence for this plan. */
     billingInterval?: BillingInterval;
-    /** External payment-provider price identifier, once billing integration ships. */
+    /** Ignored. The backend creates the Stripe price itself when a price row opens; the field stays only so existing
+clients keep working. The response returns the price id the backend stored. */
     externalPriceId?: string | undefined;
     /** Whether the plan is currently offered/selectable. Defaults to true on create. */
     isActive?: boolean;
@@ -33041,6 +33223,26 @@ export enum DayOfWeek {
     Thursday = "Thursday",
     Friday = "Friday",
     Saturday = "Saturday",
+}
+
+/** The Stripe Customer Portal page to send the coach to. */
+export interface CreatePortalSessionResponse {
+    /** URL of the portal session. */
+    url?: string;
+}
+
+/** The hosted Stripe Checkout page to send the coach to. */
+export interface CreateCheckoutSessionResponse {
+    /** URL of the Checkout session. */
+    url?: string;
+}
+
+/** Request for starting a Stripe Checkout for the caller's own subscription. */
+export interface CreateCheckoutSessionRequest {
+    /** Code of the paid plan to buy. Never the Free plan. */
+    planCode: string;
+    /** True to add the second-role add-on line. Refused on a plan that already includes both roles. */
+    includeSecondRoleAddOn?: boolean;
 }
 
 /** A coach's automation rule as returned by the management endpoints. */
