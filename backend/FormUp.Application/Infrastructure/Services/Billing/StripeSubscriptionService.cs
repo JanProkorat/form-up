@@ -250,11 +250,12 @@ public sealed class StripeSubscriptionService(
         string planCode, long amountMinorUnits, string currency, BillingInterval interval, CancellationToken ct) =>
         RunAsync("create-price", async stripe =>
         {
+            var productId = await EnsurePlanProductAsync(stripe, planCode, ct);
             var price = await stripe.V1.Prices.CreateAsync(
-                StripeRequestBuilder.Price(planCode, amountMinorUnits, currency, interval),
+                StripeRequestBuilder.Price(planCode, productId, amountMinorUnits, currency, interval),
                 new RequestOptions
                 {
-                    IdempotencyKey = $"formup-price-{planCode}-{currency.ToLowerInvariant()}-{amountMinorUnits}-{StripeRequestBuilder.IntervalName(interval)}",
+                    IdempotencyKey = $"formup-price-{productId}-{currency.ToLowerInvariant()}-{amountMinorUnits}-{StripeRequestBuilder.IntervalName(interval)}",
                 },
                 ct);
 
@@ -436,6 +437,31 @@ public sealed class StripeSubscriptionService(
             ct);
 
         return created.Id;
+    }
+
+    /// <summary>
+    /// Finds the plan's stable product by its deterministic id, creating it when missing. A create that loses a race
+    /// (the id already exists) reads the winner instead of failing.
+    /// </summary>
+    private static async Task<string> EnsurePlanProductAsync(StripeClient stripe, string planCode, CancellationToken ct)
+    {
+        var productId = StripeRequestBuilder.PlanProductId(planCode);
+
+        try
+        {
+            return (await stripe.V1.Products.GetAsync(productId, cancellationToken: ct)).Id;
+        }
+        catch (StripeException ex) when (ex.HttpStatusCode == HttpStatusCode.NotFound)
+        {
+            try
+            {
+                return (await stripe.V1.Products.CreateAsync(StripeRequestBuilder.PlanProduct(planCode), cancellationToken: ct)).Id;
+            }
+            catch (StripeException createEx) when (createEx.StripeError?.Code == "resource_already_exists")
+            {
+                return (await stripe.V1.Products.GetAsync(productId, cancellationToken: ct)).Id;
+            }
+        }
     }
 
     private static async Task<string> EnsureGiftCouponAsync(StripeClient stripe, CancellationToken ct)

@@ -21,6 +21,9 @@ public static class StripeRequestBuilder
     /// <summary>Prefix of the lookup key that identifies a second-role add-on price.</summary>
     public const string AddOnLookupPrefix = "formup-addon-";
 
+    /// <summary>Prefix of the id of a plan's stable Stripe product.</summary>
+    public const string PlanProductPrefix = "formup-plan-";
+
     private const string DefaultLocale = "cs";
 
     private static readonly string[] SupportedLocales = ["cs", "en", "de"];
@@ -203,21 +206,45 @@ public static class StripeRequestBuilder
         ReturnUrl = options.PortalReturnUrl,
     };
 
-    /// <summary>A recurring price for a plan; the product is created with it.</summary>
+    /// <summary>
+    /// The id of a plan's one Stripe product, derived from the immutable plan code. Every price of the plan and its add-on
+    /// prices live on this product, so a coupon limited to it keeps covering the plan after a price change.
+    /// </summary>
     /// <param name="planCode">The plan code.</param>
+    public static string PlanProductId(string planCode)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(planCode);
+
+        return $"{PlanProductPrefix}{planCode}";
+    }
+
+    /// <summary>The create options of a plan's stable product, under the id from <see cref="PlanProductId"/>.</summary>
+    /// <param name="planCode">The plan code.</param>
+    public static ProductCreateOptions PlanProduct(string planCode) => new()
+    {
+        Id = PlanProductId(planCode),
+        Name = $"Form Up {planCode}",
+        Metadata = new Dictionary<string, string> { ["planCode"] = planCode },
+    };
+
+    /// <summary>A recurring price for a plan, created on the plan's existing product.</summary>
+    /// <param name="planCode">The plan code.</param>
+    /// <param name="productId">The plan's stable product id.</param>
     /// <param name="amountMinorUnits">The price in the smallest currency unit; must be positive.</param>
     /// <param name="currency">ISO 4217 currency.</param>
     /// <param name="interval">Billing cadence.</param>
-    public static PriceCreateOptions Price(string planCode, long amountMinorUnits, string currency, BillingInterval interval)
+    public static PriceCreateOptions Price(
+        string planCode, string productId, long amountMinorUnits, string currency, BillingInterval interval)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(amountMinorUnits);
+        ArgumentException.ThrowIfNullOrEmpty(productId);
 
         return new PriceCreateOptions
         {
             Currency = currency.ToLowerInvariant(),
             UnitAmount = amountMinorUnits,
             Recurring = new PriceRecurringOptions { Interval = IntervalName(interval) },
-            ProductData = new PriceProductDataOptions { Name = $"Form Up {planCode}" },
+            Product = productId,
             Metadata = new Dictionary<string, string> { ["planCode"] = planCode },
         };
     }
