@@ -46,13 +46,19 @@ public static class StripeRequestBuilder
             ? [options.VatTaxRateId]
             : null;
 
-    /// <summary>The lookup key of a plan's second-role add-on price at one amount.</summary>
+    /// <summary>
+    /// The lookup key of a plan's second-role add-on price at one amount, on one product. The product is part of the key, so
+    /// an add-on price created before add-ons moved onto the plan's product is never reused and a new one is created under
+    /// the plan's product on next use.
+    /// </summary>
     /// <param name="planCode">The plan code.</param>
+    /// <param name="productId">The provider product of the plan's price, which the add-on price is created on.</param>
     /// <param name="amountMinorUnits">The add-on price.</param>
     /// <param name="currency">ISO 4217 currency.</param>
     /// <param name="interval">Billing cadence.</param>
-    public static string AddOnLookupKey(string planCode, long amountMinorUnits, string currency, BillingInterval interval) =>
-        $"{AddOnLookupPrefix}{planCode}-{currency.ToLowerInvariant()}-{amountMinorUnits}-{IntervalName(interval)}";
+    public static string AddOnLookupKey(
+        string planCode, string productId, long amountMinorUnits, string currency, BillingInterval interval) =>
+        $"{AddOnLookupPrefix}{planCode}-{currency.ToLowerInvariant()}-{amountMinorUnits}-{IntervalName(interval)}-{productId}";
 
     /// <summary>A customer with the coach's locale and, for a non-VAT-payer, the invoice footer note.</summary>
     /// <param name="userId">The coach's user id, kept as metadata.</param>
@@ -216,18 +222,31 @@ public static class StripeRequestBuilder
         };
     }
 
-    /// <summary>A recurring second-role add-on price, found again later by its lookup key.</summary>
+    /// <summary>
+    /// A recurring second-role add-on price, found again later by its lookup key. It is created on the plan's own product,
+    /// so a coupon limited to that product discounts the plan line and the add-on line alike.
+    /// </summary>
     /// <param name="planCode">The plan code.</param>
+    /// <param name="productId">The provider product of the plan's price.</param>
     /// <param name="amountMinorUnits">The add-on price; must be positive.</param>
     /// <param name="currency">ISO 4217 currency.</param>
     /// <param name="interval">Billing cadence.</param>
-    public static PriceCreateOptions AddOnPrice(string planCode, long amountMinorUnits, string currency, BillingInterval interval)
+    public static PriceCreateOptions AddOnPrice(
+        string planCode, string productId, long amountMinorUnits, string currency, BillingInterval interval)
     {
-        var options = Price(planCode, amountMinorUnits, currency, interval);
-        options.ProductData!.Name = $"Form Up {planCode} second role";
-        options.LookupKey = AddOnLookupKey(planCode, amountMinorUnits, currency, interval);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(amountMinorUnits);
+        ArgumentException.ThrowIfNullOrEmpty(productId);
 
-        return options;
+        return new PriceCreateOptions
+        {
+            Currency = currency.ToLowerInvariant(),
+            UnitAmount = amountMinorUnits,
+            Recurring = new PriceRecurringOptions { Interval = IntervalName(interval) },
+            Product = productId,
+            Nickname = "Second role",
+            LookupKey = AddOnLookupKey(planCode, productId, amountMinorUnits, currency, interval),
+            Metadata = new Dictionary<string, string> { ["planCode"] = planCode, ["kind"] = "second-role-add-on" },
+        };
     }
 
     /// <summary>The reusable forever 100 % coupon.</summary>

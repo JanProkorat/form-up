@@ -178,12 +178,53 @@ public class StripeRequestBuilderTests
     }
 
     [Fact]
-    public void AddOnPrice_CanBeFoundAgainByLookupKey()
+    public void AddOnPrice_CanBeFoundAgainByLookupKey_WhichNamesTheProduct()
     {
-        var price = StripeRequestBuilder.AddOnPrice("pro", 9900, "CZK", BillingInterval.Monthly);
+        var price = StripeRequestBuilder.AddOnPrice("pro", "prod_pro", 9900, "CZK", BillingInterval.Monthly);
 
-        price.LookupKey.Should().Be("formup-addon-pro-czk-9900-month");
+        price.LookupKey.Should().Be("formup-addon-pro-czk-9900-month-prod_pro");
         price.LookupKey.Should().StartWith(StripeRequestBuilder.AddOnLookupPrefix);
+    }
+
+    [Fact]
+    public void AddOnPrice_IsCreatedOnThePlansOwnProduct_SoACouponLimitedToThatProductCoversIt()
+    {
+        var price = StripeRequestBuilder.AddOnPrice("pro", "prod_pro", 9900, "CZK", BillingInterval.Monthly);
+
+        price.Product.Should().Be("prod_pro");
+        price.ProductData.Should().BeNull("a new product would sit outside the coupon's product list");
+        price.UnitAmount.Should().Be(9900);
+        price.Currency.Should().Be("czk");
+        price.Recurring.Interval.Should().Be("month");
+    }
+
+    [Fact]
+    public void ACouponLimitedToAPlansProduct_NamesTheSameProductAsThePlansAddOnPrice()
+    {
+        const string planProduct = "prod_pro";
+        var coupon = StripeRequestBuilder.Coupon(Spec(), [planProduct]);
+        var addOn = StripeRequestBuilder.AddOnPrice("pro", planProduct, 9900, "CZK", BillingInterval.Monthly);
+
+        coupon.AppliesTo!.Products.Should().Contain(addOn.Product, "the add-on line sits on a product the coupon covers");
+    }
+
+    [Fact]
+    public void AddOnLookupKey_DiffersPerProduct_SoAnOldPriceOnAnotherProductIsNeverReused()
+    {
+        var older = StripeRequestBuilder.AddOnLookupKey("pro", "prod_old", 9900, "CZK", BillingInterval.Monthly);
+        var current = StripeRequestBuilder.AddOnLookupKey("pro", "prod_pro", 9900, "CZK", BillingInterval.Monthly);
+
+        older.Should().NotBe(current);
+    }
+
+    [Theory]
+    [InlineData(0, "prod_pro")]
+    [InlineData(9900, "")]
+    public void AddOnPrice_WithoutAnAmountOrProduct_IsRefused(long amount, string productId)
+    {
+        var build = () => StripeRequestBuilder.AddOnPrice("pro", productId, amount, "CZK", BillingInterval.Monthly);
+
+        build.Should().Throw<ArgumentException>();
     }
 
     [Fact]
