@@ -1104,26 +1104,32 @@
   "h": 1100
  },
  {
-  "html": "web/39-04-page-admin-plan-drawer-c.html",
-  "png": "web/39-04-page-admin-plan-drawer-c.png",
+  "html": "web/39-04-page-admin-plan-editor-c.html",
+  "png": "web/39-04-page-admin-plan-editor-c.png",
+  "w": 1440,
+  "h": 1360
+ },
+ {
+  "html": "web/39-05-page-admin-plan-editor-new-c.html",
+  "png": "web/39-05-page-admin-plan-editor-new-c.png",
+  "w": 1440,
+  "h": 1360
+ },
+ {
+  "html": "web/39-06-page-admin-coaches-c.html",
+  "png": "web/39-06-page-admin-coaches-c.png",
   "w": 1440,
   "h": 1240
  },
  {
-  "html": "web/39-05-page-admin-coaches-c.html",
-  "png": "web/39-05-page-admin-coaches-c.png",
+  "html": "web/39-07-page-admin-coach-profile-c.html",
+  "png": "web/39-07-page-admin-coach-profile-c.png",
   "w": 1440,
   "h": 1240
  },
  {
-  "html": "web/39-06-page-admin-coach-profile-c.html",
-  "png": "web/39-06-page-admin-coach-profile-c.png",
-  "w": 1440,
-  "h": 1240
- },
- {
-  "html": "web/39-07-page-admin-coach-dialogs-c.html",
-  "png": "web/39-07-page-admin-coach-dialogs-c.png",
+  "html": "web/39-08-page-admin-coach-dialogs-c.html",
+  "png": "web/39-08-page-admin-coach-dialogs-c.png",
   "w": 2408,
   "h": 900
  },
@@ -1146,26 +1152,32 @@
   "h": 1100
  },
  {
-  "html": "web/40-04-page-admin-plan-drawer-d.html",
-  "png": "web/40-04-page-admin-plan-drawer-d.png",
+  "html": "web/40-04-page-admin-plan-editor-d.html",
+  "png": "web/40-04-page-admin-plan-editor-d.png",
+  "w": 1440,
+  "h": 1360
+ },
+ {
+  "html": "web/40-05-page-admin-plan-editor-new-d.html",
+  "png": "web/40-05-page-admin-plan-editor-new-d.png",
+  "w": 1440,
+  "h": 1360
+ },
+ {
+  "html": "web/40-06-page-admin-coaches-d.html",
+  "png": "web/40-06-page-admin-coaches-d.png",
   "w": 1440,
   "h": 1240
  },
  {
-  "html": "web/40-05-page-admin-coaches-d.html",
-  "png": "web/40-05-page-admin-coaches-d.png",
+  "html": "web/40-07-page-admin-coach-profile-d.html",
+  "png": "web/40-07-page-admin-coach-profile-d.png",
   "w": 1440,
   "h": 1240
  },
  {
-  "html": "web/40-06-page-admin-coach-profile-d.html",
-  "png": "web/40-06-page-admin-coach-profile-d.png",
-  "w": 1440,
-  "h": 1240
- },
- {
-  "html": "web/40-07-page-admin-coach-dialogs-d.html",
-  "png": "web/40-07-page-admin-coach-dialogs-d.png",
+  "html": "web/40-08-page-admin-coach-dialogs-d.html",
+  "png": "web/40-08-page-admin-coach-dialogs-d.png",
   "w": 2408,
   "h": 900
  },

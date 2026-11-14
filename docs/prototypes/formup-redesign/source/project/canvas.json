@@ -1505,7 +1505,7 @@
       "page": "web",
       "title": "C · Admin · Coaches",
       "w": 1440,
-      "x": 6080,
+      "x": 7600,
       "y": 66972
     },
     "PageAdminCoachesD.dc.html": {
@@ -1513,23 +1513,7 @@
       "page": "web",
       "title": "D · Admin · Coaches",
       "w": 1440,
-      "x": 6080,
-      "y": 68332
-    },
-    "PageAdminPlanDrawerC.dc.html": {
-      "h": 1240,
-      "page": "web",
-      "title": "C · Admin · Edit plan",
-      "w": 1440,
-      "x": 4560,
-      "y": 66972
-    },
-    "PageAdminPlanDrawerD.dc.html": {
-      "h": 1240,
-      "page": "web",
-      "title": "D · Admin · Edit plan",
-      "w": 1440,
-      "x": 4560,
+      "x": 7600,
       "y": 68332
     },
     "PageAdminPlansC.dc.html": {
@@ -4133,7 +4117,7 @@
       "page": "web",
       "title": "C · Admin · Coach profile",
       "w": 1440,
-      "x": 7600,
+      "x": 9120,
       "y": 66972
     },
     "PageAdminCoachProfileD.dc.html": {
@@ -4141,11 +4125,11 @@
       "page": "web",
       "title": "D · Admin · Coach profile",
       "w": 1440,
-      "x": 7600,
+      "x": 9120,
       "y": 68332
     },
     "PageAdminCoachDialogsC.dc.html": {
-      "x": 9120,
+      "x": 10640,
       "y": 66972,
       "w": 2408,
       "h": 900,
@@ -4153,7 +4137,7 @@
       "title": "C · Admin · Coach action dialogs"
     },
     "PageAdminCoachDialogsD.dc.html": {
-      "x": 9120,
+      "x": 10640,
       "y": 68332,
       "w": 2408,
       "h": 900,
@@ -4271,6 +4255,38 @@
       "w": 1440,
       "x": 31920,
       "y": 15800
+    },
+    "PageAdminPlanEditorC.dc.html": {
+      "h": 1360,
+      "page": "web",
+      "title": "C · Admin · Edit plan",
+      "w": 1440,
+      "x": 4560,
+      "y": 66972
+    },
+    "PageAdminPlanEditorNewC.dc.html": {
+      "h": 1360,
+      "page": "web",
+      "title": "C · Admin · New plan",
+      "w": 1440,
+      "x": 6080,
+      "y": 66972
+    },
+    "PageAdminPlanEditorD.dc.html": {
+      "h": 1360,
+      "page": "web",
+      "title": "D · Admin · Edit plan",
+      "w": 1440,
+      "x": 4560,
+      "y": 68332
+    },
+    "PageAdminPlanEditorNewD.dc.html": {
+      "h": 1360,
+      "page": "web",
+      "title": "D · Admin · New plan",
+      "w": 1440,
+      "x": 6080,
+      "y": 68332
     }
   },
   "notes": {
@@ -4485,7 +4501,7 @@
       "kind": "title1",
       "maxW": 8000,
       "page": "web",
-      "text": "Form Up admin — plans, promotions, new promotion, edit plan, coaches, coach detail  ·  light above, dark below",
+      "text": "Form Up admin — plans, promotions, new promotion, plan editor (edit, new), coaches, coach detail  ·  light above, dark below",
       "w": 240,
       "x": 0,
       "y": 66672
@@ -4975,8 +4991,10 @@
     "PageAdminPromotionsD.dc.html",
     "PageAdminPromotionDrawerC.dc.html",
     "PageAdminPromotionDrawerD.dc.html",
-    "PageAdminPlanDrawerC.dc.html",
-    "PageAdminPlanDrawerD.dc.html",
+    "PageAdminPlanEditorC.dc.html",
+    "PageAdminPlanEditorD.dc.html",
+    "PageAdminPlanEditorNewC.dc.html",
+    "PageAdminPlanEditorNewD.dc.html",
     "PageAdminCoachesC.dc.html",
     "PageAdminCoachesD.dc.html",
     "PageAdminCoachProfileC.dc.html",
