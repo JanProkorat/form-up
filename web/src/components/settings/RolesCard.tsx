@@ -4,6 +4,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Dumbbell, Info, Leaf, Plus } from 'lucide-react';
 import { addRole, getMyCoachRoles, isInFuture, removeCoachRole, rolesKeys } from '@/api/roles';
 import { profileKeys } from '@/api/profile';
+import { SecondRoleState } from '@/api/generated';
+import { subscriptionKeys } from '@/api/subscription';
+import { useSubscription } from '@/hooks/useSubscriptionQueries';
 import { getApiErrorMessage, getErrorCode, showApiError, showSuccess } from '@/lib/api-errors';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
@@ -17,6 +20,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
+import AddRoleDialog from '@/components/settings/AddRoleDialog';
 import DisableAccountDialog from '@/components/settings/DisableAccountDialog';
 import RemoveRoleDialog, { type CoachRoleKey } from '@/components/settings/RemoveRoleDialog';
 import SettingsCard from '@/components/settings/SettingsCard';
@@ -42,6 +46,9 @@ export default function RolesCard() {
   const [removeTarget, setRemoveTarget] = useState<RemoveTarget | null>(null);
   const [removeError, setRemoveError] = useState<string | null>(null);
   const [disableOpen, setDisableOpen] = useState(false);
+  // The role whose add-on is being paid for; set instead of pendingRole when the plan charges for a second role.
+  const [paidRole, setPaidRole] = useState<(typeof COACH_ROLES)[number] | null>(null);
+  const subscription = useSubscription();
 
   const rolesQuery = useQuery({ queryKey: rolesKeys.mine, queryFn: getMyCoachRoles });
   const summaries = rolesQuery.data?.roles ?? [];
@@ -56,6 +63,13 @@ export default function RolesCard() {
   const onlyRole = heldRoles.length === 1;
   // With several roles to add, the dialog lets the coach choose; with one, it offers just that one.
   const choosing = missingRoles.length > 1;
+  // A second role on a plan that charges for it goes through the paid dialog; the first role never does.
+  const paysAddOn = subscription.data?.secondRole === SecondRoleState.PaidAddOn && heldRoles.length >= 1;
+  const startAdd = () => {
+    const first = missingRoles[0] ?? null;
+    if (paysAddOn) setPaidRole(first);
+    else setPendingRole(first);
+  };
 
   const addMutation = useMutation({
     mutationKey: ['settings', 'roles', 'add'],
@@ -69,8 +83,10 @@ export default function RolesCard() {
       }
       void queryClient.invalidateQueries({ queryKey: rolesKeys.mine });
       void queryClient.invalidateQueries({ queryKey: profileKeys.me });
+      void queryClient.invalidateQueries({ queryKey: subscriptionKeys.mine });
       showSuccess('settings.roles.added');
       setPendingRole(null);
+      setPaidRole(null);
     },
     onError: (error) => {
       showApiError(error, 'settings.roles.addError');
@@ -113,7 +129,7 @@ export default function RolesCard() {
             type="button"
             variant="outline"
             className="h-8.5 gap-1.75 rounded-field px-3.5 font-semibold text-ink"
-            onClick={() => setPendingRole(missingRoles[0] ?? null)}
+            onClick={startAdd}
           >
             <Plus className="size-3.75" aria-hidden="true" />
             {t('settings.roles.add')}
@@ -203,6 +219,13 @@ export default function RolesCard() {
       />
 
       <DisableAccountDialog open={disableOpen} onClose={() => setDisableOpen(false)} />
+
+      <AddRoleDialog
+        role={paidRole?.key ?? null}
+        adding={addMutation.isPending}
+        onClose={() => setPaidRole(null)}
+        onPaid={() => paidRole && addMutation.mutate(paidRole.apiRole)}
+      />
 
       <Dialog open={pendingRole !== null} onOpenChange={(open) => !open && setPendingRole(null)}>
         <DialogContent showCloseButton={false}>

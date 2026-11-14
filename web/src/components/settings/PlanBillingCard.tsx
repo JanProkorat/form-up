@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Check, CreditCard, ExternalLink, Ticket } from 'lucide-react';
 import {
@@ -12,10 +12,13 @@ import SettingsCard from '@/components/settings/SettingsCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { billingErrorMessage, showBillingError } from '@/components/subscription/billingErrors';
 import { formatMoney } from '@/components/subscription/money';
+import TaxNote from '@/components/subscription/TaxNote';
 import UsageBar from '@/components/subscription/UsageBar';
-import { useSubscription } from '@/hooks/useSubscriptionQueries';
-import { PLAN_BILLING_ANCHOR } from '@/components/subscription/planLinks';
+import { useApplyPromotionCode, useOpenBillingPortal, useSubscription } from '@/hooks/useSubscriptionQueries';
+import { PLAN_BILLING_ANCHOR, PLAN_PICKER_PATH } from '@/components/subscription/planLinks';
+import { useToastStore } from '@/stores/toast';
 import { PLAN_FEATURES, coachFeatureLabelKey } from '@/components/subscription/planFeatures';
 
 const FEATURE_ROWS: readonly { flag: keyof SubscriptionFeaturesDto; labelKey: string }[] = PLAN_FEATURES.map(
@@ -32,7 +35,7 @@ const STATUS_TONE: Record<SubscriptionStatus, string> = {
 
 /**
  * Settings section "Plan and billing": the coach's plan and status, the monthly bill, client usage
- * and included features. Plan changes, billing and codes stay disabled until plan selection exists.
+ * and included features, plus the way to change plan, apply a code and manage billing in Stripe.
  */
 export default function PlanBillingCard() {
   const { t, i18n } = useTranslation();
@@ -41,6 +44,28 @@ export default function PlanBillingCard() {
   const anchorRef = useRef<HTMLDivElement>(null);
   const [now] = useState(() => Date.now());
   const ready = query.isSuccess;
+  const portal = useOpenBillingPortal();
+  const applyCode = useApplyPromotionCode();
+  const [code, setCode] = useState('');
+  const [codeError, setCodeError] = useState<string | null>(null);
+  const canOpenPortal = data?.hasBillingAccount === true;
+
+  const openPortal = () =>
+    portal.mutate(undefined, { onError: (error) => showBillingError(error, 'subscription.billing.errors.portal') });
+
+  const submitCode = () => {
+    const trimmed = code.trim();
+    if (trimmed === '' || applyCode.isPending) return;
+    applyCode.mutate(trimmed, {
+      onSuccess: () => {
+        setCode('');
+        setCodeError(null);
+        useToastStore.getState().addToast(t('subscription.billing.code.applied'), 'success');
+      },
+      // Inline, with the field left as typed so a typo can be fixed in place.
+      onError: (error) => setCodeError(billingErrorMessage(error, 'subscription.billing.errors.code')),
+    });
+  };
 
   // The account menu and the sidebar row link here with #plan-billing; scroll once the card has rendered.
   useEffect(() => {
@@ -108,10 +133,17 @@ export default function PlanBillingCard() {
                 {subtitle && <span className="text-body text-muted-foreground">{subtitle}</span>}
               </div>
               <span className="ml-auto flex items-center gap-2">
-                <Button type="button" size="lg" className="px-3.5 font-semibold" disabled>
-                  {t('subscription.plan.changePlan')}
+                <Button asChild size="lg" className="px-3.5 font-semibold">
+                  <Link to={PLAN_PICKER_PATH}>{t('subscription.plan.changePlan')}</Link>
                 </Button>
-                <Button type="button" variant="outline" size="lg" className="gap-1.75 px-3.5 font-semibold" disabled>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  className="gap-1.75 px-3.5 font-semibold"
+                  disabled={!canOpenPortal || portal.isPending}
+                  onClick={openPortal}
+                >
                   <CreditCard aria-hidden="true" />
                   {t('subscription.plan.manageBilling')}
                 </Button>
@@ -150,6 +182,7 @@ export default function PlanBillingCard() {
                 {data.secondRole === SecondRoleState.NotAvailable && (
                   <span className="text-meta text-muted-foreground">{t('subscription.plan.bill.secondRoleUnavailable')}</span>
                 )}
+                {lines.length > 0 && <TaxNote taxMode={data.taxMode} className="text-meta text-muted-foreground" />}
               </div>
 
               <div className="flex flex-col gap-2.5">
@@ -180,7 +213,13 @@ export default function PlanBillingCard() {
               </div>
             </div>
 
-            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3 border-t border-border pt-4.5">
+            <form
+              className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3 border-t border-border pt-4.5"
+              onSubmit={(event) => {
+                event.preventDefault();
+                submitCode();
+              }}
+            >
               <div className="flex min-w-0 flex-col gap-1.75">
                 <label htmlFor="plan-code" className="text-body font-semibold text-ink-2">
                   {t('subscription.plan.code.label')}
@@ -190,24 +229,55 @@ export default function PlanBillingCard() {
                   <Input
                     id="plan-code"
                     type="text"
-                    disabled
+                    value={code}
+                    autoComplete="off"
+                    spellCheck={false}
+                    aria-invalid={codeError !== null}
+                    aria-describedby="plan-code-note"
                     placeholder={t('subscription.plan.code.placeholder')}
                     className="h-10 pl-9.5"
+                    onChange={(event) => {
+                      setCode(event.target.value);
+                      setCodeError(null);
+                    }}
                   />
                 </span>
-                <span className="text-meta text-muted-foreground">{t('subscription.plan.code.hint')}</span>
+                {codeError ? (
+                  <span id="plan-code-note" role="alert" className="text-meta text-error">
+                    {codeError}
+                  </span>
+                ) : (
+                  <span id="plan-code-note" className="text-meta text-muted-foreground">
+                    {t('subscription.plan.code.hint')}
+                  </span>
+                )}
               </div>
-              <Button type="button" variant="outline" size="lg" className="mb-6.25 px-3.5 font-semibold" disabled>
+              <Button
+                type="submit"
+                variant="outline"
+                size="lg"
+                className="mb-6.25 px-3.5 font-semibold"
+                disabled={code.trim() === '' || applyCode.isPending}
+              >
                 {t('subscription.plan.code.apply')}
               </Button>
-            </div>
+            </form>
 
             <div className="flex items-center gap-4 border-t border-border pt-4.5">
               <div className="flex flex-col gap-1">
                 <h3 className="text-copy font-semibold text-ink">{t('subscription.plan.card.title')}</h3>
-                <span className="text-body text-muted-foreground">{t('subscription.plan.card.description')}</span>
+                <span className="text-body text-muted-foreground">
+                  {t(canOpenPortal ? 'subscription.plan.card.description' : 'subscription.plan.card.descriptionFree')}
+                </span>
               </div>
-              <Button type="button" variant="ghost" size="lg" className="ml-auto gap-1 px-2 font-semibold" disabled>
+              <Button
+                type="button"
+                variant="ghost"
+                size="lg"
+                className="ml-auto gap-1 px-2 font-semibold"
+                disabled={!canOpenPortal || portal.isPending}
+                onClick={openPortal}
+              >
                 {t('subscription.plan.manageBilling')}
                 <ExternalLink aria-hidden="true" />
               </Button>
