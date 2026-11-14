@@ -354,6 +354,13 @@ builder.Services.AddScoped<ISessionLockService, SessionLockService>();
 builder.Services.Configure<FormUp.Application.Features.Client.GetClientAppConfig.ClientAppOptions>(
     builder.Configuration.GetSection(FormUp.Application.Features.Client.GetClientAppConfig.ClientAppOptions.SectionName));
 
+// Stripe billing seam. The secret key and webhook secret come only from the Stripe__SecretKey and
+// Stripe__WebhookSecret environment variables (or user-secrets); without them the app still boots and
+// ISubscriptionService.IsConfigured is false.
+builder.Services.Configure<FormUp.Application.Infrastructure.Services.Billing.BillingOptions>(
+    builder.Configuration.GetSection(FormUp.Application.Infrastructure.Services.Billing.BillingOptions.SectionName));
+builder.Services.AddSingleton<ISubscriptionService, FormUp.Application.Infrastructure.Services.Billing.StripeSubscriptionService>();
+
 // Compliance
 builder.Services.AddScoped<IComplianceService, ComplianceService>();
 

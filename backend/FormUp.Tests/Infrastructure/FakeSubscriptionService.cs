@@ -1,0 +1,183 @@
+using FormUp.Application.Domain.Enums;
+using FormUp.Application.Domain.Interfaces;
+using FormUp.Application.Infrastructure.Services.Billing;
+
+namespace FormUp.Tests.Infrastructure;
+
+/// <summary>
+/// In-memory <see cref="ISubscriptionService"/> for tests: records every call, makes no network call, and can be told to
+/// be unconfigured or to fail. The factory registers one shared instance, so a test that uses it calls <see cref="Reset"/> first.
+/// </summary>
+public sealed class FakeSubscriptionService : ISubscriptionService
+{
+    private readonly object gate = new();
+    private int counter;
+
+    /// <summary>Whether the fake reports itself as configured.</summary>
+    public bool IsConfigured { get; set; } = true;
+
+    /// <summary>When true every call throws <see cref="BillingProviderException"/>.</summary>
+    public bool Fail { get; set; }
+
+    /// <summary>Recorded <see cref="ISubscriptionService.CreateCustomerAsync"/> calls.</summary>
+    public List<CustomerCall> Customers { get; } = [];
+
+    /// <summary>Recorded <see cref="ISubscriptionService.CreateCheckoutSessionAsync"/> calls.</summary>
+    public List<CheckoutCall> Checkouts { get; } = [];
+
+    /// <summary>Recorded <see cref="ISubscriptionService.CreatePortalSessionAsync"/> calls (customer ids).</summary>
+    public List<string> Portals { get; } = [];
+
+    /// <summary>Recorded <see cref="ISubscriptionService.ChangePlanAsync"/> calls.</summary>
+    public List<ChangePlanCall> PlanChanges { get; } = [];
+
+    /// <summary>Recorded <see cref="ISubscriptionService.CreatePriceAsync"/> calls.</summary>
+    public List<PriceCall> Prices { get; } = [];
+
+    /// <summary>Recorded <see cref="ISubscriptionService.ApplyGivenFreeAsync"/> calls.</summary>
+    public List<GivenFreeCall> GivenFree { get; } = [];
+
+    /// <summary>A recorded customer creation.</summary>
+    public sealed record CustomerCall(Guid UserId, string Email, string? Name, string? Language);
+
+    /// <summary>A recorded checkout session creation.</summary>
+    public sealed record CheckoutCall(
+        string CustomerId, Guid UserId, string PlanCode, string PlanPriceExternalId, long? AddOnAmountMinorUnits, string? CouponId);
+
+    /// <summary>A recorded plan change.</summary>
+    public sealed record ChangePlanCall(string SubscriptionId, string PlanCode, string PlanPriceExternalId, bool AtNextRenewal);
+
+    /// <summary>A recorded price creation.</summary>
+    public sealed record PriceCall(string PlanCode, long AmountMinorUnits, string Currency, BillingInterval Interval);
+
+    /// <summary>A recorded given-free call.</summary>
+    public sealed record GivenFreeCall(string SubscriptionId, DateTimeOffset? FreeUntil);
+
+    /// <summary>Clears every recorded call and restores the defaults.</summary>
+    public void Reset()
+    {
+        lock (gate)
+        {
+            IsConfigured = true;
+            Fail = false;
+            Customers.Clear();
+            Checkouts.Clear();
+            Portals.Clear();
+            PlanChanges.Clear();
+            Prices.Clear();
+            GivenFree.Clear();
+        }
+    }
+
+    /// <inheritdoc />
+    public Task<string> CreateCustomerAsync(Guid userId, string email, string? name, string? language, CancellationToken ct)
+    {
+        ThrowIfFailing();
+
+        lock (gate)
+        {
+            Customers.Add(new CustomerCall(userId, email, name, language));
+
+            return Task.FromResult($"cus_fake_{++counter}");
+        }
+    }
+
+    /// <inheritdoc />
+    public Task<string> CreateCheckoutSessionAsync(
+        string customerId,
+        Guid userId,
+        string planCode,
+        string planPriceExternalId,
+        long? addOnAmountMinorUnits,
+        string currency,
+        BillingInterval interval,
+        string? couponId,
+        CancellationToken ct)
+    {
+        ThrowIfFailing();
+
+        lock (gate)
+        {
+            Checkouts.Add(new CheckoutCall(customerId, userId, planCode, planPriceExternalId, addOnAmountMinorUnits, couponId));
+        }
+
+        return Task.FromResult("https://checkout.stripe.test/session");
+    }
+
+    /// <inheritdoc />
+    public Task<string> CreatePortalSessionAsync(string customerId, CancellationToken ct)
+    {
+        ThrowIfFailing();
+
+        lock (gate)
+        {
+            Portals.Add(customerId);
+        }
+
+        return Task.FromResult("https://portal.stripe.test/session");
+    }
+
+    /// <inheritdoc />
+    public Task ChangePlanAsync(
+        string subscriptionId,
+        string planCode,
+        string planPriceExternalId,
+        long? addOnAmountMinorUnits,
+        string currency,
+        BillingInterval interval,
+        bool atNextRenewal,
+        CancellationToken ct)
+    {
+        ThrowIfFailing();
+
+        lock (gate)
+        {
+            PlanChanges.Add(new ChangePlanCall(subscriptionId, planCode, planPriceExternalId, atNextRenewal));
+        }
+
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public Task<bool> ApplyPromotionCodeAsync(string subscriptionId, string promotionCode, CancellationToken ct)
+    {
+        ThrowIfFailing();
+
+        return Task.FromResult(true);
+    }
+
+    /// <inheritdoc />
+    public Task<string> CreatePriceAsync(
+        string planCode, long amountMinorUnits, string currency, BillingInterval interval, CancellationToken ct)
+    {
+        ThrowIfFailing();
+
+        lock (gate)
+        {
+            Prices.Add(new PriceCall(planCode, amountMinorUnits, currency, interval));
+
+            return Task.FromResult($"price_fake_{++counter}");
+        }
+    }
+
+    /// <inheritdoc />
+    public Task ApplyGivenFreeAsync(string subscriptionId, DateTimeOffset? freeUntil, CancellationToken ct)
+    {
+        ThrowIfFailing();
+
+        lock (gate)
+        {
+            GivenFree.Add(new GivenFreeCall(subscriptionId, freeUntil));
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private void ThrowIfFailing()
+    {
+        if (Fail)
+        {
+            throw new BillingProviderException("Fake provider failure.");
+        }
+    }
+}
