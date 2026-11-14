@@ -52,8 +52,9 @@ on the whole epic, before the epic PR merges to `develop` — see
 - Command: `gh pr merge <N> --squash --delete-branch --match-head-commit <sha>`.
 - The [#exclusion-list](#exclusion-list) does **not** apply at this
   tier. A task touching migrations or Mongo data scripts merges into
-  the epic branch like any other; the epic PR that carries it to
-  `develop` is still excluded and merged by the user.
+  the epic branch like any other. The epic PR that carries a Mongo data
+  script to `develop` is still excluded and merged by the user; one that
+  carries only EF migrations goes through the normal authorized merge.
 - After the merge, the orchestrator fast-forwards the local epic branch
   (`git pull --ff-only`, never a hard reset), deletes the task branch
   best-effort, tears down its compose harness, removes its worktree,
@@ -118,25 +119,34 @@ to merge:
 The agent never merges these — user does it manually:
 
 - PRs whose base branch is `main` (any release into the main line).
-- PRs whose diff touches `backend/**/Migrations/**` (EF Core
-  migrations — schema or data). Applies to PRs into `develop` only —
-  task PRs into an epic branch are exempt (see
-  [#task-merge-into-the-epic-branch](#task-merge-into-the-epic-branch)).
 - PRs that add or modify MongoDB data-mutation scripts (bulk fix-ups,
   seed overrides, reprocessing jobs under `backend/**/Scripts/` or
   `backend/**/DataMigrations/`, or `db.*.update`/`bulkWrite`/
-  `deleteMany` calls in MongoContext / Services). Same — `develop` only.
+  `deleteMany` calls in MongoContext / Services). Applies to PRs into
+  `develop` only — task PRs into an epic branch are exempt (see
+  [#task-merge-into-the-epic-branch](#task-merge-into-the-epic-branch)).
 - PRs that add or modify a **one-shot data-mutation command**: any routine
   dispatched from the CLI or from startup that writes, renames, drops or
   bulk-modifies stored data, in either database, wherever the file sits. This
-  bullet is deliberately phrased by what the code *does*, because the two
-  bullets above are phrased by directory and by method name — and a command
+  bullet is deliberately phrased by what the code *does*, because the
+  bullet above is phrased by directory and by method name — and a command
   registered in `backend/**/Infrastructure/Cli/**` matches neither while being
   exactly as destructive. Two already exist:
   `RunDropLegacyTrainingCollectionsAsync` (#847) drops two collections, and
   the rename command in #1033 moves a third. Same — `develop` only.
+  EF Core migrations under `backend/**/Migrations/**` are not "one-shot
+  commands" for this bullet, even though they run at startup and may
+  change data (`migrationBuilder.Sql`, `DeleteData`, a backfill); see the
+  note below the list.
 - Any PR where the user has said in the current turn "I'll merge this
   one myself".
+
+**EF Core migrations are not excluded** (maintainer decision 2026-11-03,
+re-confirmed 2026-11-14 in #2124). A PR into `develop` whose diff touches
+`backend/**/Migrations/**` goes through the normal
+[#authorized-merge](#authorized-merge): explicit same-turn authorization,
+and `pr-reviewer` names the migration files in its clearance so the user
+knows a schema change is landing.
 
 ## Skip-merge-gate scenarios
 

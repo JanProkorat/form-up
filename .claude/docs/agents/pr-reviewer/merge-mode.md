@@ -22,14 +22,18 @@ Even with authorization, the following are **never** cleared by you —
 they need human hands:
 
 1. PR base branch is `main`.
-2. Diff touches `backend/**/Migrations/**` (EF Core migrations —
-   schema or data).
-3. Diff adds or modifies MongoDB data-mutation scripts — anything
+2. Diff adds or modifies MongoDB data-mutation scripts — anything
    under `backend/**/Scripts/` or `backend/**/DataMigrations/`, or
    any code that calls `db.*.update*`, `bulkWrite`, or `deleteMany`
    on the MongoContext / Services layer.
+3. Diff adds or modifies a one-shot data-mutation command (see
+   `rules/merge-strategy.md#exclusion-list`).
 4. The orchestrator passes a same-turn user opt-out ("I'll merge
    this one myself").
+
+EF Core migrations (`backend/**/Migrations/**`) are **not** on this
+list. Clear such a PR normally, but name every migration file in the
+clearance so the user sees the schema change before the merge.
 
 Check via — read the actual base off the PR rather than hardcoding
 `develop`, because epic-level PRs target `develop` but release PRs
@@ -39,8 +43,10 @@ target `main`:
 gh pr view <n> --json baseRefName,headRefName,files,title,labels
 BASE=$(gh pr view <n> --json baseRefName --jq .baseRefName)
 git diff origin/$BASE...origin/<branch> --name-only
-git diff origin/$BASE...origin/<branch> -- 'backend/**/Migrations/**' \
+git diff origin/$BASE...origin/<branch> -- \
     'backend/**/Scripts/**' 'backend/**/DataMigrations/**'
+# Not an exclusion — list these in the clearance:
+git diff origin/$BASE...origin/<branch> --name-only -- 'backend/**/Migrations/**'
 ```
 
 Also grep for Mongo data-mutation calls that aren't under the obvious
@@ -136,6 +142,7 @@ Authorization recorded: "<user's same-turn phrase>"
 CI: all pass on <sha> | <detail>
 Base current under the green run: ✅ | ❌
 Stacked PRs on this branch: none | <list>
+EF migrations (not excluded): none | <each backend/**/Migrations/** file>
 
 Command for the main thread:
   gh pr merge <n> --squash --delete-branch --match-head-commit <sha>
