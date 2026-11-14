@@ -328,7 +328,13 @@ trainerTest.describe('admin promotions', () => {
     await expect(toastTitle(page, "The payment provider didn't answer. Please try again in a moment.")).toBeVisible();
     await expect(page.getByRole('dialog')).toBeVisible();
     expect(harness.listStatuses.length).toBe(readsBefore);
-    await expect(page.getByRole('row', { name: /Partner code/ }).getByText('Active', { exact: true })).toBeVisible();
+
+    // The open modal hides the table from role queries, so close it before checking the row.
+    await page.getByRole('dialog').getByRole('button', { name: 'Cancel' }).click();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    const partner = page.getByRole('row', { name: /Partner code/ });
+    await expect(partner.getByText('Active', { exact: true })).toBeVisible();
+    await expect(partner.getByRole('button', { name: 'End Partner code' })).toBeVisible();
   });
 
   trainerTest('the tabs ask the server for that status and show only its promotions', async ({ page }) => {
