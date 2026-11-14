@@ -252,6 +252,89 @@
   },
   "subscription": {
     "seePlans": "Zobrazit tarify",
+    "billing": {
+      "vat": "Ceny jsou bez DPH, připočítá se {{rate}} % DPH.",
+      "codeAtCheckout": "Máte kód? Zadejte ho při platbě.",
+      "picker": {
+        "title": "Vyberte si tarif",
+        "subtitle": "Vaši klienti aplikaci používají vždy zdarma. Tarif můžete kdykoli změnit nebo zrušit.",
+        "back": "Zpět do nastavení",
+        "rolesBoth": "Působíte jako {{first}} a {{second}}. Ceny níže zahrnují vaši druhou roli.",
+        "rolesOne": "Působíte jako {{role}}.",
+        "breakdown": "{{plan}} {{base}} + druhá role {{addOn}}",
+        "noCard": "Navždy, bez karty",
+        "yourPlan": "Váš tarif",
+        "switchTo": "Přejít na {{plan}}",
+        "switchesToFree": "Přechod na Free {{date}}",
+        "switchesToFreeNoDate": "Přechod na Free na konci období",
+        "footer": "Platba měsíčně. Platba kartou, faktury i zrušení probíhají na zabezpečených stránkách Stripe. Snížení tarifu nebo zrušení se projeví na konci zaplaceného měsíce."
+      },
+      "register": {
+        "signedInAs": "Přihlášeno jako {{email}}",
+        "title": "Vyberte si tarif",
+        "subtitle": "Začněte zdarma a přejděte na vyšší tarif, až vyrostete. Vaši klienti aplikaci používají vždy zdarma.",
+        "noCardBadge": "Bez karty",
+        "startFree": "Začít zdarma",
+        "choose": "Vybrat {{plan}}",
+        "secondRoleLater": "Druhá role později +{{amount}}",
+        "secondRoleFree": "Druhou roli můžete kdykoli přidat zdarma",
+        "footer": "Placené tarify pokračují na zabezpečenou platbu Stripe, poté se vrátíte sem a nastavíte si profil. Tarif můžete kdykoli změnit nebo zrušit v Nastavení."
+      },
+      "returning": {
+        "title": "Dokončujeme",
+        "body": "Ověřujeme vaši platbu u Stripe.",
+        "pending": "Vaše platba se ještě zpracovává. Tarif se za chvíli aktualizuje."
+      },
+      "changed": {
+        "now": "Nyní máte tarif {{plan}}.",
+        "atRenewal": "Váš tarif se změní na {{plan}} dne {{date}}.",
+        "atRenewalNoDate": "Váš tarif se změní na {{plan}} při příštím obnovení."
+      },
+      "switchFree": {
+        "scheduled": "Váš tarif se změní na Free dne {{date}}.",
+        "scheduledNoDate": "Váš tarif se změní na Free na konci zaplaceného období."
+      },
+      "code": {
+        "applied": "Kód byl použit."
+      },
+      "pastDue": {
+        "title": "Vaši poslední platbu se nepodařilo provést",
+        "body": "Kartu zkusíme znovu {{retry}}. Vše funguje do {{until}}.",
+        "bodyUntil": "Vše funguje do {{until}}. Aktualizujte kartu, ať o tarif nepřijdete.",
+        "bodyRetry": "Kartu zkusíme znovu {{retry}}.",
+        "bodyNoDates": "Aktualizujte kartu, ať o tarif nepřijdete.",
+        "updateCard": "Aktualizovat kartu"
+      },
+      "addRole": {
+        "title": "Přidat roli: {{role}}?",
+        "body": {
+          "trainer": "Získáte tréninkové plány, tréninky a cviky. Klienti si vás mohou vybrat jako svého trenéra.",
+          "nutritionist": "Získáte jídelníčky, recepty a suroviny. Klienti si vás mohou vybrat jako svého nutričního poradce."
+        },
+        "planLine": "Tarif {{plan}}",
+        "addOnLine": "Druhá role · {{role}}",
+        "total": "Nová celková cena",
+        "today_one": "Dnes zaplatíte {{amount}} za {{count}} den do {{date}}.",
+        "today_few": "Dnes zaplatíte {{amount}} za {{count}} dny do {{date}}.",
+        "today_many": "Dnes zaplatíte {{amount}} za {{count}} dne do {{date}}.",
+        "today_other": "Dnes zaplatíte {{amount}} za {{count}} dní do {{date}}.",
+        "todayNoDate": "Dnes zaplatíte {{amount}} za zbytek tohoto období.",
+        "taxIncluded": "Včetně DPH {{tax}}.",
+        "studio": "Tarif {{plan}} zahrnuje obě role za {{price}}.",
+        "compare": "Porovnat tarify",
+        "confirm": "Přidat roli · zaplatit {{amount}}",
+        "alreadyPaid": "Druhá role je už zaplacená, přidání dnes nic nestojí."
+      },
+      "errors": {
+        "generic": "Něco se nepovedlo. Zkuste to prosím znovu.",
+        "changePlan": "Tarif se nepodařilo změnit. Zkuste to prosím znovu.",
+        "switchFree": "Přechod na tarif Free se nepodařilo naplánovat. Zkuste to prosím znovu.",
+        "portal": "Správu plateb se nepodařilo otevřít. Zkuste to prosím znovu.",
+        "code": "Kód se nepodařilo použít. Zkuste to prosím znovu.",
+        "addRole": "Platbu se nepodařilo provést, role proto nebyla přidána. Zkuste to prosím znovu.",
+        "preview": "Cenu druhé role se nepodařilo načíst. Zkuste to prosím znovu."
+      }
+    },
     "clientsOfLimit": "{{count}} z {{limit}} klientů",
     "status": {
       "Trialing": "Zkušební období",
@@ -474,7 +557,8 @@
       },
       "card": {
         "title": "Karta, faktury a zrušení",
-        "description": "Bude k dispozici, jakmile se otevře výběr tarifu."
+        "description": "Aktualizujte kartu, stáhněte si faktury, změňte fakturační údaje nebo tarif zrušte v zabezpečeném portálu Stripe.",
+        "descriptionFree": "K dispozici, jakmile budete na placeném tarifu."
       }
     }
   },
@@ -3601,6 +3685,23 @@
     "SUBSCRIPTION_NOT_LAPSED": "Váš tarif neskončil, není tedy co vybírat.",
     "PLAN_CHOICE_REQUIRED": "Váš bezplatný tarif skončil. Pro pokračování si vyberte tarif.",
     "PLAN_CHOICE_NOT_REQUIRED": "Tarif už máte vybraný.",
+    "PLAN_NOT_PURCHASABLE": "Tento tarif teď nelze koupit online.",
+    "BILLING_NO_SUBSCRIPTION": "Zatím nemáte žádné aktivní placené předplatné.",
+    "BILLING_ALREADY_SUBSCRIBED": "Placené předplatné už máte. Použijte Změnit tarif.",
+    "BILLING_GIFT_IN_FORCE": "Váš současný tarif nastavil Form Up, takže ho tady nelze změnit, dokud neskončí.",
+    "BILLING_PLAN_UNCHANGED": "Tento tarif už máte.",
+    "BILLING_CANCELLATION_PENDING": "Váš tarif už na konci zaplaceného období končí.",
+    "BILLING_PLAN_CHANGE_PENDING": "Změna tarifu je už naplánovaná. Zkuste to znovu, až se projeví.",
+    "PROMOTION_CODE_INVALID": "Tento kód nelze použít.",
+    "PROMOTION_CODE_NOT_FOUND": "Tento kód neznáme. Zkontrolujte ho a zkuste to znovu.",
+    "BILLING_RATE_LIMITED": "Příliš mnoho pokusů. Chvíli počkejte a zkuste to znovu.",
+    "BILLING_ADD_ON_NOT_AVAILABLE": "Váš tarif placenou druhou roli nenabízí.",
+    "BILLING_ADD_ON_ALREADY_PAID": "Druhá role je už zaplacená.",
+    "BILLING_PAYMENT_DECLINED": "Vaše karta byla zamítnuta. Nic nebylo strženo a role nebyla přidána. Aktualizujte kartu ve Spravovat platby nebo zkuste jinou.",
+    "BILLING_PAYMENT_AUTHENTICATION_REQUIRED": "Vaše banka musí platbu nejdřív potvrdit. Otevřete Spravovat platby, potvrďte ji tam a zkuste to znovu.",
+    "BILLING_CUSTOMER_NOT_FOUND": "Zatím nemáte platební účet. Nejdřív vyberte placený tarif.",
+    "BILLING_NOT_CONFIGURED": "Platby teď nejsou k dispozici. Zkuste to prosím později.",
+    "BILLING_PROVIDER_ERROR": "Platební služba neodpověděla. Zkuste to prosím za chvíli znovu.",
     "CHECK_IN_ANSWER_WINDOW_CLOSED": "Čas na odpověď na tento check-in už vypršel.",
     "INVALID_CREDENTIALS": "Neplatný email nebo heslo.",
     "ACCOUNT_DEACTIVATED": "Váš účet byl deaktivován.",
@@ -6003,7 +6104,8 @@
       "coach": {
         "ready": "Váš účet je připravený.",
         "setUpProfile": "Nastavit profil",
-        "skip": "Prozatím přeskočit a přejít do portálu",
+        "choosePlan": "Vybrat tarif",
+        "skip": "Prozatím přeskočit a začít na tarifu Free",
         "nextHeading": "CO DÁL",
         "inviteTitle": "Pozvěte prvního klienta",
         "inviteHint": "Připojí se přes aplikaci Form Up",

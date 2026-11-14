@@ -252,6 +252,87 @@
   },
   "subscription": {
     "seePlans": "See plans",
+    "billing": {
+      "vat": "Prices without VAT, {{rate}} % VAT is added.",
+      "codeAtCheckout": "Have a code? Enter it at checkout.",
+      "picker": {
+        "title": "Choose your plan",
+        "subtitle": "Your clients always use the app for free. Change or cancel any time.",
+        "back": "Back to settings",
+        "rolesBoth": "You coach as {{first}} and {{second}}. Prices below include your second role.",
+        "rolesOne": "You coach as {{role}}.",
+        "breakdown": "{{plan}} {{base}} + second role {{addOn}}",
+        "noCard": "Forever, no card needed",
+        "yourPlan": "Your plan",
+        "switchTo": "Switch to {{plan}}",
+        "switchesToFree": "Switches to Free on {{date}}",
+        "switchesToFreeNoDate": "Switches to Free at period end",
+        "footer": "Billed monthly. Card payment, invoices and cancelling run on Stripe's secure pages. A downgrade or cancellation takes effect at the end of the paid month."
+      },
+      "register": {
+        "signedInAs": "Signed in as {{email}}",
+        "title": "Choose your plan",
+        "subtitle": "Start free and upgrade when you grow. Your clients always use the app for free.",
+        "noCardBadge": "No card needed",
+        "startFree": "Start free",
+        "choose": "Choose {{plan}}",
+        "secondRoleLater": "Second role later +{{amount}}",
+        "secondRoleFree": "Add a second role any time, free",
+        "footer": "Paid plans continue to Stripe's secure checkout, then come back here to set up your profile. You can change or cancel your plan any time in Settings."
+      },
+      "returning": {
+        "title": "Finishing up",
+        "body": "We are confirming your payment with Stripe.",
+        "pending": "Your payment is still being processed. Your plan updates in a moment."
+      },
+      "changed": {
+        "now": "You are now on the {{plan}} plan.",
+        "atRenewal": "Your plan changes to {{plan}} on {{date}}.",
+        "atRenewalNoDate": "Your plan changes to {{plan}} at the next renewal."
+      },
+      "switchFree": {
+        "scheduled": "Your plan switches to Free on {{date}}.",
+        "scheduledNoDate": "Your plan switches to Free at the end of the paid period."
+      },
+      "code": {
+        "applied": "Code applied."
+      },
+      "pastDue": {
+        "title": "Your last payment didn't go through",
+        "body": "We'll try the card again on {{retry}}. Everything keeps working until {{until}}.",
+        "bodyUntil": "Everything keeps working until {{until}}. Update your card to keep your plan.",
+        "bodyRetry": "We'll try the card again on {{retry}}.",
+        "bodyNoDates": "Update your card to keep your plan.",
+        "updateCard": "Update card"
+      },
+      "addRole": {
+        "title": "Add the {{role}} role?",
+        "body": {
+          "trainer": "You get training plans, sessions and exercises. Your clients can pick you as their trainer.",
+          "nutritionist": "You get nutrition plans, recipes and ingredients. Your clients can pick you as their nutritionist."
+        },
+        "planLine": "{{plan}} plan",
+        "addOnLine": "Second role · {{role}}",
+        "total": "New total",
+        "today_one": "Today you pay {{amount}} for the {{count}} day left until {{date}}.",
+        "today_other": "Today you pay {{amount}} for the {{count}} days left until {{date}}.",
+        "todayNoDate": "Today you pay {{amount}} for the rest of this billing period.",
+        "taxIncluded": "Includes {{tax}} VAT.",
+        "studio": "{{plan}} includes both roles for {{price}}.",
+        "compare": "Compare plans",
+        "confirm": "Add role · pay {{amount}}",
+        "alreadyPaid": "The second role is already paid for, so adding it costs nothing today."
+      },
+      "errors": {
+        "generic": "Something went wrong. Please try again.",
+        "changePlan": "Could not change your plan. Please try again.",
+        "switchFree": "Could not switch your plan to Free. Please try again.",
+        "portal": "Could not open billing. Please try again.",
+        "code": "Could not apply the code. Please try again.",
+        "addRole": "Could not take the payment, so the role was not added. Please try again.",
+        "preview": "Could not load the price for the second role. Please try again."
+      }
+    },
     "clientsOfLimit": "{{count}} of {{limit}} clients",
     "status": {
       "Trialing": "Trial",
@@ -442,7 +523,8 @@
       },
       "card": {
         "title": "Card, invoices and cancelling",
-        "description": "Available once plan selection opens."
+        "description": "Update your card, download invoices, change your billing details or cancel in Stripe's secure portal.",
+        "descriptionFree": "Available once you are on a paid plan."
       }
     }
   },
@@ -3457,6 +3539,23 @@
     "SUBSCRIPTION_NOT_LAPSED": "Your plan has not lapsed, so there is nothing to choose.",
     "PLAN_CHOICE_REQUIRED": "Your free plan ended. Choose a plan to continue.",
     "PLAN_CHOICE_NOT_REQUIRED": "You have already chosen a plan.",
+    "PLAN_NOT_PURCHASABLE": "This plan can't be bought online right now.",
+    "BILLING_NO_SUBSCRIPTION": "You have no active paid subscription yet.",
+    "BILLING_ALREADY_SUBSCRIBED": "You already have a paid subscription. Use Change plan instead.",
+    "BILLING_GIFT_IN_FORCE": "Form Up set your current plan, so it can't be changed here until it ends.",
+    "BILLING_PLAN_UNCHANGED": "You are already on this plan.",
+    "BILLING_CANCELLATION_PENDING": "Your plan already ends at the end of the paid period.",
+    "BILLING_PLAN_CHANGE_PENDING": "A plan change is already scheduled. Try again once it has taken effect.",
+    "PROMOTION_CODE_INVALID": "This code can't be used.",
+    "PROMOTION_CODE_NOT_FOUND": "We don't know this code. Check it and try again.",
+    "BILLING_RATE_LIMITED": "Too many attempts. Wait a moment and try again.",
+    "BILLING_ADD_ON_NOT_AVAILABLE": "Your plan doesn't offer a paid second role.",
+    "BILLING_ADD_ON_ALREADY_PAID": "The second role is already paid for.",
+    "BILLING_PAYMENT_DECLINED": "Your card was declined. Nothing was charged and the role was not added. Update your card in Manage billing or try another card.",
+    "BILLING_PAYMENT_AUTHENTICATION_REQUIRED": "Your bank needs to confirm this payment first. Open Manage billing, confirm it there, then try again.",
+    "BILLING_CUSTOMER_NOT_FOUND": "There is no billing account yet. Choose a paid plan first.",
+    "BILLING_NOT_CONFIGURED": "Billing isn't available right now. Please try again later.",
+    "BILLING_PROVIDER_ERROR": "The payment provider didn't answer. Please try again in a moment.",
     "CHECK_IN_ANSWER_WINDOW_CLOSED": "The time to answer this check-in has passed.",
     "INVALID_CREDENTIALS": "Invalid email or password.",
     "ACCOUNT_DEACTIVATED": "Your account has been deactivated.",
@@ -5787,7 +5886,8 @@
       "coach": {
         "ready": "Your account is ready.",
         "setUpProfile": "Set up your profile",
-        "skip": "Skip for now and go to the portal",
+        "choosePlan": "Choose your plan",
+        "skip": "Skip for now and start on Free",
         "nextHeading": "WHAT’S NEXT",
         "inviteTitle": "Invite your first client",
         "inviteHint": "They join with the Form Up app",

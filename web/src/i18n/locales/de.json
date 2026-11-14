@@ -252,6 +252,87 @@
   },
   "subscription": {
     "seePlans": "Tarife ansehen",
+    "billing": {
+      "vat": "Preise ohne MwSt., {{rate}} % MwSt. werden hinzugerechnet.",
+      "codeAtCheckout": "Sie haben einen Code? Geben Sie ihn beim Bezahlen ein.",
+      "picker": {
+        "title": "Wählen Sie Ihren Tarif",
+        "subtitle": "Ihre Kundinnen und Kunden nutzen die App immer kostenlos. Sie können jederzeit wechseln oder kündigen.",
+        "back": "Zurück zu den Einstellungen",
+        "rolesBoth": "Sie arbeiten als {{first}} und {{second}}. Die Preise unten enthalten Ihre zweite Rolle.",
+        "rolesOne": "Sie arbeiten als {{role}}.",
+        "breakdown": "{{plan}} {{base}} + zweite Rolle {{addOn}}",
+        "noCard": "Für immer, ohne Karte",
+        "yourPlan": "Ihr Tarif",
+        "switchTo": "Zu {{plan}} wechseln",
+        "switchesToFree": "Wechsel zu Free am {{date}}",
+        "switchesToFreeNoDate": "Wechsel zu Free zum Periodenende",
+        "footer": "Monatliche Abrechnung. Kartenzahlung, Rechnungen und Kündigung laufen auf den sicheren Seiten von Stripe. Ein Downgrade oder eine Kündigung gilt zum Ende des bezahlten Monats."
+      },
+      "register": {
+        "signedInAs": "Angemeldet als {{email}}",
+        "title": "Wählen Sie Ihren Tarif",
+        "subtitle": "Starten Sie kostenlos und wechseln Sie, wenn Sie wachsen. Ihre Kundinnen und Kunden nutzen die App immer kostenlos.",
+        "noCardBadge": "Ohne Karte",
+        "startFree": "Kostenlos starten",
+        "choose": "{{plan}} wählen",
+        "secondRoleLater": "Zweite Rolle später +{{amount}}",
+        "secondRoleFree": "Eine zweite Rolle können Sie jederzeit kostenlos hinzufügen",
+        "footer": "Bezahlte Tarife führen zur sicheren Zahlung bei Stripe, danach kehren Sie hierher zurück und richten Ihr Profil ein. Sie können Ihren Tarif jederzeit in den Einstellungen ändern oder kündigen."
+      },
+      "returning": {
+        "title": "Wir schließen ab",
+        "body": "Wir bestätigen Ihre Zahlung bei Stripe.",
+        "pending": "Ihre Zahlung wird noch verarbeitet. Ihr Tarif wird gleich aktualisiert."
+      },
+      "changed": {
+        "now": "Sie nutzen jetzt den Tarif {{plan}}.",
+        "atRenewal": "Ihr Tarif wechselt am {{date}} zu {{plan}}.",
+        "atRenewalNoDate": "Ihr Tarif wechselt bei der nächsten Verlängerung zu {{plan}}."
+      },
+      "switchFree": {
+        "scheduled": "Ihr Tarif wechselt am {{date}} zu Free.",
+        "scheduledNoDate": "Ihr Tarif wechselt zum Ende des bezahlten Zeitraums zu Free."
+      },
+      "code": {
+        "applied": "Code eingelöst."
+      },
+      "pastDue": {
+        "title": "Ihre letzte Zahlung ist nicht durchgegangen",
+        "body": "Wir versuchen es am {{retry}} erneut mit der Karte. Alles funktioniert bis zum {{until}}.",
+        "bodyUntil": "Alles funktioniert bis zum {{until}}. Aktualisieren Sie Ihre Karte, um Ihren Tarif zu behalten.",
+        "bodyRetry": "Wir versuchen es am {{retry}} erneut mit der Karte.",
+        "bodyNoDates": "Aktualisieren Sie Ihre Karte, um Ihren Tarif zu behalten.",
+        "updateCard": "Karte aktualisieren"
+      },
+      "addRole": {
+        "title": "Rolle {{role}} hinzufügen?",
+        "body": {
+          "trainer": "Sie erhalten Trainingspläne, Einheiten und Übungen. Ihre Kundinnen und Kunden können Sie als Trainer wählen.",
+          "nutritionist": "Sie erhalten Ernährungspläne, Rezepte und Zutaten. Ihre Kundinnen und Kunden können Sie als Ernährungsberater wählen."
+        },
+        "planLine": "Tarif {{plan}}",
+        "addOnLine": "Zweite Rolle · {{role}}",
+        "total": "Neuer Gesamtpreis",
+        "today_one": "Heute zahlen Sie {{amount}} für den {{count}} Tag bis zum {{date}}.",
+        "today_other": "Heute zahlen Sie {{amount}} für die {{count}} Tage bis zum {{date}}.",
+        "todayNoDate": "Heute zahlen Sie {{amount}} für den Rest dieses Abrechnungszeitraums.",
+        "taxIncluded": "Enthält {{tax}} MwSt.",
+        "studio": "{{plan}} enthält beide Rollen für {{price}}.",
+        "compare": "Tarife vergleichen",
+        "confirm": "Rolle hinzufügen · {{amount}} zahlen",
+        "alreadyPaid": "Die zweite Rolle ist bereits bezahlt, das Hinzufügen kostet heute nichts."
+      },
+      "errors": {
+        "generic": "Etwas ist schiefgegangen. Bitte versuchen Sie es erneut.",
+        "changePlan": "Der Tarif konnte nicht geändert werden. Bitte versuchen Sie es erneut.",
+        "switchFree": "Der Wechsel zu Free konnte nicht vorgemerkt werden. Bitte versuchen Sie es erneut.",
+        "portal": "Die Zahlungsverwaltung konnte nicht geöffnet werden. Bitte versuchen Sie es erneut.",
+        "code": "Der Code konnte nicht eingelöst werden. Bitte versuchen Sie es erneut.",
+        "addRole": "Die Zahlung ist fehlgeschlagen, daher wurde die Rolle nicht hinzugefügt. Bitte versuchen Sie es erneut.",
+        "preview": "Der Preis für die zweite Rolle konnte nicht geladen werden. Bitte versuchen Sie es erneut."
+      }
+    },
     "clientsOfLimit": "{{count}} von {{limit}} Klienten",
     "status": {
       "Trialing": "Testphase",
@@ -442,7 +523,8 @@
       },
       "card": {
         "title": "Karte, Rechnungen und Kündigung",
-        "description": "Verfügbar, sobald die Tarifauswahl öffnet."
+        "description": "Karte aktualisieren, Rechnungen herunterladen, Rechnungsdaten ändern oder im sicheren Stripe-Portal kündigen.",
+        "descriptionFree": "Verfügbar, sobald Sie einen bezahlten Tarif haben."
       }
     }
   },
@@ -3456,6 +3538,23 @@
     "SUBSCRIPTION_NOT_LAPSED": "Ihr Tarif ist nicht abgelaufen, daher gibt es nichts auszuwählen.",
     "PLAN_CHOICE_REQUIRED": "Ihr kostenloser Tarif ist beendet. Wählen Sie einen Tarif, um fortzufahren.",
     "PLAN_CHOICE_NOT_REQUIRED": "Sie haben bereits einen Tarif gewählt.",
+    "PLAN_NOT_PURCHASABLE": "Dieser Tarif kann derzeit nicht online gekauft werden.",
+    "BILLING_NO_SUBSCRIPTION": "Sie haben noch kein aktives bezahltes Abonnement.",
+    "BILLING_ALREADY_SUBSCRIBED": "Sie haben bereits ein bezahltes Abonnement. Nutzen Sie stattdessen Tarif ändern.",
+    "BILLING_GIFT_IN_FORCE": "Form Up hat Ihren aktuellen Tarif festgelegt, daher kann er hier erst nach seinem Ende geändert werden.",
+    "BILLING_PLAN_UNCHANGED": "Sie haben diesen Tarif bereits.",
+    "BILLING_CANCELLATION_PENDING": "Ihr Tarif endet bereits zum Ende des bezahlten Zeitraums.",
+    "BILLING_PLAN_CHANGE_PENDING": "Eine Tarifänderung ist bereits vorgemerkt. Versuchen Sie es erneut, sobald sie gilt.",
+    "PROMOTION_CODE_INVALID": "Dieser Code kann nicht verwendet werden.",
+    "PROMOTION_CODE_NOT_FOUND": "Diesen Code kennen wir nicht. Prüfen Sie ihn und versuchen Sie es erneut.",
+    "BILLING_RATE_LIMITED": "Zu viele Versuche. Warten Sie einen Moment und versuchen Sie es erneut.",
+    "BILLING_ADD_ON_NOT_AVAILABLE": "Ihr Tarif bietet keine kostenpflichtige zweite Rolle.",
+    "BILLING_ADD_ON_ALREADY_PAID": "Die zweite Rolle ist bereits bezahlt.",
+    "BILLING_PAYMENT_DECLINED": "Ihre Karte wurde abgelehnt. Es wurde nichts abgebucht und die Rolle wurde nicht hinzugefügt. Aktualisieren Sie Ihre Karte unter Abrechnung verwalten oder versuchen Sie eine andere.",
+    "BILLING_PAYMENT_AUTHENTICATION_REQUIRED": "Ihre Bank muss die Zahlung zuerst bestätigen. Öffnen Sie Abrechnung verwalten, bestätigen Sie sie dort und versuchen Sie es erneut.",
+    "BILLING_CUSTOMER_NOT_FOUND": "Es gibt noch kein Zahlungskonto. Wählen Sie zuerst einen bezahlten Tarif.",
+    "BILLING_NOT_CONFIGURED": "Zahlungen sind derzeit nicht verfügbar. Bitte versuchen Sie es später erneut.",
+    "BILLING_PROVIDER_ERROR": "Der Zahlungsanbieter hat nicht geantwortet. Bitte versuchen Sie es gleich erneut.",
     "CHECK_IN_ANSWER_WINDOW_CLOSED": "Die Zeit zum Beantworten dieses Check-ins ist abgelaufen.",
     "INVALID_CREDENTIALS": "Ungültige E-Mail oder Passwort.",
     "ACCOUNT_DEACTIVATED": "Ihr Konto wurde deaktiviert.",
@@ -5786,7 +5885,8 @@
       "coach": {
         "ready": "Ihr Konto ist bereit.",
         "setUpProfile": "Profil einrichten",
-        "skip": "Vorerst überspringen und zum Portal",
+        "choosePlan": "Tarif wählen",
+        "skip": "Vorerst überspringen und mit Free starten",
         "nextHeading": "WIE ES WEITERGEHT",
         "inviteTitle": "Laden Sie Ihren ersten Klienten ein",
         "inviteHint": "Er tritt über die Form-Up-App bei",
