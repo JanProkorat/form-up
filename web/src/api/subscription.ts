@@ -6,6 +6,7 @@ import type {
   GetCoachPlansResponse,
   GetKeepClientsResponse,
   GetMySubscriptionResponse,
+  GetPublicSubscriptionPlansResponse,
   PreviewSecondRoleAddOnResponse,
   ScheduleSwitchToFreeResponse,
 } from '@/api/generated';
@@ -73,6 +74,15 @@ export async function createPortalSession(): Promise<string> {
   if (!result.url) throw new Error('Portal session came back without a URL');
   return result.url;
 }
+
+/** GET /subscription-plans — the offered plans for the public pricing page; anonymous, cheapest first. */
+export async function getPublicSubscriptionPlans(): Promise<GetPublicSubscriptionPlansResponse> {
+  return apiClient.getPublicSubscriptionPlansEndpoint();
+}
+
+export const pricingKeys = {
+  plans: ['pricing', 'plans'] as const,
+};
 
 export const subscriptionKeys = {
   mine: ['subscription', 'me'] as const,

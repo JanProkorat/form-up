@@ -6085,6 +6085,7 @@
       "forNutritionists": "Für Ernährungsberater",
       "mobileApp": "Mobile App",
       "questions": "Q&A",
+      "pricing": "Preise",
       "signIn": "Anmelden",
       "createAccount": "Konto erstellen",
       "menuLabel": "{{code}}, Sprache und Design",
@@ -7144,6 +7145,51 @@
       "windowInvalid": "Das Enddatum muss nach dem Startdatum und in der Zukunft liegen.",
       "plansRequired": "Wählen Sie mindestens einen Tarif.",
       "maxUsesInvalid": "Geben Sie eine ganze Zahl ab 1 ein oder lassen Sie das Feld leer."
+    }
+  },
+  "pricing": {
+    "title": "Tarife und Preise",
+    "subtitle": "Ihre Klienten nutzen die App immer kostenlos. Wählen Sie den Tarif passend zur Zahl Ihrer Klienten und wechseln oder kündigen Sie jederzeit.",
+    "loadError": "Die Tarife konnten nicht geladen werden. Bitte versuchen Sie es erneut.",
+    "retry": "Erneut versuchen",
+    "empty": "Derzeit werden keine Tarife angeboten. Bitte schauen Sie bald wieder vorbei.",
+    "card": {
+      "mostPopular": "Am beliebtesten",
+      "startFree": "Kostenlos starten",
+      "choose": "{{plan}} wählen",
+      "per": { "month": "/ Monat", "year": "/ Jahr" },
+      "secondRoleAddOn": "Zweite Rolle +{{amount}}",
+      "bothRoles": "Beide Rollen inklusive",
+      "unlimitedClients": "Unbegrenzt Klienten",
+      "clientCap_one": "Bis zu {{count}} Klient",
+      "clientCap_other": "Bis zu {{count}} Klienten",
+      "featureCount": "{{count}} von {{total}} Funktionen",
+      "seeAll": "alle anzeigen"
+    },
+    "table": {
+      "title": "Funktionen im Vergleich",
+      "feature": "Funktion",
+      "clients": "Klienten",
+      "unlimited": "Unbegrenzt",
+      "secondRole": "Zweite Rolle",
+      "included": "Inklusive",
+      "yes": "Enthalten",
+      "no": "Nicht enthalten"
+    },
+    "features": {
+      "chat": { "label": "Chat", "hint": "Schreiben Sie Ihren Klienten direkt in der App" },
+      "nutritionPlans": { "label": "Ernährungspläne", "hint": "Wöchentliche Mahlzeitenpläne für jeden Klienten" },
+      "planTemplates": { "label": "Planvorlagen", "hint": "Ihre Pläne als Vorlagen wiederverwenden" },
+      "recipes": { "label": "Rezepte", "hint": "Ihre eigene Rezeptbibliothek" },
+      "ingredients": { "label": "Zutaten", "hint": "Ihre eigenen Zutaten und Lebensmittel" },
+      "progressPhotos": { "label": "Fortschrittsfotos", "hint": "Fototagebuch und Fotoanfragen" },
+      "measurements": { "label": "Gewicht und Maße", "hint": "Gewicht und Körperwerte im Zeitverlauf" },
+      "forms": { "label": "Formulare", "hint": "Fragebögen und Aufnahmeformulare" },
+      "checkIns": { "label": "Wöchentliche Check-ins", "hint": "Ein wöchentliches Check-in-Formular mit Auswertung" },
+      "perClientCheckIns": { "label": "Check-in-Einstellungen pro Klient", "hint": "Check-ins für einen Klienten anpassen" },
+      "automations": { "label": "Automatisierungen", "hint": "Erinnerungen und Nachrichten, die sich selbst versenden" },
+      "packages": { "label": "Pakete", "hint": "Bezahlte Coaching-Pakete anbieten" },
+      "payments": { "label": "Klientenzahlungen", "hint": "Zahlungsanfragen mit QR-Code" }
     }
   }
 }

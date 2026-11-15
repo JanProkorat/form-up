@@ -40,6 +40,7 @@ export default defineConfig({
       '/payments': apiProxy(),
       '/billing': apiProxy(),
       '/admin': apiProxy(),
+      '/subscription-plans': apiProxy(),
       '/exercises': apiProxy(),
       '/training': apiProxy(),
       '/conversations': apiProxy(),

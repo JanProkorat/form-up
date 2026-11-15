@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Navigate, useLocation, useNavigate, useOutlet } from 'react-router-dom';
 import { XIcon } from 'lucide-react';
@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/stores/auth';
 import { Dialog, DialogClose, DialogContent } from '@/components/ui/dialog';
 import HomeNav, { SIGN_IN_LINK_ID } from '@/components/home/HomeNav';
+import { scrollToId } from '@/components/home/smoothAnchor';
 import HomeHero from '@/components/home/HomeHero';
 import HomeHowItWorks from '@/components/home/HomeHowItWorks';
 import HomeCoaches from '@/components/home/HomeCoaches';
@@ -69,6 +70,13 @@ export default function EntryPage() {
   if (open && displayed.key !== location.pathname) {
     setDisplayed({ key: location.pathname, element: outlet });
   }
+
+  // Arriving from another page via "/#section": the browser cannot find the target before the page renders.
+  useEffect(() => {
+    if (location.hash.length > 1) {
+      scrollToId(decodeURIComponent(location.hash.slice(1)));
+    }
+  }, [location.hash]);
 
   if (isAuthenticated && location.pathname !== RESET_PATH) {
     return <Navigate to="/clients" replace />;

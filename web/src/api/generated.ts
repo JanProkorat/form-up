@@ -5843,6 +5843,62 @@ export class ApiClient {
     }
 
     /**
+     * List the offered plans for the public pricing page
+     * @return The offered plans, cheapest first
+     */
+    getPublicSubscriptionPlansEndpoint(signal?: AbortSignal): Promise<GetPublicSubscriptionPlansResponse> {
+        let url_ = this.baseUrl + "/subscription-plans";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetPublicSubscriptionPlansEndpoint(_response);
+        });
+    }
+
+    protected processGetPublicSubscriptionPlansEndpoint(response: AxiosResponse): Promise<GetPublicSubscriptionPlansResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetPublicSubscriptionPlansResponse>(result200);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetPublicSubscriptionPlansResponse>(null as any);
+    }
+
+    /**
      * Update session template
      * @param templateId Public identifier of the session template to update.
      * @return Session template updated
@@ -27724,6 +27780,64 @@ export interface OptionalFieldOfNullableOfInt32 {
 export interface GetSubscriptionPlansResponse {
     /** All subscription plans, including inactive ones. */
     plans?: SubscriptionPlanDto[];
+}
+
+/** The plans shown on the public pricing page. */
+export interface GetPublicSubscriptionPlansResponse {
+    /** Offered plans, cheapest first. */
+    plans?: PublicSubscriptionPlanDto[];
+}
+
+/** One offered plan as the public pricing page shows it. Carries no ids, no activity flag and no coach counts. */
+export interface PublicSubscriptionPlanDto {
+    /** Stable plan code. */
+    code?: string;
+    /** Czech name. */
+    nameCs?: string;
+    /** English name. */
+    nameEn?: string;
+    /** German name. */
+    nameDe?: string;
+    /** Current price in minor units of Currency. */
+    priceMinorUnits?: number;
+    /** Second-role add-on price; null when both roles are included. */
+    secondRoleAddOnPriceMinorUnits?: number | undefined;
+    /** True when the plan covers both professional roles. */
+    bothRolesIncluded?: boolean;
+    /** ISO 4217 currency code. */
+    currency?: string;
+    /** Billing cadence. */
+    billingInterval?: BillingInterval;
+    /** Active-client cap; null means unlimited. */
+    maxActiveClients?: number | undefined;
+    /** Whether the plan allows creating nutrition and training plans. */
+    canCreatePlans?: boolean;
+    /** Whether the plan allows messaging clients. */
+    canMessage?: boolean;
+    /** Whether the plan allows sending questionnaires. */
+    canSendQuestionnaires?: boolean;
+    /** Whether the plan allows weekly check-ins. */
+    canUseWeeklyCheckIns?: boolean;
+    /** Whether the plan allows per-client check-in configuration. */
+    canUsePerClientCheckInConfig?: boolean;
+    /** Whether the plan allows client payments. */
+    canUsePayments?: boolean;
+    /** Whether the plan allows plan templates. */
+    canUsePlanTemplates?: boolean;
+    /** Whether the plan allows a recipe library. */
+    canUseRecipes?: boolean;
+    /** Whether the plan allows an ingredient library. */
+    canUseIngredients?: boolean;
+    /** Whether the plan allows progress photos. */
+    canUseProgressPhotos?: boolean;
+    /** Whether the plan allows weight and body measurements. */
+    canUseWeightAndMeasurements?: boolean;
+    /** Whether the plan allows automations. */
+    canUseAutomations?: boolean;
+    /** Whether the plan allows coach packages and discounts. */
+    canUsePackages?: boolean;
+    /** True for the single plan with the most live coaches; no plan is flagged on a tie. */
+    isMostPopular?: boolean;
 }
 
 /** Request model for deactivating a subscription tier. */

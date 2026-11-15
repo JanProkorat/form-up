@@ -355,7 +355,7 @@ Severity ladder:
 
 Open
 [`references/review-checklist.md`](pr-reviewer/references/review-checklist.md)
-on every pass and walk all 13 items top-to-bottom. Don't skip even
+on every pass and walk all 14 items top-to-bottom. Don't skip even
 when the diff looks small. The checklist gives you exact grep / `gh`
 commands per rule and flags the right severity. Items 11 (merge
 exclusion list) and 12 (kind-label set) terminate the review with
