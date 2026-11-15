@@ -65,6 +65,7 @@ export default defineConfig({
       '/client': e2eProxy(),
       '/payments': e2eProxy(),
       '/admin': e2eProxy(),
+      '/subscription-plans': e2eProxy(),
       '/exercises': e2eProxy(),
       '/training': e2eProxy(),
       '/conversations': e2eProxy(),
