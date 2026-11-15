@@ -86,12 +86,16 @@ the merged `canvas.json` stacks it below the last web board. The launch-offer ba
 crossed-out prices on the board belong to #1599, not #2119. The interactive prototype was
 not re-exported.
 
+**Partial update, 2026-11-15 (#2130):** `PageAdminReports` (C and D) added from web portal
+1794736264-9e39, with static export, clickable prototype and PNGs (`39-09`, `40-09`). In the
+merged `canvas.json` it sits right of the coach dialogs; `PageAdminPromotionEnd` is still unlisted.
+
 | Path | Contents |
 |---|---|
 | `index.html` | Gallery of every board, grouped by app and module |
 | `interactive/` | Clickable web-portal prototype, light and dark (open `interactive/index.html`) |
 | `interactive-client/`, `interactive-coach/` | Clickable client-app and coach-app prototypes, light and dark, shown in a phone frame |
-| `web/` | Web portal: entry page, registration, clients (incl. Payment and Automations tabs), inbox, recipes, ingredients, plan templates, forms, automations, packages and discounts, coach profile, settings (incl. payments, plan and billing) and account menu, password reset, coach plans (plan picker, sign-up plan step, paywalls, plan ended), Form Up admin (plans, promotions, coaches) — light and dark |
+| `web/` | Web portal: entry page, registration, clients (incl. Payment and Automations tabs), inbox, recipes, ingredients, plan templates, forms, automations, packages and discounts, coach profile, settings (incl. payments, plan and billing) and account menu, password reset, coach plans (plan picker, sign-up plan step, paywalls, plan ended), Form Up admin (plans, promotions, coaches, reports) — light and dark |
 | `mobile-light/`, `mobile-dark/` | Client mobile app (Liquid Glass) |
 | `coach-light/`, `coach-dark/` | Coach mobile app |
 | `email/` | Account, notification and payment emails — light (`C`) and dark (`D`) |

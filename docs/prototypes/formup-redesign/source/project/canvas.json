@@ -4303,6 +4303,22 @@
       "w": 1440,
       "x": 0,
       "y": 87072
+    },
+    "PageAdminReportsC.dc.html": {
+      "x": 13128,
+      "y": 66972,
+      "w": 1440,
+      "h": 1360,
+      "page": "web",
+      "title": "C · Admin · Reports"
+    },
+    "PageAdminReportsD.dc.html": {
+      "x": 13128,
+      "y": 68332,
+      "w": 1440,
+      "h": 1360,
+      "page": "web",
+      "title": "D · Admin · Reports"
     }
   },
   "notes": {
@@ -5326,6 +5342,8 @@
     "PageAdminCoachDialogsC.dc.html",
     "PageAdminCoachDialogsD.dc.html",
     "PagePricingC.dc.html",
-    "PagePricingD.dc.html"
+    "PagePricingD.dc.html",
+    "PageAdminReportsC.dc.html",
+    "PageAdminReportsD.dc.html"
   ]
 }
