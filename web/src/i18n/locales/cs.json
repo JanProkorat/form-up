@@ -6157,6 +6157,7 @@
       "forNutritionists": "Pro nutriční poradce",
       "mobileApp": "Mobilní aplikace",
       "questions": "Q&A",
+      "pricing": "Ceník",
       "signIn": "Přihlásit se",
       "createAccount": "Vytvořit účet",
       "menuLabel": "{{code}}, jazyk a vzhled",
@@ -7139,6 +7140,53 @@
       "addOnInvalid": "Zadejte cenu druhé role vyšší než 0, nebo zvolte „V ceně“.",
       "clientsInvalid": "Zadejte počet klientů od 1, nebo zvolte Neomezeně.",
       "perClientNeedsWeekly": "Check-iny pro jednotlivé klienty vyžadují týdenní check-iny."
+    }
+  },
+  "pricing": {
+    "title": "Tarify a ceník",
+    "subtitle": "Vaši klienti používají aplikaci vždy zdarma. Vyberte tarif podle toho, kolik klientů vedete, a měňte ho nebo ukončete kdykoli.",
+    "loadError": "Tarify se nepodařilo načíst. Zkuste to prosím znovu.",
+    "retry": "Zkusit znovu",
+    "empty": "Aktuálně není nabízen žádný tarif. Zkuste to prosím později.",
+    "card": {
+      "mostPopular": "Nejoblíbenější",
+      "startFree": "Začít zdarma",
+      "choose": "Vybrat {{plan}}",
+      "per": { "month": "/ měsíc", "year": "/ rok" },
+      "secondRoleAddOn": "Druhá role +{{amount}}",
+      "bothRoles": "Obě role v ceně",
+      "unlimitedClients": "Neomezeně klientů",
+      "clientCap_one": "Až {{count}} klient",
+      "clientCap_few": "Až {{count}} klienti",
+      "clientCap_many": "Až {{count}} klienta",
+      "clientCap_other": "Až {{count}} klientů",
+      "featureCount": "{{count}} z {{total}} funkcí",
+      "seeAll": "zobrazit vše"
+    },
+    "table": {
+      "title": "Porovnání funkcí",
+      "feature": "Funkce",
+      "clients": "Klienti",
+      "unlimited": "Neomezeně",
+      "secondRole": "Druhá role",
+      "included": "V ceně",
+      "yes": "V tarifu",
+      "no": "Není v tarifu"
+    },
+    "features": {
+      "chat": { "label": "Chat", "hint": "Pište svým klientům přímo v aplikaci" },
+      "nutritionPlans": { "label": "Výživové plány", "hint": "Týdenní jídelníčky pro každého klienta" },
+      "planTemplates": { "label": "Šablony plánů", "hint": "Používejte své plány znovu jako šablony" },
+      "recipes": { "label": "Recepty", "hint": "Vlastní knihovna receptů" },
+      "ingredients": { "label": "Suroviny", "hint": "Vlastní suroviny a potraviny" },
+      "progressPhotos": { "label": "Fotky pokroku", "hint": "Fotodeník a žádosti o fotky" },
+      "measurements": { "label": "Váha a míry", "hint": "Váha a tělesné údaje v čase" },
+      "forms": { "label": "Formuláře", "hint": "Dotazníky a vstupní formuláře" },
+      "checkIns": { "label": "Týdenní check-iny", "hint": "Týdenní check-in formulář s vyhodnocením" },
+      "perClientCheckIns": { "label": "Check-iny pro jednotlivé klienty", "hint": "Úprava check-inů pro jednoho klienta" },
+      "automations": { "label": "Automatizace", "hint": "Připomínky a zprávy, které se odesílají samy" },
+      "packages": { "label": "Balíčky", "hint": "Nabízejte placené balíčky služeb" },
+      "payments": { "label": "Platby klientů", "hint": "Platební žádosti s QR kódem" }
     }
   }
 }

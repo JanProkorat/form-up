@@ -39,6 +39,7 @@ export default defineConfig({
       '/client': apiProxy(),
       '/payments': apiProxy(),
       '/admin': apiProxy(),
+      '/subscription-plans': apiProxy(),
       '/exercises': apiProxy(),
       '/training': apiProxy(),
       '/conversations': apiProxy(),

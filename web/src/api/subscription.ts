@@ -1,5 +1,10 @@
 import { apiClient } from '@/api/client';
-import type { GetCoachPlansResponse, GetKeepClientsResponse, GetMySubscriptionResponse } from '@/api/generated';
+import type {
+  GetCoachPlansResponse,
+  GetKeepClientsResponse,
+  GetMySubscriptionResponse,
+  GetPublicSubscriptionPlansResponse,
+} from '@/api/generated';
 
 /** GET /users/me/subscription — the coach's plan, status, client usage and feature flags. */
 export async function getMySubscription(): Promise<GetMySubscriptionResponse> {
@@ -25,6 +30,15 @@ export async function setKeepClients(clientIds: string[]): Promise<void> {
 export async function chooseFreePlan(keepClientIds: string[]): Promise<void> {
   return apiClient.chooseFreePlanEndpoint({ keepClientIds });
 }
+
+/** GET /subscription-plans — the offered plans for the public pricing page; anonymous, cheapest first. */
+export async function getPublicSubscriptionPlans(): Promise<GetPublicSubscriptionPlansResponse> {
+  return apiClient.getPublicSubscriptionPlansEndpoint();
+}
+
+export const pricingKeys = {
+  plans: ['pricing', 'plans'] as const,
+};
 
 export const subscriptionKeys = {
   mine: ['subscription', 'me'] as const,
