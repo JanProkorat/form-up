@@ -303,6 +303,8 @@
         "choose": "{{plan}} wählen",
         "secondRoleLater": "Zweite Rolle später +{{amount}}",
         "secondRoleFree": "Eine zweite Rolle können Sie jederzeit kostenlos hinzufügen",
+        "rolesBoth": "Sie haben sich als {{first}} und {{second}} registriert. Die Preise unten enthalten Ihre zweite Rolle.",
+        "secondRoleIncluded": "Zweite Rolle inklusive +{{amount}}",
         "footer": "Bezahlte Tarife führen zur sicheren Zahlung bei Stripe, danach kehren Sie hierher zurück und richten Ihr Profil ein. Sie können Ihren Tarif jederzeit in den Einstellungen ändern oder kündigen."
       },
       "returning": {

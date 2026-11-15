@@ -307,6 +307,8 @@
         "choose": "Vybrat {{plan}}",
         "secondRoleLater": "Druhá role později +{{amount}}",
         "secondRoleFree": "Druhou roli můžete kdykoli přidat zdarma",
+        "rolesBoth": "Zaregistrovali jste se jako {{first}} a {{second}}. Ceny níže zahrnují vaši druhou roli.",
+        "secondRoleIncluded": "Druhá role v ceně +{{amount}}",
         "footer": "Placené tarify pokračují na zabezpečenou platbu Stripe, poté se vrátíte sem a nastavíte si profil. Tarif můžete kdykoli změnit nebo zrušit v Nastavení."
       },
       "returning": {
