@@ -19,13 +19,14 @@ import { promotionShortText } from '@/components/subscription/promotionText';
 import { usePlanSelection } from '@/components/subscription/usePlanSelection';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useActiveRoles } from '@/hooks/useActiveRoles';
 import { useCoachPlans, useSubscription } from '@/hooks/useSubscriptionQueries';
 import { useAuthStore } from '@/stores/auth';
 
 /**
  * Sign-up plan step, the first part of step 3 "Your profile": Free is the default and needs no card, a paid
- * plan goes through Stripe Checkout and comes back to profile setup. Sign-up picks one role, so prices are
- * the one-role prices.
+ * plan goes through Stripe Checkout and comes back to profile setup. A coach who signed up with one role sees
+ * the one-role prices; one who signed up with both sees the combined prices.
  */
 export default function RegisterPlanPage() {
   const { t, i18n } = useTranslation();
@@ -34,6 +35,9 @@ export default function RegisterPlanPage() {
   const subscription = useSubscription();
   const plansQuery = useCoachPlans(subscription.isCoach);
   const selection = usePlanSelection(CheckoutFlow.SignUp);
+  const { hasRole, isLoading: rolesLoading } = useActiveRoles();
+  // A failed roles lookup leaves both roles absent, so the one-role prices show; checkout bills from the roles.
+  const bothRoles = hasRole('Trainer') && hasRole('Nutritionist');
   const plans = plansQuery.data?.plans ?? [];
   const promotion = plansQuery.data?.promotion;
 
@@ -65,6 +69,15 @@ export default function RegisterPlanPage() {
 
         <p className="text-center text-body text-muted-foreground">{t('subscription.billing.codeAtCheckout')}</p>
 
+        {bothRoles && (
+          <p className="text-center text-copy text-muted-foreground">
+            {t('subscription.billing.register.rolesBoth', {
+              first: t('roles.trainer'),
+              second: t('roles.nutritionist'),
+            })}
+          </p>
+        )}
+
         {plansQuery.isError ? (
           <div role="alert" className="flex flex-col items-center gap-3">
             <p className="text-copy text-error">{t('subscription.planChoice.loadError')}</p>
@@ -83,7 +96,7 @@ export default function RegisterPlanPage() {
               </Button>
             </div>
           </div>
-        ) : plansQuery.isPending ? (
+        ) : plansQuery.isPending || rolesLoading ? (
           <Skeleton className="h-96 w-full rounded-2xl" />
         ) : (
           <div className="grid items-stretch gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -93,12 +106,18 @@ export default function RegisterPlanPage() {
               const addOn = secondRoleAddOnOf(plan);
               const currency = plan.currency ?? 'CZK';
               const secondRoleText = free
-                ? t('subscription.billing.register.secondRoleFree')
+                ? bothRoles
+                  ? t('subscription.planChoice.card.bothRoles')
+                  : t('subscription.billing.register.secondRoleFree')
                 : addOn !== null
-                  ? t('subscription.billing.register.secondRoleLater', { amount: formatMoney(addOn, currency, i18n.language) })
-                  : undefined;
-              const fullPrice = planDisplayPrice(plan, false);
-              const discounted = planDiscountedPrice(plan, false);
+                  ? t(bothRoles ? 'subscription.billing.register.secondRoleIncluded' : 'subscription.billing.register.secondRoleLater', {
+                      amount: formatMoney(addOn, currency, i18n.language),
+                    })
+                  : bothRoles && plan.bothRolesIncluded
+                    ? t('subscription.planChoice.card.bothRoles')
+                    : undefined;
+              const fullPrice = planDisplayPrice(plan, bothRoles);
+              const discounted = planDiscountedPrice(plan, bothRoles);
               const offer = promotion && discounted !== null && discounted < fullPrice ? promotion : null;
               const offerNote = offer
                 ? offer.duration === PromotionDuration.Forever
@@ -108,6 +127,15 @@ export default function RegisterPlanPage() {
                       price: formatMoney(fullPrice, currency, i18n.language),
                     })
                 : undefined;
+              const breakdown =
+                bothRoles && addOn !== null
+                  ? t('subscription.billing.picker.breakdown', {
+                      plan: name,
+                      base: formatMoney(plan.priceMinorUnits ?? 0, currency, i18n.language),
+                      addOn: formatMoney(addOn, currency, i18n.language),
+                    })
+                  : null;
+              const note = [breakdown, offerNote].filter(Boolean).join(' · ') || undefined;
               return (
                 <PlanCard
                   key={plan.code}
@@ -124,9 +152,9 @@ export default function RegisterPlanPage() {
                   busy={selection.busy}
                   priceMinorUnits={offer ? (discounted ?? fullPrice) : fullPrice}
                   originalPriceMinorUnits={offer ? fullPrice : undefined}
-                  priceNote={free ? t('subscription.billing.picker.noCard') : offerNote}
+                  priceNote={free ? t('subscription.billing.picker.noCard') : note}
                   secondRoleText={secondRoleText}
-                  onAction={free ? startFree : () => selection.choosePaid(plan, false)}
+                  onAction={free ? startFree : () => selection.choosePaid(plan, bothRoles && addOn !== null)}
                 />
               );
             })}

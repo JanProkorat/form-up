@@ -303,6 +303,8 @@
         "choose": "Choose {{plan}}",
         "secondRoleLater": "Second role later +{{amount}}",
         "secondRoleFree": "Add a second role any time, free",
+        "rolesBoth": "You signed up as {{first}} and {{second}}. Prices below include your second role.",
+        "secondRoleIncluded": "Second role included +{{amount}}",
         "footer": "Paid plans continue to Stripe's secure checkout, then come back here to set up your profile. You can change or cancel your plan any time in Settings."
       },
       "returning": {
