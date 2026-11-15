@@ -33,6 +33,11 @@
 #   .test-env.<project>.env at the repo root persists COMPOSE_PROJECT_NAME,
 #   BRANCH, and the resolved API host port. gitignored. Removed on `down`.
 #
+# Secrets file (.env.test):
+#   This checkout's .env.test wins. In a git worktree without one, the main
+#   checkout's copy is used in place; nothing is copied. The chosen path
+#   reaches compose as E2E_ENV_FILE.
+#
 # Network:
 #   docker compose declares a project-scoped network (qa-net). web/playwright
 #   communicate over internal DNS — only api publishes a host port (ephemeral, picked
@@ -111,7 +116,11 @@ load_project_env() {
 }
 
 compose() {
-  COMPOSE_PROJECT_NAME="$1" docker compose -f "$COMPOSE_FILE" "${@:2}"
+  local env_test
+  env_test="$(resolve_env_test)"
+  # Fall back to the old default so a missing file fails in compose as before.
+  E2E_ENV_FILE="${env_test:-$REPO_ROOT/.env.test}" \
+    COMPOSE_PROJECT_NAME="$1" docker compose -f "$COMPOSE_FILE" "${@:2}"
 }
 
 # Wait for a service's healthcheck to report 'healthy'. Times out after <seconds> seconds.
@@ -152,8 +161,26 @@ resolve_host_port() {
   printf '%s' "${raw##*:}"
 }
 
+# Print the .env.test path to use, or nothing when there is none: this
+# checkout's own file, else the main checkout's when this is a git worktree.
+resolve_env_test() {
+  if [[ -f "$REPO_ROOT/.env.test" ]]; then
+    printf '%s' "$REPO_ROOT/.env.test"
+    return
+  fi
+  local common_dir
+  common_dir="$(git -C "$REPO_ROOT" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)"
+  # Only a normal `<checkout>/.git` dir; skip bare repos, submodules and odd GIT_DIRs.
+  [[ -n "$common_dir" && "$(basename "$common_dir")" == ".git" ]] || return 0
+  local candidate
+  candidate="$(dirname "$common_dir")/.env.test"
+  if [[ -f "$candidate" ]]; then
+    printf '%s' "$candidate"
+  fi
+}
+
 ensure_env_test() {
-  if [[ ! -f "$REPO_ROOT/.env.test" ]]; then
+  if [[ -z "$(resolve_env_test)" ]]; then
     die "Missing .env.test — run: npm run e2e:setup"
   fi
 }
@@ -174,6 +201,7 @@ cmd_up() {
   fi
 
   err "Booting compose project '$project' (branch '$branch')…"
+  err "Using env file: $(resolve_env_test)"
   # Redirect docker compose's stdout to stderr so the build progress doesn't
   # contaminate the JSON envelope this function emits on its final printf.
   # In CI (non-TTY) buildkit's progress is written to stdout by default; if
