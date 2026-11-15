@@ -5990,6 +5990,8 @@
         "setUpProfile": "Set up your profile",
         "choosePlan": "Choose your plan",
         "skip": "Skip for now and start on Free",
+        "signInToChoosePlan": "Sign in to choose your plan",
+        "signInToSkip": "Sign in and start on Free for now",
         "nextHeading": "WHAT’S NEXT",
         "inviteTitle": "Invite your first client",
         "inviteHint": "They join with the Form Up app",

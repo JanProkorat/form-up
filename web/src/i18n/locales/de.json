@@ -5989,6 +5989,8 @@
         "setUpProfile": "Profil einrichten",
         "choosePlan": "Tarif wählen",
         "skip": "Vorerst überspringen und mit Free starten",
+        "signInToChoosePlan": "Melden Sie sich an, um Ihren Tarif zu wählen",
+        "signInToSkip": "Anmelden und vorerst mit Free starten",
         "nextHeading": "WIE ES WEITERGEHT",
         "inviteTitle": "Laden Sie Ihren ersten Klienten ein",
         "inviteHint": "Er tritt über die Form-Up-App bei",
