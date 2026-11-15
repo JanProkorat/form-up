@@ -200,20 +200,23 @@ trainerTest.describe('register plan step', () => {
     await mockReads(page, { roles: ['Trainer', 'Nutritionist'], rolesGate: gate });
     await page.goto('/register/plan');
 
-    await expect(page.getByRole('heading', { name: 'Choose your plan', level: 1 })).toBeVisible();
+    // RoleGuard renders nothing while the roles lookup is pending, so no heading is expected here.
     await expect(page.getByRole('article')).toHaveCount(0);
+    await expect(page.getByText(/Second role later/)).toHaveCount(0);
 
     release();
-    await expect(page.getByRole('article', { name: 'Start' }).getByText(/448/).first()).toBeVisible();
+    const start = page.getByRole('article', { name: 'Start' });
+    await expect(start.getByText(/448/).first()).toBeVisible();
+    await expect(start.getByText(/Second role included/)).toBeVisible();
+    await expect(page.getByText(/Second role later/)).toHaveCount(0);
   });
 
-  trainerTest('a failed roles lookup falls back to the one-role prices', async ({ page }) => {
+  trainerTest('a failed roles lookup sends the coach to /clients (the guard fails closed)', async ({ page }) => {
     await mockReads(page, { roles: ['Trainer', 'Nutritionist'], rolesFail: true });
     await page.goto('/register/plan');
 
-    const start = page.getByRole('article', { name: 'Start' });
-    await expect(start.getByText(/Second role later \+.*149/)).toBeVisible();
-    await expect(page.getByText(/You signed up as/)).toHaveCount(0);
+    await expect(page).toHaveURL(/\/clients$/);
+    await expect(page.getByRole('article')).toHaveCount(0);
   });
 
   trainerTest('a two-role coach choosing Pro posts includeSecondRoleAddOn true', async ({ page }) => {
