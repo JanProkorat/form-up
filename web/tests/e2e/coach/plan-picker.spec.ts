@@ -149,7 +149,7 @@ trainerTest.describe('plan picker', () => {
     const free = page.getByRole('article', { name: 'Free' });
     await expect(free.getByText('Your plan', { exact: true }).first()).toBeVisible();
     await expect(free.getByRole('button', { name: 'Your plan' })).toBeDisabled();
-    await expect(page.getByRole('article', { name: 'Pro' }).getByRole('button', { name: 'Upgrade to Pro' })).toBeEnabled();
+    await expect(page.getByRole('article', { name: 'Pro' }).getByRole('button', { name: 'Select Pro' })).toBeEnabled();
     await expect(page.getByRole('link', { name: 'Back to settings' })).toBeVisible();
     await expect(page.getByText('Have a code? Enter it at checkout.')).toBeVisible();
     await expect(page.getByText('Prices without VAT, 21 % VAT is added.')).toBeVisible();
@@ -217,7 +217,8 @@ trainerTest.describe('plan picker', () => {
     );
 
     await page.goto('/plan');
-    await page.getByRole('article', { name: 'Pro' }).getByRole('button', { name: 'Upgrade to Pro' }).click();
+    await page.getByRole('article', { name: 'Pro' }).getByRole('button', { name: 'Select Pro' }).click();
+    await page.getByRole('region', { name: 'Selected plan' }).getByRole('button', { name: 'Upgrade to Pro' }).click();
 
     await page.waitForURL(`${CHECKOUT_URL}**`);
     await expect(page.getByRole('heading', { name: 'Stripe Checkout stand-in' })).toBeVisible();
@@ -236,10 +237,60 @@ trainerTest.describe('plan picker', () => {
     );
 
     await page.goto('/plan');
-    await page.getByRole('article', { name: 'Start' }).getByRole('button', { name: 'Upgrade to Start' }).click();
+    await page.getByRole('article', { name: 'Start' }).getByRole('button', { name: 'Select Start' }).click();
+    const bar = page.getByRole('region', { name: 'Selected plan' });
+    await bar.getByRole('button', { name: 'Upgrade to Start' }).click();
 
     await expect(page.getByText("Billing isn't available right now. Please try again later.")).toBeVisible();
     await expect(page).toHaveURL(/\/plan$/);
-    await expect(page.getByRole('article', { name: 'Start' }).getByRole('button', { name: 'Upgrade to Start' })).toBeEnabled();
+    await expect(page.getByRole('article', { name: 'Start' }).getByRole('button', { name: 'Selected' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await expect(bar.getByRole('button', { name: 'Upgrade to Start' })).toBeEnabled();
+  });
+
+  trainerTest('selecting a card, by its button or its body, starts nothing until the bar is confirmed', async ({ page }) => {
+    await mockPickerReads(page, 'Vat21');
+    const billingCalls: string[] = [];
+    await page.route(/\/billing\/(checkout-session|change-plan|switch-to-free)$/, (route) => {
+      billingCalls.push(route.request().url());
+      return route.fulfill({ status: 500, contentType: 'application/json', body: '{}' });
+    });
+
+    await page.goto('/plan');
+    const bar = page.getByRole('region', { name: 'Selected plan' });
+    await expect(page.getByRole('article', { name: 'Pro' })).toBeVisible();
+    // Nothing is preselected on /plan, so there is no bar.
+    await expect(bar).toHaveCount(0);
+
+    const pro = page.getByRole('article', { name: 'Pro' });
+    await pro.getByRole('button', { name: 'Select Pro' }).click();
+    await expect(bar).toBeVisible();
+    await expect(bar.getByText('Pro · ', { exact: false })).toBeVisible();
+    await expect(pro.getByRole('button', { name: 'Selected' })).toHaveAttribute('aria-pressed', 'true');
+
+    // A click on the card body moves the selection and still starts nothing.
+    await page.getByRole('article', { name: 'Studio' }).getByRole('heading', { name: 'Studio' }).click();
+    await expect(page.getByRole('article', { name: 'Studio' }).getByRole('button', { name: 'Selected' })).toBeVisible();
+    await expect(pro.getByRole('button', { name: 'Select Pro' })).toHaveAttribute('aria-pressed', 'false');
+    await expect(bar.getByRole('button', { name: 'Upgrade to Studio' })).toBeEnabled();
+    expect(billingCalls).toEqual([]);
+  });
+
+  trainerTest('the current plan is not selectable and the bar spells out the promotion price', async ({ page }) => {
+    await mockPickerReads(page, 'Vat21', 'all');
+    await page.goto('/plan');
+
+    const free = page.getByRole('article', { name: 'Free' });
+    await expect(free.getByRole('button', { name: 'Your plan' })).toBeDisabled();
+    await free.getByRole('heading', { name: 'Free' }).click();
+    await expect(page.getByRole('region', { name: 'Selected plan' })).toHaveCount(0);
+
+    await page.getByRole('article', { name: 'Pro' }).getByRole('button', { name: 'Select Pro' }).click();
+    const bar = page.getByRole('region', { name: 'Selected plan' });
+    await expect(bar.getByText(/Pro · .*419.* \/ month/)).toBeVisible();
+    await expect(bar.getByText(/−30 % for 3 months, then .*599/)).toBeVisible();
+    await expect(bar.getByText('Card and invoices on Stripe\'s secure pages')).toBeVisible();
   });
 });

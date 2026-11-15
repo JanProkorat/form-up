@@ -280,6 +280,18 @@
     "billing": {
       "vat": "Preise ohne MwSt., {{rate}} % MwSt. werden hinzugerechnet.",
       "codeAtCheckout": "Sie haben einen Code? Geben Sie ihn beim Bezahlen ein.",
+      "select": {
+        "select": "{{plan}} auswählen",
+        "selected": "Ausgewählt",
+        "region": "Ausgewählter Tarif",
+        "planLine": "{{plan}} · {{price}} {{per}}",
+        "secondRoleLater": "zweite Rolle später +{{amount}}",
+        "hintFree": "Keine Karte nötig",
+        "hintStripeCheckout": "Sie zahlen auf der sicheren Seite von Stripe",
+        "hintStripePages": "Karte und Rechnungen auf den sicheren Seiten von Stripe",
+        "hintPeriodEnd": "Gilt ab dem Ende des bezahlten Monats",
+        "continue": "Weiter zur Zahlung"
+      },
       "picker": {
         "title": "Wählen Sie Ihren Tarif",
         "subtitle": "Ihre Kundinnen und Kunden nutzen die App immer kostenlos. Sie können jederzeit wechseln oder kündigen.",
@@ -300,7 +312,6 @@
         "subtitle": "Starten Sie kostenlos und wechseln Sie, wenn Sie wachsen. Ihre Kundinnen und Kunden nutzen die App immer kostenlos.",
         "noCardBadge": "Ohne Karte",
         "startFree": "Kostenlos starten",
-        "choose": "{{plan}} wählen",
         "secondRoleLater": "Zweite Rolle später +{{amount}}",
         "secondRoleFree": "Eine zweite Rolle können Sie jederzeit kostenlos hinzufügen",
         "rolesBoth": "Sie haben sich als {{first}} und {{second}} registriert. Die Preise unten enthalten Ihre zweite Rolle.",

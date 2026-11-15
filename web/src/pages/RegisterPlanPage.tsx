@@ -1,10 +1,12 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { CreditCard } from 'lucide-react';
-import { CheckoutFlow, PromotionDuration } from '@/api/generated';
+import { BillingInterval, CheckoutFlow, PromotionDuration } from '@/api/generated';
 import RegisterShell from '@/components/register/RegisterShell';
 import RegisterStepper from '@/components/register/RegisterStepper';
 import PlanCard from '@/components/subscription/PlanCard';
+import PlanConfirmBar from '@/components/subscription/PlanConfirmBar';
 import TaxNote from '@/components/subscription/TaxNote';
 import { formatMoney } from '@/components/subscription/money';
 import { coachPlanName } from '@/components/subscription/planNames';
@@ -41,7 +43,68 @@ export default function RegisterPlanPage() {
   const plans = plansQuery.data?.plans ?? [];
   const promotion = plansQuery.data?.promotion;
 
+  // Free is preselected; a selection that the plan list no longer contains falls back to it.
+  const [selectedCode, setSelectedCode] = useState(FREE_PLAN_CODE);
+
   const startFree = () => navigate('/profile', { replace: true });
+
+  const cards = plans.map((plan) => {
+    const free = plan.code === FREE_PLAN_CODE;
+    const name = coachPlanName(plan, i18n.language);
+    const addOn = secondRoleAddOnOf(plan);
+    const currency = plan.currency ?? 'CZK';
+    const secondRoleText = free
+      ? bothRoles
+        ? t('subscription.planChoice.card.bothRoles')
+        : t('subscription.billing.register.secondRoleFree')
+      : addOn !== null
+        ? t(bothRoles ? 'subscription.billing.register.secondRoleIncluded' : 'subscription.billing.register.secondRoleLater', {
+            amount: formatMoney(addOn, currency, i18n.language),
+          })
+        : bothRoles && plan.bothRolesIncluded
+          ? t('subscription.planChoice.card.bothRoles')
+          : undefined;
+    const fullPrice = planDisplayPrice(plan, bothRoles);
+    const discounted = planDiscountedPrice(plan, bothRoles);
+    const offer = promotion && discounted !== null && discounted < fullPrice ? promotion : null;
+    const offerNote = offer
+      ? offer.duration === PromotionDuration.Forever
+        ? promotionShortText(t, offer, i18n.language)
+        : t('subscription.promotion.card.then', {
+            short: promotionShortText(t, offer, i18n.language),
+            price: formatMoney(fullPrice, currency, i18n.language),
+          })
+      : undefined;
+    const breakdown =
+      bothRoles && addOn !== null
+        ? t('subscription.billing.picker.breakdown', {
+            plan: name,
+            base: formatMoney(plan.priceMinorUnits ?? 0, currency, i18n.language),
+            addOn: formatMoney(addOn, currency, i18n.language),
+          })
+        : null;
+    const note = [breakdown, offerNote].filter(Boolean).join(' · ') || undefined;
+    // The bar names the add-on in a sentence of its own when the card shows it as a separate line.
+    const barNote = free
+      ? t('subscription.billing.picker.noCard')
+      : ([
+          ...(bothRoles && addOn !== null ? [breakdown, offerNote] : [offerNote]),
+          !bothRoles && addOn !== null
+            ? t('subscription.billing.select.secondRoleLater', { amount: formatMoney(addOn, currency, i18n.language) })
+            : null,
+        ]
+          .filter(Boolean)
+          .join(' · ') || undefined);
+    const interval = plan.billingInterval === BillingInterval.Annual ? 'year' : 'month';
+    const barTitle = t('subscription.billing.select.planLine', {
+      plan: name,
+      price: formatMoney(offer ? (discounted ?? fullPrice) : fullPrice, currency, i18n.language),
+      per: t(`subscription.planChoice.card.per.${interval}`),
+    });
+    return { plan, free, name, secondRoleText, fullPrice, discounted, offer, note, barNote, barTitle, addOn };
+  });
+  const selected = cards.find((card) => card.plan.code === selectedCode) ?? cards.find((card) => card.free);
+  const showBar = !plansQuery.isError && !plansQuery.isPending && !rolesLoading && selected !== undefined;
 
   return (
     <RegisterShell
@@ -100,64 +163,27 @@ export default function RegisterPlanPage() {
           <Skeleton className="h-96 w-full rounded-2xl" />
         ) : (
           <div className="grid items-stretch gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {plans.map((plan) => {
-              const free = plan.code === FREE_PLAN_CODE;
-              const name = coachPlanName(plan, i18n.language);
-              const addOn = secondRoleAddOnOf(plan);
-              const currency = plan.currency ?? 'CZK';
-              const secondRoleText = free
-                ? bothRoles
-                  ? t('subscription.planChoice.card.bothRoles')
-                  : t('subscription.billing.register.secondRoleFree')
-                : addOn !== null
-                  ? t(bothRoles ? 'subscription.billing.register.secondRoleIncluded' : 'subscription.billing.register.secondRoleLater', {
-                      amount: formatMoney(addOn, currency, i18n.language),
-                    })
-                  : bothRoles && plan.bothRolesIncluded
-                    ? t('subscription.planChoice.card.bothRoles')
-                    : undefined;
-              const fullPrice = planDisplayPrice(plan, bothRoles);
-              const discounted = planDiscountedPrice(plan, bothRoles);
-              const offer = promotion && discounted !== null && discounted < fullPrice ? promotion : null;
-              const offerNote = offer
-                ? offer.duration === PromotionDuration.Forever
-                  ? promotionShortText(t, offer, i18n.language)
-                  : t('subscription.promotion.card.then', {
-                      short: promotionShortText(t, offer, i18n.language),
-                      price: formatMoney(fullPrice, currency, i18n.language),
-                    })
-                : undefined;
-              const breakdown =
-                bothRoles && addOn !== null
-                  ? t('subscription.billing.picker.breakdown', {
-                      plan: name,
-                      base: formatMoney(plan.priceMinorUnits ?? 0, currency, i18n.language),
-                      addOn: formatMoney(addOn, currency, i18n.language),
-                    })
-                  : null;
-              const note = [breakdown, offerNote].filter(Boolean).join(' · ') || undefined;
-              return (
-                <PlanCard
-                  key={plan.code}
-                  plan={plan}
-                  emphasized={free}
-                  badge={free ? t('subscription.billing.register.noCardBadge') : undefined}
-                  actionLabel={
-                    free
-                      ? t('subscription.billing.register.startFree')
-                      : t('subscription.billing.register.choose', { plan: name })
-                  }
-                  primary={free}
-                  actionDisabled={false}
-                  busy={selection.busy}
-                  priceMinorUnits={offer ? (discounted ?? fullPrice) : fullPrice}
-                  originalPriceMinorUnits={offer ? fullPrice : undefined}
-                  priceNote={free ? t('subscription.billing.picker.noCard') : note}
-                  secondRoleText={secondRoleText}
-                  onAction={free ? startFree : () => selection.choosePaid(plan, bothRoles && addOn !== null)}
-                />
-              );
-            })}
+            {cards.map(({ plan, free, name, secondRoleText, fullPrice, discounted, offer, note }) => (
+              <PlanCard
+                key={plan.code}
+                plan={plan}
+                badge={free ? t('subscription.billing.register.noCardBadge') : undefined}
+                actionLabel={name}
+                primary={free}
+                actionDisabled={false}
+                busy={selection.busy}
+                priceMinorUnits={offer ? (discounted ?? fullPrice) : fullPrice}
+                originalPriceMinorUnits={offer ? fullPrice : undefined}
+                priceNote={free ? t('subscription.billing.picker.noCard') : note}
+                secondRoleText={secondRoleText}
+                onAction={() => undefined}
+                selection={{
+                  selected: plan.code === selected?.plan.code,
+                  onSelect: () => setSelectedCode(plan.code ?? FREE_PLAN_CODE),
+                  selectLabel: t('subscription.billing.select.select', { plan: name }),
+                }}
+              />
+            ))}
           </div>
         )}
 
@@ -168,6 +194,21 @@ export default function RegisterPlanPage() {
           {t('subscription.billing.register.footer')}
         </p>
       </main>
+
+      {showBar && (
+        <PlanConfirmBar
+          title={selected.barTitle}
+          note={selected.barNote}
+          hint={t(
+            selected.free ? 'subscription.billing.select.hintFree' : 'subscription.billing.select.hintStripeCheckout',
+          )}
+          confirmLabel={t(selected.free ? 'subscription.billing.register.startFree' : 'subscription.billing.select.continue')}
+          busy={selection.busy}
+          onConfirm={
+            selected.free ? startFree : () => selection.choosePaid(selected.plan, bothRoles && selected.addOn !== null)
+          }
+        />
+      )}
     </RegisterShell>
   );
 }
