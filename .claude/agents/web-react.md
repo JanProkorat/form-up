@@ -206,6 +206,10 @@ orchestrator, not to you, so your turn ends parked and your work is stranded.
 If you know you are stopping mid-task, write `status: "incomplete"` with
 `incomplete_reason: "<what remains, at which step>"`.
 
+**Noticed, not touched.** A problem outside your scope (a bug, a stale
+comment, a missing test) goes into the optional `noticed` array as
+`"<file:line> — <what>"`. Do not fix it.
+
 ## Never
 - Edit anything outside `/web`.
 - Edit `src/api/generated.ts`.
