@@ -226,19 +226,20 @@ no longer exists), not missing ones — that is this item's job.
 
 **Citation:** [`rules/testing.md#time-budget`](../../../rules/testing.md#time-budget), root `CLAUDE.md` → Working Principles
 
-A change can make the gate pass by lowering the gate. Look for five moves:
+A change can make the gate pass by lowering the gate. Look for four moves:
 
 1. **Threshold moved** — a budget, timeout, retry count or warning limit raised.
 2. **Test made easier** — an assertion deleted or loosened, or an expected value changed to match the new output.
 3. **Checker silenced** — a skip, suppression or disable added.
 4. **Stub left in** — a placeholder body shipped as if done.
-5. **Undiscussed exception** — any of the above with no reason in the PR body or issue.
+
+Each move is a finding only when neither the PR body nor the issue gives a reason for it.
 
 ```bash
-git diff origin/<base>...HEAD -- .github 'backend/**/*.csproj' 'web/playwright.config.*' | grep -E '^\+.*(BUDGET|timeout|retries|NoWarn|TreatWarningsAsErrors|continue-on-error)'
-git diff origin/<base>...HEAD -- '*Tests*' '*.spec.ts' | grep -E '^-.*(Assert\.|Should|expect\()'
-git diff origin/<base>...HEAD | grep -E '^\+.*(#pragma warning disable|SuppressMessage|Skip ?=|\.skip\(|eslint-disable|--no-verify)'
-git diff origin/<base>...HEAD | grep -E '^\+.*(NotImplementedException|TODO|FIXME)'
+git diff origin/<base>...HEAD -- .github 'backend/**/*.csproj' 'web/playwright.config.*' | grep -E '^\+([^+].*)?(BUDGET|timeout|retries|NoWarn|TreatWarningsAsErrors|continue-on-error)'
+git diff origin/<base>...HEAD -- '*Tests*' '*.spec.ts' | grep -E '^-([^-].*)?(Assert\.|Should|expect\()'
+git diff origin/<base>...HEAD | grep -E '^\+([^+].*)?(#pragma warning disable|SuppressMessage|Skip ?=|\.skip\(|eslint-disable|--no-verify)'
+git diff origin/<base>...HEAD | grep -E '^\+([^+].*)?(NotImplementedException|TODO|FIXME)'
 ```
 
 Read each hit; a hit is a finding only if it lowers the bar. Legitimate
