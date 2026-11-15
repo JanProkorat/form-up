@@ -46,6 +46,10 @@ were re-exported, light and dark. `GlassRecipeDetail` is now 1280 px tall; the m
 and "2 End promotion") added from web portal 1794676722-091e, source files only: no static
 export, no PNGs, and the merged `canvas.json` does not list it yet.
 
+**Partial update, 2026-11-15 (#2142):** `PageRegisterPlanSelected` and `PagePlanPickerSelected` (C and D,
+select a plan then confirm in a sticky bottom bar, Pro selected) added from web portal 1794776115-811e (canvas v54),
+source files only: no static export, no PNGs, and the merged `canvas.json` does not list them yet.
+
 **Partial update, 2026-11-15 (#2139):** `PageRegisterPlanBothRoles` (C and D, the sign-up plan
 step for a coach who picked both roles) added from web portal 1794760905-f0cb (canvas v53), source
 files only: no static export, no PNGs, and the merged `canvas.json` does not list it yet.
