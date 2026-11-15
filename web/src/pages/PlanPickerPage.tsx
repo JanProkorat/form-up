@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, CreditCard } from 'lucide-react';
-import { CheckoutFlow, type CoachPlanDto } from '@/api/generated';
+import { BillingInterval, CheckoutFlow, PromotionDuration, type CoachPlanDto } from '@/api/generated';
 import PlanCard from '@/components/subscription/PlanCard';
+import PlanConfirmBar from '@/components/subscription/PlanConfirmBar';
 import TaxNote from '@/components/subscription/TaxNote';
 import { formatMoney } from '@/components/subscription/money';
 import { coachPlanName } from '@/components/subscription/planNames';
@@ -46,6 +48,7 @@ export default function PlanPickerPage() {
       ? new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' }).format(new Date(data.currentPeriodEndsAt))
       : null;
   const switchPending = data?.cancelAtPeriodEnd === true && selection.live;
+  const [selectedCode, setSelectedCode] = useState<string | null>(null);
 
   const actionFor = (plan: CoachPlanDto) => {
     const name = coachPlanName(plan, i18n.language);
@@ -77,6 +80,65 @@ export default function PlanPickerPage() {
       onClick: () => selection.choosePaid(plan, bothRoles && secondRoleAddOnOf(plan) !== null),
     };
   };
+
+  const cards = plans.map((plan) => {
+    const action = actionFor(plan);
+    const current = plan.code === currentCode;
+    const free = plan.code === FREE_PLAN_CODE;
+    // The current plan and a Free switch that is already scheduled cannot be picked.
+    const selectable = !current && !(free && switchPending);
+    const currency = plan.currency ?? 'CZK';
+    const addOn = secondRoleAddOnOf(plan);
+    const fullPrice = planDisplayPrice(plan, bothRoles);
+    const discounted = planDiscountedPrice(plan, bothRoles);
+    const offer = promotion && discounted !== null && discounted < fullPrice ? promotion : null;
+    const breakdown =
+      bothRoles && addOn !== null
+        ? t('subscription.billing.picker.breakdown', {
+            plan: coachPlanName(plan, i18n.language),
+            base: formatMoney(plan.priceMinorUnits ?? 0, currency, i18n.language),
+            addOn: formatMoney(addOn, currency, i18n.language),
+          })
+        : null;
+    const isZero = (plan.priceMinorUnits ?? 0) === 0;
+    const note = isZero
+      ? t('subscription.billing.picker.noCard')
+      : [breakdown, offer ? promotionShortText(t, offer, i18n.language) : null].filter(Boolean).join(' · ') ||
+        undefined;
+    // The bar spells out the full price after a limited promotion, which the card leaves out.
+    const barOffer = offer
+      ? offer.duration === PromotionDuration.Forever
+        ? promotionShortText(t, offer, i18n.language)
+        : t('subscription.promotion.card.then', {
+            short: promotionShortText(t, offer, i18n.language),
+            price: formatMoney(fullPrice, currency, i18n.language),
+          })
+      : null;
+    const barNote = isZero
+      ? t('subscription.billing.picker.noCard')
+      : [breakdown, barOffer].filter(Boolean).join(' · ') || undefined;
+    const interval = plan.billingInterval === BillingInterval.Annual ? 'year' : 'month';
+    const barTitle = t('subscription.billing.select.planLine', {
+      plan: coachPlanName(plan, i18n.language),
+      price: formatMoney(offer ? (discounted ?? fullPrice) : fullPrice, currency, i18n.language),
+      per: t(`subscription.planChoice.card.per.${interval}`),
+    });
+    return {
+      plan,
+      action,
+      current,
+      selectable,
+      fullPrice,
+      discounted,
+      offer,
+      note,
+      barNote,
+      barTitle,
+      higher: !free && fullPrice > currentPrice,
+    };
+  });
+  // A choice that stopped being selectable (it became the current plan, or its switch got scheduled) counts as none.
+  const selected = cards.find((card) => card.selectable && card.plan.code === selectedCode);
 
   const rolesLine = bothRoles
     ? t('subscription.billing.picker.rolesBoth', { first: t('roles.trainer'), second: t('roles.nutritionist') })
@@ -121,44 +183,31 @@ export default function PlanPickerPage() {
         <Skeleton className="h-96 w-full rounded-2xl" />
       ) : (
         <div className="grid items-stretch gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {plans.map((plan) => {
-            const action = actionFor(plan);
-            const current = plan.code === currentCode;
-            const currency = plan.currency ?? 'CZK';
-            const addOn = secondRoleAddOnOf(plan);
-            const fullPrice = planDisplayPrice(plan, bothRoles);
-            const discounted = planDiscountedPrice(plan, bothRoles);
-            const offer = promotion && discounted !== null && discounted < fullPrice ? promotion : null;
-            const breakdown =
-              bothRoles && addOn !== null
-                ? t('subscription.billing.picker.breakdown', {
-                    plan: coachPlanName(plan, i18n.language),
-                    base: formatMoney(plan.priceMinorUnits ?? 0, currency, i18n.language),
-                    addOn: formatMoney(addOn, currency, i18n.language),
-                  })
-                : null;
-            const note =
-              (plan.priceMinorUnits ?? 0) === 0
-                ? t('subscription.billing.picker.noCard')
-                : [breakdown, offer ? promotionShortText(t, offer, i18n.language) : null].filter(Boolean).join(' · ') ||
-                  undefined;
-            return (
-              <PlanCard
-                key={plan.code}
-                plan={plan}
-                current={current}
-                badge={current ? t('subscription.billing.picker.yourPlan') : undefined}
-                actionLabel={action.label}
-                primary={action.primary}
-                actionDisabled={action.disabled}
-                busy={selection.busy}
-                priceMinorUnits={offer ? (discounted ?? fullPrice) : fullPrice}
-                originalPriceMinorUnits={offer ? fullPrice : undefined}
-                priceNote={note}
-                onAction={action.onClick}
-              />
-            );
-          })}
+          {cards.map(({ plan, action, current, selectable, fullPrice, discounted, offer, note }) => (
+            <PlanCard
+              key={plan.code}
+              plan={plan}
+              current={current}
+              badge={current ? t('subscription.billing.picker.yourPlan') : undefined}
+              actionLabel={action.label}
+              primary={action.primary}
+              actionDisabled={action.disabled}
+              busy={selection.busy}
+              priceMinorUnits={offer ? (discounted ?? fullPrice) : fullPrice}
+              originalPriceMinorUnits={offer ? fullPrice : undefined}
+              priceNote={note}
+              onAction={action.onClick}
+              selection={
+                selectable
+                  ? {
+                      selected: plan.code === selected?.plan.code,
+                      onSelect: () => setSelectedCode(plan.code ?? null),
+                      selectLabel: t('subscription.billing.select.select', { plan: coachPlanName(plan, i18n.language) }),
+                    }
+                  : undefined
+              }
+            />
+          ))}
         </div>
       )}
 
@@ -168,6 +217,22 @@ export default function PlanPickerPage() {
         <CreditCard className="size-4 shrink-0" aria-hidden="true" />
         {t('subscription.billing.picker.footer')}
       </p>
+
+      {selected && (
+        <PlanConfirmBar
+          className="-mx-6 -mb-6"
+          title={selected.barTitle}
+          note={selected.barNote}
+          hint={t(
+            selected.higher
+              ? 'subscription.billing.select.hintStripePages'
+              : 'subscription.billing.select.hintPeriodEnd',
+          )}
+          confirmLabel={selected.action.label}
+          busy={selection.busy}
+          onConfirm={selected.action.onClick}
+        />
+      )}
     </div>
   );
 }

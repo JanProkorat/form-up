@@ -280,6 +280,18 @@
     "billing": {
       "vat": "Prices without VAT, {{rate}} % VAT is added.",
       "codeAtCheckout": "Have a code? Enter it at checkout.",
+      "select": {
+        "select": "Select {{plan}}",
+        "selected": "Selected",
+        "region": "Selected plan",
+        "planLine": "{{plan}} · {{price}} {{per}}",
+        "secondRoleLater": "second role later +{{amount}}",
+        "hintFree": "No card needed",
+        "hintStripeCheckout": "You pay on Stripe's secure page",
+        "hintStripePages": "Card and invoices on Stripe's secure pages",
+        "hintPeriodEnd": "Takes effect at the end of the paid month",
+        "continue": "Continue to payment"
+      },
       "picker": {
         "title": "Choose your plan",
         "subtitle": "Your clients always use the app for free. Change or cancel any time.",
@@ -300,7 +312,6 @@
         "subtitle": "Start free and upgrade when you grow. Your clients always use the app for free.",
         "noCardBadge": "No card needed",
         "startFree": "Start free",
-        "choose": "Choose {{plan}}",
         "secondRoleLater": "Second role later +{{amount}}",
         "secondRoleFree": "Add a second role any time, free",
         "rolesBoth": "You signed up as {{first}} and {{second}}. Prices below include your second role.",

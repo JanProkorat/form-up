@@ -232,7 +232,8 @@ trainerTest.describe('register plan step', () => {
     );
 
     await page.goto('/register/plan');
-    await page.getByRole('article', { name: 'Pro' }).getByRole('button', { name: 'Choose Pro' }).click();
+    await page.getByRole('article', { name: 'Pro' }).getByRole('button', { name: 'Select Pro' }).click();
+    await page.getByRole('region', { name: 'Selected plan' }).getByRole('button', { name: 'Continue to payment' }).click();
 
     await page.waitForURL(`${CHECKOUT_URL}**`);
     expect(checkoutBody).toEqual({ planCode: 'pro', includeSecondRoleAddOn: true, flow: 'SignUp' });
@@ -250,9 +251,44 @@ trainerTest.describe('register plan step', () => {
     );
 
     await page.goto('/register/plan');
-    await page.getByRole('article', { name: 'Start' }).getByRole('button', { name: 'Choose Start' }).click();
+    await page.getByRole('article', { name: 'Start' }).getByRole('button', { name: 'Select Start' }).click();
+    const bar = page.getByRole('region', { name: 'Selected plan' });
+    await bar.getByRole('button', { name: 'Continue to payment' }).click();
 
     await expect(page.getByText("Billing isn't available right now. Please try again later.")).toBeVisible();
     await expect(page).toHaveURL(/\/register\/plan$/);
+    await expect(bar.getByText(/^Start · /)).toBeVisible();
+    await expect(bar.getByRole('button', { name: 'Continue to payment' })).toBeEnabled();
+  });
+
+  trainerTest('Free is preselected, selecting a paid plan starts nothing, and Start free goes to the profile step', async ({ page }) => {
+    await mockReads(page, { roles: ['Trainer'] });
+    const billingCalls: string[] = [];
+    await page.route(/\/billing\/checkout-session$/, (route) => {
+      billingCalls.push(route.request().url());
+      return route.fulfill({ status: 500, contentType: 'application/json', body: '{}' });
+    });
+
+    await page.goto('/register/plan');
+    const bar = page.getByRole('region', { name: 'Selected plan' });
+    await expect(page.getByRole('article', { name: 'Free' }).getByRole('button', { name: 'Selected' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await expect(bar.getByText(/^Free · .*0.* \/ month/)).toBeVisible();
+    await expect(bar.getByText('No card needed')).toBeVisible();
+
+    // The card body selects too; a paid plan switches the bar to the payment step without calling Stripe.
+    await page.getByRole('article', { name: 'Start' }).getByRole('heading', { name: 'Start' }).click();
+    await expect(bar.getByText(/^Start · .*299/)).toBeVisible();
+    await expect(bar.getByText('You pay on Stripe\'s secure page')).toBeVisible();
+    await expect(bar.getByRole('button', { name: 'Continue to payment' })).toBeVisible();
+    expect(billingCalls).toEqual([]);
+
+    await page.getByRole('article', { name: 'Free' }).getByRole('button', { name: 'Select Free' }).click();
+    await bar.getByRole('button', { name: 'Start free' }).click();
+    // The profile step has its own guards and reads, so only leaving the plan step is asserted here.
+    await expect(page).not.toHaveURL(/\/register\/plan/);
+    expect(billingCalls).toEqual([]);
   });
 });

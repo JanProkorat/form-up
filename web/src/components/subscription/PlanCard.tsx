@@ -30,6 +30,16 @@ interface Props {
   badge?: string;
   /** Heavy outline: the plan the coach is on, or the one preselected. Defaults to `current`. */
   emphasized?: boolean;
+  /**
+   * Select-first mode: the button and a click on the card pick the plan instead of running `onAction`.
+   * Omit it for a plan that cannot be picked (the current plan); the card then shows `actionLabel` disabled.
+   */
+  selection?: {
+    selected: boolean;
+    onSelect: () => void;
+    /** Button text while not selected, already translated. */
+    selectLabel: string;
+  };
 }
 
 const FEATURES = PLAN_FEATURES;
@@ -49,6 +59,7 @@ export default function PlanCard({
   secondRoleText,
   badge,
   emphasized,
+  selection,
 }: Props) {
   const { t, i18n } = useTranslation();
   const name = coachPlanName(plan, i18n.language);
@@ -66,13 +77,17 @@ export default function PlanCard({
         : null;
   const secondRole = secondRoleText === undefined ? derivedSecondRole : secondRoleText;
   const pill = badge ?? (current ? t('subscription.planChoice.card.current') : null);
-  const heavy = emphasized ?? current;
+  const selected = selection?.selected === true;
+  const heavy = selected || (emphasized ?? current);
   const cap = plan.maxActiveClients;
+  // A click on the card mirrors the button; the button's own click bubbles here, so it fires once.
+  const selectFromCard = selection && !busy ? selection.onSelect : undefined;
 
   return (
     <article
       aria-label={name}
-      className={`flex flex-col gap-4 rounded-2xl bg-card p-5 shadow-panel ${heavy ? 'border-2 border-ink' : 'border border-line'}`}
+      onClick={selectFromCard}
+      className={`flex flex-col gap-4 rounded-2xl bg-card p-5 shadow-panel ${heavy ? 'border-2 border-ink' : 'border border-line'} ${selection ? 'cursor-pointer' : ''}`}
     >
       <div className="flex items-center gap-2">
         <h2 className="text-card-title font-semibold text-ink">{name}</h2>
@@ -106,16 +121,30 @@ export default function PlanCard({
         )}
       </div>
 
-      <Button
-        type="button"
-        variant={primary ? 'default' : 'outline'}
-        size="lg"
-        className="px-3.5 font-semibold"
-        disabled={actionDisabled || busy}
-        onClick={onAction}
-      >
-        {actionLabel}
-      </Button>
+      {selection ? (
+        <Button
+          type="button"
+          variant={selected ? 'default' : 'outline'}
+          size="lg"
+          className="px-3.5 font-semibold"
+          aria-pressed={selected}
+          disabled={actionDisabled || busy}
+        >
+          {selected && <Check aria-hidden="true" />}
+          {selected ? t('subscription.billing.select.selected') : selection.selectLabel}
+        </Button>
+      ) : (
+        <Button
+          type="button"
+          variant={primary ? 'default' : 'outline'}
+          size="lg"
+          className="px-3.5 font-semibold"
+          disabled={actionDisabled || busy}
+          onClick={onAction}
+        >
+          {actionLabel}
+        </Button>
+      )}
 
       <div className="h-px bg-line" />
 
