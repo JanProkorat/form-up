@@ -72,6 +72,12 @@
     "incomplete_reason": {
       "type": ["string", "null"],
       "maxLength": 400
+    },
+    "noticed": {
+      "type": "array",
+      "maxItems": 20,
+      "items": { "type": "string", "maxLength": 400 },
+      "description": "Out-of-scope problems the dev agent saw but did not fix, as '<file:line> — <what>'. The orchestrator decides whether each becomes an issue."
     }
   },
   "additionalProperties": false

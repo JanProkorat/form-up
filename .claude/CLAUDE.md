@@ -162,6 +162,8 @@ canvas (`HFzM8WqykBxJvkLdiqU85h`) is frozen; do not use it.
    Sequence:
    a. Dev sub-agent(s) finish their slice and report back via the dev-handoff
       JSON (see [`schemas/dev-handoff.v1.json`](schemas/dev-handoff.v1.json)).
+      List its `noticed` entries to the user; each becomes an issue only if
+      the user says so.
    b. Orchestrator dispatches `qa-tester` with the issue number.
    c. ❌ FAIL → route the fix list to the owning dev sub-agent, then re-run
       `qa-tester` on the delta (`since: <sha of its last verdict>`, see
