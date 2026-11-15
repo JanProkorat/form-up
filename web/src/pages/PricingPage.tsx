@@ -25,9 +25,10 @@ export default function PricingPage() {
   return (
     <div className="home-page-wash isolate flex min-h-svh flex-col bg-background">
       <HomeNav />
-      <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-10 px-4 pb-16 sm:px-10 lg:px-16">
-        <div className="flex flex-col items-center gap-3 pt-8 text-center">
-          <h1 className="font-display text-home-heading font-semibold text-ink">{t('pricing.title')}</h1>
+      {/* Same side padding as HomeNav and HomeFooter, so hero, cards, table and footer share the header's width. */}
+      <main className="flex w-full flex-1 flex-col gap-10 px-4 pt-14 pb-18 sm:px-10 lg:px-16">
+        <div className="flex flex-col items-center gap-3.5 text-center">
+          <h1 className="font-display text-home-hero font-semibold tracking-hero text-ink">{t('pricing.title')}</h1>
           <p className="max-w-2xl text-home-sub text-ink-2">{t('pricing.subtitle')}</p>
         </div>
 
@@ -46,7 +47,7 @@ export default function PricingPage() {
           </div>
         ) : plansQuery.isPending ? (
           <div className="flex flex-col gap-10" aria-busy="true">
-            <div className="grid grid-cols-[repeat(auto-fit,minmax(16rem,1fr))] gap-4">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {[0, 1, 2, 3].map((index) => (
                 <Skeleton key={index} className="h-80 w-full rounded-2xl" />
               ))}
@@ -57,7 +58,7 @@ export default function PricingPage() {
           <p className="text-center text-copy text-muted-foreground">{t('pricing.empty')}</p>
         ) : (
           <>
-            <div className="grid grid-cols-[repeat(auto-fit,minmax(16rem,1fr))] items-stretch gap-4">
+            <div className="grid items-stretch gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {plans.map((plan) => (
                 <PricingPlanCard key={plan.code} plan={plan} ctaTo={ctaTo} />
               ))}

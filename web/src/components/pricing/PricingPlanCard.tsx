@@ -47,7 +47,7 @@ export default function PricingPlanCard({ plan, ctaTo }: Props) {
       </div>
 
       <div className="flex items-baseline gap-2">
-        <span className="text-stat font-semibold text-ink">{price}</span>
+        <span className="font-display text-price font-semibold tracking-heading text-ink">{price}</span>
         <span className="text-body text-muted-foreground">{t(`pricing.card.per.${interval}`)}</span>
       </div>
 

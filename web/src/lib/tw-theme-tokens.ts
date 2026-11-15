@@ -28,6 +28,7 @@ export const TEXT_SIZE_TOKENS = [
   'card-title',
   'stat',
   'display',
+  'price',
   'panel-title',
   'auth-title',
   'home-hero',

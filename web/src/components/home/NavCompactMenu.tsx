@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { GlobeIcon, MessageCircleQuestionIcon, MoonIcon, SunIcon, TagIcon } from 'lucide-react';
+import { GlobeIcon, MessageCircleQuestionIcon, MoonIcon, SunIcon, TagIcon, UserPlusIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { scrollToId } from '@/components/home/smoothAnchor';
 import {
@@ -70,6 +70,13 @@ export default function NavCompactMenu() {
           <Link to="/pricing">
             <TagIcon aria-hidden="true" />
             {t('home.nav.pricing')}
+          </Link>
+        </DropdownMenuItem>
+        {/* The nav button shows at md-lg and from xl; everywhere else the menu carries the way to register. */}
+        <DropdownMenuItem asChild className="md:max-lg:hidden">
+          <Link to="/register">
+            <UserPlusIcon aria-hidden="true" />
+            {t('home.nav.createAccount')}
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
