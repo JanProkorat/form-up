@@ -276,7 +276,7 @@ trainerTest.describe('register plan step', () => {
       'true',
     );
     await expect(bar.getByText(/^Free · .*0.* \/ month/)).toBeVisible();
-    await expect(bar.getByText('No card needed')).toBeVisible();
+    await expect(bar.getByText('No card needed', { exact: true })).toBeVisible();
 
     // The card body selects too; a paid plan switches the bar to the payment step without calling Stripe.
     await page.getByRole('article', { name: 'Start' }).getByRole('heading', { name: 'Start' }).click();
