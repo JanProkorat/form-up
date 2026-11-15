@@ -1134,6 +1134,12 @@
   "h": 900
  },
  {
+  "html": "web/39-09-page-admin-reports-c.html",
+  "png": "web/39-09-page-admin-reports-c.png",
+  "w": 1440,
+  "h": 1360
+ },
+ {
   "html": "web/40-01-page-admin-plans-d.html",
   "png": "web/40-01-page-admin-plans-d.png",
   "w": 1440,
@@ -1180,6 +1186,12 @@
   "png": "web/40-08-page-admin-coach-dialogs-d.png",
   "w": 2408,
   "h": 900
+ },
+ {
+  "html": "web/40-09-page-admin-reports-d.html",
+  "png": "web/40-09-page-admin-reports-d.png",
+  "w": 1440,
+  "h": 1360
  },
  {
   "html": "web/41-01-page-client-activity-offline-sync-c.html",
