@@ -20,8 +20,10 @@ namespace FormUp.Application.Features.Billing.CreateCheckoutSession;
 /// <param name="db">Application database context.</param>
 /// <param name="subscriptions">The payment provider seam.</param>
 /// <param name="timeProvider">Clock.</param>
+/// <param name="coachRoleStatus">Resolves the coach roles that are not removed.</param>
 [RemovedCoachRole(RemovedCoachRoleMode.Refuse)]
-internal sealed class CreateCheckoutSessionEndpoint(IApplicationDbContext db, ISubscriptionService subscriptions, TimeProvider timeProvider)
+internal sealed class CreateCheckoutSessionEndpoint(
+    IApplicationDbContext db, ISubscriptionService subscriptions, TimeProvider timeProvider, ICoachRoleStatus coachRoleStatus)
     : Endpoint<CreateCheckoutSessionRequest, CreateCheckoutSessionResponse>
 {
     /// <inheritdoc />
@@ -32,13 +34,14 @@ internal sealed class CreateCheckoutSessionEndpoint(IApplicationDbContext db, IS
         Summary(s =>
         {
             s.Summary = "Start a Stripe Checkout";
-            s.Description = "Creates a hosted Checkout session for a paid plan, with an optional second-role add-on line and no trial. " +
+            s.Description = "Creates a hosted Checkout session for a paid plan with no trial. A coach with two active roles pays the " +
+                            "second-role add-on line on a plan that does not include both roles; the request flag is ignored. " +
                             "Promotion codes are allowed unless an automatic promotion applies (the latest claim-from the coach qualifies " +
                             "for, covering the chosen plan), whose coupon is then attached. Billing address and tax id are collected. " +
                             "Acts only on the caller's own profile. Reachable while a plan choice is required.";
             s.Response<CreateCheckoutSessionResponse>(StatusCodes.Status200OK, "The Checkout page to redirect to");
             s.Response<ProblemDetails>(StatusCodes.Status400BadRequest,
-                "Invalid body, or the plan cannot be bought: unknown, Free, inactive, not priced in Stripe, or an add-on on a plan that includes both roles (PLAN_NOT_PURCHASABLE)");
+                "Invalid body, or the plan cannot be bought: unknown, Free, inactive, not priced in Stripe, or the caller has two active roles and the plan has no add-on price (PLAN_NOT_PURCHASABLE)");
             s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
             s.Response(StatusCodes.Status403Forbidden, "The caller is not a trainer or nutritionist, or the coach role was removed");
             s.Response(StatusCodes.Status404NotFound, "The caller has no professional profile, or the Free plan is missing");
@@ -88,9 +91,12 @@ internal sealed class CreateCheckoutSessionEndpoint(IApplicationDbContext db, IS
             return;
         }
 
-        if (req.IncludeSecondRoleAddOn && (price.BothRolesIncluded || price.AddOnAmount is null or <= 0))
+        var activeRoles = await coachRoleStatus.GetActiveRolesAsync(userId, ct);
+        var carryAddOn = activeRoles.Count >= 2 && !price.BothRolesIncluded;
+
+        if (carryAddOn && price.AddOnAmount is null or <= 0)
         {
-            this.ThrowErrorWithCode(ErrorCodes.PlanNotPurchasable, "This plan has no second-role add-on to buy.");
+            this.ThrowErrorWithCode(ErrorCodes.PlanNotPurchasable, "This plan has no second-role add-on price.");
             return;
         }
 
@@ -131,7 +137,7 @@ internal sealed class CreateCheckoutSessionEndpoint(IApplicationDbContext db, IS
                 userId,
                 price.Code,
                 price.ExternalPriceId,
-                req.IncludeSecondRoleAddOn ? price.AddOnAmount : null,
+                carryAddOn ? price.AddOnAmount : null,
                 price.Currency,
                 price.BillingInterval,
                 await AutomaticCouponIdAsync(coach.ProfileId, price.Code, ct),

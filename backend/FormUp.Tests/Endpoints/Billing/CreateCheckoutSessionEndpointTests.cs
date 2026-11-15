@@ -123,7 +123,21 @@ public class CreateCheckoutSessionEndpointTests(FitnessApiFactory factory) : IDi
     }
 
     [Fact]
-    public async Task Checkout_WithTheSecondRoleAddOn_PassesTheAddOnAmount()
+    public async Task Checkout_ForATwoRoleCoachSendingFalse_StillPassesTheAddOnAmount()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
+        var coach = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Nutritionist).CreateAsync(Ct);
+        var (plan, _) = await StripePlanAsync(bothRolesIncluded: false, addOn: 9900);
+
+        var response = await coach.Http.PostAsJsonAsync(Route, Body(plan, addOn: false), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.Checkouts.Should().ContainSingle(call => call.UserId == coach.UserId).Which.AddOnAmountMinorUnits.Should().Be(9900);
+    }
+
+    [Fact]
+    public async Task Checkout_ForAOneRoleCoachSendingTrue_IgnoresTheFlagAndPassesNoAddOn()
     {
         var fake = BillingTestData.ResetProvider(factory);
         await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
@@ -133,7 +147,32 @@ public class CreateCheckoutSessionEndpointTests(FitnessApiFactory factory) : IDi
         var response = await coach.Http.PostAsJsonAsync(Route, Body(plan, addOn: true), Ct);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        fake.Checkouts.Should().ContainSingle(call => call.UserId == coach.UserId).Which.AddOnAmountMinorUnits.Should().Be(9900);
+        fake.Checkouts.Should().ContainSingle(call => call.UserId == coach.UserId).Which.AddOnAmountMinorUnits.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Checkout_ForATwoRoleCoachOnAPlanThatIncludesBothRoles_PassesNoAddOn()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
+        var coach = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Nutritionist).CreateAsync(Ct);
+        var (plan, _) = await StripePlanAsync(bothRolesIncluded: true, addOn: 9900);
+
+        var response = await coach.Http.PostAsJsonAsync(Route, Body(plan, addOn: true), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.Checkouts.Should().ContainSingle(call => call.UserId == coach.UserId).Which.AddOnAmountMinorUnits.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Checkout_ForATwoRoleCoachOnAPlanWithoutAnAddOnPrice_Returns400_AndStartsNoCheckout()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var coach = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Nutritionist).CreateAsync(Ct);
+        var (plan, _) = await StripePlanAsync(bothRolesIncluded: false, addOn: null);
+
+        await AssertNotPurchasableAsync(await coach.Http.PostAsJsonAsync(Route, Body(plan), Ct));
+        fake.Checkouts.Should().NotContain(call => call.UserId == coach.UserId);
     }
 
     [Fact]
@@ -201,13 +240,17 @@ public class CreateCheckoutSessionEndpointTests(FitnessApiFactory factory) : IDi
     }
 
     [Fact]
-    public async Task Checkout_WithAnAddOnOnAPlanThatIncludesBothRoles_Returns400()
+    public async Task Checkout_WithTheFlagOnAPlanThatIncludesBothRoles_Returns200WithNoAddOn()
     {
-        BillingTestData.ResetProvider(factory);
+        var fake = BillingTestData.ResetProvider(factory);
+        await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
         var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
         var (plan, _) = await StripePlanAsync(bothRolesIncluded: true);
 
-        await AssertNotPurchasableAsync(await coach.Http.PostAsJsonAsync(Route, Body(plan, addOn: true), Ct));
+        var response = await coach.Http.PostAsJsonAsync(Route, Body(plan, addOn: true), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.Checkouts.Should().ContainSingle(call => call.UserId == coach.UserId).Which.AddOnAmountMinorUnits.Should().BeNull();
     }
 
     [Fact]

@@ -10,7 +10,7 @@ public class CreateCheckoutSessionRequest
     /// <summary>Code of the paid plan to buy. Never the Free plan.</summary>
     public string PlanCode { get; set; } = string.Empty;
 
-    /// <summary>True to add the second-role add-on line. Refused on a plan that already includes both roles.</summary>
+    /// <summary>Ignored: the server bills the second-role add-on from the coach's active roles. Kept so existing clients still bind.</summary>
     public bool IncludeSecondRoleAddOn { get; set; }
 
     /// <summary>Where the coach started, so the return URL lands on the right page. Never a URL.</summary>
