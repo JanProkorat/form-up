@@ -54,6 +54,13 @@ public static class AppPolicies
     public const string PushTokenRemoveRateLimit = "push-token-remove";
 
     /// <summary>
+    /// Rate limiting policy for the anonymous public pricing list.
+    /// 120 requests per 15 minutes per IP — a read-only page that shared office or carrier IPs load often,
+    /// so the login budget would be too tight; the response is also cacheable.
+    /// </summary>
+    public const string PublicPricingRateLimit = "public-pricing";
+
+    /// <summary>
     /// CORS policy for the web application.
     /// </summary>
     public const string AllowWebApp = nameof(AllowWebApp);

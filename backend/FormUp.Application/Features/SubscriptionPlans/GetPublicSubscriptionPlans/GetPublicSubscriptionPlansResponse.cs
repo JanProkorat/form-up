@@ -1,0 +1,90 @@
+using FormUp.Application.Domain.Enums;
+
+namespace FormUp.Application.Features.SubscriptionPlans.GetPublicSubscriptionPlans;
+
+/// <summary>
+/// The plans shown on the public pricing page.
+/// </summary>
+public class GetPublicSubscriptionPlansResponse
+{
+    /// <summary>Offered plans, cheapest first.</summary>
+    public List<PublicSubscriptionPlanDto> Plans { get; set; } = [];
+}
+
+/// <summary>
+/// One offered plan as the public pricing page shows it. Carries no ids, no activity flag and no coach counts.
+/// </summary>
+public class PublicSubscriptionPlanDto
+{
+    /// <summary>Stable plan code.</summary>
+    public string Code { get; set; } = string.Empty;
+
+    /// <summary>Czech name.</summary>
+    public string NameCs { get; set; } = string.Empty;
+
+    /// <summary>English name.</summary>
+    public string NameEn { get; set; } = string.Empty;
+
+    /// <summary>German name.</summary>
+    public string NameDe { get; set; } = string.Empty;
+
+    /// <summary>Current price in minor units of <see cref="Currency"/>.</summary>
+    public long PriceMinorUnits { get; set; }
+
+    /// <summary>Second-role add-on price; null when both roles are included.</summary>
+    public long? SecondRoleAddOnPriceMinorUnits { get; set; }
+
+    /// <summary>True when the plan covers both professional roles.</summary>
+    public bool BothRolesIncluded { get; set; }
+
+    /// <summary>ISO 4217 currency code.</summary>
+    public string Currency { get; set; } = string.Empty;
+
+    /// <summary>Billing cadence.</summary>
+    public BillingInterval BillingInterval { get; set; }
+
+    /// <summary>Active-client cap; null means unlimited.</summary>
+    public int? MaxActiveClients { get; set; }
+
+    /// <summary>Whether the plan allows creating nutrition and training plans.</summary>
+    public bool CanCreatePlans { get; set; }
+
+    /// <summary>Whether the plan allows messaging clients.</summary>
+    public bool CanMessage { get; set; }
+
+    /// <summary>Whether the plan allows sending questionnaires.</summary>
+    public bool CanSendQuestionnaires { get; set; }
+
+    /// <summary>Whether the plan allows weekly check-ins.</summary>
+    public bool CanUseWeeklyCheckIns { get; set; }
+
+    /// <summary>Whether the plan allows per-client check-in configuration.</summary>
+    public bool CanUsePerClientCheckInConfig { get; set; }
+
+    /// <summary>Whether the plan allows client payments.</summary>
+    public bool CanUsePayments { get; set; }
+
+    /// <summary>Whether the plan allows plan templates.</summary>
+    public bool CanUsePlanTemplates { get; set; }
+
+    /// <summary>Whether the plan allows a recipe library.</summary>
+    public bool CanUseRecipes { get; set; }
+
+    /// <summary>Whether the plan allows an ingredient library.</summary>
+    public bool CanUseIngredients { get; set; }
+
+    /// <summary>Whether the plan allows progress photos.</summary>
+    public bool CanUseProgressPhotos { get; set; }
+
+    /// <summary>Whether the plan allows weight and body measurements.</summary>
+    public bool CanUseWeightAndMeasurements { get; set; }
+
+    /// <summary>Whether the plan allows automations.</summary>
+    public bool CanUseAutomations { get; set; }
+
+    /// <summary>Whether the plan allows coach packages and discounts.</summary>
+    public bool CanUsePackages { get; set; }
+
+    /// <summary>True for the single plan with the most live coaches; no plan is flagged on a tie.</summary>
+    public bool IsMostPopular { get; set; }
+}
