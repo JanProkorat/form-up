@@ -50,6 +50,57 @@ public static class StripeRequestBuilder
             : null;
 
     /// <summary>
+    /// Sets the tax rates on a Checkout line only when there are some. Stripe.net sends an explicitly assigned null as an
+    /// empty <c>tax_rates=</c>, which Stripe rejects; an unassigned property is not sent at all.
+    /// </summary>
+    /// <param name="item">The line.</param>
+    /// <param name="taxRates">Tax rate ids, or null when the seller charges no VAT.</param>
+    public static SessionLineItemOptions WithTaxRates(SessionLineItemOptions item, List<string>? taxRates)
+    {
+        if (taxRates is not null)
+        {
+            item.TaxRates = taxRates;
+        }
+
+        return item;
+    }
+
+    /// <inheritdoc cref="WithTaxRates(SessionLineItemOptions, List{string})"/>
+    public static InvoiceSubscriptionDetailsItemOptions WithTaxRates(
+        InvoiceSubscriptionDetailsItemOptions item, List<string>? taxRates)
+    {
+        if (taxRates is not null)
+        {
+            item.TaxRates = taxRates;
+        }
+
+        return item;
+    }
+
+    /// <inheritdoc cref="WithTaxRates(SessionLineItemOptions, List{string})"/>
+    public static SubscriptionItemOptions WithTaxRates(SubscriptionItemOptions item, List<string>? taxRates)
+    {
+        if (taxRates is not null)
+        {
+            item.TaxRates = taxRates;
+        }
+
+        return item;
+    }
+
+    /// <inheritdoc cref="WithTaxRates(SessionLineItemOptions, List{string})"/>
+    public static SubscriptionSchedulePhaseItemOptions WithTaxRates(
+        SubscriptionSchedulePhaseItemOptions item, List<string>? taxRates)
+    {
+        if (taxRates is not null)
+        {
+            item.TaxRates = taxRates;
+        }
+
+        return item;
+    }
+
+    /// <summary>
     /// The lookup key of a plan's second-role add-on price at one amount, on one product. The product is part of the key, so
     /// an add-on price created before add-ons moved onto the plan's product is never reused and a new one is created under
     /// the plan's product on next use.
@@ -109,12 +160,12 @@ public static class StripeRequestBuilder
         var taxRates = TaxRates(options);
         var lineItems = new List<SessionLineItemOptions>
         {
-            new() { Price = planPriceId, Quantity = 1, TaxRates = taxRates },
+            WithTaxRates(new SessionLineItemOptions { Price = planPriceId, Quantity = 1 }, taxRates),
         };
 
         if (addOnPriceId is not null)
         {
-            lineItems.Add(new SessionLineItemOptions { Price = addOnPriceId, Quantity = 1, TaxRates = taxRates });
+            lineItems.Add(WithTaxRates(new SessionLineItemOptions { Price = addOnPriceId, Quantity = 1 }, taxRates));
         }
 
         var metadata = new Dictionary<string, string>
@@ -176,7 +227,7 @@ public static class StripeRequestBuilder
         {
             Items =
             [
-                new InvoiceSubscriptionDetailsItemOptions { Price = addOnPriceId, Quantity = 1, TaxRates = TaxRates(options) },
+                WithTaxRates(new InvoiceSubscriptionDetailsItemOptions { Price = addOnPriceId, Quantity = 1 }, TaxRates(options)),
             ],
             ProrationBehavior = "always_invoice",
         },
@@ -190,7 +241,7 @@ public static class StripeRequestBuilder
     /// <param name="options">Billing settings.</param>
     public static SubscriptionUpdateOptions SecondRoleCharge(string addOnPriceId, BillingOptions options) => new()
     {
-        Items = [new SubscriptionItemOptions { Price = addOnPriceId, Quantity = 1, TaxRates = TaxRates(options) }],
+        Items = [WithTaxRates(new SubscriptionItemOptions { Price = addOnPriceId, Quantity = 1 }, TaxRates(options))],
         ProrationBehavior = "always_invoice",
         PaymentBehavior = "error_if_incomplete",
     };
@@ -356,7 +407,7 @@ public static class StripeRequestBuilder
             var options = new SubscriptionSchedulePhaseOptions
             {
                 Items = phase.PriceIds
-                    .Select(priceId => new SubscriptionSchedulePhaseItemOptions { Price = priceId, Quantity = 1, TaxRates = taxRates })
+                    .Select(priceId => WithTaxRates(new SubscriptionSchedulePhaseItemOptions { Price = priceId, Quantity = 1 }, taxRates))
                     .ToList(),
                 Discounts = phase.CouponId is null
                     ? []

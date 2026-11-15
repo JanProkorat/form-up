@@ -125,16 +125,19 @@ public sealed class StripeSubscriptionService(
             var taxRates = StripeRequestBuilder.TaxRates(settings);
             var items = new List<SubscriptionItemOptions>
             {
-                new() { Id = planItem.Id, Price = planPriceExternalId, Quantity = 1, TaxRates = taxRates },
+                StripeRequestBuilder.WithTaxRates(
+                    new SubscriptionItemOptions { Id = planItem.Id, Price = planPriceExternalId, Quantity = 1 }, taxRates),
             };
 
             if (addOnPriceId is not null && addOnItem is null)
             {
-                items.Add(new SubscriptionItemOptions { Price = addOnPriceId, Quantity = 1, TaxRates = taxRates });
+                items.Add(StripeRequestBuilder.WithTaxRates(
+                    new SubscriptionItemOptions { Price = addOnPriceId, Quantity = 1 }, taxRates));
             }
             else if (addOnPriceId is not null && addOnItem!.Price.Id != addOnPriceId)
             {
-                items.Add(new SubscriptionItemOptions { Id = addOnItem.Id, Price = addOnPriceId, Quantity = 1, TaxRates = taxRates });
+                items.Add(StripeRequestBuilder.WithTaxRates(
+                    new SubscriptionItemOptions { Id = addOnItem.Id, Price = addOnPriceId, Quantity = 1 }, taxRates));
             }
             else if (addOnPriceId is null && addOnItem is not null)
             {
