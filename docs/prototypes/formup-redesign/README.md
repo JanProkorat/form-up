@@ -49,6 +49,13 @@ The editor boards are 1360 px tall; the merged `canvas.json` keeps the old row
 positions, so they overlap the dark admin row there only. Links to the old drawer
 open the editor (`MERGED` in `export_interactive.py`).
 
+**Partial update, 2026-11-14 (#2119):** `PagePricing` (the public `/pricing` page) added
+from web portal 1794683917-97bf (canvas v51), light and dark (`web/51-01`, `web/52-01`), and
+`PageHome` gained a "Pricing" link in its header. In the canvas Pricing is its own page;
+the merged `canvas.json` stacks it below the last web board. The launch-offer banner and
+crossed-out prices on the board belong to #1599, not #2119. The interactive prototype was
+not re-exported.
+
 | Path | Contents |
 |---|---|
 | `index.html` | Gallery of every board, grouped by app and module |

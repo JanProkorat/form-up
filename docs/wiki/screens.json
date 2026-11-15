@@ -23,6 +23,32 @@
       "notionPageId": null
     },
     {
+      "id": "web.entry.pricing",
+      "app": "web",
+      "area": "Entry",
+      "title": "Pricing",
+      "route": "/pricing",
+      "roles": ["Public"],
+      "files": [
+        "web/src/pages/PricingPage.tsx",
+        "web/src/components/pricing/**",
+        "web/src/components/home/**",
+        "web/src/components/subscription/money.ts",
+        "web/src/components/subscription/planNames.ts",
+        "web/src/components/subscription/planLinks.ts",
+        "web/src/components/admin-plans/planFeatureLabels.ts",
+        "web/src/hooks/useSubscriptionQueries.ts",
+        "web/src/api/subscription.ts"
+      ],
+      "endpoints": ["GET /subscription-plans"],
+      "board": "PagePricing",
+      "shots": [
+        { "name": "default" },
+        { "name": "compare", "steps": "click 'zobrazit vše' on any plan card and wait for the scroll to the compare table to finish" }
+      ],
+      "notionPageId": null
+    },
+    {
       "id": "web.entry.sign-in",
       "app": "web",
       "area": "Entry",

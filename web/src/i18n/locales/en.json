@@ -5941,6 +5941,7 @@
       "forNutritionists": "For nutritionists",
       "mobileApp": "Mobile app",
       "questions": "Q&A",
+      "pricing": "Pricing",
       "signIn": "Sign in",
       "createAccount": "Create account",
       "menuLabel": "{{code}}, language and theme",
@@ -6877,6 +6878,51 @@
       "addOnInvalid": "Enter a second-role price above 0, or choose Included in the price.",
       "clientsInvalid": "Enter a number of clients from 1, or tick Unlimited.",
       "perClientNeedsWeekly": "Per-client check-in settings need weekly check-ins."
+    }
+  },
+  "pricing": {
+    "title": "Plans and pricing",
+    "subtitle": "Your clients always use the app for free. Pick the plan that fits how many clients you coach, and change or cancel it any time.",
+    "loadError": "Could not load the plans. Please try again.",
+    "retry": "Try again",
+    "empty": "No plans are offered right now. Please check back soon.",
+    "card": {
+      "mostPopular": "Most popular",
+      "startFree": "Start free",
+      "choose": "Choose {{plan}}",
+      "per": { "month": "/ month", "year": "/ year" },
+      "secondRoleAddOn": "Second role +{{amount}}",
+      "bothRoles": "Both roles included",
+      "unlimitedClients": "Unlimited clients",
+      "clientCap_one": "Up to {{count}} client",
+      "clientCap_other": "Up to {{count}} clients",
+      "featureCount": "{{count}} of {{total}} features",
+      "seeAll": "see all"
+    },
+    "table": {
+      "title": "Compare features",
+      "feature": "Feature",
+      "clients": "Clients",
+      "unlimited": "Unlimited",
+      "secondRole": "Second role",
+      "included": "Included",
+      "yes": "Included",
+      "no": "Not included"
+    },
+    "features": {
+      "chat": { "label": "Chat", "hint": "Message your clients in the app" },
+      "nutritionPlans": { "label": "Nutrition plans", "hint": "Weekly meal plans for each client" },
+      "planTemplates": { "label": "Plan templates", "hint": "Reuse your plans as templates" },
+      "recipes": { "label": "Recipes", "hint": "Your own recipe library" },
+      "ingredients": { "label": "Ingredients", "hint": "Your own ingredients and foods" },
+      "progressPhotos": { "label": "Progress photos", "hint": "Photo diary and photo requests" },
+      "measurements": { "label": "Weight and measurements", "hint": "Weight and body stats over time" },
+      "forms": { "label": "Forms", "hint": "Questionnaires and onboarding forms" },
+      "checkIns": { "label": "Weekly check-ins", "hint": "A weekly check-in form with review" },
+      "perClientCheckIns": { "label": "Per-client check-in settings", "hint": "Adjust check-ins for one client" },
+      "automations": { "label": "Automations", "hint": "Reminders and messages that send themselves" },
+      "packages": { "label": "Packages", "hint": "Offer paid coaching packages" },
+      "payments": { "label": "Client payments", "hint": "Payment requests with a QR code" }
     }
   }
 }

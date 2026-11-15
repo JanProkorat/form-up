@@ -110,6 +110,13 @@
   status = 200
   force = true
 
+# Public pricing list. Exact path on purpose: the SPA page is /pricing and the endpoint has no subpaths.
+[[redirects]]
+  from = "/subscription-plans"
+  to = "https://dev-fitnessplatform.onrender.com/subscription-plans"
+  status = 200
+  force = true
+
 [[redirects]]
   from = "/swagger/*"
   to = "https://dev-fitnessplatform.onrender.com/swagger/:splat"

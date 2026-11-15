@@ -5,6 +5,8 @@ import {
   getCoachPlans,
   getKeepClients,
   getMySubscription,
+  getPublicSubscriptionPlans,
+  pricingKeys,
   setKeepClients,
   subscriptionKeys,
 } from '@/api/subscription';
@@ -124,6 +126,15 @@ export function useCoachPlans(enabled: boolean) {
     queryKey: subscriptionKeys.plans,
     queryFn: getCoachPlans,
     enabled,
+  });
+}
+
+/** The offered plans for the public pricing page. No retry: a 429 must surface as the error state, not hammer the endpoint. */
+export function usePublicPlans() {
+  return useQuery({
+    queryKey: pricingKeys.plans,
+    queryFn: getPublicSubscriptionPlans,
+    retry: false,
   });
 }
 
