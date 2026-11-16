@@ -349,6 +349,68 @@ public class AddRoleEndpointIntegrationTests(FitnessApiFactory factory) : IDispo
         row.PendingSubscriptionPlanPriceId.Should().NotBeNull();
     }
 
+    /// <summary>Removes the Trainer role of a coach paying the add-on, with a downgrade to the given plan scheduled.</summary>
+    private async Task<(Actor Coach, string DowngradeCode)> ArrangeRemovalThenDowngradeAsync(long? downgradeAddOn, bool downgradeBothRoles)
+    {
+        var coach = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Nutritionist).CreateAsync(Ct);
+        var (plan, _) = await BillingTestData.StripePlanAsync(factory, price: 29900, addOn: 9900, bothRolesIncluded: false);
+        var (downgrade, _) = await BillingTestData.StripePlanAsync(
+            factory, price: 19900, addOn: downgradeAddOn, bothRolesIncluded: downgradeBothRoles);
+        await BillingTestData.SubscribeLiveAsync(
+            factory, coach, plan, paysSecondRoleAddOn: true, currentPeriodEndsAt: DateTimeOffset.UtcNow.AddDays(12));
+        (await coach.Http.DeleteAsync("/users/me/roles/Trainer", Ct)).StatusCode.Should().Be(HttpStatusCode.OK);
+        await BillingTestData.SetPendingPlanAsync(factory, coach.ProfileId, downgrade);
+
+        return (coach, downgrade);
+    }
+
+    [Fact]
+    public async Task Post_RolesMe_RestoringWhileTheScheduledPlanOffersNoSecondRole_Returns409_AndChangesNothing()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var (coach, _) = await ArrangeRemovalThenDowngradeAsync(downgradeAddOn: null, downgradeBothRoles: false);
+        fake.PlanChanges.Clear();
+
+        var resp = await coach.Http.PostAsJsonAsync("/users/me/roles", new { Role = "Trainer" }, Ct);
+
+        resp.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await resp.Content.ReadAsStringAsync(Ct)).Should().Contain(FormUp.Application.Domain.Constants.ErrorCodes.SecondRoleNotOnScheduledPlan);
+        fake.PlanChanges.Should().BeEmpty();
+        fake.ClearedScheduledChanges.Should().BeEmpty();
+        (await TrainerRemovedAtAsync(coach.UserId)).Should().NotBeNull();
+        (await BillingTestData.ReadRowAsync(factory, coach.ProfileId)).SecondRoleAddOnEndsAt.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task Post_RolesMe_RestoringWhileTheScheduledPlanIncludesBothRoles_Works_AndCarriesNoAddOn()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var (coach, downgrade) = await ArrangeRemovalThenDowngradeAsync(downgradeAddOn: null, downgradeBothRoles: true);
+        fake.PlanChanges.Clear();
+
+        var resp = await coach.Http.PostAsJsonAsync("/users/me/roles", new { Role = "Trainer" }, Ct);
+
+        resp.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.PlanChanges.Should().ContainSingle().Which.Should().BeEquivalentTo(
+            new { PlanCode = downgrade, AtNextRenewal = true, AddOnAmountMinorUnits = (long?)null });
+        (await TrainerRemovedAtAsync(coach.UserId)).Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Post_RolesMe_RestoringWhileTheScheduledPlanHasAnAddOnPrice_Works_AndCarriesTheAddOn()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var (coach, downgrade) = await ArrangeRemovalThenDowngradeAsync(downgradeAddOn: 4900, downgradeBothRoles: false);
+        fake.PlanChanges.Clear();
+
+        var resp = await coach.Http.PostAsJsonAsync("/users/me/roles", new { Role = "Trainer" }, Ct);
+
+        resp.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.PlanChanges.Should().ContainSingle().Which.Should().BeEquivalentTo(
+            new { PlanCode = downgrade, AtNextRenewal = true, AddOnAmountMinorUnits = (long?)4900 });
+        (await BillingTestData.ReadRowAsync(factory, coach.ProfileId)).SecondRoleAddOnEndsAt.Should().BeNull();
+    }
+
     [Fact]
     public async Task Post_RolesMe_RestoringWhenTheProviderFails_Returns502_AndTheRoleStaysRemoved()
     {

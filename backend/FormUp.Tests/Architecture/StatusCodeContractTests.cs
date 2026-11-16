@@ -44,7 +44,7 @@ public class StatusCodeContractTests(FitnessApiFactory factory)
     [InlineData("post", "/payments/bank-account/undo", "204,400,409,429", false, Body)]
     [InlineData("post", "/payments/bank-account/code", "204,400,401,403,404,429", false, Body)]
     [InlineData("post", "/payments/clients/{clientId}/payments/{paymentId}/request", "200,400,401,403,404,409,429", true, Body)]
-    [InlineData("post", "/users/me/roles", "200,400,401,403,502,503", true, Body)]
+    [InlineData("post", "/users/me/roles", "200,400,401,403,409,502,503", true, Body)]
     [InlineData("delete", "/users/me/roles/{role}", "200,400,401,403,502,503", true, Body)]
     [InlineData("get", "/users/me/subscription", "200,401,403,404", true, Absent)]
     [InlineData("get", "/users/me/subscription/keep-clients", "200,401,403,404,409", true, Absent)]

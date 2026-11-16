@@ -49,6 +49,8 @@ public class AddRoleEndpoint(
             s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
             s.Response(StatusCodes.Status403Forbidden,
                 "The subscription does not cover a second professional role (SUBSCRIPTION_REQUIRED)");
+            s.Response(StatusCodes.Status409Conflict,
+                "The plan scheduled for the next renewal offers no second role (SECOND_ROLE_NOT_ON_SCHEDULED_PLAN)");
             s.Response(StatusCodes.Status502BadGateway,
                 "Restoring a role whose add-on removal is scheduled: Stripe failed, the role stays removed (BILLING_PROVIDER_ERROR)");
             s.Response(StatusCodes.Status503ServiceUnavailable,
@@ -105,6 +107,11 @@ public class AddRoleEndpoint(
                 return;
             }
 
+            if (otherRoleActive && await RespondIfScheduledPlanHasNoSecondRoleAsync(userId, ct))
+            {
+                return;
+            }
+
             // Restoring before the renewal keeps the add-on, which is still paid: no charge, the scheduled end is dropped.
             if (!await TryCancelScheduledAddOnRemovalAsync(existingProfile!.Id, ct))
             {
@@ -114,7 +121,8 @@ public class AddRoleEndpoint(
         else
         {
             // Every caller already holds one professional role, so a new one is the second role.
-            if (await this.RespondIfSecondRoleNotAvailableAsync(db, userId, ct))
+            if (await this.RespondIfSecondRoleNotAvailableAsync(db, userId, ct)
+                || await RespondIfScheduledPlanHasNoSecondRoleAsync(userId, ct))
             {
                 return;
             }
@@ -286,6 +294,37 @@ public class AddRoleEndpoint(
         }
 
         subscription.SecondRoleAddOnEndsAt = null;
+
+        return true;
+    }
+
+    /// <summary>
+    /// Answers 409 <see cref="ErrorCodes.SecondRoleNotOnScheduledPlan"/> when a downgrade is scheduled to a plan that neither
+    /// includes both roles nor prices a second-role add-on, since a second role would then outlive the renewal unpaid.
+    /// Returns true when it answered, so the caller returns.
+    /// </summary>
+    private async Task<bool> RespondIfScheduledPlanHasNoSecondRoleAsync(Guid userId, CancellationToken ct)
+    {
+        var scheduled = await db.CoachSubscriptions
+            .AsNoTracking()
+            .Where(cs => cs.ProfessionalProfile.UserId == userId && cs.PendingSubscriptionPlanPrice != null)
+            .Select(cs => new
+            {
+                cs.PendingSubscriptionPlanPrice!.SubscriptionPlan.BothRolesIncluded,
+                cs.PendingSubscriptionPlanPrice.SecondRoleAddOnPriceMinorUnits,
+            })
+            .FirstOrDefaultAsync(ct);
+
+        if (scheduled is null || scheduled.BothRolesIncluded || scheduled.SecondRoleAddOnPriceMinorUnits is > 0)
+        {
+            return false;
+        }
+
+        await this.SendProblemAsync(
+            StatusCodes.Status409Conflict,
+            ErrorCodes.SecondRoleNotOnScheduledPlan,
+            "The plan scheduled for the next renewal does not offer a second role. Cancel the plan change or keep one role.",
+            ct);
 
         return true;
     }
