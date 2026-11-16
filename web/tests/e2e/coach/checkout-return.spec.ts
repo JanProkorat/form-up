@@ -61,32 +61,69 @@ async function mockSubscription(page: Page, initiallyPaid: boolean): Promise<Sub
   return { setPaid: (value) => void (paid = value), reads: () => reads };
 }
 
-/** Advances the faked clock in poll-sized steps, letting each answer arrive before the next tick. */
-async function advance(page: Page, ms: number): Promise<void> {
-  for (let elapsed = 0; elapsed < ms; elapsed += POLL_STEP_MS) {
-    await page.clock.runFor(POLL_STEP_MS);
+/** Advances the faked clock in steps (poll-sized by default), letting each answer arrive before the next tick. */
+async function advance(page: Page, ms: number, step: number = POLL_STEP_MS): Promise<void> {
+  for (let elapsed = 0; elapsed < ms; elapsed += step) {
+    await page.clock.runFor(step);
     await page.waitForLoadState('networkidle');
   }
 }
 
-const PENDING = /Your payment went through/;
+const PENDING_TEXT = 'Your payment went through';
+const PENDING = new RegExp(PENDING_TEXT);
 const ACTIVATED = 'Your Pro plan is now active.';
+
+/**
+ * A toast's text is also rendered in a screen-reader live region, so assertions target the toast title only.
+ * Toasts close after 5 s of the faked clock, so to see the pending note the clock may only run 1 s past the
+ * return page's wait; a longer advance outlives it.
+ */
+function toastTitle(page: Page, text: string | RegExp) {
+  return page.locator('[data-slot="toast-title"]').filter({ hasText: text });
+}
+const PENDING_VISIBLE_ADVANCE_MS = RETURN_WAIT_MS + 1_000;
+const PENDING_VISIBLE_STEP_MS = 1_000;
+
+/**
+ * Counts every toast title that was ever added to the page, whether or not it is still there. The faked clock
+ * auto-closes a toast long before a spec finishes advancing, so "announced once" cannot be read off the DOM later.
+ */
+async function trackToastTitles(page: Page): Promise<(text: string) => Promise<number>> {
+  await page.addInitScript(() => {
+    const seen = new Set<Element>();
+    const texts: string[] = [];
+    const scan = () => {
+      document.querySelectorAll('[data-slot="toast-title"]').forEach((element) => {
+        if (seen.has(element)) return;
+        seen.add(element);
+        texts.push(element.textContent ?? '');
+      });
+    };
+    new MutationObserver(scan).observe(document, { childList: true, subtree: true, characterData: true });
+    (window as unknown as { __toastTitles: () => string[] }).__toastTitles = () => texts;
+  });
+  return async (text) => {
+    const titles = await page.evaluate(() => (window as unknown as { __toastTitles: () => string[] }).__toastTitles());
+    return titles.filter((title) => title.includes(text)).length;
+  };
+}
 
 trainerTest.describe('checkout return with a late webhook', () => {
   trainerTest('announces the plan when it lands after the return page gave up', async ({ page }) => {
     const mock = await mockSubscription(page, false);
+    const toastsShown = await trackToastTitles(page);
     await page.clock.install();
     await page.goto('/billing/success');
 
-    await advance(page, RETURN_WAIT_MS + POLL_STEP_MS);
+    await advance(page, PENDING_VISIBLE_ADVANCE_MS, PENDING_VISIBLE_STEP_MS);
     await expect(page).toHaveURL(/\/settings/);
-    await expect(page.getByText(PENDING)).toBeVisible();
-    await expect(page.getByText(ACTIVATED)).toHaveCount(0);
+    await expect(toastTitle(page, PENDING)).toBeVisible();
+    await expect(toastTitle(page, ACTIVATED)).toHaveCount(0);
 
     mock.setPaid(true);
     await expect(async () => {
-      await page.clock.runFor(POLL_STEP_MS);
-      await expect(page.getByText(ACTIVATED)).toBeVisible({ timeout: 500 });
+      await advance(page, POLL_STEP_MS);
+      await expect(toastTitle(page, ACTIVATED)).toBeVisible({ timeout: 500 });
     }).toPass();
 
     // The watch ends with the announcement: no further reads on the polling cadence.
@@ -94,24 +131,27 @@ trainerTest.describe('checkout return with a late webhook', () => {
     const readsAfterLanding = mock.reads();
     await advance(page, WATCH_WINDOW_MS / 2);
     expect(mock.reads()).toBe(readsAfterLanding);
-    await expect(page.getByText(ACTIVATED)).toHaveCount(1);
+    // The toast has closed by now (5 s of the faked clock), so count the ones that were ever shown.
+    expect(await toastsShown(ACTIVATED)).toBe(1);
   });
 
   trainerTest('stops polling after the watch window when the plan never lands', async ({ page }) => {
     const mock = await mockSubscription(page, false);
+    const toastsShown = await trackToastTitles(page);
     await page.clock.install();
     await page.goto('/billing/success');
 
-    await advance(page, RETURN_WAIT_MS + POLL_STEP_MS);
-    await expect(page.getByText(PENDING)).toBeVisible();
+    await advance(page, PENDING_VISIBLE_ADVANCE_MS, PENDING_VISIBLE_STEP_MS);
+    await expect(toastTitle(page, PENDING)).toBeVisible();
 
     await advance(page, WATCH_WINDOW_MS + POLL_STEP_MS);
     const readsAtBound = mock.reads();
     await advance(page, WATCH_WINDOW_MS / 2);
 
     expect(mock.reads()).toBe(readsAtBound);
-    await expect(page.getByText(ACTIVATED)).toHaveCount(0);
-    await expect(page.getByText(PENDING)).toBeVisible();
+    await expect(toastTitle(page, ACTIVATED)).toHaveCount(0);
+    // The note closed on its own long ago; it was announced once and not again by the watch.
+    expect(await toastsShown(PENDING_TEXT)).toBe(1);
   });
 
   trainerTest('a plan that is already paid continues without a note', async ({ page }) => {
@@ -120,7 +160,7 @@ trainerTest.describe('checkout return with a late webhook', () => {
     await page.goto('/billing/success');
 
     await expect(page).toHaveURL(/\/settings/);
-    await expect(page.getByText(PENDING)).toHaveCount(0);
-    await expect(page.getByText(ACTIVATED)).toHaveCount(0);
+    await expect(toastTitle(page, PENDING)).toHaveCount(0);
+    await expect(toastTitle(page, ACTIVATED)).toHaveCount(0);
   });
 });
