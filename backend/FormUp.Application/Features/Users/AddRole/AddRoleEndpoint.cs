@@ -151,7 +151,8 @@ public class AddRoleEndpoint(
 
                 if (subscription is not null)
                 {
-                    subscription.CancelAtPeriodEnd = false;
+                    // An admin-cancelled renewal stays cancelled; only the coach's own disable is undone.
+                    subscription.CancelAtPeriodEnd = subscription.RenewalCancelledByAdminAt is not null;
                 }
             }
         }

@@ -61,6 +61,7 @@ public class StatusCodeContractTests(FitnessApiFactory factory)
     [InlineData("post", "/billing/change-plan", "200,400,401,403,409,502,503", true, Body)]
     [InlineData("post", "/billing/change-plan/preview", "200,400,401,403,409,502,503", true, Body)]
     [InlineData("post", "/billing/switch-to-free", "200,401,403,409,502,503", true, Absent)]
+    [InlineData("post", "/billing/scheduled-change/cancel", "200,401,403,409,502,503", true, Absent)]
     [InlineData("post", "/billing/promotion-code", "204,400,401,403,404,409,429,502,503", false, Body)]
     [InlineData("post", "/billing/second-role/preview", "200,401,403,409,502,503", true, Absent)]
     [InlineData("post", "/billing/second-role/confirm", "200,400,401,402,403,409,502,503", true, Body)]

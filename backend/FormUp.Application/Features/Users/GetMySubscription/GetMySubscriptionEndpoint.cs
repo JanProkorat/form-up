@@ -198,13 +198,29 @@ internal sealed class GetMySubscriptionEndpoint(
         var row = await db.CoachSubscriptions
             .AsNoTracking()
             .Where(cs => cs.ProfessionalProfileId == profileId)
-            .Select(cs => new { cs.CancelAtPeriodEnd, cs.PendingSubscriptionPlanPriceId, cs.CurrentPeriodEndsAt })
+            .Select(cs => new
+            {
+                cs.CancelAtPeriodEnd,
+                cs.PendingSubscriptionPlanPriceId,
+                cs.CurrentPeriodEndsAt,
+                cs.GivenFreeAt,
+                cs.FreeUntil,
+                cs.RenewalCancelledByAdminAt,
+                HasProviderSubscription = cs.ExternalSubscriptionId != null,
+                IsDisabling = cs.ProfessionalProfile.CoachAccountActiveUntil != null,
+            })
             .FirstOrDefaultAsync(ct);
 
         if (row is null)
         {
             return null;
         }
+
+        var now = timeProvider.GetUtcNow();
+        var cancellable = row.HasProviderSubscription
+                          && !(row.GivenFreeAt is not null && (row.FreeUntil is null || row.FreeUntil > now))
+                          && !row.IsDisabling
+                          && row.RenewalCancelledByAdminAt is null;
 
         if (row.CancelAtPeriodEnd)
         {
@@ -222,6 +238,7 @@ internal sealed class GetMySubscriptionEndpoint(
                     NameEn = free.NameEn,
                     NameDe = free.NameDe,
                     StartsAt = row.CurrentPeriodEndsAt,
+                    Cancellable = cancellable,
                     PriceLines =
                     [
                         new SubscriptionPriceLineDto
@@ -267,6 +284,7 @@ internal sealed class GetMySubscriptionEndpoint(
             NameEn = pending.NameEn,
             NameDe = pending.NameDe,
             StartsAt = row.CurrentPeriodEndsAt,
+            Cancellable = cancellable,
             PriceLines =
             [
                 new SubscriptionPriceLineDto

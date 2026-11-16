@@ -787,6 +787,15 @@ public static class ErrorCodes
     /// <summary>A plan change is already scheduled for the next renewal, so the subscription cannot be extended first.</summary>
     public const string BillingPlanChangePending = "BILLING_PLAN_CHANGE_PENDING";
 
+    /// <summary>Nothing is scheduled for the next renewal, so there is nothing to cancel.</summary>
+    public const string BillingNothingScheduled = "BILLING_NOTHING_SCHEDULED";
+
+    /// <summary>The coach account is being disabled; the coach keeps the account instead of undoing a plan change.</summary>
+    public const string BillingAccountDisabling = "BILLING_ACCOUNT_DISABLING";
+
+    /// <summary>An admin cancelled the renewal, and the coach cannot undo that.</summary>
+    public const string BillingRenewalCancelledByAdmin = "BILLING_RENEWAL_CANCELLED_BY_ADMIN";
+
     /// <summary>The promotion code is empty, too long or has characters a code never contains.</summary>
     public const string PromotionCodeInvalid = "PROMOTION_CODE_INVALID";
 

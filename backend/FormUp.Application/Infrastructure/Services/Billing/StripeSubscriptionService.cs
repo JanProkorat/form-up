@@ -375,6 +375,23 @@ public sealed class StripeSubscriptionService(
         });
 
     /// <inheritdoc />
+    public Task ResumeRenewalAsync(string subscriptionId, CancellationToken ct) =>
+        RunAsync("resume-renewal", async stripe =>
+        {
+            // UNVERIFIED: an empty cancel_at form value unsets the date, and Stripe.net has no typed way to send it — https://docs.stripe.com/api/subscriptions/update
+            await stripe.V1.Subscriptions.UpdateAsync(
+                subscriptionId,
+                new SubscriptionUpdateOptions
+                {
+                    CancelAtPeriodEnd = false,
+                    ExtraParams = new Dictionary<string, object> { ["cancel_at"] = string.Empty },
+                },
+                cancellationToken: ct);
+
+            return true;
+        });
+
+    /// <inheritdoc />
     public Task<SecondRoleAddOnPreview> PreviewSecondRoleAddOnAsync(
         string customerId,
         string subscriptionId,
