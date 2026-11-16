@@ -333,12 +333,33 @@ public class EntitlementService
     {
         if (row is not null && UsesAssignedPlan(row))
         {
-            return new Resolution(row.Plan.ToEntitlements(), row.Plan.BothRolesIncluded, row.PaysSecondRoleAddOn);
+            return new Resolution(
+                row.Plan.ToEntitlements(), row.Plan.BothRolesIncluded, row.PaysSecondRoleAddOn, CanBuySecondRoleAddOn(row));
         }
 
         return free is null
-            ? new Resolution(CoachEntitlements.Locked, false, false)
-            : new Resolution(free.ToEntitlements(), free.BothRolesIncluded, false);
+            ? new Resolution(CoachEntitlements.Locked, false, false, false)
+            : new Resolution(free.ToEntitlements(), free.BothRolesIncluded, false, false);
+    }
+
+    /// <summary>
+    /// Mirrors what the paid add-on flow accepts: a live provider subscription with no gift in force, a plan without both
+    /// roles and an add-on price, no add-on paid yet, and no plan change scheduled.
+    /// </summary>
+    private bool CanBuySecondRoleAddOn(SubscriptionRow row)
+    {
+        var now = timeProvider.GetUtcNow();
+
+        return row.ExternalCustomerId is not null
+               && row.ExternalSubscriptionId is not null
+               && row.Status is SubscriptionStatus.Active or SubscriptionStatus.Trialing or SubscriptionStatus.PastDue
+               && row.GivenFreeAt is null
+               && !CoachSubscriptionStatusClassifier.IsPlanChoiceRequired(row.GivenFreeAt, row.FreeUntil, now)
+               && !row.Plan.BothRolesIncluded
+               && !row.PaysSecondRoleAddOn
+               && row.SecondRoleAddOnPriceMinorUnits is > 0
+               && row.PendingSubscriptionPlanPriceId is null
+               && !row.CancelAtPeriodEnd;
     }
 
     private bool PlanApplies(SubscriptionRow row) =>
@@ -388,7 +409,12 @@ public class EntitlementService
             return SecondRoleState.Included;
         }
 
-        return resolution.PaysSecondRoleAddOn ? SecondRoleState.PaidAddOn : SecondRoleState.NotAvailable;
+        if (resolution.PaysSecondRoleAddOn)
+        {
+            return SecondRoleState.PaidAddOn;
+        }
+
+        return resolution.CanBuySecondRoleAddOn ? SecondRoleState.Purchasable : SecondRoleState.NotAvailable;
     }
 
     private static System.Linq.Expressions.Expression<Func<Entities.CoachSubscription, SubscriptionRow>> ProjectRow() =>
@@ -398,6 +424,11 @@ public class EntitlementService
             cs.FreeUntil,
             cs.GivenFreeAt,
             cs.PaysSecondRoleAddOn,
+            cs.ExternalCustomerId,
+            cs.ExternalSubscriptionId,
+            cs.CancelAtPeriodEnd,
+            cs.PendingSubscriptionPlanPriceId,
+            cs.SubscriptionPlanPrice != null ? cs.SubscriptionPlanPrice.SecondRoleAddOnPriceMinorUnits : null,
             new PlanFlags(
                 cs.SubscriptionPlan.CanCreatePlans,
                 cs.SubscriptionPlan.CanMessage,
@@ -455,10 +486,16 @@ public class EntitlementService
         DateTimeOffset? FreeUntil,
         DateTimeOffset? GivenFreeAt,
         bool PaysSecondRoleAddOn,
+        string? ExternalCustomerId,
+        string? ExternalSubscriptionId,
+        bool CancelAtPeriodEnd,
+        long? PendingSubscriptionPlanPriceId,
+        long? SecondRoleAddOnPriceMinorUnits,
         PlanFlags Plan);
 
     private readonly record struct Resolution(
         CoachEntitlements Entitlements,
         bool BothRolesIncluded,
-        bool PaysSecondRoleAddOn);
+        bool PaysSecondRoleAddOn,
+        bool CanBuySecondRoleAddOn);
 }

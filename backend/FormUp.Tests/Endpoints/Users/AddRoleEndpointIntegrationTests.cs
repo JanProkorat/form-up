@@ -4,6 +4,7 @@ using FluentAssertions;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Tests.Builders;
+using FormUp.Tests.Endpoints.Billing;
 using FormUp.Tests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -211,6 +212,38 @@ public class AddRoleEndpointIntegrationTests(FitnessApiFactory factory)
             .WithRemovedCoachRoles(UserRole.Nutritionist)
             .CreateAsync(TestContext.Current.CancellationToken);
         await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, "start");
+
+        var resp = await coach.Http.PostAsJsonAsync(
+            "/users/me/roles", new { Role = "Nutritionist" }, TestContext.Current.CancellationToken);
+
+        resp.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))
+            .Should().Contain(FormUp.Application.Domain.Constants.ErrorCodes.SubscriptionRequired);
+    }
+
+    [Fact]
+    public async Task Post_RolesMe_AddOnStillPurchasable_Returns403SubscriptionRequired()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var (plan, _) = await BillingTestData.StripePlanAsync(factory, addOn: 9900, bothRolesIncluded: false);
+        await BillingTestData.SubscribeLiveAsync(factory, coach, plan);
+
+        var resp = await coach.Http.PostAsJsonAsync(
+            "/users/me/roles", new { Role = "Nutritionist" }, TestContext.Current.CancellationToken);
+
+        resp.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))
+            .Should().Contain(FormUp.Application.Domain.Constants.ErrorCodes.SubscriptionRequired);
+    }
+
+    [Fact]
+    public async Task Post_RolesMe_RestoringARoleWhileTheAddOnIsPurchasable_Returns403SubscriptionRequired()
+    {
+        var coach = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Nutritionist)
+            .WithRemovedCoachRoles(UserRole.Nutritionist)
+            .CreateAsync(TestContext.Current.CancellationToken);
+        var (plan, _) = await BillingTestData.StripePlanAsync(factory, addOn: 9900, bothRolesIncluded: false);
+        await BillingTestData.SubscribeLiveAsync(factory, coach, plan);
 
         var resp = await coach.Http.PostAsJsonAsync(
             "/users/me/roles", new { Role = "Nutritionist" }, TestContext.Current.CancellationToken);

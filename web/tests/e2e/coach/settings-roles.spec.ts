@@ -1,0 +1,130 @@
+/**
+ * Settings "Roles": what Add role does for a one-role coach depends on the plan's second-role state.
+ * Purchasable opens the paid dialog, Included the free one, NotAvailable nothing but a note. The subscription,
+ * roles and preview reads are mocked so the spec does not depend on Stripe or the seeded plan catalogue.
+ */
+import type { Page, Route } from '@playwright/test';
+import { trainerTest, expect } from '../fixtures/auth';
+
+const PERIOD_END = '2026-12-01T00:00:00Z';
+
+function json(route: Route, body: unknown) {
+  return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
+}
+
+function subscription(extra: Record<string, unknown>) {
+  return {
+    planCode: 'pro',
+    nameCs: 'Pro',
+    nameEn: 'Pro',
+    nameDe: 'Pro',
+    status: 'Active',
+    taxMode: 'None',
+    hasBillingAccount: true,
+    cancelAtPeriodEnd: false,
+    currentPeriodEndsAt: PERIOD_END,
+    isSetByFormUp: false,
+    isLapsed: false,
+    planChoiceRequired: false,
+    keepClientsChoiceRequired: false,
+    overCapClientCount: 0,
+    freeSlotCount: 0,
+    activeClientCount: 4,
+    clientLimit: 30,
+    secondRole: 'Purchasable',
+    priceLines: [{ kind: 'Plan', amountMinorUnits: 59900, currency: 'CZK' }],
+    features: {
+      canCreatePlans: true,
+      canMessage: true,
+      canSendQuestionnaires: true,
+      canUseWeeklyCheckIns: true,
+      canUsePerClientCheckInConfig: false,
+      canUsePayments: false,
+    },
+    ...extra,
+  };
+}
+
+/** Mocks the three reads the card makes and records any POST /users/me/roles so a test can assert none was sent. */
+async function mockRolesCard(page: Page, body: Record<string, unknown>) {
+  const addRoleRequests: string[] = [];
+  await page.route(/\/users\/me\/subscription$/, (route) => json(route, body));
+  await page.route(/\/users\/me\/roles$/, (route) => {
+    if (route.request().method() === 'POST') {
+      addRoleRequests.push(route.request().url());
+      return route.fulfill({ status: 403, contentType: 'application/json', body: '{}' });
+    }
+    return json(route, { roles: [{ role: 'Trainer', clientCount: 4, sharedWithOtherRoleCount: 0 }] });
+  });
+  await page.route(/\/billing\/second-role\/preview$/, (route) =>
+    json(route, {
+      planAmountMinorUnits: 59900,
+      addOnAmountMinorUnits: 20000,
+      newTotalMinorUnits: 79900,
+      billingInterval: 'Monthly',
+      currency: 'CZK',
+      todayAmountMinorUnits: 10000,
+      todayTaxMinorUnits: 0,
+      periodEndsAt: PERIOD_END,
+    }),
+  );
+  return addRoleRequests;
+}
+
+trainerTest.describe('settings roles card, adding a second role', () => {
+  trainerTest('a purchasable second role opens the paid dialog and adds nothing yet', async ({ page }) => {
+    const addRoleRequests = await mockRolesCard(page, subscription({ secondRole: 'Purchasable' }));
+    await page.goto('/settings');
+
+    await page.getByRole('button', { name: 'Add role' }).click();
+
+    await expect(page.getByRole('dialog').getByText('Add the Nutritionist role?')).toBeVisible();
+    await expect(page.getByRole('button', { name: /^Add role · pay / })).toBeEnabled();
+    expect(addRoleRequests).toHaveLength(0);
+  });
+
+  trainerTest('an unavailable second role disables Add and says the plan lacks it', async ({ page }) => {
+    const addRoleRequests = await mockRolesCard(page, subscription({ secondRole: 'NotAvailable' }));
+    await page.goto('/settings');
+
+    await expect(page.getByText(/A second professional role is not part of your plan/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Add role' })).toBeDisabled();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    expect(addRoleRequests).toHaveLength(0);
+  });
+
+  trainerTest('an unavailable second role with a scheduled plan change names the date', async ({ page }) => {
+    const addRoleRequests = await mockRolesCard(
+      page,
+      subscription({
+        secondRole: 'NotAvailable',
+        scheduledPlan: {
+          planCode: 'start',
+          nameCs: 'Start',
+          nameEn: 'Start',
+          nameDe: 'Start',
+          startsAt: PERIOD_END,
+          priceLines: [{ kind: 'Plan', amountMinorUnits: 29900, currency: 'CZK' }],
+        },
+      }),
+    );
+    await page.goto('/settings');
+
+    await expect(page.getByText(/You can add a second role after your plan change on .*2026\./)).toBeVisible();
+    await expect(page.getByText(/is not part of your plan/)).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Add role' })).toBeDisabled();
+    expect(addRoleRequests).toHaveLength(0);
+  });
+
+  trainerTest('an included second role opens the free dialog', async ({ page }) => {
+    await mockRolesCard(page, subscription({ secondRole: 'Included' }));
+    await page.goto('/settings');
+
+    await page.getByRole('button', { name: 'Add role' }).click();
+
+    const dialog = page.getByRole('dialog');
+    await expect(dialog.getByText('Add the Nutritionist role?')).toBeVisible();
+    await expect(dialog.getByText(/You get the tools for this role/)).toBeVisible();
+    await expect(dialog.getByRole('button', { name: /pay / })).toHaveCount(0);
+  });
+});
