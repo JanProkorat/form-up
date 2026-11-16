@@ -350,4 +350,71 @@ public class GetMySubscriptionEndpointTests(FitnessApiFactory factory)
         (await GetAsync(coach)).ScheduledPlan.Should().BeNull("the upgrade clears the pending switch to Free");
         BillingTestData.ResetProvider(factory);
     }
+
+    [Fact]
+    public async Task Get_OneRoleCoachOnALivePlanWithAnAddOnPrice_ShowsTheSecondRoleAsPurchasable()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (plan, _) = await BillingTestData.StripePlanAsync(factory, addOn: 9900, bothRolesIncluded: false);
+        await BillingTestData.SubscribeLiveAsync(factory, coach, plan);
+
+        (await GetAsync(coach)).SecondRole.Should().Be(SecondRoleState.Purchasable);
+    }
+
+    [Fact]
+    public async Task Get_AdminGiftInForce_ShowsTheSecondRoleAsNotAvailable()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (plan, _) = await BillingTestData.StripePlanAsync(factory, addOn: 9900, bothRolesIncluded: false);
+        await BillingTestData.SubscribeLiveAsync(
+            factory, coach, plan, givenFreeAt: DateTimeOffset.UtcNow.AddDays(-1), freeUntil: DateTimeOffset.UtcNow.AddDays(10));
+
+        (await GetAsync(coach)).SecondRole.Should().Be(SecondRoleState.NotAvailable);
+    }
+
+    [Fact]
+    public async Task Get_PlanWithoutAnAddOnPrice_ShowsTheSecondRoleAsNotAvailable()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (plan, _) = await BillingTestData.StripePlanAsync(factory, addOn: null, bothRolesIncluded: false);
+        await BillingTestData.SubscribeLiveAsync(factory, coach, plan);
+
+        (await GetAsync(coach)).SecondRole.Should().Be(SecondRoleState.NotAvailable);
+    }
+
+    [Fact]
+    public async Task Get_PlanWithoutAProviderSubscription_ShowsTheSecondRoleAsNotAvailable()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (plan, _) = await BillingTestData.StripePlanAsync(factory, addOn: 9900, bothRolesIncluded: false);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, plan);
+
+        (await GetAsync(coach)).SecondRole.Should().Be(SecondRoleState.NotAvailable);
+    }
+
+    [Fact]
+    public async Task Get_AddOnAlreadyPaid_ShowsTheSecondRoleAsPaidAddOn()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (plan, _) = await BillingTestData.StripePlanAsync(factory, addOn: 9900, bothRolesIncluded: false);
+        await BillingTestData.SubscribeLiveAsync(factory, coach, plan, paysSecondRoleAddOn: true);
+
+        (await GetAsync(coach)).SecondRole.Should().Be(SecondRoleState.PaidAddOn);
+    }
+
+    [Fact]
+    public async Task Get_PlanChangeScheduled_ShowsTheSecondRoleAsNotAvailable()
+    {
+        var pendingDowngrade = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var switchToFree = await TestActors.Trainer(factory).CreateAsync(Ct);
+        await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
+        var (current, _) = await BillingTestData.StripePlanAsync(factory, price: 59900, addOn: 9900, bothRolesIncluded: false);
+        var (next, _) = await BillingTestData.StripePlanAsync(factory, price: 29900, addOn: 9900, bothRolesIncluded: false);
+        await BillingTestData.SubscribeLiveAsync(factory, pendingDowngrade, current);
+        await BillingTestData.SetPendingPlanAsync(factory, pendingDowngrade.ProfileId, next);
+        await BillingTestData.SubscribeLiveAsync(factory, switchToFree, current, cancelAtPeriodEnd: true);
+
+        (await GetAsync(pendingDowngrade)).SecondRole.Should().Be(SecondRoleState.NotAvailable);
+        (await GetAsync(switchToFree)).SecondRole.Should().Be(SecondRoleState.NotAvailable);
+    }
 }
