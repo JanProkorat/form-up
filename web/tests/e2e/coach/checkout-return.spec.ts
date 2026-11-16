@@ -197,9 +197,11 @@ trainerTest.describe('checkout return with a late webhook', () => {
     await reachSlowPhase(page);
     expect(await storedWatch(page)).not.toBeNull();
 
+    // addInitScript only applies to documents loaded after it is registered, so register before the reload.
+    // It runs again on the reloaded document, so the count starts from zero there.
+    const toastsShown = await trackToastTitles(page);
     // No second clock.install(): the faked clock survives a reload, and installing again would reset it.
     await page.reload();
-    const toastsShown = await trackToastTitles(page);
     await expect(page).toHaveURL(/\/settings/);
     await page.waitForLoadState('networkidle');
     await expect(toastTitle(page, ACTIVATED)).toHaveCount(0);
@@ -212,7 +214,7 @@ trainerTest.describe('checkout return with a late webhook', () => {
     await advance(page, FAST_PHASE_MS / 2, SLOW_STEP_MS);
     expect(mock.reads()).toBe(readsAfterLanding);
     expect(await storedWatch(page)).toBeNull();
-    // The recording script restarted with the page, so this counts post-reload toasts only.
+    // The recording script re-ran on the reloaded document, so this counts post-reload toasts only.
     expect(await toastsShown(ACTIVATED)).toBe(1);
   });
 
