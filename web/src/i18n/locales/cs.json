@@ -295,11 +295,13 @@
         "hintStripePages": "Karta a faktury na zabezpečených stránkách Stripe",
         "hintPeriodEnd": "Projeví se na konci zaplaceného měsíce",
         "hintStartsOn": "{{plan}} začne {{date}}. Do té doby vám zůstává {{current}}.",
-        "hintUpgradeToday": "Dnes zhruba {{today}} za zbytek tohoto měsíce, poté {{next}} {{per}} od {{date}}",
-        "hintUpgradeTodayNoDate": "Dnes zhruba {{today}} za zbytek tohoto měsíce, poté {{next}} {{per}}",
+        "hintSpanMonth": "za zbytek tohoto měsíce",
+        "hintSpanYear": "za zbytek tohoto roku",
+        "hintUpgradeToday": "Dnes zhruba {{today}} {{span}}, poté {{next}} {{per}} od {{date}}",
+        "hintUpgradeTodayNoDate": "Dnes zhruba {{today}} {{span}}, poté {{next}} {{per}}",
         "hintPreviewLoading": "Počítáme dnešní platbu…",
         "hintPreviewError": "Dnešní platbu se nepodařilo spočítat. Změnu můžete přesto potvrdit.",
-        "hintCancelsFree": "Váš přechod na Free se zruší.",
+        "hintCancelsFree": "Plánovaný přechod na tarif {{free}} se zruší.",
         "continue": "Pokračovat k platbě"
       },
       "picker": {
@@ -312,8 +314,8 @@
         "noCard": "Navždy, bez karty",
         "yourPlan": "Váš tarif",
         "switchTo": "Přejít na {{plan}}",
-        "switchesToFree": "Přechod na Free {{date}}",
-        "switchesToFreeNoDate": "Přechod na Free na konci období",
+        "switchesToFree": "Přechod na tarif {{free}} {{date}}",
+        "switchesToFreeNoDate": "Přechod na tarif {{free}} na konci období",
         "footer": "Platba měsíčně. Platba kartou, faktury i zrušení probíhají na zabezpečených stránkách Stripe. Snížení tarifu nebo zrušení se projeví na konci zaplaceného měsíce."
       },
       "register": {
@@ -339,8 +341,8 @@
         "atRenewalNoDate": "Váš tarif se změní na {{plan}} při příštím obnovení."
       },
       "switchFree": {
-        "scheduled": "Váš tarif se změní na Free dne {{date}}.",
-        "scheduledNoDate": "Váš tarif se změní na Free na konci zaplaceného období."
+        "scheduled": "Přejdete na tarif {{free}} dne {{date}}.",
+        "scheduledNoDate": "Na konci zaplaceného období přejdete na tarif {{free}}."
       },
       "code": {
         "applied": "Kód byl použit."

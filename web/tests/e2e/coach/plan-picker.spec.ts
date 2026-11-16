@@ -414,6 +414,19 @@ trainerTest.describe('plan picker: changing a live paid plan', () => {
     expect(changeBodies[1].attemptId).not.toBe(changeBodies[0].attemptId);
   });
 
+  trainerTest('an annual preview says the rest of this year and bills per year', async ({ page }) => {
+    await mockPickerReads(page, 'Vat21', undefined, liveSubscription('start'));
+    await page.route(/\/billing\/change-plan\/preview$/, (route) =>
+      json(route, previewBody({ billingInterval: 'Annual', nextAmountMinorUnits: 599000 })),
+    );
+
+    await page.goto('/plan');
+    await page.getByRole('article', { name: 'Pro' }).getByRole('button', { name: 'Select Pro' }).click();
+    const bar = page.getByRole('region', { name: 'Selected plan' });
+    await expect(bar.getByText(/Today about .*158.* for the rest of this year, then .*5.?990.* \/ year from .*2026/)).toBeVisible();
+    await expect(bar.getByText(/rest of this month/)).toHaveCount(0);
+  });
+
   trainerTest('the bar shows an error hint when the preview fails and confirming still works', async ({ page }) => {
     await mockPickerReads(page, 'Vat21', undefined, liveSubscription('start'));
     await page.route(/\/billing\/change-plan\/preview$/, (route) =>

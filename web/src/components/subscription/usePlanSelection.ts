@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { CheckoutFlow, PlanChangeTiming, type ChangePlanResponse, type CoachPlanDto } from '@/api/generated';
+import { CheckoutFlow, PlanChangeTiming, type ChangePlanResponse, type CoachPlanDto, type ScheduleSwitchToFreeResponse } from '@/api/generated';
 import { profileKeys } from '@/api/profile';
 import { changePlan, createCheckoutSession, subscriptionKeys, switchToFree } from '@/api/subscription';
 import { billingErrorCode, showBillingError } from '@/components/subscription/billingErrors';
@@ -102,13 +102,14 @@ export function usePlanSelection(flow: CheckoutFlow) {
     },
   });
 
-  const freePlan = useMutation({
-    mutationFn: switchToFree,
-    onSuccess: ({ endsAt }) => {
+  // The variable is the Free plan's localized name, shown in the confirmation toast.
+  const freePlan = useMutation<ScheduleSwitchToFreeResponse, unknown, string>({
+    mutationFn: () => switchToFree(),
+    onSuccess: ({ endsAt }, free) => {
       toast(
         endsAt
-          ? t('subscription.billing.switchFree.scheduled', { date: dateFormat.format(new Date(endsAt)) })
-          : t('subscription.billing.switchFree.scheduledNoDate'),
+          ? t('subscription.billing.switchFree.scheduled', { free, date: dateFormat.format(new Date(endsAt)) })
+          : t('subscription.billing.switchFree.scheduledNoDate', { free }),
       );
       void refresh();
     },
@@ -122,8 +123,8 @@ export function usePlanSelection(flow: CheckoutFlow) {
     live,
     /** Takes a paid plan: in place for a live subscription, through Stripe Checkout otherwise. */
     choosePaid: (plan: CoachPlanDto, includeSecondRoleAddOn: boolean) => paidPlan.mutate({ plan, includeSecondRoleAddOn }),
-    /** Ends the paid plan at the end of the period. */
-    switchToFree: () => freePlan.mutate(),
+    /** Ends the paid plan at the end of the period; takes the Free plan's localized name for the toast. */
+    switchToFree: (freeName: string) => freePlan.mutate(freeName),
     /** Code of the paid plan being taken right now. */
     pendingPlanCode: paidPlan.isPending ? (paidPlan.variables?.plan.code ?? null) : null,
     /** True while a Stripe redirect is under way: the page is about to be replaced, so keep the buttons off. */

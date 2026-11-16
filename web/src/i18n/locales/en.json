@@ -291,11 +291,13 @@
         "hintStripePages": "Card and invoices on Stripe's secure pages",
         "hintPeriodEnd": "Takes effect at the end of the paid month",
         "hintStartsOn": "{{plan}} starts on {{date}}. You keep {{current}} until then.",
-        "hintUpgradeToday": "Today about {{today}} for the rest of this month, then {{next}} {{per}} from {{date}}",
-        "hintUpgradeTodayNoDate": "Today about {{today}} for the rest of this month, then {{next}} {{per}}",
+        "hintSpanMonth": "for the rest of this month",
+        "hintSpanYear": "for the rest of this year",
+        "hintUpgradeToday": "Today about {{today}} {{span}}, then {{next}} {{per}} from {{date}}",
+        "hintUpgradeTodayNoDate": "Today about {{today}} {{span}}, then {{next}} {{per}}",
         "hintPreviewLoading": "Calculating today's charge…",
         "hintPreviewError": "Couldn't calculate today's charge. You can still confirm the change.",
-        "hintCancelsFree": "Your switch to Free will be cancelled.",
+        "hintCancelsFree": "Your switch to {{free}} will be cancelled.",
         "continue": "Continue to payment"
       },
       "picker": {
@@ -308,8 +310,8 @@
         "noCard": "Forever, no card needed",
         "yourPlan": "Your plan",
         "switchTo": "Switch to {{plan}}",
-        "switchesToFree": "Switches to Free on {{date}}",
-        "switchesToFreeNoDate": "Switches to Free at period end",
+        "switchesToFree": "Switches to {{free}} on {{date}}",
+        "switchesToFreeNoDate": "Switches to {{free}} at period end",
         "footer": "Billed monthly. Card payment, invoices and cancelling run on Stripe's secure pages. A downgrade or cancellation takes effect at the end of the paid month."
       },
       "register": {
@@ -335,8 +337,8 @@
         "atRenewalNoDate": "Your plan changes to {{plan}} at the next renewal."
       },
       "switchFree": {
-        "scheduled": "Your plan switches to Free on {{date}}.",
-        "scheduledNoDate": "Your plan switches to Free at the end of the paid period."
+        "scheduled": "Your plan switches to {{free}} on {{date}}.",
+        "scheduledNoDate": "Your plan switches to {{free}} at the end of the paid period."
       },
       "code": {
         "applied": "Code applied."

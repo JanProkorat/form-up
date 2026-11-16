@@ -66,12 +66,12 @@ export default function PlanPickerPage() {
       return {
         label: switchPending
           ? endsAt
-            ? t('subscription.billing.picker.switchesToFree', { date: endsAt })
-            : t('subscription.billing.picker.switchesToFreeNoDate')
+            ? t('subscription.billing.picker.switchesToFree', { free: name, date: endsAt })
+            : t('subscription.billing.picker.switchesToFreeNoDate', { free: name })
           : t('subscription.planChoice.card.switchFree'),
         primary: false,
         disabled: switchPending,
-        onClick: selection.switchToFree,
+        onClick: () => selection.switchToFree(name),
       };
     }
     const higher = planDisplayPrice(plan, bothRoles) > currentPrice;
@@ -152,6 +152,8 @@ export default function PlanPickerPage() {
   const formatDate = (iso: string | undefined) => (iso ? dateFormat.format(new Date(iso)) : null);
   const periodEndDate = formatDate(data?.currentPeriodEndsAt);
   const currentName = subscription.planName;
+  const freePlanDto = plans.find((plan) => plan.code === FREE_PLAN_CODE);
+  const freeName = freePlanDto ? coachPlanName(freePlanDto, i18n.language) : FREE_PLAN_CODE;
 
   const barHint = ((): { hint: string; extraHint?: string } => {
     const checkoutHint = { hint: t('subscription.billing.select.hintStripePages') };
@@ -177,16 +179,18 @@ export default function PlanPickerPage() {
     }
     const currency = preview.currency ?? 'CZK';
     const nextDate = formatDate(preview.nextChargeAt);
-    const per = t(
-      `subscription.planChoice.card.per.${preview.billingInterval === BillingInterval.Annual ? 'year' : 'month'}`,
-    );
+    const annual = preview.billingInterval === BillingInterval.Annual;
+    const per = t(`subscription.planChoice.card.per.${annual ? 'year' : 'month'}`);
+    const span = t(`subscription.billing.select.${annual ? 'hintSpanYear' : 'hintSpanMonth'}`);
     const today = formatMoney(preview.todayAmountMinorUnits ?? 0, currency, i18n.language);
     const next = formatMoney(preview.nextAmountMinorUnits ?? 0, currency, i18n.language);
     return {
       hint: nextDate
-        ? t('subscription.billing.select.hintUpgradeToday', { today, next, per, date: nextDate })
-        : t('subscription.billing.select.hintUpgradeTodayNoDate', { today, next, per }),
-      extraHint: preview.cancelsScheduledSwitchToFree ? t('subscription.billing.select.hintCancelsFree') : undefined,
+        ? t('subscription.billing.select.hintUpgradeToday', { today, next, per, span, date: nextDate })
+        : t('subscription.billing.select.hintUpgradeTodayNoDate', { today, next, per, span }),
+      extraHint: preview.cancelsScheduledSwitchToFree
+        ? t('subscription.billing.select.hintCancelsFree', { free: freeName })
+        : undefined,
     };
   })();
 
