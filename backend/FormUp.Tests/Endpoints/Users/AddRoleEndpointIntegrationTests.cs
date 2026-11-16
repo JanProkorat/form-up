@@ -21,8 +21,11 @@ namespace FormUp.Tests.Endpoints.Users;
 /// </list>
 /// </summary>
 [Collection(TestCollection.Name)]
-public class AddRoleEndpointIntegrationTests(FitnessApiFactory factory)
+public class AddRoleEndpointIntegrationTests(FitnessApiFactory factory) : IDisposable
 {
+    /// <summary>Leaves the shared fake provider in its defaults for the next test class.</summary>
+    public void Dispose() => BillingTestData.ResetProvider(factory);
+
     private static string UniqueEmail() => $"{Guid.NewGuid():N}@addrole-test.com";
     private const string TestPassword = "TestPass1!";
 
@@ -276,6 +279,124 @@ public class AddRoleEndpointIntegrationTests(FitnessApiFactory factory)
             "/users/me/roles", new { Role = "Nutritionist" }, TestContext.Current.CancellationToken);
 
         resp.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    // ── Restoring a role whose add-on removal was scheduled ──────────────────
+
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
+    /// <summary>A two-role coach paying the add-on who has removed the Trainer role, so its end is scheduled.</summary>
+    private async Task<(Actor Coach, string SubscriptionId)> ArrangeScheduledRemovalAsync()
+    {
+        var coach = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Nutritionist).CreateAsync(Ct);
+        var (plan, _) = await BillingTestData.StripePlanAsync(factory, price: 29900, addOn: 9900, bothRolesIncluded: false);
+        var subscriptionId = await BillingTestData.SubscribeLiveAsync(
+            factory, coach, plan, paysSecondRoleAddOn: true, currentPeriodEndsAt: DateTimeOffset.UtcNow.AddDays(12));
+        (await coach.Http.DeleteAsync("/users/me/roles/Trainer", Ct)).StatusCode.Should().Be(HttpStatusCode.OK);
+
+        return (coach, subscriptionId);
+    }
+
+    private async Task<DateTime?> TrainerRemovedAtAsync(Guid userId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        return await db.ProfessionalProfiles.AsNoTracking()
+            .Where(p => p.UserId == userId)
+            .Select(p => p.TrainerRoleRemovedAt)
+            .SingleAsync(Ct);
+    }
+
+    [Fact]
+    public async Task Post_RolesMe_RestoringBeforeTheRenewal_DropsTheScheduledEnd_WithoutACharge()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var (coach, subscriptionId) = await ArrangeScheduledRemovalAsync();
+
+        var resp = await coach.Http.PostAsJsonAsync("/users/me/roles", new { Role = "Trainer" }, Ct);
+
+        resp.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.ClearedScheduledChanges.Should().Equal(subscriptionId);
+        fake.PlanChanges.Should().ContainSingle("only the removal scheduled a change; the restore adds none");
+        fake.Charges.Should().BeEmpty();
+        (await BillingTestData.ReadRowAsync(factory, coach.ProfileId)).SecondRoleAddOnEndsAt.Should().BeNull();
+        (await TrainerRemovedAtAsync(coach.UserId)).Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Post_RolesMe_RestoringWithAScheduledDowngrade_SchedulesThePendingPlanWithItsAddOn()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var coach = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Nutritionist).CreateAsync(Ct);
+        var (plan, _) = await BillingTestData.StripePlanAsync(factory, price: 29900, addOn: 9900, bothRolesIncluded: false);
+        var (downgrade, downgradePriceId) = await BillingTestData.StripePlanAsync(factory, price: 19900, addOn: 4900, bothRolesIncluded: false);
+        var subscriptionId = await BillingTestData.SubscribeLiveAsync(
+            factory, coach, plan, paysSecondRoleAddOn: true, currentPeriodEndsAt: DateTimeOffset.UtcNow.AddDays(12));
+        await BillingTestData.SetPendingPlanAsync(factory, coach.ProfileId, downgrade);
+        (await coach.Http.DeleteAsync("/users/me/roles/Trainer", Ct)).StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var resp = await coach.Http.PostAsJsonAsync("/users/me/roles", new { Role = "Trainer" }, Ct);
+
+        resp.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.ClearedScheduledChanges.Should().BeEmpty();
+        fake.PlanChanges.Should().HaveCount(2);
+        fake.PlanChanges[1].Should().BeEquivalentTo(new FakeSubscriptionService.ChangePlanCall(
+            subscriptionId, downgrade, downgradePriceId, AtNextRenewal: true, AddOnAmountMinorUnits: 4900));
+        fake.Charges.Should().BeEmpty();
+        var row = await BillingTestData.ReadRowAsync(factory, coach.ProfileId);
+        row.SecondRoleAddOnEndsAt.Should().BeNull();
+        row.PendingSubscriptionPlanPriceId.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task Post_RolesMe_RestoringWhenTheProviderFails_Returns502_AndTheRoleStaysRemoved()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var (coach, _) = await ArrangeScheduledRemovalAsync();
+        fake.FailClearScheduledChange = true;
+
+        var resp = await coach.Http.PostAsJsonAsync("/users/me/roles", new { Role = "Trainer" }, Ct);
+
+        resp.StatusCode.Should().Be(HttpStatusCode.BadGateway);
+        (await resp.Content.ReadAsStringAsync(Ct)).Should().Contain(FormUp.Application.Domain.Constants.ErrorCodes.BillingProviderError);
+        (await TrainerRemovedAtAsync(coach.UserId)).Should().NotBeNull();
+        (await BillingTestData.ReadRowAsync(factory, coach.ProfileId)).SecondRoleAddOnEndsAt.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task Post_RolesMe_RestoringWhenBillingIsNotConfigured_Returns503_AndTheRoleStaysRemoved()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var (coach, _) = await ArrangeScheduledRemovalAsync();
+        fake.IsConfigured = false;
+
+        var resp = await coach.Http.PostAsJsonAsync("/users/me/roles", new { Role = "Trainer" }, Ct);
+
+        resp.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
+        (await resp.Content.ReadAsStringAsync(Ct)).Should().Contain(FormUp.Application.Domain.Constants.ErrorCodes.BillingNotConfigured);
+        (await TrainerRemovedAtAsync(coach.UserId)).Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task Post_RolesMe_RestoringAfterTheScheduledEndDate_Returns403_BecauseTheAddOnMustBeBoughtAgain()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var (coach, _) = await ArrangeScheduledRemovalAsync();
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            await db.CoachSubscriptions
+                .Where(cs => cs.ProfessionalProfileId == coach.ProfileId)
+                .ExecuteUpdateAsync(
+                    setters => setters.SetProperty(cs => cs.SecondRoleAddOnEndsAt, DateTimeOffset.UtcNow.AddHours(-1)), Ct);
+        }
+
+        var resp = await coach.Http.PostAsJsonAsync("/users/me/roles", new { Role = "Trainer" }, Ct);
+
+        resp.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await resp.Content.ReadAsStringAsync(Ct)).Should().Contain(FormUp.Application.Domain.Constants.ErrorCodes.SubscriptionRequired);
+        fake.ClearedScheduledChanges.Should().BeEmpty();
     }
 
     // ── Local response DTO (per slice rules — no cross-feature imports) ──────
