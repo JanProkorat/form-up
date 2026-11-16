@@ -99,13 +99,15 @@ export default function PlanCard({
         )}
       </div>
 
-      <div className="flex flex-col gap-1">
-        {priceText ? (
-          <span className="text-subhead font-semibold text-ink">{priceText}</span>
-        ) : (
+      {/* With priceText the price row and note slot stay as an invisible spacer in the same grid cell, so the block keeps its height. */}
+      <div className="grid">
+        <div
+          className={`col-start-1 row-start-1 flex flex-col gap-1 ${priceText ? 'invisible' : ''}`}
+          aria-hidden={priceText ? true : undefined}
+        >
           <div className="flex items-baseline gap-2">
             <span className="text-stat font-semibold text-ink">{price}</span>
-            {originalPrice && (
+            {originalPrice && !priceText && (
               <s className="text-copy text-muted-foreground">
                 <span className="sr-only">{t('subscription.promotion.card.regularPrice')} </span>
                 {originalPrice}
@@ -113,9 +115,12 @@ export default function PlanCard({
             )}
             <span className="text-body text-muted-foreground">{t(`subscription.planChoice.card.per.${interval}`)}</span>
           </div>
+          {/* Two lines are reserved for the note so the buttons line up across the cards. */}
+          <span className="min-h-9 text-meta text-muted-foreground">{priceNote}</span>
+        </div>
+        {priceText && (
+          <span className="col-start-1 row-start-1 self-start text-subhead font-semibold text-ink">{priceText}</span>
         )}
-        {/* Two lines are reserved for the note so the buttons line up across the cards. */}
-        <span className="min-h-9 text-meta text-muted-foreground">{priceNote}</span>
       </div>
 
       {/* Two lines are reserved for the price note so the buttons line up across the cards. */}
