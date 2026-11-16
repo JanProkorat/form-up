@@ -199,7 +199,7 @@ export default function PlanPickerPage() {
     : t('subscription.billing.picker.rolesOne', { role: t(isNutritionist ? 'roles.nutritionist' : 'roles.trainer') });
 
   return (
-    <div className="flex min-h-full flex-col gap-5">
+    <div className="-mb-6 flex min-h-[calc(100%+--spacing(6))] flex-col gap-5">
       <div className="flex items-center gap-3.5">
         <Button asChild variant="outline" size="icon-lg" className="size-11 shrink-0">
           <Link to={PLAN_BILLING_PATH} aria-label={t('subscription.billing.picker.back')}>
