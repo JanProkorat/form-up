@@ -319,6 +319,8 @@
         "switchTo": "Přejít na {{plan}}",
         "switchesToFree": "Přechod na tarif {{free}} {{date}}",
         "switchesToFreeNoDate": "Přechod na tarif {{free}} na konci období",
+        "switchesTo": "Přechod na tarif {{plan}} {{date}}",
+        "switchesToNoDate": "Přechod na tarif {{plan}} na konci období",
         "footer": "Platba měsíčně. Platba kartou, faktury i zrušení probíhají na zabezpečených stránkách Stripe. Snížení tarifu nebo zrušení se projeví na konci zaplaceného měsíce."
       },
       "register": {
@@ -347,6 +349,12 @@
       "switchFree": {
         "scheduled": "Přejdete na tarif {{free}} dne {{date}}.",
         "scheduledNoDate": "Na konci zaplaceného období přejdete na tarif {{free}}."
+      },
+      "cancelChange": {
+        "keep": "Ponechat {{plan}}",
+        "hint": "Zruší přechod na tarif {{target}} {{date}}. Zůstanete na tarifu {{plan}}, nyní se nic neúčtuje.",
+        "hintNoDate": "Zruší přechod na tarif {{target}}. Zůstanete na tarifu {{plan}}, nyní se nic neúčtuje.",
+        "toast": "Změna zrušena. Zůstáváte na tarifu {{plan}}."
       },
       "code": {
         "applied": "Kód byl použit."
@@ -381,6 +389,7 @@
       },
       "errors": {
         "generic": "Něco se nepovedlo. Zkuste to prosím znovu.",
+        "cancelChange": "Změnu se nepodařilo zrušit. Zkuste to prosím znovu.",
         "changePlan": "Tarif se nepodařilo změnit. Zkuste to prosím znovu.",
         "switchFree": "Přechod na tarif Zdarma se nepodařilo naplánovat. Zkuste to prosím znovu.",
         "portal": "Správu plateb se nepodařilo otevřít. Zkuste to prosím znovu.",
@@ -632,7 +641,13 @@
         "until": "Měsíčně · {{plan}} do {{date}}",
         "begins": "{{plan}} začne {{date}}",
         "beginsPriced": "{{plan}} začne {{date}} · {{price}}",
-        "secondRoleEnds": "Druhá role se přestane účtovat od {{date}}. Nová měsíční platba: {{amount}}."
+        "secondRoleEnds": "Druhá role se přestane účtovat od {{date}}. Nová měsíční platba: {{amount}}.",
+        "cancel": "Zrušit změnu",
+        "cancelDialog": {
+          "title": "Zrušit naplánovanou změnu?",
+          "body": "Zůstanete na tarifu {{plan}} a {{date}} se obnoví. Nic se nyní neúčtuje.",
+          "bodyNoDate": "Zůstanete na tarifu {{plan}} a obnoví se. Nic se nyní neúčtuje."
+        }
       },
       "freeUntil": "V ceně do {{date}}",
       "setByFormUpUntil": "Do {{date}} · Nastaveno Form Up",
@@ -3816,6 +3831,9 @@
     "BILLING_NO_SUBSCRIPTION": "Zatím nemáte žádné aktivní placené předplatné.",
     "BILLING_ALREADY_SUBSCRIBED": "Placené předplatné už máte. Použijte Změnit tarif.",
     "BILLING_GIFT_IN_FORCE": "Váš současný tarif nastavil Form Up, takže ho tady nelze změnit, dokud neskončí.",
+    "BILLING_RENEWAL_CANCELLED_BY_ADMIN": "Obnovení vašeho tarifu zrušil Form Up. Chcete-li to změnit, kontaktujte nás.",
+    "BILLING_ACCOUNT_DISABLING": "Váš trenérský účet se ruší. Nejprve ho ponechte.",
+    "BILLING_NOTHING_SCHEDULED": "Žádná změna není naplánovaná.",
     "BILLING_PLAN_UNCHANGED": "Tento tarif už máte.",
     "BILLING_CANCELLATION_PENDING": "Váš tarif už na konci zaplaceného období končí.",
     "BILLING_PLAN_CHANGE_PENDING": "Změna tarifu je už naplánovaná. Zkuste to znovu, až se projeví.",

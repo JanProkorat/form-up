@@ -315,6 +315,8 @@
         "switchTo": "Zu {{plan}} wechseln",
         "switchesToFree": "Wechsel zu {{free}} am {{date}}",
         "switchesToFreeNoDate": "Wechsel zu {{free}} zum Periodenende",
+        "switchesTo": "Wechsel zu {{plan}} am {{date}}",
+        "switchesToNoDate": "Wechsel zu {{plan}} zum Periodenende",
         "footer": "Monatliche Abrechnung. Kartenzahlung, Rechnungen und Kündigung laufen auf den sicheren Seiten von Stripe. Ein Downgrade oder eine Kündigung gilt zum Ende des bezahlten Monats."
       },
       "register": {
@@ -343,6 +345,12 @@
       "switchFree": {
         "scheduled": "Ihr Tarif wechselt am {{date}} zu {{free}}.",
         "scheduledNoDate": "Ihr Tarif wechselt zum Ende des bezahlten Zeitraums zu {{free}}."
+      },
+      "cancelChange": {
+        "keep": "{{plan}} behalten",
+        "hint": "Hebt den Wechsel zu {{target}} am {{date}} auf. Sie bleiben bei {{plan}}, jetzt wird nichts berechnet.",
+        "hintNoDate": "Hebt den Wechsel zu {{target}} auf. Sie bleiben bei {{plan}}, jetzt wird nichts berechnet.",
+        "toast": "Änderung zurückgenommen. Sie bleiben beim Tarif {{plan}}."
       },
       "code": {
         "applied": "Code eingelöst."
@@ -375,6 +383,7 @@
       },
       "errors": {
         "generic": "Etwas ist schiefgegangen. Bitte versuchen Sie es erneut.",
+        "cancelChange": "Die Änderung konnte nicht zurückgenommen werden. Bitte versuchen Sie es erneut.",
         "changePlan": "Der Tarif konnte nicht geändert werden. Bitte versuchen Sie es erneut.",
         "switchFree": "Der Wechsel zu Free konnte nicht vorgemerkt werden. Bitte versuchen Sie es erneut.",
         "portal": "Die Zahlungsverwaltung konnte nicht geöffnet werden. Bitte versuchen Sie es erneut.",
@@ -594,7 +603,13 @@
         "until": "Monatlich · {{plan}} bis {{date}}",
         "begins": "{{plan}} beginnt am {{date}}",
         "beginsPriced": "{{plan}} beginnt am {{date}} · {{price}}",
-        "secondRoleEnds": "Die zweite Rolle wird ab dem {{date}} nicht mehr berechnet. Neue monatliche Zahlung: {{amount}}."
+        "secondRoleEnds": "Die zweite Rolle wird ab dem {{date}} nicht mehr berechnet. Neue monatliche Zahlung: {{amount}}.",
+        "cancel": "Änderung zurücknehmen",
+        "cancelDialog": {
+          "title": "Geplante Änderung zurücknehmen?",
+          "body": "Sie bleiben beim Tarif {{plan}}, der sich am {{date}} verlängert. Jetzt wird nichts berechnet.",
+          "bodyNoDate": "Sie bleiben beim Tarif {{plan}}, der sich verlängert. Jetzt wird nichts berechnet."
+        }
       },
       "freeUntil": "Inklusive bis {{date}}",
       "setByFormUpUntil": "Bis {{date}} · Von Form Up gesetzt",
@@ -3663,6 +3678,9 @@
     "BILLING_NO_SUBSCRIPTION": "Sie haben noch kein aktives bezahltes Abonnement.",
     "BILLING_ALREADY_SUBSCRIBED": "Sie haben bereits ein bezahltes Abonnement. Nutzen Sie stattdessen Tarif ändern.",
     "BILLING_GIFT_IN_FORCE": "Form Up hat Ihren aktuellen Tarif festgelegt, daher kann er hier erst nach seinem Ende geändert werden.",
+    "BILLING_RENEWAL_CANCELLED_BY_ADMIN": "Form Up hat die Verlängerung Ihres Tarifs beendet. Kontaktieren Sie uns, wenn Sie das ändern möchten.",
+    "BILLING_ACCOUNT_DISABLING": "Ihr Coach-Konto wird deaktiviert. Behalten Sie es zuerst.",
+    "BILLING_NOTHING_SCHEDULED": "Es ist keine Änderung geplant.",
     "BILLING_PLAN_UNCHANGED": "Sie haben diesen Tarif bereits.",
     "BILLING_CANCELLATION_PENDING": "Ihr Tarif endet bereits zum Ende des bezahlten Zeitraums.",
     "BILLING_PLAN_CHANGE_PENDING": "Eine Tarifänderung ist bereits vorgemerkt. Versuchen Sie es erneut, sobald sie gilt.",

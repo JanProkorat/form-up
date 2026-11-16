@@ -125,6 +125,35 @@ internal static class BillingTestData
             .ExecuteUpdateAsync(setters => setters.SetProperty(cs => cs.PendingSubscriptionPlanPriceId, priceId), TestContext.Current.CancellationToken);
     }
 
+    /// <summary>Changes fields of the coach's subscription row the seeding helpers do not expose.</summary>
+    /// <param name="factory">The test host.</param>
+    /// <param name="profileId">The coach's profile id.</param>
+    /// <param name="change">The edit to apply to the tracked row.</param>
+    public static async Task UpdateRowAsync(FitnessApiFactory factory, long profileId, Action<CoachSubscription> change)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var row = await db.CoachSubscriptions.SingleAsync(cs => cs.ProfessionalProfileId == profileId, TestContext.Current.CancellationToken);
+
+        change(row);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>Marks the coach account as being disabled, ending in the future.</summary>
+    /// <param name="factory">The test host.</param>
+    /// <param name="profileId">The coach's profile id.</param>
+    public static async Task SetDisablingAsync(FitnessApiFactory factory, long profileId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        await db.ProfessionalProfiles
+            .Where(p => p.Id == profileId)
+            .ExecuteUpdateAsync(
+                setters => setters.SetProperty(p => p.CoachAccountActiveUntil, DateTime.UtcNow.AddDays(5)),
+                TestContext.Current.CancellationToken);
+    }
+
     /// <summary>Marks a plan inactive.</summary>
     /// <param name="factory">The test host.</param>
     /// <param name="planCode">Code of the plan.</param>

@@ -66,6 +66,46 @@ public class CancelCoachRenewalEndpointTests(FitnessApiFactory factory)
         (await AuditCountAsync(coach.UserId)).Should().Be(1, "the repeat is idempotent and leaves no second history entry");
     }
 
+    private async Task<DateTimeOffset?> AdminMarkerAsync(long profileId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        return await db.CoachSubscriptions.AsNoTracking()
+            .Where(cs => cs.ProfessionalProfileId == profileId)
+            .Select(cs => cs.RenewalCancelledByAdminAt)
+            .SingleAsync(Ct);
+    }
+
+    [Fact]
+    public async Task Cancel_PayingCoach_SetsTheAdminMarker()
+    {
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var plan = await PaidPlanBuilder.CreateAsync(factory);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, plan);
+
+        (await CancelAsync(admin, coach.UserId)).StatusCode.Should().Be(HttpStatusCode.OK);
+
+        (await AdminMarkerAsync(coach.ProfileId)).Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromMinutes(1));
+    }
+
+    [Fact]
+    public async Task Cancel_WhenTheCoachAlreadyScheduledTheSwitchThemselves_StillLocksItWithTheMarker_AndWritesNoHistoryEntry()
+    {
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var plan = await PaidPlanBuilder.CreateAsync(factory);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, plan, cancelAtPeriodEnd: true);
+
+        var response = await CancelAsync(admin, coach.UserId);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await response.Content.ReadFromJsonAsync<CancelCoachRenewalResponse>(Ct))!.AlreadyCancelled.Should().BeTrue();
+        (await AdminMarkerAsync(coach.ProfileId)).Should().NotBeNull();
+        (await AuditCountAsync(coach.UserId)).Should().Be(0);
+    }
+
     [Fact]
     public async Task Cancel_NoSubscriptionRow_Returns409()
     {

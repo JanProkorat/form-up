@@ -193,6 +193,12 @@ internal sealed class StripeWebhookEndpoint(
         }
 
         row.CancelAtPeriodEnd = subscription.CancelAtPeriodEnd || subscription.CancelAt is not null;
+
+        if (!row.CancelAtPeriodEnd)
+        {
+            row.RenewalCancelledByAdminAt = null;
+        }
+
         row.CurrentPeriodEndsAt = StripeWebhookMapper.LatestPeriodEnd(subscription);
         row.TrialEndsAt = subscription.TrialEnd is { } trialEnd ? StripeWebhookMapper.ToUtc(trialEnd) : null;
         row.GivenFreeAt = null;
@@ -304,6 +310,7 @@ internal sealed class StripeWebhookEndpoint(
         // A canceled status already resolves to the Free plan's entitlements and the keep-clients choice, not a lock.
         row.Status = SubscriptionStatus.Canceled;
         row.CancelAtPeriodEnd = false;
+        row.RenewalCancelledByAdminAt = null;
         row.PendingSubscriptionPlanPriceId = null;
         row.SecondRoleAddOnEndsAt = null;
 

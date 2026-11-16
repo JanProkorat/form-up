@@ -323,6 +323,39 @@ public class GetMySubscriptionEndpointTests(FitnessApiFactory factory)
         scheduled.PriceLines.Should().ContainSingle().Which.AmountMinorUnits.Should().Be(0);
     }
 
+    [Fact]
+    public async Task Get_WithAScheduledDowngradeOrOwnSwitchToFree_IsCancellable()
+    {
+        await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
+        var downgrading = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var leaving = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (current, _) = await BillingTestData.StripePlanAsync(factory, price: 59900);
+        var (next, _) = await BillingTestData.StripePlanAsync(factory, price: 29900);
+        await BillingTestData.SubscribeLiveAsync(factory, downgrading, current);
+        await BillingTestData.SetPendingPlanAsync(factory, downgrading.ProfileId, next);
+        await BillingTestData.SubscribeLiveAsync(factory, leaving, current, cancelAtPeriodEnd: true);
+
+        (await GetAsync(downgrading)).ScheduledPlan!.Cancellable.Should().BeTrue();
+        (await GetAsync(leaving)).ScheduledPlan!.Cancellable.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Get_WhenAnAdminCancelledTheRenewalOrTheAccountIsBeingDisabled_IsNotCancellable()
+    {
+        await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
+        var byAdmin = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var disabling = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (current, _) = await BillingTestData.StripePlanAsync(factory, price: 29900);
+        await BillingTestData.SubscribeLiveAsync(factory, byAdmin, current, cancelAtPeriodEnd: true);
+        await BillingTestData.UpdateRowAsync(
+            factory, byAdmin.ProfileId, row => row.RenewalCancelledByAdminAt = DateTimeOffset.UtcNow);
+        await BillingTestData.SubscribeLiveAsync(factory, disabling, current, cancelAtPeriodEnd: true);
+        await BillingTestData.SetDisablingAsync(factory, disabling.ProfileId);
+
+        (await GetAsync(byAdmin)).ScheduledPlan!.Cancellable.Should().BeFalse();
+        (await GetAsync(disabling)).ScheduledPlan!.Cancellable.Should().BeFalse();
+    }
+
     private async Task SetAddOnEndAsync(Actor coach, DateTimeOffset endsAt)
     {
         using var scope = factory.Services.CreateScope();

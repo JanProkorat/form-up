@@ -432,6 +432,43 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
         (await ReadRowAsync(scenario.Coach.ProfileId)).SecondRoleAddOnEndsAt.Should().BeNull();
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, true)]
+    public async Task Webhook_SubscriptionUpdated_KeepsTheAdminMarkerOnlyWhileTheProviderStillCancels(bool providerCancels, bool markerKept)
+    {
+        var scenario = await ArrangeOnPaidPlanAsync();
+        await UpdateRowAsync(scenario.Coach.ProfileId, row =>
+        {
+            row.CancelAtPeriodEnd = true;
+            row.RenewalCancelledByAdminAt = DateTimeOffset.UtcNow;
+        });
+
+        var response = await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.updated", scenario, "active", cancelAtPeriodEnd: providerCancels));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var row = await ReadRowAsync(scenario.Coach.ProfileId);
+        row.CancelAtPeriodEnd.Should().Be(providerCancels);
+        (row.RenewalCancelledByAdminAt is not null).Should().Be(markerKept);
+    }
+
+    [Fact]
+    public async Task Webhook_SubscriptionDeleted_ClearsTheAdminMarker()
+    {
+        var scenario = await ArrangeOnPaidPlanAsync();
+        await UpdateRowAsync(scenario.Coach.ProfileId, row =>
+        {
+            row.CancelAtPeriodEnd = true;
+            row.RenewalCancelledByAdminAt = DateTimeOffset.UtcNow;
+        });
+
+        var response = await PostAsync(SubscriptionEvent(NewEventId(), "customer.subscription.deleted", scenario, "canceled"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await ReadRowAsync(scenario.Coach.ProfileId)).RenewalCancelledByAdminAt.Should().BeNull();
+    }
+
     [Fact]
     public async Task Webhook_InvoicePaymentFailed_MakesTheSubscriptionPastDue_AndKeepsThePaidEntitlements()
     {

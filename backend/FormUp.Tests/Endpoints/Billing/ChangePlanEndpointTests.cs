@@ -110,6 +110,25 @@ public class ChangePlanEndpointTests(FitnessApiFactory factory) : IDisposable
     }
 
     [Fact]
+    public async Task ChangePlan_UpgradeOverARenewalCancelledByAnAdmin_ClearsTheAdminMarker()
+    {
+        BillingTestData.ResetProvider(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (current, _) = await BillingTestData.StripePlanAsync(factory, price: 29900);
+        var (target, _) = await BillingTestData.StripePlanAsync(factory, price: 59900);
+        await BillingTestData.SubscribeLiveAsync(factory, coach, current, cancelAtPeriodEnd: true);
+        await BillingTestData.UpdateRowAsync(
+            factory, coach.ProfileId, row => row.RenewalCancelledByAdminAt = DateTimeOffset.UtcNow);
+
+        var response = await coach.Http.PostAsJsonAsync(Route, Body(target), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var row = await BillingTestData.ReadRowAsync(factory, coach.ProfileId);
+        row.CancelAtPeriodEnd.Should().BeFalse();
+        row.RenewalCancelledByAdminAt.Should().BeNull("a new purchase ends the admin cancellation");
+    }
+
+    [Fact]
     public async Task ChangePlan_UpgradeAfterTheSecondRoleWasRemoved_ClearsTheScheduledAddOnEnd()
     {
         var fake = BillingTestData.ResetProvider(factory);

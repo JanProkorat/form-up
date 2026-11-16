@@ -2186,6 +2186,10 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("professional_profile_id");
 
+                    b.Property<DateTimeOffset?>("RenewalCancelledByAdminAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("renewal_cancelled_by_admin_at");
+
                     b.Property<DateTimeOffset?>("SecondRoleAddOnEndsAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("second_role_add_on_ends_at");

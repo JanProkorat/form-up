@@ -245,6 +245,20 @@ public class StripeSubscriptionServiceChangePlanTests
         update.Form.Should().Contain(new KeyValuePair<string, string>("proration_behavior", "none"));
     }
 
+    [Fact]
+    public async Task ResumeRenewal_ClearsTheCancelFlagAndTheCancelAtDate_InOneUpdate()
+    {
+        var handler = new ScriptedHandler(HttpStatusCode.OK, SubscriptionJson);
+
+        await NewService(handler).ResumeRenewalAsync(SubscriptionId, TestContext.Current.CancellationToken);
+
+        var update = handler.Requests.Single(r => r.Method == HttpMethod.Post);
+        update.Path.Should().Be("/v1/subscriptions/sub_1");
+        update.Form.Should().Contain(new KeyValuePair<string, string>("cancel_at_period_end", "false"));
+        update.Form.Should().Contain(new KeyValuePair<string, string>("cancel_at", string.Empty));
+        update.Form.Should().NotContain(pair => pair.Key.StartsWith("items", StringComparison.Ordinal));
+    }
+
     private sealed record CapturedRequest(HttpMethod Method, string Path, List<KeyValuePair<string, string>> Form, string? IdempotencyKey);
 
     private sealed class ScriptedHandler(HttpStatusCode defaultStatus, string defaultJson) : HttpMessageHandler

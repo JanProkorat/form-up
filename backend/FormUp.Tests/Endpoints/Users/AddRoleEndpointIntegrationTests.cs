@@ -180,6 +180,27 @@ public class AddRoleEndpointIntegrationTests(FitnessApiFactory factory) : IDispo
             .Select(cs => cs.CancelAtPeriodEnd).FirstAsync(TestContext.Current.CancellationToken)).Should().BeFalse();
     }
 
+    [Fact]
+    public async Task Post_RolesMe_AddingOtherRoleWhileDisablePendingAndAnAdminCancelledTheRenewal_KeepsTheCancelFlag()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        await DisableCoachAccountIntegrationTests.SeedSubscriptionAsync(
+            factory, coach.ProfileId, SubscriptionStatus.Active, DateTimeOffset.UtcNow.AddDays(10),
+            paysSecondRoleAddOn: true);
+        (await coach.Http.PostAsync("/users/me/coach-account/disable", null, TestContext.Current.CancellationToken))
+            .StatusCode.Should().Be(HttpStatusCode.OK);
+        await BillingTestData.UpdateRowAsync(
+            factory, coach.ProfileId, row => row.RenewalCancelledByAdminAt = DateTimeOffset.UtcNow);
+
+        var resp = await coach.Http.PostAsJsonAsync(
+            "/users/me/roles", new { Role = "Nutritionist" }, TestContext.Current.CancellationToken);
+
+        resp.StatusCode.Should().Be(HttpStatusCode.OK);
+        var row = await BillingTestData.ReadRowAsync(factory, coach.ProfileId);
+        row.CancelAtPeriodEnd.Should().BeTrue("the admin's cancellation is not the coach's to undo");
+        row.RenewalCancelledByAdminAt.Should().NotBeNull();
+    }
+
     // ── Second-role rule ─────────────────────────────────────────────────────
 
     [Fact]

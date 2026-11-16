@@ -87,7 +87,12 @@ internal sealed class CancelCoachRenewalEndpoint(
         var subscription = await db.CoachSubscriptions
             .FirstAsync(cs => cs.ProfessionalProfileId == profileId, ct);
 
-        if (!subscription.CancelAtPeriodEnd)
+        var wasCancelling = subscription.CancelAtPeriodEnd;
+
+        // An admin call also locks a cancellation the coach scheduled themselves.
+        subscription.RenewalCancelledByAdminAt ??= timeProvider.GetUtcNow();
+
+        if (!wasCancelling)
         {
             subscription.CancelAtPeriodEnd = true;
             await db.SaveChangesAsync(ct);
@@ -117,6 +122,8 @@ internal sealed class CancelCoachRenewalEndpoint(
             }, ct);
             return;
         }
+
+        await db.SaveChangesAsync(ct);
 
         await Send.OkAsync(new CancelCoachRenewalResponse
         {

@@ -145,6 +145,12 @@ public class ScheduledPlanDto
     /// <summary>When the plan starts: the end of the current period; null when unknown.</summary>
     public DateTimeOffset? StartsAt { get; set; }
 
+    /// <summary>
+    /// True when the coach can cancel this change: a live provider subscription, no admin gift in force, no pending
+    /// coach-account disable and no renewal cancelled by Form Up.
+    /// </summary>
+    public bool Cancellable { get; set; }
+
     /// <summary>Price lines of the plan that starts next: the plan, plus the second-role add-on when the coach would pay it.</summary>
     public List<SubscriptionPriceLineDto> PriceLines { get; set; } = [];
 }

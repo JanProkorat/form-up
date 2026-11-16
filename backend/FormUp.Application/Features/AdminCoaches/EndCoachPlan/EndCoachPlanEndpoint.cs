@@ -105,6 +105,7 @@ internal sealed class EndCoachPlanEndpoint(
         subscription.GivenFreeAt = null;
         subscription.FreeUntil = null;
         subscription.CancelAtPeriodEnd = false;
+        subscription.RenewalCancelledByAdminAt = null;
 
         await CoachLapseLinkReset.ResetAsync(db, profileId.Value, ct);
         await db.SaveChangesAsync(ct);

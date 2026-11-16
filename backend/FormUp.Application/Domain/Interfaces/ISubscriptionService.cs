@@ -190,6 +190,14 @@ public interface ISubscriptionService
     Task CancelAtPeriodEndAsync(string subscriptionId, CancellationToken ct);
 
     /// <summary>
+    /// Undoes a scheduled end of the subscription: it renews again. Clears both the cancel-at-period-end flag and any
+    /// cancel-at date. Charges nothing; repeating the call is safe.
+    /// </summary>
+    /// <param name="subscriptionId">The provider subscription id.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task ResumeRenewalAsync(string subscriptionId, CancellationToken ct);
+
+    /// <summary>
     /// Previews what adding the second-role add-on to an existing subscription would charge today, prorated, with tax as
     /// configured. Changes nothing at the provider.
     /// </summary>

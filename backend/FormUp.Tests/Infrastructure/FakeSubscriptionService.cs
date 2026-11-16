@@ -73,6 +73,12 @@ public sealed class FakeSubscriptionService : ISubscriptionService
     /// <summary>Recorded <see cref="ISubscriptionService.CancelAtPeriodEndAsync"/> calls (subscription ids).</summary>
     public List<string> CancelledAtPeriodEnd { get; } = [];
 
+    /// <summary>Recorded <see cref="ISubscriptionService.ResumeRenewalAsync"/> calls (subscription ids).</summary>
+    public List<string> ResumedRenewals { get; } = [];
+
+    /// <summary>When true only <see cref="ISubscriptionService.ResumeRenewalAsync"/> throws <see cref="BillingProviderException"/>.</summary>
+    public bool FailResumeRenewal { get; set; }
+
     /// <summary>What <see cref="ISubscriptionService.PreviewPlanChangeAsync"/> returns (its currency is replaced by the call's).</summary>
     public PlanChangePreview PlanChangePreviewResult { get; set; } = new(24500, 0, "CZK");
 
@@ -158,6 +164,8 @@ public sealed class FakeSubscriptionService : ISubscriptionService
             FailPromotionCodeCreation = false;
             SubscriptionDiscounts.Clear();
             CancelledAtPeriodEnd.Clear();
+            ResumedRenewals.Clear();
+            FailResumeRenewal = false;
             PreviewResult = new SecondRoleAddOnPreview(12300, 0, "CZK");
             PlanChangePreviewResult = new PlanChangePreview(24500, 0, "CZK");
             PlanChangePreviews.Clear();
@@ -403,6 +411,24 @@ public sealed class FakeSubscriptionService : ISubscriptionService
         lock (gate)
         {
             CancelledAtPeriodEnd.Add(subscriptionId);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public Task ResumeRenewalAsync(string subscriptionId, CancellationToken ct)
+    {
+        ThrowIfFailing();
+
+        if (FailResumeRenewal)
+        {
+            throw new BillingProviderException("Fake resume renewal failure.");
+        }
+
+        lock (gate)
+        {
+            ResumedRenewals.Add(subscriptionId);
         }
 
         return Task.CompletedTask;

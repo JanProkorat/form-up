@@ -95,6 +95,12 @@ public class CoachSubscription : TimestampableEntity
     public bool CancelAtPeriodEnd { get; set; }
 
     /// <summary>
+    /// When an admin cancelled the renewal; the coach cannot undo it. Null when the coach's own switch to Free (or nothing)
+    /// is what stops the renewal. Cleared whenever the flag is cleared by a purchase, the provider or an admin ending the plan.
+    /// </summary>
+    public DateTimeOffset? RenewalCancelledByAdminAt { get; set; }
+
+    /// <summary>
     /// External payment-provider customer identifier.
     /// </summary>
     public string? ExternalCustomerId { get; set; }
