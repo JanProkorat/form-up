@@ -42,6 +42,11 @@ const PLANS: PlanMock[] = [
   { code: 'studio', nameEn: 'Studio', priceMinorUnits: 99900, bothRolesIncluded: true, canSendQuestionnaires: true },
 ];
 
+/** Toast text is also mirrored in a screen-reader live region, so assert on the toast title only. */
+function toastTitle(page: Page, text: string | RegExp) {
+  return page.locator('[data-slot="toast-title"]').filter({ hasText: text });
+}
+
 function json(route: Route, body: unknown, status = 200, contentType = 'application/json') {
   return route.fulfill({ status, contentType, body: JSON.stringify(body) });
 }
@@ -607,7 +612,7 @@ trainerTest.describe('plan picker: cancelling a scheduled change', () => {
     expect(previewCalls).toEqual([]);
 
     await bar.getByRole('button', { name: 'Keep Pro' }).click();
-    await expect(page.getByText('Change cancelled. You stay on Pro.')).toBeVisible();
+    await expect(toastTitle(page, 'Change cancelled. You stay on Pro.')).toBeVisible();
     await expect(page.getByRole('region', { name: 'Selected plan' })).toHaveCount(0);
     await expect(pro.getByRole('button', { name: 'Your plan' })).toBeDisabled();
     expect(cancelCalls).toEqual(['POST']);
@@ -629,7 +634,7 @@ trainerTest.describe('plan picker: cancelling a scheduled change', () => {
     await expect(bar.getByText(/Cancels your switch to Start on .*2026\. You stay on Pro/)).toBeVisible();
     await bar.getByRole('button', { name: 'Keep Pro' }).click();
 
-    await expect(page.getByText('Change cancelled. You stay on Pro.')).toBeVisible();
+    await expect(toastTitle(page, 'Change cancelled. You stay on Pro.')).toBeVisible();
     await expect(page.getByRole('article', { name: 'Start' }).getByRole('button', { name: 'Select Start' })).toBeEnabled();
   });
 
@@ -656,6 +661,6 @@ trainerTest.describe('plan picker: cancelling a scheduled change', () => {
     await page.getByRole('article', { name: 'Pro' }).getByRole('button', { name: 'Select Pro' }).click();
     await page.getByRole('region', { name: 'Selected plan' }).getByRole('button', { name: 'Keep Pro' }).click();
 
-    await expect(page.getByText('Form Up cancelled the renewal of your plan. Contact us to change this.')).toBeVisible();
+    await expect(toastTitle(page, 'Form Up cancelled the renewal of your plan. Contact us to change this.')).toBeVisible();
   });
 });

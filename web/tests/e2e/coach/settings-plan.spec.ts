@@ -12,6 +12,11 @@ function json(route: Route, body: unknown) {
   return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
 }
 
+/** Toast text is also mirrored in a screen-reader live region, so assert on the toast title only. */
+function toastTitle(page: Page, text: string | RegExp) {
+  return page.locator('[data-slot="toast-title"]').filter({ hasText: text });
+}
+
 function subscription(extra: Record<string, unknown>) {
   return {
     planCode: 'pro',
@@ -169,7 +174,7 @@ trainerTest.describe('settings plan card: cancelling a scheduled change', () => 
     await expect(dialog.getByText(/You stay on Pro and it renews on .*2026\. Nothing is charged now\./)).toBeVisible();
     await dialog.getByRole('button', { name: 'Cancel change' }).click();
 
-    await expect(page.getByText('Change cancelled. You stay on Pro.')).toBeVisible();
+    await expect(toastTitle(page, 'Change cancelled. You stay on Pro.')).toBeVisible();
     await expect(page.getByText(/ begins on /)).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Cancel change' })).toHaveCount(0);
     expect(cancelCalls).toEqual(['POST']);
@@ -203,7 +208,7 @@ trainerTest.describe('settings plan card: cancelling a scheduled change', () => 
     await page.getByRole('button', { name: 'Cancel change' }).click();
     await page.getByRole('dialog', { name: 'Cancel the scheduled change?' }).getByRole('button', { name: 'Cancel change' }).click();
 
-    await expect(page.getByText("The payment provider didn't answer. Please try again in a moment.")).toBeVisible();
+    await expect(toastTitle(page, "The payment provider didn't answer. Please try again in a moment.")).toBeVisible();
     await expect(page.getByText(/^Free begins on .*2026$/)).toBeVisible();
   });
 });
