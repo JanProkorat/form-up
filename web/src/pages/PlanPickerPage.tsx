@@ -273,7 +273,7 @@ export default function PlanPickerPage() {
 
       {selected && (
         <PlanConfirmBar
-          className="-mx-6 -mb-6 mt-auto"
+          bleed
           title={selected.barTitle}
           note={selected.barNote}
           hint={barHint.hint}

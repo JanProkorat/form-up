@@ -15,18 +15,23 @@ interface Props {
   confirmLabel: string;
   busy: boolean;
   onConfirm: () => void;
-  /** Extra classes for the placement on the page (negative margins that make it full-bleed). */
+  /**
+   * Bleed past the padding of the scrolling main area (AppShell `p-6`): full width and flush with the viewport bottom.
+   * Sticky offsets are measured from the content box, so the bottom offset is negative to cancel the padding.
+   */
+  bleed?: boolean;
+  /** Extra classes for the placement on the page. */
   className?: string;
 }
 
 /** Sticky bottom bar of the plan screens: the selected plan on the left, the confirm button on the right. */
-export default function PlanConfirmBar({ title, note, hint, extraHint, confirmLabel, busy, onConfirm, className = '' }: Props) {
+export default function PlanConfirmBar({ title, note, hint, extraHint, confirmLabel, busy, onConfirm, bleed = false, className = '' }: Props) {
   const { t } = useTranslation();
 
   return (
     <section
       aria-label={t('subscription.billing.select.region')}
-      className={`sticky bottom-0 z-10 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line bg-card px-4 py-3 sm:px-8 ${className}`}
+      className={`sticky ${bleed ? '-bottom-6 -mx-6 -mb-6 mt-auto' : 'bottom-0'} z-10 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line bg-card px-4 py-3 sm:px-8 ${className}`}
     >
       <div className="flex min-w-0 flex-col gap-0.75">
         <span className="text-subhead font-semibold text-ink">{title}</span>
