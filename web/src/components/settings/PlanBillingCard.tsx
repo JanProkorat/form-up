@@ -11,6 +11,7 @@ import {
   type ScheduledPlanDto,
   type SubscriptionFeaturesDto,
 } from '@/api/generated';
+import CancelScheduledChangeDialog from '@/components/settings/CancelScheduledChangeDialog';
 import SettingsCard from '@/components/settings/SettingsCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +20,7 @@ import { billingErrorMessage, showBillingError } from '@/components/subscription
 import { formatMoney } from '@/components/subscription/money';
 import TaxNote from '@/components/subscription/TaxNote';
 import UsageBar from '@/components/subscription/UsageBar';
+import { useCancelScheduledChange } from '@/components/subscription/usePlanSelection';
 import { useApplyPromotionCode, useOpenBillingPortal, useSubscription } from '@/hooks/useSubscriptionQueries';
 import { PLAN_BILLING_ANCHOR, PLAN_PICKER_PATH } from '@/components/subscription/planLinks';
 import { useToastStore } from '@/stores/toast';
@@ -59,6 +61,8 @@ export default function PlanBillingCard() {
   const [code, setCode] = useState('');
   const [codeError, setCodeError] = useState<string | null>(null);
   const canOpenPortal = data?.hasBillingAccount === true;
+  const cancelChange = useCancelScheduledChange();
+  const [cancelOpen, setCancelOpen] = useState(false);
 
   const openPortal = () =>
     portal.mutate(undefined, { onError: (error) => showBillingError(error, 'subscription.billing.errors.portal') });
@@ -197,10 +201,21 @@ export default function PlanBillingCard() {
                 </div>
                 {subtitle && <span className="text-body text-muted-foreground">{subtitle}</span>}
                 {(scheduledLine ?? addOnEndLine) && (
-                  <span className="inline-flex items-center gap-1.5 text-body font-semibold text-training-ink">
-                    <CalendarClock className="size-4 shrink-0" aria-hidden="true" />
-                    {scheduledLine ?? addOnEndLine}
-                  </span>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <span className="inline-flex items-center gap-1.5 text-body font-semibold text-training-ink">
+                      <CalendarClock className="size-4 shrink-0" aria-hidden="true" />
+                      {scheduledLine ?? addOnEndLine}
+                    </span>
+                    {scheduledLine && scheduled?.cancellable === true && (
+                      <button
+                        type="button"
+                        className="text-body font-semibold text-ink underline underline-offset-2 hover:text-ink-2"
+                        onClick={() => setCancelOpen(true)}
+                      >
+                        {t('subscription.plan.scheduled.cancel')}
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
               <span className="ml-auto flex items-center gap-2">
@@ -376,6 +391,14 @@ export default function PlanBillingCard() {
           </>
         )}
       </SettingsCard>
+      <CancelScheduledChangeDialog
+        open={cancelOpen}
+        planName={planName}
+        renewsOn={periodEnd}
+        pending={cancelChange.isPending}
+        onConfirm={() => cancelChange.mutate(planName, { onSettled: () => setCancelOpen(false) })}
+        onClose={() => setCancelOpen(false)}
+      />
     </div>
   );
 }

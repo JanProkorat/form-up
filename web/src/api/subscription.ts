@@ -1,5 +1,6 @@
 import { apiClient } from '@/api/client';
 import type {
+  CancelScheduledPlanChangeResponse,
   ChangePlanResponse,
   ConfirmSecondRoleAddOnResponse,
   CreateCheckoutSessionRequest,
@@ -53,6 +54,11 @@ export async function previewPlanChange(planCode: string): Promise<PreviewPlanCh
 /** POST /billing/switch-to-free — ends the paid plan at the end of the paid period. */
 export async function switchToFree(): Promise<ScheduleSwitchToFreeResponse> {
   return apiClient.scheduleSwitchToFreeEndpoint();
+}
+
+/** POST /billing/scheduled-change/cancel — drops the scheduled downgrade or switch to Free; the coach stays on the current plan. */
+export async function cancelScheduledChange(): Promise<CancelScheduledPlanChangeResponse> {
+  return apiClient.cancelScheduledPlanChangeEndpoint();
 }
 
 /** POST /billing/promotion-code — applies a code to the caller's subscription (204). */

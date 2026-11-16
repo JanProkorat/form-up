@@ -562,3 +562,100 @@ trainerTest.describe('plan picker: a plan set by Form Up', () => {
     await expect(page.getByText(/plan from Form Up will end/)).toHaveCount(0);
   });
 });
+
+/** A live Pro coach whose switch to `target` is scheduled for the end of the period. */
+function scheduledChange(target: 'free' | 'start', cancellable: boolean) {
+  const name = target === 'free' ? 'Free' : 'Start';
+  return liveSubscription('pro', {
+    cancelAtPeriodEnd: target === 'free',
+    scheduledPlan: {
+      planCode: target,
+      nameCs: name,
+      nameEn: name,
+      nameDe: name,
+      startsAt: PERIOD_END,
+      cancellable,
+      priceLines: [],
+    },
+  });
+}
+
+trainerTest.describe('plan picker: cancelling a scheduled change', () => {
+  trainerTest('keeps Pro over a scheduled switch to Free: Free stays disabled, no preview call, one cancel POST', async ({ page }) => {
+    await mockPickerReads(page, 'Vat21', undefined, scheduledChange('free', true));
+    const previewCalls: string[] = [];
+    await page.route(/\/billing\/change-plan\/preview$/, (route) => {
+      previewCalls.push(route.request().url());
+      return route.fulfill({ status: 500, contentType: 'application/json', body: '{}' });
+    });
+    const cancelCalls: string[] = [];
+    await page.route(/\/billing\/scheduled-change\/cancel$/, async (route) => {
+      cancelCalls.push(route.request().method());
+      // The refetch after the cancel no longer carries a scheduled change.
+      await mockPickerReads(page, 'Vat21', undefined, liveSubscription('pro'));
+      return json(route, { kind: 'SwitchToFree', planCode: 'free' });
+    });
+
+    await page.goto('/plan');
+    const pro = page.getByRole('article', { name: 'Pro' });
+    await expect(pro.getByText('Your plan', { exact: true }).first()).toBeVisible();
+    await expect(page.getByRole('article', { name: 'Free' }).getByRole('button', { name: /Switches to Free on .*2026/ })).toBeDisabled();
+
+    await pro.getByRole('button', { name: 'Select Pro' }).click();
+    const bar = page.getByRole('region', { name: 'Selected plan' });
+    await expect(bar.getByText(/Cancels your switch to Free on .*2026\. You stay on Pro, nothing is charged now\./)).toBeVisible();
+    expect(previewCalls).toEqual([]);
+
+    await bar.getByRole('button', { name: 'Keep Pro' }).click();
+    await expect(page.getByText('Change cancelled. You stay on Pro.')).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Selected plan' })).toHaveCount(0);
+    await expect(pro.getByRole('button', { name: 'Your plan' })).toBeDisabled();
+    expect(cancelCalls).toEqual(['POST']);
+    expect(previewCalls).toEqual([]);
+  });
+
+  trainerTest('keeps Pro over a scheduled downgrade: the target card is disabled and the bar names it', async ({ page }) => {
+    await mockPickerReads(page, 'Vat21', undefined, scheduledChange('start', true));
+    await page.route(/\/billing\/scheduled-change\/cancel$/, async (route) => {
+      await mockPickerReads(page, 'Vat21', undefined, liveSubscription('pro'));
+      return json(route, { kind: 'Downgrade', planCode: 'start', renewsAt: PERIOD_END });
+    });
+
+    await page.goto('/plan');
+    await expect(page.getByRole('article', { name: 'Start' }).getByRole('button', { name: /Switches to Start on .*2026/ })).toBeDisabled();
+
+    await page.getByRole('article', { name: 'Pro' }).getByRole('button', { name: 'Select Pro' }).click();
+    const bar = page.getByRole('region', { name: 'Selected plan' });
+    await expect(bar.getByText(/Cancels your switch to Start on .*2026\. You stay on Pro/)).toBeVisible();
+    await bar.getByRole('button', { name: 'Keep Pro' }).click();
+
+    await expect(page.getByText('Change cancelled. You stay on Pro.')).toBeVisible();
+    await expect(page.getByRole('article', { name: 'Start' }).getByRole('button', { name: 'Select Start' })).toBeEnabled();
+  });
+
+  trainerTest('a change that cannot be cancelled leaves the current card unselectable', async ({ page }) => {
+    await mockPickerReads(page, 'Vat21', undefined, scheduledChange('start', false));
+    await page.goto('/plan');
+
+    await expect(page.getByRole('article', { name: 'Pro' }).getByRole('button', { name: 'Your plan' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: /Keep Pro/ })).toHaveCount(0);
+  });
+
+  trainerTest('a 409 from a stale tab shows its message', async ({ page }) => {
+    await mockPickerReads(page, 'Vat21', undefined, scheduledChange('free', true));
+    await page.route(/\/billing\/scheduled-change\/cancel$/, (route) =>
+      json(
+        route,
+        { status: 409, title: 'Conflict', errorCode: 'BILLING_RENEWAL_CANCELLED_BY_ADMIN' },
+        409,
+        'application/problem+json',
+      ),
+    );
+
+    await page.goto('/plan');
+    await page.getByRole('article', { name: 'Pro' }).getByRole('button', { name: 'Select Pro' }).click();
+    await page.getByRole('region', { name: 'Selected plan' }).getByRole('button', { name: 'Keep Pro' }).click();
+
+    await expect(page.getByText('Form Up cancelled the renewal of your plan. Contact us to change this.')).toBeVisible();
+  });
+});

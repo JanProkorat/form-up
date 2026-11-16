@@ -139,3 +139,71 @@ trainerTest.describe('settings plan card with a scheduled change', () => {
     await expect(page.getByText(/ begins on /)).toHaveCount(0);
   });
 });
+
+const FREE_SCHEDULED = {
+  planCode: 'free',
+  nameCs: 'Free',
+  nameEn: 'Free',
+  nameDe: 'Free',
+  startsAt: PERIOD_END,
+  priceLines: [],
+};
+
+trainerTest.describe('settings plan card: cancelling a scheduled change', () => {
+  trainerTest('confirming cancels the change, refetches and shows the toast', async ({ page }) => {
+    await mockSubscription(
+      page,
+      subscription({ cancelAtPeriodEnd: true, scheduledPlan: { ...FREE_SCHEDULED, cancellable: true } }),
+    );
+    const cancelCalls: string[] = [];
+    await page.route(/\/billing\/scheduled-change\/cancel$/, async (route) => {
+      cancelCalls.push(route.request().method());
+      await mockSubscription(page, subscription({}));
+      return json(route, { kind: 'SwitchToFree', planCode: 'free' });
+    });
+    await page.goto('/settings#plan-billing');
+
+    await expect(page.getByText(/^Free begins on .*2026$/)).toBeVisible();
+    await page.getByRole('button', { name: 'Cancel change' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Cancel the scheduled change?' });
+    await expect(dialog.getByText(/You stay on Pro and it renews on .*2026\. Nothing is charged now\./)).toBeVisible();
+    await dialog.getByRole('button', { name: 'Cancel change' }).click();
+
+    await expect(page.getByText('Change cancelled. You stay on Pro.')).toBeVisible();
+    await expect(page.getByText(/ begins on /)).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Cancel change' })).toHaveCount(0);
+    expect(cancelCalls).toEqual(['POST']);
+  });
+
+  trainerTest('the action is hidden when the change cannot be cancelled', async ({ page }) => {
+    await mockSubscription(
+      page,
+      subscription({ cancelAtPeriodEnd: true, scheduledPlan: { ...FREE_SCHEDULED, cancellable: false } }),
+    );
+    await page.goto('/settings#plan-billing');
+
+    await expect(page.getByText(/^Free begins on .*2026$/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Cancel change' })).toHaveCount(0);
+  });
+
+  trainerTest('a provider error shows its message and keeps the scheduled line', async ({ page }) => {
+    await mockSubscription(
+      page,
+      subscription({ cancelAtPeriodEnd: true, scheduledPlan: { ...FREE_SCHEDULED, cancellable: true } }),
+    );
+    await page.route(/\/billing\/scheduled-change\/cancel$/, (route) =>
+      route.fulfill({
+        status: 502,
+        contentType: 'application/problem+json',
+        body: JSON.stringify({ status: 502, title: 'Bad Gateway', errorCode: 'BILLING_PROVIDER_ERROR' }),
+      }),
+    );
+    await page.goto('/settings#plan-billing');
+
+    await page.getByRole('button', { name: 'Cancel change' }).click();
+    await page.getByRole('dialog', { name: 'Cancel the scheduled change?' }).getByRole('button', { name: 'Cancel change' }).click();
+
+    await expect(page.getByText("The payment provider didn't answer. Please try again in a moment.")).toBeVisible();
+    await expect(page.getByText(/^Free begins on .*2026$/)).toBeVisible();
+  });
+});

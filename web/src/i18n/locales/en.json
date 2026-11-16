@@ -315,6 +315,8 @@
         "switchTo": "Switch to {{plan}}",
         "switchesToFree": "Switches to {{free}} on {{date}}",
         "switchesToFreeNoDate": "Switches to {{free}} at period end",
+        "switchesTo": "Switches to {{plan}} on {{date}}",
+        "switchesToNoDate": "Switches to {{plan}} at period end",
         "footer": "Billed monthly. Card payment, invoices and cancelling run on Stripe's secure pages. A downgrade or cancellation takes effect at the end of the paid month."
       },
       "register": {
@@ -343,6 +345,12 @@
       "switchFree": {
         "scheduled": "Your plan switches to {{free}} on {{date}}.",
         "scheduledNoDate": "Your plan switches to {{free}} at the end of the paid period."
+      },
+      "cancelChange": {
+        "keep": "Keep {{plan}}",
+        "hint": "Cancels your switch to {{target}} on {{date}}. You stay on {{plan}}, nothing is charged now.",
+        "hintNoDate": "Cancels your switch to {{target}}. You stay on {{plan}}, nothing is charged now.",
+        "toast": "Change cancelled. You stay on {{plan}}."
       },
       "code": {
         "applied": "Code applied."
@@ -375,6 +383,7 @@
       },
       "errors": {
         "generic": "Something went wrong. Please try again.",
+        "cancelChange": "Could not cancel the change. Please try again.",
         "changePlan": "Could not change your plan. Please try again.",
         "switchFree": "Could not switch your plan to Free. Please try again.",
         "portal": "Could not open billing. Please try again.",
@@ -594,7 +603,13 @@
         "until": "Monthly · {{plan}} until {{date}}",
         "begins": "{{plan}} begins on {{date}}",
         "beginsPriced": "{{plan}} begins on {{date}} · {{price}}",
-        "secondRoleEnds": "The second role stops being billed on {{date}}. New monthly payment: {{amount}}."
+        "secondRoleEnds": "The second role stops being billed on {{date}}. New monthly payment: {{amount}}.",
+        "cancel": "Cancel change",
+        "cancelDialog": {
+          "title": "Cancel the scheduled change?",
+          "body": "You stay on {{plan}} and it renews on {{date}}. Nothing is charged now.",
+          "bodyNoDate": "You stay on {{plan}} and it renews. Nothing is charged now."
+        }
       },
       "freeUntil": "Included until {{date}}",
       "setByFormUpUntil": "Until {{date}} · Set by Form Up",
@@ -3664,6 +3679,9 @@
     "BILLING_NO_SUBSCRIPTION": "You have no active paid subscription yet.",
     "BILLING_ALREADY_SUBSCRIBED": "You already have a paid subscription. Use Change plan instead.",
     "BILLING_GIFT_IN_FORCE": "Form Up set your current plan, so it can't be changed here until it ends.",
+    "BILLING_RENEWAL_CANCELLED_BY_ADMIN": "Form Up cancelled the renewal of your plan. Contact us to change this.",
+    "BILLING_ACCOUNT_DISABLING": "Your coach account is being disabled. Keep it first.",
+    "BILLING_NOTHING_SCHEDULED": "No change is scheduled.",
     "BILLING_PLAN_UNCHANGED": "You are already on this plan.",
     "BILLING_CANCELLATION_PENDING": "Your plan already ends at the end of the paid period.",
     "BILLING_PLAN_CHANGE_PENDING": "A plan change is already scheduled. Try again once it has taken effect.",

@@ -1,9 +1,16 @@
 import { useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { CheckoutFlow, PlanChangeTiming, type ChangePlanResponse, type CoachPlanDto, type ScheduleSwitchToFreeResponse } from '@/api/generated';
+import {
+  CheckoutFlow,
+  PlanChangeTiming,
+  type CancelScheduledPlanChangeResponse,
+  type ChangePlanResponse,
+  type CoachPlanDto,
+  type ScheduleSwitchToFreeResponse,
+} from '@/api/generated';
 import { profileKeys } from '@/api/profile';
-import { changePlan, createCheckoutSession, subscriptionKeys, switchToFree } from '@/api/subscription';
+import { cancelScheduledChange, changePlan, createCheckoutSession, subscriptionKeys, switchToFree } from '@/api/subscription';
 import { billingErrorCode, showBillingError } from '@/components/subscription/billingErrors';
 import { coachPlanName } from '@/components/subscription/planNames';
 import { hasLivePaidSubscription } from '@/components/subscription/planPricing';
@@ -48,6 +55,37 @@ async function selectPaidPlan(
     if (billingErrorCode(error) === 'BILLING_ALREADY_SUBSCRIBED') return change();
     throw error;
   }
+}
+
+/**
+ * Cancels the scheduled plan change (a downgrade or the switch to Free): the coach stays on the current plan.
+ * Shared by Settings and the plan picker. The variable is the current plan's localized name, shown in the toast.
+ */
+export function useCancelScheduledChange() {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const refresh = () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: subscriptionKeys.mine }),
+      queryClient.invalidateQueries({ queryKey: subscriptionKeys.plans }),
+      queryClient.invalidateQueries({ queryKey: profileKeys.me }),
+    ]);
+
+  return useMutation<CancelScheduledPlanChangeResponse, unknown, string>({
+    mutationFn: () => cancelScheduledChange(),
+    onSuccess: (_response, plan) => {
+      useToastStore.getState().addToast(t('subscription.billing.cancelChange.toast', { plan }), 'success');
+      void refresh();
+    },
+    onError: (error) => {
+      // Nothing left to cancel (double submit or a stale tab) is the outcome the coach wanted: just re-read.
+      if (billingErrorCode(error) !== 'BILLING_NOTHING_SCHEDULED') {
+        showBillingError(error, 'subscription.billing.errors.cancelChange');
+      }
+      // A stale tab may still show the action: re-read the subscription so it goes away when it is no longer valid.
+      void refresh();
+    },
+  });
 }
 
 /**
@@ -119,6 +157,8 @@ export function usePlanSelection(flow: CheckoutFlow) {
     },
   });
 
+  const keepPlan = useCancelScheduledChange();
+
   return {
     live,
     /** Takes a paid plan: in place for a live subscription, through Stripe Checkout otherwise. */
@@ -130,6 +170,8 @@ export function usePlanSelection(flow: CheckoutFlow) {
     /** True while a Stripe redirect is under way: the page is about to be replaced, so keep the buttons off. */
     redirecting: paidPlan.isSuccess && paidPlan.data.kind === 'checkout',
     switchingToFree: freePlan.isPending,
-    busy: paidPlan.isPending || freePlan.isPending || (paidPlan.isSuccess && paidPlan.data.kind === 'checkout'),
+    /** Cancels the scheduled change and stays on the current plan; takes the current plan's localized name for the toast. */
+    keepCurrent: (currentName: string) => keepPlan.mutate(currentName),
+    busy: paidPlan.isPending || freePlan.isPending || keepPlan.isPending || (paidPlan.isSuccess && paidPlan.data.kind === 'checkout'),
   };
 }

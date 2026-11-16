@@ -49,7 +49,17 @@ export default function PlanPickerPage() {
     data?.cancelAtPeriodEnd && data.currentPeriodEndsAt
       ? new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' }).format(new Date(data.currentPeriodEndsAt))
       : null;
-  const switchPending = data?.cancelAtPeriodEnd === true && selection.live;
+  // A change that can still be cancelled (a downgrade, or the end of a paid plan): the current plan becomes pickable
+  // as "keep", and the plan it would switch to cannot be picked again.
+  const scheduled = data?.scheduledPlan;
+  const cancellable = scheduled?.cancellable === true;
+  const scheduledCode = cancellable ? (scheduled?.planCode ?? null) : null;
+  const scheduledOn = scheduled?.startsAt
+    ? new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' }).format(new Date(scheduled.startsAt))
+    : data?.currentPeriodEndsAt
+      ? new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' }).format(new Date(data.currentPeriodEndsAt))
+      : null;
+  const switchPending = (data?.cancelAtPeriodEnd === true && selection.live) || scheduledCode === FREE_PLAN_CODE;
   const [selectedCode, setSelectedCode] = useState<string | null>(null);
   const [now] = useState(() => Date.now());
   const isSetByFormUp = data?.isSetByFormUp === true;
@@ -65,6 +75,14 @@ export default function PlanPickerPage() {
   const actionFor = (plan: CoachPlanDto) => {
     const name = coachPlanName(plan, i18n.language);
     if (plan.code === currentCode) {
+      if (cancellable) {
+        return {
+          label: t('subscription.billing.cancelChange.keep', { plan: name }),
+          primary: true,
+          disabled: false,
+          onClick: () => selection.keepCurrent(name),
+        };
+      }
       return {
         label: t('subscription.billing.picker.yourPlan'),
         primary: false,
@@ -73,15 +91,26 @@ export default function PlanPickerPage() {
       };
     }
     if (plan.code === FREE_PLAN_CODE) {
+      const freeDate = endsAt ?? scheduledOn;
       return {
         label: switchPending
-          ? endsAt
-            ? t('subscription.billing.picker.switchesToFree', { free: name, date: endsAt })
+          ? freeDate
+            ? t('subscription.billing.picker.switchesToFree', { free: name, date: freeDate })
             : t('subscription.billing.picker.switchesToFreeNoDate', { free: name })
           : t('subscription.planChoice.card.switchFree'),
         primary: false,
         disabled: switchPending,
         onClick: () => selection.switchToFree(name),
+      };
+    }
+    if (plan.code === scheduledCode) {
+      return {
+        label: scheduledOn
+          ? t('subscription.billing.picker.switchesTo', { plan: name, date: scheduledOn })
+          : t('subscription.billing.picker.switchesToNoDate', { plan: name }),
+        primary: false,
+        disabled: true,
+        onClick: () => undefined,
       };
     }
     const higher = planDisplayPrice(plan, bothRoles) > currentPrice;
@@ -97,8 +126,8 @@ export default function PlanPickerPage() {
     const action = actionFor(plan);
     const current = plan.code === currentCode;
     const free = plan.code === FREE_PLAN_CODE;
-    // The current plan and a Free switch that is already scheduled cannot be picked.
-    const selectable = !current && !(free && switchPending);
+    // The current plan (unless its scheduled change can be cancelled) and a switch that is already scheduled cannot be picked.
+    const selectable = current ? cancellable : !(free && switchPending) && plan.code !== scheduledCode;
     const currency = plan.currency ?? 'CZK';
     const addOn = secondRoleAddOnOf(plan);
     const fullPrice = planDisplayPrice(plan, bothRoles);
@@ -154,8 +183,9 @@ export default function PlanPickerPage() {
 
   // A live paid subscription asks the server what a paid target would charge and when it starts.
   const selectedIsFree = selected?.plan.code === FREE_PLAN_CODE;
+  const selectedIsKeep = selected?.current === true;
   const previewQuery = usePlanChangePreview(
-    selected && !selectedIsFree ? (selected.plan.code ?? null) : null,
+    selected && !selectedIsFree && !selectedIsKeep ? (selected.plan.code ?? null) : null,
     selection.live,
   );
   const dateFormat = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' });
@@ -165,10 +195,22 @@ export default function PlanPickerPage() {
   const freePlanDto = plans.find((plan) => plan.code === FREE_PLAN_CODE);
   const freeName = freePlanDto ? coachPlanName(freePlanDto, i18n.language) : FREE_PLAN_CODE;
 
+  const scheduledTargetPlan = plans.find((plan) => plan.code === scheduled?.planCode);
+  const scheduledTargetName = scheduledTargetPlan
+    ? coachPlanName(scheduledTargetPlan, i18n.language)
+    : (scheduled?.planCode ?? freeName);
+
   const barHint = ((): { hint: string; extraHint?: string } => {
     const checkoutHint = { hint: t('subscription.billing.select.hintStripePages') };
     const periodHint = { hint: t('subscription.billing.select.hintPeriodEnd') };
     if (!selected) return checkoutHint;
+    if (selectedIsKeep) {
+      return {
+        hint: scheduledOn
+          ? t('subscription.billing.cancelChange.hint', { target: scheduledTargetName, date: scheduledOn, plan: currentName })
+          : t('subscription.billing.cancelChange.hintNoDate', { target: scheduledTargetName, plan: currentName }),
+      };
+    }
     const planLabel = coachPlanName(selected.plan, i18n.language);
     const startsOn = (date: string | null) =>
       date
