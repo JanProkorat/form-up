@@ -34,6 +34,12 @@ public sealed class FakeSubscriptionService : ISubscriptionService
     /// <summary>Recorded <see cref="ISubscriptionService.ChangePlanAsync"/> calls.</summary>
     public List<ChangePlanCall> PlanChanges { get; } = [];
 
+    /// <summary>Recorded <see cref="ISubscriptionService.ClearScheduledPriceChangeAsync"/> calls (subscription ids).</summary>
+    public List<string> ClearedScheduledChanges { get; } = [];
+
+    /// <summary>When true only <see cref="ISubscriptionService.ClearScheduledPriceChangeAsync"/> throws <see cref="BillingProviderException"/>.</summary>
+    public bool FailClearScheduledChange { get; set; }
+
     /// <summary>Recorded <see cref="ISubscriptionService.CreatePriceAsync"/> calls.</summary>
     public List<PriceCall> Prices { get; } = [];
 
@@ -135,6 +141,8 @@ public sealed class FakeSubscriptionService : ISubscriptionService
             IsConfigured = true;
             Fail = false;
             FailPlanChanges = false;
+            FailClearScheduledChange = false;
+            ClearedScheduledChanges.Clear();
             Customers.Clear();
             Checkouts.Clear();
             Portals.Clear();
@@ -231,6 +239,24 @@ public sealed class FakeSubscriptionService : ISubscriptionService
         lock (gate)
         {
             PlanChanges.Add(new ChangePlanCall(subscriptionId, planCode, planPriceExternalId, atNextRenewal, addOnAmountMinorUnits, idempotencyKey));
+        }
+
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public Task ClearScheduledPriceChangeAsync(string subscriptionId, CancellationToken ct)
+    {
+        ThrowIfFailing();
+
+        if (FailClearScheduledChange)
+        {
+            throw new BillingProviderException("Fake clear scheduled change failure.");
+        }
+
+        lock (gate)
+        {
+            ClearedScheduledChanges.Add(subscriptionId);
         }
 
         return Task.CompletedTask;

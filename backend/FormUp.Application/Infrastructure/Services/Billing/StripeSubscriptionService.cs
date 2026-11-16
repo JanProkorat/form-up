@@ -162,6 +162,40 @@ public sealed class StripeSubscriptionService(
         });
 
     /// <inheritdoc />
+    public Task ClearScheduledPriceChangeAsync(string subscriptionId, CancellationToken ct) =>
+        RunAsync("clear-scheduled-price-change", async stripe =>
+        {
+            var subscription = await GetSubscriptionAsync(stripe, subscriptionId, ct);
+            var state = await ReadStateAsync(stripe, subscription, ct);
+
+            if (state.ScheduleId is null)
+            {
+                return true;
+            }
+
+            var phases = StripeSchedulePlanner.Build(
+                state.Start, state.End, state.CurrentPriceIds, state.Intent with { PendingPriceIds = null });
+
+            if (phases.Count > 0)
+            {
+                await ApplyPhasesAsync(stripe, subscriptionId, state.ScheduleId, phases, IntervalOf(subscription), ct);
+
+                return true;
+            }
+
+            await stripe.V1.SubscriptionSchedules.ReleaseAsync(
+                state.ScheduleId, new SubscriptionScheduleReleaseOptions(), cancellationToken: ct);
+
+            // UNVERIFIED: releasing a schedule keeps the current items and drops the phase discounts, so a gift is put back — https://docs.stripe.com/api/subscription_schedules/release
+            if (state.Intent.GiftCouponId is { } giftCouponId)
+            {
+                await SetSubscriptionDiscountAsync(stripe, subscriptionId, giftCouponId, ct);
+            }
+
+            return true;
+        });
+
+    /// <inheritdoc />
     public Task<PlanChangePreview> PreviewPlanChangeAsync(
         string customerId,
         string subscriptionId,
@@ -541,12 +575,18 @@ public sealed class StripeSubscriptionService(
                 state.ScheduleId, new SubscriptionScheduleReleaseOptions(), cancellationToken: ct);
         }
 
-        // Setting the full list replaces any discount already there, so a retry cannot stack a second one.
-        await stripe.V1.Subscriptions.UpdateAsync(
+        await SetSubscriptionDiscountAsync(stripe, subscriptionId, couponId, ct);
+    }
+
+    /// <summary>
+    /// Makes the coupon the subscription's only discount. Setting the full list replaces any discount already there, so a
+    /// retry cannot stack a second one.
+    /// </summary>
+    private static Task SetSubscriptionDiscountAsync(StripeClient stripe, string subscriptionId, string couponId, CancellationToken ct) =>
+        stripe.V1.Subscriptions.UpdateAsync(
             subscriptionId,
             new SubscriptionUpdateOptions { Discounts = [new SubscriptionDiscountOptions { Coupon = couponId }] },
             cancellationToken: ct);
-    }
 
     /// <summary>
     /// Puts the schedule back after an upgrade that released it failed to charge, so a scheduled downgrade is not lost.

@@ -83,6 +83,14 @@ public interface ISubscriptionService
         string? idempotencyKey = null);
 
     /// <summary>
+    /// Drops the scheduled price change of a subscription so it renews unchanged, keeping a given-free schedule.
+    /// Charges nothing. Does nothing when no schedule is on the subscription.
+    /// </summary>
+    /// <param name="subscriptionId">The provider subscription id.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task ClearScheduledPriceChangeAsync(string subscriptionId, CancellationToken ct);
+
+    /// <summary>
     /// Previews what moving an existing subscription to a dearer plan now would charge today, prorated, with tax as
     /// configured. Changes nothing at the provider.
     /// </summary>

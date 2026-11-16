@@ -27,7 +27,9 @@ public class RemoveCoachRoleEndpointTests
             Substitute.For<ICoachRoleStatus>(),
             Substitute.For<IAuditService>(),
             TimeProvider.System,
-            Substitute.For<ICoachRoleRemover>());
+            Substitute.For<ICoachRoleRemover>(),
+            Substitute.For<ISubscriptionService>(),
+            NullLogger<RemoveCoachRoleEndpoint>.Instance);
 
         await ep.HandleAsync(new RemoveCoachRoleRequest { Role = "Trainer" }, CancellationToken.None);
 
@@ -72,7 +74,9 @@ public class RemoveCoachRoleEndpointTests
             Substitute.For<IAuditService>(),
             TimeProvider.System,
             new CoachRoleRemover(
-                db, _notifications, Substitute.For<IRealtimeNotifier>(), NullLogger<CoachRoleRemover>.Instance));
+                db, _notifications, Substitute.For<IRealtimeNotifier>(), NullLogger<CoachRoleRemover>.Instance),
+            Substitute.For<ISubscriptionService>(),
+            NullLogger<RemoveCoachRoleEndpoint>.Instance);
         ep.HttpContext.User = new ClaimsPrincipal(
             new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(coachId, AppRoles.Trainer)));
 

@@ -10,6 +10,7 @@ using FormUp.Application.Domain.Interfaces;
 using FormUp.Application.Domain.Services;
 using FormUp.Application.Features.Users.Shared;
 using FormUp.Application.Infrastructure.Data;
+using FormUp.Application.Infrastructure.Services.Billing;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -22,12 +23,16 @@ namespace FormUp.Application.Features.Users.AddRole;
 /// <param name="db">Database context.</param>
 /// <param name="config">Application configuration for JWT settings.</param>
 /// <param name="audit">Audit logging service.</param>
+/// <param name="subscriptions">The payment provider seam, used to cancel a scheduled add-on removal when a role is restored.</param>
+/// <param name="timeProvider">Clock.</param>
 [RemovedCoachRole(RemovedCoachRoleMode.Exempt, Reason = "Adds or restores a coach role, so it must work when no role is active.")]
 public class AddRoleEndpoint(
     UserManager<ApplicationUser> userManager,
     IApplicationDbContext db,
     IConfiguration config,
-    IAuditService audit) : Endpoint<AddRoleRequest, AddRoleResponse>
+    IAuditService audit,
+    ISubscriptionService subscriptions,
+    TimeProvider timeProvider) : Endpoint<AddRoleRequest, AddRoleResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -44,6 +49,10 @@ public class AddRoleEndpoint(
             s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
             s.Response(StatusCodes.Status403Forbidden,
                 "The subscription does not cover a second professional role (SUBSCRIPTION_REQUIRED)");
+            s.Response(StatusCodes.Status502BadGateway,
+                "Restoring a role whose add-on removal is scheduled: Stripe failed, the role stays removed (BILLING_PROVIDER_ERROR)");
+            s.Response(StatusCodes.Status503ServiceUnavailable,
+                "Restoring a role whose add-on removal is scheduled: Stripe is not configured on this server (BILLING_NOT_CONFIGURED)");
         });
     }
 
@@ -92,6 +101,12 @@ public class AddRoleEndpoint(
                 .Any(role => role != req.Role);
 
             if (otherRoleActive && await this.RespondIfSecondRoleNotAvailableAsync(db, userId, ct))
+            {
+                return;
+            }
+
+            // Restoring before the renewal keeps the add-on, which is still paid: no charge, the scheduled end is dropped.
+            if (!await TryCancelScheduledAddOnRemovalAsync(existingProfile!.Id, ct))
             {
                 return;
             }
@@ -194,5 +209,84 @@ public class AddRoleEndpoint(
     {
         var randomBytes = RandomNumberGenerator.GetBytes(64);
         return Convert.ToBase64String(randomBytes);
+    }
+
+    /// <summary>
+    /// Cancels a scheduled add-on removal at the provider and clears the marker (saved with the role), when the restored
+    /// role's removal had scheduled one. Answers 403, 503 or 502 and returns false when the role must stay removed.
+    /// </summary>
+    private async Task<bool> TryCancelScheduledAddOnRemovalAsync(long profileId, CancellationToken ct)
+    {
+        var subscription = await db.CoachSubscriptions
+            .Include(cs => cs.SubscriptionPlan)
+            .Include(cs => cs.SubscriptionPlanPrice)
+            .Include(cs => cs.PendingSubscriptionPlanPrice).ThenInclude(price => price!.SubscriptionPlan)
+            .FirstOrDefaultAsync(cs => cs.ProfessionalProfileId == profileId, ct);
+
+        if (subscription?.SecondRoleAddOnEndsAt is not { } endsAt)
+        {
+            return true;
+        }
+
+        // Nothing is scheduled at the provider any more when the subscription is ending anyway or is not live.
+        if (subscription.CancelAtPeriodEnd || !subscription.HasLiveProviderSubscription)
+        {
+            subscription.SecondRoleAddOnEndsAt = null;
+            return true;
+        }
+
+        // The renewal has dropped the add-on at the provider and only the webhook is late: it must be bought again.
+        if (endsAt <= timeProvider.GetUtcNow())
+        {
+            await this.SendProblemAsync(
+                StatusCodes.Status403Forbidden,
+                ErrorCodes.SubscriptionRequired,
+                "The second-role add-on has ended and must be bought again.",
+                ct);
+            return false;
+        }
+
+        if (!subscriptions.IsConfigured)
+        {
+            await this.SendProblemAsync(
+                StatusCodes.Status503ServiceUnavailable, ErrorCodes.BillingNotConfigured, "Billing is not configured.", ct);
+            return false;
+        }
+
+        try
+        {
+            if (subscription.PendingSubscriptionPlanPrice is { ExternalPriceId: { } pendingPriceId } pending)
+            {
+                // A scheduled downgrade stays; the renewal after it bills the add-on again when that plan has one.
+                var pendingPlan = pending.SubscriptionPlan;
+                long? addOnAmount = pendingPlan.BothRolesIncluded || pending.SecondRoleAddOnPriceMinorUnits is null or <= 0
+                    ? null
+                    : pending.SecondRoleAddOnPriceMinorUnits;
+
+                await subscriptions.ChangePlanAsync(
+                    subscription.ExternalSubscriptionId!,
+                    pendingPlan.Code,
+                    pendingPriceId,
+                    addOnAmount,
+                    pending.Currency,
+                    pendingPlan.BillingInterval,
+                    atNextRenewal: true,
+                    ct);
+            }
+            else
+            {
+                await subscriptions.ClearScheduledPriceChangeAsync(subscription.ExternalSubscriptionId!, ct);
+            }
+        }
+        catch (BillingProviderException)
+        {
+            await this.SendProblemAsync(
+                StatusCodes.Status502BadGateway, ErrorCodes.BillingProviderError, "The payment provider failed.", ct);
+            return false;
+        }
+
+        subscription.SecondRoleAddOnEndsAt = null;
+
+        return true;
     }
 }
