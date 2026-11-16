@@ -332,7 +332,8 @@
       "returning": {
         "title": "Wir schließen ab",
         "body": "Wir bestätigen Ihre Zahlung bei Stripe.",
-        "pending": "Ihre Zahlung wird noch verarbeitet. Ihr Tarif wird gleich aktualisiert."
+        "pending": "Ihre Zahlung ist eingegangen. Die Aktivierung Ihres Tarifs kann einige Minuten dauern, wir informieren Sie, sobald sie abgeschlossen ist.",
+        "activated": "Ihr Tarif {{plan}} ist jetzt aktiv."
       },
       "changed": {
         "now": "Sie nutzen jetzt den Tarif {{plan}}.",

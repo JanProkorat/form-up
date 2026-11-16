@@ -336,7 +336,8 @@
       "returning": {
         "title": "Dokončujeme",
         "body": "Ověřujeme vaši platbu u Stripe.",
-        "pending": "Vaše platba se ještě zpracovává. Tarif se za chvíli aktualizuje."
+        "pending": "Vaše platba proběhla. Aktivace tarifu může trvat několik minut, dáme vám vědět, jakmile bude hotovo.",
+        "activated": "Váš tarif {{plan}} je nyní aktivní."
       },
       "changed": {
         "now": "Nyní máte tarif {{plan}}.",
