@@ -22379,6 +22379,78 @@ export class ApiClient {
     }
 
     /**
+     * Cancel my scheduled plan change
+     * @return The scheduled change is cancelled
+     */
+    cancelScheduledPlanChangeEndpoint(signal?: AbortSignal): Promise<CancelScheduledPlanChangeResponse> {
+        let url_ = this.baseUrl + "/billing/scheduled-change/cancel";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCancelScheduledPlanChangeEndpoint(_response);
+        });
+    }
+
+    protected processCancelScheduledPlanChangeEndpoint(response: AxiosResponse): Promise<CancelScheduledPlanChangeResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<CancelScheduledPlanChangeResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The caller is not a trainer or nutritionist, or the coach role was removed", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("No live paid subscription (BILLING_NO_SUBSCRIPTION), an admin gift is in force (BILLING_GIFT_IN_FORCE), the coach account is being disabled (BILLING_ACCOUNT_DISABLING), Form Up cancelled the renewal (BILLING_RENEWAL_CANCELLED_BY_ADMIN), or nothing is scheduled (BILLING_NOTHING_SCHEDULED)", status, _responseText, _headers);
+
+        } else if (status === 502) {
+            const _responseText = response.data;
+            return throwException("Stripe failed; nothing was saved (BILLING_PROVIDER_ERROR)", status, _responseText, _headers);
+
+        } else if (status === 503) {
+            const _responseText = response.data;
+            return throwException("Stripe is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<CancelScheduledPlanChangeResponse>(null as any);
+    }
+
+    /**
      * Apply a promotion code to my subscription
      * @return The code was applied, or is already the current promotion
      */
@@ -25540,6 +25612,9 @@ export interface ScheduledPlanDto {
     nameDe?: string;
     /** When the plan starts: the end of the current period; null when unknown. */
     startsAt?: string | undefined;
+    /** True when the coach can cancel this change: a live provider subscription, no admin gift in force, no pending
+coach-account disable and no renewal cancelled by Form Up. */
+    cancellable?: boolean;
     /** Price lines of the plan that starts next: the plan, plus the second-role add-on when the coach would pay it. */
     priceLines?: SubscriptionPriceLineDto[];
 }
@@ -34402,6 +34477,22 @@ export interface ChangePlanRequest {
     /** Client-generated id of this attempt. It keys the charge, so a double click does not bill twice; the client sends a
 fresh one after a declined card. */
     attemptId: string;
+}
+
+/** The plan the subscription renews on after the scheduled change was cancelled. */
+export interface CancelScheduledPlanChangeResponse {
+    /** What was cancelled. */
+    kind?: ScheduledPlanChangeKind;
+    /** Code of the plan the subscription stays on. */
+    planCode?: string;
+    /** When the subscription renews next, if known. */
+    renewsAt?: string | undefined;
+}
+
+/** What a coach's scheduled plan change was before it was cancelled. */
+export enum ScheduledPlanChangeKind {
+    Downgrade = "Downgrade",
+    SwitchToFree = "SwitchToFree",
 }
 
 /** Request for applying a promotion code to the caller's own live subscription. */
