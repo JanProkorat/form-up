@@ -93,6 +93,44 @@ trainerTest.describe('settings plan card with a scheduled change', () => {
     await expect(page.getByText(/^Ends /)).toHaveCount(0);
   });
 
+  trainerTest('a scheduled add-on end shows when it stops and the plan-only payment', async ({ page }) => {
+    await mockSubscription(
+      page,
+      subscription({
+        secondRole: 'PaidAddOn',
+        secondRoleAddOnEndsAt: PERIOD_END,
+        priceLines: [
+          { kind: 'Plan', amountMinorUnits: 59900, currency: 'CZK' },
+          { kind: 'SecondRoleAddOn', amountMinorUnits: 20000, currency: 'CZK' },
+        ],
+      }),
+    );
+    await page.goto('/settings#plan-billing');
+
+    await expect(page.getByText(/The second role stops being billed on .*2026\. New monthly payment: .*599/)).toBeVisible();
+  });
+
+  trainerTest('a scheduled plan change replaces the add-on end line', async ({ page }) => {
+    await mockSubscription(
+      page,
+      subscription({
+        secondRoleAddOnEndsAt: PERIOD_END,
+        scheduledPlan: {
+          planCode: 'start',
+          nameCs: 'Start',
+          nameEn: 'Start',
+          nameDe: 'Start',
+          startsAt: PERIOD_END,
+          priceLines: [{ kind: 'Plan', amountMinorUnits: 29900, currency: 'CZK' }],
+        },
+      }),
+    );
+    await page.goto('/settings#plan-billing');
+
+    await expect(page.getByText(/Start begins on .*2026 · .*299/)).toBeVisible();
+    await expect(page.getByText(/stops being billed/)).toHaveCount(0);
+  });
+
   trainerTest('without a scheduled change the card keeps its renewal line', async ({ page }) => {
     await mockSubscription(page, subscription({}));
     await page.goto('/settings#plan-billing');
