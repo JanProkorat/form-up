@@ -13,6 +13,7 @@ import {
   REGISTER_PLAN_PATH,
 } from '@/components/subscription/planLinks';
 import { useCheckoutReturn } from '@/hooks/useSubscriptionQueries';
+import { useAuthStore } from '@/stores/auth';
 import { useCheckoutActivationStore } from '@/stores/checkoutActivation';
 import { useToastStore } from '@/stores/toast';
 
@@ -32,7 +33,8 @@ function CheckoutSuccess({ signUp }: { signUp: boolean }) {
   useEffect(() => {
     if (timedOut && !settled) {
       useToastStore.getState().addToast(t('subscription.billing.returning.pending'), 'success');
-      useCheckoutActivationStore.getState().start();
+      const userId = useAuthStore.getState().user?.publicId;
+      if (userId) useCheckoutActivationStore.getState().start(userId);
     }
   }, [timedOut, settled, t]);
 

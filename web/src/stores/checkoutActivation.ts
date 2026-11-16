@@ -1,17 +1,91 @@
 import { create } from 'zustand';
 
-/** How long the coach's subscription is polled after a checkout whose webhook has not landed yet. */
-export const CHECKOUT_WATCH_WINDOW_MS = 120_000;
+/** Polling cadence while the checkout is awaiting its webhook: quick at first, then slower, then none. */
+export const CHECKOUT_WATCH_FAST_PHASE_MS = 120_000;
+export const CHECKOUT_WATCH_SLOW_PHASE_MS = 900_000;
+export const CHECKOUT_WATCH_FAST_INTERVAL_MS = 5_000;
+export const CHECKOUT_WATCH_SLOW_INTERVAL_MS = 30_000;
+
+const STORAGE_KEY = 'checkoutActivationWatch';
+
+interface StoredWatch {
+  startedAt: number;
+  userId: string;
+}
+
+function isStoredWatch(value: unknown): value is StoredWatch {
+  if (typeof value !== 'object' || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate.startedAt === 'number' &&
+    Number.isFinite(candidate.startedAt) &&
+    typeof candidate.userId === 'string' &&
+    candidate.userId.length > 0
+  );
+}
+
+function clearStoredWatch(): void {
+  try {
+    sessionStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // Storage unavailable: the in-memory watch still works for this page load.
+  }
+}
+
+function writeStoredWatch(watch: StoredWatch): void {
+  try {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(watch));
+  } catch {
+    // Storage unavailable: the watch simply does not survive a reload.
+  }
+}
+
+/** Reads the watch a previous page load left behind; drops it when malformed, expired or from the future. */
+function readStoredWatch(): StoredWatch | null {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    if (raw === null) return null;
+    const parsed: unknown = JSON.parse(raw);
+    const now = Date.now();
+    if (isStoredWatch(parsed) && parsed.startedAt <= now && now - parsed.startedAt < CHECKOUT_WATCH_SLOW_PHASE_MS) {
+      return parsed;
+    }
+  } catch {
+    // Fall through: unreadable or unparsable data is treated as no watch.
+  }
+  clearStoredWatch();
+  return null;
+}
+
+/** Poll interval for a watch started at `startedAt`; false once polling is over (focus refresh continues). */
+export function checkoutWatchInterval(startedAt: number, now: number): number | false {
+  const elapsed = now - startedAt;
+  if (elapsed < CHECKOUT_WATCH_FAST_PHASE_MS) return CHECKOUT_WATCH_FAST_INTERVAL_MS;
+  if (elapsed < CHECKOUT_WATCH_SLOW_PHASE_MS) return CHECKOUT_WATCH_SLOW_INTERVAL_MS;
+  return false;
+}
 
 interface CheckoutActivationState {
-  /** Epoch ms until which the watcher polls; null when no checkout is awaiting its webhook. Not persisted. */
-  watchUntil: number | null;
-  start: () => void;
+  /** Epoch ms when the return page gave up waiting; null when no checkout is awaiting its webhook. */
+  startedAt: number | null;
+  /** The coach (publicId) who made the purchase; the watch is only valid for that session. */
+  userId: string | null;
+  start: (userId: string) => void;
   stop: () => void;
 }
 
+const initial = readStoredWatch();
+
 export const useCheckoutActivationStore = create<CheckoutActivationState>((set) => ({
-  watchUntil: null,
-  start: () => set({ watchUntil: Date.now() + CHECKOUT_WATCH_WINDOW_MS }),
-  stop: () => set({ watchUntil: null }),
+  startedAt: initial?.startedAt ?? null,
+  userId: initial?.userId ?? null,
+  start: (userId) => {
+    const startedAt = Date.now();
+    writeStoredWatch({ startedAt, userId });
+    set({ startedAt, userId });
+  },
+  stop: () => {
+    clearStoredWatch();
+    set({ startedAt: null, userId: null });
+  },
 }));

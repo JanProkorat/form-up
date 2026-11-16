@@ -143,6 +143,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         });
       } catch {
         clearStoredRefreshToken();
+        useCheckoutActivationStore.getState().stop();
         set({
           user: null,
           accessToken: null,
