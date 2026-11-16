@@ -499,6 +499,66 @@ trainerTest.describe('plan picker: changing a live paid plan', () => {
     await page.goto('/plan');
     await page.getByRole('article', { name: 'Pro' }).getByRole('button', { name: 'Select Pro' }).click();
     await expect(page.getByRole('region', { name: 'Selected plan' }).getByText("Card and invoices on Stripe's secure pages")).toBeVisible();
+    await expect(page.getByText(/plan from Form Up will end/)).toHaveCount(0);
     expect(previewCalls).toEqual([]);
+  });
+});
+
+/** A coach on Pro set by Form Up: no Stripe subscription, no billing account, an optional gift end date. */
+function formUpSubscription(freeUntil?: string) {
+  return {
+    planCode: 'pro',
+    nameCs: 'Pro',
+    nameEn: 'Pro',
+    nameDe: 'Pro',
+    isSetByFormUp: true,
+    secondRole: 'NotAvailable',
+    ...(freeUntil && { freeUntil }),
+  };
+}
+
+trainerTest.describe('plan picker: a plan set by Form Up', () => {
+  trainerTest('the current card says who provides the plan until when, with no price', async ({ page }) => {
+    await mockPickerReads(page, 'Vat21', 'all', formUpSubscription('2099-01-31T12:00:00Z'));
+    await page.goto('/plan');
+
+    const pro = page.getByRole('article', { name: 'Pro' });
+    await expect(pro.getByText(/^Provided by Form Up until .*2099/)).toBeVisible();
+    await expect(pro.locator('s')).toHaveCount(0);
+    // The price block stays in the DOM as an invisible spacer that keeps the card height, so only visible text counts.
+    await expect(pro.getByText(/599|419/).filter({ visible: true })).toHaveCount(0);
+    await expect(pro.getByRole('button', { name: 'Your plan' })).toBeDisabled();
+    // Other cards keep their price and promotion.
+    await expect(page.getByRole('article', { name: 'Studio' }).locator('s')).toHaveCount(1);
+  });
+
+  trainerTest('without a future end date the card uses the undated wording', async ({ page }) => {
+    await mockPickerReads(page, 'Vat21', undefined, formUpSubscription('2020-01-31T12:00:00Z'));
+    await page.goto('/plan');
+
+    await expect(page.getByRole('article', { name: 'Pro' }).getByText('Provided by Form Up', { exact: true })).toBeVisible();
+  });
+
+  trainerTest('any paid plan shows the warning in the bar, a higher or a cheaper one', async ({ page }) => {
+    await mockPickerReads(page, 'Vat21', undefined, formUpSubscription('2099-01-31T12:00:00Z'));
+    await page.goto('/plan');
+    const bar = page.getByRole('region', { name: 'Selected plan' });
+
+    await page.getByRole('article', { name: 'Studio' }).getByRole('button', { name: 'Select Studio' }).click();
+    await expect(bar.getByText('Your plan from Form Up will end and you will pay for Studio from today.')).toBeVisible();
+    await expect(bar.getByText("Card and invoices on Stripe's secure pages")).toBeVisible();
+
+    await page.getByRole('article', { name: 'Start' }).getByRole('button', { name: 'Select Start' }).click();
+    await expect(bar.getByText('Your plan from Form Up will end and you will pay for Start from today.')).toBeVisible();
+    await expect(bar.getByText('Takes effect at the end of the paid month')).toHaveCount(0);
+  });
+
+  trainerTest('a coach on Free sees neither the Form Up card text nor the warning', async ({ page }) => {
+    await mockPickerReads(page, 'Vat21');
+    await page.goto('/plan');
+
+    await expect(page.getByText(/Provided by Form Up/)).toHaveCount(0);
+    await page.getByRole('article', { name: 'Start' }).getByRole('button', { name: 'Select Start' }).click();
+    await expect(page.getByText(/plan from Form Up will end/)).toHaveCount(0);
   });
 });

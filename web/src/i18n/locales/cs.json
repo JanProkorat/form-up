@@ -302,6 +302,7 @@
         "hintPreviewLoading": "Počítáme dnešní platbu…",
         "hintPreviewError": "Dnešní platbu se nepodařilo spočítat. Změnu můžete přesto potvrdit.",
         "hintCancelsFree": "Plánovaný přechod na tarif {{free}} se zruší.",
+        "hintEndsFormUpPlan": "Váš tarif od Form Up skončí a {{plan}} budete platit od dnešního dne.",
         "continue": "Pokračovat k platbě"
       },
       "picker": {
@@ -312,6 +313,8 @@
         "rolesOne": "Působíte jako {{role}}.",
         "breakdown": "{{plan}} {{base}} + druhá role {{addOn}}",
         "noCard": "Navždy, bez karty",
+        "providedByFormUpUntil": "Poskytuje Form Up do {{date}}",
+        "providedByFormUp": "Poskytuje Form Up",
         "yourPlan": "Váš tarif",
         "switchTo": "Přejít na {{plan}}",
         "switchesToFree": "Přechod na tarif {{free}} {{date}}",
