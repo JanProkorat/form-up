@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, CreditCard } from 'lucide-react';
-import { BillingInterval, CheckoutFlow, PromotionDuration, type CoachPlanDto } from '@/api/generated';
+import { BillingInterval, CheckoutFlow, PlanChangeTiming, PromotionDuration, type CoachPlanDto } from '@/api/generated';
+import { billingErrorCode } from '@/components/subscription/billingErrors';
+import { PLAN_BILLING_PATH } from '@/components/subscription/planLinks';
 import PlanCard from '@/components/subscription/PlanCard';
 import PlanConfirmBar from '@/components/subscription/PlanConfirmBar';
 import TaxNote from '@/components/subscription/TaxNote';
@@ -20,7 +22,7 @@ import { usePlanSelection } from '@/components/subscription/usePlanSelection';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useActiveRoles } from '@/hooks/useActiveRoles';
-import { useCoachPlans, useSubscription } from '@/hooks/useSubscriptionQueries';
+import { useCoachPlans, usePlanChangePreview, useSubscription } from '@/hooks/useSubscriptionQueries';
 
 /**
  * "Choose your plan" for a coach who is already in the portal: four plan cards with the price for the
@@ -140,23 +142,70 @@ export default function PlanPickerPage() {
   // A choice that stopped being selectable (it became the current plan, or its switch got scheduled) counts as none.
   const selected = cards.find((card) => card.selectable && card.plan.code === selectedCode);
 
+  // A live paid subscription asks the server what a paid target would charge and when it starts.
+  const selectedIsFree = selected?.plan.code === FREE_PLAN_CODE;
+  const previewQuery = usePlanChangePreview(
+    selected && !selectedIsFree ? (selected.plan.code ?? null) : null,
+    selection.live,
+  );
+  const dateFormat = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' });
+  const formatDate = (iso: string | undefined) => (iso ? dateFormat.format(new Date(iso)) : null);
+  const periodEndDate = formatDate(data?.currentPeriodEndsAt);
+  const currentName = subscription.planName;
+
+  const barHint = ((): { hint: string; extraHint?: string } => {
+    const checkoutHint = { hint: t('subscription.billing.select.hintStripePages') };
+    const periodHint = { hint: t('subscription.billing.select.hintPeriodEnd') };
+    if (!selected) return checkoutHint;
+    const planLabel = coachPlanName(selected.plan, i18n.language);
+    const startsOn = (date: string | null) =>
+      date
+        ? { hint: t('subscription.billing.select.hintStartsOn', { plan: planLabel, date, current: currentName }) }
+        : periodHint;
+    if (!selection.live) return selected.higher ? checkoutHint : periodHint;
+    if (selectedIsFree) return startsOn(periodEndDate);
+
+    if (previewQuery.isPending) return { hint: t('subscription.billing.select.hintPreviewLoading') };
+    if (previewQuery.isError) {
+      return billingErrorCode(previewQuery.error) === 'BILLING_NO_SUBSCRIPTION'
+        ? checkoutHint
+        : { hint: t('subscription.billing.select.hintPreviewError') };
+    }
+    const preview = previewQuery.data;
+    if (preview.timing === PlanChangeTiming.AtNextRenewal) {
+      return startsOn(formatDate(preview.nextChargeAt) ?? periodEndDate);
+    }
+    const currency = preview.currency ?? 'CZK';
+    const nextDate = formatDate(preview.nextChargeAt);
+    const per = t(
+      `subscription.planChoice.card.per.${preview.billingInterval === BillingInterval.Annual ? 'year' : 'month'}`,
+    );
+    const today = formatMoney(preview.todayAmountMinorUnits ?? 0, currency, i18n.language);
+    const next = formatMoney(preview.nextAmountMinorUnits ?? 0, currency, i18n.language);
+    return {
+      hint: nextDate
+        ? t('subscription.billing.select.hintUpgradeToday', { today, next, per, date: nextDate })
+        : t('subscription.billing.select.hintUpgradeTodayNoDate', { today, next, per }),
+      extraHint: preview.cancelsScheduledSwitchToFree ? t('subscription.billing.select.hintCancelsFree') : undefined,
+    };
+  })();
+
   const rolesLine = bothRoles
     ? t('subscription.billing.picker.rolesBoth', { first: t('roles.trainer'), second: t('roles.nutritionist') })
     : t('subscription.billing.picker.rolesOne', { role: t(isNutritionist ? 'roles.nutritionist' : 'roles.trainer') });
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-wrap items-end gap-3">
+    <div className="flex min-h-full flex-col gap-5">
+      <div className="flex items-center gap-3.5">
+        <Button asChild variant="outline" size="icon-lg" className="size-11 shrink-0">
+          <Link to={PLAN_BILLING_PATH} aria-label={t('subscription.billing.picker.back')}>
+            <ChevronLeft aria-hidden="true" />
+          </Link>
+        </Button>
         <div className="flex flex-col gap-1.5">
           <h1 className="font-display text-display font-semibold text-ink">{t('subscription.billing.picker.title')}</h1>
           <p className="text-copy text-muted-foreground">{t('subscription.billing.picker.subtitle')}</p>
         </div>
-        <Button asChild variant="outline" size="lg" className="ml-auto gap-1.75 px-3.5 font-semibold">
-          <Link to="/settings">
-            <ChevronLeft aria-hidden="true" />
-            {t('subscription.billing.picker.back')}
-          </Link>
-        </Button>
       </div>
 
       {promotion && <PromotionBanner promotion={promotion} plans={plans} variant="picker" />}
@@ -220,14 +269,11 @@ export default function PlanPickerPage() {
 
       {selected && (
         <PlanConfirmBar
-          className="-mx-6 -mb-6"
+          className="-mx-6 -mb-6 mt-auto"
           title={selected.barTitle}
           note={selected.barNote}
-          hint={t(
-            selected.higher
-              ? 'subscription.billing.select.hintStripePages'
-              : 'subscription.billing.select.hintPeriodEnd',
-          )}
+          hint={barHint.hint}
+          extraHint={barHint.extraHint}
           confirmLabel={selected.action.label}
           busy={selection.busy}
           onConfirm={selected.action.onClick}

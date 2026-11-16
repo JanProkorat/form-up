@@ -290,6 +290,12 @@
         "hintStripeCheckout": "Sie zahlen auf der sicheren Seite von Stripe",
         "hintStripePages": "Karte und Rechnungen auf den sicheren Seiten von Stripe",
         "hintPeriodEnd": "Gilt ab dem Ende des bezahlten Monats",
+        "hintStartsOn": "{{plan}} beginnt am {{date}}. Bis dahin behalten Sie {{current}}.",
+        "hintUpgradeToday": "Heute etwa {{today}} für den Rest dieses Monats, danach {{next}} {{per}} ab {{date}}",
+        "hintUpgradeTodayNoDate": "Heute etwa {{today}} für den Rest dieses Monats, danach {{next}} {{per}}",
+        "hintPreviewLoading": "Heutige Zahlung wird berechnet…",
+        "hintPreviewError": "Die heutige Zahlung konnte nicht berechnet werden. Sie können die Änderung trotzdem bestätigen.",
+        "hintCancelsFree": "Ihr Wechsel zu Free wird aufgehoben.",
         "continue": "Weiter zur Zahlung"
       },
       "picker": {
@@ -578,6 +584,11 @@
       "loadError": "Ihr Tarif konnte nicht geladen werden. Bitte laden Sie die Seite neu.",
       "renews": "Monatlich · Verlängerung am {{date}}",
       "ends": "Endet am {{date}}",
+      "scheduled": {
+        "until": "Monatlich · {{plan}} bis {{date}}",
+        "begins": "{{plan}} beginnt am {{date}}",
+        "beginsPriced": "{{plan}} beginnt am {{date}} · {{price}}"
+      },
       "freeUntil": "Inklusive bis {{date}}",
       "setByFormUpUntil": "Bis {{date}} · Von Form Up gesetzt",
       "setByFormUp": "Von Form Up gesetzt",

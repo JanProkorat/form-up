@@ -294,6 +294,12 @@
         "hintStripeCheckout": "Platíte na zabezpečené stránce Stripe",
         "hintStripePages": "Karta a faktury na zabezpečených stránkách Stripe",
         "hintPeriodEnd": "Projeví se na konci zaplaceného měsíce",
+        "hintStartsOn": "{{plan}} začne {{date}}. Do té doby vám zůstává {{current}}.",
+        "hintUpgradeToday": "Dnes zhruba {{today}} za zbytek tohoto měsíce, poté {{next}} {{per}} od {{date}}",
+        "hintUpgradeTodayNoDate": "Dnes zhruba {{today}} za zbytek tohoto měsíce, poté {{next}} {{per}}",
+        "hintPreviewLoading": "Počítáme dnešní platbu…",
+        "hintPreviewError": "Dnešní platbu se nepodařilo spočítat. Změnu můžete přesto potvrdit.",
+        "hintCancelsFree": "Váš přechod na Free se zruší.",
         "continue": "Pokračovat k platbě"
       },
       "picker": {
@@ -616,6 +622,11 @@
       "loadError": "Tarif se nepodařilo načíst. Obnovte prosím stránku.",
       "renews": "Měsíčně · Obnovení {{date}}",
       "ends": "Končí {{date}}",
+      "scheduled": {
+        "until": "Měsíčně · {{plan}} do {{date}}",
+        "begins": "{{plan}} začne {{date}}",
+        "beginsPriced": "{{plan}} začne {{date}} · {{price}}"
+      },
       "freeUntil": "V ceně do {{date}}",
       "setByFormUpUntil": "Do {{date}} · Nastaveno Form Up",
       "setByFormUp": "Nastaveno Form Up",

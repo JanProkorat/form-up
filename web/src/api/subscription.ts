@@ -7,6 +7,7 @@ import type {
   GetKeepClientsResponse,
   GetMySubscriptionResponse,
   GetPublicSubscriptionPlansResponse,
+  PreviewPlanChangeResponse,
   PreviewSecondRoleAddOnResponse,
   ScheduleSwitchToFreeResponse,
 } from '@/api/generated';
@@ -36,9 +37,17 @@ export async function chooseFreePlan(keepClientIds: string[]): Promise<void> {
   return apiClient.chooseFreePlanEndpoint({ keepClientIds });
 }
 
-/** POST /billing/change-plan — moves a live paid subscription to another paid plan (upgrade now, downgrade at renewal). */
-export async function changePlan(planCode: string): Promise<ChangePlanResponse> {
-  return apiClient.changePlanEndpoint({ planCode });
+/**
+ * POST /billing/change-plan — moves a live paid subscription to another paid plan (upgrade now, downgrade at renewal).
+ * The attempt id keys the immediate charge: repeating it never bills twice.
+ */
+export async function changePlan(planCode: string, attemptId: string): Promise<ChangePlanResponse> {
+  return apiClient.changePlanEndpoint({ planCode, attemptId });
+}
+
+/** POST /billing/change-plan/preview — when a move to a paid plan applies, what is charged today and the regular bill after. */
+export async function previewPlanChange(planCode: string): Promise<PreviewPlanChangeResponse> {
+  return apiClient.previewPlanChangeEndpoint({ planCode });
 }
 
 /** POST /billing/switch-to-free — ends the paid plan at the end of the paid period. */
@@ -89,4 +98,5 @@ export const subscriptionKeys = {
   keepClients: ['subscription', 'keep-clients'] as const,
   plans: ['subscription', 'plans'] as const,
   secondRolePreview: ['subscription', 'second-role-preview'] as const,
+  planChangePreview: (planCode: string) => ['subscription', 'plan-change-preview', planCode] as const,
 };

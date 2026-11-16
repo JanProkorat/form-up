@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { CheckoutFlow, PlanChangeTiming, type ChangePlanResponse, type CoachPlanDto } from '@/api/generated';
@@ -24,13 +25,14 @@ async function selectPaidPlan(
   { plan, includeSecondRoleAddOn }: PaidPlanRequest,
   flow: CheckoutFlow,
   live: boolean,
+  attemptId: string,
 ): Promise<PlanOutcome> {
   const planCode = plan.code ?? '';
   const checkout = async (): Promise<PlanOutcome> => ({
     kind: 'checkout',
     url: await createCheckoutSession({ planCode, includeSecondRoleAddOn, flow }),
   });
-  const change = async (): Promise<PlanOutcome> => ({ kind: 'changed', response: await changePlan(planCode) });
+  const change = async (): Promise<PlanOutcome> => ({ kind: 'changed', response: await changePlan(planCode, attemptId) });
 
   if (live) {
     try {
@@ -57,6 +59,9 @@ export function usePlanSelection(flow: CheckoutFlow) {
   const queryClient = useQueryClient();
   const subscription = useSubscription();
   const live = hasLivePaidSubscription(subscription.data);
+  // One id per change attempt: it keys the immediate upgrade charge, so a repeated click reuses it and never bills
+  // twice. A settled attempt (paid or declined) is final for its id, so the next one gets a fresh id.
+  const attemptId = useRef(crypto.randomUUID());
 
   const dateFormat = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' });
   const toast = (message: string) => useToastStore.getState().addToast(message, 'success');
@@ -68,7 +73,10 @@ export function usePlanSelection(flow: CheckoutFlow) {
     ]);
 
   const paidPlan = useMutation({
-    mutationFn: (request: PaidPlanRequest) => selectPaidPlan(request, flow, live),
+    mutationFn: (request: PaidPlanRequest) => selectPaidPlan(request, flow, live, attemptId.current),
+    onSettled: () => {
+      attemptId.current = crypto.randomUUID();
+    },
     onSuccess: (outcome, { plan }) => {
       if (outcome.kind === 'checkout') {
         window.location.assign(outcome.url);

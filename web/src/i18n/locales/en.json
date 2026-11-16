@@ -290,6 +290,12 @@
         "hintStripeCheckout": "You pay on Stripe's secure page",
         "hintStripePages": "Card and invoices on Stripe's secure pages",
         "hintPeriodEnd": "Takes effect at the end of the paid month",
+        "hintStartsOn": "{{plan}} starts on {{date}}. You keep {{current}} until then.",
+        "hintUpgradeToday": "Today about {{today}} for the rest of this month, then {{next}} {{per}} from {{date}}",
+        "hintUpgradeTodayNoDate": "Today about {{today}} for the rest of this month, then {{next}} {{per}}",
+        "hintPreviewLoading": "Calculating today's charge…",
+        "hintPreviewError": "Couldn't calculate today's charge. You can still confirm the change.",
+        "hintCancelsFree": "Your switch to Free will be cancelled.",
         "continue": "Continue to payment"
       },
       "picker": {
@@ -578,6 +584,11 @@
       "loadError": "Could not load your plan. Please refresh the page.",
       "renews": "Monthly · Renews {{date}}",
       "ends": "Ends {{date}}",
+      "scheduled": {
+        "until": "Monthly · {{plan}} until {{date}}",
+        "begins": "{{plan}} begins on {{date}}",
+        "beginsPriced": "{{plan}} begins on {{date}} · {{price}}"
+      },
       "freeUntil": "Included until {{date}}",
       "setByFormUpUntil": "Until {{date}} · Set by Form Up",
       "setByFormUp": "Set by Form Up",
