@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FastEndpoints;
 using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Enums;
+using FormUp.Application.Domain.Interfaces;
 using FormUp.Application.Domain.Services;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Application.Infrastructure.Services.Billing;
@@ -17,11 +18,13 @@ namespace FormUp.Application.Features.Users.GetMySubscription;
 /// <param name="entitlementService">Resolves entitlements, client usage and the second-role state.</param>
 /// <param name="timeProvider">Clock.</param>
 /// <param name="billingOptions">Billing settings, for the tax mode.</param>
+/// <param name="coachRoleStatus">Resolves the coach roles that are not removed, for the scheduled plan's add-on line.</param>
 internal sealed class GetMySubscriptionEndpoint(
     IApplicationDbContext db,
     EntitlementService entitlementService,
     TimeProvider timeProvider,
-    IOptions<BillingOptions> billingOptions)
+    IOptions<BillingOptions> billingOptions,
+    ICoachRoleStatus coachRoleStatus)
     : EndpointWithoutRequest<GetMySubscriptionResponse>
 {
     /// <inheritdoc />
@@ -40,8 +43,9 @@ internal sealed class GetMySubscriptionEndpoint(
                             "and its names are repeated as the ended-plan names. A coach on an explicit Free plan with clients over the cap gets the " +
                             "kept count and the over-cap count too, as does a coach on a smaller paid plan than their client count. " +
                             "keepClientsChoiceRequired is true while some over-cap client has no kept or released decision yet " +
-                            "(never together with planChoiceRequired).";
-            s.Response<GetMySubscriptionResponse>(StatusCodes.Status200OK, "The caller's subscription block, with the current promotion and its display-only discount while the paid subscription is live");
+                            "(never together with planChoiceRequired). scheduledPlan is the plan that starts when the period ends " +
+                            "(a scheduled downgrade, or Free when the subscription is set to end) with its names, price lines and start date, or null.";
+            s.Response<GetMySubscriptionResponse>(StatusCodes.Status200OK, "The caller's subscription block, with the current promotion and its display-only discount and the plan scheduled to start next while the paid subscription is live");
             s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
             s.Response(StatusCodes.Status403Forbidden, "The caller is not a trainer or nutritionist");
             s.Response(StatusCodes.Status404NotFound, "The caller has no professional profile, or the Free plan is missing");
@@ -96,6 +100,11 @@ internal sealed class GetMySubscriptionEndpoint(
         else
         {
             response.ActiveClientCount = await entitlementService.GetActiveClientCountAsync(profileId.Value, ct);
+        }
+
+        if (!keepState.IsLapsed)
+        {
+            response.ScheduledPlan = await LoadScheduledPlanAsync(profileId.Value, userId, response, ct);
         }
 
         if (keepState.IsPlanChoiceRequired)
@@ -171,6 +180,116 @@ internal sealed class GetMySubscriptionEndpoint(
             DiscountMinorUnits = discount,
             DiscountedTotalMinorUnits = discountedTotal,
         };
+    }
+
+    /// <summary>
+    /// The plan that starts when the period ends, read from our own row: Free when the subscription is set to end, else the
+    /// price a downgrade is scheduled to. Null when nothing is scheduled or the subscription is not live.
+    /// </summary>
+    private async Task<ScheduledPlanDto?> LoadScheduledPlanAsync(
+        long profileId, Guid userId, GetMySubscriptionResponse response, CancellationToken ct)
+    {
+        if (response.Status is not (SubscriptionStatus.Active or SubscriptionStatus.Trialing or SubscriptionStatus.PastDue))
+        {
+            return null;
+        }
+
+        var row = await db.CoachSubscriptions
+            .AsNoTracking()
+            .Where(cs => cs.ProfessionalProfileId == profileId)
+            .Select(cs => new { cs.CancelAtPeriodEnd, cs.PendingSubscriptionPlanPriceId, cs.CurrentPeriodEndsAt })
+            .FirstOrDefaultAsync(ct);
+
+        if (row is null)
+        {
+            return null;
+        }
+
+        if (row.CancelAtPeriodEnd)
+        {
+            var free = await db.SubscriptionPlans
+                .AsNoTracking()
+                .Where(p => p.Code == SubscriptionPlanCodes.Free)
+                .FirstOrDefaultAsync(ct);
+
+            return free is null
+                ? null
+                : new ScheduledPlanDto
+                {
+                    PlanCode = free.Code,
+                    NameCs = free.NameCs,
+                    NameEn = free.NameEn,
+                    NameDe = free.NameDe,
+                    StartsAt = row.CurrentPeriodEndsAt,
+                    PriceLines =
+                    [
+                        new SubscriptionPriceLineDto
+                        {
+                            Kind = SubscriptionPriceLineKind.Plan,
+                            AmountMinorUnits = free.PriceMinorUnits,
+                            Currency = free.Currency,
+                        },
+                    ],
+                };
+        }
+
+        if (row.PendingSubscriptionPlanPriceId is not { } pendingPriceId)
+        {
+            return null;
+        }
+
+        var pending = await db.SubscriptionPlanPrices
+            .AsNoTracking()
+            .Where(p => p.Id == pendingPriceId)
+            .Select(p => new
+            {
+                p.SubscriptionPlan.Code,
+                p.SubscriptionPlan.NameCs,
+                p.SubscriptionPlan.NameEn,
+                p.SubscriptionPlan.NameDe,
+                p.SubscriptionPlan.BothRolesIncluded,
+                p.PriceMinorUnits,
+                p.SecondRoleAddOnPriceMinorUnits,
+                p.Currency,
+            })
+            .FirstOrDefaultAsync(ct);
+
+        if (pending is null)
+        {
+            return null;
+        }
+
+        var scheduled = new ScheduledPlanDto
+        {
+            PlanCode = pending.Code,
+            NameCs = pending.NameCs,
+            NameEn = pending.NameEn,
+            NameDe = pending.NameDe,
+            StartsAt = row.CurrentPeriodEndsAt,
+            PriceLines =
+            [
+                new SubscriptionPriceLineDto
+                {
+                    Kind = SubscriptionPriceLineKind.Plan,
+                    AmountMinorUnits = pending.PriceMinorUnits,
+                    Currency = pending.Currency,
+                },
+            ],
+        };
+
+        if (!pending.BothRolesIncluded
+            && pending.SecondRoleAddOnPriceMinorUnits is > 0 and var addOnPrice
+            && (await coachRoleStatus.GetActiveRolesAsync(userId, ct)).Count >= 2)
+        {
+            scheduled.PriceLines.Add(new SubscriptionPriceLineDto
+            {
+                Kind = SubscriptionPriceLineKind.SecondRoleAddOn,
+                AmountMinorUnits = addOnPrice,
+                Currency = pending.Currency,
+            });
+        }
+
+        return scheduled;
     }
 
     /// <summary>

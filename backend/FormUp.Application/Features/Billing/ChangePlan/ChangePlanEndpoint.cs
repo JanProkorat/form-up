@@ -8,13 +8,13 @@ using FormUp.Application.Domain.Interfaces;
 using FormUp.Application.Features.Billing.Shared;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Application.Infrastructure.Services.Billing;
-using Microsoft.EntityFrameworkCore;
 
 namespace FormUp.Application.Features.Billing.ChangePlan;
 
 /// <summary>
-/// Moves the caller's own live paid subscription to another paid plan. An upgrade applies now with proration; a
-/// downgrade is scheduled for the next renewal. Our own row is written after Stripe succeeds.
+/// Moves the caller's own live paid subscription to another paid plan. An upgrade applies now and charges the prorated
+/// difference immediately (and drops a scheduled switch to Free); a downgrade is scheduled for the next renewal. Our own row is
+/// written after Stripe succeeds.
 /// </summary>
 /// <param name="db">Application database context.</param>
 /// <param name="subscriptions">The payment provider seam.</param>
@@ -34,16 +34,17 @@ internal sealed class ChangePlanEndpoint(
         {
             s.Summary = "Change the plan of my paid subscription";
             s.Description = "Moves the caller's own live paid subscription to another paid plan without a new Checkout. A dearer " +
-                            "plan applies now with proration; a cheaper or equal one is scheduled for the next renewal. A coach " +
+                            "plan applies now and its prorated difference is charged at once (a scheduled switch to Free is dropped); a cheaper " +
+                            "or equal one is scheduled for the next renewal. A coach " +
                             "with two active roles pays the second-role add-on on a plan that does not include both roles.";
             s.Response<ChangePlanResponse>(StatusCodes.Status200OK, "The change was applied or scheduled");
             s.Response<ProblemDetails>(StatusCodes.Status400BadRequest,
-                "Invalid body, or the plan cannot be bought: unknown, Free, inactive, not priced in Stripe, or the caller has two active roles and the plan has no add-on price (PLAN_NOT_PURCHASABLE)");
+                "Invalid body (including a missing AttemptId), or the plan cannot be bought: unknown, Free, inactive, not priced in Stripe, or the caller has two active roles and the plan has no add-on price (PLAN_NOT_PURCHASABLE)");
             s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
             s.Response(StatusCodes.Status403Forbidden, "The caller is not a trainer or nutritionist, or the coach role was removed");
             s.Response(StatusCodes.Status409Conflict,
                 "No live paid subscription (BILLING_NO_SUBSCRIPTION), an admin gift is in force (BILLING_GIFT_IN_FORCE), or the plan is the current one (BILLING_PLAN_UNCHANGED)");
-            s.Response(StatusCodes.Status502BadGateway, "Stripe failed; nothing was saved (BILLING_PROVIDER_ERROR)");
+            s.Response(StatusCodes.Status502BadGateway, "Stripe failed or the card was declined; nothing was changed or saved (BILLING_PROVIDER_ERROR)");
             s.Response(StatusCodes.Status503ServiceUnavailable, "Stripe is not configured on this server (BILLING_NOT_CONFIGURED)");
         });
     }
@@ -62,29 +63,10 @@ internal sealed class ChangePlanEndpoint(
             return;
         }
 
-        var target = await db.SubscriptionPlanPrices
-            .AsNoTracking()
-            .Where(p => p.SubscriptionPlan.Code == req.PlanCode && p.ValidTo == null)
-            .Select(p => new TargetPlan(
-                p.Id,
-                p.SubscriptionPlanId,
-                p.SubscriptionPlan.Code,
-                p.SubscriptionPlan.IsActive,
-                p.SubscriptionPlan.BothRolesIncluded,
-                p.SubscriptionPlan.BillingInterval,
-                p.PriceMinorUnits,
-                p.SecondRoleAddOnPriceMinorUnits,
-                p.Currency,
-                p.ExternalPriceId))
-            .FirstOrDefaultAsync(ct);
+        var target = await this.LoadPlanChangeTargetOrRespondAsync(db, req.PlanCode, ct);
 
-        if (target is null
-            || target.Code == SubscriptionPlanCodes.Free
-            || !target.IsActive
-            || target.PriceMinorUnits <= 0
-            || string.IsNullOrEmpty(target.ExternalPriceId))
+        if (target is null)
         {
-            this.ThrowErrorWithCode(ErrorCodes.PlanNotPurchasable, "This plan cannot be bought.");
             return;
         }
 
@@ -95,38 +77,27 @@ internal sealed class ChangePlanEndpoint(
             return;
         }
 
-        if (subscription.SubscriptionPlanId == target.PlanId)
+        var decision = await this.DecidePlanChangeOrRespondAsync(coachRoleStatus, userId, subscription, target, ct);
+
+        if (decision is null)
         {
-            await this.SendProblemAsync(
-                StatusCodes.Status409Conflict, ErrorCodes.BillingPlanUnchanged, "The coach is already on this plan.", ct);
             return;
         }
-
-        var activeRoles = await coachRoleStatus.GetActiveRolesAsync(userId, ct);
-        var carryAddOn = activeRoles.Count >= 2 && !target.BothRolesIncluded;
-
-        if (carryAddOn && target.AddOnAmount is null or <= 0)
-        {
-            this.ThrowErrorWithCode(ErrorCodes.PlanNotPurchasable, "This plan has no second-role add-on price.");
-            return;
-        }
-
-        var currentPerYear = subscription.SubscriptionPlanPrice.PriceMinorUnits
-                             * (subscription.SubscriptionPlan.BillingInterval == BillingInterval.Annual ? 1 : 12);
-        var targetPerYear = target.PriceMinorUnits * (target.BillingInterval == BillingInterval.Annual ? 1 : 12);
-        var isUpgrade = targetPerYear > currentPerYear;
 
         try
         {
             await subscriptions.ChangePlanAsync(
                 subscription.ExternalSubscriptionId!,
                 target.Code,
-                target.ExternalPriceId,
-                carryAddOn ? target.AddOnAmount : null,
+                target.ExternalPriceId!,
+                decision.CarryAddOn ? target.AddOnAmount : null,
                 target.Currency,
                 target.BillingInterval,
-                atNextRenewal: !isUpgrade,
-                ct);
+                atNextRenewal: !decision.IsUpgrade,
+                ct,
+                decision.IsUpgrade
+                    ? $"formup-plan-upgrade-{subscription.ExternalSubscriptionId}-{target.ExternalPriceId}-{req.AttemptId:N}"
+                    : null);
         }
         catch (BillingProviderException)
         {
@@ -135,12 +106,13 @@ internal sealed class ChangePlanEndpoint(
         }
 
         // Our own row is written now; LastExternalEventAt stays, so the webhook that follows still applies.
-        if (isUpgrade)
+        if (decision.IsUpgrade)
         {
             subscription.SubscriptionPlanId = target.PlanId;
             subscription.SubscriptionPlanPriceId = target.PriceId;
             subscription.PendingSubscriptionPlanPriceId = null;
-            subscription.PaysSecondRoleAddOn = carryAddOn;
+            subscription.PaysSecondRoleAddOn = decision.CarryAddOn;
+            subscription.CancelAtPeriodEnd = false;
         }
         else
         {
@@ -153,21 +125,9 @@ internal sealed class ChangePlanEndpoint(
             new ChangePlanResponse
             {
                 PlanCode = target.Code,
-                Timing = isUpgrade ? PlanChangeTiming.Now : PlanChangeTiming.AtNextRenewal,
-                EffectiveAt = isUpgrade ? timeProvider.GetUtcNow() : subscription.CurrentPeriodEndsAt,
+                Timing = decision.IsUpgrade ? PlanChangeTiming.Now : PlanChangeTiming.AtNextRenewal,
+                EffectiveAt = decision.IsUpgrade ? timeProvider.GetUtcNow() : subscription.CurrentPeriodEndsAt,
             },
             ct);
     }
-
-    private sealed record TargetPlan(
-        long PriceId,
-        long PlanId,
-        string Code,
-        bool IsActive,
-        bool BothRolesIncluded,
-        BillingInterval BillingInterval,
-        long PriceMinorUnits,
-        long? AddOnAmount,
-        string Currency,
-        string? ExternalPriceId);
 }

@@ -136,6 +136,43 @@ public class StripeRequestEncodingTests
         handler.Form.Should().Contain(new KeyValuePair<string, string>("subscription_details[items][0][tax_rates][0]", "txr_test"));
     }
 
+    [Fact]
+    public async Task PlanUpgrade_TaxModeNone_SendsNoTaxRates_ButTheCancellationClear()
+    {
+        var (client, handler) = NewClient();
+        var options = StripeRequestBuilder.PlanUpgrade("si_plan", "price_new", null, null, "price_addon", Options(BillingTaxMode.None));
+
+        await client.V1.Subscriptions.UpdateAsync("sub_1", options, cancellationToken: TestContext.Current.CancellationToken);
+
+        AssertNoTaxRatesAndNoEmptyValues(handler.Form);
+        handler.Form.Should().Contain(new KeyValuePair<string, string>("cancel_at_period_end", "false"));
+    }
+
+    [Fact]
+    public async Task PlanUpgrade_Vat21_PutsTheRateOnEveryChargedItem()
+    {
+        var (client, handler) = NewClient();
+        var options = StripeRequestBuilder.PlanUpgrade("si_plan", "price_new", null, null, "price_addon", Options(BillingTaxMode.Vat21));
+
+        await client.V1.Subscriptions.UpdateAsync("sub_1", options, cancellationToken: TestContext.Current.CancellationToken);
+
+        handler.Form.Should().Contain(new KeyValuePair<string, string>("items[0][tax_rates][0]", "txr_test"));
+        handler.Form.Should().Contain(new KeyValuePair<string, string>("items[1][tax_rates][0]", "txr_test"));
+    }
+
+    [Fact]
+    public async Task PlanUpgradePreview_TaxModeNone_SendsNoTaxRatesAndNoEmptyValues()
+    {
+        var (client, handler) = NewClient();
+        var options = StripeRequestBuilder.PlanUpgradePreview(
+            "cus_1", "sub_1", "si_plan", "price_new", "si_addon", "price_addon_old", null, Options(BillingTaxMode.None));
+
+        await client.V1.Invoices.CreatePreviewAsync(options, cancellationToken: TestContext.Current.CancellationToken);
+
+        AssertNoTaxRatesAndNoEmptyValues(handler.Form);
+        handler.Form.Should().Contain(new KeyValuePair<string, string>("subscription_details[items][1][deleted]", "true"));
+    }
+
     [Theory]
     [InlineData(BillingTaxMode.None)]
     [InlineData(BillingTaxMode.Vat21)]

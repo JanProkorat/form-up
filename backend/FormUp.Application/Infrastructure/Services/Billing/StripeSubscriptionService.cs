@@ -22,6 +22,20 @@ public sealed class StripeSubscriptionService(
     private readonly BillingOptions settings = options.Value;
     private StripeClient? client;
 
+    /// <summary>Creates the service on a given Stripe client, so tests can capture the requests.</summary>
+    /// <param name="options">Billing settings.</param>
+    /// <param name="timeProvider">Clock.</param>
+    /// <param name="logger">Logger.</param>
+    /// <param name="stripeClient">The client every call goes through.</param>
+    internal StripeSubscriptionService(
+        IOptions<BillingOptions> options,
+        TimeProvider timeProvider,
+        ILogger<StripeSubscriptionService> logger,
+        StripeClient stripeClient) : this(options, timeProvider, logger)
+    {
+        client = stripeClient;
+    }
+
     /// <inheritdoc />
     public bool IsConfigured => settings.IsConfigured;
 
@@ -89,7 +103,8 @@ public sealed class StripeSubscriptionService(
         string currency,
         BillingInterval interval,
         bool atNextRenewal,
-        CancellationToken ct) =>
+        CancellationToken ct,
+        string? idempotencyKey = null) =>
         RunAsync("change-plan", async stripe =>
         {
             var subscription = await GetSubscriptionAsync(stripe, subscriptionId, ct);
@@ -122,32 +137,21 @@ public sealed class StripeSubscriptionService(
                     state.ScheduleId, new SubscriptionScheduleReleaseOptions(), cancellationToken: ct);
             }
 
-            var taxRates = StripeRequestBuilder.TaxRates(settings);
-            var items = new List<SubscriptionItemOptions>
+            try
             {
-                StripeRequestBuilder.WithTaxRates(
-                    new SubscriptionItemOptions { Id = planItem.Id, Price = planPriceExternalId, Quantity = 1 }, taxRates),
-            };
+                await stripe.V1.Subscriptions.UpdateAsync(
+                    subscriptionId,
+                    StripeRequestBuilder.PlanUpgrade(
+                        planItem.Id, planPriceExternalId, addOnItem?.Id, addOnItem?.Price.Id, addOnPriceId, settings),
+                    idempotencyKey is null ? null : new RequestOptions { IdempotencyKey = idempotencyKey },
+                    ct);
+            }
+            catch (StripeException) when (state.ScheduleId is not null)
+            {
+                await RestoreReleasedScheduleAsync(stripe, subscriptionId, subscription, state, ct);
 
-            if (addOnPriceId is not null && addOnItem is null)
-            {
-                items.Add(StripeRequestBuilder.WithTaxRates(
-                    new SubscriptionItemOptions { Price = addOnPriceId, Quantity = 1 }, taxRates));
+                throw;
             }
-            else if (addOnPriceId is not null && addOnItem!.Price.Id != addOnPriceId)
-            {
-                items.Add(StripeRequestBuilder.WithTaxRates(
-                    new SubscriptionItemOptions { Id = addOnItem.Id, Price = addOnPriceId, Quantity = 1 }, taxRates));
-            }
-            else if (addOnPriceId is null && addOnItem is not null)
-            {
-                items.Add(new SubscriptionItemOptions { Id = addOnItem.Id, Deleted = true });
-            }
-
-            await stripe.V1.Subscriptions.UpdateAsync(
-                subscriptionId,
-                new SubscriptionUpdateOptions { Items = items, ProrationBehavior = "create_prorations" },
-                cancellationToken: ct);
 
             if (state.Intent.GiftCouponId is not null)
             {
@@ -155,6 +159,40 @@ public sealed class StripeSubscriptionService(
             }
 
             return true;
+        });
+
+    /// <inheritdoc />
+    public Task<PlanChangePreview> PreviewPlanChangeAsync(
+        string customerId,
+        string subscriptionId,
+        string planCode,
+        string planPriceExternalId,
+        long? addOnAmountMinorUnits,
+        string currency,
+        BillingInterval interval,
+        CancellationToken ct) =>
+        RunAsync("preview-plan-change", async stripe =>
+        {
+            var subscription = await GetSubscriptionAsync(stripe, subscriptionId, ct);
+            var planItem = subscription.Items.Data.FirstOrDefault(item => !IsAddOn(item))
+                           ?? throw new BillingProviderException("The subscription has no plan item.");
+            var addOnItem = subscription.Items.Data.FirstOrDefault(IsAddOn);
+            string? addOnPriceId = null;
+
+            if (addOnAmountMinorUnits is { } amount)
+            {
+                var productId = await ProductOfPriceAsync(stripe, planPriceExternalId, ct);
+                addOnPriceId = await EnsureAddOnPriceAsync(stripe, planCode, productId, amount, currency, interval, ct);
+            }
+
+            // UNVERIFIED: an always_invoice preview holds only the proration lines, not the next period — https://docs.stripe.com/api/invoices/create_preview
+            var invoice = await stripe.V1.Invoices.CreatePreviewAsync(
+                StripeRequestBuilder.PlanUpgradePreview(
+                    customerId, subscriptionId, planItem.Id, planPriceExternalId, addOnItem?.Id, addOnItem?.Price.Id, addOnPriceId, settings),
+                cancellationToken: ct);
+            var tax = (invoice.TotalTaxes ?? []).Sum(total => total.Amount);
+
+            return new PlanChangePreview(invoice.Total, tax, currency);
         });
 
     /// <inheritdoc />
@@ -508,6 +546,29 @@ public sealed class StripeSubscriptionService(
             subscriptionId,
             new SubscriptionUpdateOptions { Discounts = [new SubscriptionDiscountOptions { Coupon = couponId }] },
             cancellationToken: ct);
+    }
+
+    /// <summary>
+    /// Puts the schedule back after an upgrade that released it failed to charge, so a scheduled downgrade is not lost.
+    /// Best effort: a failure here is logged with ids only and never replaces the original error.
+    /// </summary>
+    private async Task RestoreReleasedScheduleAsync(
+        StripeClient stripe, string subscriptionId, Subscription subscription, SubscriptionState state, CancellationToken ct)
+    {
+        try
+        {
+            var phases = StripeSchedulePlanner.Build(state.Start, state.End, state.CurrentPriceIds, state.Intent);
+
+            if (phases.Count > 0)
+            {
+                await ApplyPhasesAsync(stripe, subscriptionId, null, phases, IntervalOf(subscription), ct);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(
+                ex, "Restoring the released schedule {ScheduleId} of subscription {SubscriptionId} failed", state.ScheduleId, subscriptionId);
+        }
     }
 
     private async Task ApplyPhasesAsync(
