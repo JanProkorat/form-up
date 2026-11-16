@@ -166,7 +166,7 @@ internal sealed class StripeWebhookEndpoint(
         row.ExternalSubscriptionId ??= subscription.Id;
         row.LastExternalEventAt = StripeWebhookMapper.ToUtc(stripeEvent.Created);
 
-        if (IsGiftInForce(row))
+        if (IsGiftInForce(row) && !IsBoughtAfterGift(row, subscription))
         {
             // A scheduled add-on removal still completes under a gift, which otherwise freezes the plan fields.
             if (row.SecondRoleAddOnEndsAt is not null && !HasAddOnItem(subscription, planPrice))
@@ -323,6 +323,16 @@ internal sealed class StripeWebhookEndpoint(
             return false;
         }
 
+        var invoiceSubscriptionId = StripeWebhookMapper.SubscriptionIdOf(invoice);
+
+        if (!string.IsNullOrEmpty(invoiceSubscriptionId) && invoiceSubscriptionId != row.ExternalSubscriptionId)
+        {
+            logger.LogInformation(
+                "Stripe event {EventId} ({EventType}) belongs to a subscription not yet recorded on the coach; ignored",
+                stripeEvent.Id, stripeEvent.Type);
+            return false;
+        }
+
         if (IsStale(stripeEvent, row))
         {
             return false;
@@ -420,4 +430,10 @@ internal sealed class StripeWebhookEndpoint(
 
         return row;
     }
+
+    /// <summary>
+    /// True when the Stripe subscription was created after the plan was given, so the coach bought it and it ends the gift.
+    /// </summary>
+    private static bool IsBoughtAfterGift(CoachSubscription row, Subscription subscription) =>
+        row.GivenFreeAt is { } givenFreeAt && StripeWebhookMapper.ToUtc(subscription.Created) > givenFreeAt;
 }
