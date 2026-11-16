@@ -44,7 +44,8 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
         IEnumerable<string>? extraPriceIds = null,
         bool cancelAtPeriodEnd = false,
         string? userId = null,
-        string[]? discountIds = null)
+        string[]? discountIds = null,
+        long? subscriptionCreated = null)
     {
         var periodEnd = DateTimeOffset.UtcNow.AddDays(20).ToUnixTimeSeconds();
         var periodStart = DateTimeOffset.UtcNow.AddDays(-10).ToUnixTimeSeconds();
@@ -64,6 +65,7 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
             Object = "subscription",
             Customer = scenario.CustomerId,
             Status = status,
+            Created = subscriptionCreated ?? periodStart,
             CancelAtPeriodEnd = cancelAtPeriodEnd,
             Metadata = userId is null ? new Dictionary<string, string>() : new Dictionary<string, string> { ["userId"] = userId },
             Items = new { Object = "list", Data = items, HasMore = false, Url = "/v1/subscription_items" },
@@ -534,6 +536,111 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
         after.SubscriptionPlanPriceId.Should().Be(before.SubscriptionPlanPriceId);
         after.Status.Should().Be(SubscriptionStatus.Active);
         after.GivenFreeAt.Should().NotBeNull();
+    }
+
+    /// <summary>A coach on a plan set by Form Up (free plan, gift given a day ago, no Stripe subscription yet).</summary>
+    private async Task<Scenario> ArrangeOnGiftWithoutSubscriptionAsync()
+    {
+        var scenario = await ArrangeOnFreePlanAsync();
+        await UpdateRowAsync(scenario.Coach.ProfileId, row => row.GivenFreeAt = DateTimeOffset.UtcNow.AddDays(-1));
+
+        return scenario;
+    }
+
+    private static long Now => DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+    private async Task AssertBoughtPlanReplacedGiftAsync(Scenario scenario)
+    {
+        var row = await ReadRowAsync(scenario.Coach.ProfileId);
+
+        row.SubscriptionPlan.Code.Should().Be(scenario.PlanCode);
+        row.Status.Should().Be(SubscriptionStatus.Active);
+        row.ExternalSubscriptionId.Should().Be(scenario.SubscriptionId);
+        row.GivenFreeAt.Should().BeNull();
+        row.FreeUntil.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Webhook_NewSubscriptionForACoachWithAGivenPlan_EndsTheGiftAndAppliesThePurchase()
+    {
+        var scenario = await ArrangeOnGiftWithoutSubscriptionAsync();
+
+        var response = await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.created", scenario, "active", created: Now, subscriptionCreated: Now));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        await AssertBoughtPlanReplacedGiftAsync(scenario);
+    }
+
+    [Fact]
+    public async Task Webhook_SubscriptionOlderThanTheGift_KeepsTheGiftedPlan()
+    {
+        var scenario = await ArrangeOnGiftWithoutSubscriptionAsync();
+
+        var response = await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.created", scenario, "active", subscriptionCreated: Now - 5 * 86400));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var row = await ReadRowAsync(scenario.Coach.ProfileId);
+        row.SubscriptionPlan.Code.Should().Be("free");
+        row.GivenFreeAt.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task Webhook_InvoicePaidBeforeSubscriptionCreated_DoesNotMakeTheSubscriptionEventStale()
+    {
+        var scenario = await ArrangeOnGiftWithoutSubscriptionAsync();
+        var invoiceEventId = NewEventId();
+
+        await PostAsync(InvoiceEvent(invoiceEventId, "invoice.paid", scenario, created: Now + 5));
+        var response = await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.created", scenario, "active", created: Now, subscriptionCreated: Now));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await ProcessedCountAsync(invoiceEventId)).Should().Be(0, "the invoice names a subscription the coach does not have yet");
+        await AssertBoughtPlanReplacedGiftAsync(scenario);
+    }
+
+    [Fact]
+    public async Task Webhook_InvoicePaidAfterSubscriptionCreated_KeepsThePurchase()
+    {
+        var scenario = await ArrangeOnGiftWithoutSubscriptionAsync();
+        var invoiceEventId = NewEventId();
+
+        await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.created", scenario, "active", created: Now, subscriptionCreated: Now));
+        await PostAsync(InvoiceEvent(invoiceEventId, "invoice.paid", scenario, created: Now + 5));
+
+        (await ProcessedCountAsync(invoiceEventId)).Should().Be(1);
+        await AssertBoughtPlanReplacedGiftAsync(scenario);
+    }
+
+    [Fact]
+    public async Task Webhook_SameSubscriptionCreatedEventTwice_IsAppliedOnce()
+    {
+        var scenario = await ArrangeOnGiftWithoutSubscriptionAsync();
+        var eventId = NewEventId();
+        var payload = SubscriptionEvent(eventId, "customer.subscription.created", scenario, "active", created: Now, subscriptionCreated: Now);
+
+        await PostAsync(payload);
+        var second = await PostAsync(payload);
+
+        second.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await ProcessedCountAsync(eventId)).Should().Be(1);
+        await AssertBoughtPlanReplacedGiftAsync(scenario);
+    }
+
+    [Fact]
+    public async Task Webhook_NewEventForARowBrokenByThePurchase_RepairsIt()
+    {
+        var scenario = await ArrangeOnGiftWithoutSubscriptionAsync();
+        await UpdateRowAsync(scenario.Coach.ProfileId, row => row.ExternalSubscriptionId = scenario.SubscriptionId);
+
+        var response = await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.updated", scenario, "active", created: Now, subscriptionCreated: Now));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        await AssertBoughtPlanReplacedGiftAsync(scenario);
     }
 
     [Fact]
