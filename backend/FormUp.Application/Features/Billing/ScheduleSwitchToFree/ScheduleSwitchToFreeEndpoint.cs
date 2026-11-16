@@ -87,6 +87,7 @@ internal sealed class ScheduleSwitchToFreeEndpoint(
         // The plan stays until the deleted webhook; a scheduled downgrade is moot because the coach is leaving.
         subscription.CancelAtPeriodEnd = true;
         subscription.PendingSubscriptionPlanPriceId = null;
+        subscription.SecondRoleAddOnEndsAt = null;
         await db.SaveChangesAsync(ct);
 
         await Send.OkAsync(new ScheduleSwitchToFreeResponse { EndsAt = subscription.CurrentPeriodEndsAt }, ct);

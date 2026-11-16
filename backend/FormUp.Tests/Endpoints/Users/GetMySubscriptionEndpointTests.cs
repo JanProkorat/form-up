@@ -323,6 +323,46 @@ public class GetMySubscriptionEndpointTests(FitnessApiFactory factory)
         scheduled.PriceLines.Should().ContainSingle().Which.AmountMinorUnits.Should().Be(0);
     }
 
+    private async Task SetAddOnEndAsync(Actor coach, DateTimeOffset endsAt)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        await db.CoachSubscriptions
+            .Where(cs => cs.ProfessionalProfileId == coach.ProfileId)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(cs => cs.SecondRoleAddOnEndsAt, endsAt), Ct);
+    }
+
+    [Fact]
+    public async Task Get_WithTheAddOnEndScheduled_ReportsTheDate_AndKeepsTheAddOnLineUntilThen()
+    {
+        var coach = await TestActors.Professional(factory, UserRole.Trainer).CreateAsync(Ct);
+        var (plan, _) = await BillingTestData.StripePlanAsync(factory, price: 29900, addOn: 9900, bothRolesIncluded: false);
+        var periodEnd = DateTimeOffset.UtcNow.AddDays(12);
+        await BillingTestData.SubscribeLiveAsync(factory, coach, plan, paysSecondRoleAddOn: true, currentPeriodEndsAt: periodEnd);
+        await SetAddOnEndAsync(coach, periodEnd);
+
+        var block = await GetAsync(coach);
+
+        block.SecondRoleAddOnEndsAt.Should().BeCloseTo(periodEnd, TimeSpan.FromSeconds(1));
+        block.PriceLines.Select(line => line.Kind).Should().Equal(SubscriptionPriceLineKind.Plan, SubscriptionPriceLineKind.SecondRoleAddOn);
+        block.ScheduledPlan.Should().BeNull("the plan itself does not change");
+    }
+
+    [Fact]
+    public async Task Get_WithTheAddOnEndScheduledWhileTheSubscriptionEndsAnyway_ReportsNoAddOnEnd()
+    {
+        await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
+        var coach = await TestActors.Professional(factory, UserRole.Trainer).CreateAsync(Ct);
+        var (plan, _) = await BillingTestData.StripePlanAsync(factory, price: 29900, addOn: 9900, bothRolesIncluded: false);
+        var periodEnd = DateTimeOffset.UtcNow.AddDays(12);
+        await BillingTestData.SubscribeLiveAsync(
+            factory, coach, plan, paysSecondRoleAddOn: true, cancelAtPeriodEnd: true, currentPeriodEndsAt: periodEnd);
+        await SetAddOnEndAsync(coach, periodEnd);
+
+        (await GetAsync(coach)).SecondRoleAddOnEndsAt.Should().BeNull();
+    }
+
     [Fact]
     public async Task Get_WithNothingScheduled_HasNoScheduledPlan()
     {

@@ -593,7 +593,8 @@
       "scheduled": {
         "until": "Monthly · {{plan}} until {{date}}",
         "begins": "{{plan}} begins on {{date}}",
-        "beginsPriced": "{{plan}} begins on {{date}} · {{price}}"
+        "beginsPriced": "{{plan}} begins on {{date}} · {{price}}",
+        "secondRoleEnds": "The second role stops being billed on {{date}}. New monthly payment: {{amount}}."
       },
       "freeUntil": "Included until {{date}}",
       "setByFormUpUntil": "Until {{date}} · Set by Form Up",
@@ -773,6 +774,7 @@
       "secondRoleAfterChange": "You can add a second role after your plan change on {{date}}.",
       "removeDialog": {
         "keep": "Keep role",
+        "billing": "The second role stops being billed on {{date}}. New monthly payment: {{amount}}.",
         "footnote": "The role disappears from search and your profile card right away. Add it back any time to edit again.",
         "notified_zero": "No clients are notified",
         "notified_one": "{{count}} client is notified",
@@ -3688,6 +3690,7 @@
     "BILLING_CUSTOMER_NOT_FOUND": "There is no billing account yet. Choose a paid plan first.",
     "BILLING_NOT_CONFIGURED": "Billing isn't available right now. Please try again later.",
     "BILLING_PROVIDER_ERROR": "The payment provider didn't answer. Please try again in a moment.",
+    "SECOND_ROLE_NOT_ON_SCHEDULED_PLAN": "The plan scheduled for your next renewal doesn't include a second role.",
     "CHECK_IN_ANSWER_WINDOW_CLOSED": "The time to answer this check-in has passed.",
     "INVALID_CREDENTIALS": "Invalid email or password.",
     "ACCOUNT_DEACTIVATED": "Your account has been deactivated.",

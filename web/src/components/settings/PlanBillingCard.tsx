@@ -111,6 +111,21 @@ export default function PlanBillingCard() {
           })
         : t('subscription.plan.scheduled.begins', { plan: scheduledName, date: scheduledDate })
       : null;
+  // A scheduled plan change already shows the lower total, so the add-on end only gets its own line without one.
+  const addOnEndsAt = data?.secondRoleAddOnEndsAt;
+  const addOnEndLine =
+    !scheduled && addOnEndsAt
+      ? t('subscription.plan.scheduled.secondRoleEnds', {
+          date: dateFormat.format(new Date(addOnEndsAt)),
+          amount: formatMoney(
+            (data?.priceLines ?? [])
+              .filter((line) => line.kind === SubscriptionPriceLineKind.Plan)
+              .reduce((sum, line) => sum + (line.amountMinorUnits ?? 0), 0),
+            data?.priceLines?.[0]?.currency ?? 'CZK',
+            language,
+          ),
+        })
+      : null;
   const subtitle = [
     periodEnd
       ? scheduled
@@ -181,10 +196,10 @@ export default function PlanBillingCard() {
                   )}
                 </div>
                 {subtitle && <span className="text-body text-muted-foreground">{subtitle}</span>}
-                {scheduledLine && (
+                {(scheduledLine ?? addOnEndLine) && (
                   <span className="inline-flex items-center gap-1.5 text-body font-semibold text-training-ink">
                     <CalendarClock className="size-4 shrink-0" aria-hidden="true" />
-                    {scheduledLine}
+                    {scheduledLine ?? addOnEndLine}
                   </span>
                 )}
               </div>

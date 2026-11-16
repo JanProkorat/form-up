@@ -631,7 +631,8 @@
       "scheduled": {
         "until": "Měsíčně · {{plan}} do {{date}}",
         "begins": "{{plan}} začne {{date}}",
-        "beginsPriced": "{{plan}} začne {{date}} · {{price}}"
+        "beginsPriced": "{{plan}} začne {{date}} · {{price}}",
+        "secondRoleEnds": "Druhá role se přestane účtovat od {{date}}. Nová měsíční platba: {{amount}}."
       },
       "freeUntil": "V ceně do {{date}}",
       "setByFormUpUntil": "Do {{date}} · Nastaveno Form Up",
@@ -815,6 +816,7 @@
       "secondRoleAfterChange": "Druhou roli můžete přidat po změně tarifu dne {{date}}.",
       "removeDialog": {
         "keep": "Ponechat roli",
+        "billing": "Druhá role se přestane účtovat od {{date}}. Nová měsíční platba: {{amount}}.",
         "footnote": "Role okamžitě zmizí z vyhledávání i z vaší profilové karty. Kdykoli ji můžete přidat zpět a znovu upravovat.",
         "notified_zero": "Žádný klient nebude upozorněn",
         "notified_one": "{{count}} klient bude upozorněn",
@@ -3840,6 +3842,7 @@
     "BILLING_CUSTOMER_NOT_FOUND": "Zatím nemáte platební účet. Nejdřív vyberte placený tarif.",
     "BILLING_NOT_CONFIGURED": "Platby teď nejsou k dispozici. Zkuste to prosím později.",
     "BILLING_PROVIDER_ERROR": "Platební služba neodpověděla. Zkuste to prosím za chvíli znovu.",
+    "SECOND_ROLE_NOT_ON_SCHEDULED_PLAN": "Plán naplánovaný na příští obnovení druhou roli nezahrnuje.",
     "CHECK_IN_ANSWER_WINDOW_CLOSED": "Čas na odpověď na tento check-in už vypršel.",
     "INVALID_CREDENTIALS": "Neplatný email nebo heslo.",
     "ACCOUNT_DEACTIVATED": "Váš účet byl deaktivován.",

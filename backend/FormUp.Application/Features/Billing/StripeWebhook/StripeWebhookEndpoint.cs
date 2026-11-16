@@ -168,6 +168,13 @@ internal sealed class StripeWebhookEndpoint(
 
         if (IsGiftInForce(row) && !IsBoughtAfterGift(row, subscription))
         {
+            // A scheduled add-on removal still completes under a gift, which otherwise freezes the plan fields.
+            if (row.SecondRoleAddOnEndsAt is not null && !HasAddOnItem(subscription, planPrice))
+            {
+                row.PaysSecondRoleAddOn = false;
+                row.SecondRoleAddOnEndsAt = null;
+            }
+
             logger.LogInformation("Stripe event {EventId} left the plan of a coach with a given plan unchanged", stripeEvent.Id);
             return true;
         }
@@ -176,8 +183,15 @@ internal sealed class StripeWebhookEndpoint(
         row.SubscriptionPlanId = planPrice.SubscriptionPlanId;
         row.SubscriptionPlanPriceId = planPrice.Id;
         row.Status = StripeWebhookMapper.ToStatus(subscription.Status) ?? row.Status;
-        row.PaysSecondRoleAddOn = !planPrice.SubscriptionPlan.BothRolesIncluded
-                                  && subscription.Items.Data.Any(item => item.Price.Id != planPrice.ExternalPriceId);
+        row.PaysSecondRoleAddOn = !planPrice.SubscriptionPlan.BothRolesIncluded && HasAddOnItem(subscription, planPrice);
+
+        // UNVERIFIED: the schedule's phase change at renewal emits customer.subscription.updated carrying the new items — https://docs.stripe.com/billing/subscriptions/subscription-schedules
+        // The event right after scheduling still carries the add-on item, so the marker survives until the renewal drops it.
+        if (!row.PaysSecondRoleAddOn)
+        {
+            row.SecondRoleAddOnEndsAt = null;
+        }
+
         row.CancelAtPeriodEnd = subscription.CancelAtPeriodEnd || subscription.CancelAt is not null;
         row.CurrentPeriodEndsAt = StripeWebhookMapper.LatestPeriodEnd(subscription);
         row.TrialEndsAt = subscription.TrialEnd is { } trialEnd ? StripeWebhookMapper.ToUtc(trialEnd) : null;
@@ -291,9 +305,13 @@ internal sealed class StripeWebhookEndpoint(
         row.Status = SubscriptionStatus.Canceled;
         row.CancelAtPeriodEnd = false;
         row.PendingSubscriptionPlanPriceId = null;
+        row.SecondRoleAddOnEndsAt = null;
 
         return true;
     }
+
+    private static bool HasAddOnItem(Subscription subscription, SubscriptionPlanPrice planPrice) =>
+        subscription.Items.Data.Any(item => item.Price.Id != planPrice.ExternalPriceId);
 
     private async Task<bool> ApplyInvoiceAsync(Event stripeEvent, Invoice invoice, bool paymentFailed, CancellationToken ct)
     {
