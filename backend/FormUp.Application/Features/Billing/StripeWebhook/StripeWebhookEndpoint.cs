@@ -166,7 +166,7 @@ internal sealed class StripeWebhookEndpoint(
         row.ExternalSubscriptionId ??= subscription.Id;
         row.LastExternalEventAt = StripeWebhookMapper.ToUtc(stripeEvent.Created);
 
-        if (IsGiftInForce(row))
+        if (IsGiftInForce(row) && !IsBoughtAfterGift(row, subscription))
         {
             logger.LogInformation("Stripe event {EventId} left the plan of a coach with a given plan unchanged", stripeEvent.Id);
             return true;
@@ -305,6 +305,16 @@ internal sealed class StripeWebhookEndpoint(
             return false;
         }
 
+        var invoiceSubscriptionId = StripeWebhookMapper.SubscriptionIdOf(invoice);
+
+        if (!string.IsNullOrEmpty(invoiceSubscriptionId) && invoiceSubscriptionId != row.ExternalSubscriptionId)
+        {
+            logger.LogInformation(
+                "Stripe event {EventId} ({EventType}) belongs to a subscription not yet recorded on the coach; ignored",
+                stripeEvent.Id, stripeEvent.Type);
+            return false;
+        }
+
         if (IsStale(stripeEvent, row))
         {
             return false;
@@ -402,4 +412,10 @@ internal sealed class StripeWebhookEndpoint(
 
         return row;
     }
+
+    /// <summary>
+    /// True when the Stripe subscription was created after the plan was given, so the coach bought it and it ends the gift.
+    /// </summary>
+    private static bool IsBoughtAfterGift(CoachSubscription row, Subscription subscription) =>
+        row.GivenFreeAt is { } givenFreeAt && StripeWebhookMapper.ToUtc(subscription.Created) > givenFreeAt;
 }
