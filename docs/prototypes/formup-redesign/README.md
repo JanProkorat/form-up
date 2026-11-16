@@ -46,6 +46,10 @@ were re-exported, light and dark. `GlassRecipeDetail` is now 1280 px tall; the m
 and "2 End promotion") added from web portal 1794676722-091e, source files only: no static
 export, no PNGs, and the merged `canvas.json` does not list it yet.
 
+**Partial update, 2026-11-16 (#2154):** `PageSettingsPlanScheduled` updated ("Cancel change" beside the scheduled
+line) and `PagePlanPickerKeep` added (C and D, keep the current plan while a switch to Free is scheduled) from web
+portal 1794833339-d392 (canvas v58), source files only: no static export, no PNGs, merged `canvas.json` not updated.
+
 **Partial update, 2026-11-16 (#2144):** `PagePlanPickerSelected` updated (back button beside the title, upgrade
 "pay now" hint), `PagePlanPickerDowngrade` and `PageSettingsPlanScheduled` added (C and D) from web portal
 1794821595-7b47 (canvas v56), source files only: no static export, no PNGs, merged `canvas.json` not updated.
