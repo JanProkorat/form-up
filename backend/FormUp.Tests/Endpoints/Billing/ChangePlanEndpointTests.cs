@@ -5,7 +5,10 @@ using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Features.Billing.ChangePlan;
 using FormUp.Tests.Builders;
+using FormUp.Application.Infrastructure.Data;
 using FormUp.Tests.Infrastructure;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace FormUp.Tests.Endpoints.Billing;
 
@@ -104,6 +107,32 @@ public class ChangePlanEndpointTests(FitnessApiFactory factory) : IDisposable
         var row = await BillingTestData.ReadRowAsync(factory, coach.ProfileId);
         row.SubscriptionPlan.Code.Should().Be(target);
         row.CancelAtPeriodEnd.Should().BeFalse("the upgrade cancels the scheduled switch to Free");
+    }
+
+    [Fact]
+    public async Task ChangePlan_UpgradeAfterTheSecondRoleWasRemoved_ClearsTheScheduledAddOnEnd()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (current, _) = await BillingTestData.StripePlanAsync(factory, price: 29900, addOn: 9900, bothRolesIncluded: false);
+        var (target, _) = await BillingTestData.StripePlanAsync(factory, price: 59900, addOn: 14900, bothRolesIncluded: false);
+        await BillingTestData.SubscribeLiveAsync(factory, coach, current, paysSecondRoleAddOn: true);
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            await db.CoachSubscriptions
+                .Where(cs => cs.ProfessionalProfileId == coach.ProfileId)
+                .ExecuteUpdateAsync(
+                    setters => setters.SetProperty(cs => cs.SecondRoleAddOnEndsAt, DateTimeOffset.UtcNow.AddDays(5)), Ct);
+        }
+
+        var response = await coach.Http.PostAsJsonAsync(Route, Body(target), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.PlanChanges.Should().ContainSingle().Which.AddOnAmountMinorUnits.Should().BeNull("a one-role coach carries no add-on");
+        var row = await BillingTestData.ReadRowAsync(factory, coach.ProfileId);
+        row.PaysSecondRoleAddOn.Should().BeFalse();
+        row.SecondRoleAddOnEndsAt.Should().BeNull();
     }
 
     [Fact]

@@ -113,6 +113,12 @@ internal sealed class ChangePlanEndpoint(
             subscription.PendingSubscriptionPlanPriceId = null;
             subscription.PaysSecondRoleAddOn = decision.CarryAddOn;
             subscription.CancelAtPeriodEnd = false;
+
+            // The upgrade rebuilt the items without the add-on, so a scheduled removal of it is moot.
+            if (!decision.CarryAddOn)
+            {
+                subscription.SecondRoleAddOnEndsAt = null;
+            }
         }
         else
         {

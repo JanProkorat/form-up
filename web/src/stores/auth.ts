@@ -2,6 +2,7 @@ import axios from 'axios';
 import { create } from 'zustand';
 import { executeRefresh } from '@/lib/refresh';
 import { queryClient } from '@/lib/queryClient';
+import { useCheckoutActivationStore } from '@/stores/checkoutActivation';
 
 interface User {
   publicId: string;
@@ -89,6 +90,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     // list, dashboards, messages) would be served to the coach logging in now.
     // See issue #769.
     queryClient.clear();
+    useCheckoutActivationStore.getState().stop();
     writeRefreshToken(refreshToken, persist);
     set({ user, accessToken, refreshToken, isAuthenticated: true });
   },
@@ -97,6 +99,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     // Drop all cached queries so the next user in this tab never sees the
     // previous session's data. See issue #769.
     queryClient.clear();
+    useCheckoutActivationStore.getState().stop();
     clearStoredRefreshToken();
     set({
       user: null,

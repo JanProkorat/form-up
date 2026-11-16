@@ -141,6 +141,7 @@ internal sealed class ChooseFreePlanEndpoint(IApplicationDbContext db, TimeProvi
         subscription.FreeUntil = null;
         subscription.GivenFreeAt = null;
         subscription.PaysSecondRoleAddOn = false;
+        subscription.SecondRoleAddOnEndsAt = null;
 
         await db.SaveChangesAsync(ct);
 

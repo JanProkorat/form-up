@@ -166,8 +166,15 @@ internal sealed class StripeWebhookEndpoint(
         row.ExternalSubscriptionId ??= subscription.Id;
         row.LastExternalEventAt = StripeWebhookMapper.ToUtc(stripeEvent.Created);
 
-        if (IsGiftInForce(row))
+        if (IsGiftInForce(row) && !IsBoughtAfterGift(row, subscription))
         {
+            // A scheduled add-on removal still completes under a gift, which otherwise freezes the plan fields.
+            if (row.SecondRoleAddOnEndsAt is not null && !HasAddOnItem(subscription, planPrice))
+            {
+                row.PaysSecondRoleAddOn = false;
+                row.SecondRoleAddOnEndsAt = null;
+            }
+
             logger.LogInformation("Stripe event {EventId} left the plan of a coach with a given plan unchanged", stripeEvent.Id);
             return true;
         }
@@ -176,8 +183,15 @@ internal sealed class StripeWebhookEndpoint(
         row.SubscriptionPlanId = planPrice.SubscriptionPlanId;
         row.SubscriptionPlanPriceId = planPrice.Id;
         row.Status = StripeWebhookMapper.ToStatus(subscription.Status) ?? row.Status;
-        row.PaysSecondRoleAddOn = !planPrice.SubscriptionPlan.BothRolesIncluded
-                                  && subscription.Items.Data.Any(item => item.Price.Id != planPrice.ExternalPriceId);
+        row.PaysSecondRoleAddOn = !planPrice.SubscriptionPlan.BothRolesIncluded && HasAddOnItem(subscription, planPrice);
+
+        // UNVERIFIED: the schedule's phase change at renewal emits customer.subscription.updated carrying the new items — https://docs.stripe.com/billing/subscriptions/subscription-schedules
+        // The event right after scheduling still carries the add-on item, so the marker survives until the renewal drops it.
+        if (!row.PaysSecondRoleAddOn)
+        {
+            row.SecondRoleAddOnEndsAt = null;
+        }
+
         row.CancelAtPeriodEnd = subscription.CancelAtPeriodEnd || subscription.CancelAt is not null;
         row.CurrentPeriodEndsAt = StripeWebhookMapper.LatestPeriodEnd(subscription);
         row.TrialEndsAt = subscription.TrialEnd is { } trialEnd ? StripeWebhookMapper.ToUtc(trialEnd) : null;
@@ -291,9 +305,13 @@ internal sealed class StripeWebhookEndpoint(
         row.Status = SubscriptionStatus.Canceled;
         row.CancelAtPeriodEnd = false;
         row.PendingSubscriptionPlanPriceId = null;
+        row.SecondRoleAddOnEndsAt = null;
 
         return true;
     }
+
+    private static bool HasAddOnItem(Subscription subscription, SubscriptionPlanPrice planPrice) =>
+        subscription.Items.Data.Any(item => item.Price.Id != planPrice.ExternalPriceId);
 
     private async Task<bool> ApplyInvoiceAsync(Event stripeEvent, Invoice invoice, bool paymentFailed, CancellationToken ct)
     {
@@ -302,6 +320,16 @@ internal sealed class StripeWebhookEndpoint(
         if (row is null)
         {
             logger.LogInformation("Stripe event {EventId} ({EventType}) matches no coach; ignored", stripeEvent.Id, stripeEvent.Type);
+            return false;
+        }
+
+        var invoiceSubscriptionId = StripeWebhookMapper.SubscriptionIdOf(invoice);
+
+        if (!string.IsNullOrEmpty(invoiceSubscriptionId) && invoiceSubscriptionId != row.ExternalSubscriptionId)
+        {
+            logger.LogInformation(
+                "Stripe event {EventId} ({EventType}) belongs to a subscription not yet recorded on the coach; ignored",
+                stripeEvent.Id, stripeEvent.Type);
             return false;
         }
 
@@ -402,4 +430,10 @@ internal sealed class StripeWebhookEndpoint(
 
         return row;
     }
+
+    /// <summary>
+    /// True when the Stripe subscription was created after the plan was given, so the coach bought it and it ends the gift.
+    /// </summary>
+    private static bool IsBoughtAfterGift(CoachSubscription row, Subscription subscription) =>
+        row.GivenFreeAt is { } givenFreeAt && StripeWebhookMapper.ToUtc(subscription.Created) > givenFreeAt;
 }

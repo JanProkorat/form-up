@@ -46,7 +46,13 @@ function subscription(extra: Record<string, unknown>) {
 }
 
 /** Mocks the three reads the card makes and records any POST /users/me/roles so a test can assert none was sent. */
-async function mockRolesCard(page: Page, body: Record<string, unknown>) {
+async function mockRolesCard(
+  page: Page,
+  body: Record<string, unknown>,
+  roles: { role: string; clientCount: number; sharedWithOtherRoleCount: number }[] = [
+    { role: 'Trainer', clientCount: 4, sharedWithOtherRoleCount: 0 },
+  ],
+) {
   const addRoleRequests: string[] = [];
   await page.route(/\/users\/me\/subscription$/, (route) => json(route, body));
   await page.route(/\/users\/me\/roles$/, (route) => {
@@ -54,7 +60,7 @@ async function mockRolesCard(page: Page, body: Record<string, unknown>) {
       addRoleRequests.push(route.request().url());
       return route.fulfill({ status: 403, contentType: 'application/json', body: '{}' });
     }
-    return json(route, { roles: [{ role: 'Trainer', clientCount: 4, sharedWithOtherRoleCount: 0 }] });
+    return json(route, { roles });
   });
   await page.route(/\/billing\/second-role\/preview$/, (route) =>
     json(route, {
@@ -126,5 +132,60 @@ trainerTest.describe('settings roles card, adding a second role', () => {
     await expect(dialog.getByText('Add the Nutritionist role?')).toBeVisible();
     await expect(dialog.getByText(/You get the tools for this role/)).toBeVisible();
     await expect(dialog.getByRole('button', { name: /pay / })).toHaveCount(0);
+  });
+});
+
+const TWO_ROLES = [
+  { role: 'Trainer', clientCount: 4, sharedWithOtherRoleCount: 0 },
+  { role: 'Nutritionist', clientCount: 2, sharedWithOtherRoleCount: 0 },
+];
+
+trainerTest.describe('settings roles card, removing a second role', () => {
+  trainerTest('a billed add-on shows when it stops and the plan-only payment', async ({ page }) => {
+    await mockRolesCard(
+      page,
+      subscription({
+        secondRole: 'PaidAddOn',
+        priceLines: [
+          { kind: 'Plan', amountMinorUnits: 59900, currency: 'CZK' },
+          { kind: 'SecondRoleAddOn', amountMinorUnits: 20000, currency: 'CZK' },
+        ],
+      }),
+      TWO_ROLES,
+    );
+    await page.goto('/settings');
+
+    await page.getByRole('button', { name: 'Remove role' }).first().click();
+
+    await expect(
+      page.getByRole('dialog').getByText(/The second role stops being billed on .*2026\. New monthly payment: .*599/),
+    ).toBeVisible();
+  });
+
+  trainerTest('an included second role shows no billing line', async ({ page }) => {
+    await mockRolesCard(page, subscription({ secondRole: 'Included' }), TWO_ROLES);
+    await page.goto('/settings');
+
+    await page.getByRole('button', { name: 'Remove role' }).first().click();
+
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await expect(page.getByRole('dialog').getByText(/stops being billed/)).toHaveCount(0);
+  });
+
+  trainerTest('a billing provider failure keeps the dialog open with the message', async ({ page }) => {
+    await mockRolesCard(page, subscription({ secondRole: 'Included' }), TWO_ROLES);
+    await page.route(/\/users\/me\/roles\/Nutritionist$/, (route) =>
+      route.fulfill({
+        status: 502,
+        contentType: 'application/problem+json',
+        body: JSON.stringify({ status: 502, errorCode: 'BILLING_PROVIDER_ERROR' }),
+      }),
+    );
+    await page.goto('/settings');
+
+    await page.getByRole('button', { name: 'Remove role' }).nth(1).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Remove Nutritionist' }).click();
+
+    await expect(page.getByRole('dialog').getByRole('alert')).toHaveText(/payment provider didn't answer/);
   });
 });

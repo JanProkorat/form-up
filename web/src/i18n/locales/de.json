@@ -332,7 +332,8 @@
       "returning": {
         "title": "Wir schließen ab",
         "body": "Wir bestätigen Ihre Zahlung bei Stripe.",
-        "pending": "Ihre Zahlung wird noch verarbeitet. Ihr Tarif wird gleich aktualisiert."
+        "pending": "Ihre Zahlung ist eingegangen. Die Aktivierung Ihres Tarifs kann einige Minuten dauern, wir informieren Sie, sobald sie abgeschlossen ist.",
+        "activated": "Ihr Tarif {{plan}} ist jetzt aktiv."
       },
       "changed": {
         "now": "Sie nutzen jetzt den Tarif {{plan}}.",
@@ -592,7 +593,8 @@
       "scheduled": {
         "until": "Monatlich · {{plan}} bis {{date}}",
         "begins": "{{plan}} beginnt am {{date}}",
-        "beginsPriced": "{{plan}} beginnt am {{date}} · {{price}}"
+        "beginsPriced": "{{plan}} beginnt am {{date}} · {{price}}",
+        "secondRoleEnds": "Die zweite Rolle wird ab dem {{date}} nicht mehr berechnet. Neue monatliche Zahlung: {{amount}}."
       },
       "freeUntil": "Inklusive bis {{date}}",
       "setByFormUpUntil": "Bis {{date}} · Von Form Up gesetzt",
@@ -772,6 +774,7 @@
       "secondRoleAfterChange": "Sie können eine zweite Rolle nach Ihrem Tarifwechsel am {{date}} hinzufügen.",
       "removeDialog": {
         "keep": "Rolle behalten",
+        "billing": "Die zweite Rolle wird ab dem {{date}} nicht mehr berechnet. Neue monatliche Zahlung: {{amount}}.",
         "footnote": "Die Rolle verschwindet sofort aus der Suche und von Ihrer Profilkarte. Fügen Sie sie jederzeit wieder hinzu, um erneut zu bearbeiten.",
         "notified_zero": "Kein Klient wird benachrichtigt",
         "notified_one": "{{count}} Klient wird benachrichtigt",
@@ -3686,6 +3689,7 @@
     "BILLING_CUSTOMER_NOT_FOUND": "Es gibt noch kein Zahlungskonto. Wählen Sie zuerst einen bezahlten Tarif.",
     "BILLING_NOT_CONFIGURED": "Zahlungen sind derzeit nicht verfügbar. Bitte versuchen Sie es später erneut.",
     "BILLING_PROVIDER_ERROR": "Der Zahlungsanbieter hat nicht geantwortet. Bitte versuchen Sie es gleich erneut.",
+    "SECOND_ROLE_NOT_ON_SCHEDULED_PLAN": "Der für die nächste Verlängerung geplante Tarif enthält keine zweite Rolle.",
     "CHECK_IN_ANSWER_WINDOW_CLOSED": "Die Zeit zum Beantworten dieses Check-ins ist abgelaufen.",
     "INVALID_CREDENTIALS": "Ungültige E-Mail oder Passwort.",
     "ACCOUNT_DEACTIVATED": "Ihr Konto wurde deaktiviert.",
