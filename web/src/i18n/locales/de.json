@@ -290,6 +290,14 @@
         "hintStripeCheckout": "Sie zahlen auf der sicheren Seite von Stripe",
         "hintStripePages": "Karte und Rechnungen auf den sicheren Seiten von Stripe",
         "hintPeriodEnd": "Gilt ab dem Ende des bezahlten Monats",
+        "hintStartsOn": "{{plan}} beginnt am {{date}}. Bis dahin behalten Sie {{current}}.",
+        "hintSpanMonth": "für den Rest dieses Monats",
+        "hintSpanYear": "für den Rest dieses Jahres",
+        "hintUpgradeToday": "Heute etwa {{today}} {{span}}, danach {{next}} {{per}} ab {{date}}",
+        "hintUpgradeTodayNoDate": "Heute etwa {{today}} {{span}}, danach {{next}} {{per}}",
+        "hintPreviewLoading": "Heutige Zahlung wird berechnet…",
+        "hintPreviewError": "Die heutige Zahlung konnte nicht berechnet werden. Sie können die Änderung trotzdem bestätigen.",
+        "hintCancelsFree": "Ihr Wechsel zu {{free}} wird aufgehoben.",
         "continue": "Weiter zur Zahlung"
       },
       "picker": {
@@ -302,8 +310,8 @@
         "noCard": "Für immer, ohne Karte",
         "yourPlan": "Ihr Tarif",
         "switchTo": "Zu {{plan}} wechseln",
-        "switchesToFree": "Wechsel zu Free am {{date}}",
-        "switchesToFreeNoDate": "Wechsel zu Free zum Periodenende",
+        "switchesToFree": "Wechsel zu {{free}} am {{date}}",
+        "switchesToFreeNoDate": "Wechsel zu {{free}} zum Periodenende",
         "footer": "Monatliche Abrechnung. Kartenzahlung, Rechnungen und Kündigung laufen auf den sicheren Seiten von Stripe. Ein Downgrade oder eine Kündigung gilt zum Ende des bezahlten Monats."
       },
       "register": {
@@ -329,8 +337,8 @@
         "atRenewalNoDate": "Ihr Tarif wechselt bei der nächsten Verlängerung zu {{plan}}."
       },
       "switchFree": {
-        "scheduled": "Ihr Tarif wechselt am {{date}} zu Free.",
-        "scheduledNoDate": "Ihr Tarif wechselt zum Ende des bezahlten Zeitraums zu Free."
+        "scheduled": "Ihr Tarif wechselt am {{date}} zu {{free}}.",
+        "scheduledNoDate": "Ihr Tarif wechselt zum Ende des bezahlten Zeitraums zu {{free}}."
       },
       "code": {
         "applied": "Code eingelöst."
@@ -578,6 +586,11 @@
       "loadError": "Ihr Tarif konnte nicht geladen werden. Bitte laden Sie die Seite neu.",
       "renews": "Monatlich · Verlängerung am {{date}}",
       "ends": "Endet am {{date}}",
+      "scheduled": {
+        "until": "Monatlich · {{plan}} bis {{date}}",
+        "begins": "{{plan}} beginnt am {{date}}",
+        "beginsPriced": "{{plan}} beginnt am {{date}} · {{price}}"
+      },
       "freeUntil": "Inklusive bis {{date}}",
       "setByFormUpUntil": "Bis {{date}} · Von Form Up gesetzt",
       "setByFormUp": "Von Form Up gesetzt",

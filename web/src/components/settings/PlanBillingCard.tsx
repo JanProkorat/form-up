@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Check, CreditCard, ExternalLink, Ticket } from 'lucide-react';
+import { CalendarClock, Check, CreditCard, ExternalLink, Ticket } from 'lucide-react';
 import { monthsUntil, promotionValueText } from '@/components/subscription/promotionText';
 import {
   PromotionDuration,
   SecondRoleState,
   SubscriptionPriceLineKind,
   SubscriptionStatus,
+  type ScheduledPlanDto,
   type SubscriptionFeaturesDto,
 } from '@/api/generated';
 import SettingsCard from '@/components/settings/SettingsCard';
@@ -34,6 +35,13 @@ const STATUS_TONE: Record<SubscriptionStatus, string> = {
   [SubscriptionStatus.Canceled]: 'bg-sunken text-muted-foreground',
   [SubscriptionStatus.Incomplete]: 'bg-sunken text-muted-foreground',
 };
+
+/** Name of the scheduled plan in the UI language, falling back to English, Czech, German, then the plan code. */
+function scheduledPlanName(plan: ScheduledPlanDto, language: string): string {
+  const lang = language.slice(0, 2).toLowerCase();
+  const byLang = lang === 'cs' ? plan.nameCs : lang === 'de' ? plan.nameDe : plan.nameEn;
+  return byLang || plan.nameEn || plan.nameCs || plan.nameDe || plan.planCode || '';
+}
 
 /**
  * Settings section "Plan and billing": the coach's plan and status, the monthly bill, client usage
@@ -84,9 +92,30 @@ export default function PlanBillingCard() {
   const periodEnd = data?.currentPeriodEndsAt ? dateFormat.format(new Date(data.currentPeriodEndsAt)) : null;
   const freeUntil =
     data?.freeUntil && new Date(data.freeUntil).getTime() > now ? dateFormat.format(new Date(data.freeUntil)) : null;
+  // The plan that replaces this one at the end of the period (a scheduled downgrade, or Free when the plan is set to end).
+  const scheduled = data?.scheduledPlan;
+  const scheduledName = scheduled ? scheduledPlanName(scheduled, language) : '';
+  const scheduledDate = scheduled?.startsAt ? dateFormat.format(new Date(scheduled.startsAt)) : periodEnd;
+  const scheduledLines = scheduled?.priceLines ?? [];
+  const scheduledTotal = scheduledLines.reduce((sum, line) => sum + (line.amountMinorUnits ?? 0), 0);
+  const scheduledCurrency = scheduledLines[0]?.currency ?? data?.priceLines?.[0]?.currency ?? 'CZK';
+  const scheduledLine =
+    scheduled && scheduledDate
+      ? scheduledTotal > 0
+        ? t('subscription.plan.scheduled.beginsPriced', {
+            plan: scheduledName,
+            date: scheduledDate,
+            price: t('subscription.plan.bill.perMonth', {
+              amount: formatMoney(scheduledTotal, scheduledCurrency, language),
+            }),
+          })
+        : t('subscription.plan.scheduled.begins', { plan: scheduledName, date: scheduledDate })
+      : null;
   const subtitle = [
     periodEnd
-      ? t(data?.cancelAtPeriodEnd ? 'subscription.plan.ends' : 'subscription.plan.renews', { date: periodEnd })
+      ? scheduled
+        ? t('subscription.plan.scheduled.until', { plan: planName, date: periodEnd })
+        : t(data?.cancelAtPeriodEnd ? 'subscription.plan.ends' : 'subscription.plan.renews', { date: periodEnd })
       : null,
     data?.isSetByFormUp
       ? freeUntil
@@ -152,6 +181,12 @@ export default function PlanBillingCard() {
                   )}
                 </div>
                 {subtitle && <span className="text-body text-muted-foreground">{subtitle}</span>}
+                {scheduledLine && (
+                  <span className="inline-flex items-center gap-1.5 text-body font-semibold text-training-ink">
+                    <CalendarClock className="size-4 shrink-0" aria-hidden="true" />
+                    {scheduledLine}
+                  </span>
+                )}
               </div>
               <span className="ml-auto flex items-center gap-2">
                 <Button asChild size="lg" className="px-3.5 font-semibold">

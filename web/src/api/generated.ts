@@ -1210,7 +1210,7 @@ export class ApiClient {
 
     /**
      * Get my coach subscription
-     * @return The caller's subscription block, with the current promotion and its display-only discount while the paid subscription is live
+     * @return The caller's subscription block, with the current promotion and its display-only discount and the plan scheduled to start next while the paid subscription is live
      */
     getMySubscriptionEndpoint(signal?: AbortSignal): Promise<GetMySubscriptionResponse> {
         let url_ = this.baseUrl + "/users/me/subscription";
@@ -21947,6 +21947,89 @@ export class ApiClient {
     }
 
     /**
+     * Preview a plan change
+     * @return The preview
+     */
+    previewPlanChangeEndpoint(previewPlanChangeRequest: PreviewPlanChangeRequest, signal?: AbortSignal): Promise<PreviewPlanChangeResponse> {
+        let url_ = this.baseUrl + "/billing/change-plan/preview";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(previewPlanChangeRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processPreviewPlanChangeEndpoint(_response);
+        });
+    }
+
+    protected processPreviewPlanChangeEndpoint(response: AxiosResponse): Promise<PreviewPlanChangeResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<PreviewPlanChangeResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid body, or the plan cannot be bought: unknown, Free, inactive, not priced in Stripe, or the caller has two active roles and the plan has no add-on price (PLAN_NOT_PURCHASABLE)", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The caller is not a trainer or nutritionist, or the coach role was removed", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("No live paid subscription (BILLING_NO_SUBSCRIPTION), an admin gift is in force (BILLING_GIFT_IN_FORCE), or the plan is the current one (BILLING_PLAN_UNCHANGED)", status, _responseText, _headers);
+
+        } else if (status === 502) {
+            const _responseText = response.data;
+            return throwException("Stripe failed (BILLING_PROVIDER_ERROR)", status, _responseText, _headers);
+
+        } else if (status === 503) {
+            const _responseText = response.data;
+            return throwException("Stripe is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<PreviewPlanChangeResponse>(null as any);
+    }
+
+    /**
      * Open the Stripe Customer Portal
      * @return The portal page to redirect to
      */
@@ -22072,7 +22155,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Invalid body, or the plan cannot be bought: unknown, Free, inactive, not priced in Stripe, or an add-on on a plan that includes both roles (PLAN_NOT_PURCHASABLE)", status, _responseText, _headers, result400);
+            return throwException("Invalid body, or the plan cannot be bought: unknown, Free, inactive, not priced in Stripe, or the caller has two active roles and the plan has no add-on price (PLAN_NOT_PURCHASABLE)", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -22246,7 +22329,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Invalid body, or the plan cannot be bought: unknown, Free, inactive, not priced in Stripe, or the caller has two active roles and the plan has no add-on price (PLAN_NOT_PURCHASABLE)", status, _responseText, _headers, result400);
+            return throwException("Invalid body (including a missing AttemptId), or the plan cannot be bought: unknown, Free, inactive, not priced in Stripe, or the caller has two active roles and the plan has no add-on price (PLAN_NOT_PURCHASABLE)", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -22262,7 +22345,7 @@ export class ApiClient {
 
         } else if (status === 502) {
             const _responseText = response.data;
-            return throwException("Stripe failed; nothing was saved (BILLING_PROVIDER_ERROR)", status, _responseText, _headers);
+            return throwException("Stripe failed or the card was declined; nothing was changed or saved (BILLING_PROVIDER_ERROR)", status, _responseText, _headers);
 
         } else if (status === 503) {
             const _responseText = response.data;
@@ -25310,6 +25393,9 @@ the cap, the plan is unlimited or a plan choice is required. */
     features?: SubscriptionFeaturesDto;
     /** The promotion discounting the live subscription now; null when there is none. */
     promotion?: CurrentPromotionDto | undefined;
+    /** The plan that replaces the current one at the end of the period: a scheduled downgrade, or Free when the
+subscription is set to end. Null when nothing is scheduled. */
+    scheduledPlan?: ScheduledPlanDto | undefined;
 }
 
 /** How VAT is handled on Stripe subscriptions and invoices. Selected by configuration, never by code. */
@@ -25415,6 +25501,22 @@ export enum PromotionDuration {
     FirstMonth = "FirstMonth",
     Months = "Months",
     Forever = "Forever",
+}
+
+/** The plan a coach's subscription moves to at the end of the current period. */
+export interface ScheduledPlanDto {
+    /** Code of the plan that starts next. */
+    planCode?: string;
+    /** Czech plan name. */
+    nameCs?: string;
+    /** English plan name. */
+    nameEn?: string;
+    /** German plan name. */
+    nameDe?: string;
+    /** When the plan starts: the end of the current period; null when unknown. */
+    startsAt?: string | undefined;
+    /** Price lines of the plan that starts next: the plan, plus the second-role add-on when the coach would pay it. */
+    priceLines?: SubscriptionPriceLineDto[];
 }
 
 /** The caller's active coach roles with client counts. */
@@ -34180,6 +34282,43 @@ export interface PreviewSecondRoleAddOnResponse {
     taxMode?: BillingTaxMode;
 }
 
+/** What moving to another paid plan would do: when it starts, what is charged today and what the regular bill becomes. */
+export interface PreviewPlanChangeResponse {
+    /** Code of the plan the coach asked about. */
+    planCode?: string;
+    /** Whether the change would apply now (upgrade) or at the next renewal (downgrade). */
+    timing?: PlanChangeTiming;
+    /** How often the target plan bills. */
+    billingInterval?: BillingInterval;
+    /** ISO 4217 currency of every amount. */
+    currency?: string;
+    /** The prorated amount charged now including tax; zero when the change is scheduled for renewal. */
+    todayAmountMinorUnits?: number;
+    /** The tax part of TodayAmountMinorUnits; zero when no VAT is charged. */
+    todayTaxMinorUnits?: number;
+    /** The regular bill per billing interval from NextChargeAt on: the target plan, plus the second-role
+add-on when the coach would pay it. List price before tax and before any promotion. */
+    nextAmountMinorUnits?: number;
+    /** When the current billing period ends and the regular bill starts; null when unknown. */
+    nextChargeAt?: string | undefined;
+    /** True when the upgrade also drops the switch to Free that is scheduled for the period end. */
+    cancelsScheduledSwitchToFree?: boolean;
+    /** VAT handling: with None there is no VAT line. */
+    taxMode?: BillingTaxMode;
+}
+
+/** When a coach's plan change takes effect. */
+export enum PlanChangeTiming {
+    Now = "Now",
+    AtNextRenewal = "AtNextRenewal",
+}
+
+/** Request for previewing a move of the caller's live paid subscription to another paid plan. */
+export interface PreviewPlanChangeRequest {
+    /** Code of the paid plan to move to. Never the Free plan. */
+    planCode: string;
+}
+
 /** The Stripe Customer Portal page to send the coach to. */
 export interface CreatePortalSessionResponse {
     /** URL of the portal session. */
@@ -34196,7 +34335,7 @@ export interface CreateCheckoutSessionResponse {
 export interface CreateCheckoutSessionRequest {
     /** Code of the paid plan to buy. Never the Free plan. */
     planCode: string;
-    /** True to add the second-role add-on line. Refused on a plan that already includes both roles. */
+    /** Ignored: the server bills the second-role add-on from the coach's active roles. Kept so existing clients still bind. */
     includeSecondRoleAddOn?: boolean;
     /** Where the coach started, so the return URL lands on the right page. Never a URL. */
     flow?: CheckoutFlow;
@@ -34231,16 +34370,13 @@ export interface ChangePlanResponse {
     effectiveAt?: string | undefined;
 }
 
-/** When a coach's plan change takes effect. */
-export enum PlanChangeTiming {
-    Now = "Now",
-    AtNextRenewal = "AtNextRenewal",
-}
-
 /** Request for moving the caller's live paid subscription to another paid plan. */
 export interface ChangePlanRequest {
     /** Code of the paid plan to move to. Never the Free plan. */
     planCode: string;
+    /** Client-generated id of this attempt. It keys the charge, so a double click does not bill twice; the client sends a
+fresh one after a declined card. */
+    attemptId: string;
 }
 
 /** Request for applying a promotion code to the caller's own live subscription. */

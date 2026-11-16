@@ -266,4 +266,88 @@ public class GetMySubscriptionEndpointTests(FitnessApiFactory factory)
         row.CurrentPeriodEndsAt = periodEnd;
         await db.SaveChangesAsync(Ct);
     }
+
+    [Fact]
+    public async Task Get_WithADowngradeScheduled_ReturnsTheNextPlanItsPriceAndDate()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (current, _) = await BillingTestData.StripePlanAsync(factory, price: 59900);
+        var (next, _) = await BillingTestData.StripePlanAsync(factory, price: 29900);
+        var periodEnd = DateTimeOffset.UtcNow.AddDays(12);
+        await BillingTestData.SubscribeLiveAsync(factory, coach, current, currentPeriodEndsAt: periodEnd);
+        await BillingTestData.SetPendingPlanAsync(factory, coach.ProfileId, next);
+
+        var block = await GetAsync(coach);
+
+        block.PlanCode.Should().Be(current);
+        block.ScheduledPlan.Should().NotBeNull();
+        var scheduled = block.ScheduledPlan!;
+        scheduled.PlanCode.Should().Be(next);
+        scheduled.StartsAt.Should().BeCloseTo(periodEnd, TimeSpan.FromSeconds(1));
+        scheduled.PriceLines.Should().ContainSingle().Which.AmountMinorUnits.Should().Be(29900);
+    }
+
+    [Fact]
+    public async Task Get_WithADowngradeScheduledToAPlanWithAnAddOn_AddsTheLineOnlyForATwoRoleCoach()
+    {
+        var twoRoles = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Nutritionist).CreateAsync(Ct);
+        var oneRole = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (current, _) = await BillingTestData.StripePlanAsync(factory, price: 59900, bothRolesIncluded: true);
+        var (next, _) = await BillingTestData.StripePlanAsync(factory, price: 29900, addOn: 9900, bothRolesIncluded: false);
+
+        foreach (var coach in new[] { twoRoles, oneRole })
+        {
+            await BillingTestData.SubscribeLiveAsync(factory, coach, current);
+            await BillingTestData.SetPendingPlanAsync(factory, coach.ProfileId, next);
+        }
+
+        (await GetAsync(twoRoles)).ScheduledPlan!.PriceLines.Select(line => line.Kind)
+            .Should().Equal(SubscriptionPriceLineKind.Plan, SubscriptionPriceLineKind.SecondRoleAddOn);
+        (await GetAsync(oneRole)).ScheduledPlan!.PriceLines.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task Get_WithASwitchToFreeScheduled_ReturnsFreeAsTheNextPlan()
+    {
+        await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (current, _) = await BillingTestData.StripePlanAsync(factory, price: 29900);
+        var periodEnd = DateTimeOffset.UtcNow.AddDays(9);
+        await BillingTestData.SubscribeLiveAsync(factory, coach, current, cancelAtPeriodEnd: true, currentPeriodEndsAt: periodEnd);
+
+        var scheduled = (await GetAsync(coach)).ScheduledPlan;
+
+        scheduled.Should().NotBeNull();
+        scheduled!.PlanCode.Should().Be("free");
+        scheduled.StartsAt.Should().BeCloseTo(periodEnd, TimeSpan.FromSeconds(1));
+        scheduled.PriceLines.Should().ContainSingle().Which.AmountMinorUnits.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Get_WithNothingScheduled_HasNoScheduledPlan()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (current, _) = await BillingTestData.StripePlanAsync(factory, price: 29900);
+        await BillingTestData.SubscribeLiveAsync(factory, coach, current);
+
+        (await GetAsync(coach)).ScheduledPlan.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Get_AfterAnUpgradeDroppedTheSchedule_HasNoScheduledPlan()
+    {
+        BillingTestData.ResetProvider(factory);
+        await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (current, _) = await BillingTestData.StripePlanAsync(factory, price: 29900);
+        var (target, _) = await BillingTestData.StripePlanAsync(factory, price: 59900);
+        await BillingTestData.SubscribeLiveAsync(factory, coach, current, cancelAtPeriodEnd: true);
+        (await GetAsync(coach)).ScheduledPlan.Should().NotBeNull();
+
+        var change = await coach.Http.PostAsJsonAsync("/billing/change-plan", new { PlanCode = target, AttemptId = Guid.NewGuid() }, Ct);
+
+        change.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await GetAsync(coach)).ScheduledPlan.Should().BeNull("the upgrade clears the pending switch to Free");
+        BillingTestData.ResetProvider(factory);
+    }
 }

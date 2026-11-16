@@ -118,6 +118,60 @@ public class StripeRequestBuilderTests
     }
 
     [Fact]
+    public void PlanUpgrade_ChargesTheProrationNow_FailsOnAnIncompletePayment_AndClearsTheCancellation()
+    {
+        var update = StripeRequestBuilder.PlanUpgrade("si_plan", "price_new", null, null, null, Options());
+
+        update.ProrationBehavior.Should().Be("always_invoice");
+        update.PaymentBehavior.Should().Be("error_if_incomplete");
+        update.CancelAtPeriodEnd.Should().BeFalse("an upgrade drops a scheduled switch to Free");
+        var item = update.Items.Should().ContainSingle().Subject;
+        item.Id.Should().Be("si_plan");
+        item.Price.Should().Be("price_new");
+    }
+
+    [Theory]
+    [InlineData(null, null, "price_addon", 2, "si_plan,", "price_new,price_addon")]
+    [InlineData("si_addon", "price_addon_old", "price_addon", 2, "si_plan,si_addon", "price_new,price_addon")]
+    [InlineData("si_addon", "price_addon", "price_addon", 1, "si_plan", "price_new")]
+    [InlineData("si_addon", "price_addon", null, 2, "si_plan,si_addon", "price_new,")]
+    public void PlanUpgrade_AddsReplacesKeepsOrRemovesTheAddOnLine(
+        string? addOnItemId, string? currentAddOnPriceId, string? addOnPriceId, int lineCount, string itemIds, string priceIds)
+    {
+        var update = StripeRequestBuilder.PlanUpgrade("si_plan", "price_new", addOnItemId, currentAddOnPriceId, addOnPriceId, Options());
+
+        update.Items.Should().HaveCount(lineCount);
+        update.Items.Select(line => line.Id ?? string.Empty).Should().Equal(itemIds.Split(',').Take(lineCount).Select(id => id));
+        update.Items.Select(line => line.Price ?? string.Empty).Should().Equal(priceIds.Split(',').Take(lineCount));
+
+        if (addOnItemId is not null && addOnPriceId is null)
+        {
+            update.Items.Last().Deleted.Should().BeTrue();
+        }
+    }
+
+    [Fact]
+    public void PlanUpgrade_PutsTheTaxRateOnTheChargedLines()
+    {
+        var update = StripeRequestBuilder.PlanUpgrade("si_plan", "price_new", null, null, "price_addon", Options(BillingTaxMode.Vat21));
+
+        update.Items.Should().OnlyContain(line => line.TaxRates != null && line.TaxRates.SequenceEqual(new[] { "txr_test" }));
+    }
+
+    [Fact]
+    public void PlanUpgradePreview_MirrorsTheUpgradeAndInvoicesTheProrationNow()
+    {
+        var preview = StripeRequestBuilder.PlanUpgradePreview(
+            "cus_1", "sub_1", "si_plan", "price_new", null, null, "price_addon", Options());
+
+        preview.Customer.Should().Be("cus_1");
+        preview.Subscription.Should().Be("sub_1");
+        preview.SubscriptionDetails!.ProrationBehavior.Should().Be("always_invoice");
+        preview.SubscriptionDetails.Items.Select(line => (line.Id, line.Price)).Should().Equal(
+            ("si_plan", "price_new"), (null, "price_addon"));
+    }
+
+    [Fact]
     public void Checkout_WithAddOn_AddsASecondLine()
     {
         var session = StripeRequestBuilder.Checkout("cus_1", UserId, "pro", "price_plan", "price_addon", null, "cs", CheckoutFlow.Settings, Options());

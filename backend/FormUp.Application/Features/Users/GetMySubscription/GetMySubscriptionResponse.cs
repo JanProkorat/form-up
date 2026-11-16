@@ -110,6 +110,36 @@ public class GetMySubscriptionResponse
 
     /// <summary>The promotion discounting the live subscription now; null when there is none.</summary>
     public CurrentPromotionDto? Promotion { get; set; }
+
+    /// <summary>
+    /// The plan that replaces the current one at the end of the period: a scheduled downgrade, or Free when the
+    /// subscription is set to end. Null when nothing is scheduled.
+    /// </summary>
+    public ScheduledPlanDto? ScheduledPlan { get; set; }
+}
+
+/// <summary>
+/// The plan a coach's subscription moves to at the end of the current period.
+/// </summary>
+public class ScheduledPlanDto
+{
+    /// <summary>Code of the plan that starts next.</summary>
+    public string PlanCode { get; set; } = string.Empty;
+
+    /// <summary>Czech plan name.</summary>
+    public string NameCs { get; set; } = string.Empty;
+
+    /// <summary>English plan name.</summary>
+    public string NameEn { get; set; } = string.Empty;
+
+    /// <summary>German plan name.</summary>
+    public string NameDe { get; set; } = string.Empty;
+
+    /// <summary>When the plan starts: the end of the current period; null when unknown.</summary>
+    public DateTimeOffset? StartsAt { get; set; }
+
+    /// <summary>Price lines of the plan that starts next: the plan, plus the second-role add-on when the coach would pay it.</summary>
+    public List<SubscriptionPriceLineDto> PriceLines { get; set; } = [];
 }
 
 /// <summary>

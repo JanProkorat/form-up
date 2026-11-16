@@ -149,7 +149,7 @@ export default function PlanChoicePage() {
         label: t('subscription.planChoice.card.switchFree'),
         primary: false,
         current: false,
-        onClick: selection.switchToFree,
+        onClick: () => selection.switchToFree(name),
       };
     }
     return {

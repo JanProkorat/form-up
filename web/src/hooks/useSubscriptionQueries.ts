@@ -10,6 +10,7 @@ import {
   getKeepClients,
   getMySubscription,
   getPublicSubscriptionPlans,
+  previewPlanChange,
   previewSecondRole,
   pricingKeys,
   setKeepClients,
@@ -182,6 +183,19 @@ export function useSecondRolePreview(enabled: boolean) {
     queryKey: subscriptionKeys.secondRolePreview,
     queryFn: previewSecondRole,
     enabled,
+    retry: false,
+    gcTime: 0,
+    staleTime: 0,
+    refetchOnWindowFocus: false,
+  });
+}
+
+/** What moving the live subscription to a paid plan would charge and when; read per selection, never cached. */
+export function usePlanChangePreview(planCode: string | null, enabled: boolean) {
+  return useQuery({
+    queryKey: subscriptionKeys.planChangePreview(planCode ?? ''),
+    queryFn: () => previewPlanChange(planCode ?? ''),
+    enabled: enabled && planCode !== null,
     retry: false,
     gcTime: 0,
     staleTime: 0,

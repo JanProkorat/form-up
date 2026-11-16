@@ -294,6 +294,14 @@
         "hintStripeCheckout": "Platíte na zabezpečené stránce Stripe",
         "hintStripePages": "Karta a faktury na zabezpečených stránkách Stripe",
         "hintPeriodEnd": "Projeví se na konci zaplaceného měsíce",
+        "hintStartsOn": "{{plan}} začne {{date}}. Do té doby vám zůstává {{current}}.",
+        "hintSpanMonth": "za zbytek tohoto měsíce",
+        "hintSpanYear": "za zbytek tohoto roku",
+        "hintUpgradeToday": "Dnes zhruba {{today}} {{span}}, poté {{next}} {{per}} od {{date}}",
+        "hintUpgradeTodayNoDate": "Dnes zhruba {{today}} {{span}}, poté {{next}} {{per}}",
+        "hintPreviewLoading": "Počítáme dnešní platbu…",
+        "hintPreviewError": "Dnešní platbu se nepodařilo spočítat. Změnu můžete přesto potvrdit.",
+        "hintCancelsFree": "Plánovaný přechod na tarif {{free}} se zruší.",
         "continue": "Pokračovat k platbě"
       },
       "picker": {
@@ -306,8 +314,8 @@
         "noCard": "Navždy, bez karty",
         "yourPlan": "Váš tarif",
         "switchTo": "Přejít na {{plan}}",
-        "switchesToFree": "Přechod na Free {{date}}",
-        "switchesToFreeNoDate": "Přechod na Free na konci období",
+        "switchesToFree": "Přechod na tarif {{free}} {{date}}",
+        "switchesToFreeNoDate": "Přechod na tarif {{free}} na konci období",
         "footer": "Platba měsíčně. Platba kartou, faktury i zrušení probíhají na zabezpečených stránkách Stripe. Snížení tarifu nebo zrušení se projeví na konci zaplaceného měsíce."
       },
       "register": {
@@ -333,8 +341,8 @@
         "atRenewalNoDate": "Váš tarif se změní na {{plan}} při příštím obnovení."
       },
       "switchFree": {
-        "scheduled": "Váš tarif se změní na Free dne {{date}}.",
-        "scheduledNoDate": "Váš tarif se změní na Free na konci zaplaceného období."
+        "scheduled": "Přejdete na tarif {{free}} dne {{date}}.",
+        "scheduledNoDate": "Na konci zaplaceného období přejdete na tarif {{free}}."
       },
       "code": {
         "applied": "Kód byl použit."
@@ -370,7 +378,7 @@
       "errors": {
         "generic": "Něco se nepovedlo. Zkuste to prosím znovu.",
         "changePlan": "Tarif se nepodařilo změnit. Zkuste to prosím znovu.",
-        "switchFree": "Přechod na tarif Free se nepodařilo naplánovat. Zkuste to prosím znovu.",
+        "switchFree": "Přechod na tarif Zdarma se nepodařilo naplánovat. Zkuste to prosím znovu.",
         "portal": "Správu plateb se nepodařilo otevřít. Zkuste to prosím znovu.",
         "code": "Kód se nepodařilo použít. Zkuste to prosím znovu.",
         "addRole": "Platbu se nepodařilo provést, role proto nebyla přidána. Zkuste to prosím znovu.",
@@ -478,14 +486,14 @@
       "bannerTitleNoDate": "Váš bezplatný tarif {{plan}} skončil. Pro pokračování si vyberte tarif.",
       "title": "Váš tarif se změnil",
       "decision": {
-        "lapse_one": "Váš tarif {{plan}} skončil, a proto jste nyní na Free. Free povoluje {{count}} klienta a vy jich máte {{have}}. Ponechte Free a vyberte ty, které si ponecháte, nebo zvolte jiný tarif.",
-        "lapse_few": "Váš tarif {{plan}} skončil, a proto jste nyní na Free. Free povoluje {{count}} klienty a vy jich máte {{have}}. Ponechte Free a vyberte ty, které si ponecháte, nebo zvolte jiný tarif.",
-        "lapse_many": "Váš tarif {{plan}} skončil, a proto jste nyní na Free. Free povoluje {{count}} klienta a vy jich máte {{have}}. Ponechte Free a vyberte ty, které si ponecháte, nebo zvolte jiný tarif.",
-        "lapse_other": "Váš tarif {{plan}} skončil, a proto jste nyní na Free. Free povoluje {{count}} klientů a vy jich máte {{have}}. Ponechte Free a vyberte ty, které si ponecháte, nebo zvolte jiný tarif.",
-        "free_one": "Jste na tarifu Free, který povoluje {{count}} klienta, a vy jich máte {{have}}. Ponechte Free a vyberte ty, které si ponecháte, nebo zvolte jiný tarif.",
-        "free_few": "Jste na tarifu Free, který povoluje {{count}} klienty, a vy jich máte {{have}}. Ponechte Free a vyberte ty, které si ponecháte, nebo zvolte jiný tarif.",
-        "free_many": "Jste na tarifu Free, který povoluje {{count}} klienta, a vy jich máte {{have}}. Ponechte Free a vyberte ty, které si ponecháte, nebo zvolte jiný tarif.",
-        "free_other": "Jste na tarifu Free, který povoluje {{count}} klientů, a vy jich máte {{have}}. Ponechte Free a vyberte ty, které si ponecháte, nebo zvolte jiný tarif.",
+        "lapse_one": "Váš tarif {{plan}} skončil, a proto jste nyní na tarifu Zdarma. Tarif Zdarma povoluje {{count}} klienta a vy jich máte {{have}}. Ponechte tarif Zdarma a vyberte ty, které si ponecháte, nebo zvolte jiný tarif.",
+        "lapse_few": "Váš tarif {{plan}} skončil, a proto jste nyní na tarifu Zdarma. Tarif Zdarma povoluje {{count}} klienty a vy jich máte {{have}}. Ponechte tarif Zdarma a vyberte ty, které si ponecháte, nebo zvolte jiný tarif.",
+        "lapse_many": "Váš tarif {{plan}} skončil, a proto jste nyní na tarifu Zdarma. Tarif Zdarma povoluje {{count}} klienta a vy jich máte {{have}}. Ponechte tarif Zdarma a vyberte ty, které si ponecháte, nebo zvolte jiný tarif.",
+        "lapse_other": "Váš tarif {{plan}} skončil, a proto jste nyní na tarifu Zdarma. Tarif Zdarma povoluje {{count}} klientů a vy jich máte {{have}}. Ponechte tarif Zdarma a vyberte ty, které si ponecháte, nebo zvolte jiný tarif.",
+        "free_one": "Jste na tarifu Zdarma, který povoluje {{count}} klienta, a vy jich máte {{have}}. Ponechte tarif Zdarma a vyberte ty, které si ponecháte, nebo zvolte jiný tarif.",
+        "free_few": "Jste na tarifu Zdarma, který povoluje {{count}} klienty, a vy jich máte {{have}}. Ponechte tarif Zdarma a vyberte ty, které si ponecháte, nebo zvolte jiný tarif.",
+        "free_many": "Jste na tarifu Zdarma, který povoluje {{count}} klienta, a vy jich máte {{have}}. Ponechte tarif Zdarma a vyberte ty, které si ponecháte, nebo zvolte jiný tarif.",
+        "free_other": "Jste na tarifu Zdarma, který povoluje {{count}} klientů, a vy jich máte {{have}}. Ponechte tarif Zdarma a vyberte ty, které si ponecháte, nebo zvolte jiný tarif.",
         "smaller_one": "Váš tarif se změnil na {{plan}}. {{plan}} povoluje {{count}} klienta a vy jich máte {{have}}. Ponechte {{plan}} a vyberte ty, které si ponecháte, nebo zvolte jiný tarif.",
         "smaller_few": "Váš tarif se změnil na {{plan}}. {{plan}} povoluje {{count}} klienty a vy jich máte {{have}}. Ponechte {{plan}} a vyberte ty, které si ponecháte, nebo zvolte jiný tarif.",
         "smaller_many": "Váš tarif se změnil na {{plan}}. {{plan}} povoluje {{count}} klienta a vy jich máte {{have}}. Ponechte {{plan}} a vyberte ty, které si ponecháte, nebo zvolte jiný tarif.",
@@ -501,7 +509,7 @@
       "card": {
         "current": "Váš tarif nyní",
         "upgrade": "Přejít na {{plan}}",
-        "switchFree": "Přejít na Free",
+        "switchFree": "Přejít na tarif Zdarma",
         "keepAll": "Ponechat {{plan}}",
         "keep_one": "Ponechat {{plan}}, vybrat {{count}} klienta",
         "keep_few": "Ponechat {{plan}}, vybrat {{count}} klienty",
@@ -522,10 +530,10 @@
       },
       "keep": {
         "back": "Zpět na tarify",
-        "confirm_one": "Přejít na Free a ponechat tohoto klienta",
-        "confirm_few": "Přejít na Free a ponechat tyto {{count}}",
-        "confirm_many": "Přejít na Free a ponechat těchto {{count}}",
-        "confirm_other": "Přejít na Free a ponechat těchto {{count}}",
+        "confirm_one": "Přejít na tarif Zdarma a ponechat tohoto klienta",
+        "confirm_few": "Přejít na tarif Zdarma a ponechat tyto {{count}}",
+        "confirm_many": "Přejít na tarif Zdarma a ponechat těchto {{count}}",
+        "confirm_other": "Přejít na tarif Zdarma a ponechat těchto {{count}}",
         "save_one": "Ponechat {{plan}} a tohoto klienta",
         "save_few": "Ponechat {{plan}} a tyto {{count}}",
         "save_many": "Ponechat {{plan}} a těchto {{count}}",
@@ -616,10 +624,15 @@
       "loadError": "Tarif se nepodařilo načíst. Obnovte prosím stránku.",
       "renews": "Měsíčně · Obnovení {{date}}",
       "ends": "Končí {{date}}",
+      "scheduled": {
+        "until": "Měsíčně · {{plan}} do {{date}}",
+        "begins": "{{plan}} začne {{date}}",
+        "beginsPriced": "{{plan}} začne {{date}} · {{price}}"
+      },
       "freeUntil": "V ceně do {{date}}",
       "setByFormUpUntil": "Do {{date}} · Nastaveno Form Up",
       "setByFormUp": "Nastaveno Form Up",
-      "endedByFormUp": "Form Up ukončil váš tarif {{plan}}. Nyní jste na tarifu Free.",
+      "endedByFormUp": "Form Up ukončil váš tarif {{plan}}. Nyní jste na tarifu Zdarma.",
       "changePlan": "Změnit tarif",
       "manageBilling": "Spravovat platby",
       "bill": {
@@ -3733,7 +3746,7 @@
     }
   },
   "apiErrors": {
-    "FREE_PLAN_LOCKED": "Plán Free nejde takto změnit: jeho cena zůstává 0 a vždy se nabízí.",
+    "FREE_PLAN_LOCKED": "Plán Zdarma nejde takto změnit: jeho cena zůstává 0 a vždy se nabízí.",
     "PER_CLIENT_CHECK_IN_REQUIRES_WEEKLY_CHECK_INS": "Nastavení check-inů pro jednotlivé klienty vyžaduje týdenní check-iny. Nejdřív zapněte týdenní check-iny.",
     "SUBSCRIPTION_PLAN_CODE_ALREADY_EXISTS": "Plán s tímto kódem už existuje.",
     "SUBSCRIPTION_PLAN_NOT_FOUND": "Tento plán už neexistuje.",
@@ -6226,9 +6239,9 @@
         "ready": "Váš účet je připravený.",
         "setUpProfile": "Nastavit profil",
         "choosePlan": "Vybrat tarif",
-        "skip": "Prozatím přeskočit a začít na tarifu Free",
+        "skip": "Prozatím přeskočit a začít na tarifu Zdarma",
         "signInToChoosePlan": "Přihlaste se a vyberte si tarif",
-        "signInToSkip": "Přihlaste se a prozatím začněte na tarifu Free",
+        "signInToSkip": "Přihlaste se a prozatím začněte na tarifu Zdarma",
         "nextHeading": "CO DÁL",
         "inviteTitle": "Pozvěte prvního klienta",
         "inviteHint": "Připojí se přes aplikaci Form Up",
@@ -7153,7 +7166,7 @@
     "title": "Plány",
     "subtitle": "Co si mohou trenéři koupit. Změna ceny vytvoří ve Stripe novou cenu; trenéři, kteří už platí, si ponechají tu svou.",
     "newPlan": "Nový plán",
-    "note": "Každý trenér začíná na plánu Free. Akce ceny na určitou dobu snižují, nikdy je nemění.",
+    "note": "Každý trenér začíná na plánu Zdarma. Akce ceny na určitou dobu snižují, nikdy je nemění.",
     "loadError": "Plány se nepodařilo načíst.",
     "retry": "Zkusit znovu",
     "empty": "Zatím žádné plány.",
@@ -7219,7 +7232,7 @@
       "codeHint": "Používá ho aplikace a Stripe. Po vytvoření plánu už nejde změnit.",
       "sectionPrice": "Cena",
       "perMonth": "Za měsíc",
-      "freePriceHint": "Free vždy stojí 0.",
+      "freePriceHint": "Plán Zdarma vždy stojí 0.",
       "billing": "Fakturace",
       "billingMonthly": "Měsíčně",
       "billingAnnualLater": "Roční fakturace přijde později.",
@@ -7234,7 +7247,7 @@
       "sectionPreview": "Jak to uvidí trenéři",
       "offer": "Nabízet trenérům",
       "offerHint": "Vypnuto = plán zmizí z výběru plánů. Trenéři, kteří ho už mají, si ho ponechají.",
-      "offerFreeHint": "Plán Free se nabízí vždy.",
+      "offerFreeHint": "Plán Zdarma se nabízí vždy.",
       "stopOffering": "Přestat nabízet",
       "saving": "Ukládání…",
       "save": "Uložit plán"

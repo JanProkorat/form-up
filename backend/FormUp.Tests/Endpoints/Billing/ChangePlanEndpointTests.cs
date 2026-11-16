@@ -22,7 +22,7 @@ public class ChangePlanEndpointTests(FitnessApiFactory factory) : IDisposable
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
-    private static object Body(string planCode) => new { PlanCode = planCode };
+    private static object Body(string planCode, Guid? attemptId = null) => new { PlanCode = planCode, AttemptId = attemptId ?? Guid.NewGuid() };
 
     private async Task<string> AssertErrorAsync(HttpResponseMessage response, HttpStatusCode status, string code)
     {
@@ -44,14 +44,21 @@ public class ChangePlanEndpointTests(FitnessApiFactory factory) : IDisposable
         var lastEvent = DateTimeOffset.UtcNow.AddHours(-3);
         await BillingTestData.SetLastExternalEventAsync(factory, coach.ProfileId, lastEvent);
 
-        var response = await coach.Http.PostAsJsonAsync(Route, Body(target), Ct);
+        var attemptId = Guid.NewGuid();
+
+        var response = await coach.Http.PostAsJsonAsync(Route, Body(target, attemptId), Ct);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var body = (await response.Content.ReadFromJsonAsync<ChangePlanResponse>(BillingTestData.Json, Ct))!;
         body.PlanCode.Should().Be(target);
         body.Timing.Should().Be(PlanChangeTiming.Now);
         fake.PlanChanges.Should().ContainSingle().Which.Should().BeEquivalentTo(
-            new FakeSubscriptionService.ChangePlanCall(subscriptionId, target, targetPriceId, AtNextRenewal: false));
+            new FakeSubscriptionService.ChangePlanCall(
+                subscriptionId,
+                target,
+                targetPriceId,
+                AtNextRenewal: false,
+                IdempotencyKey: $"formup-plan-upgrade-{subscriptionId}-{targetPriceId}-{attemptId:N}"));
         var row = await BillingTestData.ReadRowAsync(factory, coach.ProfileId);
         row.SubscriptionPlan.Code.Should().Be(target);
         row.PendingSubscriptionPlanPriceId.Should().BeNull();
@@ -73,10 +80,64 @@ public class ChangePlanEndpointTests(FitnessApiFactory factory) : IDisposable
         var body = (await response.Content.ReadFromJsonAsync<ChangePlanResponse>(BillingTestData.Json, Ct))!;
         body.Timing.Should().Be(PlanChangeTiming.AtNextRenewal);
         body.EffectiveAt.Should().NotBeNull("the period end is when the cheaper plan starts");
-        fake.PlanChanges.Should().ContainSingle().Which.AtNextRenewal.Should().BeTrue();
+        var call = fake.PlanChanges.Should().ContainSingle().Subject;
+        call.AtNextRenewal.Should().BeTrue();
+        call.IdempotencyKey.Should().BeNull("a scheduled change charges nothing");
         var row = await BillingTestData.ReadRowAsync(factory, coach.ProfileId);
         row.SubscriptionPlan.Code.Should().Be(current, "the paid plan stays until the renewal");
         row.PendingSubscriptionPlanPriceId.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task ChangePlan_UpgradeWhileASwitchToFreeIsScheduled_DropsTheSwitch()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (current, _) = await BillingTestData.StripePlanAsync(factory, price: 29900);
+        var (target, _) = await BillingTestData.StripePlanAsync(factory, price: 59900);
+        await BillingTestData.SubscribeLiveAsync(factory, coach, current, cancelAtPeriodEnd: true);
+
+        var response = await coach.Http.PostAsJsonAsync(Route, Body(target), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.PlanChanges.Should().ContainSingle().Which.AtNextRenewal.Should().BeFalse();
+        var row = await BillingTestData.ReadRowAsync(factory, coach.ProfileId);
+        row.SubscriptionPlan.Code.Should().Be(target);
+        row.CancelAtPeriodEnd.Should().BeFalse("the upgrade cancels the scheduled switch to Free");
+    }
+
+    [Fact]
+    public async Task ChangePlan_UpgradeWhoseChargeFails_Returns502_AndKeepsTheScheduledSwitchAndPlan()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (current, _) = await BillingTestData.StripePlanAsync(factory, price: 29900);
+        var (target, _) = await BillingTestData.StripePlanAsync(factory, price: 59900);
+        await BillingTestData.SubscribeLiveAsync(factory, coach, current, cancelAtPeriodEnd: true);
+        fake.FailPlanChanges = true;
+
+        await AssertErrorAsync(await coach.Http.PostAsJsonAsync(Route, Body(target), Ct), HttpStatusCode.BadGateway, "BILLING_PROVIDER_ERROR");
+
+        var row = await BillingTestData.ReadRowAsync(factory, coach.ProfileId);
+        row.SubscriptionPlan.Code.Should().Be(current);
+        row.CancelAtPeriodEnd.Should().BeTrue();
+        row.PendingSubscriptionPlanPriceId.Should().BeNull();
+        row.PaysSecondRoleAddOn.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ChangePlan_WithoutAnAttemptId_Returns400_AndCallsNothing()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (current, _) = await BillingTestData.StripePlanAsync(factory, price: 29900);
+        var (target, _) = await BillingTestData.StripePlanAsync(factory, price: 59900);
+        await BillingTestData.SubscribeLiveAsync(factory, coach, current);
+
+        var response = await coach.Http.PostAsJsonAsync(Route, new { PlanCode = target }, Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        fake.PlanChanges.Should().BeEmpty();
     }
 
     [Fact]

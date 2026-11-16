@@ -67,6 +67,12 @@ public sealed class FakeSubscriptionService : ISubscriptionService
     /// <summary>Recorded <see cref="ISubscriptionService.CancelAtPeriodEndAsync"/> calls (subscription ids).</summary>
     public List<string> CancelledAtPeriodEnd { get; } = [];
 
+    /// <summary>What <see cref="ISubscriptionService.PreviewPlanChangeAsync"/> returns (its currency is replaced by the call's).</summary>
+    public PlanChangePreview PlanChangePreviewResult { get; set; } = new(24500, 0, "CZK");
+
+    /// <summary>Recorded <see cref="ISubscriptionService.PreviewPlanChangeAsync"/> calls.</summary>
+    public List<PlanChangePreviewCall> PlanChangePreviews { get; } = [];
+
     /// <summary>What <see cref="ISubscriptionService.PreviewSecondRoleAddOnAsync"/> returns.</summary>
     public SecondRoleAddOnPreview PreviewResult { get; set; } = new(12300, 0, "CZK");
 
@@ -95,7 +101,16 @@ public sealed class FakeSubscriptionService : ISubscriptionService
 
     /// <summary>A recorded plan change.</summary>
     public sealed record ChangePlanCall(
-        string SubscriptionId, string PlanCode, string PlanPriceExternalId, bool AtNextRenewal, long? AddOnAmountMinorUnits = null);
+        string SubscriptionId,
+        string PlanCode,
+        string PlanPriceExternalId,
+        bool AtNextRenewal,
+        long? AddOnAmountMinorUnits = null,
+        string? IdempotencyKey = null);
+
+    /// <summary>A recorded plan-change preview.</summary>
+    public sealed record PlanChangePreviewCall(
+        string CustomerId, string SubscriptionId, string PlanCode, string PlanPriceExternalId, long? AddOnAmountMinorUnits);
 
     /// <summary>A recorded add-on preview or charge; the idempotency key is null for a preview.</summary>
     public sealed record AddOnCall(string SubscriptionId, string PlanCode, long AmountMinorUnits, string? IdempotencyKey);
@@ -136,6 +151,8 @@ public sealed class FakeSubscriptionService : ISubscriptionService
             SubscriptionDiscounts.Clear();
             CancelledAtPeriodEnd.Clear();
             PreviewResult = new SecondRoleAddOnPreview(12300, 0, "CZK");
+            PlanChangePreviewResult = new PlanChangePreview(24500, 0, "CZK");
+            PlanChangePreviews.Clear();
             Previews.Clear();
             ChargeOutcome = AddOnChargeOutcome.Charged;
             Charges.Clear();
@@ -201,7 +218,8 @@ public sealed class FakeSubscriptionService : ISubscriptionService
         string currency,
         BillingInterval interval,
         bool atNextRenewal,
-        CancellationToken ct)
+        CancellationToken ct,
+        string? idempotencyKey = null)
     {
         ThrowIfFailing();
 
@@ -212,10 +230,31 @@ public sealed class FakeSubscriptionService : ISubscriptionService
 
         lock (gate)
         {
-            PlanChanges.Add(new ChangePlanCall(subscriptionId, planCode, planPriceExternalId, atNextRenewal, addOnAmountMinorUnits));
+            PlanChanges.Add(new ChangePlanCall(subscriptionId, planCode, planPriceExternalId, atNextRenewal, addOnAmountMinorUnits, idempotencyKey));
         }
 
         return Task.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public Task<PlanChangePreview> PreviewPlanChangeAsync(
+        string customerId,
+        string subscriptionId,
+        string planCode,
+        string planPriceExternalId,
+        long? addOnAmountMinorUnits,
+        string currency,
+        BillingInterval interval,
+        CancellationToken ct)
+    {
+        ThrowIfFailing();
+
+        lock (gate)
+        {
+            PlanChangePreviews.Add(new PlanChangePreviewCall(customerId, subscriptionId, planCode, planPriceExternalId, addOnAmountMinorUnits));
+        }
+
+        return Task.FromResult(PlanChangePreviewResult with { Currency = currency });
     }
 
     /// <inheritdoc />

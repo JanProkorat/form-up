@@ -1,4 +1,5 @@
 using FormUp.Application.Domain.Enums;
+using FormUp.Application.Infrastructure.Services.Billing;
 
 namespace FormUp.Application.Domain.Interfaces;
 
@@ -57,7 +58,9 @@ public interface ISubscriptionService
 
     /// <summary>
     /// Moves an existing subscription to another plan price, immediately or scheduled for the next renewal. A scheduled
-    /// change is merged with any given-free schedule already on the subscription.
+    /// change is merged with any given-free schedule already on the subscription. An immediate change invoices the prorated
+    /// difference now and also clears a scheduled cancellation; when the payment does not go through nothing is applied,
+    /// a released schedule is restored and the call throws.
     /// </summary>
     /// <param name="subscriptionId">The provider subscription id.</param>
     /// <param name="planCode">The target plan code.</param>
@@ -67,6 +70,7 @@ public interface ISubscriptionService
     /// <param name="interval">Billing cadence of the add-on price.</param>
     /// <param name="atNextRenewal">True to bill the renewal at the new price instead of changing now.</param>
     /// <param name="ct">Cancellation token.</param>
+    /// <param name="idempotencyKey">For an immediate change: repeating a call with the same key returns the first result instead of charging twice. Ignored for a scheduled change.</param>
     Task ChangePlanAsync(
         string subscriptionId,
         string planCode,
@@ -75,6 +79,29 @@ public interface ISubscriptionService
         string currency,
         BillingInterval interval,
         bool atNextRenewal,
+        CancellationToken ct,
+        string? idempotencyKey = null);
+
+    /// <summary>
+    /// Previews what moving an existing subscription to a dearer plan now would charge today, prorated, with tax as
+    /// configured. Changes nothing at the provider.
+    /// </summary>
+    /// <param name="customerId">The provider customer id.</param>
+    /// <param name="subscriptionId">The provider subscription id.</param>
+    /// <param name="planCode">The target plan code.</param>
+    /// <param name="planPriceExternalId">The provider price id of the target price row.</param>
+    /// <param name="addOnAmountMinorUnits">The second-role add-on price, or null when the subscription has no add-on.</param>
+    /// <param name="currency">ISO 4217 currency of the add-on price.</param>
+    /// <param name="interval">Billing cadence of the add-on price.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task<PlanChangePreview> PreviewPlanChangeAsync(
+        string customerId,
+        string subscriptionId,
+        string planCode,
+        string planPriceExternalId,
+        long? addOnAmountMinorUnits,
+        string currency,
+        BillingInterval interval,
         CancellationToken ct);
 
     /// <summary>

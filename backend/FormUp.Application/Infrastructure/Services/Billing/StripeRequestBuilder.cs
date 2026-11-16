@@ -246,6 +246,87 @@ public static class StripeRequestBuilder
         PaymentBehavior = "error_if_incomplete",
     };
 
+    /// <summary>
+    /// An immediate upgrade: swaps the plan line (and adds, replaces or removes the second-role add-on line), invoices the
+    /// proration now, clears a scheduled cancellation, and fails instead of leaving the subscription half-changed when the
+    /// payment does not go through.
+    /// </summary>
+    /// <param name="planItemId">The provider id of the subscription's plan line.</param>
+    /// <param name="planPriceId">The provider price id of the target plan.</param>
+    /// <param name="addOnItemId">The provider id of the subscription's add-on line, or null when it has none.</param>
+    /// <param name="currentAddOnPriceId">The provider price id on the add-on line now, or null.</param>
+    /// <param name="addOnPriceId">The provider price id the add-on line must have after the change, or null for no add-on.</param>
+    /// <param name="options">Billing settings.</param>
+    public static SubscriptionUpdateOptions PlanUpgrade(
+        string planItemId,
+        string planPriceId,
+        string? addOnItemId,
+        string? currentAddOnPriceId,
+        string? addOnPriceId,
+        BillingOptions options)
+    {
+        var taxRates = TaxRates(options);
+
+        return new SubscriptionUpdateOptions
+        {
+            Items = PlanChangeLines(
+                planItemId,
+                planPriceId,
+                addOnItemId,
+                currentAddOnPriceId,
+                addOnPriceId,
+                (itemId, priceId, deleted) => deleted
+                    ? new SubscriptionItemOptions { Id = itemId, Deleted = true }
+                    : WithTaxRates(new SubscriptionItemOptions { Id = itemId, Price = priceId, Quantity = 1 }, taxRates)),
+            ProrationBehavior = "always_invoice",
+            PaymentBehavior = "error_if_incomplete",
+            CancelAtPeriodEnd = false,
+        };
+    }
+
+    /// <summary>
+    /// An invoice preview of the same change <see cref="PlanUpgrade"/> sends, with the proration that would be invoiced now.
+    /// </summary>
+    /// <param name="customerId">The provider customer id.</param>
+    /// <param name="subscriptionId">The provider subscription id.</param>
+    /// <param name="planItemId">The provider id of the subscription's plan line.</param>
+    /// <param name="planPriceId">The provider price id of the target plan.</param>
+    /// <param name="addOnItemId">The provider id of the subscription's add-on line, or null when it has none.</param>
+    /// <param name="currentAddOnPriceId">The provider price id on the add-on line now, or null.</param>
+    /// <param name="addOnPriceId">The provider price id the add-on line must have after the change, or null for no add-on.</param>
+    /// <param name="options">Billing settings.</param>
+    public static InvoiceCreatePreviewOptions PlanUpgradePreview(
+        string customerId,
+        string subscriptionId,
+        string planItemId,
+        string planPriceId,
+        string? addOnItemId,
+        string? currentAddOnPriceId,
+        string? addOnPriceId,
+        BillingOptions options)
+    {
+        var taxRates = TaxRates(options);
+
+        return new InvoiceCreatePreviewOptions
+        {
+            Customer = customerId,
+            Subscription = subscriptionId,
+            SubscriptionDetails = new InvoiceSubscriptionDetailsOptions
+            {
+                Items = PlanChangeLines(
+                    planItemId,
+                    planPriceId,
+                    addOnItemId,
+                    currentAddOnPriceId,
+                    addOnPriceId,
+                    (itemId, priceId, deleted) => deleted
+                        ? new InvoiceSubscriptionDetailsItemOptions { Id = itemId, Deleted = true }
+                        : WithTaxRates(new InvoiceSubscriptionDetailsItemOptions { Id = itemId, Price = priceId, Quantity = 1 }, taxRates)),
+                ProrationBehavior = "always_invoice",
+            },
+        };
+    }
+
     /// <summary>A Customer Portal session that returns to the configured URL.</summary>
     /// <param name="customerId">The provider customer id.</param>
     /// <param name="locale">The Stripe locale.</param>
@@ -437,5 +518,31 @@ public static class StripeRequestBuilder
         }
 
         return result;
+    }
+
+    private static List<T> PlanChangeLines<T>(
+        string planItemId,
+        string planPriceId,
+        string? addOnItemId,
+        string? currentAddOnPriceId,
+        string? addOnPriceId,
+        Func<string?, string?, bool, T> make)
+    {
+        var lines = new List<T> { make(planItemId, planPriceId, false) };
+
+        if (addOnPriceId is not null && addOnItemId is null)
+        {
+            lines.Add(make(null, addOnPriceId, false));
+        }
+        else if (addOnPriceId is not null && currentAddOnPriceId != addOnPriceId)
+        {
+            lines.Add(make(addOnItemId, addOnPriceId, false));
+        }
+        else if (addOnPriceId is null && addOnItemId is not null)
+        {
+            lines.Add(make(addOnItemId, null, true));
+        }
+
+        return lines;
     }
 }

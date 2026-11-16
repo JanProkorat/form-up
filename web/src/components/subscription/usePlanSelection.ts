@@ -1,6 +1,7 @@
+import { useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { CheckoutFlow, PlanChangeTiming, type ChangePlanResponse, type CoachPlanDto } from '@/api/generated';
+import { CheckoutFlow, PlanChangeTiming, type ChangePlanResponse, type CoachPlanDto, type ScheduleSwitchToFreeResponse } from '@/api/generated';
 import { profileKeys } from '@/api/profile';
 import { changePlan, createCheckoutSession, subscriptionKeys, switchToFree } from '@/api/subscription';
 import { billingErrorCode, showBillingError } from '@/components/subscription/billingErrors';
@@ -24,13 +25,14 @@ async function selectPaidPlan(
   { plan, includeSecondRoleAddOn }: PaidPlanRequest,
   flow: CheckoutFlow,
   live: boolean,
+  attemptId: string,
 ): Promise<PlanOutcome> {
   const planCode = plan.code ?? '';
   const checkout = async (): Promise<PlanOutcome> => ({
     kind: 'checkout',
     url: await createCheckoutSession({ planCode, includeSecondRoleAddOn, flow }),
   });
-  const change = async (): Promise<PlanOutcome> => ({ kind: 'changed', response: await changePlan(planCode) });
+  const change = async (): Promise<PlanOutcome> => ({ kind: 'changed', response: await changePlan(planCode, attemptId) });
 
   if (live) {
     try {
@@ -57,6 +59,9 @@ export function usePlanSelection(flow: CheckoutFlow) {
   const queryClient = useQueryClient();
   const subscription = useSubscription();
   const live = hasLivePaidSubscription(subscription.data);
+  // One id per change attempt: it keys the immediate upgrade charge, so a repeated click reuses it and never bills
+  // twice. A settled attempt (paid or declined) is final for its id, so the next one gets a fresh id.
+  const attemptId = useRef(crypto.randomUUID());
 
   const dateFormat = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' });
   const toast = (message: string) => useToastStore.getState().addToast(message, 'success');
@@ -68,7 +73,10 @@ export function usePlanSelection(flow: CheckoutFlow) {
     ]);
 
   const paidPlan = useMutation({
-    mutationFn: (request: PaidPlanRequest) => selectPaidPlan(request, flow, live),
+    mutationFn: (request: PaidPlanRequest) => selectPaidPlan(request, flow, live, attemptId.current),
+    onSettled: () => {
+      attemptId.current = crypto.randomUUID();
+    },
     onSuccess: (outcome, { plan }) => {
       if (outcome.kind === 'checkout') {
         window.location.assign(outcome.url);
@@ -94,13 +102,14 @@ export function usePlanSelection(flow: CheckoutFlow) {
     },
   });
 
-  const freePlan = useMutation({
-    mutationFn: switchToFree,
-    onSuccess: ({ endsAt }) => {
+  // The variable is the Free plan's localized name, shown in the confirmation toast.
+  const freePlan = useMutation<ScheduleSwitchToFreeResponse, unknown, string>({
+    mutationFn: () => switchToFree(),
+    onSuccess: ({ endsAt }, free) => {
       toast(
         endsAt
-          ? t('subscription.billing.switchFree.scheduled', { date: dateFormat.format(new Date(endsAt)) })
-          : t('subscription.billing.switchFree.scheduledNoDate'),
+          ? t('subscription.billing.switchFree.scheduled', { free, date: dateFormat.format(new Date(endsAt)) })
+          : t('subscription.billing.switchFree.scheduledNoDate', { free }),
       );
       void refresh();
     },
@@ -114,8 +123,8 @@ export function usePlanSelection(flow: CheckoutFlow) {
     live,
     /** Takes a paid plan: in place for a live subscription, through Stripe Checkout otherwise. */
     choosePaid: (plan: CoachPlanDto, includeSecondRoleAddOn: boolean) => paidPlan.mutate({ plan, includeSecondRoleAddOn }),
-    /** Ends the paid plan at the end of the period. */
-    switchToFree: () => freePlan.mutate(),
+    /** Ends the paid plan at the end of the period; takes the Free plan's localized name for the toast. */
+    switchToFree: (freeName: string) => freePlan.mutate(freeName),
     /** Code of the paid plan being taken right now. */
     pendingPlanCode: paidPlan.isPending ? (paidPlan.variables?.plan.code ?? null) : null,
     /** True while a Stripe redirect is under way: the page is about to be replaced, so keep the buttons off. */
