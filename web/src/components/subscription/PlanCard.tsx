@@ -22,6 +22,8 @@ interface Props {
   priceMinorUnits?: number;
   /** Full price to show crossed out next to a discounted `priceMinorUnits`; omitted when nothing is discounted. */
   originalPriceMinorUnits?: number;
+  /** Text shown in place of the price row (price, strike-through and interval), already translated. */
+  priceText?: string;
   /** Small line under the price, already translated. */
   priceNote?: string;
   /** Second-role line, already translated; null hides it, undefined derives it from the plan. */
@@ -55,6 +57,7 @@ export default function PlanCard({
   onAction,
   priceMinorUnits,
   originalPriceMinorUnits,
+  priceText,
   priceNote,
   secondRoleText,
   badge,
@@ -97,16 +100,20 @@ export default function PlanCard({
       </div>
 
       <div className="flex flex-col gap-1">
-        <div className="flex items-baseline gap-2">
-          <span className="text-stat font-semibold text-ink">{price}</span>
-          {originalPrice && (
-            <s className="text-copy text-muted-foreground">
-              <span className="sr-only">{t('subscription.promotion.card.regularPrice')} </span>
-              {originalPrice}
-            </s>
-          )}
-          <span className="text-body text-muted-foreground">{t(`subscription.planChoice.card.per.${interval}`)}</span>
-        </div>
+        {priceText ? (
+          <span className="text-subhead font-semibold text-ink">{priceText}</span>
+        ) : (
+          <div className="flex items-baseline gap-2">
+            <span className="text-stat font-semibold text-ink">{price}</span>
+            {originalPrice && (
+              <s className="text-copy text-muted-foreground">
+                <span className="sr-only">{t('subscription.promotion.card.regularPrice')} </span>
+                {originalPrice}
+              </s>
+            )}
+            <span className="text-body text-muted-foreground">{t(`subscription.planChoice.card.per.${interval}`)}</span>
+          </div>
+        )}
         {/* Two lines are reserved for the note so the buttons line up across the cards. */}
         <span className="min-h-9 text-meta text-muted-foreground">{priceNote}</span>
       </div>

@@ -298,6 +298,7 @@
         "hintPreviewLoading": "Calculating today's charge…",
         "hintPreviewError": "Couldn't calculate today's charge. You can still confirm the change.",
         "hintCancelsFree": "Your switch to {{free}} will be cancelled.",
+        "hintEndsFormUpPlan": "Your plan from Form Up will end and you will pay for {{plan}} from today.",
         "continue": "Continue to payment"
       },
       "picker": {
@@ -308,6 +309,8 @@
         "rolesOne": "You coach as {{role}}.",
         "breakdown": "{{plan}} {{base}} + second role {{addOn}}",
         "noCard": "Forever, no card needed",
+        "providedByFormUpUntil": "Provided by Form Up until {{date}}",
+        "providedByFormUp": "Provided by Form Up",
         "yourPlan": "Your plan",
         "switchTo": "Switch to {{plan}}",
         "switchesToFree": "Switches to {{free}} on {{date}}",

@@ -51,6 +51,16 @@ export default function PlanPickerPage() {
       : null;
   const switchPending = data?.cancelAtPeriodEnd === true && selection.live;
   const [selectedCode, setSelectedCode] = useState<string | null>(null);
+  const [now] = useState(() => Date.now());
+  const isSetByFormUp = data?.isSetByFormUp === true;
+  // Dated only while the end date is still ahead, like the Settings plan card.
+  const formUpPriceText = isSetByFormUp
+    ? data?.freeUntil && new Date(data.freeUntil).getTime() > now
+      ? t('subscription.billing.picker.providedByFormUpUntil', {
+          date: new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' }).format(new Date(data.freeUntil)),
+        })
+      : t('subscription.billing.picker.providedByFormUp')
+    : undefined;
 
   const actionFor = (plan: CoachPlanDto) => {
     const name = coachPlanName(plan, i18n.language);
@@ -164,6 +174,10 @@ export default function PlanPickerPage() {
       date
         ? { hint: t('subscription.billing.select.hintStartsOn', { plan: planLabel, date, current: currentName }) }
         : periodHint;
+    // A plan set by Form Up has no subscription to change: paying starts a new one and ends the free period.
+    if (isSetByFormUp && !selectedIsFree) {
+      return { ...checkoutHint, extraHint: t('subscription.billing.select.hintEndsFormUpPlan', { plan: planLabel }) };
+    }
     if (!selection.live) return selected.higher ? checkoutHint : periodHint;
     if (selectedIsFree) return startsOn(periodEndDate);
 
@@ -248,7 +262,8 @@ export default function PlanPickerPage() {
               busy={selection.busy}
               priceMinorUnits={offer ? (discounted ?? fullPrice) : fullPrice}
               originalPriceMinorUnits={offer ? fullPrice : undefined}
-              priceNote={note}
+              priceText={current ? formUpPriceText : undefined}
+              priceNote={current && formUpPriceText ? undefined : note}
               onAction={action.onClick}
               selection={
                 selectable

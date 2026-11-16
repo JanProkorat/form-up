@@ -298,6 +298,7 @@
         "hintPreviewLoading": "Heutige Zahlung wird berechnet…",
         "hintPreviewError": "Die heutige Zahlung konnte nicht berechnet werden. Sie können die Änderung trotzdem bestätigen.",
         "hintCancelsFree": "Ihr Wechsel zu {{free}} wird aufgehoben.",
+        "hintEndsFormUpPlan": "Ihr Tarif von Form Up endet und Sie zahlen {{plan}} ab heute.",
         "continue": "Weiter zur Zahlung"
       },
       "picker": {
@@ -308,6 +309,8 @@
         "rolesOne": "Sie arbeiten als {{role}}.",
         "breakdown": "{{plan}} {{base}} + zweite Rolle {{addOn}}",
         "noCard": "Für immer, ohne Karte",
+        "providedByFormUpUntil": "Von Form Up bereitgestellt bis {{date}}",
+        "providedByFormUp": "Von Form Up bereitgestellt",
         "yourPlan": "Ihr Tarif",
         "switchTo": "Zu {{plan}} wechseln",
         "switchesToFree": "Wechsel zu {{free}} am {{date}}",
