@@ -765,6 +765,8 @@
       "loadError": "Ihre Rollen konnten nicht geladen werden. Bitte laden Sie die Seite neu.",
       "onlyRoleNote": "Das ist Ihre einzige Rolle. Sie zu entfernen deaktiviert Ihr Coach-Konto, genau wie die Schaltfläche unten.",
       "noRolesNote": "Ihr Coach-Konto ist deaktiviert. Fügen Sie eine Rolle hinzu, um es zu reaktivieren.",
+      "secondRoleUnavailable": "Eine zweite Berufsrolle ist in Ihrem Tarif nicht enthalten. Wechseln Sie den Tarif, um sie hinzuzufügen.",
+      "secondRoleAfterChange": "Sie können eine zweite Rolle nach Ihrem Tarifwechsel am {{date}} hinzufügen.",
       "removeDialog": {
         "keep": "Rolle behalten",
         "footnote": "Die Rolle verschwindet sofort aus der Suche und von Ihrer Profilkarte. Fügen Sie sie jederzeit wieder hinzu, um erneut zu bearbeiten.",

@@ -765,6 +765,8 @@
       "loadError": "Could not load your roles. Please refresh the page.",
       "onlyRoleNote": "This is your only role. Removing it disables your coach account, the same as the button below.",
       "noRolesNote": "Your coach account is disabled. Add a role to reactivate it.",
+      "secondRoleUnavailable": "A second professional role is not part of your plan. Change your plan to add one.",
+      "secondRoleAfterChange": "You can add a second role after your plan change on {{date}}.",
       "removeDialog": {
         "keep": "Keep role",
         "footnote": "The role disappears from search and your profile card right away. Add it back any time to edit again.",
