@@ -332,7 +332,8 @@
       "returning": {
         "title": "Finishing up",
         "body": "We are confirming your payment with Stripe.",
-        "pending": "Your payment is still being processed. Your plan updates in a moment."
+        "pending": "Your payment went through. Activating your plan can take a few minutes, and we will let you know when it is done.",
+        "activated": "Your {{plan}} plan is now active."
       },
       "changed": {
         "now": "You are now on the {{plan}} plan.",
