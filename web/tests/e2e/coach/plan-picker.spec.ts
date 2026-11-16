@@ -525,7 +525,8 @@ trainerTest.describe('plan picker: a plan set by Form Up', () => {
     const pro = page.getByRole('article', { name: 'Pro' });
     await expect(pro.getByText(/^Provided by Form Up until .*2099/)).toBeVisible();
     await expect(pro.locator('s')).toHaveCount(0);
-    await expect(pro.getByText(/599|419/)).toHaveCount(0);
+    // The price block stays in the DOM as an invisible spacer that keeps the card height, so only visible text counts.
+    await expect(pro.getByText(/599|419/).filter({ visible: true })).toHaveCount(0);
     await expect(pro.getByRole('button', { name: 'Your plan' })).toBeDisabled();
     // Other cards keep their price and promotion.
     await expect(page.getByRole('article', { name: 'Studio' }).locator('s')).toHaveCount(1);
