@@ -40,7 +40,7 @@ interface RemoveTarget {
 }
 
 export default function RolesCard() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const [pendingRole, setPendingRole] = useState<(typeof COACH_ROLES)[number] | null>(null);
   const [removeTarget, setRemoveTarget] = useState<RemoveTarget | null>(null);
@@ -63,9 +63,24 @@ export default function RolesCard() {
   const onlyRole = heldRoles.length === 1;
   // With several roles to add, the dialog lets the coach choose; with one, it offers just that one.
   const choosing = missingRoles.length > 1;
-  // A second role on a plan that charges for it goes through the paid dialog; the first role never does.
-  const paysAddOn = subscription.data?.secondRole === SecondRoleState.PaidAddOn && heldRoles.length >= 1;
+  // Only a second role is ever paid for or refused; with no active role the free path always applies.
+  const addsSecondRole = heldRoles.length >= 1;
+  const secondRole = subscription.data?.secondRole;
+  // A second role the plan sells (or already bills) goes through the paid dialog.
+  const paysAddOn =
+    addsSecondRole && (secondRole === SecondRoleState.PaidAddOn || secondRole === SecondRoleState.Purchasable);
+  const secondRoleUnavailable = addsSecondRole && secondRole === SecondRoleState.NotAvailable;
+  // Until the plan is known a click could fall into the free path, so Add waits for it.
+  const subscriptionLoading = addsSecondRole && subscription.isCoach && subscription.query.isPending;
+  const addDisabled = secondRoleUnavailable || subscriptionLoading;
+  const scheduledStart = subscription.data?.scheduledPlan?.startsAt;
+  const unavailableNote = scheduledStart
+    ? t('settings.roles.secondRoleAfterChange', {
+        date: new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' }).format(new Date(scheduledStart)),
+      })
+    : t('settings.roles.secondRoleUnavailable');
   const startAdd = () => {
+    if (addDisabled) return;
     const first = missingRoles[0] ?? null;
     if (paysAddOn) setPaidRole(first);
     else setPendingRole(first);
@@ -129,6 +144,7 @@ export default function RolesCard() {
             type="button"
             variant="outline"
             className="h-8.5 gap-1.75 rounded-field px-3.5 font-semibold text-ink"
+            disabled={addDisabled}
             onClick={startAdd}
           >
             <Plus className="size-3.75" aria-hidden="true" />
@@ -196,9 +212,11 @@ export default function RolesCard() {
             <p className="text-body leading-normal">
               {heldRoles.length === 0
                 ? t('settings.roles.noRolesNote')
-                : onlyRole
-                  ? t('settings.roles.onlyRoleNote')
-                  : t('settings.roles.note')}
+                : secondRoleUnavailable
+                  ? unavailableNote
+                  : onlyRole
+                    ? t('settings.roles.onlyRoleNote')
+                    : t('settings.roles.note')}
             </p>
           </div>
         </>

@@ -25418,6 +25418,7 @@ export enum SecondRoleState {
     Included = "Included",
     PaidAddOn = "PaidAddOn",
     NotAvailable = "NotAvailable",
+    Purchasable = "Purchasable",
 }
 
 /** One line of the monthly price. */

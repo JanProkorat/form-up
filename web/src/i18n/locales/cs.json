@@ -810,6 +810,8 @@
       "loadError": "Vaše role se nepodařilo načíst. Obnovte prosím stránku.",
       "onlyRoleNote": "Toto je vaše jediná role. Její odebrání zakáže váš trenérský účet, stejně jako tlačítko níže.",
       "noRolesNote": "Váš trenérský účet je deaktivovaný. Přidejte roli a znovu ho aktivujte.",
+      "secondRoleUnavailable": "Druhá profesní role není součástí vašeho tarifu. Pro její přidání změňte tarif.",
+      "secondRoleAfterChange": "Druhou roli můžete přidat po změně tarifu dne {{date}}.",
       "removeDialog": {
         "keep": "Ponechat roli",
         "footnote": "Role okamžitě zmizí z vyhledávání i z vaší profilové karty. Kdykoli ji můžete přidat zpět a znovu upravovat.",
