@@ -355,6 +355,83 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
         after.PendingSubscriptionPlanPriceId.Should().BeNull();
     }
 
+    /// <summary>A coach on a one-role plan who pays the add-on and has already removed the second role (its end is scheduled).</summary>
+    private async Task<Scenario> ArrangeScheduledAddOnEndAsync()
+    {
+        await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var plan = await PaidPlanBuilder.CreateAsync(factory, addOnMinorUnits: 9900, bothRolesIncluded: false);
+        var priceId = await SetStripePriceAsync(plan);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, plan, paysSecondRoleAddOn: true);
+
+        var scenario = new Scenario(coach, plan, priceId, $"cus_{Guid.NewGuid():N}", $"sub_{Guid.NewGuid():N}");
+        await UpdateRowAsync(coach.ProfileId, row =>
+        {
+            row.ExternalCustomerId = scenario.CustomerId;
+            row.ExternalSubscriptionId = scenario.SubscriptionId;
+            row.SecondRoleAddOnEndsAt = DateTimeOffset.UtcNow.AddDays(10);
+        });
+
+        return scenario;
+    }
+
+    [Fact]
+    public async Task Webhook_RenewalWithoutTheAddOnLine_StopsBillingTheAddOn_AndClearsTheScheduledEnd()
+    {
+        var scenario = await ArrangeScheduledAddOnEndAsync();
+
+        var response = await PostAsync(SubscriptionEvent(NewEventId(), "customer.subscription.updated", scenario, "active"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var after = await ReadRowAsync(scenario.Coach.ProfileId);
+        after.PaysSecondRoleAddOn.Should().BeFalse();
+        after.SecondRoleAddOnEndsAt.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Webhook_UpdateRightAfterSchedulingTheEnd_KeepsTheAddOnAndTheScheduledEnd()
+    {
+        var scenario = await ArrangeScheduledAddOnEndAsync();
+
+        var response = await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.updated", scenario, "active", extraPriceIds: ["price_addon_unknown_to_plans"]));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var after = await ReadRowAsync(scenario.Coach.ProfileId);
+        after.PaysSecondRoleAddOn.Should().BeTrue("the add-on item is still on the subscription until the renewal");
+        after.SecondRoleAddOnEndsAt.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task Webhook_RenewalWithoutTheAddOnLineUnderAGift_StillClearsTheScheduledEnd()
+    {
+        var scenario = await ArrangeScheduledAddOnEndAsync();
+        await UpdateRowAsync(scenario.Coach.ProfileId, row =>
+        {
+            row.GivenFreeAt = DateTimeOffset.UtcNow.AddDays(-1);
+            row.FreeUntil = DateTimeOffset.UtcNow.AddDays(30);
+        });
+
+        var response = await PostAsync(SubscriptionEvent(NewEventId(), "customer.subscription.updated", scenario, "active"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var after = await ReadRowAsync(scenario.Coach.ProfileId);
+        after.PaysSecondRoleAddOn.Should().BeFalse();
+        after.SecondRoleAddOnEndsAt.Should().BeNull();
+        after.GivenFreeAt.Should().NotBeNull("the gift itself is untouched");
+    }
+
+    [Fact]
+    public async Task Webhook_SubscriptionDeletedWithAScheduledEnd_ClearsIt()
+    {
+        var scenario = await ArrangeScheduledAddOnEndAsync();
+
+        var response = await PostAsync(SubscriptionEvent(NewEventId(), "customer.subscription.deleted", scenario, "canceled"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await ReadRowAsync(scenario.Coach.ProfileId)).SecondRoleAddOnEndsAt.Should().BeNull();
+    }
+
     [Fact]
     public async Task Webhook_InvoicePaymentFailed_MakesTheSubscriptionPastDue_AndKeepsThePaidEntitlements()
     {

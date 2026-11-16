@@ -144,6 +144,107 @@ public class StripeSubscriptionServiceChangePlanTests
             .Which.HttpStatusCode.Should().Be(HttpStatusCode.PaymentRequired, "the original charge failure is what surfaces");
     }
 
+    private const string GiftOnEveryPhaseScheduleJson = """
+        {"id":"sub_sched_1","object":"subscription_schedule",
+         "current_phase":{"start_date":1700000000,"end_date":1702592000},
+         "phases":[
+           {"start_date":1700000000,"end_date":1702592000,"items":[{"price":"price_old","quantity":1}],"discounts":[{"coupon":"coupon_gift"}]},
+           {"start_date":1702592000,"end_date":1705270400,"items":[{"price":"price_cheaper","quantity":1}],"discounts":[{"coupon":"coupon_gift"}]}]}
+        """;
+
+    private const string GiftEndingWithThePeriodScheduleJson = """
+        {"id":"sub_sched_1","object":"subscription_schedule",
+         "current_phase":{"start_date":1700000000,"end_date":1702592000},
+         "phases":[
+           {"start_date":1700000000,"end_date":1702592000,"items":[{"price":"price_old","quantity":1}],"discounts":[{"coupon":"coupon_gift"}]},
+           {"start_date":1702592000,"end_date":1705270400,"items":[{"price":"price_cheaper","quantity":1}]}]}
+        """;
+
+    private const string SubscriptionWithAddOnJson = """
+        {"id":"sub_1","object":"subscription","schedule":null,"discounts":[],
+         "items":{"object":"list","has_more":false,"data":[
+           {"id":"si_plan","object":"subscription_item","current_period_start":1700000000,"current_period_end":1702592000,
+            "price":{"id":"price_old","object":"price","product":"prod_1","recurring":{"interval":"month"}}},
+           {"id":"si_addon","object":"subscription_item","current_period_start":1700000000,"current_period_end":1702592000,
+            "price":{"id":"price_addon","object":"price","product":"prod_1","lookup_key":"formup-addon-pro-czk-9900-month-prod_1","recurring":{"interval":"month"}}}]}}
+        """;
+
+    [Fact]
+    public async Task ChangePlan_ScheduledWithoutTheAddOn_KeepsTheAddOnThisPeriod_AndDropsItFromTheNextPhase_WithoutProration()
+    {
+        var handler = new ScriptedHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
+            .Respond(HttpMethod.Get, "/v1/subscriptions/sub_1", SubscriptionWithAddOnJson)
+            .Respond(HttpMethod.Post, "/v1/subscription_schedules", "{\"id\":\"sub_sched_new\",\"object\":\"subscription_schedule\"}");
+
+        await NewService(handler).ChangePlanAsync(
+            SubscriptionId, "pro", "price_old", null, "CZK", BillingInterval.Monthly, atNextRenewal: true, TestContext.Current.CancellationToken);
+
+        var update = handler.Requests.Last();
+        update.Path.Should().Be("/v1/subscription_schedules/sub_sched_new");
+        update.Form.Should().Contain(new KeyValuePair<string, string>("phases[0][items][0][price]", "price_old"));
+        update.Form.Should().Contain(new KeyValuePair<string, string>("phases[0][items][1][price]", "price_addon"));
+        update.Form.Should().Contain(new KeyValuePair<string, string>("phases[1][items][0][price]", "price_old"));
+        update.Form.Should().NotContain(pair => pair.Key.StartsWith("phases[1][items][1]", StringComparison.Ordinal));
+        update.Form.Should().Contain(new KeyValuePair<string, string>("proration_behavior", "none"));
+    }
+
+    private static Task ClearAsync(StripeSubscriptionService service) =>
+        service.ClearScheduledPriceChangeAsync(SubscriptionId, TestContext.Current.CancellationToken);
+
+    [Fact]
+    public async Task ClearScheduledPriceChange_WithoutASchedule_CallsNothingToChange()
+    {
+        var handler = new ScriptedHandler(HttpStatusCode.OK, SubscriptionJson);
+
+        await ClearAsync(NewService(handler));
+
+        handler.Requests.Should().NotContain(r => r.Method == HttpMethod.Post);
+    }
+
+    [Fact]
+    public async Task ClearScheduledPriceChange_WithAScheduledDowngradeAndNoGift_ReleasesTheSchedule()
+    {
+        var handler = new ScriptedHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
+            .Respond(HttpMethod.Get, "/v1/subscriptions/sub_1", SubscriptionWithScheduleJson)
+            .Respond(HttpMethod.Get, "/v1/subscription_schedules/sub_sched_1", ScheduleJson);
+
+        await ClearAsync(NewService(handler));
+
+        handler.Requests.Where(r => r.Method == HttpMethod.Post).Select(r => r.Path)
+            .Should().Equal("/v1/subscription_schedules/sub_sched_1/release");
+    }
+
+    [Fact]
+    public async Task ClearScheduledPriceChange_WithAnEndlessGift_ReleasesTheScheduleAndPutsTheGiftBackAsADiscount()
+    {
+        var handler = new ScriptedHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
+            .Respond(HttpMethod.Get, "/v1/subscriptions/sub_1", SubscriptionWithScheduleJson)
+            .Respond(HttpMethod.Get, "/v1/subscription_schedules/sub_sched_1", GiftOnEveryPhaseScheduleJson);
+
+        await ClearAsync(NewService(handler));
+
+        handler.Requests.Where(r => r.Method == HttpMethod.Post).Select(r => r.Path)
+            .Should().Equal("/v1/subscription_schedules/sub_sched_1/release", "/v1/subscriptions/sub_1");
+        handler.Requests.Last().Form.Should().Contain(new KeyValuePair<string, string>("discounts[0][coupon]", "coupon_gift"));
+    }
+
+    [Fact]
+    public async Task ClearScheduledPriceChange_WithAGiftThatEnds_RewritesTheSchedulePhasesOnTheCurrentPrices()
+    {
+        var handler = new ScriptedHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
+            .Respond(HttpMethod.Get, "/v1/subscriptions/sub_1", SubscriptionWithScheduleJson)
+            .Respond(HttpMethod.Get, "/v1/subscription_schedules/sub_sched_1", GiftEndingWithThePeriodScheduleJson);
+
+        await ClearAsync(NewService(handler));
+
+        var update = handler.Requests.Single(r => r.Method == HttpMethod.Post);
+        update.Path.Should().Be("/v1/subscription_schedules/sub_sched_1");
+        update.Form.Should().Contain(new KeyValuePair<string, string>("phases[0][items][0][price]", "price_old"));
+        update.Form.Should().Contain(new KeyValuePair<string, string>("phases[1][items][0][price]", "price_old"));
+        update.Form.Should().NotContain(pair => pair.Value == "price_cheaper");
+        update.Form.Should().Contain(new KeyValuePair<string, string>("proration_behavior", "none"));
+    }
+
     private sealed record CapturedRequest(HttpMethod Method, string Path, List<KeyValuePair<string, string>> Form, string? IdempotencyKey);
 
     private sealed class ScriptedHandler(HttpStatusCode defaultStatus, string defaultJson) : HttpMessageHandler

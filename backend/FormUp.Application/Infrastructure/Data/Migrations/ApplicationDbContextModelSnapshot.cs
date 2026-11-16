@@ -2186,6 +2186,10 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("professional_profile_id");
 
+                    b.Property<DateTimeOffset?>("SecondRoleAddOnEndsAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("second_role_add_on_ends_at");
+
                     b.Property<int>("Status")
                         .HasColumnType("integer")
                         .HasColumnName("status");

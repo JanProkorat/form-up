@@ -760,6 +760,9 @@ public static class ErrorCodes
     /// <summary>The payment provider refused or failed a call; nothing was saved.</summary>
     public const string BillingProviderError = "BILLING_PROVIDER_ERROR";
 
+    /// <summary>A second coach role cannot be added or restored: the plan scheduled for the next renewal offers no second role.</summary>
+    public const string SecondRoleNotOnScheduledPlan = "SECOND_ROLE_NOT_ON_SCHEDULED_PLAN";
+
     /// <summary>The plan cannot be bought: it is the Free plan, inactive, or has no open paid price.</summary>
     public const string PlanNotPurchasable = "PLAN_NOT_PURCHASABLE";
 

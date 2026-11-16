@@ -57,6 +57,12 @@ public class CoachSubscription : TimestampableEntity
     public bool PaysSecondRoleAddOn { get; set; }
 
     /// <summary>
+    /// When the second-role add-on stops being billed, set while its removal is scheduled at the provider (the coach
+    /// removed a role and the add-on still runs to the end of the paid period). Null when no removal is scheduled.
+    /// </summary>
+    public DateTimeOffset? SecondRoleAddOnEndsAt { get; set; }
+
+    /// <summary>
     /// Current lifecycle status of the subscription.
     /// </summary>
     public SubscriptionStatus Status { get; set; }

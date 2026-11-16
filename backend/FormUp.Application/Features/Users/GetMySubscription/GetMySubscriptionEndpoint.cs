@@ -35,7 +35,8 @@ internal sealed class GetMySubscriptionEndpoint(
         Summary(s =>
         {
             s.Summary = "Get my coach subscription";
-            s.Description = "The caller's plan, status, active-client usage and limit, second-role state, monthly price lines and the " +
+            s.Description = "The caller's plan, status, secondRoleAddOnEndsAt (when a removed second role's add-on stops being billed, " +
+                            "or null), active-client usage and limit, second-role state, monthly price lines and the " +
                             "feature flags that currently apply. A coach with no subscription is shown on the Free plan with no status. When the paid " +
                             "plan has lapsed the plan fields read as Free, the lapsed plan's names and end date are returned separately, " +
                             "the active-client count is the kept clients and the over-cap count is reported. When an admin-given plan has ended and no plan " +
@@ -351,6 +352,7 @@ internal sealed class GetMySubscriptionEndpoint(
                 cs.FreeUntil,
                 cs.GivenFreeAt,
                 cs.PaysSecondRoleAddOn,
+                cs.SecondRoleAddOnEndsAt,
                 cs.NextPaymentAttemptAt,
                 HasBillingAccount = cs.ExternalCustomerId != null,
                 cs.SubscriptionPlanPrice.PriceMinorUnits,
@@ -376,6 +378,10 @@ internal sealed class GetMySubscriptionEndpoint(
                 IsSetByFormUp = subscription.GivenFreeAt is not null
                     && CoachSubscriptionStatusClassifier.PlanApplies(
                         subscription.Status, subscription.FreeUntil, subscription.GivenFreeAt, timeProvider.GetUtcNow()),
+                SecondRoleAddOnEndsAt = subscription.Status is SubscriptionStatus.Active or SubscriptionStatus.Trialing or SubscriptionStatus.PastDue
+                    && !subscription.CancelAtPeriodEnd
+                        ? subscription.SecondRoleAddOnEndsAt
+                        : null,
                 PriceLines =
                 [
                     new SubscriptionPriceLineDto

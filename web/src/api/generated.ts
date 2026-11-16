@@ -1141,6 +1141,14 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
 
+        } else if (status === 502) {
+            const _responseText = response.data;
+            return throwException("Stripe failed; the role was not removed (BILLING_PROVIDER_ERROR)", status, _responseText, _headers);
+
+        } else if (status === 503) {
+            const _responseText = response.data;
+            return throwException("The add-on is billed and Stripe is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -1395,6 +1403,18 @@ export class ApiClient {
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("The subscription does not cover a second professional role (SUBSCRIPTION_REQUIRED)", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("The plan scheduled for the next renewal offers no second role (SECOND_ROLE_NOT_ON_SCHEDULED_PLAN)", status, _responseText, _headers);
+
+        } else if (status === 502) {
+            const _responseText = response.data;
+            return throwException("Restoring a role whose add-on removal is scheduled: Stripe failed, the role stays removed (BILLING_PROVIDER_ERROR)", status, _responseText, _headers);
+
+        } else if (status === 503) {
+            const _responseText = response.data;
+            return throwException("Restoring a role whose add-on removal is scheduled: Stripe is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -25396,6 +25416,10 @@ the cap, the plan is unlimited or a plan choice is required. */
     /** The plan that replaces the current one at the end of the period: a scheduled downgrade, or Free when the
 subscription is set to end. Null when nothing is scheduled. */
     scheduledPlan?: ScheduledPlanDto | undefined;
+    /** When the second-role add-on stops being billed, while its removal is scheduled (the coach removed a role); the
+PriceLines keep the add-on line until then. Null when nothing is scheduled, the subscription is not
+live or it is set to end anyway. */
+    secondRoleAddOnEndsAt?: string | undefined;
 }
 
 /** How VAT is handled on Stripe subscriptions and invoices. Selected by configuration, never by code. */

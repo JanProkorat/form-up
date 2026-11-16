@@ -116,6 +116,13 @@ public class GetMySubscriptionResponse
     /// subscription is set to end. Null when nothing is scheduled.
     /// </summary>
     public ScheduledPlanDto? ScheduledPlan { get; set; }
+
+    /// <summary>
+    /// When the second-role add-on stops being billed, while its removal is scheduled (the coach removed a role); the
+    /// <see cref="PriceLines"/> keep the add-on line until then. Null when nothing is scheduled, the subscription is not
+    /// live or it is set to end anyway.
+    /// </summary>
+    public DateTimeOffset? SecondRoleAddOnEndsAt { get; set; }
 }
 
 /// <summary>

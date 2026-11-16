@@ -4,10 +4,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Dumbbell, Info, Leaf, Plus } from 'lucide-react';
 import { addRole, getMyCoachRoles, isInFuture, removeCoachRole, rolesKeys } from '@/api/roles';
 import { profileKeys } from '@/api/profile';
-import { SecondRoleState } from '@/api/generated';
+import { SecondRoleState, SubscriptionPriceLineKind } from '@/api/generated';
 import { subscriptionKeys } from '@/api/subscription';
+import { billingErrorMessage, showBillingError } from '@/components/subscription/billingErrors';
+import { formatMoney } from '@/components/subscription/money';
 import { useSubscription } from '@/hooks/useSubscriptionQueries';
-import { getApiErrorMessage, getErrorCode, showApiError, showSuccess } from '@/lib/api-errors';
+import { getErrorCode, showSuccess } from '@/lib/api-errors';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth';
 import { Button } from '@/components/ui/button';
@@ -79,6 +81,24 @@ export default function RolesCard() {
         date: new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' }).format(new Date(scheduledStart)),
       })
     : t('settings.roles.secondRoleUnavailable');
+  const billingNote = (() => {
+    const sub = subscription.data;
+    if (!sub || secondRole !== SecondRoleState.PaidAddOn) return null;
+    const billsAddOn = sub.priceLines?.some((line) => line.kind === SubscriptionPriceLineKind.SecondRoleAddOn);
+    // Nothing to announce when the add-on already stops, the plan is set by Form Up or the plan itself ends.
+    if (!billsAddOn || sub.cancelAtPeriodEnd || sub.isSetByFormUp || sub.secondRoleAddOnEndsAt) return null;
+    if (!sub.currentPeriodEndsAt) return null;
+    const scheduledLines = sub.scheduledPlan?.priceLines;
+    const remaining = scheduledLines
+      ? scheduledLines
+      : (sub.priceLines ?? []).filter((line) => line.kind === SubscriptionPriceLineKind.Plan);
+    const amount = remaining.reduce((sum, line) => sum + (line.amountMinorUnits ?? 0), 0);
+    const currency = remaining[0]?.currency ?? sub.priceLines?.[0]?.currency ?? 'CZK';
+    return t('settings.roles.removeDialog.billing', {
+      date: new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' }).format(new Date(sub.currentPeriodEndsAt)),
+      amount: formatMoney(amount, currency, i18n.language),
+    });
+  })();
   const startAdd = () => {
     if (addDisabled) return;
     const first = missingRoles[0] ?? null;
@@ -104,7 +124,7 @@ export default function RolesCard() {
       setPaidRole(null);
     },
     onError: (error) => {
-      showApiError(error, 'settings.roles.addError');
+      showBillingError(error, 'settings.roles.addError');
       setPendingRole(null);
     },
   });
@@ -116,12 +136,14 @@ export default function RolesCard() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: rolesKeys.mine });
       void queryClient.invalidateQueries({ queryKey: profileKeys.me });
+      void queryClient.invalidateQueries({ queryKey: subscriptionKeys.mine });
       showSuccess('settings.roles.removed');
       setRemoveTarget(null);
       setRemoveError(null);
     },
     onError: (error) => {
-      setRemoveError(getApiErrorMessage(error, 'settings.roles.removeError'));
+      // Billing codes (502/503) sit in the top-level errorCode, which getApiErrorMessage does not read.
+      setRemoveError(billingErrorMessage(error, 'settings.roles.removeError'));
       // A stale tab: the role is already gone server-side, so refresh what the card shows.
       if (getErrorCode(error) === 'ROLE_NOT_ASSIGNED') {
         void queryClient.invalidateQueries({ queryKey: rolesKeys.mine });
@@ -228,6 +250,7 @@ export default function RolesCard() {
         sharedWithOtherRoleCount={removeTarget?.sharedWithOtherRoleCount ?? 0}
         pending={removeMutation.isPending}
         errorMessage={removeError}
+        billingNote={billingNote}
         onConfirm={() => {
           if (!removeTarget) return;
           setRemoveError(null);
