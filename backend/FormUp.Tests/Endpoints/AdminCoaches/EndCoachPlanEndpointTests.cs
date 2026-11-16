@@ -97,6 +97,22 @@ public class EndCoachPlanEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task End_CoachWhoseRenewalAnAdminCancelled_ClearsTheAdminMarker()
+    {
+        await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var plan = await PaidPlanBuilder.CreateAsync(factory);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, plan, cancelAtPeriodEnd: true);
+        await Billing.BillingTestData.UpdateRowAsync(
+            factory, coach.ProfileId, row => row.RenewalCancelledByAdminAt = DateTimeOffset.UtcNow);
+
+        (await EndAsync(admin, coach.UserId)).StatusCode.Should().Be(HttpStatusCode.OK);
+
+        (await ReadSubscriptionAsync(coach.ProfileId)).RenewalCancelledByAdminAt.Should().BeNull();
+    }
+
+    [Fact]
     public async Task End_PayingCoachWithAPendingPriceChange_ClearsIt()
     {
         await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
