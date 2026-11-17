@@ -5,7 +5,6 @@ import { CalendarClock, Check, CreditCard, ExternalLink, Ticket } from 'lucide-r
 import { monthsUntil, promotionValueText } from '@/components/subscription/promotionText';
 import {
   PromotionDuration,
-  SecondRoleState,
   SubscriptionPriceLineKind,
   SubscriptionStatus,
   type ScheduledPlanDto,
@@ -13,6 +12,7 @@ import {
 } from '@/api/generated';
 import CancelScheduledChangeDialog from '@/components/settings/CancelScheduledChangeDialog';
 import SettingsCard from '@/components/settings/SettingsCard';
+import { secondRoleReason } from '@/components/settings/secondRoleReason';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -116,6 +116,7 @@ export default function PlanBillingCard() {
           })
         : t('subscription.plan.scheduled.begins', { plan: scheduledName, date: scheduledDate })
       : null;
+  const secondRoleNote = secondRoleReason(t, data, language);
   // A scheduled plan change already shows the lower total, so the add-on end only gets its own line without one.
   const addOnEndsAt = data?.secondRoleAddOnEndsAt;
   const addOnEndLine =
@@ -286,9 +287,7 @@ export default function PlanBillingCard() {
                     </>
                   )}
                 </div>
-                {data.secondRole === SecondRoleState.NotAvailable && (
-                  <span className="text-meta text-muted-foreground">{t('subscription.plan.bill.secondRoleUnavailable')}</span>
-                )}
+                {secondRoleNote && <span className="text-meta text-muted-foreground">{secondRoleNote}</span>}
                 {lines.length > 0 && <TaxNote taxMode={data.taxMode} className="text-meta text-muted-foreground" />}
               </div>
 

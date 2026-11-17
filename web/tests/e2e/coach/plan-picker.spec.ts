@@ -252,7 +252,7 @@ trainerTest.describe('plan picker', () => {
     const bar = page.getByRole('region', { name: 'Selected plan' });
     await bar.getByRole('button', { name: 'Upgrade to Start' }).click();
 
-    await expect(page.getByText("Billing isn't available right now. Please try again later.")).toBeVisible();
+    await expect(toastTitle(page, "Billing isn't available right now. Please try again later.")).toBeVisible();
     await expect(page).toHaveURL(/\/plan$/);
     await expect(page.getByRole('article', { name: 'Start' }).getByRole('button', { name: 'Selected' })).toHaveAttribute(
       'aria-pressed',

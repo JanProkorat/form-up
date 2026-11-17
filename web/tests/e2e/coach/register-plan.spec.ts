@@ -255,7 +255,10 @@ trainerTest.describe('register plan step', () => {
     const bar = page.getByRole('region', { name: 'Selected plan' });
     await bar.getByRole('button', { name: 'Continue to payment' }).click();
 
-    await expect(page.getByText("Billing isn't available right now. Please try again later.")).toBeVisible();
+    // Toast text is also mirrored in a screen-reader live region, so assert on the toast title only.
+    await expect(
+      page.locator('[data-slot="toast-title"]').filter({ hasText: "Billing isn't available right now. Please try again later." }),
+    ).toBeVisible();
     await expect(page).toHaveURL(/\/register\/plan$/);
     await expect(bar.getByText(/^Start · /)).toBeVisible();
     await expect(bar.getByRole('button', { name: 'Continue to payment' })).toBeEnabled();
