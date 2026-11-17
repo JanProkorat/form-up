@@ -30,13 +30,16 @@ public class GetMySubscriptionResponse
     /// <summary>True when the coach has a billing customer, so the billing portal can be opened.</summary>
     public bool HasBillingAccount { get; set; }
 
-    /// <summary>Subscription status, or null when the coach has no subscription and is on Free by default.</summary>
+    /// <summary>
+    /// Subscription status, or null when the coach has no subscription and is on Free by default. Also null once a plan
+    /// has ended (<see cref="IsLapsed"/>).
+    /// </summary>
     public SubscriptionStatus? Status { get; set; }
 
-    /// <summary>When the current billing period ends, if known.</summary>
+    /// <summary>When the current billing period ends, if known. Null once a plan has ended; see <see cref="EndedAt"/>.</summary>
     public DateTimeOffset? CurrentPeriodEndsAt { get; set; }
 
-    /// <summary>True when the subscription will not renew.</summary>
+    /// <summary>True when the subscription will not renew. False once a plan has ended.</summary>
     public bool CancelAtPeriodEnd { get; set; }
 
     /// <summary>While now is before this instant the assigned plan's features apply whatever the status is.</summary>
@@ -47,7 +50,8 @@ public class GetMySubscriptionResponse
 
     /// <summary>
     /// True when the paid plan has lapsed (Canceled or Incomplete with no free-features deadline in force). The plan
-    /// fields then describe the Free plan and <see cref="ActiveClientCount"/> is the number of kept clients.
+    /// fields then describe the Free plan, <see cref="Status"/>, <see cref="CurrentPeriodEndsAt"/> and
+    /// <see cref="CancelAtPeriodEnd"/> are empty, and <see cref="ActiveClientCount"/> is the number of kept clients.
     /// </summary>
     public bool IsLapsed { get; set; }
 

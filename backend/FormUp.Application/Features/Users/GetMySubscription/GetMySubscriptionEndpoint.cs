@@ -38,7 +38,8 @@ internal sealed class GetMySubscriptionEndpoint(
             s.Description = "The caller's plan, status, secondRoleAddOnEndsAt (when a removed second role's add-on stops being billed, " +
                             "or null), active-client usage and limit, second-role state, monthly price lines and the " +
                             "feature flags that currently apply. A coach with no subscription is shown on the Free plan with no status. When the paid " +
-                            "plan has lapsed the plan fields read as Free, the lapsed plan's names and end date are returned separately, " +
+                            "plan has lapsed the plan fields read as Free with no status, period end or cancelAtPeriodEnd (all empty once a plan has ended), " +
+                            "the lapsed plan's names and end date are returned separately, " +
                             "the active-client count is the kept clients and the over-cap count is reported. When an admin-given plan has ended and no plan " +
                             "was chosen yet, planChoiceRequired is true (never together with isLapsed), the plan fields still describe the ended plan " +
                             "and its names are repeated as the ended-plan names. A coach on an explicit Free plan with clients over the cap gets the " +
@@ -313,7 +314,8 @@ internal sealed class GetMySubscriptionEndpoint(
 
     /// <summary>
     /// A lapsed plan reads as the Free plan: the plan that ended moves to the lapsed fields, the kept clients are the
-    /// active clients and the rest are over the cap. Without a Free plan row the plan fields stay as they were.
+    /// active clients and the rest are over the cap. The status, period end and cancel flag of the ended subscription are
+    /// cleared; the end moment stays in <c>EndedAt</c>. Without a Free plan row the plan fields stay as they were.
     /// </summary>
     private async Task ApplyLapseAsync(GetMySubscriptionResponse response, KeepClientsState keepState, CancellationToken ct)
     {
@@ -322,6 +324,9 @@ internal sealed class GetMySubscriptionEndpoint(
         response.LapsedPlanNameEn = response.NameEn;
         response.LapsedPlanNameDe = response.NameDe;
         response.EndedAt = response.CurrentPeriodEndsAt;
+        response.Status = null;
+        response.CurrentPeriodEndsAt = null;
+        response.CancelAtPeriodEnd = false;
         response.ActiveClientCount = keepState.KeptClientProfileIds.Count;
         response.OverCapClientCount = keepState.OverCapClientProfileIds.Count;
 
