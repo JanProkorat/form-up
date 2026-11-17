@@ -9,7 +9,9 @@ using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Features.AdminCoaches.EndCoachPlan;
 using FormUp.Application.Features.AdminCoaches.GetAdminCoach;
+using FormUp.Application.Domain.Services;
 using FormUp.Application.Features.CoachSubscriptions.GetKeepClients;
+using FormUp.Application.Features.Users.GetMySubscription;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Tests.Builders;
 using FormUp.Tests.Infrastructure;
@@ -22,8 +24,11 @@ namespace FormUp.Tests.Endpoints.AdminCoaches;
 /// Integration tests for <c>POST /admin/coaches/{CoachId}/end-plan</c> (<c>EndCoachPlanEndpoint</c>).
 /// </summary>
 [Collection(TestCollection.Name)]
-public class EndCoachPlanEndpointTests(FitnessApiFactory factory)
+public class EndCoachPlanEndpointTests(FitnessApiFactory factory) : IDisposable
 {
+    /// <summary>Leaves the shared fake payment provider in its default state for the next class.</summary>
+    public void Dispose() => Billing.BillingTestData.ResetProvider(factory);
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -252,6 +257,131 @@ public class EndCoachPlanEndpointTests(FitnessApiFactory factory)
         values.RootElement.GetProperty("reason").GetString().Should().Be("trial abuse");
         values.RootElement.GetProperty("planCode").GetString().Should().Be(plan);
         values.RootElement.GetProperty("wasGivenFree").GetBoolean().Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task End_LiveStripeSubscription_CancelsItAtOnce_AndEndsThePaidPeriodNow()
+    {
+        var fake = Billing.BillingTestData.ResetProvider(factory);
+        await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (plan, _) = await Billing.BillingTestData.StripePlanAsync(factory);
+        var subscriptionId = await Billing.BillingTestData.SubscribeLiveAsync(factory, coach, plan, paysSecondRoleAddOn: true);
+        await Billing.BillingTestData.SetPendingPlanAsync(factory, coach.ProfileId, plan);
+        await Billing.BillingTestData.UpdateRowAsync(factory, coach.ProfileId, row =>
+        {
+            row.SecondRoleAddOnEndsAt = DateTimeOffset.UtcNow.AddDays(3);
+            row.NextPaymentAttemptAt = DateTimeOffset.UtcNow.AddDays(1);
+        });
+        var before = DateTimeOffset.UtcNow;
+
+        var response = await EndAsync(admin, coach.UserId);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.CancelledNow.Should().ContainSingle().Which.Should().Be(subscriptionId);
+        var row = await Billing.BillingTestData.ReadRowAsync(factory, coach.ProfileId);
+        row.Status.Should().Be(SubscriptionStatus.Canceled);
+        row.CurrentPeriodEndsAt.Should().BeOnOrAfter(before.AddSeconds(-1)).And.BeOnOrBefore(DateTimeOffset.UtcNow);
+        row.ExternalSubscriptionId.Should().BeNull();
+        row.ExternalCustomerId.Should().NotBeNull("a later purchase reuses the customer");
+        row.NextPaymentAttemptAt.Should().BeNull();
+        row.PaysSecondRoleAddOn.Should().BeFalse();
+        row.SecondRoleAddOnEndsAt.Should().BeNull();
+        row.LastExternalEventAt.Should().NotBeNull();
+        row.LastExternalEventAt!.Value.Ticks.Should().Be(
+            row.LastExternalEventAt.Value.Ticks - (row.LastExternalEventAt.Value.Ticks % TimeSpan.TicksPerSecond), "whole seconds, like a Stripe event time");
+        (await AuditRowsAsync(coach.UserId)).Should().ContainSingle();
+
+        var activeUntil = CoachAccountActiveUntilResolver.Resolve(row, DateTime.UtcNow);
+        activeUntil.Should().BeOnOrBefore(DateTime.UtcNow, "disabling after the end takes effect right away");
+        var subscription = await coach.Http.GetFromJsonAsync<GetMySubscriptionResponse>("/users/me/subscription", JsonOptions, Ct);
+        subscription!.EndedAt.Should().NotBeNull().And.BeOnOrBefore(DateTimeOffset.UtcNow);
+    }
+
+    [Fact]
+    public async Task End_GiftOnTopOfALiveStripeSubscription_CancelsStripeToo()
+    {
+        var fake = Billing.BillingTestData.ResetProvider(factory);
+        await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (plan, _) = await Billing.BillingTestData.StripePlanAsync(factory);
+        var subscriptionId = await Billing.BillingTestData.SubscribeLiveAsync(
+            factory, coach, plan, givenFreeAt: DateTimeOffset.UtcNow.AddDays(-2), freeUntil: DateTimeOffset.UtcNow.AddDays(20));
+
+        var response = await EndAsync(admin, coach.UserId);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.CancelledNow.Should().ContainSingle().Which.Should().Be(subscriptionId);
+        var row = await Billing.BillingTestData.ReadRowAsync(factory, coach.ProfileId);
+        row.GivenFreeAt.Should().BeNull();
+        row.ExternalSubscriptionId.Should().BeNull();
+        (await GetCoachAsync(admin, coach.UserId)).Status.Should().Be(AdminCoachStatus.Free);
+    }
+
+    [Fact]
+    public async Task End_LiveStripeSubscription_WhenTheProviderFails_Returns502AndChangesNothing()
+    {
+        var fake = Billing.BillingTestData.ResetProvider(factory);
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (plan, _) = await Billing.BillingTestData.StripePlanAsync(factory);
+        var subscriptionId = await Billing.BillingTestData.SubscribeLiveAsync(factory, coach, plan, paysSecondRoleAddOn: true);
+        var periodEnd = (await Billing.BillingTestData.ReadRowAsync(factory, coach.ProfileId)).CurrentPeriodEndsAt;
+        fake.Fail = true;
+
+        var response = await EndAsync(admin, coach.UserId);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadGateway);
+        (await response.Content.ReadAsStringAsync(Ct)).Should().Contain(ErrorCodes.BillingProviderError);
+        var row = await Billing.BillingTestData.ReadRowAsync(factory, coach.ProfileId);
+        row.Status.Should().Be(SubscriptionStatus.Active);
+        row.ExternalSubscriptionId.Should().Be(subscriptionId);
+        row.CurrentPeriodEndsAt.Should().Be(periodEnd);
+        row.PaysSecondRoleAddOn.Should().BeTrue();
+        (await AuditRowsAsync(coach.UserId)).Should().BeEmpty();
+        (await NotificationsAsync(coach.UserId)).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task End_LiveStripeSubscription_WhenBillingIsNotConfigured_Returns503AndChangesNothing()
+    {
+        var fake = Billing.BillingTestData.ResetProvider(factory);
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (plan, _) = await Billing.BillingTestData.StripePlanAsync(factory);
+        await Billing.BillingTestData.SubscribeLiveAsync(factory, coach, plan);
+        fake.IsConfigured = false;
+
+        var response = await EndAsync(admin, coach.UserId);
+
+        response.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
+        (await response.Content.ReadAsStringAsync(Ct)).Should().Contain(ErrorCodes.BillingNotConfigured);
+        fake.CancelledNow.Should().BeEmpty();
+        (await Billing.BillingTestData.ReadRowAsync(factory, coach.ProfileId)).Status.Should().Be(SubscriptionStatus.Active);
+        (await AuditRowsAsync(coach.UserId)).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task End_WithoutAProviderSubscription_SkipsTheProvider_EvenWhenNotConfigured_AndEndsThePeriodNow()
+    {
+        var fake = Billing.BillingTestData.ResetProvider(factory);
+        await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var plan = await PaidPlanBuilder.CreateAsync(factory);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(
+            factory, coach, plan, currentPeriodEndsAt: DateTimeOffset.UtcNow.AddDays(10));
+        fake.IsConfigured = false;
+
+        var response = await EndAsync(admin, coach.UserId);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.CancelledNow.Should().BeEmpty();
+        var row = await ReadSubscriptionAsync(coach.ProfileId);
+        row.CurrentPeriodEndsAt.Should().BeOnOrBefore(DateTimeOffset.UtcNow);
+        CoachAccountActiveUntilResolver.Resolve(row, DateTime.UtcNow).Should().BeOnOrBefore(DateTime.UtcNow);
     }
 
     [Fact]

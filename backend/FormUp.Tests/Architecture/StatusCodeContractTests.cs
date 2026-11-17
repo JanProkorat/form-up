@@ -66,7 +66,7 @@ public class StatusCodeContractTests(FitnessApiFactory factory)
     [InlineData("post", "/billing/second-role/preview", "200,401,403,409,502,503", true, Absent)]
     [InlineData("post", "/billing/second-role/confirm", "200,400,401,402,403,409,502,503", true, Body)]
     [InlineData("post", "/admin/coaches/{coachId}/cancel-renewal", "200,400,401,403,404,409,502,503", true, Body)]
-    [InlineData("post", "/admin/coaches/{coachId}/end-plan", "200,400,401,403,404,409", true, Body)]
+    [InlineData("post", "/admin/coaches/{coachId}/end-plan", "200,400,401,403,404,409,502,503", true, Body)]
     [InlineData("post", "/admin/coaches/{coachId}/disable", "200,400,401,403,404,502,503", true, Body)]
     [InlineData("post", "/users/me/coach-account/disable", "200,400,401,403,502,503", true, Body)]
     [InlineData("get", "/admin/promotions", "200,400,401,403", true, Body)]

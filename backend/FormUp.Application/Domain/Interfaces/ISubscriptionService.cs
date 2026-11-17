@@ -10,7 +10,7 @@ namespace FormUp.Application.Domain.Interfaces;
 public interface ISubscriptionService
 {
     /// <summary>
-    /// True when billing calls can run. When false, checkout and portal answer 503. Giving a plan free skips the provider; cancelling or disabling a live subscription answers 503.
+    /// True when billing calls can run. When false, checkout and portal answer 503. Giving a plan free skips the provider; cancelling, ending or disabling a live subscription answers 503.
     /// </summary>
     bool IsConfigured { get; }
 
@@ -223,6 +223,15 @@ public interface ISubscriptionService
     /// <param name="subscriptionId">The provider subscription id.</param>
     /// <param name="ct">Cancellation token.</param>
     Task CancelAtPeriodEndAsync(string subscriptionId, CancellationToken ct);
+
+    /// <summary>
+    /// Ends the subscription right now with no refund, no credit for unused time and no final invoice. A schedule on the
+    /// subscription (gift or scheduled change) ends with it. Does nothing when the subscription is already canceled, so a
+    /// retry after a failed save is safe.
+    /// </summary>
+    /// <param name="subscriptionId">The provider subscription id.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task CancelNowAsync(string subscriptionId, CancellationToken ct);
 
     /// <summary>
     /// Undoes a scheduled end of the subscription: it renews again. Clears both the cancel-at-period-end flag and any

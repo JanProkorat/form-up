@@ -669,6 +669,37 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task Webhook_AfterAnAdminEndedThePlan_SkipsTheOlderUpdate_AndTheDeletedEventKeepsTheEndedState()
+    {
+        var scenario = await ArrangeOnPaidPlanAsync();
+        var endedAt = DateTimeOffset.FromUnixTimeSeconds(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+        await UpdateRowAsync(scenario.Coach.ProfileId, row =>
+        {
+            row.Status = SubscriptionStatus.Canceled;
+            row.ExternalSubscriptionId = null;
+            row.CurrentPeriodEndsAt = endedAt;
+            row.LastExternalEventAt = endedAt;
+        });
+
+        var staleId = NewEventId();
+        var stale = await PostAsync(SubscriptionEvent(
+            staleId, "customer.subscription.updated", scenario, "active", created: endedAt.ToUnixTimeSeconds() - 30));
+        var deletedId = NewEventId();
+        var deleted = await PostAsync(SubscriptionEvent(
+            deletedId, "customer.subscription.deleted", scenario, "canceled", created: endedAt.ToUnixTimeSeconds()));
+
+        stale.StatusCode.Should().Be(HttpStatusCode.OK);
+        deleted.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await ProcessedCountAsync(staleId)).Should().Be(0, "the update was created before the end");
+        (await ProcessedCountAsync(deletedId)).Should().Be(1, "the deleted event is not older than the end");
+        var row = await ReadRowAsync(scenario.Coach.ProfileId);
+        row.Status.Should().Be(SubscriptionStatus.Canceled);
+        row.ExternalSubscriptionId.Should().BeNull();
+        row.CurrentPeriodEndsAt.Should().Be(endedAt);
+        row.PaysSecondRoleAddOn.Should().BeFalse();
+    }
+
+    [Fact]
     public async Task Webhook_SubscriptionUpdatedForACoachWithAnActiveGift_LeavesPlanPriceAndStatusUnchanged()
     {
         var scenario = await ArrangeOnPaidPlanAsync();

@@ -53,7 +53,7 @@ public class StripeSubscriptionServiceChangePlanTests
         PortalReturnUrl = "https://app.example/billing",
     };
 
-    private static StripeSubscriptionService NewService(ScriptedHandler handler)
+    private static StripeSubscriptionService NewService(ScriptedStripeHandler handler)
     {
         var client = new StripeClient("sk_test_placeholder", httpClient: new SystemNetHttpClient(new HttpClient(handler)));
 
@@ -79,7 +79,7 @@ public class StripeSubscriptionServiceChangePlanTests
     [Fact]
     public async Task ChangePlan_Upgrade_ChargesTheProrationNow_ClearsTheCancellation_AndSendsTheIdempotencyKey()
     {
-        var handler = new ScriptedHandler(HttpStatusCode.OK, SubscriptionJson);
+        var handler = new ScriptedStripeHandler(HttpStatusCode.OK, SubscriptionJson);
 
         await UpgradeAsync(NewService(handler));
 
@@ -96,7 +96,7 @@ public class StripeSubscriptionServiceChangePlanTests
     [Fact]
     public async Task ChangePlan_UpgradeWithADeclinedCardAndNoSchedule_Throws_AndTouchesNoSchedule()
     {
-        var handler = new ScriptedHandler(HttpStatusCode.OK, SubscriptionJson)
+        var handler = new ScriptedStripeHandler(HttpStatusCode.OK, SubscriptionJson)
             .Fail(HttpMethod.Post, "/v1/subscriptions/sub_1", HttpStatusCode.PaymentRequired, CardDeclinedJson);
 
         var act = () => UpgradeAsync(NewService(handler));
@@ -108,7 +108,7 @@ public class StripeSubscriptionServiceChangePlanTests
     [Fact]
     public async Task ChangePlan_UpgradeWithADeclinedCardAndAScheduledDowngrade_RestoresTheSchedule_ThenThrows()
     {
-        var handler = new ScriptedHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
+        var handler = new ScriptedStripeHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
             .Respond(HttpMethod.Get, "/v1/subscriptions/sub_1", SubscriptionWithScheduleJson)
             .Respond(HttpMethod.Get, "/v1/subscription_schedules/sub_sched_1", ScheduleJson)
             .Respond(HttpMethod.Post, "/v1/subscription_schedules", "{\"id\":\"sub_sched_new\",\"object\":\"subscription_schedule\"}")
@@ -131,7 +131,7 @@ public class StripeSubscriptionServiceChangePlanTests
     [Fact]
     public async Task ChangePlan_UpgradeWithADeclinedCardWhenTheRestoreAlsoFails_StillThrowsTheProviderError()
     {
-        var handler = new ScriptedHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
+        var handler = new ScriptedStripeHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
             .Respond(HttpMethod.Get, "/v1/subscriptions/sub_1", SubscriptionWithScheduleJson)
             .Respond(HttpMethod.Get, "/v1/subscription_schedules/sub_sched_1", ScheduleJson)
             .Fail(HttpMethod.Post, "/v1/subscription_schedules", HttpStatusCode.InternalServerError, "{\"error\":{\"type\":\"api_error\"}}")
@@ -172,7 +172,7 @@ public class StripeSubscriptionServiceChangePlanTests
     [Fact]
     public async Task ChangePlan_ScheduledWithoutTheAddOn_KeepsTheAddOnThisPeriod_AndDropsItFromTheNextPhase_WithoutProration()
     {
-        var handler = new ScriptedHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
+        var handler = new ScriptedStripeHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
             .Respond(HttpMethod.Get, "/v1/subscriptions/sub_1", SubscriptionWithAddOnJson)
             .Respond(HttpMethod.Post, "/v1/subscription_schedules", "{\"id\":\"sub_sched_new\",\"object\":\"subscription_schedule\"}");
 
@@ -194,7 +194,7 @@ public class StripeSubscriptionServiceChangePlanTests
     [Fact]
     public async Task ClearScheduledPriceChange_WithoutASchedule_CallsNothingToChange()
     {
-        var handler = new ScriptedHandler(HttpStatusCode.OK, SubscriptionJson);
+        var handler = new ScriptedStripeHandler(HttpStatusCode.OK, SubscriptionJson);
 
         await ClearAsync(NewService(handler));
 
@@ -204,7 +204,7 @@ public class StripeSubscriptionServiceChangePlanTests
     [Fact]
     public async Task ClearScheduledPriceChange_WithAScheduledDowngradeAndNoGift_ReleasesTheSchedule()
     {
-        var handler = new ScriptedHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
+        var handler = new ScriptedStripeHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
             .Respond(HttpMethod.Get, "/v1/subscriptions/sub_1", SubscriptionWithScheduleJson)
             .Respond(HttpMethod.Get, "/v1/subscription_schedules/sub_sched_1", ScheduleJson);
 
@@ -217,7 +217,7 @@ public class StripeSubscriptionServiceChangePlanTests
     [Fact]
     public async Task ClearScheduledPriceChange_WithAnEndlessGift_ReleasesTheScheduleAndPutsTheGiftBackAsADiscount()
     {
-        var handler = new ScriptedHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
+        var handler = new ScriptedStripeHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
             .Respond(HttpMethod.Get, "/v1/subscriptions/sub_1", SubscriptionWithScheduleJson)
             .Respond(HttpMethod.Get, "/v1/subscription_schedules/sub_sched_1", GiftOnEveryPhaseScheduleJson);
 
@@ -231,7 +231,7 @@ public class StripeSubscriptionServiceChangePlanTests
     [Fact]
     public async Task ClearScheduledPriceChange_WithAGiftThatEnds_RewritesTheSchedulePhasesOnTheCurrentPrices()
     {
-        var handler = new ScriptedHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
+        var handler = new ScriptedStripeHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
             .Respond(HttpMethod.Get, "/v1/subscriptions/sub_1", SubscriptionWithScheduleJson)
             .Respond(HttpMethod.Get, "/v1/subscription_schedules/sub_sched_1", GiftEndingWithThePeriodScheduleJson);
 
@@ -248,7 +248,7 @@ public class StripeSubscriptionServiceChangePlanTests
     [Fact]
     public async Task ResumeRenewal_ClearsTheCancelFlagAndTheCancelAtDate_InOneUpdate()
     {
-        var handler = new ScriptedHandler(HttpStatusCode.OK, SubscriptionJson);
+        var handler = new ScriptedStripeHandler(HttpStatusCode.OK, SubscriptionJson);
 
         await NewService(handler).ResumeRenewalAsync(SubscriptionId, TestContext.Current.CancellationToken);
 
@@ -304,7 +304,7 @@ public class StripeSubscriptionServiceChangePlanTests
         service.UpgradePlanNowAsync(
             SubscriptionId, "pro", "price_new", null, "CZK", BillingInterval.Monthly, "formup-key", TestContext.Current.CancellationToken);
 
-    private static ScriptedHandler AuthenticationRequiredThenPending(ScriptedHandler handler, string pendingJson, bool snapshotCall = false) =>
+    private static ScriptedStripeHandler AuthenticationRequiredThenPending(ScriptedStripeHandler handler, string pendingJson, bool snapshotCall = false) =>
         handler.Sequence(
             HttpMethod.Post,
             "/v1/subscriptions/sub_1",
@@ -315,7 +315,7 @@ public class StripeSubscriptionServiceChangePlanTests
     [Fact]
     public async Task UpgradePlanNow_WhenTheCardNeedsNoAuthentication_AppliesAtOnce_WithoutAPendingUpdate()
     {
-        var handler = new ScriptedHandler(HttpStatusCode.OK, SubscriptionJson);
+        var handler = new ScriptedStripeHandler(HttpStatusCode.OK, SubscriptionJson);
 
         var outcome = await UpgradeNowAsync(NewService(handler));
 
@@ -329,7 +329,7 @@ public class StripeSubscriptionServiceChangePlanTests
     [Fact]
     public async Task UpgradePlanNow_WhenTheCardNeedsAuthentication_RepeatsAsAPendingUpdate_AndReturnsTheHostedInvoiceUrl()
     {
-        var handler = AuthenticationRequiredThenPending(new ScriptedHandler(HttpStatusCode.OK, SubscriptionJson), PendingSubscriptionJson);
+        var handler = AuthenticationRequiredThenPending(new ScriptedStripeHandler(HttpStatusCode.OK, SubscriptionJson), PendingSubscriptionJson);
 
         var outcome = await UpgradeNowAsync(NewService(handler));
 
@@ -350,7 +350,7 @@ public class StripeSubscriptionServiceChangePlanTests
     public async Task UpgradePlanNow_WhenAuthenticationIsNeededAndADowngradeWasScheduled_SnapshotsItBeforeThePendingUpdate()
     {
         var handler = AuthenticationRequiredThenPending(
-            new ScriptedHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
+            new ScriptedStripeHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
                 .Respond(HttpMethod.Get, "/v1/subscriptions/sub_1", SubscriptionWithScheduleAndInvoiceJson)
                 .Respond(HttpMethod.Get, "/v1/subscription_schedules/sub_sched_1", ScheduleJson),
             PendingSubscriptionJson,
@@ -372,7 +372,7 @@ public class StripeSubscriptionServiceChangePlanTests
     [Fact]
     public async Task UpgradePlanNow_WithADeclinedCard_RestoresTheSchedule_ThrowsAndNeverGoesPending()
     {
-        var handler = new ScriptedHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
+        var handler = new ScriptedStripeHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
             .Respond(HttpMethod.Get, "/v1/subscriptions/sub_1", SubscriptionWithScheduleAndInvoiceJson)
             .Respond(HttpMethod.Get, "/v1/subscription_schedules/sub_sched_1", ScheduleJson)
             .Respond(HttpMethod.Post, "/v1/subscription_schedules", "{\"id\":\"sub_sched_new\",\"object\":\"subscription_schedule\"}")
@@ -389,7 +389,7 @@ public class StripeSubscriptionServiceChangePlanTests
     public async Task UpgradePlanNow_WhenThePendingUpdateHasNoPaymentPage_RestoresTheScheduleAndTheSnapshot_ThenThrows()
     {
         var handler = AuthenticationRequiredThenPending(
-            new ScriptedHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
+            new ScriptedStripeHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
                 .Respond(HttpMethod.Get, "/v1/subscriptions/sub_1", SubscriptionWithScheduleAndInvoiceJson)
                 .Respond(HttpMethod.Get, "/v1/subscription_schedules/sub_sched_1", ScheduleJson)
                 .Respond(HttpMethod.Post, "/v1/subscription_schedules", "{\"id\":\"sub_sched_new\",\"object\":\"subscription_schedule\"}"),
@@ -408,7 +408,7 @@ public class StripeSubscriptionServiceChangePlanTests
     [Fact]
     public async Task UpgradePlanNow_WhenAnUpdateForTheSameTargetIsPending_ReturnsItsInvoiceUrl_WithoutAnyStripeWrite()
     {
-        var handler = new ScriptedHandler(HttpStatusCode.OK, SubscriptionWithPendingUpdateJson("price_new"));
+        var handler = new ScriptedStripeHandler(HttpStatusCode.OK, SubscriptionWithPendingUpdateJson("price_new"));
 
         var outcome = await UpgradeNowAsync(NewService(handler));
 
@@ -419,7 +419,7 @@ public class StripeSubscriptionServiceChangePlanTests
     [Fact]
     public async Task UpgradePlanNow_WhenAnUpdateForAnotherTargetIsPending_VoidsItsOpenInvoiceBeforeReplacingIt()
     {
-        var handler = new ScriptedHandler(HttpStatusCode.OK, SubscriptionWithPendingUpdateJson("price_other"))
+        var handler = new ScriptedStripeHandler(HttpStatusCode.OK, SubscriptionWithPendingUpdateJson("price_other"))
             .Respond(HttpMethod.Post, "/v1/invoices/in_old/void", "{\"id\":\"in_old\",\"object\":\"invoice\",\"status\":\"void\"}");
 
         var outcome = await UpgradeNowAsync(NewService(handler));
@@ -456,13 +456,13 @@ public class StripeSubscriptionServiceChangePlanTests
         service.ChargeSecondRoleAddOnAsync(
             SubscriptionId, "pro", 9900, "CZK", BillingInterval.Monthly, "formup-second-role-sub_1-attempt", TestContext.Current.CancellationToken);
 
-    private static ScriptedHandler AddOnScript(ScriptedHandler handler) =>
+    private static ScriptedStripeHandler AddOnScript(ScriptedStripeHandler handler) =>
         handler.Respond(HttpMethod.Get, "/v1/prices", PricesListJson);
 
     [Fact]
     public async Task ChargeSecondRoleAddOn_WhenTheCardNeedsNoAuthentication_ChargesAtOnce_WithoutAPendingUpdate()
     {
-        var handler = AddOnScript(new ScriptedHandler(HttpStatusCode.OK, SubscriptionJson));
+        var handler = AddOnScript(new ScriptedStripeHandler(HttpStatusCode.OK, SubscriptionJson));
 
         var result = await ChargeAddOnAsync(NewService(handler));
 
@@ -475,7 +475,7 @@ public class StripeSubscriptionServiceChangePlanTests
     [Fact]
     public async Task ChargeSecondRoleAddOn_WhenTheCardNeedsAuthentication_RepeatsAsAPendingUpdate_AndReturnsTheHostedInvoiceUrl()
     {
-        var handler = AddOnScript(new ScriptedHandler(HttpStatusCode.OK, SubscriptionJson))
+        var handler = AddOnScript(new ScriptedStripeHandler(HttpStatusCode.OK, SubscriptionJson))
             .Sequence(
                 HttpMethod.Post,
                 "/v1/subscriptions/sub_1",
@@ -500,7 +500,7 @@ public class StripeSubscriptionServiceChangePlanTests
     [Fact]
     public async Task ChargeSecondRoleAddOn_WithADeclinedCard_ReturnsDeclined_AndNeverGoesPending()
     {
-        var handler = AddOnScript(new ScriptedHandler(HttpStatusCode.OK, SubscriptionJson))
+        var handler = AddOnScript(new ScriptedStripeHandler(HttpStatusCode.OK, SubscriptionJson))
             .Fail(HttpMethod.Post, "/v1/subscriptions/sub_1", HttpStatusCode.PaymentRequired, CardDeclinedJson);
 
         var result = await ChargeAddOnAsync(NewService(handler));
@@ -512,7 +512,7 @@ public class StripeSubscriptionServiceChangePlanTests
     [Fact]
     public async Task ChargeSecondRoleAddOn_WhenThePendingUpdateHasNoPaymentPage_Throws()
     {
-        var handler = AddOnScript(new ScriptedHandler(HttpStatusCode.OK, SubscriptionJson))
+        var handler = AddOnScript(new ScriptedStripeHandler(HttpStatusCode.OK, SubscriptionJson))
             .Sequence(
                 HttpMethod.Post,
                 "/v1/subscriptions/sub_1",
@@ -527,7 +527,7 @@ public class StripeSubscriptionServiceChangePlanTests
     [Fact]
     public async Task ChargeSecondRoleAddOn_WhenAnAddOnUpdateIsAlreadyPending_ReturnsItsInvoiceUrl_WithoutAnyStripeWrite()
     {
-        var handler = new ScriptedHandler(HttpStatusCode.OK, SubscriptionWithPendingAddOnJson);
+        var handler = new ScriptedStripeHandler(HttpStatusCode.OK, SubscriptionWithPendingAddOnJson);
 
         var result = await ChargeAddOnAsync(NewService(handler));
 
@@ -539,7 +539,7 @@ public class StripeSubscriptionServiceChangePlanTests
     [Fact]
     public async Task ChargeSecondRoleAddOn_WhenAnUpgradeIsPending_ReturnsPlanChangePending_AndNeverVoidsItsInvoice()
     {
-        var handler = new ScriptedHandler(HttpStatusCode.OK, SubscriptionWithPendingUpdateJson("price_new"));
+        var handler = new ScriptedStripeHandler(HttpStatusCode.OK, SubscriptionWithPendingUpdateJson("price_new"));
 
         var result = await ChargeAddOnAsync(NewService(handler));
 
@@ -564,7 +564,7 @@ public class StripeSubscriptionServiceChangePlanTests
     [Fact]
     public async Task RestoreAfterExpiredUpgrade_WithAScheduledChangeKept_RebuildsTheScheduleFromTheSnapshot_ThenClearsIt()
     {
-        var handler = new ScriptedHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
+        var handler = new ScriptedStripeHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
             .Respond(HttpMethod.Get, "/v1/subscriptions/sub_1", SnapshotSubscriptionJson(false, false))
             .Respond(HttpMethod.Post, "/v1/subscription_schedules", "{\"id\":\"sub_sched_new\",\"object\":\"subscription_schedule\"}");
 
@@ -580,7 +580,7 @@ public class StripeSubscriptionServiceChangePlanTests
     [Fact]
     public async Task RestoreAfterExpiredUpgrade_WhenTheRowNoLongerHasAScheduledChange_OnlyClearsTheSnapshot()
     {
-        var handler = new ScriptedHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
+        var handler = new ScriptedStripeHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
             .Respond(HttpMethod.Get, "/v1/subscriptions/sub_1", SnapshotSubscriptionJson(false, false));
 
         await NewService(handler).RestoreAfterExpiredUpgradeAsync(SubscriptionId, false, TestContext.Current.CancellationToken);
@@ -591,7 +591,7 @@ public class StripeSubscriptionServiceChangePlanTests
     [Fact]
     public async Task RestoreAfterExpiredUpgrade_WhileANewerPendingUpdateExists_ChangesNothing()
     {
-        var handler = new ScriptedHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
+        var handler = new ScriptedStripeHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
             .Respond(HttpMethod.Get, "/v1/subscriptions/sub_1", SnapshotSubscriptionJson(true, false));
 
         await NewService(handler).RestoreAfterExpiredUpgradeAsync(SubscriptionId, true, TestContext.Current.CancellationToken);
@@ -602,7 +602,7 @@ public class StripeSubscriptionServiceChangePlanTests
     [Fact]
     public async Task RestoreAfterExpiredUpgrade_WhenStripeFails_ThrowsSoTheWebhookIsRetried()
     {
-        var handler = new ScriptedHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
+        var handler = new ScriptedStripeHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
             .Respond(HttpMethod.Get, "/v1/subscriptions/sub_1", SnapshotSubscriptionJson(false, false))
             .Fail(HttpMethod.Post, "/v1/subscription_schedules", HttpStatusCode.InternalServerError, "{\"error\":{\"type\":\"api_error\"}}");
 
@@ -610,62 +610,5 @@ public class StripeSubscriptionServiceChangePlanTests
 
         await act.Should().ThrowAsync<BillingProviderException>();
         handler.Requests.Should().NotContain(r => r.Method == HttpMethod.Post && r.Path == "/v1/subscriptions/sub_1", "the snapshot stays for the retry");
-    }
-
-    private sealed record CapturedRequest(HttpMethod Method, string Path, List<KeyValuePair<string, string>> Form, string? IdempotencyKey);
-
-    private sealed class ScriptedHandler(HttpStatusCode defaultStatus, string defaultJson) : HttpMessageHandler
-    {
-        private readonly List<(HttpMethod Method, string Path, HttpStatusCode Status, string Json)> rules = [];
-
-        private readonly List<(HttpMethod Method, string Path, Queue<(HttpStatusCode Status, string Json)> Queue)> sequences = [];
-
-        public List<CapturedRequest> Requests { get; } = [];
-
-        /// <summary>Answers the next calls of a route in order, then falls back to the plain rules.</summary>
-        public ScriptedHandler Sequence(HttpMethod method, string path, params (HttpStatusCode Status, string Json)[] answers)
-        {
-            sequences.Add((method, path, new Queue<(HttpStatusCode, string)>(answers)));
-
-            return this;
-        }
-
-        public ScriptedHandler Respond(HttpMethod method, string path, string json) => Fail(method, path, HttpStatusCode.OK, json);
-
-        public ScriptedHandler Fail(HttpMethod method, string path, HttpStatusCode status, string json)
-        {
-            rules.Add((method, path, status, json));
-
-            return this;
-        }
-
-        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-        {
-            var body = request.Content is null ? string.Empty : await request.Content.ReadAsStringAsync(cancellationToken);
-            var path = request.RequestUri!.AbsolutePath;
-            var form = body.Split('&', StringSplitOptions.RemoveEmptyEntries)
-                .Select(part => part.Split('=', 2))
-                .Select(parts => new KeyValuePair<string, string>(Decode(parts[0]), parts.Length > 1 ? Decode(parts[1]) : string.Empty))
-                .ToList();
-            var key = request.Headers.TryGetValues("Idempotency-Key", out var values) ? values.Single() : null;
-
-            Requests.Add(new CapturedRequest(request.Method, path, form, key));
-
-            var sequence = sequences.FirstOrDefault(q => q.Method == request.Method && q.Path == path && q.Queue.Count > 0);
-
-            if (sequence.Path is not null)
-            {
-                var (queuedStatus, queuedJson) = sequence.Queue.Dequeue();
-
-                return new HttpResponseMessage(queuedStatus) { Content = new StringContent(queuedJson, Encoding.UTF8, "application/json") };
-            }
-
-            var rule = rules.FirstOrDefault(r => r.Method == request.Method && r.Path == path);
-            var (status, json) = rule.Path is null ? (defaultStatus, defaultJson) : (rule.Status, rule.Json);
-
-            return new HttpResponseMessage(status) { Content = new StringContent(json, Encoding.UTF8, "application/json") };
-        }
-
-        private static string Decode(string value) => Uri.UnescapeDataString(value.Replace('+', ' '));
     }
 }
