@@ -387,7 +387,8 @@
         "confirm": "Add role · pay {{amount}}",
         "alreadyPaid": "The second role is already paid for, so adding it costs nothing today.",
         "paymentNotice": "Your bank needs to confirm this payment. Complete it on Stripe's secure page. The role is not added until the payment is confirmed.",
-        "paymentConfirmed": "Payment confirmed. Add the role in Settings.",
+        "roleAdded": "Payment confirmed and the role was added.",
+        "roleNotAppeared": "Payment confirmed, but the role has not appeared yet. Reload the page or sign in again.",
         "notConfirmed": "We could not confirm your payment, so the role was not added."
       },
       "errors": {

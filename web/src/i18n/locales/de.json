@@ -387,7 +387,8 @@
         "confirm": "Rolle hinzufügen · {{amount}} zahlen",
         "alreadyPaid": "Die zweite Rolle ist bereits bezahlt, das Hinzufügen kostet heute nichts.",
         "paymentNotice": "Ihre Bank muss diese Zahlung bestätigen. Schließen Sie sie auf der sicheren Stripe-Seite ab. Die Rolle wird erst nach der Bestätigung der Zahlung hinzugefügt.",
-        "paymentConfirmed": "Zahlung bestätigt. Fügen Sie die Rolle in den Einstellungen hinzu.",
+        "roleAdded": "Die Zahlung ist bestätigt und die Rolle wurde hinzugefügt.",
+        "roleNotAppeared": "Die Zahlung ist bestätigt, aber die Rolle wird noch nicht angezeigt. Laden Sie die Seite neu oder melden Sie sich erneut an.",
         "notConfirmed": "Die Zahlung konnte nicht bestätigt werden, daher wurde die Rolle nicht hinzugefügt."
       },
       "errors": {

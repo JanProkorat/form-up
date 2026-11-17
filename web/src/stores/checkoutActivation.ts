@@ -80,7 +80,7 @@ interface CheckoutActivationState {
   userId: string | null;
   /** The plan a pending upgrade must land on; null for a checkout watch, which settles on any paid plan. */
   targetPlanCode: string | null;
-  /** True for a watch waiting for the second-role add-on to be paid; the role itself is added in Settings. */
+  /** True for a watch waiting for the second-role add-on to be paid and the server to add the role. */
   awaitsSecondRoleAddOn: boolean;
   start: (userId: string, targetPlanCode?: string) => void;
   startSecondRoleAddOn: (userId: string) => void;
