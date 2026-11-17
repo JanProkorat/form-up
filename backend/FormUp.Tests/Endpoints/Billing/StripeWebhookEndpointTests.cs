@@ -255,6 +255,54 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
         (await MaxClientsAsync(scenario.Coach.ProfileId)).Should().Be(30, "the paid plan's limit applies");
     }
 
+    private List<FakeRealtimeNotifier.NotifyCall> CallsTo(Actor coach) =>
+        factory.Services.GetRequiredService<FakeRealtimeNotifier>().Calls.Where(call => call.UserId == coach.UserId).ToList();
+
+    [Fact]
+    public async Task Webhook_AppliedChange_SendsOneSyncedEventToTheCoachOnly()
+    {
+        var scenario = await ArrangeOnFreePlanAsync();
+
+        var response = await PostAsync(SubscriptionEvent(NewEventId(), "customer.subscription.created", scenario, "active"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var calls = CallsTo(scenario.Coach);
+        calls.Should().ContainSingle(call => call.EventType == "subscriptionchanged");
+        System.Text.Json.JsonSerializer.Serialize(calls.Single(call => call.EventType == "subscriptionchanged").Payload)
+            .Should().Be("{\"action\":\"synced\"}");
+        calls.Should().NotContain(call => call.EventType == "newnotification");
+    }
+
+    [Fact]
+    public async Task Webhook_SkippedEvents_SendNothingMore()
+    {
+        var scenario = await ArrangeOnPaidPlanAsync();
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var payload = SubscriptionEvent(NewEventId(), "customer.subscription.updated", scenario, "active", created: now);
+
+        await PostAsync(payload);
+        await PostAsync(payload);
+        await PostAsync(InvoiceEvent(NewEventId(), "invoice.payment_failed", scenario, created: now - 600));
+        await PostAsync(InvoiceEvent(NewEventId(), "invoice.finalized", scenario));
+
+        CallsTo(scenario.Coach).Count(call => call.EventType == "subscriptionchanged")
+            .Should().Be(1, "only the first delivery changed the row; a repeat, a stale and an unhandled event send nothing");
+    }
+
+    [Fact]
+    public async Task Webhook_WhenTheRealtimeSendFails_StillAnswers200_AndKeepsTheChange()
+    {
+        var scenario = await ArrangeOnFreePlanAsync();
+        var eventId = NewEventId();
+        factory.Services.GetRequiredService<FakeRealtimeNotifier>().SimulateThrowOnNextCall();
+
+        var response = await PostAsync(SubscriptionEvent(eventId, "customer.subscription.created", scenario, "active"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await ReadRowAsync(scenario.Coach.ProfileId)).Status.Should().Be(SubscriptionStatus.Active);
+        (await ProcessedCountAsync(eventId)).Should().Be(1);
+    }
+
     [Fact]
     public async Task Webhook_SubscriptionCreatedForAnUnknownCustomer_MatchesTheCoachByTheCheckoutMetadata()
     {
