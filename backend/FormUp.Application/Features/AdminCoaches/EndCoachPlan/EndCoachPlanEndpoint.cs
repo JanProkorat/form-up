@@ -8,6 +8,7 @@ using FormUp.Application.Domain.Interfaces;
 using FormUp.Application.Domain.Services;
 using FormUp.Application.Features.AdminCoaches.Shared;
 using FormUp.Application.Infrastructure.Data;
+using FormUp.Application.Infrastructure.Services.Billing;
 using Microsoft.EntityFrameworkCore;
 
 namespace FormUp.Application.Features.AdminCoaches.EndCoachPlan;
@@ -21,13 +22,15 @@ namespace FormUp.Application.Features.AdminCoaches.EndCoachPlan;
 /// <param name="notifications">Notification service.</param>
 /// <param name="notifier">Realtime notifier.</param>
 /// <param name="logger">Logger.</param>
+/// <param name="subscriptions">The payment provider seam.</param>
 internal sealed class EndCoachPlanEndpoint(
     IApplicationDbContext db,
     IAuditService audit,
     TimeProvider timeProvider,
     INotificationService notifications,
     IRealtimeNotifier notifier,
-    ILogger<EndCoachPlanEndpoint> logger)
+    ILogger<EndCoachPlanEndpoint> logger,
+    ISubscriptionService subscriptions)
     : Endpoint<EndCoachPlanRequest, EndCoachPlanResponse>
 {
     /// <inheritdoc />
@@ -41,9 +44,10 @@ internal sealed class EndCoachPlanEndpoint(
             s.Description = "Ends a paying coach's plan (including payment failed and cancelling) or a running gift at once. The coach " +
                             "becomes Free like a lapsed coach: the plan code stays, the status is Canceled, the pending price change, " +
                             "gift dates and cancel-at-period-end flag are cleared, and the kept/released client choice is reset. The " +
-                            "reason, ended plan code and whether it was a gift are recorded in the coach's history. There is no payment " +
-                            "provider yet: a future Stripe integration must also cancel the subscription in Stripe. An already scheduled " +
-                            "account disable is left unchanged.";
+                            "reason, ended plan code and whether it was a gift are recorded in the coach's history. A live Stripe " +
+                            "subscription is cancelled in Stripe first and at once, with no refund and no credit for unused time; when " +
+                            "Stripe cannot do it nothing changes. The paid period ends now, so disabling the account afterwards takes " +
+                            "effect right away. An already scheduled account disable is left unchanged.";
             s.Response<EndCoachPlanResponse>(StatusCodes.Status200OK, "The plan that was ended");
             s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Invalid request body");
             s.Response(StatusCodes.Status401Unauthorized, "Missing or invalid credentials");
@@ -51,6 +55,8 @@ internal sealed class EndCoachPlanEndpoint(
             s.Response(StatusCodes.Status404NotFound, "The coach is unknown (PROFESSIONAL_NOT_FOUND)");
             s.Response<ProblemDetails>(StatusCodes.Status409Conflict,
                 "No plan to end: no subscription, the Free plan, an ended paid plan, or a gift that has expired (NO_PLAN_TO_END)");
+            s.Response(StatusCodes.Status502BadGateway, "Stripe failed; nothing was saved (BILLING_PROVIDER_ERROR)");
+            s.Response(StatusCodes.Status503ServiceUnavailable, "The coach has a live Stripe subscription and Stripe is not configured on this server (BILLING_NOT_CONFIGURED)");
         });
     }
 
@@ -98,6 +104,13 @@ internal sealed class EndCoachPlanEndpoint(
             .FirstAsync(cs => cs.ProfessionalProfileId == profileId, ct);
         var planCode = subscription.SubscriptionPlan.Code;
         var wasGivenFree = subscription.GivenFreeAt is not null;
+        var cancelsAtProvider = subscription.HasLiveProviderSubscription;
+
+        // Stripe first: a refusal leaves the row untouched, so a later save cannot persist half an ending.
+        if (cancelsAtProvider && !await TryCancelAtProviderAsync(subscription.ExternalSubscriptionId!, ct))
+        {
+            return;
+        }
 
         // Keeps the paid plan code so the coach reads as lapsed, with the Free cap applied to their clients.
         subscription.Status = SubscriptionStatus.Canceled;
@@ -107,6 +120,19 @@ internal sealed class EndCoachPlanEndpoint(
         subscription.CancelAtPeriodEnd = false;
         subscription.RenewalCancelledByAdminAt = null;
 
+        // The paid period ends now: the active-until date and the lapse "ended on" date read it.
+        subscription.CurrentPeriodEndsAt = now;
+        subscription.PaysSecondRoleAddOn = false;
+        subscription.SecondRoleAddOnEndsAt = null;
+
+        if (cancelsAtProvider)
+        {
+            // Same end state as the deleted webhook; the event time lets a late older update be skipped as stale.
+            subscription.ExternalSubscriptionId = null;
+            subscription.NextPaymentAttemptAt = null;
+            subscription.LastExternalEventAt = new DateTimeOffset(now.Ticks - (now.Ticks % TimeSpan.TicksPerSecond), now.Offset);
+        }
+
         await CoachLapseLinkReset.ResetAsync(db, profileId.Value, ct);
         await db.SaveChangesAsync(ct);
 
@@ -114,6 +140,7 @@ internal sealed class EndCoachPlanEndpoint(
         {
             ["planCode"] = planCode,
             ["wasGivenFree"] = wasGivenFree,
+            ["providerSubscriptionCancelled"] = cancelsAtProvider,
         };
 
         await audit.LogAsync(
@@ -135,5 +162,31 @@ internal sealed class EndCoachPlanEndpoint(
             PlanCode = planCode,
             WasGivenFree = wasGivenFree,
         }, ct);
+    }
+
+    /// <summary>
+    /// Cancels the subscription at the payment provider now. Answers 503 or 502 and returns false when it could not.
+    /// </summary>
+    private async Task<bool> TryCancelAtProviderAsync(string externalSubscriptionId, CancellationToken ct)
+    {
+        if (!subscriptions.IsConfigured)
+        {
+            await this.SendProblemAsync(
+                StatusCodes.Status503ServiceUnavailable, ErrorCodes.BillingNotConfigured, "Billing is not configured.", ct);
+            return false;
+        }
+
+        try
+        {
+            await subscriptions.CancelNowAsync(externalSubscriptionId, ct);
+        }
+        catch (BillingProviderException)
+        {
+            await this.SendProblemAsync(
+                StatusCodes.Status502BadGateway, ErrorCodes.BillingProviderError, "The payment provider failed.", ct);
+            return false;
+        }
+
+        return true;
     }
 }

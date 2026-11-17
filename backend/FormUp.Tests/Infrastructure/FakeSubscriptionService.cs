@@ -82,6 +82,9 @@ public sealed class FakeSubscriptionService : ISubscriptionService
     /// <summary>Recorded <see cref="ISubscriptionService.CancelAtPeriodEndAsync"/> calls (subscription ids).</summary>
     public List<string> CancelledAtPeriodEnd { get; } = [];
 
+    /// <summary>Recorded <see cref="ISubscriptionService.CancelNowAsync"/> calls (subscription ids).</summary>
+    public List<string> CancelledNow { get; } = [];
+
     /// <summary>Recorded <see cref="ISubscriptionService.ResumeRenewalAsync"/> calls (subscription ids).</summary>
     public List<string> ResumedRenewals { get; } = [];
 
@@ -179,6 +182,7 @@ public sealed class FakeSubscriptionService : ISubscriptionService
             FailPromotionCodeCreation = false;
             SubscriptionDiscounts.Clear();
             CancelledAtPeriodEnd.Clear();
+            CancelledNow.Clear();
             ResumedRenewals.Clear();
             FailResumeRenewal = false;
             PreviewResult = new SecondRoleAddOnPreview(12300, 0, "CZK");
@@ -470,6 +474,19 @@ public sealed class FakeSubscriptionService : ISubscriptionService
         lock (gate)
         {
             CancelledAtPeriodEnd.Add(subscriptionId);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public Task CancelNowAsync(string subscriptionId, CancellationToken ct)
+    {
+        ThrowIfFailing();
+
+        lock (gate)
+        {
+            CancelledNow.Add(subscriptionId);
         }
 
         return Task.CompletedTask;

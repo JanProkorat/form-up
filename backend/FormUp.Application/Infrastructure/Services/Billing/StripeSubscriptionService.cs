@@ -414,6 +414,38 @@ public sealed class StripeSubscriptionService(
         });
 
     /// <inheritdoc />
+    public Task CancelNowAsync(string subscriptionId, CancellationToken ct) =>
+        RunAsync("cancel-now", async stripe =>
+        {
+            var subscription = await GetSubscriptionAsync(stripe, subscriptionId, ct);
+
+            if (subscription.Status == "canceled")
+            {
+                return true;
+            }
+
+            // Cancelling the schedule ends it and the subscription in one call; releasing first could lose the schedule if the cancel then failed.
+            // Both flags are explicit: the schedule cancel options default them to true (credit for unused time), the subscription ones to false.
+            // UNVERIFIED: with invoice_now and prorate false the schedule cancel also cancels its subscription at once — https://docs.stripe.com/api/subscription_schedules/cancel
+            if (subscription.ScheduleId is { } scheduleId)
+            {
+                await stripe.V1.SubscriptionSchedules.CancelAsync(
+                    scheduleId,
+                    new SubscriptionScheduleCancelOptions { InvoiceNow = false, Prorate = false },
+                    cancellationToken: ct);
+
+                return true;
+            }
+
+            await stripe.V1.Subscriptions.CancelAsync(
+                subscriptionId,
+                new SubscriptionCancelOptions { InvoiceNow = false, Prorate = false },
+                cancellationToken: ct);
+
+            return true;
+        });
+
+    /// <inheritdoc />
     public Task ResumeRenewalAsync(string subscriptionId, CancellationToken ct) =>
         RunAsync("resume-renewal", async stripe =>
         {
