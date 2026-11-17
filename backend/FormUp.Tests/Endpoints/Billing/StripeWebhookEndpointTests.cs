@@ -479,6 +479,7 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
         {
             row.GivenFreeAt = giftedAt;
             row.FreeUntil = freeUntil;
+            row.CurrentPeriodEndsAt = DateTimeOffset.UtcNow.AddDays(15);
             row.CancelAtPeriodEnd = true;
             row.RenewalCancelledByAdminAt = DateTimeOffset.UtcNow;
             row.SecondRoleAddOnEndsAt = DateTimeOffset.UtcNow.AddDays(10);
@@ -496,6 +497,7 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
         after.SubscriptionPlanPriceId.Should().Be(before.SubscriptionPlanPriceId);
         after.GivenFreeAt.Should().Be(before.GivenFreeAt);
         after.FreeUntil.Should().Be(before.FreeUntil);
+        after.CurrentPeriodEndsAt.Should().BeNull("nothing renews once the subscription is gone");
         after.CancelAtPeriodEnd.Should().BeFalse();
         after.RenewalCancelledByAdminAt.Should().BeNull();
         after.PendingSubscriptionPlanPriceId.Should().BeNull();
@@ -564,6 +566,8 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
     public async Task Webhook_SubscriptionDeleted_FallsBackToFree_WithoutALock()
     {
         var scenario = await ArrangeOnPaidPlanAsync();
+        var periodEnd = DateTimeOffset.UtcNow.AddDays(12);
+        await UpdateRowAsync(scenario.Coach.ProfileId, row => row.CurrentPeriodEndsAt = periodEnd);
 
         var response = await PostAsync(SubscriptionEvent(NewEventId(), "customer.subscription.deleted", scenario, "canceled"));
 
@@ -571,6 +575,7 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
         var row = await ReadRowAsync(scenario.Coach.ProfileId);
         row.Status.Should().Be(SubscriptionStatus.Canceled);
         row.ExternalSubscriptionId.Should().BeNull();
+        row.CurrentPeriodEndsAt.Should().BeCloseTo(periodEnd, TimeSpan.FromSeconds(1), "the lapse ended-on date keeps the paid period end");
         var maxClients = await MaxClientsAsync(scenario.Coach.ProfileId);
         maxClients.Should().Be(await FreePlanMaxClientsAsync(), "a canceled subscription resolves to the Free plan, not to a lock");
         maxClients.Should().NotBe(0);
