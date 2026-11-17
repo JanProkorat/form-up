@@ -9,6 +9,7 @@ import PlanCard from '@/components/subscription/PlanCard';
 import { coachPlanName } from '@/components/subscription/planNames';
 import { planDisplayPrice, secondRoleAddOnOf } from '@/components/subscription/planPricing';
 import TaxNote from '@/components/subscription/TaxNote';
+import UpgradePaymentNotice from '@/components/subscription/UpgradePaymentNotice';
 import { usePlanSelection } from '@/components/subscription/usePlanSelection';
 import { useActiveRoles } from '@/hooks/useActiveRoles';
 import { Button } from '@/components/ui/button';
@@ -237,6 +238,16 @@ export default function PlanChoicePage() {
               <h1 className="text-display font-semibold text-ink">{t('subscription.planChoice.title')}</h1>
               <p className="text-copy text-muted-foreground">{subtitle}</p>
             </div>
+
+            {selection.awaitingPayment && (
+              <UpgradePaymentNotice
+                plan={selection.awaitingPayment.planName}
+                current={currentName}
+                paymentUrl={selection.awaitingPayment.paymentUrl}
+                onOpen={selection.startPaymentWatch}
+                onDismiss={selection.dismissAwaitingPayment}
+              />
+            )}
 
             {plansQuery.isError ? (
               <div role="alert" className="flex flex-col items-start gap-3">

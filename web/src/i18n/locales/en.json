@@ -342,6 +342,12 @@
         "atRenewal": "Your plan changes to {{plan}} on {{date}}.",
         "atRenewalNoDate": "Your plan changes to {{plan}} at the next renewal."
       },
+      "upgradePayment": {
+        "text": "Your card needs an extra confirmation to switch to the {{plan}} plan. Complete the payment on Stripe's secure page. You stay on the {{current}} plan until it is confirmed.",
+        "open": "Continue to payment",
+        "dismiss": "Dismiss",
+        "notConfirmed": "We could not confirm your payment, so you stay on the {{plan}} plan."
+      },
       "switchFree": {
         "scheduled": "Your plan switches to {{free}} on {{date}}.",
         "scheduledNoDate": "Your plan switches to {{free}} at the end of the paid period."

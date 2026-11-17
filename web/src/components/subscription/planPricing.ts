@@ -58,6 +58,16 @@ export function hasLivePaidSubscription(data: GetMySubscriptionResponse | undefi
   );
 }
 
+/** True once an in-place upgrade has landed: the coach is on the target plan, kept active by Stripe. */
+export function isPlanChangeSettled(data: GetMySubscriptionResponse | undefined, target: string): boolean {
+  return (
+    !!data &&
+    !data.isSetByFormUp &&
+    data.planCode === target &&
+    (data.status === SubscriptionStatus.Active || data.status === SubscriptionStatus.Trialing)
+  );
+}
+
 /** True once a checkout has landed: a paid plan that Stripe, not Form Up, keeps active. */
 export function isCheckoutSettled(data: GetMySubscriptionResponse | undefined): boolean {
   return (

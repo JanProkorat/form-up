@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import {
@@ -15,7 +15,16 @@ import { billingErrorCode, showBillingError } from '@/components/subscription/bi
 import { coachPlanName } from '@/components/subscription/planNames';
 import { hasLivePaidSubscription } from '@/components/subscription/planPricing';
 import { useSubscription } from '@/hooks/useSubscriptionQueries';
+import { useAuthStore } from '@/stores/auth';
+import { useCheckoutActivationStore } from '@/stores/checkoutActivation';
 import { useToastStore } from '@/stores/toast';
+
+/** An upgrade whose card needs confirming on Stripe's page; the plan has not changed yet. */
+interface AwaitingPayment {
+  planCode: string;
+  planName: string;
+  paymentUrl: string;
+}
 
 type PlanOutcome = { kind: 'checkout'; url: string } | { kind: 'changed'; response: ChangePlanResponse };
 
@@ -100,6 +109,7 @@ export function usePlanSelection(flow: CheckoutFlow) {
   // One id per change attempt: it keys the immediate upgrade charge, so a repeated click reuses it and never bills
   // twice. A settled attempt (paid or declined) is final for its id, so the next one gets a fresh id.
   const attemptId = useRef(crypto.randomUUID());
+  const [awaiting, setAwaiting] = useState<AwaitingPayment | null>(null);
 
   const dateFormat = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' });
   const toast = (message: string) => useToastStore.getState().addToast(message, 'success');
@@ -112,6 +122,7 @@ export function usePlanSelection(flow: CheckoutFlow) {
 
   const paidPlan = useMutation({
     mutationFn: (request: PaidPlanRequest) => selectPaidPlan(request, flow, live, attemptId.current),
+    onMutate: () => setAwaiting(null),
     onSettled: () => {
       attemptId.current = crypto.randomUUID();
     },
@@ -121,7 +132,17 @@ export function usePlanSelection(flow: CheckoutFlow) {
         return;
       }
       const name = coachPlanName(plan, i18n.language);
-      const { timing, effectiveAt } = outcome.response;
+      const { timing, effectiveAt, paymentUrl } = outcome.response;
+      if (timing === PlanChangeTiming.AwaitingPayment) {
+        // The plan has not changed: the coach confirms the card on Stripe's page, and the notice offers the link.
+        if (paymentUrl) {
+          setAwaiting({ planCode: plan.code ?? '', planName: name, paymentUrl });
+        } else {
+          showBillingError(null, 'subscription.billing.errors.changePlan');
+        }
+        void queryClient.invalidateQueries({ queryKey: subscriptionKeys.mine });
+        return;
+      }
       if (timing === PlanChangeTiming.AtNextRenewal) {
         toast(
           effectiveAt
@@ -159,8 +180,19 @@ export function usePlanSelection(flow: CheckoutFlow) {
 
   const keepPlan = useCancelScheduledChange();
 
+  // The notice goes away once the plan has landed; until then it is the only way back to the payment page.
+  const pendingPayment = awaiting && subscription.data?.planCode !== awaiting.planCode ? awaiting : null;
+
   return {
     live,
+    /** The upgrade waiting for payment on Stripe's page, or null. */
+    awaitingPayment: pendingPayment,
+    /** The coach opened the payment page: watch for the plan to change. */
+    startPaymentWatch: () => {
+      const userId = useAuthStore.getState().user?.publicId;
+      if (userId && pendingPayment) useCheckoutActivationStore.getState().start(userId, pendingPayment.planCode);
+    },
+    dismissAwaitingPayment: () => setAwaiting(null),
     /** Takes a paid plan: in place for a live subscription, through Stripe Checkout otherwise. */
     choosePaid: (plan: CoachPlanDto, includeSecondRoleAddOn: boolean) => paidPlan.mutate({ plan, includeSecondRoleAddOn }),
     /** Ends the paid plan at the end of the period; takes the Free plan's localized name for the toast. */

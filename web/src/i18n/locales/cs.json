@@ -346,6 +346,12 @@
         "atRenewal": "Váš tarif se změní na {{plan}} dne {{date}}.",
         "atRenewalNoDate": "Váš tarif se změní na {{plan}} při příštím obnovení."
       },
+      "upgradePayment": {
+        "text": "Vaše karta vyžaduje pro přechod na tarif {{plan}} dodatečné potvrzení. Dokončete platbu na zabezpečené stránce Stripe. Do jejího potvrzení zůstáváte na tarifu {{current}}.",
+        "open": "Pokračovat k platbě",
+        "dismiss": "Zavřít",
+        "notConfirmed": "Platbu se nepodařilo potvrdit, proto zůstáváte na tarifu {{plan}}."
+      },
       "switchFree": {
         "scheduled": "Přejdete na tarif {{free}} dne {{date}}.",
         "scheduledNoDate": "Na konci zaplaceného období přejdete na tarif {{free}}."

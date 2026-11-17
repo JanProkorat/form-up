@@ -18,6 +18,7 @@ import {
 } from '@/components/subscription/planPricing';
 import PromotionBanner from '@/components/subscription/PromotionBanner';
 import { promotionShortText } from '@/components/subscription/promotionText';
+import UpgradePaymentNotice from '@/components/subscription/UpgradePaymentNotice';
 import { usePlanSelection } from '@/components/subscription/usePlanSelection';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -274,6 +275,16 @@ export default function PlanPickerPage() {
         <p className="text-copy text-muted-foreground">{rolesLine}</p>
         <p className="ml-auto text-body text-muted-foreground">{t('subscription.billing.codeAtCheckout')}</p>
       </div>
+
+      {selection.awaitingPayment && (
+        <UpgradePaymentNotice
+          plan={selection.awaitingPayment.planName}
+          current={currentName}
+          paymentUrl={selection.awaitingPayment.paymentUrl}
+          onOpen={selection.startPaymentWatch}
+          onDismiss={selection.dismissAwaitingPayment}
+        />
+      )}
 
       {plansQuery.isError ? (
         <div role="alert" className="flex flex-col items-start gap-3">

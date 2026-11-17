@@ -342,6 +342,12 @@
         "atRenewal": "Ihr Tarif wechselt am {{date}} zu {{plan}}.",
         "atRenewalNoDate": "Ihr Tarif wechselt bei der nächsten Verlängerung zu {{plan}}."
       },
+      "upgradePayment": {
+        "text": "Ihre Karte benötigt für den Wechsel zum Tarif {{plan}} eine zusätzliche Bestätigung. Schließen Sie die Zahlung auf der sicheren Stripe-Seite ab. Bis zur Bestätigung bleiben Sie beim Tarif {{current}}.",
+        "open": "Weiter zur Zahlung",
+        "dismiss": "Schließen",
+        "notConfirmed": "Die Zahlung konnte nicht bestätigt werden, daher bleiben Sie beim Tarif {{plan}}."
+      },
       "switchFree": {
         "scheduled": "Ihr Tarif wechselt am {{date}} zu {{free}}.",
         "scheduledNoDate": "Ihr Tarif wechselt zum Ende des bezahlten Zeitraums zu {{free}}."
