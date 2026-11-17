@@ -385,7 +385,10 @@
         "studio": "{{plan}} enthält beide Rollen für {{price}}.",
         "compare": "Tarife vergleichen",
         "confirm": "Rolle hinzufügen · {{amount}} zahlen",
-        "alreadyPaid": "Die zweite Rolle ist bereits bezahlt, das Hinzufügen kostet heute nichts."
+        "alreadyPaid": "Die zweite Rolle ist bereits bezahlt, das Hinzufügen kostet heute nichts.",
+        "paymentNotice": "Ihre Bank muss diese Zahlung bestätigen. Schließen Sie sie auf der sicheren Stripe-Seite ab. Die Rolle wird erst nach der Bestätigung der Zahlung hinzugefügt.",
+        "paymentConfirmed": "Zahlung bestätigt. Fügen Sie die Rolle in den Einstellungen hinzu.",
+        "notConfirmed": "Die Zahlung konnte nicht bestätigt werden, daher wurde die Rolle nicht hinzugefügt."
       },
       "errors": {
         "generic": "Etwas ist schiefgegangen. Bitte versuchen Sie es erneut.",
@@ -3708,7 +3711,6 @@
     "BILLING_ADD_ON_NOT_AVAILABLE": "Ihr Tarif bietet keine kostenpflichtige zweite Rolle.",
     "BILLING_ADD_ON_ALREADY_PAID": "Die zweite Rolle ist bereits bezahlt.",
     "BILLING_PAYMENT_DECLINED": "Ihre Karte wurde abgelehnt. Es wurde nichts abgebucht und die Rolle wurde nicht hinzugefügt. Aktualisieren Sie Ihre Karte unter Abrechnung verwalten oder versuchen Sie eine andere.",
-    "BILLING_PAYMENT_AUTHENTICATION_REQUIRED": "Ihre Bank muss die Zahlung zuerst bestätigen. Öffnen Sie Abrechnung verwalten, bestätigen Sie sie dort und versuchen Sie es erneut.",
     "BILLING_CUSTOMER_NOT_FOUND": "Es gibt noch kein Zahlungskonto. Wählen Sie zuerst einen bezahlten Tarif.",
     "BILLING_NOT_CONFIGURED": "Zahlungen sind derzeit nicht verfügbar. Bitte versuchen Sie es später erneut.",
     "BILLING_PROVIDER_ERROR": "Der Zahlungsanbieter hat nicht geantwortet. Bitte versuchen Sie es gleich erneut.",

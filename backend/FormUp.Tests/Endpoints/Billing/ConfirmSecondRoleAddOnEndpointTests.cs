@@ -4,6 +4,7 @@ using FluentAssertions;
 using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Features.Billing.ConfirmSecondRoleAddOn;
+using FormUp.Application.Infrastructure.Services.Billing;
 using FormUp.Tests.Builders;
 using FormUp.Tests.Infrastructure;
 
@@ -103,16 +104,46 @@ public class ConfirmSecondRoleAddOnEndpointTests(FitnessApiFactory factory) : ID
         fake.Charges.Should().BeEmpty();
     }
 
-    [Theory]
-    [InlineData(AddOnChargeOutcome.Declined, "BILLING_PAYMENT_DECLINED")]
-    [InlineData(AddOnChargeOutcome.AuthenticationRequired, "BILLING_PAYMENT_AUTHENTICATION_REQUIRED")]
-    public async Task Confirm_WhenTheCardIsRefused_Returns402_AndAppliesNothing(AddOnChargeOutcome outcome, string code)
+    [Fact]
+    public async Task Confirm_WhenTheCardIsDeclined_Returns402_AndAppliesNothing()
     {
         var fake = BillingTestData.ResetProvider(factory);
-        fake.ChargeOutcome = outcome;
+        fake.ChargeResult = AddOnChargeResult.Declined;
         var (coach, _, _) = await LiveCoachWithAddOnPlanAsync();
 
-        await AssertErrorAsync(await coach.Http.PostAsJsonAsync(Route, Body(), Ct), HttpStatusCode.PaymentRequired, code);
+        await AssertErrorAsync(await coach.Http.PostAsJsonAsync(Route, Body(), Ct), HttpStatusCode.PaymentRequired, "BILLING_PAYMENT_DECLINED");
+
+        (await BillingTestData.ReadRowAsync(factory, coach.ProfileId)).PaysSecondRoleAddOn.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Confirm_WhenTheCardNeedsAuthentication_Returns200WithThePaymentUrl_AndWritesNothing()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        fake.ChargeResult = AddOnChargeResult.AwaitingPayment("https://invoice.stripe.test/i/pay");
+        var (coach, _, _) = await LiveCoachWithAddOnPlanAsync();
+        var lastEvent = DateTimeOffset.UtcNow.AddHours(-1);
+        await BillingTestData.SetLastExternalEventAsync(factory, coach.ProfileId, lastEvent);
+
+        var response = await coach.Http.PostAsJsonAsync(Route, Body(), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = (await response.Content.ReadFromJsonAsync<ConfirmSecondRoleAddOnResponse>(Ct))!;
+        body.PaysSecondRoleAddOn.Should().BeFalse();
+        body.PaymentUrl.Should().Be("https://invoice.stripe.test/i/pay");
+        var row = await BillingTestData.ReadRowAsync(factory, coach.ProfileId);
+        row.PaysSecondRoleAddOn.Should().BeFalse("the webhook marks it paid after the coach pays");
+        row.LastExternalEventAt.Should().BeCloseTo(lastEvent, TimeSpan.FromMilliseconds(1));
+    }
+
+    [Fact]
+    public async Task Confirm_WhileAnotherUpdateIsPendingAtTheProvider_Returns409()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        fake.ChargeResult = AddOnChargeResult.PlanChangePending;
+        var (coach, _, _) = await LiveCoachWithAddOnPlanAsync();
+
+        await AssertErrorAsync(await coach.Http.PostAsJsonAsync(Route, Body(), Ct), HttpStatusCode.Conflict, "BILLING_PLAN_CHANGE_PENDING");
 
         (await BillingTestData.ReadRowAsync(factory, coach.ProfileId)).PaysSecondRoleAddOn.Should().BeFalse();
     }

@@ -850,9 +850,6 @@ public static class ErrorCodes
     /// <summary>The card was declined; nothing was charged or applied.</summary>
     public const string BillingPaymentDeclined = "BILLING_PAYMENT_DECLINED";
 
-    /// <summary>The card needs authentication that an immediate charge cannot do; nothing was charged or applied.</summary>
-    public const string BillingPaymentAuthenticationRequired = "BILLING_PAYMENT_AUTHENTICATION_REQUIRED";
-
     // ── Onboarding form choice ──────────────────────────────────────────
     /// <summary>The request skips the onboarding form and also names a questionnaire.</summary>
     public const string SkipOnboardingFormWithQuestionnaire = "SKIP_ONBOARDING_FORM_WITH_QUESTIONNAIRE";

@@ -253,6 +253,23 @@ public static class StripeRequestBuilder
     };
 
     /// <summary>
+    /// The same add-on charge as <see cref="SecondRoleCharge"/>, held as a pending update: when the card needs authentication
+    /// Stripe keeps the subscription as it was and leaves the invoice open for the coach to pay on its hosted page. The latest
+    /// invoice is expanded to read that page's URL.
+    /// </summary>
+    /// <param name="addOnPriceId">The provider price id of the add-on line.</param>
+    /// <param name="options">Billing settings.</param>
+    public static SubscriptionUpdateOptions SecondRoleChargePending(string addOnPriceId, BillingOptions options)
+    {
+        // UNVERIFIED: pending_if_incomplete accepts a new add-on item with tax_rates and always_invoice, and exposes latest_invoice.hosted_invoice_url — https://docs.stripe.com/billing/subscriptions/pending-updates
+        var update = SecondRoleCharge(addOnPriceId, options);
+        update.PaymentBehavior = "pending_if_incomplete";
+        update.Expand = ["latest_invoice"];
+
+        return update;
+    }
+
+    /// <summary>
     /// An immediate upgrade: swaps the plan line (and adds, replaces or removes the second-role add-on line), invoices the
     /// proration now, clears a scheduled cancellation, and fails instead of leaving the subscription half-changed when the
     /// payment does not go through.

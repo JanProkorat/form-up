@@ -452,7 +452,7 @@ public sealed class StripeSubscriptionService(
         });
 
     /// <inheritdoc />
-    public Task<AddOnChargeOutcome> ChargeSecondRoleAddOnAsync(
+    public Task<AddOnChargeResult> ChargeSecondRoleAddOnAsync(
         string subscriptionId,
         string planCode,
         long addOnAmountMinorUnits,
@@ -462,8 +462,16 @@ public sealed class StripeSubscriptionService(
         CancellationToken ct) =>
         RunAsync("charge-second-role", async stripe =>
         {
-            var addOnPriceId = await EnsureAddOnPriceOnSubscriptionPlanAsync(
-                stripe, subscriptionId, planCode, addOnAmountMinorUnits, currency, interval, ct);
+            var subscription = await GetSubscriptionAsync(stripe, subscriptionId, ct, expandLatestInvoice: true);
+
+            if (subscription.PendingUpdate is { } pendingUpdate)
+            {
+                return ExistingPendingAddOn(pendingUpdate, subscription);
+            }
+
+            var productId = subscription.Items.Data.FirstOrDefault(item => !IsAddOn(item))?.Price?.ProductId
+                            ?? throw new BillingProviderException("The subscription has no plan item.");
+            var addOnPriceId = await EnsureAddOnPriceAsync(stripe, planCode, productId, addOnAmountMinorUnits, currency, interval, ct);
 
             try
             {
@@ -473,18 +481,50 @@ public sealed class StripeSubscriptionService(
                     new RequestOptions { IdempotencyKey = idempotencyKey },
                     ct);
 
-                return AddOnChargeOutcome.Charged;
+                return AddOnChargeResult.Charged;
             }
             catch (StripeException ex) when (IsCardError(ex))
             {
                 logger.LogInformation(
                     "Second-role charge was not completed: {StatusCode} {ErrorCode}", ex.HttpStatusCode, ex.StripeError?.Code);
 
-                return ex.StripeError?.Code is "subscription_payment_intent_requires_action" or "authentication_required"
-                    ? AddOnChargeOutcome.AuthenticationRequired
-                    : AddOnChargeOutcome.Declined;
+                return IsAuthenticationRequired(ex)
+                    ? await HoldAddOnAsPendingAsync(stripe, subscriptionId, addOnPriceId, idempotencyKey, ct)
+                    : AddOnChargeResult.Declined;
             }
         });
+
+    /// <summary>
+    /// A pending update left by an earlier add-on attempt returns its open invoice again, so a repeat creates no second
+    /// invoice; any other pending update (an upgrade) is left alone and blocks the charge.
+    /// </summary>
+    private static AddOnChargeResult ExistingPendingAddOn(SubscriptionPendingUpdate pendingUpdate, Subscription subscription)
+    {
+        // UNVERIFIED: pending_update.subscription_items lists the items the update adds, with their price lookup key — https://docs.stripe.com/billing/subscriptions/pending-updates
+        if (pendingUpdate.SubscriptionItems?.Any(IsAddOn) != true)
+        {
+            return AddOnChargeResult.PlanChangePending;
+        }
+
+        return subscription.LatestInvoice?.HostedInvoiceUrl is { } url
+            ? AddOnChargeResult.AwaitingPayment(url)
+            : throw new BillingProviderException("The pending add-on has no hosted payment page.");
+    }
+
+    private async Task<AddOnChargeResult> HoldAddOnAsPendingAsync(
+        StripeClient stripe, string subscriptionId, string addOnPriceId, string idempotencyKey, CancellationToken ct)
+    {
+        // The first attempt applied and charged nothing, so repeating it as a pending update invoices once.
+        var pending = await stripe.V1.Subscriptions.UpdateAsync(
+            subscriptionId,
+            StripeRequestBuilder.SecondRoleChargePending(addOnPriceId, settings),
+            new RequestOptions { IdempotencyKey = $"{idempotencyKey}-pending" },
+            ct);
+
+        return pending.LatestInvoice?.HostedInvoiceUrl is { } url
+            ? AddOnChargeResult.AwaitingPayment(url)
+            : throw new BillingProviderException("The pending add-on has no hosted payment page.");
+    }
 
     private static bool IsAuthenticationRequired(StripeException ex) =>
         IsCardError(ex) && ex.StripeError?.Code is "subscription_payment_intent_requires_action" or "authentication_required";

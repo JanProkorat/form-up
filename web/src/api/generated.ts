@@ -22225,7 +22225,7 @@ export class ApiClient {
 
     /**
      * Pay for the second role
-     * @return The add-on is paid
+     * @return The add-on is paid, or awaits payment on paymentUrl (paysSecondRoleAddOn is false)
      */
     confirmSecondRoleAddOnEndpoint(confirmSecondRoleAddOnRequest: ConfirmSecondRoleAddOnRequest, signal?: AbortSignal): Promise<ConfirmSecondRoleAddOnResponse> {
         let url_ = this.baseUrl + "/billing/second-role/confirm";
@@ -22285,7 +22285,7 @@ export class ApiClient {
 
         } else if (status === 402) {
             const _responseText = response.data;
-            return throwException("The card was declined (BILLING_PAYMENT_DECLINED) or needs authentication (BILLING_PAYMENT_AUTHENTICATION_REQUIRED); nothing was applied", status, _responseText, _headers);
+            return throwException("The card was declined (BILLING_PAYMENT_DECLINED); nothing was applied", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
@@ -22293,7 +22293,7 @@ export class ApiClient {
 
         } else if (status === 409) {
             const _responseText = response.data;
-            return throwException("No live paid subscription (BILLING_NO_SUBSCRIPTION), an admin gift is in force (BILLING_GIFT_IN_FORCE), the plan has no add-on (BILLING_ADD_ON_NOT_AVAILABLE), the add-on is already paid (BILLING_ADD_ON_ALREADY_PAID) or a plan change is scheduled (BILLING_PLAN_CHANGE_PENDING)", status, _responseText, _headers);
+            return throwException("No live paid subscription (BILLING_NO_SUBSCRIPTION), an admin gift is in force (BILLING_GIFT_IN_FORCE), the plan has no add-on (BILLING_ADD_ON_NOT_AVAILABLE), the add-on is already paid (BILLING_ADD_ON_ALREADY_PAID) or a plan change is scheduled or waiting for payment (BILLING_PLAN_CHANGE_PENDING)", status, _responseText, _headers);
 
         } else if (status === 502) {
             const _responseText = response.data;
@@ -34483,6 +34483,9 @@ export enum CheckoutFlow {
 export interface ConfirmSecondRoleAddOnResponse {
     /** True once the add-on is paid; the client then adds the role through POST /users/me/roles. */
     paysSecondRoleAddOn?: boolean;
+    /** Stripe's hosted payment page when the card needs authentication: the add-on is not paid yet, and the role can be
+added once the payment goes through. Null otherwise. */
+    paymentUrl?: string | undefined;
 }
 
 /** Request for paying the second-role add-on now. */

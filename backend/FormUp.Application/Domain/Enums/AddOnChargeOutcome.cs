@@ -11,6 +11,9 @@ public enum AddOnChargeOutcome
     /// <summary>The card was declined; nothing was added or charged.</summary>
     Declined,
 
-    /// <summary>The card needs authentication that an immediate charge cannot do; nothing was added or charged.</summary>
-    AuthenticationRequired
+    /// <summary>The card needs authentication; the add-on is held until the coach pays on the provider's hosted page.</summary>
+    AwaitingPayment,
+
+    /// <summary>Another pending provider update (such as a plan upgrade) is open; nothing was changed.</summary>
+    PlanChangePending
 }

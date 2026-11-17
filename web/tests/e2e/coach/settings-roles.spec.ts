@@ -89,6 +89,43 @@ trainerTest.describe('settings roles card, adding a second role', () => {
     expect(addRoleRequests).toHaveLength(0);
   });
 
+  trainerTest('a payment needing bank confirmation shows the link, adds no role and starts the watch', async ({
+    page,
+  }) => {
+    const addRoleRequests = await mockRolesCard(page, subscription({ secondRole: 'Purchasable' }));
+    const paymentUrl = 'https://stripe-stub.example.test/i/acct_test/invoice_test';
+    await page.route(/\/billing\/second-role\/confirm$/, (route) =>
+      json(route, { paysSecondRoleAddOn: false, paymentUrl }),
+    );
+    // The hosted page opens in a new tab; keep the browser off the real host.
+    await page.context().route(/^https:\/\/stripe-stub\.example\.test\//, (route) =>
+      route.fulfill({ status: 200, contentType: 'text/html', body: '<html><body>stub</body></html>' }),
+    );
+    await page.goto('/settings');
+
+    await page.getByRole('button', { name: 'Add role' }).click();
+    await page.getByRole('button', { name: /^Add role · pay / }).click();
+
+    const notice = page.getByTestId('upgrade-payment-notice');
+    await expect(notice).toBeVisible();
+    const link = notice.getByRole('link', { name: 'Continue to payment' });
+    await expect(link).toHaveAttribute('href', paymentUrl);
+    await expect(link).toHaveAttribute('target', '_blank');
+    expect(addRoleRequests).toHaveLength(0);
+
+    const popupPromise = page.waitForEvent('popup');
+    await link.click();
+    const popup = await popupPromise;
+    await popup.close();
+
+    await expect
+      .poll(() => page.evaluate(() => sessionStorage.getItem('checkoutActivationWatch')))
+      .toContain('"awaitsSecondRoleAddOn":true');
+    const stored = await page.evaluate(() => sessionStorage.getItem('checkoutActivationWatch'));
+    expect(stored).not.toContain('targetPlanCode');
+    expect(addRoleRequests).toHaveLength(0);
+  });
+
   trainerTest('an unavailable second role disables Add and says the plan lacks it', async ({ page }) => {
     const addRoleRequests = await mockRolesCard(page, subscription({ secondRole: 'NotAvailable' }));
     await page.goto('/settings');

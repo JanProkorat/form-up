@@ -13,6 +13,8 @@ interface StoredWatch {
   userId: string;
   /** Plan an in-place upgrade waits for; absent for a checkout watch. */
   targetPlanCode?: string;
+  /** True while a second-role add-on awaits payment on Stripe's page; never set together with targetPlanCode. */
+  awaitsSecondRoleAddOn?: boolean;
 }
 
 function isStoredWatch(value: unknown): value is StoredWatch {
@@ -24,7 +26,9 @@ function isStoredWatch(value: unknown): value is StoredWatch {
     typeof candidate.userId === 'string' &&
     candidate.userId.length > 0 &&
     (candidate.targetPlanCode === undefined ||
-      (typeof candidate.targetPlanCode === 'string' && candidate.targetPlanCode.length > 0))
+      (typeof candidate.targetPlanCode === 'string' && candidate.targetPlanCode.length > 0)) &&
+    (candidate.awaitsSecondRoleAddOn === undefined ||
+      (candidate.awaitsSecondRoleAddOn === true && candidate.targetPlanCode === undefined))
   );
 }
 
@@ -76,7 +80,10 @@ interface CheckoutActivationState {
   userId: string | null;
   /** The plan a pending upgrade must land on; null for a checkout watch, which settles on any paid plan. */
   targetPlanCode: string | null;
+  /** True for a watch waiting for the second-role add-on to be paid; the role itself is added in Settings. */
+  awaitsSecondRoleAddOn: boolean;
   start: (userId: string, targetPlanCode?: string) => void;
+  startSecondRoleAddOn: (userId: string) => void;
   stop: () => void;
 }
 
@@ -86,13 +93,19 @@ export const useCheckoutActivationStore = create<CheckoutActivationState>((set) 
   startedAt: initial?.startedAt ?? null,
   userId: initial?.userId ?? null,
   targetPlanCode: initial?.targetPlanCode ?? null,
+  awaitsSecondRoleAddOn: initial?.awaitsSecondRoleAddOn ?? false,
   start: (userId, targetPlanCode) => {
     const startedAt = Date.now();
     writeStoredWatch({ startedAt, userId, ...(targetPlanCode ? { targetPlanCode } : {}) });
-    set({ startedAt, userId, targetPlanCode: targetPlanCode ?? null });
+    set({ startedAt, userId, targetPlanCode: targetPlanCode ?? null, awaitsSecondRoleAddOn: false });
+  },
+  startSecondRoleAddOn: (userId) => {
+    const startedAt = Date.now();
+    writeStoredWatch({ startedAt, userId, awaitsSecondRoleAddOn: true });
+    set({ startedAt, userId, targetPlanCode: null, awaitsSecondRoleAddOn: true });
   },
   stop: () => {
     clearStoredWatch();
-    set({ startedAt: null, userId: null, targetPlanCode: null });
+    set({ startedAt: null, userId: null, targetPlanCode: null, awaitsSecondRoleAddOn: false });
   },
 }));

@@ -254,7 +254,9 @@ public interface ISubscriptionService
 
     /// <summary>
     /// Adds the second-role add-on to an existing subscription and charges the prorated amount now. When the card is
-    /// declined or needs authentication nothing is applied and the outcome says which; any other provider failure throws.
+    /// declined nothing is applied. A card that needs authentication leaves the add-on pending behind the provider's hosted
+    /// payment page, and another open pending update (such as an upgrade) blocks the charge; the outcome says which. Any
+    /// other provider failure throws.
     /// </summary>
     /// <param name="subscriptionId">The provider subscription id.</param>
     /// <param name="planCode">The plan code the add-on belongs to.</param>
@@ -263,7 +265,7 @@ public interface ISubscriptionService
     /// <param name="interval">Billing cadence of the add-on price.</param>
     /// <param name="idempotencyKey">Repeating a call with the same key returns the first result instead of charging twice.</param>
     /// <param name="ct">Cancellation token.</param>
-    Task<AddOnChargeOutcome> ChargeSecondRoleAddOnAsync(
+    Task<AddOnChargeResult> ChargeSecondRoleAddOnAsync(
         string subscriptionId,
         string planCode,
         long addOnAmountMinorUnits,

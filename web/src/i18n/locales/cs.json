@@ -391,7 +391,10 @@
         "studio": "Tarif {{plan}} zahrnuje obě role za {{price}}.",
         "compare": "Porovnat tarify",
         "confirm": "Přidat roli · zaplatit {{amount}}",
-        "alreadyPaid": "Druhá role je už zaplacená, přidání dnes nic nestojí."
+        "alreadyPaid": "Druhá role je už zaplacená, přidání dnes nic nestojí.",
+        "paymentNotice": "Vaše banka musí platbu potvrdit. Dokončete ji na zabezpečené stránce Stripe. Role se přidá až po potvrzení platby.",
+        "paymentConfirmed": "Platba je potvrzena. Roli přidejte v Nastavení.",
+        "notConfirmed": "Platbu se nepodařilo potvrdit, proto role nebyla přidána."
       },
       "errors": {
         "generic": "Něco se nepovedlo. Zkuste to prosím znovu.",
@@ -3861,7 +3864,6 @@
     "BILLING_ADD_ON_NOT_AVAILABLE": "Váš tarif placenou druhou roli nenabízí.",
     "BILLING_ADD_ON_ALREADY_PAID": "Druhá role je už zaplacená.",
     "BILLING_PAYMENT_DECLINED": "Vaše karta byla zamítnuta. Nic nebylo strženo a role nebyla přidána. Aktualizujte kartu ve Spravovat platby nebo zkuste jinou.",
-    "BILLING_PAYMENT_AUTHENTICATION_REQUIRED": "Vaše banka musí platbu nejdřív potvrdit. Otevřete Spravovat platby, potvrďte ji tam a zkuste to znovu.",
     "BILLING_CUSTOMER_NOT_FOUND": "Zatím nemáte platební účet. Nejdřív vyberte placený tarif.",
     "BILLING_NOT_CONFIGURED": "Platby teď nejsou k dispozici. Zkuste to prosím později.",
     "BILLING_PROVIDER_ERROR": "Platební služba neodpověděla. Zkuste to prosím za chvíli znovu.",
