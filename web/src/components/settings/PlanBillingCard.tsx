@@ -132,6 +132,8 @@ export default function PlanBillingCard() {
           ),
         })
       : null;
+  // The first subtitle part already shows the period end, so a free-until date equal to it is not repeated.
+  const freeUntilRepeatsPeriodEnd = periodEnd !== null && periodEnd === freeUntil;
   const subtitle = [
     periodEnd
       ? scheduled
@@ -139,7 +141,7 @@ export default function PlanBillingCard() {
         : t(data?.cancelAtPeriodEnd ? 'subscription.plan.ends' : 'subscription.plan.renews', { date: periodEnd })
       : null,
     data?.isSetByFormUp
-      ? freeUntil
+      ? freeUntil && !freeUntilRepeatsPeriodEnd
         ? t('subscription.plan.setByFormUpUntil', { date: freeUntil })
         : t('subscription.plan.setByFormUp')
       : freeUntil
