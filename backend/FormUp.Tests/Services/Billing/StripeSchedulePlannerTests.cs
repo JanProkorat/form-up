@@ -1,3 +1,4 @@
+using FormUp.Application.Domain.Enums;
 using FormUp.Application.Infrastructure.Services.Billing;
 using FluentAssertions;
 
@@ -117,6 +118,86 @@ public class StripeSchedulePlannerTests
         var phases = StripeSchedulePlanner.Build(Start, Renewal, OldPrices, intent);
 
         StripeSchedulePlanner.Read(phases).Should().BeEquivalentTo(intent);
+    }
+
+    private static readonly DateTimeOffset PurchasedAt = new(2026, 11, 17, 20, 26, 38, TimeSpan.Zero);
+    private static readonly DateTimeOffset FirstRenewal = PurchasedAt.AddMonths(1);
+
+    [Fact]
+    public void Build_RenewalOnTheGiftsLastDay_EndsTheGiftAtTheRenewalSoItIsCharged()
+    {
+        var endOfDay = new DateTimeOffset(2027, 2, 17, 22, 59, 59, TimeSpan.Zero);
+        var lastRenewal = PurchasedAt.AddMonths(3);
+
+        var phases = StripeSchedulePlanner.Build(
+            PurchasedAt, FirstRenewal, OldPrices, new ScheduleIntent(null, Coupon, endOfDay), BillingInterval.Monthly);
+
+        phases.Should().Equal(
+            new SchedulePhasePlan(PurchasedAt, lastRenewal, OldPrices, Coupon),
+            new SchedulePhasePlan(lastRenewal, null, OldPrices, null));
+    }
+
+    [Fact]
+    public void Build_AnnualRenewalOnTheGiftsLastDay_EndsTheGiftAtTheRenewal()
+    {
+        var endOfDay = new DateTimeOffset(2027, 11, 17, 22, 59, 59, TimeSpan.Zero);
+        var renewal = PurchasedAt.AddYears(1);
+
+        var phases = StripeSchedulePlanner.Build(
+            PurchasedAt, renewal, OldPrices, new ScheduleIntent(null, Coupon, endOfDay), BillingInterval.Annual);
+
+        phases.Should().Equal(
+            new SchedulePhasePlan(PurchasedAt, renewal, OldPrices, Coupon),
+            new SchedulePhasePlan(renewal, null, OldPrices, null));
+    }
+
+    [Fact]
+    public void Build_CancelledRenewalAndFirstRenewalOnTheGiftsLastDay_CancelsAtThatRenewal()
+    {
+        var endOfDay = new DateTimeOffset(2026, 12, 17, 22, 59, 59, TimeSpan.Zero);
+
+        var phases = StripeSchedulePlanner.Build(
+            PurchasedAt, FirstRenewal, OldPrices, new ScheduleIntent(null, Coupon, endOfDay, CancelRenewal: true));
+
+        phases.Should().Equal(new SchedulePhasePlan(PurchasedAt, FirstRenewal, OldPrices, Coupon));
+    }
+
+    [Fact]
+    public void Build_CancelledRenewalAndGiftEndingBeforeThePaidPeriodEnds_CancelsAtThePaidPeriodEnd()
+    {
+        var phases = StripeSchedulePlanner.Build(
+            PurchasedAt, FirstRenewal, OldPrices, new ScheduleIntent(null, Coupon, PurchasedAt.AddDays(3), CancelRenewal: true));
+
+        phases.Should().Equal(new SchedulePhasePlan(PurchasedAt, FirstRenewal, OldPrices, Coupon));
+    }
+
+    [Fact]
+    public void Build_CancelledRenewalAndGiftEndingMidPeriodAfterFreeRenewals_CancelsAtTheGiftEnd()
+    {
+        var giftEnd = PurchasedAt.AddMonths(2).AddDays(9);
+
+        var phases = StripeSchedulePlanner.Build(
+            PurchasedAt, FirstRenewal, OldPrices, new ScheduleIntent(null, Coupon, giftEnd, CancelRenewal: true));
+
+        phases.Should().Equal(new SchedulePhasePlan(PurchasedAt, giftEnd, OldPrices, Coupon));
+    }
+
+    [Fact]
+    public void Build_CancelledRenewalWithAnEndlessGiftAndNoPriceChange_NeedsNoSchedule()
+    {
+        StripeSchedulePlanner.Build(PurchasedAt, FirstRenewal, OldPrices, new ScheduleIntent(null, Coupon, null, CancelRenewal: true))
+            .Should().BeEmpty("the subscription's own cancel flag and discount cover it");
+    }
+
+    [Fact]
+    public void Read_AfterACancellingBuild_ReturnsTheGiftEndAndTheFlag()
+    {
+        var giftEnd = PurchasedAt.AddMonths(2).AddDays(9);
+        var intent = new ScheduleIntent(null, Coupon, giftEnd, CancelRenewal: true);
+
+        var phases = StripeSchedulePlanner.Build(PurchasedAt, FirstRenewal, OldPrices, intent);
+
+        StripeSchedulePlanner.Read(phases, cancelRenewal: true).Should().Be(intent);
     }
 
     [Fact]
