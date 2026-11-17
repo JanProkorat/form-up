@@ -470,6 +470,41 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task Webhook_SubscriptionDeletedDuringAGift_KeepsTheGiftAndClearsThePaidFields()
+    {
+        var scenario = await ArrangeOnPaidPlanAsync();
+        var giftedAt = DateTimeOffset.UtcNow.AddDays(-1);
+        var freeUntil = DateTimeOffset.UtcNow.AddDays(30);
+        await UpdateRowAsync(scenario.Coach.ProfileId, row =>
+        {
+            row.GivenFreeAt = giftedAt;
+            row.FreeUntil = freeUntil;
+            row.CancelAtPeriodEnd = true;
+            row.RenewalCancelledByAdminAt = DateTimeOffset.UtcNow;
+            row.SecondRoleAddOnEndsAt = DateTimeOffset.UtcNow.AddDays(10);
+            row.PaysSecondRoleAddOn = true;
+        });
+        var before = await ReadRowAsync(scenario.Coach.ProfileId);
+
+        var response = await PostAsync(SubscriptionEvent(NewEventId(), "customer.subscription.deleted", scenario, "canceled"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var after = await ReadRowAsync(scenario.Coach.ProfileId);
+        after.ExternalSubscriptionId.Should().BeNull();
+        after.Status.Should().Be(before.Status, "the gift's own status stays");
+        after.SubscriptionPlanId.Should().Be(before.SubscriptionPlanId);
+        after.SubscriptionPlanPriceId.Should().Be(before.SubscriptionPlanPriceId);
+        after.GivenFreeAt.Should().Be(before.GivenFreeAt);
+        after.FreeUntil.Should().Be(before.FreeUntil);
+        after.CancelAtPeriodEnd.Should().BeFalse();
+        after.RenewalCancelledByAdminAt.Should().BeNull();
+        after.PendingSubscriptionPlanPriceId.Should().BeNull();
+        after.SecondRoleAddOnEndsAt.Should().BeNull();
+        after.PaysSecondRoleAddOn.Should().BeFalse();
+        (await MaxClientsAsync(scenario.Coach.ProfileId)).Should().Be(30, "the gifted plan keeps running");
+    }
+
+    [Fact]
     public async Task Webhook_InvoicePaymentFailed_MakesTheSubscriptionPastDue_AndKeepsThePaidEntitlements()
     {
         var scenario = await ArrangeOnPaidPlanAsync();
