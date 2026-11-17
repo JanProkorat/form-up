@@ -137,7 +137,7 @@ public class GetAdminCoachEndpointTests(FitnessApiFactory factory)
         var detail = await GetAsync(admin, coach.UserId);
 
         detail.Status.Should().Be(AdminCoachStatus.GivenFree);
-        detail.Roles.Should().BeEmpty("the account ended at once");
+        detail.Roles.Should().NotBeEmpty("the account stays active until the plan set by Form Up ends (#2177)");
         detail.History.Select(entry => entry.Kind).Should().Equal(
             AdminCoachHistoryKind.AccountDisabled, AdminCoachHistoryKind.GivenFree, AdminCoachHistoryKind.Joined);
 
