@@ -212,3 +212,77 @@ trainerTest.describe('settings plan card: cancelling a scheduled change', () => 
     await expect(page.getByText(/^Free begins on .*2026$/)).toBeVisible();
   });
 });
+
+const PORTAL_URL = 'https://billing-portal.invalid/session/test';
+
+/** The portal session answer plus a stub portal host, so no spec ever reaches real Stripe. */
+async function mockPortal(page: Page, portalStatus: number) {
+  await page.context().route(/\/billing\/portal-session$/, (route) =>
+    portalStatus === 200
+      ? json(route, { url: PORTAL_URL })
+      : route.fulfill({
+          status: portalStatus,
+          contentType: 'application/problem+json',
+          body: JSON.stringify({ status: portalStatus, title: 'Bad Gateway', errorCode: 'BILLING_PROVIDER_ERROR' }),
+        }),
+  );
+  await page.context().route('https://billing-portal.invalid/**', (route) =>
+    route.fulfill({ status: 200, contentType: 'text/html', body: '<!doctype html><title>Portal stub</title><p>Portal</p>' }),
+  );
+}
+
+trainerTest.describe('settings plan card: Manage billing opens the portal in a new tab', () => {
+  trainerTest('opens the portal in a new tab without an opener and keeps the app on Settings', async ({ page }) => {
+    await mockSubscription(page, subscription({}));
+    await mockPortal(page, 200);
+    await page.goto('/settings#plan-billing');
+
+    const popupPromise = page.waitForEvent('popup');
+    await page.getByRole('button', { name: 'Manage billing' }).first().click();
+    const popup = await popupPromise;
+
+    await expect(popup).toHaveURL(PORTAL_URL);
+    expect(await popup.evaluate(() => window.opener)).toBeNull();
+    await expect(page).toHaveURL(/\/settings/);
+  });
+
+  trainerTest('a failed portal session closes the blank tab and shows the error toast', async ({ page, context }) => {
+    await mockSubscription(page, subscription({}));
+    await mockPortal(page, 502);
+    await page.goto('/settings#plan-billing');
+
+    await page.getByRole('button', { name: 'Manage billing' }).first().click();
+
+    await expect(toastTitle(page, "The payment provider didn't answer. Please try again in a moment.")).toBeVisible();
+    await expect.poll(() => context.pages().length).toBe(1);
+    await expect(page).toHaveURL(/\/settings/);
+  });
+
+  trainerTest('coming back to the app tab shows the subscription changed in the portal', async ({ page }) => {
+    await mockSubscription(page, subscription({ nameEn: 'Pro' }));
+    await mockPortal(page, 200);
+    await page.goto('/settings#plan-billing');
+
+    const popupPromise = page.waitForEvent('popup');
+    await page.getByRole('button', { name: 'Manage billing' }).first().click();
+    await expect(await popupPromise).toHaveURL(PORTAL_URL);
+
+    await mockSubscription(page, subscription({ nameEn: 'Studio' }));
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+
+    await expect(page.getByRole('heading', { name: 'Studio' })).toBeVisible();
+  });
+
+  trainerTest('a blocked pop-up falls back to opening the portal in the same tab', async ({ page }) => {
+    await page.addInitScript(() => {
+      window.open = () => null;
+    });
+    await mockSubscription(page, subscription({}));
+    await mockPortal(page, 200);
+    await page.goto('/settings#plan-billing');
+
+    await page.getByRole('button', { name: 'Manage billing' }).first().click();
+
+    await page.waitForURL(PORTAL_URL);
+  });
+});
