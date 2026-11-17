@@ -21,15 +21,20 @@ namespace FormUp.Application.Features.Billing.StripeWebhook;
 /// <param name="options">Billing settings holding the webhook signing secret.</param>
 /// <param name="subscriptions">The payment provider seam, read to see which discount a subscription carries.</param>
 /// <param name="timeProvider">Clock.</param>
+/// <param name="notifier">Realtime notifier; tells the coach's open app that the subscription changed.</param>
 /// <param name="logger">Logger; receives event ids and types only, never the payload.</param>
 internal sealed class StripeWebhookEndpoint(
     IApplicationDbContext db,
     IOptions<BillingOptions> options,
     ISubscriptionService subscriptions,
     TimeProvider timeProvider,
+    IRealtimeNotifier notifier,
     ILogger<StripeWebhookEndpoint> logger) : EndpointWithoutRequest
 {
     private const string SignatureHeader = "Stripe-Signature";
+
+    /// <summary>The coach's row the applied event changed; null when it changed nothing. One instance serves one request.</summary>
+    private CoachSubscription? _changedRow;
 
     /// <inheritdoc />
     public override void Configure()
@@ -96,6 +101,11 @@ internal sealed class StripeWebhookEndpoint(
 
                 // One save: the event id and the subscription change commit together or not at all.
                 await db.SaveChangesAsync(ct);
+
+                if (_changedRow is not null)
+                {
+                    await TryNotifyCoachAsync(stripeEvent.Id, _changedRow.ProfessionalProfileId, ct);
+                }
             }
         }
         catch (DbUpdateException ex) when (IsDuplicateEvent(ex))
@@ -104,6 +114,33 @@ internal sealed class StripeWebhookEndpoint(
         }
 
         await AcknowledgeAsync(ct);
+    }
+
+    /// <summary>
+    /// Tells the coach's open app to refresh the subscription after a saved change. A failure is logged and swallowed so
+    /// Stripe still gets its 200.
+    /// </summary>
+    private async Task TryNotifyCoachAsync(string eventId, long profileId, CancellationToken ct)
+    {
+        Guid? coachUserId = null;
+
+        try
+        {
+            coachUserId = await db.ProfessionalProfiles
+                .AsNoTracking()
+                .Where(profile => profile.Id == profileId)
+                .Select(profile => (Guid?)profile.UserId)
+                .FirstOrDefaultAsync(ct);
+
+            if (coachUserId is { } userId)
+            {
+                await notifier.NotifyAsync(userId, "subscriptionchanged", new { action = "synced" }, ct);
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogWarning(ex, "Subscription change notification failed for Stripe event {EventId} and coach {CoachId}", eventId, coachUserId);
+        }
     }
 
     private Task AcknowledgeAsync(CancellationToken ct) => Send.OkAsync(new { Received = true }, ct);
@@ -169,6 +206,7 @@ internal sealed class StripeWebhookEndpoint(
             if (pendingUpdateApplied && row.SubscriptionPlanPriceId == planPrice.Id)
             {
                 row.PendingSubscriptionPlanPriceId = null;
+                _changedRow = row;
                 return true;
             }
 
@@ -178,6 +216,7 @@ internal sealed class StripeWebhookEndpoint(
         row.ExternalCustomerId ??= subscription.CustomerId;
         row.ExternalSubscriptionId ??= subscription.Id;
         row.LastExternalEventAt = StripeWebhookMapper.ToUtc(stripeEvent.Created);
+        _changedRow = row;
 
         if (IsGiftInForce(row) && !IsBoughtAfterGift(row, subscription))
         {
@@ -336,6 +375,7 @@ internal sealed class StripeWebhookEndpoint(
         }
 
         row.LastExternalEventAt = StripeWebhookMapper.ToUtc(stripeEvent.Created);
+        _changedRow = row;
         row.ExternalSubscriptionId = null;
         row.NextPaymentAttemptAt = null;
 
@@ -392,6 +432,7 @@ internal sealed class StripeWebhookEndpoint(
         }
 
         row.LastExternalEventAt = StripeWebhookMapper.ToUtc(stripeEvent.Created);
+        _changedRow = row;
 
         if (IsGiftInForce(row))
         {
