@@ -128,7 +128,7 @@ public class GetMySubscriptionEndpointTests(FitnessApiFactory factory)
 
         block.IsLapsed.Should().BeTrue();
         block.PlanCode.Should().Be("free");
-        block.Status.Should().Be(SubscriptionStatus.Canceled);
+        block.Status.Should().BeNull("an ended plan leaves no subscription status behind");
         block.LapsedPlanNameEn.Should().NotBeNullOrEmpty().And.NotBe(block.NameEn);
         block.LapsedPlanNameCs.Should().NotBeNullOrEmpty();
         block.LapsedPlanNameDe.Should().NotBeNullOrEmpty();
@@ -138,6 +138,27 @@ public class GetMySubscriptionEndpointTests(FitnessApiFactory factory)
         block.OverCapClientCount.Should().Be(1);
         block.Features.CanSendQuestionnaires.Should().BeFalse("a canceled subscription falls back to the Free flags");
         block.PriceLines.Should().ContainSingle(line => line.AmountMinorUnits == 0);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Get_EndedPlan_ReadsLikeAFreeCoachWithOnlyTheEndMomentInEndedAt(bool cancelAtPeriodEnd)
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, "studio", SubscriptionStatus.Canceled);
+        var endedAt = DateTimeOffset.UtcNow.AddMinutes(-5);
+        await SetPeriodEndAsync(coach, endedAt, cancelAtPeriodEnd);
+
+        var block = await GetAsync(coach);
+
+        block.IsLapsed.Should().BeTrue();
+        block.PlanCode.Should().Be("free");
+        block.Status.Should().BeNull();
+        block.CurrentPeriodEndsAt.Should().BeNull();
+        block.CancelAtPeriodEnd.Should().BeFalse();
+        block.EndedAt.Should().BeCloseTo(endedAt, TimeSpan.FromSeconds(1));
+        block.ScheduledPlan.Should().BeNull();
     }
 
     [Fact]
@@ -258,12 +279,13 @@ public class GetMySubscriptionEndpointTests(FitnessApiFactory factory)
         (await GetAsync(withinCap)).FreeSlotCount.Should().Be(0);
     }
 
-    private async Task SetPeriodEndAsync(Actor coach, DateTimeOffset periodEnd)
+    private async Task SetPeriodEndAsync(Actor coach, DateTimeOffset periodEnd, bool cancelAtPeriodEnd = false)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var row = await db.CoachSubscriptions.SingleAsync(cs => cs.ProfessionalProfileId == coach.ProfileId, Ct);
         row.CurrentPeriodEndsAt = periodEnd;
+        row.CancelAtPeriodEnd = cancelAtPeriodEnd;
         await db.SaveChangesAsync(Ct);
     }
 
