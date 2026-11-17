@@ -30,6 +30,8 @@ public static class StripeRequestBuilder
 
     private const string RestoreGiftEndKey = "formup_restore_gift_end";
 
+    private const string RestoreCancelKey = "formup_restore_cancel";
+
     private const string DefaultLocale = "cs";
 
     private static readonly string[] SupportedLocales = ["cs", "en", "de"];
@@ -325,6 +327,7 @@ public static class StripeRequestBuilder
         [RestorePricesKey] = intent.PendingPriceIds is { Count: > 0 } prices ? string.Join(',', prices) : string.Empty,
         [RestoreGiftKey] = intent.GiftCouponId ?? string.Empty,
         [RestoreGiftEndKey] = intent.GiftEnd is { } giftEnd ? giftEnd.ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture) : string.Empty,
+        [RestoreCancelKey] = intent.CancelRenewal ? "true" : string.Empty,
     };
 
     /// <summary>The metadata that removes a restore snapshot.</summary>
@@ -333,13 +336,14 @@ public static class StripeRequestBuilder
         [RestorePricesKey] = string.Empty,
         [RestoreGiftKey] = string.Empty,
         [RestoreGiftEndKey] = string.Empty,
+        [RestoreCancelKey] = string.Empty,
     };
 
     /// <summary>True when the subscription's metadata holds any key of a restore snapshot.</summary>
     /// <param name="metadata">The subscription's metadata.</param>
     public static bool HasRestoreSnapshot(IReadOnlyDictionary<string, string>? metadata) =>
         metadata is not null
-        && (metadata.ContainsKey(RestorePricesKey) || metadata.ContainsKey(RestoreGiftKey) || metadata.ContainsKey(RestoreGiftEndKey));
+        && (metadata.ContainsKey(RestorePricesKey) || metadata.ContainsKey(RestoreGiftKey) || metadata.ContainsKey(RestoreGiftEndKey) || metadata.ContainsKey(RestoreCancelKey));
 
     /// <summary>Reads a snapshot written by <see cref="RestoreSnapshot"/>; null when the subscription holds none.</summary>
     /// <param name="metadata">The subscription's metadata.</param>
@@ -356,7 +360,11 @@ public static class StripeRequestBuilder
             ? DateTimeOffset.FromUnixTimeSeconds(seconds)
             : null;
 
-        return new ScheduleIntent(prices.Length > 0 ? prices : null, string.IsNullOrEmpty(gift) ? null : gift, giftEnd);
+        return new ScheduleIntent(
+            prices.Length > 0 ? prices : null,
+            string.IsNullOrEmpty(gift) ? null : gift,
+            giftEnd,
+            metadata.GetValueOrDefault(RestoreCancelKey) == "true");
     }
 
     private static SubscriptionUpdateOptions PlanUpgradeWith(

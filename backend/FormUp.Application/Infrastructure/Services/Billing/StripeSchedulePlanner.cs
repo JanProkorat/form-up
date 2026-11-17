@@ -1,3 +1,5 @@
+using FormUp.Application.Domain.Enums;
+
 namespace FormUp.Application.Infrastructure.Services.Billing;
 
 /// <summary>
@@ -14,11 +16,19 @@ public static class StripeSchedulePlanner
     /// <param name="currentEnd">End of the current billing phase, which is the next renewal.</param>
     /// <param name="currentPriceIds">Prices billed now.</param>
     /// <param name="intent">The price change and gift to achieve.</param>
+    /// <param name="interval">Billing cadence, used to find the renewals that fall inside a gift.</param>
+    /// <remarks>
+    /// A gift ends at the end of a calendar day, but the paid period renews at the purchase time of day. A renewal that
+    /// falls on the gift's last day (within 24 hours before its end) is charged in full: the gift phase then ends at that
+    /// renewal instead of the end of the day. When the renewal is cancelled the schedule ends in one phase and cancels at
+    /// that renewal, or at the end of the period already paid when that is later.
+    /// </remarks>
     public static IReadOnlyList<SchedulePhasePlan> Build(
         DateTimeOffset currentStart,
         DateTimeOffset currentEnd,
         IReadOnlyList<string> currentPriceIds,
-        ScheduleIntent intent)
+        ScheduleIntent intent,
+        BillingInterval interval = BillingInterval.Monthly)
     {
         var giftActive = intent.GiftCouponId is not null && (intent.GiftEnd is null || intent.GiftEnd > currentStart);
         var giftEnd = giftActive ? intent.GiftEnd : null;
@@ -29,6 +39,18 @@ public static class StripeSchedulePlanner
             return [];
         }
 
+        if (giftEnd is { } rawGiftEnd)
+        {
+            giftEnd = AlignGiftEnd(currentEnd, rawGiftEnd, interval);
+        }
+
+        if (intent.CancelRenewal)
+        {
+            var cancelPoint = giftEnd is { } end && end > currentEnd ? end : currentEnd;
+
+            return [new SchedulePhasePlan(currentStart, cancelPoint, currentPriceIds, giftActive ? intent.GiftCouponId : null)];
+        }
+
         var boundaries = new List<DateTimeOffset>();
 
         if (pending is not null)
@@ -36,9 +58,9 @@ public static class StripeSchedulePlanner
             boundaries.Add(currentEnd);
         }
 
-        if (giftEnd is { } end)
+        if (giftEnd is { } giftBoundary)
         {
-            boundaries.Add(end);
+            boundaries.Add(giftBoundary);
         }
 
         var phases = new List<SchedulePhasePlan>();
@@ -66,11 +88,12 @@ public static class StripeSchedulePlanner
     /// current one. A gift on the last phase has no end; a gift that stops earlier ends where its last phase ends.
     /// </summary>
     /// <param name="phases">The schedule's phases from the current one onward.</param>
-    public static ScheduleIntent Read(IReadOnlyList<SchedulePhasePlan> phases)
+    /// <param name="cancelRenewal">True when the schedule cancels after its last phase; that phase then has an end.</param>
+    public static ScheduleIntent Read(IReadOnlyList<SchedulePhasePlan> phases, bool cancelRenewal = false)
     {
         if (phases.Count == 0)
         {
-            return new ScheduleIntent(null, null, null);
+            return new ScheduleIntent(null, null, null, cancelRenewal);
         }
 
         var current = phases[0].PriceIds.Order(StringComparer.Ordinal).ToList();
@@ -91,12 +114,34 @@ public static class StripeSchedulePlanner
 
         if (lastGiftIndex < 0)
         {
-            return new ScheduleIntent(pending, null, null);
+            return new ScheduleIntent(pending, null, null, cancelRenewal);
         }
 
         var couponId = phases[lastGiftIndex].CouponId;
-        var giftEnd = lastGiftIndex == phases.Count - 1 ? null : phases[lastGiftIndex].End;
+        var giftEnd = lastGiftIndex == phases.Count - 1 && !cancelRenewal ? null : phases[lastGiftIndex].End;
 
-        return new ScheduleIntent(pending, couponId, giftEnd);
+        return new ScheduleIntent(pending, couponId, giftEnd, cancelRenewal);
+    }
+
+    private static DateTimeOffset AlignGiftEnd(DateTimeOffset firstRenewal, DateTimeOffset giftEnd, BillingInterval interval)
+    {
+        var aligned = giftEnd;
+        var windowStart = giftEnd.AddDays(-1);
+
+        // UNVERIFIED: later renewals fall on the first renewal plus whole months or years, as a monthly or yearly billing anchor does — https://docs.stripe.com/billing/subscriptions/billing-cycle
+        for (var step = 0; ; step++)
+        {
+            var renewal = interval == BillingInterval.Annual ? firstRenewal.AddYears(step) : firstRenewal.AddMonths(step);
+
+            if (renewal > giftEnd)
+            {
+                return aligned;
+            }
+
+            if (renewal > windowStart)
+            {
+                aligned = renewal;
+            }
+        }
     }
 }

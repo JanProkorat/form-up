@@ -119,9 +119,11 @@ public sealed class StripeSubscriptionService(
                     change.State.Start,
                     change.State.End,
                     change.State.CurrentPriceIds,
-                    change.State.Intent with { PendingPriceIds = newPriceIds });
+                    change.State.Intent with { PendingPriceIds = newPriceIds },
+                    IntervalOf(change.Subscription));
 
-                await ApplyPhasesAsync(stripe, subscriptionId, change.State.ScheduleId, phases, IntervalOf(change.Subscription), ct);
+                await ApplyPhasesAsync(
+                    stripe, subscriptionId, change.State.ScheduleId, phases, IntervalOf(change.Subscription), change.State.Intent.CancelRenewal, ct);
 
                 return true;
             }
@@ -181,14 +183,21 @@ public sealed class StripeSubscriptionService(
 
             var snapshot = StripeRequestBuilder.ReadRestoreSnapshot(subscription.Metadata);
 
-            if (keepScheduledChange && snapshot?.PendingPriceIds is not null && subscription.ScheduleId is null)
+            if (keepScheduledChange
+                && snapshot is not null
+                && (snapshot.PendingPriceIds is not null || snapshot.CancelRenewal)
+                && subscription.ScheduleId is null)
             {
                 var state = await ReadStateAsync(stripe, subscription, ct);
-                var phases = StripeSchedulePlanner.Build(state.Start, state.End, state.CurrentPriceIds, snapshot);
+                var phases = StripeSchedulePlanner.Build(state.Start, state.End, state.CurrentPriceIds, snapshot, IntervalOf(subscription));
 
                 if (phases.Count > 0)
                 {
-                    await ApplyPhasesAsync(stripe, subscriptionId, null, phases, IntervalOf(subscription), ct);
+                    await ApplyPhasesAsync(stripe, subscriptionId, null, phases, IntervalOf(subscription), snapshot.CancelRenewal, ct);
+                }
+                else if (snapshot.CancelRenewal)
+                {
+                    await SetCancelAtPeriodEndAsync(stripe, subscriptionId, ct);
                 }
             }
 
@@ -213,11 +222,12 @@ public sealed class StripeSubscriptionService(
             }
 
             var phases = StripeSchedulePlanner.Build(
-                state.Start, state.End, state.CurrentPriceIds, state.Intent with { PendingPriceIds = null });
+                state.Start, state.End, state.CurrentPriceIds, state.Intent with { PendingPriceIds = null }, IntervalOf(subscription));
 
             if (phases.Count > 0)
             {
-                await ApplyPhasesAsync(stripe, subscriptionId, state.ScheduleId, phases, IntervalOf(subscription), ct);
+                await ApplyPhasesAsync(
+                    stripe, subscriptionId, state.ScheduleId, phases, IntervalOf(subscription), state.Intent.CancelRenewal, ct);
 
                 return true;
             }
@@ -229,6 +239,12 @@ public sealed class StripeSubscriptionService(
             if (state.Intent.GiftCouponId is { } giftCouponId)
             {
                 await SetSubscriptionDiscountAsync(stripe, subscriptionId, giftCouponId, ct);
+            }
+
+            // A release drops end_behavior=cancel, so the cancellation moves onto the subscription itself.
+            if (state.Intent.CancelRenewal)
+            {
+                await SetCancelAtPeriodEndAsync(stripe, subscriptionId, ct);
             }
 
             return true;
@@ -388,7 +404,7 @@ public sealed class StripeSubscriptionService(
         {
             var couponId = await EnsureGiftCouponAsync(stripe, ct);
 
-            await ApplyGiftAsync(stripe, subscriptionId, couponId, freeUntil, ct);
+            await ApplyGiftAsync(stripe, subscriptionId, couponId, freeUntil, false, ct);
 
             return true;
         });
@@ -449,6 +465,17 @@ public sealed class StripeSubscriptionService(
     public Task ResumeRenewalAsync(string subscriptionId, CancellationToken ct) =>
         RunAsync("resume-renewal", async stripe =>
         {
+            var subscription = await GetSubscriptionAsync(stripe, subscriptionId, ct);
+
+            // A schedule that cancels is what stops the renewal, and the subscription itself carries no flag to clear.
+            // Rebuilding it with the cancellation off makes it release instead; one update, so a failure leaves it as it was.
+            if (subscription.ScheduleId is not null)
+            {
+                await ResumeScheduleRenewalAsync(stripe, subscriptionId, subscription, ct);
+
+                return true;
+            }
+
             // UNVERIFIED: an empty cancel_at form value unsets the date, and Stripe.net has no typed way to send it — https://docs.stripe.com/api/subscriptions/update
             await stripe.V1.Subscriptions.UpdateAsync(
                 subscriptionId,
@@ -461,6 +488,36 @@ public sealed class StripeSubscriptionService(
 
             return true;
         });
+
+    private async Task ResumeScheduleRenewalAsync(
+        StripeClient stripe, string subscriptionId, Subscription subscription, CancellationToken ct)
+    {
+        var state = await ReadStateAsync(stripe, subscription, ct);
+
+        if (!state.Intent.CancelRenewal)
+        {
+            return;
+        }
+
+        var phases = StripeSchedulePlanner.Build(
+            state.Start, state.End, state.CurrentPriceIds, state.Intent with { CancelRenewal = false }, IntervalOf(subscription));
+
+        if (phases.Count > 0)
+        {
+            await ApplyPhasesAsync(stripe, subscriptionId, state.ScheduleId, phases, IntervalOf(subscription), false, ct);
+
+            return;
+        }
+
+        await stripe.V1.SubscriptionSchedules.ReleaseAsync(
+            state.ScheduleId!, new SubscriptionScheduleReleaseOptions(), cancellationToken: ct);
+
+        // UNVERIFIED: releasing a schedule keeps the current items and drops the phase discounts, so a gift is put back — https://docs.stripe.com/api/subscription_schedules/release
+        if (state.Intent.GiftCouponId is { } giftCouponId)
+        {
+            await SetSubscriptionDiscountAsync(stripe, subscriptionId, giftCouponId, ct);
+        }
+    }
 
     /// <inheritdoc />
     public Task<SecondRoleAddOnPreview> PreviewSecondRoleAddOnAsync(
@@ -650,7 +707,12 @@ public sealed class StripeSubscriptionService(
 
         if (state.Intent.GiftCouponId is not null)
         {
-            await ApplyGiftAsync(stripe, subscriptionId, state.Intent.GiftCouponId, state.Intent.GiftEnd, ct);
+            await ApplyGiftAsync(stripe, subscriptionId, state.Intent.GiftCouponId, state.Intent.GiftEnd, state.Intent.CancelRenewal, ct);
+        }
+        else if (state.ScheduleId is not null && state.Intent.CancelRenewal)
+        {
+            // The release dropped the schedule's cancellation; a plain subscription keeps its own flag through the upgrade.
+            await SetCancelAtPeriodEndAsync(stripe, subscriptionId, ct);
         }
 
         return PlanUpgradeOutcome.Applied;
@@ -835,19 +897,26 @@ public sealed class StripeSubscriptionService(
     }
 
     private async Task ApplyGiftAsync(
-        StripeClient stripe, string subscriptionId, string couponId, DateTimeOffset? freeUntil, CancellationToken ct)
+        StripeClient stripe,
+        string subscriptionId,
+        string couponId,
+        DateTimeOffset? freeUntil,
+        bool cancelRenewal,
+        CancellationToken ct)
     {
         var subscription = await GetSubscriptionAsync(stripe, subscriptionId, ct);
         var state = await ReadStateAsync(stripe, subscription, ct);
-        var phases = StripeSchedulePlanner.Build(
-            state.Start,
-            state.End,
-            state.CurrentPriceIds,
-            state.Intent with { GiftCouponId = couponId, GiftEnd = freeUntil });
+        var intent = state.Intent with
+        {
+            GiftCouponId = couponId,
+            GiftEnd = freeUntil,
+            CancelRenewal = state.Intent.CancelRenewal || cancelRenewal,
+        };
+        var phases = StripeSchedulePlanner.Build(state.Start, state.End, state.CurrentPriceIds, intent, IntervalOf(subscription));
 
         if (phases.Count > 0)
         {
-            await ApplyPhasesAsync(stripe, subscriptionId, state.ScheduleId, phases, IntervalOf(subscription), ct);
+            await ApplyPhasesAsync(stripe, subscriptionId, state.ScheduleId, phases, IntervalOf(subscription), intent.CancelRenewal, ct);
 
             return;
         }
@@ -859,7 +928,17 @@ public sealed class StripeSubscriptionService(
         }
 
         await SetSubscriptionDiscountAsync(stripe, subscriptionId, couponId, ct);
+
+        // A release drops end_behavior=cancel, and an endless gift needs no schedule, so the plain flag keeps the cancellation.
+        if (intent.CancelRenewal && state.ScheduleId is not null)
+        {
+            await SetCancelAtPeriodEndAsync(stripe, subscriptionId, ct);
+        }
     }
+
+    private static Task SetCancelAtPeriodEndAsync(StripeClient stripe, string subscriptionId, CancellationToken ct) =>
+        stripe.V1.Subscriptions.UpdateAsync(
+            subscriptionId, new SubscriptionUpdateOptions { CancelAtPeriodEnd = true }, cancellationToken: ct);
 
     /// <summary>
     /// Makes the coupon the subscription's only discount. Setting the full list replaces any discount already there, so a
@@ -880,11 +959,15 @@ public sealed class StripeSubscriptionService(
     {
         try
         {
-            var phases = StripeSchedulePlanner.Build(state.Start, state.End, state.CurrentPriceIds, state.Intent);
+            var phases = StripeSchedulePlanner.Build(state.Start, state.End, state.CurrentPriceIds, state.Intent, IntervalOf(subscription));
 
             if (phases.Count > 0)
             {
-                await ApplyPhasesAsync(stripe, subscriptionId, null, phases, IntervalOf(subscription), ct);
+                await ApplyPhasesAsync(stripe, subscriptionId, null, phases, IntervalOf(subscription), state.Intent.CancelRenewal, ct);
+            }
+            else if (state.Intent.CancelRenewal)
+            {
+                await SetCancelAtPeriodEndAsync(stripe, subscriptionId, ct);
             }
         }
         catch (Exception ex)
@@ -900,6 +983,7 @@ public sealed class StripeSubscriptionService(
         string? scheduleId,
         IReadOnlyList<SchedulePhasePlan> phases,
         BillingInterval interval,
+        bool cancelRenewal,
         CancellationToken ct)
     {
         scheduleId ??= (await stripe.V1.SubscriptionSchedules.CreateAsync(
@@ -909,7 +993,7 @@ public sealed class StripeSubscriptionService(
             scheduleId,
             new SubscriptionScheduleUpdateOptions
             {
-                EndBehavior = "release",
+                EndBehavior = cancelRenewal ? "cancel" : "release",
                 ProrationBehavior = "none",
                 Phases = StripeRequestBuilder.SchedulePhases(phases, interval, StripeRequestBuilder.TaxRates(settings)),
             },
@@ -932,7 +1016,7 @@ public sealed class StripeSubscriptionService(
                 .ToList();
 
             return new SubscriptionState(
-                StripeSchedulePlanner.Read(phases),
+                StripeSchedulePlanner.Read(phases, schedule.EndBehavior == "cancel" || IsCancelling(subscription)),
                 phases[0].Start,
                 phases[0].End ?? subscription.Items.Data.Max(item => item.CurrentPeriodEnd),
                 phases[0].PriceIds,
@@ -945,12 +1029,14 @@ public sealed class StripeSubscriptionService(
             .FirstOrDefault(id => id == StripeRequestBuilder.GiftCouponId);
 
         return new SubscriptionState(
-            new ScheduleIntent(null, giftCouponId, null),
+            new ScheduleIntent(null, giftCouponId, null, IsCancelling(subscription)),
             items.Min(item => item.CurrentPeriodStart),
             items.Max(item => item.CurrentPeriodEnd),
             items.Select(item => item.Price.Id).ToList(),
             null);
     }
+
+    private static bool IsCancelling(Subscription subscription) => subscription.CancelAtPeriodEnd || subscription.CancelAt is not null;
 
     private sealed record PlanChangeInputs(
         Subscription Subscription,

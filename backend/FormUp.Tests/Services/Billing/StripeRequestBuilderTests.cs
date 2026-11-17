@@ -158,7 +158,7 @@ public class StripeRequestBuilderTests
     public void RestoreSnapshot_RoundTripsThePricesAndTheGift_AndEmptyKeysAreUnsets()
     {
         var giftEnd = DateTimeOffset.FromUnixTimeSeconds(1705270400);
-        var written = StripeRequestBuilder.RestoreSnapshot(new ScheduleIntent(["price_a", "price_b"], "coupon_gift", giftEnd));
+        var written = StripeRequestBuilder.RestoreSnapshot(new ScheduleIntent(["price_a", "price_b"], "coupon_gift", giftEnd, CancelRenewal: true));
 
         var read = StripeRequestBuilder.ReadRestoreSnapshot(written);
 
@@ -166,6 +166,8 @@ public class StripeRequestBuilderTests
         read!.PendingPriceIds.Should().Equal("price_a", "price_b");
         read.GiftCouponId.Should().Be("coupon_gift");
         read.GiftEnd.Should().Be(giftEnd);
+        read.CancelRenewal.Should().BeTrue();
+        StripeRequestBuilder.ReadRestoreSnapshot(StripeRequestBuilder.RestoreSnapshot(new ScheduleIntent(null, null, null)))!.CancelRenewal.Should().BeFalse();
         StripeRequestBuilder.RestoreSnapshot(new ScheduleIntent(null, null, null)).Values.Should().OnlyContain(value => value.Length == 0);
         StripeRequestBuilder.ClearedRestoreSnapshot().Values.Should().OnlyContain(value => value.Length == 0);
     }
