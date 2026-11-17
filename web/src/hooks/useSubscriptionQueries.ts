@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import {
@@ -169,12 +169,54 @@ export function useApplyPromotionCode() {
   });
 }
 
-/** Opens the Stripe Customer Portal in this tab (card, invoices, address, cancelling). */
+/**
+ * Opens the Stripe Customer Portal in a new tab. `open` must run synchronously in the click handler so the
+ * browser treats the tab as user-initiated: a blank tab is opened first, then pointed at the portal URL once
+ * the session is created, and closed again when that fails. A blocked pop-up falls back to this tab. After the
+ * portal was opened, coming back to this tab re-reads the subscription and profile, because the portal can
+ * change the plan and the global stale time would otherwise skip the focus refetch.
+ */
 export function useOpenBillingPortal() {
-  return useMutation({
-    mutationFn: createPortalSession,
-    onSuccess: (url) => window.location.assign(url),
-  });
+  const queryClient = useQueryClient();
+  const mutation = useMutation({ mutationFn: createPortalSession });
+  const { mutateAsync } = mutation;
+  const opened = useRef(false);
+
+  useEffect(() => {
+    const refresh = () => {
+      if (!opened.current) return;
+      void queryClient.invalidateQueries({ queryKey: subscriptionKeys.mine });
+      void queryClient.invalidateQueries({ queryKey: profileKeys.me });
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') refresh();
+    };
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [queryClient]);
+
+  const open = async (onError: (error: unknown) => void) => {
+    const tab = window.open('', '_blank');
+    if (tab) tab.opener = null;
+    try {
+      const url = await mutateAsync();
+      opened.current = true;
+      if (!tab) {
+        window.location.assign(url);
+      } else if (!tab.closed) {
+        tab.location.replace(url);
+      }
+    } catch (error) {
+      tab?.close();
+      onError(error);
+    }
+  };
+
+  return { open, isPending: mutation.isPending };
 }
 
 /** What adding the second-role add-on would cost; read once per opened dialog, never cached. */

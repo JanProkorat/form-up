@@ -40,7 +40,9 @@ export default function PastDueBanner() {
         size="lg"
         className="ml-auto gap-1.75 px-3.5 font-semibold"
         disabled={portal.isPending || !data.hasBillingAccount}
-        onClick={() => portal.mutate(undefined, { onError: (error) => showBillingError(error, 'subscription.billing.errors.portal') })}
+        onClick={() => {
+          void portal.open((error) => showBillingError(error, 'subscription.billing.errors.portal'));
+        }}
       >
         <CreditCard aria-hidden="true" />
         {t('subscription.billing.pastDue.updateCard')}

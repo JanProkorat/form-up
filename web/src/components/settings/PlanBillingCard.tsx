@@ -64,8 +64,9 @@ export default function PlanBillingCard() {
   const cancelChange = useCancelScheduledChange();
   const [cancelOpen, setCancelOpen] = useState(false);
 
-  const openPortal = () =>
-    portal.mutate(undefined, { onError: (error) => showBillingError(error, 'subscription.billing.errors.portal') });
+  const openPortal = () => {
+    void portal.open((error) => showBillingError(error, 'subscription.billing.errors.portal'));
+  };
 
   const submitCode = () => {
     const trimmed = code.trim();
