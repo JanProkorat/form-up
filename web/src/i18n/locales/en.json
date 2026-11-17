@@ -385,7 +385,10 @@
         "studio": "{{plan}} includes both roles for {{price}}.",
         "compare": "Compare plans",
         "confirm": "Add role · pay {{amount}}",
-        "alreadyPaid": "The second role is already paid for, so adding it costs nothing today."
+        "alreadyPaid": "The second role is already paid for, so adding it costs nothing today.",
+        "paymentNotice": "Your bank needs to confirm this payment. Complete it on Stripe's secure page. The role is not added until the payment is confirmed.",
+        "paymentConfirmed": "Payment confirmed. Add the role in Settings.",
+        "notConfirmed": "We could not confirm your payment, so the role was not added."
       },
       "errors": {
         "generic": "Something went wrong. Please try again.",
@@ -3709,7 +3712,6 @@
     "BILLING_ADD_ON_NOT_AVAILABLE": "Your plan doesn't offer a paid second role.",
     "BILLING_ADD_ON_ALREADY_PAID": "The second role is already paid for.",
     "BILLING_PAYMENT_DECLINED": "Your card was declined. Nothing was charged and the role was not added. Update your card in Manage billing or try another card.",
-    "BILLING_PAYMENT_AUTHENTICATION_REQUIRED": "Your bank needs to confirm this payment first. Open Manage billing, confirm it there, then try again.",
     "BILLING_CUSTOMER_NOT_FOUND": "There is no billing account yet. Choose a paid plan first.",
     "BILLING_NOT_CONFIGURED": "Billing isn't available right now. Please try again later.",
     "BILLING_PROVIDER_ERROR": "The payment provider didn't answer. Please try again in a moment.",

@@ -1,5 +1,6 @@
 import {
   BillingTaxMode,
+  SecondRoleState,
   SubscriptionStatus,
   type CoachPlanDto,
   type GetMySubscriptionResponse,
@@ -77,4 +78,9 @@ export function isCheckoutSettled(data: GetMySubscriptionResponse | undefined): 
     data.planCode !== FREE_PLAN_CODE &&
     (data.status === SubscriptionStatus.Active || data.status === SubscriptionStatus.Trialing)
   );
+}
+
+/** True once the second-role add-on is paid; the coach then adds the role from Settings at no further charge. */
+export function isSecondRoleAddOnSettled(data: GetMySubscriptionResponse | undefined): boolean {
+  return !!data && data.secondRole === SecondRoleState.PaidAddOn;
 }

@@ -24,7 +24,10 @@ import {
   useSecondRolePreview,
   useSubscription,
 } from '@/hooks/useSubscriptionQueries';
+import UpgradePaymentNotice from '@/components/subscription/UpgradePaymentNotice';
 import { getErrorStatus } from '@/lib/api-errors';
+import { useAuthStore } from '@/stores/auth';
+import { useCheckoutActivationStore } from '@/stores/checkoutActivation';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -54,6 +57,9 @@ export default function AddRoleDialog({ role, onClose, onPaid, adding }: Props) 
   const [attemptId, setAttemptId] = useState(() => crypto.randomUUID());
   const [openedFor, setOpenedFor] = useState<CoachRoleKey | null>(role);
   const [confirmError, setConfirmError] = useState<string | null>(null);
+  // Stripe's hosted payment page when the bank must confirm the add-on: only ever an href, never shown or logged.
+  const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
+  const userId = useAuthStore((s) => s.user?.publicId ?? null);
 
   // Adjusted during render (own state only): opening the dialog starts a fresh attempt and clears the last error.
   if (role !== openedFor) {
@@ -61,6 +67,7 @@ export default function AddRoleDialog({ role, onClose, onPaid, adding }: Props) 
     if (role !== null) {
       setAttemptId(crypto.randomUUID());
       setConfirmError(null);
+      setPaymentUrl(null);
     }
   }
 
@@ -88,13 +95,23 @@ export default function AddRoleDialog({ role, onClose, onPaid, adding }: Props) 
   const pay = () => {
     setConfirmError(null);
     confirm.mutate(attemptId, {
-      onSuccess: onPaid,
+      onSuccess: (result) => {
+        // Awaiting the bank: nothing is paid and the role is not added until Stripe confirms the payment.
+        if (result.paymentUrl && !result.paysSecondRoleAddOn) setPaymentUrl(result.paymentUrl);
+        else onPaid();
+      },
       onError: (error) => {
         setConfirmError(billingErrorMessage(error, 'subscription.billing.errors.addRole'));
         // Any 402 is final for this attempt id; the next try needs its own.
         if (getErrorStatus(error) === 402) setAttemptId(crypto.randomUUID());
       },
     });
+  };
+
+  // Starts watching for the add-on to be paid, then closes once the click has opened the tab.
+  const openPayment = () => {
+    if (userId) useCheckoutActivationStore.getState().startSecondRoleAddOn(userId);
+    setTimeout(onClose, 0);
   };
 
   const busy = confirm.isPending || adding;
@@ -177,6 +194,15 @@ export default function AddRoleDialog({ role, onClose, onPaid, adding }: Props) 
           </>
         ) : null}
 
+        {paymentUrl && (
+          <UpgradePaymentNotice
+            message={t('subscription.billing.addRole.paymentNotice')}
+            paymentUrl={paymentUrl}
+            onOpen={openPayment}
+            onDismiss={onClose}
+          />
+        )}
+
         {confirmError && (
           <p role="alert" className="text-body text-error">
             {confirmError}
@@ -192,7 +218,7 @@ export default function AddRoleDialog({ role, onClose, onPaid, adding }: Props) 
               {t('settings.roles.add')}
             </Button>
           ) : (
-            <Button type="button" size="lg" disabled={busy || !preview || loadFailed} onClick={pay}>
+            <Button type="button" size="lg" disabled={busy || !preview || loadFailed || paymentUrl !== null} onClick={pay}>
               {preview
                 ? t('subscription.billing.addRole.confirm', { amount: money(preview.todayAmountMinorUnits) })
                 : t('settings.roles.add')}
