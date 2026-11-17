@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { CircleMinus, Tag } from 'lucide-react';
+import { Tag, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -172,7 +172,7 @@ export default function PromotionsTable({ promotions, isPending, isError, onRetr
                       title={t('adminPromotions.end.tooltip')}
                       onClick={() => onEnd(promotion)}
                     >
-                      <CircleMinus className="size-4.5" aria-hidden="true" />
+                      <X className="size-4.5" aria-hidden="true" />
                     </Button>
                   )}
                 </TableCell>
