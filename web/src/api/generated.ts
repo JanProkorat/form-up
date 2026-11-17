@@ -24754,6 +24754,14 @@ export class ApiClient {
             result409 = JSON.parse(resultData409);
             return throwException("No plan to end: no subscription, the Free plan, an ended paid plan, or a gift that has expired (NO_PLAN_TO_END)", status, _responseText, _headers, result409);
 
+        } else if (status === 502) {
+            const _responseText = response.data;
+            return throwException("Stripe failed; nothing was saved (BILLING_PROVIDER_ERROR)", status, _responseText, _headers);
+
+        } else if (status === 503) {
+            const _responseText = response.data;
+            return throwException("The coach has a live Stripe subscription and Stripe is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
