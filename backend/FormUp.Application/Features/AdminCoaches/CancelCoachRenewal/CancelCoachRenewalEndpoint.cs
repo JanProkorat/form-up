@@ -8,6 +8,7 @@ using FormUp.Application.Domain.Interfaces;
 using FormUp.Application.Domain.Services;
 using FormUp.Application.Features.AdminCoaches.Shared;
 using FormUp.Application.Infrastructure.Data;
+using FormUp.Application.Infrastructure.Services.Billing;
 using Microsoft.EntityFrameworkCore;
 
 namespace FormUp.Application.Features.AdminCoaches.CancelCoachRenewal;
@@ -21,13 +22,15 @@ namespace FormUp.Application.Features.AdminCoaches.CancelCoachRenewal;
 /// <param name="notifications">Notification service.</param>
 /// <param name="notifier">Realtime notifier.</param>
 /// <param name="logger">Logger.</param>
+/// <param name="subscriptions">The payment provider seam.</param>
 internal sealed class CancelCoachRenewalEndpoint(
     IApplicationDbContext db,
     IAuditService audit,
     TimeProvider timeProvider,
     INotificationService notifications,
     IRealtimeNotifier notifier,
-    ILogger<CancelCoachRenewalEndpoint> logger)
+    ILogger<CancelCoachRenewalEndpoint> logger,
+    ISubscriptionService subscriptions)
     : Endpoint<CancelCoachRenewalRequest, CancelCoachRenewalResponse>
 {
     /// <inheritdoc />
@@ -47,6 +50,8 @@ internal sealed class CancelCoachRenewalEndpoint(
             s.Response(StatusCodes.Status404NotFound, "The coach is unknown (PROFESSIONAL_NOT_FOUND)");
             s.Response<ProblemDetails>(StatusCodes.Status409Conflict,
                 "Nothing renews: no subscription, the Free plan, a given-free plan, or a plan that no longer applies (NO_RENEWING_SUBSCRIPTION)");
+            s.Response(StatusCodes.Status502BadGateway, "Stripe failed; nothing was saved (BILLING_PROVIDER_ERROR)");
+            s.Response(StatusCodes.Status503ServiceUnavailable, "The coach has a live Stripe subscription and Stripe is not configured on this server (BILLING_NOT_CONFIGURED)");
         });
     }
 
@@ -88,6 +93,13 @@ internal sealed class CancelCoachRenewalEndpoint(
             .FirstAsync(cs => cs.ProfessionalProfileId == profileId, ct);
 
         var wasCancelling = subscription.CancelAtPeriodEnd;
+        var cancelsAtProvider = !wasCancelling && subscription.HasLiveProviderSubscription;
+
+        // Stripe first: a refusal leaves the row untouched, so a later save cannot persist half a cancellation.
+        if (cancelsAtProvider && !await TryCancelAtProviderAsync(subscription.ExternalSubscriptionId!, ct))
+        {
+            return;
+        }
 
         // An admin call also locks a cancellation the coach scheduled themselves.
         subscription.RenewalCancelledByAdminAt ??= timeProvider.GetUtcNow();
@@ -95,6 +107,14 @@ internal sealed class CancelCoachRenewalEndpoint(
         if (!wasCancelling)
         {
             subscription.CancelAtPeriodEnd = true;
+
+            if (cancelsAtProvider)
+            {
+                // The provider drops a scheduled plan change when it cancels the subscription.
+                subscription.PendingSubscriptionPlanPriceId = null;
+                subscription.SecondRoleAddOnEndsAt = null;
+            }
+
             await db.SaveChangesAsync(ct);
 
             var fields = new Dictionary<string, object?>
@@ -131,5 +151,31 @@ internal sealed class CancelCoachRenewalEndpoint(
             CurrentPeriodEndsAt = subscription.CurrentPeriodEndsAt,
             AlreadyCancelled = true,
         }, ct);
+    }
+
+    /// <summary>
+    /// Asks the payment provider to end the subscription at the period end. Answers 503 or 502 and returns false when it could not.
+    /// </summary>
+    private async Task<bool> TryCancelAtProviderAsync(string externalSubscriptionId, CancellationToken ct)
+    {
+        if (!subscriptions.IsConfigured)
+        {
+            await this.SendProblemAsync(
+                StatusCodes.Status503ServiceUnavailable, ErrorCodes.BillingNotConfigured, "Billing is not configured.", ct);
+            return false;
+        }
+
+        try
+        {
+            await subscriptions.CancelAtPeriodEndAsync(externalSubscriptionId, ct);
+        }
+        catch (BillingProviderException)
+        {
+            await this.SendProblemAsync(
+                StatusCodes.Status502BadGateway, ErrorCodes.BillingProviderError, "The payment provider failed.", ct);
+            return false;
+        }
+
+        return true;
     }
 }
