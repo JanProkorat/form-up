@@ -4,6 +4,7 @@ using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Extensions;
 using FormUp.Application.Domain.Interfaces;
+using FormUp.Application.Domain.Services;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Application.Infrastructure.Services.Billing;
 using Microsoft.EntityFrameworkCore;
@@ -35,6 +36,9 @@ internal sealed class StripeWebhookEndpoint(
 
     /// <summary>The coach's row the applied event changed; null when it changed nothing. One instance serves one request.</summary>
     private CoachSubscription? _changedRow;
+
+    /// <summary>The subscription whose remembered second role the applied event consumed; null when none.</summary>
+    private string? _rememberedRoleSubscriptionId;
 
     /// <inheritdoc />
     public override void Configure()
@@ -101,6 +105,8 @@ internal sealed class StripeWebhookEndpoint(
 
                 // One save: the event id and the subscription change commit together or not at all.
                 await db.SaveChangesAsync(ct);
+
+                await TryClearRememberedRoleAsync(ct);
 
                 if (_changedRow is not null)
                 {
@@ -207,6 +213,7 @@ internal sealed class StripeWebhookEndpoint(
             {
                 row.PendingSubscriptionPlanPriceId = null;
                 _changedRow = row;
+                await GrantPaidRoleAsync(subscription, planPrice, row, ct);
                 return true;
             }
 
@@ -268,7 +275,62 @@ internal sealed class StripeWebhookEndpoint(
 
         await ApplyDiscountAsync(stripeEvent, row, subscription, ct);
 
+        if (pendingUpdateApplied)
+        {
+            await GrantPaidRoleAsync(subscription, planPrice, row, ct);
+        }
+
         return true;
+    }
+
+    /// <summary>
+    /// A pending update was applied: adds the role the coach bought when it was a second-role add-on, now paid. The role
+    /// is remembered in the subscription metadata; a leftover one on any other applied update (a plan upgrade) adds nothing.
+    /// The remembered role is cleared at the provider after the save.
+    /// </summary>
+    private async Task GrantPaidRoleAsync(Subscription subscription, SubscriptionPlanPrice planPrice, CoachSubscription row, CancellationToken ct)
+    {
+        if (subscription.Metadata is null
+            || !subscription.Metadata.TryGetValue(StripeRequestBuilder.PendingSecondRoleKey, out var role)
+            || string.IsNullOrEmpty(role))
+        {
+            return;
+        }
+
+        _rememberedRoleSubscriptionId = subscription.Id;
+
+        if (planPrice.SubscriptionPlan.BothRolesIncluded || !HasAddOnItem(subscription, planPrice) || !CoachRoleGranter.IsCoachRole(role))
+        {
+            return;
+        }
+
+        var profile = await db.ProfessionalProfiles.FirstOrDefaultAsync(p => p.Id == row.ProfessionalProfileId, ct);
+
+        if (profile is not null && await CoachRoleGranter.GrantAsync(db, profile, role, ct))
+        {
+            logger.LogInformation("Added the paid second role to coach {ProfileId}", profile.Id);
+        }
+    }
+
+    /// <summary>
+    /// Removes the remembered role from the subscription after the event is saved. A failure is logged and swallowed: the
+    /// role is already added, and a leftover key adds nothing on a later event without a paid add-on item.
+    /// </summary>
+    private async Task TryClearRememberedRoleAsync(CancellationToken ct)
+    {
+        if (_rememberedRoleSubscriptionId is not { } subscriptionId || !subscriptions.IsConfigured)
+        {
+            return;
+        }
+
+        try
+        {
+            await subscriptions.ClearPendingSecondRoleAsync(subscriptionId, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogWarning(ex, "Removing the remembered second role of subscription {SubscriptionId} failed", subscriptionId);
+        }
     }
 
     /// <summary>
@@ -355,6 +417,12 @@ internal sealed class StripeWebhookEndpoint(
         }
 
         await subscriptions.RestoreAfterExpiredUpgradeAsync(subscription.Id, row.PendingSubscriptionPlanPriceId is not null, ct);
+
+        // The add-on was never paid, so the role it would have bought is forgotten.
+        if (subscription.Metadata?.ContainsKey(StripeRequestBuilder.PendingSecondRoleKey) == true)
+        {
+            await subscriptions.ClearPendingSecondRoleAsync(subscription.Id, ct);
+        }
 
         return true;
     }

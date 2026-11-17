@@ -24,6 +24,9 @@ public static class StripeRequestBuilder
     /// <summary>Prefix of the id of a plan's stable Stripe product.</summary>
     public const string PlanProductPrefix = "formup-plan-";
 
+    /// <summary>Subscription metadata key that remembers the coach role bought by a second-role add-on awaiting payment.</summary>
+    public const string PendingSecondRoleKey = "formup_pending_second_role";
+
     private const string RestorePricesKey = "formup_restore_prices";
 
     private const string RestoreGiftKey = "formup_restore_gift";
@@ -329,6 +332,13 @@ public static class StripeRequestBuilder
         [RestoreGiftEndKey] = intent.GiftEnd is { } giftEnd ? giftEnd.ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture) : string.Empty,
         [RestoreCancelKey] = intent.CancelRenewal ? "true" : string.Empty,
     };
+
+    /// <summary>The metadata that remembers the role a pending second-role add-on buys.</summary>
+    /// <param name="role">Trainer or Nutritionist.</param>
+    public static Dictionary<string, string> PendingSecondRole(string role) => new() { [PendingSecondRoleKey] = role };
+
+    /// <summary>The metadata that removes the remembered role (an empty value deletes the key at Stripe).</summary>
+    public static Dictionary<string, string> ClearedPendingSecondRole() => new() { [PendingSecondRoleKey] = string.Empty };
 
     /// <summary>The metadata that removes a restore snapshot.</summary>
     public static Dictionary<string, string> ClearedRestoreSnapshot() => new()

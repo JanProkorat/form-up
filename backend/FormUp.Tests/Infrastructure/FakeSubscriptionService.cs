@@ -140,7 +140,11 @@ public sealed class FakeSubscriptionService : ISubscriptionService
         string CustomerId, string SubscriptionId, string PlanCode, string PlanPriceExternalId, long? AddOnAmountMinorUnits);
 
     /// <summary>A recorded add-on preview or charge; the idempotency key is null for a preview.</summary>
-    public sealed record AddOnCall(string SubscriptionId, string PlanCode, long AmountMinorUnits, string? IdempotencyKey);
+    public sealed record AddOnCall(
+        string SubscriptionId, string PlanCode, long AmountMinorUnits, string? IdempotencyKey, string? RoleToAdd = null);
+
+    /// <summary>Recorded <see cref="ISubscriptionService.ClearPendingSecondRoleAsync"/> calls (subscription ids).</summary>
+    public List<string> ClearedPendingSecondRoles { get; } = [];
 
     /// <summary>A recorded price creation.</summary>
     public sealed record PriceCall(string PlanCode, long AmountMinorUnits, string Currency, BillingInterval Interval);
@@ -165,6 +169,7 @@ public sealed class FakeSubscriptionService : ISubscriptionService
             FailClearScheduledChange = false;
             UpgradeOutcome = PlanUpgradeOutcome.Applied;
             ExpiredUpgradeRestores.Clear();
+            ClearedPendingSecondRoles.Clear();
             FailExpiredUpgradeRestore = false;
             ClearedScheduledChanges.Clear();
             Customers.Clear();
@@ -538,16 +543,30 @@ public sealed class FakeSubscriptionService : ISubscriptionService
         string currency,
         BillingInterval interval,
         string idempotencyKey,
-        CancellationToken ct)
+        CancellationToken ct,
+        string? roleToAdd = null)
     {
         ThrowIfFailing();
 
         lock (gate)
         {
-            Charges.Add(new AddOnCall(subscriptionId, planCode, addOnAmountMinorUnits, idempotencyKey));
+            Charges.Add(new AddOnCall(subscriptionId, planCode, addOnAmountMinorUnits, idempotencyKey, roleToAdd));
         }
 
         return Task.FromResult(ChargeResult);
+    }
+
+    /// <inheritdoc />
+    public Task ClearPendingSecondRoleAsync(string subscriptionId, CancellationToken ct)
+    {
+        ThrowIfFailing();
+
+        lock (gate)
+        {
+            ClearedPendingSecondRoles.Add(subscriptionId);
+        }
+
+        return Task.CompletedTask;
     }
 
     private void ThrowIfFailing()
