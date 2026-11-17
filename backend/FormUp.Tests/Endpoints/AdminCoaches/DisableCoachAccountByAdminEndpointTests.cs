@@ -7,6 +7,7 @@ using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Features.AdminCoaches.DisableCoachAccountByAdmin;
 using FormUp.Application.Infrastructure.Data;
+using FormUp.Tests.Endpoints.Billing;
 using FormUp.Tests.Builders;
 using FormUp.Tests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -19,8 +20,11 @@ namespace FormUp.Tests.Endpoints.AdminCoaches;
 /// runs the same logic as the coach's own Disable button.
 /// </summary>
 [Collection(TestCollection.Name)]
-public class DisableCoachAccountByAdminEndpointTests(FitnessApiFactory factory)
+public class DisableCoachAccountByAdminEndpointTests(FitnessApiFactory factory) : IDisposable
 {
+    /// <summary>Leaves the shared fake provider in its defaults for the next test class.</summary>
+    public void Dispose() => BillingTestData.ResetProvider(factory);
+
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     private Task<HttpResponseMessage> DisableAsync(Actor admin, Guid coachId, string reason = "abuse report") =>
@@ -110,6 +114,61 @@ public class DisableCoachAccountByAdminEndpointTests(FitnessApiFactory factory)
         audit.UserId.Should().Be(coach.UserId);
         using var values = JsonDocument.Parse(audit.NewValues!);
         values.RootElement.EnumerateObject().Select(property => property.Name).Should().Equal("activeUntil");
+    }
+
+    [Fact]
+    public async Task Disable_LiveStripeSubscription_CancelsAtTheProviderOnce_AndAuditsTheAdmin()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (plan, _) = await BillingTestData.StripePlanAsync(factory);
+        var subscriptionId = await BillingTestData.SubscribeLiveAsync(factory, coach, plan);
+
+        var response = await DisableAsync(admin, coach.UserId);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.CancelledAtPeriodEnd.Should().ContainSingle().Which.Should().Be(subscriptionId);
+        (await BillingTestData.ReadRowAsync(factory, coach.ProfileId)).CancelAtPeriodEnd.Should().BeTrue();
+        (await AuditRowsAsync(coach.UserId, "AdminDisableCoachAccount")).Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task Disable_LiveStripeSubscription_WhenTheProviderFails_Returns502AndSavesNothing()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (plan, _) = await BillingTestData.StripePlanAsync(factory);
+        await BillingTestData.SubscribeLiveAsync(factory, coach, plan);
+        fake.Fail = true;
+
+        var response = await DisableAsync(admin, coach.UserId);
+
+        (await response.Content.ReadAsStringAsync(Ct)).Should().Contain(ErrorCodes.BillingProviderError);
+        response.StatusCode.Should().Be(HttpStatusCode.BadGateway);
+        (await ReadProfileAsync(coach.UserId)).CoachAccountActiveUntil.Should().BeNull();
+        (await BillingTestData.ReadRowAsync(factory, coach.ProfileId)).CancelAtPeriodEnd.Should().BeFalse();
+        (await AuditRowsAsync(coach.UserId, "AdminDisableCoachAccount")).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Disable_LiveStripeSubscription_WhenBillingIsNotConfigured_Returns503AndSavesNothing()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (plan, _) = await BillingTestData.StripePlanAsync(factory);
+        await BillingTestData.SubscribeLiveAsync(factory, coach, plan);
+        fake.IsConfigured = false;
+
+        var response = await DisableAsync(admin, coach.UserId);
+
+        (await response.Content.ReadAsStringAsync(Ct)).Should().Contain(ErrorCodes.BillingNotConfigured);
+        response.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
+        fake.CancelledAtPeriodEnd.Should().BeEmpty();
+        (await ReadProfileAsync(coach.UserId)).CoachAccountActiveUntil.Should().BeNull();
+        (await AuditRowsAsync(coach.UserId, "AdminDisableCoachAccount")).Should().BeEmpty();
     }
 
     [Fact]

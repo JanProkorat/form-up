@@ -10,7 +10,7 @@ namespace FormUp.Application.Domain.Interfaces;
 public interface ISubscriptionService
 {
     /// <summary>
-    /// True when billing calls can run. When false, checkout and portal answer 503 and admin plan edits skip the provider.
+    /// True when billing calls can run. When false, checkout and portal answer 503. Giving a plan free skips the provider; cancelling or disabling a live subscription answers 503.
     /// </summary>
     bool IsConfigured { get; }
 

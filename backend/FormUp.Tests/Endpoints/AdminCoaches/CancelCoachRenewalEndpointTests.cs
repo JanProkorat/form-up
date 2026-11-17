@@ -7,6 +7,7 @@ using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Features.AdminCoaches.CancelCoachRenewal;
 using FormUp.Application.Infrastructure.Data;
+using FormUp.Tests.Endpoints.Billing;
 using FormUp.Tests.Builders;
 using FormUp.Tests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -18,8 +19,11 @@ namespace FormUp.Tests.Endpoints.AdminCoaches;
 /// Integration tests for <c>POST /admin/coaches/{CoachId}/cancel-renewal</c> (<c>CancelCoachRenewalEndpoint</c>).
 /// </summary>
 [Collection(TestCollection.Name)]
-public class CancelCoachRenewalEndpointTests(FitnessApiFactory factory)
+public class CancelCoachRenewalEndpointTests(FitnessApiFactory factory) : IDisposable
 {
+    /// <summary>Leaves the shared fake provider in its defaults for the next test class.</summary>
+    public void Dispose() => BillingTestData.ResetProvider(factory);
+
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     private Task<HttpResponseMessage> CancelAsync(Actor admin, Guid coachId, string reason = "asked to stop") =>
@@ -104,6 +108,104 @@ public class CancelCoachRenewalEndpointTests(FitnessApiFactory factory)
         (await response.Content.ReadFromJsonAsync<CancelCoachRenewalResponse>(Ct))!.AlreadyCancelled.Should().BeTrue();
         (await AdminMarkerAsync(coach.ProfileId)).Should().NotBeNull();
         (await AuditCountAsync(coach.UserId)).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Cancel_LiveStripeSubscription_CancelsAtTheProviderOnce_AndClearsTheScheduledChange()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (plan, _) = await BillingTestData.StripePlanAsync(factory);
+        var subscriptionId = await BillingTestData.SubscribeLiveAsync(factory, coach, plan, paysSecondRoleAddOn: true);
+        await BillingTestData.SetPendingPlanAsync(factory, coach.ProfileId, plan);
+        await BillingTestData.UpdateRowAsync(factory, coach.ProfileId, row => row.SecondRoleAddOnEndsAt = DateTimeOffset.UtcNow.AddDays(3));
+
+        var response = await CancelAsync(admin, coach.UserId);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.CancelledAtPeriodEnd.Should().ContainSingle().Which.Should().Be(subscriptionId);
+        var row = await BillingTestData.ReadRowAsync(factory, coach.ProfileId);
+        row.CancelAtPeriodEnd.Should().BeTrue();
+        row.RenewalCancelledByAdminAt.Should().NotBeNull();
+        row.PendingSubscriptionPlanPriceId.Should().BeNull();
+        row.SecondRoleAddOnEndsAt.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Cancel_LiveStripeSubscription_WhenTheProviderFails_Returns502AndLeavesTheRowUnchanged()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (plan, _) = await BillingTestData.StripePlanAsync(factory);
+        await BillingTestData.SubscribeLiveAsync(factory, coach, plan);
+        await BillingTestData.SetPendingPlanAsync(factory, coach.ProfileId, plan);
+        fake.Fail = true;
+
+        var response = await CancelAsync(admin, coach.UserId);
+
+        (await response.Content.ReadAsStringAsync(Ct)).Should().Contain(ErrorCodes.BillingProviderError);
+        response.StatusCode.Should().Be(HttpStatusCode.BadGateway);
+        var row = await BillingTestData.ReadRowAsync(factory, coach.ProfileId);
+        row.CancelAtPeriodEnd.Should().BeFalse();
+        row.RenewalCancelledByAdminAt.Should().BeNull();
+        row.PendingSubscriptionPlanPriceId.Should().NotBeNull();
+        (await AuditCountAsync(coach.UserId)).Should().Be(0);
+        (await NotificationsAsync(coach.UserId)).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Cancel_LiveStripeSubscription_WhenBillingIsNotConfigured_Returns503AndLeavesTheRowUnchanged()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (plan, _) = await BillingTestData.StripePlanAsync(factory);
+        await BillingTestData.SubscribeLiveAsync(factory, coach, plan);
+        fake.IsConfigured = false;
+
+        var response = await CancelAsync(admin, coach.UserId);
+
+        (await response.Content.ReadAsStringAsync(Ct)).Should().Contain(ErrorCodes.BillingNotConfigured);
+        response.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
+        fake.CancelledAtPeriodEnd.Should().BeEmpty();
+        var row = await BillingTestData.ReadRowAsync(factory, coach.ProfileId);
+        row.CancelAtPeriodEnd.Should().BeFalse();
+        row.RenewalCancelledByAdminAt.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Cancel_WithoutAProviderSubscription_SkipsTheProvider_EvenWhenNotConfigured()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        fake.IsConfigured = false;
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var plan = await PaidPlanBuilder.CreateAsync(factory);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, plan);
+
+        var response = await CancelAsync(admin, coach.UserId);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.CancelledAtPeriodEnd.Should().BeEmpty();
+        (await CancelAtPeriodEndAsync(coach.ProfileId)).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Cancel_WhenTheCoachAlreadyCancelsAtTheProvider_DoesNotCallItAgain()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (plan, _) = await BillingTestData.StripePlanAsync(factory);
+        await BillingTestData.SubscribeLiveAsync(factory, coach, plan, cancelAtPeriodEnd: true);
+
+        var response = await CancelAsync(admin, coach.UserId);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.CancelledAtPeriodEnd.Should().BeEmpty();
+        (await AdminMarkerAsync(coach.ProfileId)).Should().NotBeNull();
     }
 
     [Fact]
