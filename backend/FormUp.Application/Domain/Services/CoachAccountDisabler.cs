@@ -1,6 +1,8 @@
 using FormUp.Application.Domain.Entities;
+using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Interfaces;
 using FormUp.Application.Infrastructure.Data;
+using FormUp.Application.Infrastructure.Services.Billing;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,13 +18,15 @@ namespace FormUp.Application.Domain.Services;
 /// <param name="coachRoleRemover">Removes the coach roles when the account ends now.</param>
 /// <param name="audit">Audit logging service.</param>
 /// <param name="timeProvider">Clock.</param>
+/// <param name="subscriptions">The payment provider seam; cancels a live subscription at the period end.</param>
 public class CoachAccountDisabler(
     UserManager<ApplicationUser> userManager,
     IApplicationDbContext db,
     ICoachRoleStatus coachRoleStatus,
     ICoachRoleRemover coachRoleRemover,
     IAuditService audit,
-    TimeProvider timeProvider)
+    TimeProvider timeProvider,
+    ISubscriptionService subscriptions)
 {
     /// <summary>Audit action when the coach disables their own account.</summary>
     public const string SelfAuditAction = "DisableCoachAccount";
@@ -40,7 +44,10 @@ public class CoachAccountDisabler(
     /// <param name="reason">The admin's reason; null for the coach's own action.</param>
     /// <param name="ipAddress">The caller's IP address.</param>
     /// <param name="ct">Cancellation token.</param>
-    /// <returns>The outcome, or null when the user has no active coach role.</returns>
+    /// <returns>
+    /// The outcome, or null when the user has no active coach role. A result with <c>Failure</c> set means the payment
+    /// provider blocked the disable and nothing was saved.
+    /// </returns>
     public async Task<CoachAccountDisableResult?> DisableAsync(
         Guid coachUserId, Guid actorUserId, string? reason, string? ipAddress, CancellationToken ct)
     {
@@ -74,11 +81,38 @@ public class CoachAccountDisabler(
             ? passed
             : CoachAccountActiveUntilResolver.Resolve(subscription, now);
 
+        // Stripe first: the entities stay untouched when it refuses, so nothing half-disabled can be saved later.
+        var cancelsAtProvider = subscription is { CancelAtPeriodEnd: false, HasLiveProviderSubscription: true };
+
+        if (cancelsAtProvider)
+        {
+            if (!subscriptions.IsConfigured)
+            {
+                return CoachAccountDisableResult.Refused(CoachAccountDisableFailure.NotConfigured);
+            }
+
+            try
+            {
+                await subscriptions.CancelAtPeriodEndAsync(subscription!.ExternalSubscriptionId!, ct);
+            }
+            catch (BillingProviderException)
+            {
+                return CoachAccountDisableResult.Refused(CoachAccountDisableFailure.ProviderError);
+            }
+        }
+
         profile.CoachAccountActiveUntil = activeUntil;
 
         if (subscription is not null)
         {
             subscription.CancelAtPeriodEnd = true;
+
+            if (cancelsAtProvider)
+            {
+                // The provider drops a scheduled plan change when it cancels the subscription.
+                subscription.PendingSubscriptionPlanPriceId = null;
+                subscription.SecondRoleAddOnEndsAt = null;
+            }
         }
 
         await db.SaveChangesAsync(ct);
