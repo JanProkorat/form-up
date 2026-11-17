@@ -83,6 +83,41 @@ public interface ISubscriptionService
         string? idempotencyKey = null);
 
     /// <summary>
+    /// Moves a subscription to a dearer plan price now and charges the prorated difference. A card that needs no
+    /// authentication is charged and the upgrade applied at once. When the card needs authentication the upgrade is held as
+    /// a provider pending update and the outcome carries the hosted payment page; the provider applies it once the coach
+    /// pays, and our row is not changed here. Repeating the call for the same target while an update is pending returns the
+    /// same page without a second charge. A declined card or any other failure restores a released schedule and throws.
+    /// </summary>
+    /// <param name="subscriptionId">The provider subscription id.</param>
+    /// <param name="planCode">The target plan code.</param>
+    /// <param name="planPriceExternalId">The provider price id of the target price row.</param>
+    /// <param name="addOnAmountMinorUnits">The second-role add-on price, or null when the subscription has no add-on.</param>
+    /// <param name="currency">ISO 4217 currency of the add-on price.</param>
+    /// <param name="interval">Billing cadence of the add-on price.</param>
+    /// <param name="idempotencyKey">Repeating a call with the same key returns the first result instead of charging twice.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task<PlanUpgradeOutcome> UpgradePlanNowAsync(
+        string subscriptionId,
+        string planCode,
+        string planPriceExternalId,
+        long? addOnAmountMinorUnits,
+        string currency,
+        BillingInterval interval,
+        string idempotencyKey,
+        CancellationToken ct);
+
+    /// <summary>
+    /// Cleans up after a pending upgrade expired unpaid: puts a scheduled downgrade back from the snapshot taken before the
+    /// upgrade (only when <paramref name="keepScheduledChange"/> and nothing else holds the subscription) and removes the
+    /// snapshot. Does nothing while another pending update is still on the subscription. Repeating the call is safe.
+    /// </summary>
+    /// <param name="subscriptionId">The provider subscription id.</param>
+    /// <param name="keepScheduledChange">True when our row still has a scheduled plan change to bring back.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task RestoreAfterExpiredUpgradeAsync(string subscriptionId, bool keepScheduledChange, CancellationToken ct);
+
+    /// <summary>
     /// Drops the scheduled price change of a subscription so it renews unchanged, keeping a given-free schedule.
     /// Charges nothing. Does nothing when no schedule is on the subscription.
     /// </summary>

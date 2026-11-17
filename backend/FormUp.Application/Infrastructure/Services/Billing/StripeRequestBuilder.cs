@@ -24,6 +24,12 @@ public static class StripeRequestBuilder
     /// <summary>Prefix of the id of a plan's stable Stripe product.</summary>
     public const string PlanProductPrefix = "formup-plan-";
 
+    private const string RestorePricesKey = "formup_restore_prices";
+
+    private const string RestoreGiftKey = "formup_restore_gift";
+
+    private const string RestoreGiftEndKey = "formup_restore_gift_end";
+
     private const string DefaultLocale = "cs";
 
     private static readonly string[] SupportedLocales = ["cs", "en", "de"];
@@ -263,6 +269,86 @@ public static class StripeRequestBuilder
         string? addOnItemId,
         string? currentAddOnPriceId,
         string? addOnPriceId,
+        BillingOptions options) =>
+        PlanUpgradeWith("error_if_incomplete", planItemId, planPriceId, addOnItemId, currentAddOnPriceId, addOnPriceId, options);
+
+    /// <summary>
+    /// The same upgrade as <see cref="PlanUpgrade"/>, held as a pending update: the proration is invoiced now, and when the
+    /// card needs authentication Stripe keeps the old plan and leaves the invoice open for the coach to pay on its hosted page.
+    /// The latest invoice is expanded to read that page's URL.
+    /// </summary>
+    /// <param name="planItemId">The provider id of the subscription's plan line.</param>
+    /// <param name="planPriceId">The provider price id of the target plan.</param>
+    /// <param name="addOnItemId">The provider id of the subscription's add-on line, or null when it has none.</param>
+    /// <param name="currentAddOnPriceId">The provider price id on the add-on line now, or null.</param>
+    /// <param name="addOnPriceId">The provider price id the add-on line must have after the change, or null for no add-on.</param>
+    /// <param name="options">Billing settings.</param>
+    public static SubscriptionUpdateOptions PlanUpgradePending(
+        string planItemId,
+        string planPriceId,
+        string? addOnItemId,
+        string? currentAddOnPriceId,
+        string? addOnPriceId,
+        BillingOptions options)
+    {
+        // UNVERIFIED: pending_if_incomplete accepts item tax_rates, a deleted add-on line and cancel_at_period_end=false together — https://docs.stripe.com/billing/subscriptions/pending-updates
+        var update = PlanUpgradeWith("pending_if_incomplete", planItemId, planPriceId, addOnItemId, currentAddOnPriceId, addOnPriceId, options);
+        update.Expand = ["latest_invoice"];
+
+        return update;
+    }
+
+    /// <summary>
+    /// The metadata that snapshots a released schedule before a pending upgrade, so an upgrade that expires unpaid can put it
+    /// back. A key with nothing to keep is sent empty, which removes a snapshot left by an earlier attempt.
+    /// </summary>
+    /// <param name="intent">What the released schedule promised.</param>
+    public static Dictionary<string, string> RestoreSnapshot(ScheduleIntent intent) => new()
+    {
+        [RestorePricesKey] = intent.PendingPriceIds is { Count: > 0 } prices ? string.Join(',', prices) : string.Empty,
+        [RestoreGiftKey] = intent.GiftCouponId ?? string.Empty,
+        [RestoreGiftEndKey] = intent.GiftEnd is { } giftEnd ? giftEnd.ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture) : string.Empty,
+    };
+
+    /// <summary>The metadata that removes a restore snapshot.</summary>
+    public static Dictionary<string, string> ClearedRestoreSnapshot() => new()
+    {
+        [RestorePricesKey] = string.Empty,
+        [RestoreGiftKey] = string.Empty,
+        [RestoreGiftEndKey] = string.Empty,
+    };
+
+    /// <summary>True when the subscription's metadata holds any key of a restore snapshot.</summary>
+    /// <param name="metadata">The subscription's metadata.</param>
+    public static bool HasRestoreSnapshot(IReadOnlyDictionary<string, string>? metadata) =>
+        metadata is not null
+        && (metadata.ContainsKey(RestorePricesKey) || metadata.ContainsKey(RestoreGiftKey) || metadata.ContainsKey(RestoreGiftEndKey));
+
+    /// <summary>Reads a snapshot written by <see cref="RestoreSnapshot"/>; null when the subscription holds none.</summary>
+    /// <param name="metadata">The subscription's metadata.</param>
+    public static ScheduleIntent? ReadRestoreSnapshot(IReadOnlyDictionary<string, string>? metadata)
+    {
+        if (metadata is null || !HasRestoreSnapshot(metadata))
+        {
+            return null;
+        }
+
+        var prices = metadata.GetValueOrDefault(RestorePricesKey, string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var gift = metadata.GetValueOrDefault(RestoreGiftKey);
+        DateTimeOffset? giftEnd = long.TryParse(metadata.GetValueOrDefault(RestoreGiftEndKey), out var seconds)
+            ? DateTimeOffset.FromUnixTimeSeconds(seconds)
+            : null;
+
+        return new ScheduleIntent(prices.Length > 0 ? prices : null, string.IsNullOrEmpty(gift) ? null : gift, giftEnd);
+    }
+
+    private static SubscriptionUpdateOptions PlanUpgradeWith(
+        string paymentBehavior,
+        string planItemId,
+        string planPriceId,
+        string? addOnItemId,
+        string? currentAddOnPriceId,
+        string? addOnPriceId,
         BillingOptions options)
     {
         var taxRates = TaxRates(options);
@@ -279,7 +365,7 @@ public static class StripeRequestBuilder
                     ? new SubscriptionItemOptions { Id = itemId, Deleted = true }
                     : WithTaxRates(new SubscriptionItemOptions { Id = itemId, Price = priceId, Quantity = 1 }, taxRates)),
             ProrationBehavior = "always_invoice",
-            PaymentBehavior = "error_if_incomplete",
+            PaymentBehavior = paymentBehavior,
             CancelAtPeriodEnd = false,
         };
     }

@@ -34,10 +34,12 @@ internal sealed class ChangePlanEndpoint(
         {
             s.Summary = "Change the plan of my paid subscription";
             s.Description = "Moves the caller's own live paid subscription to another paid plan without a new Checkout. A dearer " +
-                            "plan applies now and its prorated difference is charged at once (a scheduled switch to Free is dropped); a cheaper " +
+                            "plan applies now and its prorated difference is charged at once (a scheduled switch to Free is dropped); a card " +
+                            "that needs authentication answers AwaitingPayment with Stripe's hosted payment page in PaymentUrl and the plan " +
+                            "changes only once the coach pays there; a cheaper " +
                             "or equal one is scheduled for the next renewal. A coach " +
                             "with two active roles pays the second-role add-on on a plan that does not include both roles.";
-            s.Response<ChangePlanResponse>(StatusCodes.Status200OK, "The change was applied or scheduled");
+            s.Response<ChangePlanResponse>(StatusCodes.Status200OK, "The change was applied or scheduled, or awaits payment on the hosted page (Timing AwaitingPayment, PaymentUrl set)");
             s.Response<ProblemDetails>(StatusCodes.Status400BadRequest,
                 "Invalid body (including a missing AttemptId), or the plan cannot be bought: unknown, Free, inactive, not priced in Stripe, or the caller has two active roles and the plan has no add-on price (PLAN_NOT_PURCHASABLE)");
             s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
@@ -84,24 +86,48 @@ internal sealed class ChangePlanEndpoint(
             return;
         }
 
+        var upgradeKey = $"formup-plan-upgrade-{subscription.ExternalSubscriptionId}-{target.ExternalPriceId}-{req.AttemptId:N}";
+        PlanUpgradeOutcome? upgrade = null;
+
         try
         {
-            await subscriptions.ChangePlanAsync(
-                subscription.ExternalSubscriptionId!,
-                target.Code,
-                target.ExternalPriceId!,
-                decision.CarryAddOn ? target.AddOnAmount : null,
-                target.Currency,
-                target.BillingInterval,
-                atNextRenewal: !decision.IsUpgrade,
-                ct,
-                decision.IsUpgrade
-                    ? $"formup-plan-upgrade-{subscription.ExternalSubscriptionId}-{target.ExternalPriceId}-{req.AttemptId:N}"
-                    : null);
+            if (decision.IsUpgrade)
+            {
+                upgrade = await subscriptions.UpgradePlanNowAsync(
+                    subscription.ExternalSubscriptionId!,
+                    target.Code,
+                    target.ExternalPriceId!,
+                    decision.CarryAddOn ? target.AddOnAmount : null,
+                    target.Currency,
+                    target.BillingInterval,
+                    upgradeKey,
+                    ct);
+            }
+            else
+            {
+                await subscriptions.ChangePlanAsync(
+                    subscription.ExternalSubscriptionId!,
+                    target.Code,
+                    target.ExternalPriceId!,
+                    decision.CarryAddOn ? target.AddOnAmount : null,
+                    target.Currency,
+                    target.BillingInterval,
+                    atNextRenewal: true,
+                    ct);
+            }
         }
         catch (BillingProviderException)
         {
             await this.RespondBillingProviderErrorAsync(ct);
+            return;
+        }
+
+        // The card needs authentication: Stripe applies the plan when the coach pays, and the webhook then writes our row.
+        if (upgrade is { IsAwaitingPayment: true })
+        {
+            await Send.OkAsync(
+                new ChangePlanResponse { PlanCode = target.Code, Timing = PlanChangeTiming.AwaitingPayment, PaymentUrl = upgrade.PaymentUrl },
+                ct);
             return;
         }
 
