@@ -118,6 +118,17 @@ public class StripeRequestBuilderTests
     }
 
     [Fact]
+    public void SecondRoleChargePending_IsTheSameCharge_HeldUntilTheCoachPays_AndExpandsTheInvoice()
+    {
+        var update = StripeRequestBuilder.SecondRoleChargePending("price_addon", Options());
+
+        update.PaymentBehavior.Should().Be("pending_if_incomplete");
+        update.ProrationBehavior.Should().Be("always_invoice");
+        update.Expand.Should().Equal("latest_invoice");
+        update.Items.Should().ContainSingle().Which.Price.Should().Be("price_addon");
+    }
+
+    [Fact]
     public void PlanUpgrade_ChargesTheProrationNow_FailsOnAnIncompletePayment_AndClearsTheCancellation()
     {
         var update = StripeRequestBuilder.PlanUpgrade("si_plan", "price_new", null, null, null, Options());

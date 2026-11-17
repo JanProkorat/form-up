@@ -429,6 +429,124 @@ public class StripeSubscriptionServiceChangePlanTests
             .Should().Equal("/v1/invoices/in_old/void", "/v1/subscriptions/sub_1");
     }
 
+    private const string PricesListJson = """
+        {"object":"list","has_more":false,"data":[{"id":"price_addon","object":"price","lookup_key":"formup-addon-pro"}]}
+        """;
+
+    private const string SubscriptionWithPendingAddOnJson = """
+        {"id":"sub_1","object":"subscription","schedule":null,"discounts":[],
+         "pending_update":{"expires_at":1700050000,"subscription_items":[
+           {"id":"si_plan","object":"subscription_item","price":{"id":"price_old","object":"price"}},
+           {"id":"si_addon","object":"subscription_item","price":{"id":"price_addon","object":"price","lookup_key":"formup-addon-pro-czk-9900-month-prod_1"}}]},
+         "latest_invoice":{"id":"in_addon","object":"invoice","status":"open","hosted_invoice_url":"https://invoice.stripe.test/i/in_addon"},
+         "items":{"object":"list","has_more":false,"data":[
+           {"id":"si_plan","object":"subscription_item","current_period_start":1700000000,"current_period_end":1702592000,
+            "price":{"id":"price_old","object":"price","product":"prod_1","recurring":{"interval":"month"}}}]}}
+        """;
+
+    private const string AddOnPendingSubscriptionJson = """
+        {"id":"sub_1","object":"subscription","schedule":null,"discounts":[],
+         "latest_invoice":{"id":"in_addon","object":"invoice","status":"open","hosted_invoice_url":"https://invoice.stripe.test/i/in_addon"},
+         "items":{"object":"list","has_more":false,"data":[
+           {"id":"si_plan","object":"subscription_item","current_period_start":1700000000,"current_period_end":1702592000,
+            "price":{"id":"price_old","object":"price","product":"prod_1","recurring":{"interval":"month"}}}]}}
+        """;
+
+    private static Task<AddOnChargeResult> ChargeAddOnAsync(StripeSubscriptionService service) =>
+        service.ChargeSecondRoleAddOnAsync(
+            SubscriptionId, "pro", 9900, "CZK", BillingInterval.Monthly, "formup-second-role-sub_1-attempt", TestContext.Current.CancellationToken);
+
+    private static ScriptedHandler AddOnScript(ScriptedHandler handler) =>
+        handler.Respond(HttpMethod.Get, "/v1/prices", PricesListJson);
+
+    [Fact]
+    public async Task ChargeSecondRoleAddOn_WhenTheCardNeedsNoAuthentication_ChargesAtOnce_WithoutAPendingUpdate()
+    {
+        var handler = AddOnScript(new ScriptedHandler(HttpStatusCode.OK, SubscriptionJson));
+
+        var result = await ChargeAddOnAsync(NewService(handler));
+
+        result.Should().Be(AddOnChargeResult.Charged);
+        var update = handler.Requests.Single(r => r.Method == HttpMethod.Post);
+        update.Form.Should().Contain(new KeyValuePair<string, string>("payment_behavior", "error_if_incomplete"));
+        update.IdempotencyKey.Should().Be("formup-second-role-sub_1-attempt");
+    }
+
+    [Fact]
+    public async Task ChargeSecondRoleAddOn_WhenTheCardNeedsAuthentication_RepeatsAsAPendingUpdate_AndReturnsTheHostedInvoiceUrl()
+    {
+        var handler = AddOnScript(new ScriptedHandler(HttpStatusCode.OK, SubscriptionJson))
+            .Sequence(
+                HttpMethod.Post,
+                "/v1/subscriptions/sub_1",
+                (HttpStatusCode.PaymentRequired, AuthenticationRequiredJson),
+                (HttpStatusCode.OK, AddOnPendingSubscriptionJson));
+
+        var result = await ChargeAddOnAsync(NewService(handler));
+
+        result.Outcome.Should().Be(AddOnChargeOutcome.AwaitingPayment);
+        result.PaymentUrl.Should().Be("https://invoice.stripe.test/i/in_addon");
+        var updates = handler.Requests.Where(r => r.Method == HttpMethod.Post).ToList();
+        updates.Should().HaveCount(2, "no schedule is released and no snapshot is written");
+        updates.Should().OnlyContain(r => r.Path == "/v1/subscriptions/sub_1");
+        var pending = updates[1];
+        pending.Form.Should().Contain(new KeyValuePair<string, string>("payment_behavior", "pending_if_incomplete"));
+        pending.Form.Should().Contain(new KeyValuePair<string, string>("proration_behavior", "always_invoice"));
+        pending.Form.Should().Contain(new KeyValuePair<string, string>("items[0][price]", "price_addon"));
+        pending.Form.Should().Contain(new KeyValuePair<string, string>("expand[0]", "latest_invoice"));
+        pending.IdempotencyKey.Should().Be("formup-second-role-sub_1-attempt-pending");
+    }
+
+    [Fact]
+    public async Task ChargeSecondRoleAddOn_WithADeclinedCard_ReturnsDeclined_AndNeverGoesPending()
+    {
+        var handler = AddOnScript(new ScriptedHandler(HttpStatusCode.OK, SubscriptionJson))
+            .Fail(HttpMethod.Post, "/v1/subscriptions/sub_1", HttpStatusCode.PaymentRequired, CardDeclinedJson);
+
+        var result = await ChargeAddOnAsync(NewService(handler));
+
+        result.Should().Be(AddOnChargeResult.Declined);
+        handler.Requests.Should().NotContain(r => r.Form.Contains(new KeyValuePair<string, string>("payment_behavior", "pending_if_incomplete")));
+    }
+
+    [Fact]
+    public async Task ChargeSecondRoleAddOn_WhenThePendingUpdateHasNoPaymentPage_Throws()
+    {
+        var handler = AddOnScript(new ScriptedHandler(HttpStatusCode.OK, SubscriptionJson))
+            .Sequence(
+                HttpMethod.Post,
+                "/v1/subscriptions/sub_1",
+                (HttpStatusCode.PaymentRequired, AuthenticationRequiredJson),
+                (HttpStatusCode.OK, PendingWithoutUrlJson));
+
+        var act = () => ChargeAddOnAsync(NewService(handler));
+
+        await act.Should().ThrowAsync<BillingProviderException>();
+    }
+
+    [Fact]
+    public async Task ChargeSecondRoleAddOn_WhenAnAddOnUpdateIsAlreadyPending_ReturnsItsInvoiceUrl_WithoutAnyStripeWrite()
+    {
+        var handler = new ScriptedHandler(HttpStatusCode.OK, SubscriptionWithPendingAddOnJson);
+
+        var result = await ChargeAddOnAsync(NewService(handler));
+
+        result.Outcome.Should().Be(AddOnChargeOutcome.AwaitingPayment);
+        result.PaymentUrl.Should().Be("https://invoice.stripe.test/i/in_addon");
+        handler.Requests.Should().OnlyContain(r => r.Method == HttpMethod.Get, "a second update or invoice must not be created");
+    }
+
+    [Fact]
+    public async Task ChargeSecondRoleAddOn_WhenAnUpgradeIsPending_ReturnsPlanChangePending_AndNeverVoidsItsInvoice()
+    {
+        var handler = new ScriptedHandler(HttpStatusCode.OK, SubscriptionWithPendingUpdateJson("price_new"));
+
+        var result = await ChargeAddOnAsync(NewService(handler));
+
+        result.Should().Be(AddOnChargeResult.PlanChangePending);
+        handler.Requests.Should().OnlyContain(r => r.Method == HttpMethod.Get, "the upgrade and its invoice stay as they are");
+    }
+
     private const string SnapshotSubscriptionTemplate = """
         {"id":"sub_1","object":"subscription","schedule":SCHEDULE,"discounts":[],
          "metadata":{"formup_restore_prices":"price_cheaper"},

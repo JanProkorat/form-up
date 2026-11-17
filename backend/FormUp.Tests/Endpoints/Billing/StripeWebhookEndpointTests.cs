@@ -862,6 +862,72 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
         (await ReadRowAsync(current.Coach.ProfileId)).SubscriptionPlan.Code.Should().Be(upgraded.PlanCode);
     }
 
+    /// <summary>A coach on a one-role plan who does not pay the add-on yet, so a pending add-on update can be applied or expire.</summary>
+    private async Task<Scenario> ArrangeOneRolePlanWithoutAddOnAsync()
+    {
+        await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var plan = await PaidPlanBuilder.CreateAsync(factory, addOnMinorUnits: 9900, bothRolesIncluded: false);
+        var priceId = await SetStripePriceAsync(plan);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, plan);
+
+        var scenario = new Scenario(coach, plan, priceId, $"cus_{Guid.NewGuid():N}", $"sub_{Guid.NewGuid():N}");
+        await UpdateRowAsync(coach.ProfileId, row =>
+        {
+            row.ExternalCustomerId = scenario.CustomerId;
+            row.ExternalSubscriptionId = scenario.SubscriptionId;
+        });
+
+        return scenario;
+    }
+
+    [Fact]
+    public async Task Webhook_PendingUpdateAppliedWithTheAddOnLine_MarksTheAddOnPaid_AndKeepsThePlan()
+    {
+        var scenario = await ArrangeOneRolePlanWithoutAddOnAsync();
+        (await ReadRowAsync(scenario.Coach.ProfileId)).PaysSecondRoleAddOn.Should().BeFalse();
+
+        var response = await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.pending_update_applied", scenario, "active", extraPriceIds: ["price_addon_unknown_to_plans"]));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var after = await ReadRowAsync(scenario.Coach.ProfileId);
+        after.PaysSecondRoleAddOn.Should().BeTrue();
+        after.SubscriptionPlan.Code.Should().Be(scenario.PlanCode);
+    }
+
+    [Fact]
+    public async Task Webhook_PendingUpdateAppliedWithTheAddOnLine_RepeatedEventId_IsANoOp()
+    {
+        var scenario = await ArrangeOneRolePlanWithoutAddOnAsync();
+        var eventId = NewEventId();
+
+        await PostAsync(SubscriptionEvent(eventId, "customer.subscription.pending_update_applied", scenario, "active", extraPriceIds: ["price_addon_unknown_to_plans"]));
+        await PostAsync(SubscriptionEvent(eventId, "customer.subscription.pending_update_applied", scenario, "active", extraPriceIds: ["price_addon_unknown_to_plans"]));
+
+        (await ProcessedCountAsync(eventId)).Should().Be(1);
+        (await ReadRowAsync(scenario.Coach.ProfileId)).PaysSecondRoleAddOn.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Webhook_PendingUpdateExpiredForAnAddOn_LeavesTheAddOnUnpaid_AndRestoresNothing()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var scenario = await ArrangeOneRolePlanWithoutAddOnAsync();
+        var eventId = NewEventId();
+
+        var response = await PostAsync(SubscriptionEvent(eventId, "customer.subscription.pending_update_expired", scenario, "active"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.ExpiredUpgradeRestores.Should().ContainSingle().Which.Should().Be(
+            new FakeSubscriptionService.RestoreCall(scenario.SubscriptionId, false), "no scheduled change is kept, so nothing is rebuilt");
+        var after = await ReadRowAsync(scenario.Coach.ProfileId);
+        after.PaysSecondRoleAddOn.Should().BeFalse();
+        after.SubscriptionPlan.Code.Should().Be(scenario.PlanCode);
+        after.PendingSubscriptionPlanPriceId.Should().BeNull();
+        (await ProcessedCountAsync(eventId)).Should().Be(1);
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]

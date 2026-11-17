@@ -101,7 +101,7 @@ public sealed class FakeSubscriptionService : ISubscriptionService
     public List<AddOnCall> Previews { get; } = [];
 
     /// <summary>What <see cref="ISubscriptionService.ChargeSecondRoleAddOnAsync"/> returns.</summary>
-    public AddOnChargeOutcome ChargeOutcome { get; set; } = AddOnChargeOutcome.Charged;
+    public AddOnChargeResult ChargeResult { get; set; } = AddOnChargeResult.Charged;
 
     /// <summary>Recorded <see cref="ISubscriptionService.ChargeSecondRoleAddOnAsync"/> calls.</summary>
     public List<AddOnCall> Charges { get; } = [];
@@ -185,7 +185,7 @@ public sealed class FakeSubscriptionService : ISubscriptionService
             PlanChangePreviewResult = new PlanChangePreview(24500, 0, "CZK");
             PlanChangePreviews.Clear();
             Previews.Clear();
-            ChargeOutcome = AddOnChargeOutcome.Charged;
+            ChargeResult = AddOnChargeResult.Charged;
             Charges.Clear();
         }
     }
@@ -514,7 +514,7 @@ public sealed class FakeSubscriptionService : ISubscriptionService
     }
 
     /// <inheritdoc />
-    public Task<AddOnChargeOutcome> ChargeSecondRoleAddOnAsync(
+    public Task<AddOnChargeResult> ChargeSecondRoleAddOnAsync(
         string subscriptionId,
         string planCode,
         long addOnAmountMinorUnits,
@@ -530,7 +530,7 @@ public sealed class FakeSubscriptionService : ISubscriptionService
             Charges.Add(new AddOnCall(subscriptionId, planCode, addOnAmountMinorUnits, idempotencyKey));
         }
 
-        return Task.FromResult(ChargeOutcome);
+        return Task.FromResult(ChargeResult);
     }
 
     private void ThrowIfFailing()
