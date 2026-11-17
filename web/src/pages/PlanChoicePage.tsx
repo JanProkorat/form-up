@@ -52,6 +52,8 @@ export default function PlanChoicePage() {
   const [step, setStep] = useState<'plans' | 'keep'>('plans');
   // null = untouched: the selection is whatever Free keeps by default.
   const [choice, setChoice] = useState<ReadonlySet<string> | null>(null);
+  // The card whose button started the running request: only that one shows the spinner.
+  const [clickedCode, setClickedCode] = useState<string | null>(null);
 
   const clients = keepQuery.data?.clients ?? [];
   const cap = keepQuery.data?.cap ?? null;
@@ -279,7 +281,11 @@ export default function PlanChoicePage() {
                         actionDisabled={false}
                         busy={saving || selection.busy || (action.current && keepQuery.isPending)}
                         priceMinorUnits={planDisplayPrice(item, bothRoles)}
-                        onAction={action.onClick}
+                        pending={clickedCode === item.code && (saving || selection.busy)}
+                        onAction={() => {
+                          setClickedCode(item.code ?? null);
+                          action.onClick();
+                        }}
                       />
                     );
                   })}
