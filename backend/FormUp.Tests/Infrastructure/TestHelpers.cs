@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Infrastructure.Data;
+using FormUp.Tests.Builders;
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -101,15 +102,14 @@ public static class TestHelpers
         FitnessApiFactory factory, Guid professionalUserId, CancellationToken ct,
         bool canViewNutritionPlans, bool canViewTrainingPlans)
     {
-        var httpClient = factory.CreateClient();
-        var email = $"{Guid.NewGuid():N}@linked-client-fixture.com";
-        await RegisterAsync(httpClient, email, "TestPass1!", "Linked", "Client", "Client");
+        var client = await TestActors.Client(factory)
+            .WithEmail($"{Guid.NewGuid():N}@linked-client-fixture.com")
+            .WithName("Linked", "Client")
+            .CreateAsync(ct);
 
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-        var user = await db.Users.FirstAsync(u => u.Email == email, ct);
-        var clientProfile = await db.ClientProfiles.FirstAsync(cp => cp.UserId == user.Id, ct);
         var professionalProfile = await db.ProfessionalProfiles.FirstAsync(
             pp => pp.UserId == professionalUserId, ct);
 
@@ -117,7 +117,7 @@ public static class TestHelpers
         {
             PublicId = Guid.NewGuid(),
             ProfessionalProfileId = professionalProfile.Id,
-            ClientProfileId = clientProfile.Id,
+            ClientProfileId = client.ProfileId,
             ProfessionalRole = UserRole.Trainer,
             ConnectionState = ConnectionState.Connected,
             CanViewNutritionPlans = canViewNutritionPlans,
@@ -127,7 +127,7 @@ public static class TestHelpers
 
         await db.SaveChangesAsync(ct);
 
-        return user.Id;
+        return client.UserId;
     }
 
     /// <summary>
@@ -140,24 +140,12 @@ public static class TestHelpers
     /// </summary>
     public static async Task<HttpClient> RegisterAdminAsync(FitnessApiFactory factory, CancellationToken ct)
     {
-        var httpClient = factory.CreateClient();
-        var email = $"{Guid.NewGuid():N}@admin-fixture.com";
-        await RegisterAsync(httpClient, email, "TestPass1!", "Admin", "Fixture", "Trainer");
+        var admin = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Admin)
+            .WithEmail($"{Guid.NewGuid():N}@admin-fixture.com")
+            .WithName("Admin", "Fixture")
+            .CreateAsync(ct);
 
-        using (var scope = factory.Services.CreateScope())
-        {
-            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            var user = await userManager.FindByEmailAsync(email);
-            var roleResult = await userManager.AddToRoleAsync(user!, nameof(UserRole.Admin));
-
-            roleResult.Succeeded.Should().BeTrue(
-                $"AddToRoleAsync failed: {string.Join(", ", roleResult.Errors.Select(e => e.Description))}");
-        }
-
-        var (accessToken, _) = await LoginAsync(httpClient, email, "TestPass1!");
-        SetBearerToken(httpClient, accessToken);
-
-        return httpClient;
+        return admin.Http;
     }
 
     /// <summary>

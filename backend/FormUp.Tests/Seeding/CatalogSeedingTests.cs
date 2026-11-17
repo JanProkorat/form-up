@@ -155,6 +155,7 @@ public class CatalogSeedingTestsCollection : ICollectionFixture<CatalogSeedingFa
 /// itself wipe first with <see cref="CatalogSeedingFactory.ResetAsync"/>.
 /// </remarks>
 [Collection("CatalogSeedingTests")]
+[TestCaseOrderer(typeof(WipingTestsLastOrderer))]
 public class CatalogSeedingTests(CatalogSeedingFactory factory)
 {
     private readonly CatalogSeedingFactory _factory = factory;
@@ -163,6 +164,7 @@ public class CatalogSeedingTests(CatalogSeedingFactory factory)
     /// The reset helper recreates the Mongo indexes it drops (#1129).
     /// </summary>
     [Fact]
+    [Trait(WipingTestsLastOrderer.TraitName, WipingTestsLastOrderer.TraitValue)]
     public async Task InitializeAsync_RecreatesFoodTagIndexes_UniqueOwnerNormalizedNameIndexExists()
     {
         var ct = TestContext.Current.CancellationToken;
@@ -187,6 +189,7 @@ public class CatalogSeedingTests(CatalogSeedingFactory factory)
     /// exact number of JSON seed entries — no duplicates on re-seed.
     /// </summary>
     [Fact]
+    [Trait(WipingTestsLastOrderer.TraitName, WipingTestsLastOrderer.TraitValue)]
     public async Task SeedAsync_RunTwice_IsIdempotent()
     {
         var ct = TestContext.Current.CancellationToken;
@@ -449,6 +452,7 @@ public class CatalogSeedingTests(CatalogSeedingFactory factory)
     /// running the seeder.
     /// </summary>
     [Fact]
+    [Trait(WipingTestsLastOrderer.TraitName, WipingTestsLastOrderer.TraitValue)]
     public async Task SeedAsync_LegacyNamedDocsWithRandomExternalIds_RecipeAndTemplateRefsBindToPreExistingDoc()
     {
         var ct = TestContext.Current.CancellationToken;

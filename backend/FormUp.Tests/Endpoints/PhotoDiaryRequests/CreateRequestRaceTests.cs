@@ -50,7 +50,7 @@ public class CreateRequestRaceTests(FitnessApiFactory factory)
         await using var transactionB = await dbB.BeginTransactionAsync(ct);
         var racerB = dbB.LockProfessionalProfileAsync(coach.ProfileId, ct);
 
-        var raced = await Task.WhenAny(racerB, Task.Delay(TimeSpan.FromSeconds(2), ct));
+        var raced = await Task.WhenAny(racerB, Task.Delay(TimeSpan.FromMilliseconds(500), ct));
         raced.Should().NotBeSameAs(
             racerB,
             "racer B must still be blocked on the row lock that racer A's open transaction holds");
