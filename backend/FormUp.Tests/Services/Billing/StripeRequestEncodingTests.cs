@@ -161,6 +161,44 @@ public class StripeRequestEncodingTests
     }
 
     [Fact]
+    public async Task PlanUpgradePending_TaxModeNone_SendsNoTaxRatesNoEmptyValues_ButTheExpandAndTheHold()
+    {
+        var (client, handler) = NewClient();
+        var options = StripeRequestBuilder.PlanUpgradePending("si_plan", "price_new", null, null, "price_addon", Options(BillingTaxMode.None));
+
+        await client.V1.Subscriptions.UpdateAsync("sub_1", options, cancellationToken: TestContext.Current.CancellationToken);
+
+        AssertNoTaxRatesAndNoEmptyValues(handler.Form);
+        handler.Form.Should().Contain(new KeyValuePair<string, string>("payment_behavior", "pending_if_incomplete"));
+        handler.Form.Should().Contain(new KeyValuePair<string, string>("expand[0]", "latest_invoice"));
+    }
+
+    [Fact]
+    public async Task PlanUpgradePending_Vat21_PutsTheRateOnEveryChargedItem()
+    {
+        var (client, handler) = NewClient();
+        var options = StripeRequestBuilder.PlanUpgradePending("si_plan", "price_new", null, null, "price_addon", Options(BillingTaxMode.Vat21));
+
+        await client.V1.Subscriptions.UpdateAsync("sub_1", options, cancellationToken: TestContext.Current.CancellationToken);
+
+        handler.Form.Should().Contain(new KeyValuePair<string, string>("items[0][tax_rates][0]", "txr_test"));
+        handler.Form.Should().Contain(new KeyValuePair<string, string>("items[1][tax_rates][0]", "txr_test"));
+    }
+
+    [Fact]
+    public async Task RestoreSnapshot_SendsEveryKey_WithEmptyValuesAsUnsets()
+    {
+        var (client, handler) = NewClient();
+        var options = new SubscriptionUpdateOptions { Metadata = StripeRequestBuilder.RestoreSnapshot(new ScheduleIntent(["price_a"], null, null)) };
+
+        await client.V1.Subscriptions.UpdateAsync("sub_1", options, cancellationToken: TestContext.Current.CancellationToken);
+
+        handler.Form.Should().Contain(new KeyValuePair<string, string>("metadata[formup_restore_prices]", "price_a"));
+        handler.Form.Should().Contain(new KeyValuePair<string, string>("metadata[formup_restore_gift]", string.Empty));
+        handler.Form.Should().Contain(new KeyValuePair<string, string>("metadata[formup_restore_gift_end]", string.Empty));
+    }
+
+    [Fact]
     public async Task PlanUpgradePreview_TaxModeNone_SendsNoTaxRatesAndNoEmptyValues()
     {
         var (client, handler) = NewClient();
