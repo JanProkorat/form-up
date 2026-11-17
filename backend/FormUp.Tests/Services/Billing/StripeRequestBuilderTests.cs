@@ -130,6 +130,42 @@ public class StripeRequestBuilderTests
         item.Price.Should().Be("price_new");
     }
 
+    [Fact]
+    public void PlanUpgradePending_IsTheSameUpgrade_HeldUntilTheCoachPays_AndExpandsTheInvoice()
+    {
+        var update = StripeRequestBuilder.PlanUpgradePending("si_plan", "price_new", "si_addon", "price_addon", null, Options());
+
+        update.PaymentBehavior.Should().Be("pending_if_incomplete");
+        update.ProrationBehavior.Should().Be("always_invoice");
+        update.CancelAtPeriodEnd.Should().BeFalse();
+        update.Expand.Should().Equal("latest_invoice");
+        update.Items.Select(line => line.Id).Should().Equal("si_plan", "si_addon");
+        update.Items.Last().Deleted.Should().BeTrue();
+    }
+
+    [Fact]
+    public void RestoreSnapshot_RoundTripsThePricesAndTheGift_AndEmptyKeysAreUnsets()
+    {
+        var giftEnd = DateTimeOffset.FromUnixTimeSeconds(1705270400);
+        var written = StripeRequestBuilder.RestoreSnapshot(new ScheduleIntent(["price_a", "price_b"], "coupon_gift", giftEnd));
+
+        var read = StripeRequestBuilder.ReadRestoreSnapshot(written);
+
+        read.Should().NotBeNull();
+        read!.PendingPriceIds.Should().Equal("price_a", "price_b");
+        read.GiftCouponId.Should().Be("coupon_gift");
+        read.GiftEnd.Should().Be(giftEnd);
+        StripeRequestBuilder.RestoreSnapshot(new ScheduleIntent(null, null, null)).Values.Should().OnlyContain(value => value.Length == 0);
+        StripeRequestBuilder.ClearedRestoreSnapshot().Values.Should().OnlyContain(value => value.Length == 0);
+    }
+
+    [Fact]
+    public void ReadRestoreSnapshot_WithoutAnyKey_IsNull()
+    {
+        StripeRequestBuilder.ReadRestoreSnapshot(new Dictionary<string, string> { ["userId"] = "x" }).Should().BeNull();
+        StripeRequestBuilder.ReadRestoreSnapshot(null).Should().BeNull();
+    }
+
     [Theory]
     [InlineData(null, null, "price_addon", 2, "si_plan,", "price_new,price_addon")]
     [InlineData("si_addon", "price_addon_old", "price_addon", 2, "si_plan,si_addon", "price_new,price_addon")]

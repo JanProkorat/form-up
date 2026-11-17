@@ -9,5 +9,8 @@ public enum PlanChangeTiming
     Now,
 
     /// <summary>Applied at the next renewal; the current plan stays until then.</summary>
-    AtNextRenewal
+    AtNextRenewal,
+
+    /// <summary>The card needs authentication; the plan changes only once the coach pays on the hosted page.</summary>
+    AwaitingPayment
 }

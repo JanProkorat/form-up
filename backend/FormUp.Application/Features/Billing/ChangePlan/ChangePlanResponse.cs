@@ -15,4 +15,7 @@ public class ChangePlanResponse
 
     /// <summary>When the new plan starts: now for an upgrade, the period end for a scheduled change (null when unknown).</summary>
     public DateTimeOffset? EffectiveAt { get; set; }
+
+    /// <summary>Stripe's hosted payment page; set only when <see cref="Timing"/> is AwaitingPayment, null otherwise.</summary>
+    public string? PaymentUrl { get; set; }
 }

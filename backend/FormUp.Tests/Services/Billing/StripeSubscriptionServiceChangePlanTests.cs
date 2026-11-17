@@ -259,13 +259,258 @@ public class StripeSubscriptionServiceChangePlanTests
         update.Form.Should().NotContain(pair => pair.Key.StartsWith("items", StringComparison.Ordinal));
     }
 
+    private const string AuthenticationRequiredJson = """
+        {"error":{"type":"card_error","code":"subscription_payment_intent_requires_action","message":"Authentication required."}}
+        """;
+
+    private const string PendingInvoiceUrl = "https://invoice.stripe.test/i/in_pending";
+
+    private const string PendingSubscriptionJson = """
+        {"id":"sub_1","object":"subscription","schedule":null,"discounts":[],
+         "latest_invoice":{"id":"in_pending","object":"invoice","status":"open","hosted_invoice_url":"https://invoice.stripe.test/i/in_pending"},
+         "items":{"object":"list","has_more":false,"data":[
+           {"id":"si_plan","object":"subscription_item","current_period_start":1700000000,"current_period_end":1702592000,
+            "price":{"id":"price_old","object":"price","product":"prod_1","recurring":{"interval":"month"}}}]}}
+        """;
+
+    private const string PendingWithoutUrlJson = """
+        {"id":"sub_1","object":"subscription","schedule":null,"discounts":[],
+         "latest_invoice":{"id":"in_pending","object":"invoice","status":"open"},
+         "items":{"object":"list","has_more":false,"data":[
+           {"id":"si_plan","object":"subscription_item","current_period_start":1700000000,"current_period_end":1702592000,
+            "price":{"id":"price_old","object":"price","product":"prod_1","recurring":{"interval":"month"}}}]}}
+        """;
+
+    private const string SubscriptionWithPendingUpdateTemplate = """
+        {"id":"sub_1","object":"subscription","schedule":null,"discounts":[],
+         "pending_update":{"expires_at":1700050000,"subscription_items":[{"id":"si_plan","object":"subscription_item","price":{"id":"TARGET","object":"price"}}]},
+         "latest_invoice":{"id":"in_old","object":"invoice","status":"open","hosted_invoice_url":"https://invoice.stripe.test/i/in_old"},
+         "items":{"object":"list","has_more":false,"data":[
+           {"id":"si_plan","object":"subscription_item","current_period_start":1700000000,"current_period_end":1702592000,
+            "price":{"id":"price_old","object":"price","product":"prod_1","recurring":{"interval":"month"}}}]}}
+        """;
+
+    private static string SubscriptionWithPendingUpdateJson(string targetPriceId) =>
+        SubscriptionWithPendingUpdateTemplate.Replace("TARGET", targetPriceId, StringComparison.Ordinal);
+
+    private const string SubscriptionWithScheduleAndInvoiceJson = """
+        {"id":"sub_1","object":"subscription","schedule":"sub_sched_1","discounts":[],
+         "items":{"object":"list","has_more":false,"data":[
+           {"id":"si_plan","object":"subscription_item","current_period_start":1700000000,"current_period_end":1702592000,
+            "price":{"id":"price_old","object":"price","product":"prod_1","recurring":{"interval":"month"}}}]}}
+        """;
+
+    private static Task<PlanUpgradeOutcome> UpgradeNowAsync(StripeSubscriptionService service) =>
+        service.UpgradePlanNowAsync(
+            SubscriptionId, "pro", "price_new", null, "CZK", BillingInterval.Monthly, "formup-key", TestContext.Current.CancellationToken);
+
+    private static ScriptedHandler AuthenticationRequiredThenPending(ScriptedHandler handler, string pendingJson, bool snapshotCall = false) =>
+        handler.Sequence(
+            HttpMethod.Post,
+            "/v1/subscriptions/sub_1",
+            snapshotCall
+                ? [(HttpStatusCode.PaymentRequired, AuthenticationRequiredJson), (HttpStatusCode.OK, SubscriptionJson), (HttpStatusCode.OK, pendingJson)]
+                : [(HttpStatusCode.PaymentRequired, AuthenticationRequiredJson), (HttpStatusCode.OK, pendingJson)]);
+
+    [Fact]
+    public async Task UpgradePlanNow_WhenTheCardNeedsNoAuthentication_AppliesAtOnce_WithoutAPendingUpdate()
+    {
+        var handler = new ScriptedHandler(HttpStatusCode.OK, SubscriptionJson);
+
+        var outcome = await UpgradeNowAsync(NewService(handler));
+
+        outcome.IsAwaitingPayment.Should().BeFalse();
+        outcome.PaymentUrl.Should().BeNull();
+        var update = handler.Requests.Single(r => r.Method == HttpMethod.Post);
+        update.Form.Should().Contain(new KeyValuePair<string, string>("payment_behavior", "error_if_incomplete"));
+        update.IdempotencyKey.Should().Be("formup-key");
+    }
+
+    [Fact]
+    public async Task UpgradePlanNow_WhenTheCardNeedsAuthentication_RepeatsAsAPendingUpdate_AndReturnsTheHostedInvoiceUrl()
+    {
+        var handler = AuthenticationRequiredThenPending(new ScriptedHandler(HttpStatusCode.OK, SubscriptionJson), PendingSubscriptionJson);
+
+        var outcome = await UpgradeNowAsync(NewService(handler));
+
+        outcome.IsAwaitingPayment.Should().BeTrue();
+        outcome.PaymentUrl.Should().Be(PendingInvoiceUrl);
+        var updates = handler.Requests.Where(r => r.Method == HttpMethod.Post && r.Path == "/v1/subscriptions/sub_1").ToList();
+        updates.Should().HaveCount(2, "no schedule and no earlier snapshot, so no metadata call in between");
+        var pending = updates[1];
+        pending.Form.Should().Contain(new KeyValuePair<string, string>("payment_behavior", "pending_if_incomplete"));
+        pending.Form.Should().Contain(new KeyValuePair<string, string>("proration_behavior", "always_invoice"));
+        pending.Form.Should().Contain(new KeyValuePair<string, string>("items[0][price]", "price_new"));
+        pending.Form.Should().Contain(new KeyValuePair<string, string>("cancel_at_period_end", "false"));
+        pending.Form.Should().Contain(new KeyValuePair<string, string>("expand[0]", "latest_invoice"));
+        pending.IdempotencyKey.Should().Be("formup-key-pending");
+    }
+
+    [Fact]
+    public async Task UpgradePlanNow_WhenAuthenticationIsNeededAndADowngradeWasScheduled_SnapshotsItBeforeThePendingUpdate()
+    {
+        var handler = AuthenticationRequiredThenPending(
+            new ScriptedHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
+                .Respond(HttpMethod.Get, "/v1/subscriptions/sub_1", SubscriptionWithScheduleAndInvoiceJson)
+                .Respond(HttpMethod.Get, "/v1/subscription_schedules/sub_sched_1", ScheduleJson),
+            PendingSubscriptionJson,
+            snapshotCall: true);
+
+        var outcome = await UpgradeNowAsync(NewService(handler));
+
+        outcome.PaymentUrl.Should().Be(PendingInvoiceUrl);
+        var posts = handler.Requests.Where(r => r.Method == HttpMethod.Post).ToList();
+        posts.Select(r => r.Path).Should().Equal(
+            "/v1/subscription_schedules/sub_sched_1/release",
+            "/v1/subscriptions/sub_1",
+            "/v1/subscriptions/sub_1",
+            "/v1/subscriptions/sub_1");
+        posts[2].Form.Should().Contain(new KeyValuePair<string, string>("metadata[formup_restore_prices]", "price_cheaper"));
+        posts[3].Form.Should().Contain(new KeyValuePair<string, string>("payment_behavior", "pending_if_incomplete"));
+    }
+
+    [Fact]
+    public async Task UpgradePlanNow_WithADeclinedCard_RestoresTheSchedule_ThrowsAndNeverGoesPending()
+    {
+        var handler = new ScriptedHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
+            .Respond(HttpMethod.Get, "/v1/subscriptions/sub_1", SubscriptionWithScheduleAndInvoiceJson)
+            .Respond(HttpMethod.Get, "/v1/subscription_schedules/sub_sched_1", ScheduleJson)
+            .Respond(HttpMethod.Post, "/v1/subscription_schedules", "{\"id\":\"sub_sched_new\",\"object\":\"subscription_schedule\"}")
+            .Fail(HttpMethod.Post, "/v1/subscriptions/sub_1", HttpStatusCode.PaymentRequired, CardDeclinedJson);
+
+        var act = () => UpgradeNowAsync(NewService(handler));
+
+        await act.Should().ThrowAsync<BillingProviderException>();
+        handler.Requests.Should().NotContain(r => r.Form.Contains(new KeyValuePair<string, string>("payment_behavior", "pending_if_incomplete")));
+        handler.Requests.Last().Path.Should().Be("/v1/subscription_schedules/sub_sched_new");
+    }
+
+    [Fact]
+    public async Task UpgradePlanNow_WhenThePendingUpdateHasNoPaymentPage_RestoresTheScheduleAndTheSnapshot_ThenThrows()
+    {
+        var handler = AuthenticationRequiredThenPending(
+            new ScriptedHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
+                .Respond(HttpMethod.Get, "/v1/subscriptions/sub_1", SubscriptionWithScheduleAndInvoiceJson)
+                .Respond(HttpMethod.Get, "/v1/subscription_schedules/sub_sched_1", ScheduleJson)
+                .Respond(HttpMethod.Post, "/v1/subscription_schedules", "{\"id\":\"sub_sched_new\",\"object\":\"subscription_schedule\"}"),
+            PendingWithoutUrlJson,
+            snapshotCall: true);
+
+        var act = () => UpgradeNowAsync(NewService(handler));
+
+        await act.Should().ThrowAsync<BillingProviderException>();
+        var posts = handler.Requests.Where(r => r.Method == HttpMethod.Post).ToList();
+        posts.Should().Contain(r => r.Path == "/v1/subscription_schedules/sub_sched_new");
+        posts.Last().Path.Should().Be("/v1/subscriptions/sub_1");
+        posts.Last().Form.Should().Contain(new KeyValuePair<string, string>("metadata[formup_restore_prices]", string.Empty));
+    }
+
+    [Fact]
+    public async Task UpgradePlanNow_WhenAnUpdateForTheSameTargetIsPending_ReturnsItsInvoiceUrl_WithoutAnyStripeWrite()
+    {
+        var handler = new ScriptedHandler(HttpStatusCode.OK, SubscriptionWithPendingUpdateJson("price_new"));
+
+        var outcome = await UpgradeNowAsync(NewService(handler));
+
+        outcome.PaymentUrl.Should().Be("https://invoice.stripe.test/i/in_old");
+        handler.Requests.Should().OnlyContain(r => r.Method == HttpMethod.Get, "a second update or charge must not happen");
+    }
+
+    [Fact]
+    public async Task UpgradePlanNow_WhenAnUpdateForAnotherTargetIsPending_VoidsItsOpenInvoiceBeforeReplacingIt()
+    {
+        var handler = new ScriptedHandler(HttpStatusCode.OK, SubscriptionWithPendingUpdateJson("price_other"))
+            .Respond(HttpMethod.Post, "/v1/invoices/in_old/void", "{\"id\":\"in_old\",\"object\":\"invoice\",\"status\":\"void\"}");
+
+        var outcome = await UpgradeNowAsync(NewService(handler));
+
+        outcome.IsAwaitingPayment.Should().BeFalse("the card needed no authentication this time");
+        handler.Requests.Where(r => r.Method == HttpMethod.Post).Select(r => r.Path)
+            .Should().Equal("/v1/invoices/in_old/void", "/v1/subscriptions/sub_1");
+    }
+
+    private const string SnapshotSubscriptionTemplate = """
+        {"id":"sub_1","object":"subscription","schedule":SCHEDULE,"discounts":[],
+         "metadata":{"formup_restore_prices":"price_cheaper"},
+         PENDING
+         "items":{"object":"list","has_more":false,"data":[
+           {"id":"si_plan","object":"subscription_item","current_period_start":1700000000,"current_period_end":1702592000,
+            "price":{"id":"price_old","object":"price","product":"prod_1","recurring":{"interval":"month"}}}]}}
+        """;
+
+    private static string SnapshotSubscriptionJson(bool pendingUpdate, bool schedule) =>
+        SnapshotSubscriptionTemplate
+            .Replace("SCHEDULE", schedule ? "\"sub_sched_1\"" : "null", StringComparison.Ordinal)
+            .Replace("PENDING", pendingUpdate ? "\"pending_update\":{\"expires_at\":1700050000}," : string.Empty, StringComparison.Ordinal);
+
+    [Fact]
+    public async Task RestoreAfterExpiredUpgrade_WithAScheduledChangeKept_RebuildsTheScheduleFromTheSnapshot_ThenClearsIt()
+    {
+        var handler = new ScriptedHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
+            .Respond(HttpMethod.Get, "/v1/subscriptions/sub_1", SnapshotSubscriptionJson(false, false))
+            .Respond(HttpMethod.Post, "/v1/subscription_schedules", "{\"id\":\"sub_sched_new\",\"object\":\"subscription_schedule\"}");
+
+        await NewService(handler).RestoreAfterExpiredUpgradeAsync(SubscriptionId, true, TestContext.Current.CancellationToken);
+
+        var posts = handler.Requests.Where(r => r.Method == HttpMethod.Post).ToList();
+        posts.Select(r => r.Path).Should().Equal("/v1/subscription_schedules", "/v1/subscription_schedules/sub_sched_new", "/v1/subscriptions/sub_1");
+        posts[1].Form.Should().Contain(new KeyValuePair<string, string>("phases[0][items][0][price]", "price_old"));
+        posts[1].Form.Should().Contain(new KeyValuePair<string, string>("phases[1][items][0][price]", "price_cheaper"));
+        posts[2].Form.Should().Contain(new KeyValuePair<string, string>("metadata[formup_restore_prices]", string.Empty));
+    }
+
+    [Fact]
+    public async Task RestoreAfterExpiredUpgrade_WhenTheRowNoLongerHasAScheduledChange_OnlyClearsTheSnapshot()
+    {
+        var handler = new ScriptedHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
+            .Respond(HttpMethod.Get, "/v1/subscriptions/sub_1", SnapshotSubscriptionJson(false, false));
+
+        await NewService(handler).RestoreAfterExpiredUpgradeAsync(SubscriptionId, false, TestContext.Current.CancellationToken);
+
+        handler.Requests.Where(r => r.Method == HttpMethod.Post).Select(r => r.Path).Should().Equal("/v1/subscriptions/sub_1");
+    }
+
+    [Fact]
+    public async Task RestoreAfterExpiredUpgrade_WhileANewerPendingUpdateExists_ChangesNothing()
+    {
+        var handler = new ScriptedHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
+            .Respond(HttpMethod.Get, "/v1/subscriptions/sub_1", SnapshotSubscriptionJson(true, false));
+
+        await NewService(handler).RestoreAfterExpiredUpgradeAsync(SubscriptionId, true, TestContext.Current.CancellationToken);
+
+        handler.Requests.Should().OnlyContain(r => r.Method == HttpMethod.Get);
+    }
+
+    [Fact]
+    public async Task RestoreAfterExpiredUpgrade_WhenStripeFails_ThrowsSoTheWebhookIsRetried()
+    {
+        var handler = new ScriptedHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
+            .Respond(HttpMethod.Get, "/v1/subscriptions/sub_1", SnapshotSubscriptionJson(false, false))
+            .Fail(HttpMethod.Post, "/v1/subscription_schedules", HttpStatusCode.InternalServerError, "{\"error\":{\"type\":\"api_error\"}}");
+
+        var act = () => NewService(handler).RestoreAfterExpiredUpgradeAsync(SubscriptionId, true, TestContext.Current.CancellationToken);
+
+        await act.Should().ThrowAsync<BillingProviderException>();
+        handler.Requests.Should().NotContain(r => r.Method == HttpMethod.Post && r.Path == "/v1/subscriptions/sub_1", "the snapshot stays for the retry");
+    }
+
     private sealed record CapturedRequest(HttpMethod Method, string Path, List<KeyValuePair<string, string>> Form, string? IdempotencyKey);
 
     private sealed class ScriptedHandler(HttpStatusCode defaultStatus, string defaultJson) : HttpMessageHandler
     {
         private readonly List<(HttpMethod Method, string Path, HttpStatusCode Status, string Json)> rules = [];
 
+        private readonly List<(HttpMethod Method, string Path, Queue<(HttpStatusCode Status, string Json)> Queue)> sequences = [];
+
         public List<CapturedRequest> Requests { get; } = [];
+
+        /// <summary>Answers the next calls of a route in order, then falls back to the plain rules.</summary>
+        public ScriptedHandler Sequence(HttpMethod method, string path, params (HttpStatusCode Status, string Json)[] answers)
+        {
+            sequences.Add((method, path, new Queue<(HttpStatusCode, string)>(answers)));
+
+            return this;
+        }
 
         public ScriptedHandler Respond(HttpMethod method, string path, string json) => Fail(method, path, HttpStatusCode.OK, json);
 
@@ -287,6 +532,15 @@ public class StripeSubscriptionServiceChangePlanTests
             var key = request.Headers.TryGetValues("Idempotency-Key", out var values) ? values.Single() : null;
 
             Requests.Add(new CapturedRequest(request.Method, path, form, key));
+
+            var sequence = sequences.FirstOrDefault(q => q.Method == request.Method && q.Path == path && q.Queue.Count > 0);
+
+            if (sequence.Path is not null)
+            {
+                var (queuedStatus, queuedJson) = sequence.Queue.Dequeue();
+
+                return new HttpResponseMessage(queuedStatus) { Content = new StringContent(queuedJson, Encoding.UTF8, "application/json") };
+            }
 
             var rule = rules.FirstOrDefault(r => r.Method == request.Method && r.Path == path);
             var (status, json) = rule.Path is null ? (defaultStatus, defaultJson) : (rule.Status, rule.Json);

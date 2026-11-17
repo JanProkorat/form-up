@@ -6,6 +6,7 @@ using FormUp.Application.Domain.Enums;
 using FormUp.Application.Features.Billing.ChangePlan;
 using FormUp.Tests.Builders;
 using FormUp.Application.Infrastructure.Data;
+using FormUp.Application.Infrastructure.Services.Billing;
 using FormUp.Tests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -66,6 +67,51 @@ public class ChangePlanEndpointTests(FitnessApiFactory factory) : IDisposable
         row.SubscriptionPlan.Code.Should().Be(target);
         row.PendingSubscriptionPlanPriceId.Should().BeNull();
         row.LastExternalEventAt.Should().BeCloseTo(lastEvent, TimeSpan.FromMilliseconds(1));
+    }
+
+    [Fact]
+    public async Task ChangePlan_WhenTheCardNeedsAuthentication_Returns200AwaitingPayment_WithTheUrl_AndLeavesTheRowAlone()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        fake.UpgradeOutcome = PlanUpgradeOutcome.AwaitingPayment("https://invoice.stripe.test/i/in_1");
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (current, _) = await BillingTestData.StripePlanAsync(factory, price: 29900);
+        var (target, _) = await BillingTestData.StripePlanAsync(factory, price: 59900);
+        var (scheduled, _) = await BillingTestData.StripePlanAsync(factory, price: 9900);
+        await BillingTestData.SubscribeLiveAsync(factory, coach, current);
+        await BillingTestData.SetPendingPlanAsync(factory, coach.ProfileId, scheduled);
+        var scheduledRowPriceId = (await BillingTestData.ReadRowAsync(factory, coach.ProfileId)).PendingSubscriptionPlanPriceId;
+        scheduledRowPriceId.Should().NotBeNull();
+        var lastEvent = DateTimeOffset.UtcNow.AddHours(-3);
+        await BillingTestData.SetLastExternalEventAsync(factory, coach.ProfileId, lastEvent);
+
+        var response = await coach.Http.PostAsJsonAsync(Route, Body(target), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = (await response.Content.ReadFromJsonAsync<ChangePlanResponse>(BillingTestData.Json, Ct))!;
+        body.Timing.Should().Be(PlanChangeTiming.AwaitingPayment);
+        body.PaymentUrl.Should().Be("https://invoice.stripe.test/i/in_1");
+        body.EffectiveAt.Should().BeNull();
+        var row = await BillingTestData.ReadRowAsync(factory, coach.ProfileId);
+        row.SubscriptionPlan.Code.Should().Be(current, "Stripe applies the plan when the coach pays; the webhook then writes the row");
+        row.PendingSubscriptionPlanPriceId.Should().Be(scheduledRowPriceId, "a scheduled downgrade survives an unpaid upgrade");
+        row.LastExternalEventAt.Should().BeCloseTo(lastEvent, TimeSpan.FromMilliseconds(1));
+    }
+
+    [Fact]
+    public async Task ChangePlan_WhenTheUpgradeIsApplied_HasNoPaymentUrl()
+    {
+        BillingTestData.ResetProvider(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (current, _) = await BillingTestData.StripePlanAsync(factory, price: 29900);
+        var (target, _) = await BillingTestData.StripePlanAsync(factory, price: 59900);
+        await BillingTestData.SubscribeLiveAsync(factory, coach, current);
+
+        var response = await coach.Http.PostAsJsonAsync(Route, Body(target), Ct);
+
+        var body = (await response.Content.ReadFromJsonAsync<ChangePlanResponse>(BillingTestData.Json, Ct))!;
+        body.Timing.Should().Be(PlanChangeTiming.Now);
+        body.PaymentUrl.Should().BeNull();
     }
 
     [Fact]

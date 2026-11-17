@@ -11,6 +11,8 @@ const STORAGE_KEY = 'checkoutActivationWatch';
 interface StoredWatch {
   startedAt: number;
   userId: string;
+  /** Plan an in-place upgrade waits for; absent for a checkout watch. */
+  targetPlanCode?: string;
 }
 
 function isStoredWatch(value: unknown): value is StoredWatch {
@@ -20,7 +22,9 @@ function isStoredWatch(value: unknown): value is StoredWatch {
     typeof candidate.startedAt === 'number' &&
     Number.isFinite(candidate.startedAt) &&
     typeof candidate.userId === 'string' &&
-    candidate.userId.length > 0
+    candidate.userId.length > 0 &&
+    (candidate.targetPlanCode === undefined ||
+      (typeof candidate.targetPlanCode === 'string' && candidate.targetPlanCode.length > 0))
   );
 }
 
@@ -70,7 +74,9 @@ interface CheckoutActivationState {
   startedAt: number | null;
   /** The coach (publicId) who made the purchase; the watch is only valid for that session. */
   userId: string | null;
-  start: (userId: string) => void;
+  /** The plan a pending upgrade must land on; null for a checkout watch, which settles on any paid plan. */
+  targetPlanCode: string | null;
+  start: (userId: string, targetPlanCode?: string) => void;
   stop: () => void;
 }
 
@@ -79,13 +85,14 @@ const initial = readStoredWatch();
 export const useCheckoutActivationStore = create<CheckoutActivationState>((set) => ({
   startedAt: initial?.startedAt ?? null,
   userId: initial?.userId ?? null,
-  start: (userId) => {
+  targetPlanCode: initial?.targetPlanCode ?? null,
+  start: (userId, targetPlanCode) => {
     const startedAt = Date.now();
-    writeStoredWatch({ startedAt, userId });
-    set({ startedAt, userId });
+    writeStoredWatch({ startedAt, userId, ...(targetPlanCode ? { targetPlanCode } : {}) });
+    set({ startedAt, userId, targetPlanCode: targetPlanCode ?? null });
   },
   stop: () => {
     clearStoredWatch();
-    set({ startedAt: null, userId: null });
+    set({ startedAt: null, userId: null, targetPlanCode: null });
   },
 }));

@@ -34,6 +34,15 @@ public sealed class FakeSubscriptionService : ISubscriptionService
     /// <summary>Recorded <see cref="ISubscriptionService.ChangePlanAsync"/> calls.</summary>
     public List<ChangePlanCall> PlanChanges { get; } = [];
 
+    /// <summary>What <see cref="ISubscriptionService.UpgradePlanNowAsync"/> returns; each call is also recorded in <see cref="PlanChanges"/> as an immediate change.</summary>
+    public PlanUpgradeOutcome UpgradeOutcome { get; set; } = PlanUpgradeOutcome.Applied;
+
+    /// <summary>Recorded <see cref="ISubscriptionService.RestoreAfterExpiredUpgradeAsync"/> calls.</summary>
+    public List<RestoreCall> ExpiredUpgradeRestores { get; } = [];
+
+    /// <summary>When true only <see cref="ISubscriptionService.RestoreAfterExpiredUpgradeAsync"/> throws <see cref="BillingProviderException"/>.</summary>
+    public bool FailExpiredUpgradeRestore { get; set; }
+
     /// <summary>Recorded <see cref="ISubscriptionService.ClearScheduledPriceChangeAsync"/> calls (subscription ids).</summary>
     public List<string> ClearedScheduledChanges { get; } = [];
 
@@ -120,6 +129,9 @@ public sealed class FakeSubscriptionService : ISubscriptionService
         long? AddOnAmountMinorUnits = null,
         string? IdempotencyKey = null);
 
+    /// <summary>A recorded restore after an expired pending upgrade.</summary>
+    public sealed record RestoreCall(string SubscriptionId, bool KeepScheduledChange);
+
     /// <summary>A recorded plan-change preview.</summary>
     public sealed record PlanChangePreviewCall(
         string CustomerId, string SubscriptionId, string PlanCode, string PlanPriceExternalId, long? AddOnAmountMinorUnits);
@@ -148,6 +160,9 @@ public sealed class FakeSubscriptionService : ISubscriptionService
             Fail = false;
             FailPlanChanges = false;
             FailClearScheduledChange = false;
+            UpgradeOutcome = PlanUpgradeOutcome.Applied;
+            ExpiredUpgradeRestores.Clear();
+            FailExpiredUpgradeRestore = false;
             ClearedScheduledChanges.Clear();
             Customers.Clear();
             Checkouts.Clear();
@@ -247,6 +262,50 @@ public sealed class FakeSubscriptionService : ISubscriptionService
         lock (gate)
         {
             PlanChanges.Add(new ChangePlanCall(subscriptionId, planCode, planPriceExternalId, atNextRenewal, addOnAmountMinorUnits, idempotencyKey));
+        }
+
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public Task<PlanUpgradeOutcome> UpgradePlanNowAsync(
+        string subscriptionId,
+        string planCode,
+        string planPriceExternalId,
+        long? addOnAmountMinorUnits,
+        string currency,
+        BillingInterval interval,
+        string idempotencyKey,
+        CancellationToken ct)
+    {
+        ThrowIfFailing();
+
+        if (FailPlanChanges)
+        {
+            throw new BillingProviderException("Fake plan change failure.");
+        }
+
+        lock (gate)
+        {
+            PlanChanges.Add(new ChangePlanCall(subscriptionId, planCode, planPriceExternalId, false, addOnAmountMinorUnits, idempotencyKey));
+        }
+
+        return Task.FromResult(UpgradeOutcome);
+    }
+
+    /// <inheritdoc />
+    public Task RestoreAfterExpiredUpgradeAsync(string subscriptionId, bool keepScheduledChange, CancellationToken ct)
+    {
+        ThrowIfFailing();
+
+        if (FailExpiredUpgradeRestore)
+        {
+            throw new BillingProviderException("Fake expired upgrade restore failure.");
+        }
+
+        lock (gate)
+        {
+            ExpiredUpgradeRestores.Add(new RestoreCall(subscriptionId, keepScheduledChange));
         }
 
         return Task.CompletedTask;

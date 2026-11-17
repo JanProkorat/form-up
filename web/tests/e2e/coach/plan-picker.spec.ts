@@ -8,6 +8,7 @@ import type { Page, Route } from '@playwright/test';
 import { trainerTest, expect } from '../fixtures/auth';
 
 const CHECKOUT_URL = 'https://checkout.stripe.test/c/pay/cs_test_e2e';
+const PAYMENT_URL = 'https://invoice.stripe.test/i/acct_e2e/test_e2e_invoice';
 
 interface PlanMock {
   code: string;
@@ -417,6 +418,44 @@ trainerTest.describe('plan picker: changing a live paid plan', () => {
     expect(changeBodies[0].attemptId).toMatch(/^[0-9a-f-]{36}$/);
     expect(changeBodies[1].attemptId).toMatch(/^[0-9a-f-]{36}$/);
     expect(changeBodies[1].attemptId).not.toBe(changeBodies[0].attemptId);
+  });
+
+  trainerTest('an upgrade that needs payment shows a link to Stripe, keeps the old plan and starts the watch on click', async ({
+    page,
+    context,
+  }) => {
+    await mockPickerReads(page, 'Vat21', undefined, liveSubscription('start'));
+    await page.route(/\/billing\/change-plan\/preview$/, (route) => json(route, previewBody({})));
+    await page.route(/\/billing\/change-plan$/, (route) =>
+      json(route, { planCode: 'pro', timing: 'AwaitingPayment', paymentUrl: PAYMENT_URL }),
+    );
+    // Nothing may reach real Stripe: the tab the link opens lands on a stub host.
+    await context.route(/invoice\.stripe\.test/, (route) => route.fulfill({ status: 200, contentType: 'text/html', body: 'stub' }));
+
+    await page.goto('/plan');
+    await page.getByRole('article', { name: 'Pro' }).getByRole('button', { name: 'Select Pro' }).click();
+    const bar = page.getByRole('region', { name: 'Selected plan' });
+    await bar.getByRole('button', { name: 'Upgrade to Pro' }).click();
+
+    const notice = page.getByTestId('upgrade-payment-notice');
+    await expect(notice).toBeVisible();
+    const link = notice.getByRole('link', { name: 'Continue to payment' });
+    await expect(link).toHaveAttribute('href', PAYMENT_URL);
+    await expect(link).toHaveAttribute('target', '_blank');
+    await expect(link).toHaveAttribute('rel', /noopener/);
+    // No tab opens by itself, no "changed" toast, and the page still shows the old plan.
+    expect(context.pages()).toHaveLength(1);
+    await expect(toastTitle(page, /You are now on the/)).toHaveCount(0);
+    await expect(page.getByRole('article', { name: 'Start' }).getByRole('button', { name: 'Your plan' })).toBeDisabled();
+    expect(await page.evaluate(() => sessionStorage.getItem('checkoutActivationWatch'))).toBeNull();
+
+    // The click is what opens the payment page and starts the watch for the Pro plan.
+    const popup = context.waitForEvent('page');
+    await link.click();
+    await popup;
+    await expect
+      .poll(() => page.evaluate(() => sessionStorage.getItem('checkoutActivationWatch')))
+      .toContain('"targetPlanCode":"pro"');
   });
 
   trainerTest('an annual preview says the rest of this year and bills per year', async ({ page }) => {

@@ -116,7 +116,12 @@ internal sealed class StripeWebhookEndpoint(
         var applied = (stripeEvent.Type, stripeEvent.Data?.Object) switch
         {
             ("customer.subscription.created" or "customer.subscription.updated", Subscription subscription)
-                => await ApplySubscriptionAsync(stripeEvent, subscription, ct),
+                => await ApplySubscriptionAsync(stripeEvent, subscription, pendingUpdateApplied: false, ct),
+            // UNVERIFIED: pending_update_applied and pending_update_expired carry the Subscription as data.object — https://docs.stripe.com/billing/subscriptions/pending-updates
+            ("customer.subscription.pending_update_applied", Subscription subscription)
+                => await ApplySubscriptionAsync(stripeEvent, subscription, pendingUpdateApplied: true, ct),
+            ("customer.subscription.pending_update_expired", Subscription subscription)
+                => await ApplyExpiredUpdateAsync(stripeEvent, subscription, ct),
             ("customer.subscription.deleted", Subscription subscription)
                 => await ApplyDeletedAsync(stripeEvent, subscription, ct),
             ("invoice.paid", Invoice invoice)
@@ -134,7 +139,8 @@ internal sealed class StripeWebhookEndpoint(
         return applied == true;
     }
 
-    private async Task<bool> ApplySubscriptionAsync(Event stripeEvent, Subscription subscription, CancellationToken ct)
+    private async Task<bool> ApplySubscriptionAsync(
+        Event stripeEvent, Subscription subscription, bool pendingUpdateApplied, CancellationToken ct)
     {
         var priceIds = subscription.Items.Data.Select(item => item.Price.Id).ToList();
         var planPrice = await db.SubscriptionPlanPrices
@@ -159,6 +165,13 @@ internal sealed class StripeWebhookEndpoint(
 
         if (IsStale(stripeEvent, row))
         {
+            // The updated event that carried the new items may have been applied first; the scheduled-change marker still goes.
+            if (pendingUpdateApplied && row.SubscriptionPlanPriceId == planPrice.Id)
+            {
+                row.PendingSubscriptionPlanPriceId = null;
+                return true;
+            }
+
             return false;
         }
 
@@ -204,7 +217,7 @@ internal sealed class StripeWebhookEndpoint(
         row.GivenFreeAt = null;
         row.FreeUntil = null;
 
-        if (row.PendingSubscriptionPlanPriceId == planPrice.Id)
+        if (pendingUpdateApplied || row.PendingSubscriptionPlanPriceId == planPrice.Id)
         {
             row.PendingSubscriptionPlanPriceId = null;
         }
@@ -281,6 +294,30 @@ internal sealed class StripeWebhookEndpoint(
             .Where(p => (promotionCodeId != null && p.StripePromotionCodeId == promotionCodeId)
                         || (couponId != null && p.StripeCouponId == couponId))
             .FirstOrDefaultAsync(ct);
+    }
+
+    /// <summary>
+    /// A pending upgrade expired unpaid: the row keeps its plan. What the release of a scheduled downgrade dropped is put back
+    /// at Stripe. A provider failure propagates so Stripe retries the event.
+    /// </summary>
+    private async Task<bool> ApplyExpiredUpdateAsync(Event stripeEvent, Subscription subscription, CancellationToken ct)
+    {
+        var row = await FindRowAsync(subscription.Id, subscription.CustomerId, ct);
+
+        if (row is null)
+        {
+            logger.LogWarning("Stripe event {EventId} ({EventType}) matches no coach; ignored", stripeEvent.Id, stripeEvent.Type);
+            return false;
+        }
+
+        if (!subscriptions.IsConfigured)
+        {
+            return true;
+        }
+
+        await subscriptions.RestoreAfterExpiredUpgradeAsync(subscription.Id, row.PendingSubscriptionPlanPriceId is not null, ct);
+
+        return true;
     }
 
     private async Task<bool> ApplyDeletedAsync(Event stripeEvent, Subscription subscription, CancellationToken ct)

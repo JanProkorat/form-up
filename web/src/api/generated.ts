@@ -1663,6 +1663,13 @@ export class ApiClient {
             result200 = JSON.parse(resultData200);
             return Promise.resolve<DisableCoachAccountResponse>(result200);
 
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("NO_ACTIVE_COACH_ROLE", status, _responseText, _headers, result400);
+
         } else if (status === 401) {
             const _responseText = response.data;
             return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
@@ -1670,6 +1677,14 @@ export class ApiClient {
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status === 502) {
+            const _responseText = response.data;
+            return throwException("Stripe failed; nothing was saved (BILLING_PROVIDER_ERROR)", status, _responseText, _headers);
+
+        } else if (status === 503) {
+            const _responseText = response.data;
+            return throwException("You have a live Stripe subscription and Stripe is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -22297,7 +22312,7 @@ export class ApiClient {
 
     /**
      * Change the plan of my paid subscription
-     * @return The change was applied or scheduled
+     * @return The change was applied or scheduled, or awaits payment on the hosted page (Timing AwaitingPayment, PaymentUrl set)
      */
     changePlanEndpoint(changePlanRequest: ChangePlanRequest, signal?: AbortSignal): Promise<ChangePlanResponse> {
         let url_ = this.baseUrl + "/billing/change-plan";
@@ -24818,6 +24833,14 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("The coach is unknown (PROFESSIONAL_NOT_FOUND)", status, _responseText, _headers);
 
+        } else if (status === 502) {
+            const _responseText = response.data;
+            return throwException("Stripe failed; nothing was saved (BILLING_PROVIDER_ERROR)", status, _responseText, _headers);
+
+        } else if (status === 503) {
+            const _responseText = response.data;
+            return throwException("The coach has a live Stripe subscription and Stripe is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -24903,6 +24926,14 @@ export class ApiClient {
             let resultData409  = _responseText;
             result409 = JSON.parse(resultData409);
             return throwException("Nothing renews: no subscription, the Free plan, a given-free plan, or a plan that no longer applies (NO_RENEWING_SUBSCRIPTION)", status, _responseText, _headers, result409);
+
+        } else if (status === 502) {
+            const _responseText = response.data;
+            return throwException("Stripe failed; nothing was saved (BILLING_PROVIDER_ERROR)", status, _responseText, _headers);
+
+        } else if (status === 503) {
+            const _responseText = response.data;
+            return throwException("The coach has a live Stripe subscription and Stripe is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -34411,6 +34442,7 @@ add-on when the coach would pay it. List price before tax and before any promoti
 export enum PlanChangeTiming {
     Now = "Now",
     AtNextRenewal = "AtNextRenewal",
+    AwaitingPayment = "AwaitingPayment",
 }
 
 /** Request for previewing a move of the caller's live paid subscription to another paid plan. */
@@ -34468,6 +34500,8 @@ export interface ChangePlanResponse {
     timing?: PlanChangeTiming;
     /** When the new plan starts: now for an upgrade, the period end for a scheduled change (null when unknown). */
     effectiveAt?: string | undefined;
+    /** Stripe's hosted payment page; set only when Timing is AwaitingPayment, null otherwise. */
+    paymentUrl?: string | undefined;
 }
 
 /** Request for moving the caller's live paid subscription to another paid plan. */

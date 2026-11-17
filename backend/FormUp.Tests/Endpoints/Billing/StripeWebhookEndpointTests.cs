@@ -792,6 +792,127 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
         await AssertBoughtPlanReplacedGiftAsync(scenario);
     }
 
+    /// <summary>A paid coach with a scheduled downgrade pending, and a dearer plan priced in Stripe to upgrade to.</summary>
+    private async Task<(Scenario Current, Scenario Upgraded, long PendingPriceRowId)> ArrangeUpgradeWithScheduledDowngradeAsync()
+    {
+        var current = await ArrangeOnPaidPlanAsync();
+        var target = await PaidPlanBuilder.CreateAsync(factory);
+        var targetPriceId = await SetStripePriceAsync(target);
+        var downgrade = await PaidPlanBuilder.CreateAsync(factory);
+        await SetStripePriceAsync(downgrade);
+        await BillingTestData.SetPendingPlanAsync(factory, current.Coach.ProfileId, downgrade);
+        var pending = (await ReadRowAsync(current.Coach.ProfileId)).PendingSubscriptionPlanPriceId!.Value;
+
+        return (current, current with { PlanCode = target, PriceId = targetPriceId }, pending);
+    }
+
+    [Fact]
+    public async Task Webhook_PendingUpdateApplied_SwitchesThePlan_AndClearsTheScheduledChangeMarker()
+    {
+        var (current, upgraded, _) = await ArrangeUpgradeWithScheduledDowngradeAsync();
+
+        var response = await PostAsync(SubscriptionEvent(NewEventId(), "customer.subscription.pending_update_applied", upgraded, "active"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var after = await ReadRowAsync(current.Coach.ProfileId);
+        after.SubscriptionPlan.Code.Should().Be(upgraded.PlanCode);
+        after.PendingSubscriptionPlanPriceId.Should().BeNull("the upgrade replaced the scheduled downgrade");
+    }
+
+    [Fact]
+    public async Task Webhook_PendingUpdateAppliedAfterTheUpdatedEventOfTheSameChange_StillClearsTheMarker()
+    {
+        var (current, upgraded, pendingRowId) = await ArrangeUpgradeWithScheduledDowngradeAsync();
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        await PostAsync(SubscriptionEvent(NewEventId(), "customer.subscription.updated", upgraded, "active", created: now));
+        (await ReadRowAsync(current.Coach.ProfileId)).PendingSubscriptionPlanPriceId.Should().Be(pendingRowId, "the updated event does not know the marker");
+        var appliedId = NewEventId();
+
+        var response = await PostAsync(SubscriptionEvent(appliedId, "customer.subscription.pending_update_applied", upgraded, "active", created: now - 5));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await ReadRowAsync(current.Coach.ProfileId)).PendingSubscriptionPlanPriceId.Should().BeNull("an older event order must not lose the clear");
+        (await ProcessedCountAsync(appliedId)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Webhook_PendingUpdateApplied_ForAnOlderEventWhoseChangeWasNotApplied_ChangesNothing()
+    {
+        var (current, upgraded, pendingRowId) = await ArrangeUpgradeWithScheduledDowngradeAsync();
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        await PostAsync(SubscriptionEvent(NewEventId(), "customer.subscription.updated", current, "active", created: now));
+
+        await PostAsync(SubscriptionEvent(NewEventId(), "customer.subscription.pending_update_applied", upgraded, "active", created: now - 5));
+
+        var after = await ReadRowAsync(current.Coach.ProfileId);
+        after.SubscriptionPlan.Code.Should().Be(current.PlanCode);
+        after.PendingSubscriptionPlanPriceId.Should().Be(pendingRowId);
+    }
+
+    [Fact]
+    public async Task Webhook_PendingUpdateApplied_RepeatedEventId_IsANoOp()
+    {
+        var (current, upgraded, _) = await ArrangeUpgradeWithScheduledDowngradeAsync();
+        var eventId = NewEventId();
+
+        await PostAsync(SubscriptionEvent(eventId, "customer.subscription.pending_update_applied", upgraded, "active"));
+        await PostAsync(SubscriptionEvent(eventId, "customer.subscription.pending_update_applied", upgraded, "active"));
+
+        (await ProcessedCountAsync(eventId)).Should().Be(1);
+        (await ReadRowAsync(current.Coach.ProfileId)).SubscriptionPlan.Code.Should().Be(upgraded.PlanCode);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Webhook_PendingUpdateExpired_KeepsThePlan_AndAsksTheProviderToRestoreTheScheduledChange(bool rowHasScheduledChange)
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var (current, _, pendingRowId) = await ArrangeUpgradeWithScheduledDowngradeAsync();
+
+        if (!rowHasScheduledChange)
+        {
+            await UpdateRowAsync(current.Coach.ProfileId, row => row.PendingSubscriptionPlanPriceId = null);
+        }
+
+        var eventId = NewEventId();
+        var response = await PostAsync(SubscriptionEvent(eventId, "customer.subscription.pending_update_expired", current, "active"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.ExpiredUpgradeRestores.Should().ContainSingle().Which.Should().Be(
+            new FakeSubscriptionService.RestoreCall(current.SubscriptionId, rowHasScheduledChange));
+        var after = await ReadRowAsync(current.Coach.ProfileId);
+        after.SubscriptionPlan.Code.Should().Be(current.PlanCode);
+        after.PendingSubscriptionPlanPriceId.Should().Be(rowHasScheduledChange ? pendingRowId : null);
+        (await ProcessedCountAsync(eventId)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Webhook_PendingUpdateExpired_WhenTheProviderFails_Returns500_AndStoresNoEventId_SoStripeRetries()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        fake.FailExpiredUpgradeRestore = true;
+        var (current, _, _) = await ArrangeUpgradeWithScheduledDowngradeAsync();
+        var eventId = NewEventId();
+
+        var response = await PostAsync(SubscriptionEvent(eventId, "customer.subscription.pending_update_expired", current, "active"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+        (await ProcessedCountAsync(eventId)).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Webhook_PendingUpdateExpired_ForAnUnknownSubscription_Returns200_AndCallsNothing()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var unknown = new Scenario(await TestActors.Trainer(factory).CreateAsync(Ct), "none", "price_unknown", "cus_unknown", "sub_unknown");
+
+        var response = await PostAsync(SubscriptionEvent(NewEventId(), "customer.subscription.pending_update_expired", unknown, "active"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.ExpiredUpgradeRestores.Should().BeEmpty();
+    }
+
     [Fact]
     public async Task Webhook_WhenProcessingThrows_Returns500_AndStoresNoEventId()
     {
