@@ -145,6 +145,50 @@ trainerTest.describe('settings plan card with a scheduled change', () => {
   });
 });
 
+trainerTest.describe('settings plan card second-role note', () => {
+  // RolesCard shows the same wording, so every locator is scoped to the plan card.
+  trainerTest('a plan without a second role says so, without a date', async ({ page }) => {
+    await mockSubscription(page, subscription({ secondRole: 'NotAvailable' }));
+    await page.goto('/settings#plan-billing');
+
+    const card = page.locator('#plan-billing');
+    await expect(card.getByText('A second professional role is not part of your plan. Change your plan to add one.')).toBeVisible();
+    await expect(card.getByText(/after your plan change/)).toHaveCount(0);
+  });
+
+  trainerTest('a scheduled plan change makes the note say when a second role can be added', async ({ page }) => {
+    await mockSubscription(
+      page,
+      subscription({
+        secondRole: 'NotAvailable',
+        scheduledPlan: {
+          planCode: 'business',
+          nameCs: 'Business',
+          nameEn: 'Business',
+          nameDe: 'Business',
+          startsAt: PERIOD_END,
+          priceLines: [{ kind: 'Plan', amountMinorUnits: 99900, currency: 'CZK' }],
+        },
+      }),
+    );
+    await page.goto('/settings#plan-billing');
+
+    const card = page.locator('#plan-billing');
+    await expect(card.getByText(/You can add a second role after your plan change on .*2026\./)).toBeVisible();
+    await expect(card.getByText(/is not part of/)).toHaveCount(0);
+  });
+
+  trainerTest('a plan that sells a second role shows no note on the card', async ({ page }) => {
+    await mockSubscription(page, subscription({ secondRole: 'Purchasable' }));
+    await page.goto('/settings#plan-billing');
+
+    const card = page.locator('#plan-billing');
+    await expect(card.getByText(/Monthly · Renews .*2026/)).toBeVisible();
+    await expect(card.getByText(/not part of/)).toHaveCount(0);
+    await expect(card.getByText(/after your plan change/)).toHaveCount(0);
+  });
+});
+
 const FREE_SCHEDULED = {
   planCode: 'free',
   nameCs: 'Free',

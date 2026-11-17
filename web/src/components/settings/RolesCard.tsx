@@ -26,6 +26,7 @@ import AddRoleDialog from '@/components/settings/AddRoleDialog';
 import DisableAccountDialog from '@/components/settings/DisableAccountDialog';
 import RemoveRoleDialog, { type CoachRoleKey } from '@/components/settings/RemoveRoleDialog';
 import SettingsCard from '@/components/settings/SettingsCard';
+import { secondRoleReason } from '@/components/settings/secondRoleReason';
 
 /** Roles a user can hold from here; the string is the value the roles endpoints expect. */
 const COACH_ROLES = [
@@ -75,12 +76,7 @@ export default function RolesCard() {
   // Until the plan is known a click could fall into the free path, so Add waits for it.
   const subscriptionLoading = addsSecondRole && subscription.isCoach && subscription.query.isPending;
   const addDisabled = secondRoleUnavailable || subscriptionLoading;
-  const scheduledStart = subscription.data?.scheduledPlan?.startsAt;
-  const unavailableNote = scheduledStart
-    ? t('settings.roles.secondRoleAfterChange', {
-        date: new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' }).format(new Date(scheduledStart)),
-      })
-    : t('settings.roles.secondRoleUnavailable');
+  const unavailableNote = secondRoleReason(t, subscription.data, i18n.language);
   const billingNote = (() => {
     const sub = subscription.data;
     if (!sub || secondRole !== SecondRoleState.PaidAddOn) return null;

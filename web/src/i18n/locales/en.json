@@ -624,7 +624,6 @@
         "secondRole": "Second role",
         "total": "Total",
         "perMonth": "{{amount}} / month",
-        "secondRoleUnavailable": "A second professional role is not part of this plan.",
         "afterOffer": "From {{date}}: {{amount}} / month.",
         "offer": {
           "months_one": "{{name}} {{value}} · {{left}} of {{count}} month left",
