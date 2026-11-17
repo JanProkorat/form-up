@@ -908,19 +908,11 @@ public class GetClientsEndpointTests(FitnessApiFactory factory)
 
     private async Task<(HttpClient Http, Guid UserId)> SetupTrainerAsync()
     {
-        var http = factory.CreateClient();
-        var email = UniqueEmail("trainer");
+        var trainer = await TestActors.Trainer(factory)
+            .WithEmail(UniqueEmail("trainer"))
+            .CreateAsync(TestContext.Current.CancellationToken);
 
-        await TestHelpers.RegisterAsync(http, email, "TestPass1!", "Test", "Trainer", "Trainer");
-        var (token, _) = await TestHelpers.LoginAsync(http, email, "TestPass1!");
-        TestHelpers.SetBearerToken(http, token);
-
-        using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var user = await db.Users.AsNoTracking()
-            .FirstAsync(u => u.Email == email, TestContext.Current.CancellationToken);
-
-        return (http, user.Id);
+        return (trainer.Http, trainer.UserId);
     }
 
     private async Task<(Guid ClientUserId, Guid ClientPublicId)> SetupLinkedClientAsync(
