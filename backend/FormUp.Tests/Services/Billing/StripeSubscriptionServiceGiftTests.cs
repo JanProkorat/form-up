@@ -172,6 +172,79 @@ public class StripeSubscriptionServiceGiftTests
             .OnlyContain(r => r.Path == "/v1/subscription_schedules/sub_sched_1", "the schedule is never released or the subscription touched half-way");
     }
 
+    private static string TwoPhaseScheduleJson(DateTimeOffset firstPhaseEnd, string? coupon, string secondPhasePrice) => """
+        {"id":"sub_sched_1","object":"subscription_schedule","end_behavior":"release",
+         "current_phase":{"start_date":START,"end_date":FIRSTEND},
+         "phases":[
+           {"start_date":START,"end_date":FIRSTEND,"items":[{"price":"price_old","quantity":1}],"discounts":DISCOUNTS},
+           {"start_date":FIRSTEND,"items":[{"price":"SECONDPRICE","quantity":1}],"discounts":[]}]}
+        """
+        .Replace("START", Unix(PurchasedAt).ToString())
+        .Replace("FIRSTEND", Unix(firstPhaseEnd).ToString())
+        .Replace("SECONDPRICE", secondPhasePrice)
+        .Replace("DISCOUNTS", coupon is null ? "[]" : $"[{{\"coupon\":\"{coupon}\"}}]");
+
+    [Fact]
+    public async Task CancelAtPeriodEnd_OnAGiftSchedule_KeepsTheCouponPhaseAndCancelsWithoutReleasing()
+    {
+        var giftEnd = PurchasedAt.AddMonths(2).AddDays(9);
+        var handler = NewHandler(SubscriptionJson(false, ScheduleId))
+            .Respond(HttpMethod.Get, "/v1/subscription_schedules/sub_sched_1", TwoPhaseScheduleJson(giftEnd, StripeRequestBuilder.GiftCouponId, "price_old"));
+
+        await NewService(handler).CancelAtPeriodEndAsync(SubscriptionId, TestContext.Current.CancellationToken);
+
+        var update = handler.Requests.Single(r => r.Method == HttpMethod.Post);
+        update.Path.Should().Be("/v1/subscription_schedules/sub_sched_1");
+        update.Form.Should().Contain(Pair("end_behavior", "cancel"));
+        update.Form.Should().Contain(Pair("phases[0][end_date]", Unix(giftEnd).ToString()));
+        update.Form.Should().Contain(Pair("phases[0][discounts][0][coupon]", StripeRequestBuilder.GiftCouponId));
+        update.Form.Should().NotContain(pair => pair.Key.StartsWith("phases[1]", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task CancelAtPeriodEnd_WithoutASchedule_SetsOnlyTheCancelFlag()
+    {
+        var handler = NewHandler(SubscriptionJson(cancelAtPeriodEnd: false, schedule: null));
+
+        await NewService(handler).CancelAtPeriodEndAsync(SubscriptionId, TestContext.Current.CancellationToken);
+
+        var update = handler.Requests.Single(r => r.Method == HttpMethod.Post);
+        update.Path.Should().Be("/v1/subscriptions/sub_1");
+        update.Form.Should().Contain(Pair("cancel_at_period_end", "true"));
+    }
+
+    [Fact]
+    public async Task CancelAtPeriodEnd_OnAScheduleHoldingOnlyAPriceChange_CancelsInOnePhaseOnTheCurrentPrices()
+    {
+        var handler = NewHandler(SubscriptionJson(false, ScheduleId))
+            .Respond(HttpMethod.Get, "/v1/subscription_schedules/sub_sched_1", TwoPhaseScheduleJson(FirstRenewal, null, "price_new"));
+
+        await NewService(handler).CancelAtPeriodEndAsync(SubscriptionId, TestContext.Current.CancellationToken);
+
+        var update = handler.Requests.Single(r => r.Method == HttpMethod.Post);
+        update.Path.Should().Be("/v1/subscription_schedules/sub_sched_1");
+        update.Form.Should().Contain(Pair("end_behavior", "cancel"));
+        update.Form.Should().Contain(Pair("phases[0][end_date]", Unix(FirstRenewal).ToString()));
+        update.Form.Should().Contain(pair => pair.Key.Contains("[price]", StringComparison.Ordinal) && pair.Value == "price_old");
+        update.Form.Should().NotContain(pair => pair.Value == "price_new");
+        update.Form.Should().NotContain(pair => pair.Key.StartsWith("phases[1]", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task CancelAtPeriodEnd_WhenStripeRejectsTheScheduleUpdate_ThrowsWithoutReleasing()
+    {
+        var giftEnd = PurchasedAt.AddMonths(2).AddDays(9);
+        var handler = NewHandler(SubscriptionJson(false, ScheduleId))
+            .Respond(HttpMethod.Get, "/v1/subscription_schedules/sub_sched_1", TwoPhaseScheduleJson(giftEnd, StripeRequestBuilder.GiftCouponId, "price_old"))
+            .Fail(HttpMethod.Post, "/v1/subscription_schedules/sub_sched_1", HttpStatusCode.InternalServerError, "{\"error\":{\"type\":\"api_error\"}}");
+
+        var act = () => NewService(handler).CancelAtPeriodEndAsync(SubscriptionId, TestContext.Current.CancellationToken);
+
+        await act.Should().ThrowAsync<BillingProviderException>();
+        handler.Requests.Where(r => r.Method == HttpMethod.Post).Should()
+            .OnlyContain(r => r.Path == "/v1/subscription_schedules/sub_sched_1", "the gift's schedule is never released when the cancel fails");
+    }
+
     private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider
     {
         public override DateTimeOffset GetUtcNow() => now;

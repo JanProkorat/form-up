@@ -416,18 +416,45 @@ public sealed class StripeSubscriptionService(
         {
             var subscription = await GetSubscriptionAsync(stripe, subscriptionId, ct);
 
-            // A subscription managed by a schedule cannot take the flag itself; the coach is leaving, so the schedule goes.
-            if (subscription.ScheduleId is { } scheduleId)
+            // A subscription managed by a schedule cannot take the flag itself, and releasing the schedule would drop a gift's free
+            // phase. The schedule is rebuilt to cancel instead, so the gift stays and the renewal still ends the subscription.
+            if (subscription.ScheduleId is not null)
             {
-                await stripe.V1.SubscriptionSchedules.ReleaseAsync(
-                    scheduleId, new SubscriptionScheduleReleaseOptions(), cancellationToken: ct);
+                await CancelScheduleRenewalAsync(stripe, subscriptionId, subscription, ct);
+
+                return true;
             }
 
-            await stripe.V1.Subscriptions.UpdateAsync(
-                subscriptionId, new SubscriptionUpdateOptions { CancelAtPeriodEnd = true }, cancellationToken: ct);
+            await SetCancelAtPeriodEndAsync(stripe, subscriptionId, ct);
 
             return true;
         });
+
+    private async Task CancelScheduleRenewalAsync(
+        StripeClient stripe, string subscriptionId, Subscription subscription, CancellationToken ct)
+    {
+        var state = await ReadStateAsync(stripe, subscription, ct);
+        var phases = StripeSchedulePlanner.Build(
+            state.Start, state.End, state.CurrentPriceIds, state.Intent with { CancelRenewal = true }, IntervalOf(subscription));
+
+        if (phases.Count > 0)
+        {
+            await ApplyPhasesAsync(stripe, subscriptionId, state.ScheduleId, phases, IntervalOf(subscription), true, ct);
+
+            return;
+        }
+
+        await stripe.V1.SubscriptionSchedules.ReleaseAsync(
+            state.ScheduleId!, new SubscriptionScheduleReleaseOptions(), cancellationToken: ct);
+
+        await SetCancelAtPeriodEndAsync(stripe, subscriptionId, ct);
+
+        // UNVERIFIED: releasing a schedule keeps the current items and drops the phase discounts, so an endless gift is put back — https://docs.stripe.com/api/subscription_schedules/release
+        if (state.Intent.GiftCouponId is { } giftCouponId)
+        {
+            await SetSubscriptionDiscountAsync(stripe, subscriptionId, giftCouponId, ct);
+        }
+    }
 
     /// <inheritdoc />
     public Task CancelNowAsync(string subscriptionId, CancellationToken ct) =>
