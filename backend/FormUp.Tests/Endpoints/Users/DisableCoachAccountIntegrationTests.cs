@@ -230,6 +230,30 @@ public class DisableCoachAccountIntegrationTests(FitnessApiFactory factory) : ID
     }
 
     [Fact]
+    public async Task Disable_GiftedCoachWithFreeUntil_UsesFreeUntil_AndRolesShowTheSameDateBeforehand()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var freeUntil = DateTimeOffset.UtcNow.AddDays(45);
+        await SeedSubscriptionAsync(factory, coach.ProfileId, SubscriptionStatus.Active, periodEndsAt: null);
+        await BillingTestData.UpdateRowAsync(factory, coach.ProfileId, row =>
+        {
+            row.GivenFreeAt = DateTimeOffset.UtcNow;
+            row.FreeUntil = freeUntil;
+        });
+
+        var before = await coach.Http.GetFromJsonAsync<RolesResult>("/users/me/roles", Ct);
+        var response = await coach.Http.PostAsync("/users/me/coach-account/disable", null, Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<DisableResult>(cancellationToken: Ct);
+        body!.ActiveUntil.Should().BeCloseTo(freeUntil.UtcDateTime, TimeSpan.FromSeconds(1));
+        before!.ActiveUntilIfDisabled.Should().BeCloseTo(freeUntil.UtcDateTime, TimeSpan.FromSeconds(1));
+        body.ActiveUntil.Should().Be(before.ActiveUntilIfDisabled!.Value);
+        (await ReadProfileAsync(coach.UserId)).CoachAccountActiveUntil
+            .Should().BeCloseTo(freeUntil.UtcDateTime, TimeSpan.FromSeconds(1));
+    }
+
+    [Fact]
     public async Task Disable_LiveStripeSubscription_CancelsAtTheProviderOnce_AndClearsTheScheduledChange()
     {
         var fake = BillingTestData.ResetProvider(factory);
