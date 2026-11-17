@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Check, Users, X } from 'lucide-react';
+import { Check, Loader2, Users, X } from 'lucide-react';
 import { BillingInterval, type CoachPlanDto } from '@/api/generated';
 import { formatMoney } from '@/components/subscription/money';
 import { coachPlanName } from '@/components/subscription/planNames';
@@ -17,6 +17,8 @@ interface Props {
   /** Disables the button, for the plan the coach is on and for plans that cannot be taken right now. */
   actionDisabled: boolean;
   busy: boolean;
+  /** Spinner on the action button: this card's own request is running (other cards only get `busy`). */
+  pending?: boolean;
   onAction: () => void;
   /** Price to show instead of the plan's own, for example with the second-role add-on included. */
   priceMinorUnits?: number;
@@ -54,6 +56,7 @@ export default function PlanCard({
   primary,
   actionDisabled,
   busy,
+  pending = false,
   onAction,
   priceMinorUnits,
   originalPriceMinorUnits,
@@ -154,6 +157,7 @@ export default function PlanCard({
           disabled={actionDisabled || busy}
           onClick={onAction}
         >
+          {pending && <Loader2 className="animate-spin" aria-hidden="true" />}
           {actionLabel}
         </Button>
       )}

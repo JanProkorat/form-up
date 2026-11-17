@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ChevronRight, Dumbbell, Info, Leaf } from 'lucide-react';
+import { ChevronRight, Dumbbell, Info, Leaf, Loader2 } from 'lucide-react';
 import { BillingInterval } from '@/api/generated';
 import type { CoachRoleKey } from '@/components/settings/RemoveRoleDialog';
 import { billingErrorCode, billingErrorMessage } from '@/components/subscription/billingErrors';
@@ -24,7 +24,7 @@ import {
   useSecondRolePreview,
   useSubscription,
 } from '@/hooks/useSubscriptionQueries';
-import UpgradePaymentNotice from '@/components/subscription/UpgradePaymentNotice';
+import UpgradePaymentNotice, { PaymentNoticeReveal } from '@/components/subscription/UpgradePaymentNotice';
 import { getErrorStatus } from '@/lib/api-errors';
 import { useAuthStore } from '@/stores/auth';
 import { useCheckoutActivationStore } from '@/stores/checkoutActivation';
@@ -194,14 +194,16 @@ export default function AddRoleDialog({ role, onClose, onPaid, adding }: Props) 
           </>
         ) : null}
 
-        {paymentUrl && (
-          <UpgradePaymentNotice
-            message={t('subscription.billing.addRole.paymentNotice')}
-            paymentUrl={paymentUrl}
-            onOpen={openPayment}
-            onDismiss={onClose}
-          />
-        )}
+        <PaymentNoticeReveal open={paymentUrl !== null}>
+          {paymentUrl && (
+            <UpgradePaymentNotice
+              message={t('subscription.billing.addRole.paymentNotice')}
+              paymentUrl={paymentUrl}
+              onOpen={openPayment}
+              onDismiss={onClose}
+            />
+          )}
+        </PaymentNoticeReveal>
 
         {confirmError && (
           <p role="alert" className="text-body text-error">
@@ -219,6 +221,7 @@ export default function AddRoleDialog({ role, onClose, onPaid, adding }: Props) 
             </Button>
           ) : (
             <Button type="button" size="lg" disabled={busy || !preview || loadFailed || paymentUrl !== null} onClick={pay}>
+              {busy && <Loader2 className="animate-spin" aria-hidden="true" />}
               {preview
                 ? t('subscription.billing.addRole.confirm', { amount: money(preview.todayAmountMinorUnits) })
                 : t('settings.roles.add')}

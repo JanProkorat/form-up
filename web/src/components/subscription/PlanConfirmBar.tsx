@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface Props {
@@ -44,7 +44,7 @@ export default function PlanConfirmBar({ title, note, hint, extraHint, confirmLa
       </div>
       <Button type="button" size="lg" className="h-11 gap-2 px-4.5 font-semibold" disabled={busy} onClick={onConfirm}>
         {confirmLabel}
-        <ArrowRight aria-hidden="true" />
+        {busy ? <Loader2 className="animate-spin" aria-hidden="true" /> : <ArrowRight aria-hidden="true" />}
       </Button>
     </section>
   );
