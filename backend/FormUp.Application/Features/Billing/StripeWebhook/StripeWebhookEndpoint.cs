@@ -341,7 +341,9 @@ internal sealed class StripeWebhookEndpoint(
 
         if (IsGiftInForce(row))
         {
-            // The gift plan keeps running, so Status and the gift fields stay; only the paid leftovers go.
+            // The gift plan keeps running, so Status and the gift fields stay; only the paid leftovers go,
+            // including the paid period end (nothing renews, and a never-paid gift row has none either).
+            row.CurrentPeriodEndsAt = null;
             row.CancelAtPeriodEnd = false;
             row.RenewalCancelledByAdminAt = null;
             row.PendingSubscriptionPlanPriceId = null;
