@@ -215,7 +215,10 @@ describe('plan editor Day view: locked meals', () => {
     await user.paste('Eat slowly');
     await user.click(screen.getByRole('button', { name: 'Save' }));
 
-    expect(await screen.findByText(SAVE_ERROR_TOAST, { exact: false })).toBeInTheDocument();
+    // The same message also shows inline in the editor; the toast title is what the E2E original asserted.
+    expect(
+      await screen.findByText(SAVE_ERROR_TOAST, { exact: false, selector: '[data-slot="toast-title"]' }),
+    ).toBeInTheDocument();
     expect(card).toHaveAttribute('data-lock-rejected', 'true');
     expect(within(card).getByTestId('meal-lock-conflict')).toBeInTheDocument();
     // The edit is still there: no reload, nothing reverted.
