@@ -80,10 +80,11 @@ export default defineConfig({
   // That flattening is what actually holds the quarantine, for every
   // project. This root-level testIgnore is NOT a second independent guard
   // for the projects that set their own `testIgnore` (`trainer`,
-  // `nutritionist`): Playwright project config replaces (does not merge
-  // with) the root value, so this root setting is inert for them. It only
-  // adds real protection for projects that don't set their own testIgnore
-  // (`setup`, `trainer-chat`, `nutritionist-chat`).
+  // `nutritionist`, `coach`): Playwright project config replaces (does not
+  // merge with) the root value, so this root setting is inert for them. It
+  // only adds real protection for projects that don't set their own
+  // testIgnore (`setup`, `trainer-chat`, `nutritionist-chat`,
+  // `coach-automations`).
   testIgnore: /_legacy\//,
 
   globalSetup: './tests/e2e/global-setup.ts',
@@ -269,6 +270,22 @@ export default defineConfig({
       name: 'coach',
       dependencies: ['setup'],
       testMatch: /coach\/.+\.spec\.ts/,
+      testIgnore: [/_legacy\//, /coach\/(automations|client-automations)\.spec\.ts/],
+      use: {
+        ...devices['Desktop Chrome'],
+      },
+    },
+
+    // ─── Coach automations specs ──────────────────────────────────────────────
+    // automations and client-automations both drive qa.trainer's single weekly
+    // check-in rule through ensureCheckInRule, so in parallel workers one test's
+    // ensure/restore overwrites or deletes the other's rule (#2238). `workers: 1`
+    // keeps them serial.
+    {
+      name: 'coach-automations',
+      dependencies: ['setup'],
+      workers: 1,
+      testMatch: /coach\/(automations|client-automations)\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
       },
