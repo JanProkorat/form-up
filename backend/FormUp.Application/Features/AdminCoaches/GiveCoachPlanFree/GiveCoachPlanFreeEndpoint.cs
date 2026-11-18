@@ -196,6 +196,10 @@ internal sealed class GiveCoachPlanFreeEndpoint(
             PlanCode = req.PlanCode,
             GivenFreeAt = now,
             FreeUntil = req.FreeUntil,
+            RefundedMinorUnits = refund.RefundedMinorUnits > 0 && refund.Currency is not null
+                ? refund.RefundedMinorUnits
+                : null,
+            RefundCurrency = refund.RefundedMinorUnits > 0 ? refund.Currency?.ToUpperInvariant() : null,
         }, ct);
     }
 
