@@ -9,7 +9,7 @@ import {
   PromotionStatus,
   type PromotionDto,
 } from '@/api/admin-promotions';
-import { CELL_CLASS, CELL_TEXT_CLASS, CatalogTile, HEAD_CLASS } from '@/components/package-catalog/catalogParts';
+import { CELL_CLASS, CELL_TEXT_CLASS, HEAD_CLASS } from '@/components/package-catalog/catalogParts';
 import { PROMOTION_PLAN_CODES } from '@/components/admin-promotions/promotionForm';
 import { formatNameList, promotionValueText } from '@/components/subscription/promotionText';
 import { cn } from '@/lib/utils';
@@ -117,9 +117,16 @@ export default function PromotionsTable({ promotions, isPending, isError, onRetr
               <TableRow key={promotion.promotionId} className="border-line">
                 <TableCell className={CELL_CLASS}>
                   <div className="flex items-center gap-3">
-                    <CatalogTile muted={status === PromotionStatus.Ended}>
+                    <span
+                      className={cn(
+                        'flex size-9 shrink-0 items-center justify-center rounded-xl',
+                        status === PromotionStatus.Ended
+                          ? 'bg-sunken text-ink-2'
+                          : 'bg-training-soft text-training-ink',
+                      )}
+                    >
                       <Tag className="size-4.5" aria-hidden="true" />
-                    </CatalogTile>
+                    </span>
                     <div className="flex min-w-0 max-w-64 flex-col">
                       <span className="truncate text-copy font-semibold text-ink">{promotion.name}</span>
                       <span className="truncate text-meta text-muted-foreground">

@@ -21,7 +21,7 @@ import {
   type PromotionFormValues,
 } from '@/components/admin-promotions/promotionForm';
 import { useAdminPromotions, useCreatePromotion, useEndPromotion } from '@/components/admin-promotions/useAdminPromotionsQueries';
-import { cn } from '@/lib/utils';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const FILTERS: readonly PromotionStatusFilter[] = [
   PromotionStatusFilter.All,
@@ -110,25 +110,15 @@ export default function AdminPromotionsPage() {
         </Button>
       </div>
 
-      <div role="group" aria-label={t('adminPromotions.filters.label')} className="flex flex-wrap gap-2">
-        {FILTERS.map((filter) => {
-          const selected = status === filter;
-          return (
-            <button
-              key={filter}
-              type="button"
-              aria-pressed={selected}
-              onClick={() => setStatus(filter)}
-              className={cn(
-                'inline-flex items-center rounded-full px-3.5 py-1.5 text-body font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
-                selected ? 'bg-ink text-primary-foreground' : 'bg-sunken text-ink-2 hover:bg-muted',
-              )}
-            >
+      <Tabs value={status} onValueChange={(value) => setStatus(value as PromotionStatusFilter)}>
+        <TabsList variant="underline" aria-label={t('adminPromotions.filters.label')}>
+          {FILTERS.map((filter) => (
+            <TabsTrigger key={filter} value={filter} variant="underline">
               {t(`adminPromotions.filters.${filter}`)}
-            </button>
-          );
-        })}
-      </div>
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
 
       <div className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-line bg-card shadow-panel">
         <div className="min-h-0 overflow-y-auto [&_[data-slot=table-container]]:overflow-visible">
