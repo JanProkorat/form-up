@@ -109,7 +109,8 @@ export default function PlanCard({
           aria-hidden={priceText ? true : undefined}
         >
           {/* One line: each part keeps its width, the gap is tight, price and struck price drop a type step on a narrow card, and the row wraps only as a last resort. */}
-          <div className="flex flex-wrap items-baseline gap-x-1.5">
+          {/* text-stat sets this row's own line height, so two of its lines are reserved and the buttons line up whether or not the row wraps. */}
+          <div className="flex min-h-[2lh] flex-wrap items-baseline gap-x-1.5 text-stat">
             <span className="text-stat font-semibold whitespace-nowrap text-ink @max-[15rem]:text-auth-title">{price}</span>
             {originalPrice && !priceText && (
               <s className="text-copy whitespace-nowrap text-muted-foreground @max-[15rem]:text-body">
