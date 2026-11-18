@@ -174,11 +174,14 @@ src/
 - Auth: access token in memory, refresh token in localStorage
 - API proxy: Vite dev server proxies `/auth`, `/users`, `/trainer`, `/nutrition`,
   `/training`, `/foods`, `/exercises`, `/conversations`, `/hubs` to `https://localhost:5001`
-- Tests: Playwright end-to-end only, in `web/tests/e2e` (`npm run test:e2e`).
-  27 live specs in `trainer/`, `nutritionist/`, `coach/` and `public/`;
-  4 more quarantined under `_legacy/`. `qa-playwright/` is
-  the Docker runner for that same suite, not a second one. No unit or
-  component test runner.
+- Tests: two layers; which one proves what is in `.claude/rules/web-testing.md`.
+  - Vitest component tests (jsdom, Testing Library, msw) next to the code as
+    `src/**/*.test.tsx` (`npm run test`). The default for new tests.
+  - Playwright end-to-end in `web/tests/e2e` (`npm run test:e2e`), sharded in
+    CI by `tests/e2e/ci-shards.json`. 49 live specs in `trainer/`,
+    `nutritionist/`, `coach/` and `public/`; 4 more quarantined under
+    `_legacy/`. `qa-playwright/` is the Docker runner for that same suite,
+    not a second one.
 
 ---
 
@@ -246,7 +249,7 @@ token hygiene, no verbatim spec in subagent prompts). This repo adds only:
 - **Root cause in handoffs.** If a bug comes from a sub-agent's handoff, re-dispatch
   with the root cause named — sub-agents never proceed on a speculative fix.
 - **Verification surface per package.** Backend: `dotnet build` + the relevant
-  `dotnet test` slice. Web: `npm run build`. Mobile: `npm run typecheck`, and for
+  `dotnet test` slice. Web: `npm run build` + `npm run test`. Mobile: `npm run typecheck`, and for
   UI/animation work a simulator check or an explicit user check.
 - **Scoped backend runs need the MTP filter syntax.** Plain `dotnet test --filter`
   is silently ignored by the xunit v3 runner and runs the whole suite. Use
