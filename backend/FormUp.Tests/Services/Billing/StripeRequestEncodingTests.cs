@@ -213,13 +213,12 @@ public class StripeRequestEncodingTests
     public async Task RestoreSnapshot_SendsEveryKey_WithEmptyValuesAsUnsets()
     {
         var (client, handler) = NewClient();
-        var options = new SubscriptionUpdateOptions { Metadata = StripeRequestBuilder.RestoreSnapshot(new ScheduleIntent(["price_a"], null, null)) };
+        var options = new SubscriptionUpdateOptions { Metadata = StripeRequestBuilder.RestoreSnapshot(new ScheduleIntent(["price_a"])) };
 
         await client.V1.Subscriptions.UpdateAsync("sub_1", options, cancellationToken: TestContext.Current.CancellationToken);
 
         handler.Form.Should().Contain(new KeyValuePair<string, string>("metadata[formup_restore_prices]", "price_a"));
-        handler.Form.Should().Contain(new KeyValuePair<string, string>("metadata[formup_restore_gift]", string.Empty));
-        handler.Form.Should().Contain(new KeyValuePair<string, string>("metadata[formup_restore_gift_end]", string.Empty));
+        handler.Form.Should().Contain(new KeyValuePair<string, string>("metadata[formup_restore_cancel]", string.Empty));
     }
 
     [Fact]
@@ -243,7 +242,7 @@ public class StripeRequestEncodingTests
         var (client, handler) = NewClient();
         var start = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
         var phases = StripeRequestBuilder.SchedulePhases(
-            [new SchedulePhasePlan(start, start.AddMonths(1), ["price_plan", "price_addon"], null)],
+            [new SchedulePhasePlan(start, start.AddMonths(1), ["price_plan", "price_addon"])],
             BillingInterval.Monthly,
             StripeRequestBuilder.TaxRates(Options(taxMode)));
 

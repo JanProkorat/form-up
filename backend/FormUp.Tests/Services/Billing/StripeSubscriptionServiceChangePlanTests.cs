@@ -59,7 +59,6 @@ public class StripeSubscriptionServiceChangePlanTests
 
         return new StripeSubscriptionService(
             Microsoft.Extensions.Options.Options.Create(Options()),
-            TimeProvider.System,
             NullLogger<StripeSubscriptionService>.Instance,
             client);
     }
@@ -144,22 +143,6 @@ public class StripeSubscriptionServiceChangePlanTests
             .Which.HttpStatusCode.Should().Be(HttpStatusCode.PaymentRequired, "the original charge failure is what surfaces");
     }
 
-    private const string GiftOnEveryPhaseScheduleJson = """
-        {"id":"sub_sched_1","object":"subscription_schedule",
-         "current_phase":{"start_date":1700000000,"end_date":1702592000},
-         "phases":[
-           {"start_date":1700000000,"end_date":1702592000,"items":[{"price":"price_old","quantity":1}],"discounts":[{"coupon":"coupon_gift"}]},
-           {"start_date":1702592000,"end_date":1705270400,"items":[{"price":"price_cheaper","quantity":1}],"discounts":[{"coupon":"coupon_gift"}]}]}
-        """;
-
-    private const string GiftEndingWithThePeriodScheduleJson = """
-        {"id":"sub_sched_1","object":"subscription_schedule",
-         "current_phase":{"start_date":1700000000,"end_date":1702592000},
-         "phases":[
-           {"start_date":1700000000,"end_date":1702592000,"items":[{"price":"price_old","quantity":1}],"discounts":[{"coupon":"coupon_gift"}]},
-           {"start_date":1702592000,"end_date":1705270400,"items":[{"price":"price_cheaper","quantity":1}]}]}
-        """;
-
     private const string SubscriptionWithAddOnJson = """
         {"id":"sub_1","object":"subscription","schedule":null,"discounts":[],
          "items":{"object":"list","has_more":false,"data":[
@@ -202,7 +185,7 @@ public class StripeSubscriptionServiceChangePlanTests
     }
 
     [Fact]
-    public async Task ClearScheduledPriceChange_WithAScheduledDowngradeAndNoGift_ReleasesTheSchedule()
+    public async Task ClearScheduledPriceChange_WithAScheduledDowngrade_ReleasesTheSchedule()
     {
         var handler = new ScriptedStripeHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
             .Respond(HttpMethod.Get, "/v1/subscriptions/sub_1", SubscriptionWithScheduleJson)
@@ -212,37 +195,6 @@ public class StripeSubscriptionServiceChangePlanTests
 
         handler.Requests.Where(r => r.Method == HttpMethod.Post).Select(r => r.Path)
             .Should().Equal("/v1/subscription_schedules/sub_sched_1/release");
-    }
-
-    [Fact]
-    public async Task ClearScheduledPriceChange_WithAnEndlessGift_ReleasesTheScheduleAndPutsTheGiftBackAsADiscount()
-    {
-        var handler = new ScriptedStripeHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
-            .Respond(HttpMethod.Get, "/v1/subscriptions/sub_1", SubscriptionWithScheduleJson)
-            .Respond(HttpMethod.Get, "/v1/subscription_schedules/sub_sched_1", GiftOnEveryPhaseScheduleJson);
-
-        await ClearAsync(NewService(handler));
-
-        handler.Requests.Where(r => r.Method == HttpMethod.Post).Select(r => r.Path)
-            .Should().Equal("/v1/subscription_schedules/sub_sched_1/release", "/v1/subscriptions/sub_1");
-        handler.Requests.Last().Form.Should().Contain(new KeyValuePair<string, string>("discounts[0][coupon]", "coupon_gift"));
-    }
-
-    [Fact]
-    public async Task ClearScheduledPriceChange_WithAGiftThatEnds_RewritesTheSchedulePhasesOnTheCurrentPrices()
-    {
-        var handler = new ScriptedStripeHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
-            .Respond(HttpMethod.Get, "/v1/subscriptions/sub_1", SubscriptionWithScheduleJson)
-            .Respond(HttpMethod.Get, "/v1/subscription_schedules/sub_sched_1", GiftEndingWithThePeriodScheduleJson);
-
-        await ClearAsync(NewService(handler));
-
-        var update = handler.Requests.Single(r => r.Method == HttpMethod.Post);
-        update.Path.Should().Be("/v1/subscription_schedules/sub_sched_1");
-        update.Form.Should().Contain(new KeyValuePair<string, string>("phases[0][items][0][price]", "price_old"));
-        update.Form.Should().Contain(new KeyValuePair<string, string>("phases[1][items][0][price]", "price_old"));
-        update.Form.Should().NotContain(pair => pair.Value == "price_cheaper");
-        update.Form.Should().Contain(new KeyValuePair<string, string>("proration_behavior", "none"));
     }
 
     [Fact]

@@ -13,6 +13,7 @@ using FormUp.Application.Domain.Services;
 using FormUp.Application.Features.CoachSubscriptions.GetKeepClients;
 using FormUp.Application.Features.Users.GetMySubscription;
 using FormUp.Application.Infrastructure.Data;
+using FormUp.Application.Infrastructure.Services.Billing;
 using FormUp.Tests.Builders;
 using FormUp.Tests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -260,9 +261,10 @@ public class EndCoachPlanEndpointTests(FitnessApiFactory factory) : IDisposable
     }
 
     [Fact]
-    public async Task End_LiveStripeSubscription_CancelsItAtOnce_AndEndsThePaidPeriodNow()
+    public async Task End_LiveStripeSubscription_CancelsItAtOnce_RefundsTheUnusedDays_AndEndsThePaidPeriodNow()
     {
         var fake = Billing.BillingTestData.ResetProvider(factory);
+        fake.CancelNowResult = new CancelRefundResult(8000, "czk");
         await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
         var admin = await TestActors.Admin(factory).CreateAsync(Ct);
         var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
@@ -291,33 +293,13 @@ public class EndCoachPlanEndpointTests(FitnessApiFactory factory) : IDisposable
         row.LastExternalEventAt.Should().NotBeNull();
         row.LastExternalEventAt!.Value.Ticks.Should().Be(
             row.LastExternalEventAt.Value.Ticks - (row.LastExternalEventAt.Value.Ticks % TimeSpan.TicksPerSecond), "whole seconds, like a Stripe event time");
-        (await AuditRowsAsync(coach.UserId)).Should().ContainSingle();
+        var audit = (await AuditRowsAsync(coach.UserId)).Should().ContainSingle().Subject;
+        audit.NewValues.Should().Contain("\"refundedMinorUnits\":8000");
 
         var activeUntil = CoachAccountActiveUntilResolver.Resolve(row, DateTime.UtcNow);
         activeUntil.Should().BeOnOrBefore(DateTime.UtcNow, "disabling after the end takes effect right away");
         var subscription = await coach.Http.GetFromJsonAsync<GetMySubscriptionResponse>("/users/me/subscription", JsonOptions, Ct);
         subscription!.EndedAt.Should().NotBeNull().And.BeOnOrBefore(DateTimeOffset.UtcNow);
-    }
-
-    [Fact]
-    public async Task End_GiftOnTopOfALiveStripeSubscription_CancelsStripeToo()
-    {
-        var fake = Billing.BillingTestData.ResetProvider(factory);
-        await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
-        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
-        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
-        var (plan, _) = await Billing.BillingTestData.StripePlanAsync(factory);
-        var subscriptionId = await Billing.BillingTestData.SubscribeLiveAsync(
-            factory, coach, plan, givenFreeAt: DateTimeOffset.UtcNow.AddDays(-2), freeUntil: DateTimeOffset.UtcNow.AddDays(20));
-
-        var response = await EndAsync(admin, coach.UserId);
-
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        fake.CancelledNow.Should().ContainSingle().Which.Should().Be(subscriptionId);
-        var row = await Billing.BillingTestData.ReadRowAsync(factory, coach.ProfileId);
-        row.GivenFreeAt.Should().BeNull();
-        row.ExternalSubscriptionId.Should().BeNull();
-        (await GetCoachAsync(admin, coach.UserId)).Status.Should().Be(AdminCoachStatus.Free);
     }
 
     [Fact]

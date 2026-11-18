@@ -227,13 +227,7 @@ internal sealed class StripeWebhookEndpoint(
 
         if (IsGiftInForce(row) && !IsBoughtAfterGift(row, subscription))
         {
-            // A scheduled add-on removal still completes under a gift, which otherwise freezes the plan fields.
-            if (row.SecondRoleAddOnEndsAt is not null && !HasAddOnItem(subscription, planPrice))
-            {
-                row.PaysSecondRoleAddOn = false;
-                row.SecondRoleAddOnEndsAt = null;
-            }
-
+            // The events of the subscription an admin's Give-plan cancelled must not overwrite the given plan.
             logger.LogInformation("Stripe event {EventId} left the plan of a coach with a given plan unchanged", stripeEvent.Id);
             return true;
         }

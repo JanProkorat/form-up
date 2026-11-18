@@ -45,12 +45,16 @@ internal sealed class GiveCoachPlanFreeEndpoint(
             s.Description = "Puts the coach on the plan's open price row as a plan set by Form Up: Active, no pending price change, and the " +
                             "kept/released client choice made while lapsed is reset. The plan ends at FreeUntil, or never when it is null. The " +
                             "reason is recorded in the coach's history. Replaces any earlier subscription assignment. The coach gets an in-app " +
-                            "notification and a subscriptionchanged event; a failure to notify does not fail the call. A coach with a " +
-                            "Stripe subscription gets a 100 % discount there first (ending on FreeUntil); if Stripe fails nothing is " +
-                            "saved. Without Stripe keys, or without a Stripe subscription, only the local change is made.";
+                            "notification and a subscriptionchanged event; a failure to notify does not fail the call. A given plan and a " +
+                            "paid Stripe subscription never run together: a coach with an Active, Trialing, PastDue or Incomplete Stripe " +
+                            "subscription has it cancelled at once and the unused days of the paid period are refunded to the card (nothing " +
+                            "for a payment that never went through or a 100 % discount). The second-role add-on ends with the subscription " +
+                            "(the roles the coach holds are not changed). If Stripe fails nothing is saved and repeating the call is safe.";
             s.Response<GiveCoachPlanFreeResponse>(StatusCodes.Status200OK, "The plan as it now stands");
             s.Response<ProblemDetails>(StatusCodes.Status502BadGateway,
                 "Stripe failed; nothing was saved (BILLING_PROVIDER_ERROR)");
+            s.Response<ProblemDetails>(StatusCodes.Status503ServiceUnavailable,
+                "The coach has a cancellable Stripe subscription and Stripe is not configured on this server (BILLING_NOT_CONFIGURED)");
             s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Invalid request body");
             s.Response(StatusCodes.Status401Unauthorized, "Missing or invalid credentials");
             s.Response(StatusCodes.Status403Forbidden, "Caller is not an Admin");
@@ -86,7 +90,6 @@ internal sealed class GiveCoachPlanFreeEndpoint(
             .Where(p => p.SubscriptionPlan.Code == req.PlanCode && p.ValidTo == null)
             .Select(p => new { p.Id, p.SubscriptionPlanId })
             .FirstOrDefaultAsync(ct);
-
         if (openPrice is null)
         {
             await this.SendProblemAsync(
@@ -109,12 +112,23 @@ internal sealed class GiveCoachPlanFreeEndpoint(
             db.CoachSubscriptions.Add(subscription);
         }
 
-        if (!await TryApplyGiftInStripeAsync(subscription, req.FreeUntil, ct))
+        // Stripe first: a refusal leaves the row untouched, so a later save cannot persist half a change.
+        var cancelsAtProvider = subscription.HasCancellableProviderSubscription;
+        var refund = CancelRefundResult.None;
+
+        if (cancelsAtProvider)
         {
-            await this.SendProblemAsync(
-                StatusCodes.Status502BadGateway, ErrorCodes.BillingProviderError, "The payment provider failed; nothing was saved.", ct);
-            return;
+            var cancelled = await TryCancelAtProviderAsync(subscription.ExternalSubscriptionId!, ct);
+
+            if (cancelled is null)
+            {
+                return;
+            }
+
+            refund = cancelled;
         }
+
+        var endedAddOn = subscription.PaysSecondRoleAddOn;
 
         subscription.SubscriptionPlanId = openPrice.SubscriptionPlanId;
         subscription.SubscriptionPlanPriceId = openPrice.Id;
@@ -123,6 +137,24 @@ internal sealed class GiveCoachPlanFreeEndpoint(
         subscription.FreeUntil = req.FreeUntil;
         subscription.Status = SubscriptionStatus.Active;
 
+        // The add-on is billed on the subscription that was just cancelled. Only the billing flags go; no role is removed, so
+        // the coach keeps what they hold and the second-role gate decides what the given plan covers.
+        subscription.PaysSecondRoleAddOn = false;
+        subscription.SecondRoleAddOnEndsAt = null;
+
+        if (cancelsAtProvider)
+        {
+            // Same end state as the deleted webhook; the event time lets a late older update be skipped as stale.
+            subscription.ExternalSubscriptionId = null;
+            subscription.NextPaymentAttemptAt = null;
+            subscription.CurrentPeriodEndsAt = null;
+            subscription.CancelAtPeriodEnd = false;
+            subscription.RenewalCancelledByAdminAt = null;
+            subscription.CurrentPromotionId = null;
+            subscription.CurrentPromotionEndsAt = null;
+            subscription.LastExternalEventAt = new DateTimeOffset(now.Ticks - (now.Ticks % TimeSpan.TicksPerSecond), now.Offset);
+        }
+
         await CoachLapseLinkReset.ResetAsync(db, profileId.Value, ct);
         await db.SaveChangesAsync(ct);
 
@@ -130,6 +162,10 @@ internal sealed class GiveCoachPlanFreeEndpoint(
         {
             ["planCode"] = req.PlanCode,
             ["freeUntil"] = req.FreeUntil?.ToString("O"),
+            ["providerSubscriptionCancelled"] = cancelsAtProvider,
+            ["refundedMinorUnits"] = refund.RefundedMinorUnits,
+            ["refundCurrency"] = refund.Currency,
+            ["secondRoleAddOnEnded"] = endedAddOn,
         };
 
         await audit.LogAsync(
@@ -155,31 +191,27 @@ internal sealed class GiveCoachPlanFreeEndpoint(
     }
 
     /// <summary>
-    /// Applies the 100 % discount at Stripe when the coach has a Stripe subscription. Returns false when Stripe failed, so
-    /// the caller saves nothing. Without keys the call is skipped with a warning and the local change still happens.
+    /// Cancels the subscription at Stripe now and refunds its unused days. Answers 503 or 502 and returns null when it
+    /// could not, so the caller saves nothing.
     /// </summary>
-    private async Task<bool> TryApplyGiftInStripeAsync(CoachSubscription subscription, DateTimeOffset? freeUntil, CancellationToken ct)
+    private async Task<CancelRefundResult?> TryCancelAtProviderAsync(string externalSubscriptionId, CancellationToken ct)
     {
-        if (string.IsNullOrEmpty(subscription.ExternalSubscriptionId))
-        {
-            return true;
-        }
-
         if (!subscriptionService.IsConfigured)
         {
-            logger.LogWarning("Stripe is not configured; the given plan is saved locally without a Stripe discount");
-            return true;
+            await this.SendProblemAsync(
+                StatusCodes.Status503ServiceUnavailable, ErrorCodes.BillingNotConfigured, "Billing is not configured.", ct);
+            return null;
         }
 
         try
         {
-            await subscriptionService.ApplyGivenFreeAsync(subscription.ExternalSubscriptionId, freeUntil, ct);
-
-            return true;
+            return await subscriptionService.CancelNowAsync(externalSubscriptionId, ct);
         }
         catch (BillingProviderException)
         {
-            return false;
+            await this.SendProblemAsync(
+                StatusCodes.Status502BadGateway, ErrorCodes.BillingProviderError, "The payment provider failed; nothing was saved.", ct);
+            return null;
         }
     }
 }
