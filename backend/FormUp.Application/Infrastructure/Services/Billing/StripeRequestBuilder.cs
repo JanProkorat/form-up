@@ -15,9 +15,6 @@ public static class StripeRequestBuilder
     /// <summary>The invoice note shown when the seller is not a VAT payer.</summary>
     public const string NotVatPayerFooter = "Nejsem plátce DPH";
 
-    /// <summary>Id of the reusable forever 100 % coupon behind "given free".</summary>
-    public const string GiftCouponId = "formup-gift-100";
-
     /// <summary>Prefix of the lookup key that identifies a second-role add-on price.</summary>
     public const string AddOnLookupPrefix = "formup-addon-";
 
@@ -28,10 +25,6 @@ public static class StripeRequestBuilder
     public const string PendingSecondRoleKey = "formup_pending_second_role";
 
     private const string RestorePricesKey = "formup_restore_prices";
-
-    private const string RestoreGiftKey = "formup_restore_gift";
-
-    private const string RestoreGiftEndKey = "formup_restore_gift_end";
 
     private const string RestoreCancelKey = "formup_restore_cancel";
 
@@ -328,8 +321,6 @@ public static class StripeRequestBuilder
     public static Dictionary<string, string> RestoreSnapshot(ScheduleIntent intent) => new()
     {
         [RestorePricesKey] = intent.PendingPriceIds is { Count: > 0 } prices ? string.Join(',', prices) : string.Empty,
-        [RestoreGiftKey] = intent.GiftCouponId ?? string.Empty,
-        [RestoreGiftEndKey] = intent.GiftEnd is { } giftEnd ? giftEnd.ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture) : string.Empty,
         [RestoreCancelKey] = intent.CancelRenewal ? "true" : string.Empty,
     };
 
@@ -344,8 +335,6 @@ public static class StripeRequestBuilder
     public static Dictionary<string, string> ClearedRestoreSnapshot() => new()
     {
         [RestorePricesKey] = string.Empty,
-        [RestoreGiftKey] = string.Empty,
-        [RestoreGiftEndKey] = string.Empty,
         [RestoreCancelKey] = string.Empty,
     };
 
@@ -353,7 +342,7 @@ public static class StripeRequestBuilder
     /// <param name="metadata">The subscription's metadata.</param>
     public static bool HasRestoreSnapshot(IReadOnlyDictionary<string, string>? metadata) =>
         metadata is not null
-        && (metadata.ContainsKey(RestorePricesKey) || metadata.ContainsKey(RestoreGiftKey) || metadata.ContainsKey(RestoreGiftEndKey) || metadata.ContainsKey(RestoreCancelKey));
+        && (metadata.ContainsKey(RestorePricesKey) || metadata.ContainsKey(RestoreCancelKey));
 
     /// <summary>Reads a snapshot written by <see cref="RestoreSnapshot"/>; null when the subscription holds none.</summary>
     /// <param name="metadata">The subscription's metadata.</param>
@@ -365,15 +354,9 @@ public static class StripeRequestBuilder
         }
 
         var prices = metadata.GetValueOrDefault(RestorePricesKey, string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        var gift = metadata.GetValueOrDefault(RestoreGiftKey);
-        DateTimeOffset? giftEnd = long.TryParse(metadata.GetValueOrDefault(RestoreGiftEndKey), out var seconds)
-            ? DateTimeOffset.FromUnixTimeSeconds(seconds)
-            : null;
 
         return new ScheduleIntent(
             prices.Length > 0 ? prices : null,
-            string.IsNullOrEmpty(gift) ? null : gift,
-            giftEnd,
             metadata.GetValueOrDefault(RestoreCancelKey) == "true");
     }
 
@@ -529,15 +512,6 @@ public static class StripeRequestBuilder
         };
     }
 
-    /// <summary>The reusable forever 100 % coupon.</summary>
-    public static CouponCreateOptions GiftCoupon() => new()
-    {
-        Id = GiftCouponId,
-        PercentOff = 100,
-        Duration = "forever",
-        Name = "Form Up given plan",
-    };
-
     /// <summary>
     /// A coupon for a promotion. The first month is Stripe's "once" (the first invoice), several months is "repeating".
     /// Max uses and the claim end are enforced by Stripe at Checkout; a product list restricts the discount to those lines.
@@ -592,8 +566,8 @@ public static class StripeRequestBuilder
 
     /// <summary>
     /// Converts planned schedule phases to Stripe phases. Only the first phase carries a start (Stripe keeps the current
-    /// phase's own); the open last phase runs one billing interval and then the schedule releases. A phase without a coupon
-    /// sends an empty discount list so a previous gift cannot carry over.
+    /// phase's own); the open last phase runs one billing interval and then the schedule releases. Every phase sends an
+    /// empty discount list.
     /// </summary>
     /// <param name="phases">The planned phases.</param>
     /// <param name="interval">Billing cadence of the subscription.</param>
@@ -611,9 +585,7 @@ public static class StripeRequestBuilder
                 Items = phase.PriceIds
                     .Select(priceId => WithTaxRates(new SubscriptionSchedulePhaseItemOptions { Price = priceId, Quantity = 1 }, taxRates))
                     .ToList(),
-                Discounts = phase.CouponId is null
-                    ? []
-                    : [new SubscriptionSchedulePhaseDiscountOptions { Coupon = phase.CouponId }],
+                Discounts = [],
                 ProrationBehavior = "none",
             };
 

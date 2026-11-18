@@ -464,25 +464,6 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task Webhook_RenewalWithoutTheAddOnLineUnderAGift_StillClearsTheScheduledEnd()
-    {
-        var scenario = await ArrangeScheduledAddOnEndAsync();
-        await UpdateRowAsync(scenario.Coach.ProfileId, row =>
-        {
-            row.GivenFreeAt = DateTimeOffset.UtcNow.AddDays(-1);
-            row.FreeUntil = DateTimeOffset.UtcNow.AddDays(30);
-        });
-
-        var response = await PostAsync(SubscriptionEvent(NewEventId(), "customer.subscription.updated", scenario, "active"));
-
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var after = await ReadRowAsync(scenario.Coach.ProfileId);
-        after.PaysSecondRoleAddOn.Should().BeFalse();
-        after.SecondRoleAddOnEndsAt.Should().BeNull();
-        after.GivenFreeAt.Should().NotBeNull("the gift itself is untouched");
-    }
-
-    [Fact]
     public async Task Webhook_SubscriptionDeletedWithAScheduledEnd_ClearsIt()
     {
         var scenario = await ArrangeScheduledAddOnEndAsync();
@@ -565,6 +546,32 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
         after.SecondRoleAddOnEndsAt.Should().BeNull();
         after.PaysSecondRoleAddOn.Should().BeFalse();
         (await MaxClientsAsync(scenario.Coach.ProfileId)).Should().Be(30, "the gifted plan keeps running");
+    }
+
+    [Fact]
+    public async Task Webhook_SubscriptionDeletedAfterAGivePlanCancelledIt_KeepsTheGivenPlanActive()
+    {
+        var scenario = await ArrangeOnPaidPlanAsync();
+        var now = DateTimeOffset.UtcNow;
+
+        // The row as Give-plan leaves it: the subscription id is gone and the event time is the cancel's second.
+        await UpdateRowAsync(scenario.Coach.ProfileId, row =>
+        {
+            row.GivenFreeAt = now;
+            row.FreeUntil = null;
+            row.ExternalSubscriptionId = null;
+            row.CurrentPeriodEndsAt = null;
+            row.LastExternalEventAt = new DateTimeOffset(now.Ticks - (now.Ticks % TimeSpan.TicksPerSecond), now.Offset);
+        });
+
+        var response = await PostAsync(SubscriptionEvent(NewEventId(), "customer.subscription.deleted", scenario, "canceled"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var after = await ReadRowAsync(scenario.Coach.ProfileId);
+        after.Status.Should().Be(SubscriptionStatus.Active, "the cancel's own deleted event must not end the given plan");
+        after.GivenFreeAt.Should().NotBeNull();
+        after.ExternalSubscriptionId.Should().BeNull();
+        (await MaxClientsAsync(scenario.Coach.ProfileId)).Should().Be(30, "the given plan keeps running");
     }
 
     [Fact]

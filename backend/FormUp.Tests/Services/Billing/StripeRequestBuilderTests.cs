@@ -155,20 +155,17 @@ public class StripeRequestBuilderTests
     }
 
     [Fact]
-    public void RestoreSnapshot_RoundTripsThePricesAndTheGift_AndEmptyKeysAreUnsets()
+    public void RestoreSnapshot_RoundTripsThePricesAndTheCancellation_AndEmptyKeysAreUnsets()
     {
-        var giftEnd = DateTimeOffset.FromUnixTimeSeconds(1705270400);
-        var written = StripeRequestBuilder.RestoreSnapshot(new ScheduleIntent(["price_a", "price_b"], "coupon_gift", giftEnd, CancelRenewal: true));
+        var written = StripeRequestBuilder.RestoreSnapshot(new ScheduleIntent(["price_a", "price_b"], CancelRenewal: true));
 
         var read = StripeRequestBuilder.ReadRestoreSnapshot(written);
 
         read.Should().NotBeNull();
         read!.PendingPriceIds.Should().Equal("price_a", "price_b");
-        read.GiftCouponId.Should().Be("coupon_gift");
-        read.GiftEnd.Should().Be(giftEnd);
         read.CancelRenewal.Should().BeTrue();
-        StripeRequestBuilder.ReadRestoreSnapshot(StripeRequestBuilder.RestoreSnapshot(new ScheduleIntent(null, null, null)))!.CancelRenewal.Should().BeFalse();
-        StripeRequestBuilder.RestoreSnapshot(new ScheduleIntent(null, null, null)).Values.Should().OnlyContain(value => value.Length == 0);
+        StripeRequestBuilder.ReadRestoreSnapshot(StripeRequestBuilder.RestoreSnapshot(new ScheduleIntent(null)))!.CancelRenewal.Should().BeFalse();
+        StripeRequestBuilder.RestoreSnapshot(new ScheduleIntent(null)).Values.Should().OnlyContain(value => value.Length == 0);
         StripeRequestBuilder.ClearedRestoreSnapshot().Values.Should().OnlyContain(value => value.Length == 0);
     }
 
@@ -369,35 +366,23 @@ public class StripeRequestBuilderTests
     }
 
     [Fact]
-    public void GiftCoupon_IsAForeverHundredPercentCoupon()
-    {
-        var coupon = StripeRequestBuilder.GiftCoupon();
-
-        coupon.PercentOff.Should().Be(100);
-        coupon.Duration.Should().Be("forever");
-        coupon.Id.Should().Be(StripeRequestBuilder.GiftCouponId);
-    }
-
-    [Fact]
-    public void SchedulePhases_FirstPhaseStartsNow_LastRunsOneIntervalAndNoGiftCarriesOver()
+    public void SchedulePhases_FirstPhaseStartsNow_LastRunsOneInterval()
     {
         var start = new DateTimeOffset(2026, 11, 1, 0, 0, 0, TimeSpan.Zero);
         var end = start.AddDays(10);
         var phases = StripeRequestBuilder.SchedulePhases(
             [
-                new SchedulePhasePlan(start, end, ["price_old"], "formup-gift-100"),
-                new SchedulePhasePlan(end, null, ["price_old"], null),
+                new SchedulePhasePlan(start, end, ["price_old"]),
+                new SchedulePhasePlan(end, null, ["price_new"]),
             ],
             BillingInterval.Annual,
             null);
 
         phases[0].StartDate.Should().NotBeNull();
         phases[0].EndDate.Should().NotBeNull();
-        phases[0].Discounts.Should().ContainSingle().Which.Coupon.Should().Be("formup-gift-100");
         phases[1].StartDate.Should().BeNull();
         phases[1].Duration!.Interval.Should().Be("year");
         phases[1].Duration!.IntervalCount.Should().Be(1);
-        phases[1].Discounts.Should().BeEmpty("an empty list clears the gift discount");
     }
 
     [Theory]

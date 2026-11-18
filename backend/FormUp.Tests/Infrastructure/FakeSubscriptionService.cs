@@ -52,9 +52,6 @@ public sealed class FakeSubscriptionService : ISubscriptionService
     /// <summary>Recorded <see cref="ISubscriptionService.CreatePriceAsync"/> calls.</summary>
     public List<PriceCall> Prices { get; } = [];
 
-    /// <summary>Recorded <see cref="ISubscriptionService.ApplyGivenFreeAsync"/> calls.</summary>
-    public List<GivenFreeCall> GivenFree { get; } = [];
-
     /// <summary>Recorded <see cref="ISubscriptionService.ApplyPromotionCodeAsync"/> calls (subscription ids only; never the code text).</summary>
     public List<string> PromotionCodeSubscriptions { get; } = [];
 
@@ -84,6 +81,9 @@ public sealed class FakeSubscriptionService : ISubscriptionService
 
     /// <summary>Recorded <see cref="ISubscriptionService.CancelNowAsync"/> calls (subscription ids).</summary>
     public List<string> CancelledNow { get; } = [];
+
+    /// <summary>What <see cref="ISubscriptionService.CancelNowAsync"/> returns.</summary>
+    public CancelRefundResult CancelNowResult { get; set; } = CancelRefundResult.None;
 
     /// <summary>Recorded <see cref="ISubscriptionService.ResumeRenewalAsync"/> calls (subscription ids).</summary>
     public List<string> ResumedRenewals { get; } = [];
@@ -149,9 +149,6 @@ public sealed class FakeSubscriptionService : ISubscriptionService
     /// <summary>A recorded price creation.</summary>
     public sealed record PriceCall(string PlanCode, long AmountMinorUnits, string Currency, BillingInterval Interval);
 
-    /// <summary>A recorded given-free call.</summary>
-    public sealed record GivenFreeCall(string SubscriptionId, DateTimeOffset? FreeUntil);
-
     /// <summary>A recorded coupon creation and the id the fake returned.</summary>
     public sealed record CouponCall(CouponSpec Spec, string CouponId);
 
@@ -177,7 +174,6 @@ public sealed class FakeSubscriptionService : ISubscriptionService
             Portals.Clear();
             PlanChanges.Clear();
             Prices.Clear();
-            GivenFree.Clear();
             PromotionCodeSubscriptions.Clear();
             AppliedPromotionCodeIds.Clear();
             Coupons.Clear();
@@ -188,6 +184,7 @@ public sealed class FakeSubscriptionService : ISubscriptionService
             SubscriptionDiscounts.Clear();
             CancelledAtPeriodEnd.Clear();
             CancelledNow.Clear();
+            CancelNowResult = CancelRefundResult.None;
             ResumedRenewals.Clear();
             FailResumeRenewal = false;
             PreviewResult = new SecondRoleAddOnPreview(12300, 0, "CZK");
@@ -459,19 +456,6 @@ public sealed class FakeSubscriptionService : ISubscriptionService
     }
 
     /// <inheritdoc />
-    public Task ApplyGivenFreeAsync(string subscriptionId, DateTimeOffset? freeUntil, CancellationToken ct)
-    {
-        ThrowIfFailing();
-
-        lock (gate)
-        {
-            GivenFree.Add(new GivenFreeCall(subscriptionId, freeUntil));
-        }
-
-        return Task.CompletedTask;
-    }
-
-    /// <inheritdoc />
     public Task CancelAtPeriodEndAsync(string subscriptionId, CancellationToken ct)
     {
         ThrowIfFailing();
@@ -485,16 +469,16 @@ public sealed class FakeSubscriptionService : ISubscriptionService
     }
 
     /// <inheritdoc />
-    public Task CancelNowAsync(string subscriptionId, CancellationToken ct)
+    public Task<CancelRefundResult> CancelNowAsync(string subscriptionId, CancellationToken ct)
     {
         ThrowIfFailing();
 
         lock (gate)
         {
             CancelledNow.Add(subscriptionId);
-        }
 
-        return Task.CompletedTask;
+            return Task.FromResult(CancelNowResult);
+        }
     }
 
     /// <inheritdoc />

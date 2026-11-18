@@ -10,7 +10,7 @@ namespace FormUp.Application.Domain.Interfaces;
 public interface ISubscriptionService
 {
     /// <summary>
-    /// True when billing calls can run. When false, checkout and portal answer 503. Giving a plan free skips the provider; cancelling, ending or disabling a live subscription answers 503.
+    /// True when billing calls can run. When false, checkout and portal answer 503. Giving a plan, cancelling, ending or disabling a live subscription answers 503.
     /// </summary>
     bool IsConfigured { get; }
 
@@ -57,8 +57,7 @@ public interface ISubscriptionService
     Task<string> CreatePortalSessionAsync(string customerId, string? language, CancellationToken ct);
 
     /// <summary>
-    /// Moves an existing subscription to another plan price, immediately or scheduled for the next renewal. A scheduled
-    /// change is merged with any given-free schedule already on the subscription. An immediate change invoices the prorated
+    /// Moves an existing subscription to another plan price, immediately or scheduled for the next renewal. An immediate change invoices the prorated
     /// difference now and also clears a scheduled cancellation; when the payment does not go through nothing is applied,
     /// a released schedule is restored and the call throws.
     /// </summary>
@@ -118,7 +117,7 @@ public interface ISubscriptionService
     Task RestoreAfterExpiredUpgradeAsync(string subscriptionId, bool keepScheduledChange, CancellationToken ct);
 
     /// <summary>
-    /// Drops the scheduled price change of a subscription so it renews unchanged, keeping a given-free schedule.
+    /// Drops the scheduled price change of a subscription so it renews unchanged.
     /// Charges nothing. Does nothing when no schedule is on the subscription.
     /// </summary>
     /// <param name="subscriptionId">The provider subscription id.</param>
@@ -208,15 +207,6 @@ public interface ISubscriptionService
         string planCode, long amountMinorUnits, string currency, BillingInterval interval, CancellationToken ct);
 
     /// <summary>
-    /// Makes an existing subscription free: a 100 % discount that ends on <paramref name="freeUntil"/> (never when null).
-    /// Replaces any discount already on the subscription, so repeating the call cannot stack discounts.
-    /// </summary>
-    /// <param name="subscriptionId">The provider subscription id.</param>
-    /// <param name="freeUntil">End of the gift, or null for none.</param>
-    /// <param name="ct">Cancellation token.</param>
-    Task ApplyGivenFreeAsync(string subscriptionId, DateTimeOffset? freeUntil, CancellationToken ct);
-
-    /// <summary>
     /// Ends the subscription at the close of the current period instead of renewing it. A scheduled plan change on the
     /// subscription is dropped, because the coach is leaving.
     /// </summary>
@@ -225,13 +215,15 @@ public interface ISubscriptionService
     Task CancelAtPeriodEndAsync(string subscriptionId, CancellationToken ct);
 
     /// <summary>
-    /// Ends the subscription right now with no refund, no credit for unused time and no final invoice. A schedule on the
-    /// subscription (gift or scheduled change) ends with it. Does nothing when the subscription is already canceled, so a
-    /// retry after a failed save is safe.
+    /// Ends the subscription right now, with no credit balance and no final invoice, then refunds the unused days of the
+    /// current paid period to the card (never more than the latest paid invoice collected; nothing for a subscription that
+    /// was past due, unpaid or incomplete). A schedule on the subscription ends with it. Nothing is refunded before the cancel
+    /// succeeded; when the refund fails the call throws with the subscription already canceled, and repeating it skips the
+    /// cancel and refunds once (what was already refunded is subtracted), so a retry after a failed refund or save is safe.
     /// </summary>
     /// <param name="subscriptionId">The provider subscription id.</param>
     /// <param name="ct">Cancellation token.</param>
-    Task CancelNowAsync(string subscriptionId, CancellationToken ct);
+    Task<CancelRefundResult> CancelNowAsync(string subscriptionId, CancellationToken ct);
 
     /// <summary>
     /// Undoes a scheduled end of the subscription: it renews again. Clears both the cancel-at-period-end flag and any

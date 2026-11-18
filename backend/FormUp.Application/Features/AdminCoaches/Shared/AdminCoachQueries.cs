@@ -31,6 +31,12 @@ internal static class AdminCoachQueries
         CurrentPeriodEndsAt = profile.CoachSubscription!.CurrentPeriodEndsAt,
         CancelAtPeriodEnd = profile.CoachSubscription != null && profile.CoachSubscription.CancelAtPeriodEnd,
         PaysSecondRoleAddOn = profile.CoachSubscription != null && profile.CoachSubscription.PaysSecondRoleAddOn,
+        HasCancellableSubscription = profile.CoachSubscription != null
+            && profile.CoachSubscription.ExternalSubscriptionId != null
+            && (profile.CoachSubscription.Status == SubscriptionStatus.Active
+                || profile.CoachSubscription.Status == SubscriptionStatus.Trialing
+                || profile.CoachSubscription.Status == SubscriptionStatus.PastDue
+                || profile.CoachSubscription.Status == SubscriptionStatus.Incomplete),
         PlanCode = profile.CoachSubscription!.SubscriptionPlan.Code,
         PlanNameCs = profile.CoachSubscription!.SubscriptionPlan.NameCs,
         PlanNameEn = profile.CoachSubscription!.SubscriptionPlan.NameEn,

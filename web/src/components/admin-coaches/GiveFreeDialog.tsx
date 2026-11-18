@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
-import { Repeat } from 'lucide-react';
+import { Repeat, TriangleAlert } from 'lucide-react';
 import type { SubscriptionPlanDto } from '@/api/admin-subscription-plans';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -34,6 +34,10 @@ interface Props {
   currentPlanCode?: string;
   /** Gives the plan; resolves true when it succeeded, which closes the dialog. */
   run: (values: { planCode: string; freeUntil: Date | null; reason: string }) => Promise<boolean>;
+  /** The coach has a live paid Stripe subscription, which giving a plan cancels and refunds. */
+  hasCancellableSubscription?: boolean;
+  /** The coach pays the second-role add-on, which ends unless the chosen plan includes both roles. */
+  paysSecondRoleAddOn?: boolean;
 }
 
 /** Wide dialog for giving a coach a paid plan for free: plan cards, end date and reason. */
@@ -53,6 +57,8 @@ function GiveFreeForm({
   plans,
   currentPlanCode,
   run,
+  hasCancellableSubscription = false,
+  paysSecondRoleAddOn = false,
   onClose,
 }: Omit<Props, 'open' | 'onOpenChange'> & { onClose: () => void }) {
   const { t, i18n } = useTranslation();
@@ -71,6 +77,7 @@ function GiveFreeForm({
   const chosen = options.find((option) => option.plan.code === planCode);
   const chosenName = chosen ? planName(chosen.plan, i18n.language) : '';
   const keepsPlan = chosen !== undefined && chosen.plan.code === currentPlanCode;
+  const addOnEnds = paysSecondRoleAddOn && chosen?.plan.bothRolesIncluded !== true;
   const untilText = noEnd ? '' : formatCoachDate(endOfLocalDay(freeUntil)?.toISOString(), i18n.language);
 
   const submit = handleSubmit(async (values) => {
@@ -123,6 +130,16 @@ function GiveFreeForm({
           onChange={(code) => setValue('planCode', code, { shouldValidate: true, shouldDirty: true })}
           error={errors.planCode?.message ? t(errors.planCode.message) : undefined}
         />
+
+        {hasCancellableSubscription && (
+          <div className="flex gap-2.5 rounded-xl bg-training-soft px-3.5 py-3 text-training-ink">
+            <TriangleAlert aria-hidden="true" className="mt-px size-4 shrink-0" />
+            <p className="text-body leading-normal">
+              {t('adminCoaches.giveFree.refundNotice', { name: coachFirstName })}
+              {addOnEnds && ` ${t('adminCoaches.giveFree.addOnNotice', { name: coachFirstName })}`}
+            </p>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-[16.25rem_minmax(0,1fr)]">
           <div className="flex flex-col gap-2">

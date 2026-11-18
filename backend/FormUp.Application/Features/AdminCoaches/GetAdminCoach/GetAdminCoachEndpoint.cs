@@ -109,6 +109,8 @@ internal sealed class GetAdminCoachEndpoint(
             ClientsUsed = clientsUsed,
             ClientsMax = maxActiveClients,
             CanEndPlanNow = paying || givenFree,
+            HasCancellableSubscription = coach.HasCancellableSubscription,
+            PaysSecondRoleAddOn = coach.PaysSecondRoleAddOn,
             FreePlanMaxActiveClients = free is null ? 0 : free.MaxActiveClients,
             History = await LoadHistoryAsync(coach, ct),
         }, ct);

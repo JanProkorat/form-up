@@ -155,4 +155,12 @@ public class CoachSubscription : TimestampableEntity
     public bool HasLiveProviderSubscription =>
         ExternalSubscriptionId is not null
         && Status is SubscriptionStatus.Active or SubscriptionStatus.Trialing or SubscriptionStatus.PastDue;
+
+    /// <summary>
+    /// True while the provider subscription can still be cancelled: it has a provider id and the status is Active, Trialing,
+    /// PastDue or Incomplete (a first payment that has not gone through yet).
+    /// </summary>
+    public bool HasCancellableProviderSubscription =>
+        ExternalSubscriptionId is not null
+        && Status is SubscriptionStatus.Active or SubscriptionStatus.Trialing or SubscriptionStatus.PastDue or SubscriptionStatus.Incomplete;
 }
