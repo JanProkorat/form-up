@@ -106,7 +106,10 @@ test('a verified coach without a session sees the profile step with sign-in copy
 
   await expect(page.getByRole('heading', { name: 'Email verified' })).toBeVisible();
   await expect(page.getByText('Welcome to Form Up, Jan. Your account is ready.')).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Sign in to choose your plan' })).toHaveAttribute('href', '/login');
+  await expect(page.getByRole('link', { name: 'Sign in to choose your plan' })).toHaveAttribute(
+    'href',
+    '/login?returnTo=%2Fregister%2Fplan'
+  );
   await expect(page.getByRole('link', { name: 'Sign in and start on Free for now' })).toHaveAttribute(
     'href',
     '/login'
