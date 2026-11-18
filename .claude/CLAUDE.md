@@ -62,6 +62,7 @@ package label per package whose code it changes:
 | i18n mechanism (generic) — locale list is in root `CLAUDE.md` | [`rules/i18n.md`](rules/i18n.md) |
 | Verification surfaces per scope | [`rules/verification-contract.md`](rules/verification-contract.md) |
 | Backend test layers, builders, isolation, CI time budget | [`rules/testing.md`](rules/testing.md) |
+| Web test layers (Vitest component vs Playwright E2E), double coverage | [`rules/web-testing.md`](rules/web-testing.md) |
 
 Scope → stack map: [`rules/scope-boundaries.md#scope-to-stack-mapping`](rules/scope-boundaries.md#scope-to-stack-mapping).
 Locales: root `CLAUDE.md` → Shared Conventions.
