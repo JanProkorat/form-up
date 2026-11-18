@@ -15,7 +15,8 @@ interface UpgradePaymentNoticeProps {
   paymentUrl: string;
   /** Called when the coach opens the payment page; starts watching for the plan to change. */
   onOpen: () => void;
-  onDismiss: () => void;
+  /** Hides the notice; when omitted the dismiss button is not rendered and the action row is right-aligned. */
+  onDismiss?: () => void;
 }
 
 /**
@@ -34,16 +35,18 @@ export default function UpgradePaymentNotice({ plan, current, message, paymentUr
         <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
         <p className="min-w-0 flex-1 text-copy">{message ?? t('subscription.billing.upgradePayment.text', { plan, current })}</p>
       </div>
-      <div className="flex flex-wrap items-center gap-3">
+      <div className={cn('flex flex-wrap items-center gap-3', !onDismiss && 'justify-end')}>
         <Button asChild size="lg" className="gap-2 px-3.5 font-semibold">
           <a href={paymentUrl} target="_blank" rel="noopener noreferrer" onClick={onOpen}>
             {t('subscription.billing.upgradePayment.open')}
             <ExternalLink className="size-4" aria-hidden="true" />
           </a>
         </Button>
-        <Button type="button" variant="outline" size="lg" className="px-3.5 font-semibold" onClick={onDismiss}>
-          {t('subscription.billing.upgradePayment.dismiss')}
-        </Button>
+        {onDismiss && (
+          <Button type="button" variant="outline" size="lg" className="px-3.5 font-semibold" onClick={onDismiss}>
+            {t('subscription.billing.upgradePayment.dismiss')}
+          </Button>
+        )}
       </div>
     </div>
   );
