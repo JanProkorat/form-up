@@ -238,6 +238,8 @@ export default function CoachActions({ coach, coachId, plans, onGone }: Props) {
         coachFirstName={firstName}
         plans={plans}
         currentPlanCode={coach.plan?.code}
+        hasCancellableSubscription={coach.hasCancellableSubscription === true}
+        paysSecondRoleAddOn={coach.paysSecondRoleAddOn === true}
         run={({ planCode, freeUntil, reason }) =>
           attempt(
             () =>
@@ -285,9 +287,12 @@ export default function CoachActions({ coach, coachId, plans, onGone }: Props) {
         title={t('adminCoaches.actions.endPlan.dialogTitle')}
         description={t('adminCoaches.actions.endPlan.dialogDescription', { name: firstName, plan: planLabel })}
         callout={
-          overFreeLimit
-            ? t('adminCoaches.actions.endPlan.callout', { name: firstName, count: used, max: freeMax })
-            : undefined
+          [
+            coach.hasCancellableSubscription === true ? t('adminCoaches.actions.endPlan.refundNotice') : '',
+            overFreeLimit ? t('adminCoaches.actions.endPlan.callout', { name: firstName, count: used, max: freeMax }) : '',
+          ]
+            .filter(Boolean)
+            .join(' ') || undefined
         }
         placeholder={t('adminCoaches.actions.endPlan.placeholder')}
         cancelLabel={t('adminCoaches.actions.endPlan.cancel')}

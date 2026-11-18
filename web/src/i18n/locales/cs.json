@@ -7083,7 +7083,9 @@
       "keepUntil": "zůstává, nově do {{date}}. Poté si {{name}} vybere plán.",
       "keepNoEnd": "zůstává, nově bez data konce.",
       "keepPickDate": "zůstává. Zvolte nové datum konce.",
-      "confirmKeep": "Změnit datum konce"
+      "confirmKeep": "Změnit datum konce",
+      "refundNotice": "Placené předplatné trenéra {{name}} ve Stripe se hned zruší a nevyužité dny se vrátí na jeho kartu.",
+      "addOnNotice": "Skončí s ním i doplněk druhé role. Trenér {{name}} si ponechá jen role, které vybraný plán zahrnuje; plán s oběma rolemi ponechá obě."
     },
     "drawer": {
       "titleFallback": "Trenér",
@@ -7141,6 +7143,7 @@
         "none": "Tento trenér nemá placený ani darovaný plán, který by šel ukončit.",
         "success": "Plán byl ukončen.",
         "error": "Plán se nepodařilo ukončit.",
+        "refundNotice": "Placené předplatné trenéra ve Stripe se hned zruší a nevyužité dny se vrátí na jeho kartu.",
         "dialogTitle": "Ukončit plán hned?",
         "dialogDescription": "Trenér {{name}} dnes přejde z plánu {{plan}} na Zdarma a už se mu nic neúčtuje.",
         "callout_one": "Trenér {{name}} má {{count}} klienta a Zdarma jich povoluje {{max}}. Při příštím přihlášení bude vybírat, které si ponechá. Plány ostatních klientů doběhnou do posledního zveřejněného týdne.",

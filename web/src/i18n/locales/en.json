@@ -6823,7 +6823,9 @@
       "keepUntil": "stays, now until {{date}}. Then {{name}} chooses a plan.",
       "keepNoEnd": "stays, now with no end date.",
       "keepPickDate": "stays. Pick the new end date.",
-      "confirmKeep": "Change end date"
+      "confirmKeep": "Change end date",
+      "refundNotice": "{{name}}'s paid Stripe subscription is cancelled now and the unused days are refunded to their card.",
+      "addOnNotice": "The second-role add-on ends with it. {{name}} keeps only the roles the chosen plan covers; a plan with both roles keeps both."
     },
     "drawer": {
       "titleFallback": "Coach",
@@ -6881,6 +6883,7 @@
         "none": "This coach has no paid or given plan to end.",
         "success": "The plan was ended.",
         "error": "Could not end the plan.",
+        "refundNotice": "The coach's paid Stripe subscription is cancelled now and the unused days are refunded to their card.",
         "dialogTitle": "End plan now?",
         "dialogDescription": "{{name}} moves from {{plan}} to Free today and isn't charged again.",
         "callout_one": "{{name}} has {{count}} client and Free allows {{max}}. Next time they sign in, they pick which to keep. The other clients' plans run until their last published week.",
