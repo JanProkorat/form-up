@@ -10,6 +10,7 @@ import type {
   ClientPlanItem,
   GetClientDashboardResponse,
   GetClientCheckInHistoryResponse,
+  GetClientVerdictResponse,
   GetClientFormsResponse,
   GetTrainerClientPhotosResponse,
   GetMeasurementsResponse,
@@ -99,6 +100,7 @@ const subscription: GetMySubscriptionResponse = { features: {} };
 const noForms: GetClientFormsResponse = {};
 const noPhotos: GetTrainerClientPhotosResponse = { photos: [] };
 const noCheckIns: GetClientCheckInHistoryResponse = { weeks: [], answeredCount: 0, totalCount: 0 };
+const noVerdict: GetClientVerdictResponse = {};
 
 /** Serves the page's own requests from `state`; everything else is declared by the test. */
 export function serveClientDetail(state: ClientDetailState): void {
@@ -117,6 +119,8 @@ export function serveClientDetail(state: ClientDetailState): void {
     http.get(apiUrl(`/trainer/clients/${CLIENT_ID}/forms`), () => HttpResponse.json(noForms)),
     http.get(apiUrl(`/trainer/clients/${CLIENT_ID}/photos`), () => HttpResponse.json(noPhotos)),
     http.get(apiUrl(`/trainer/clients/${CLIENT_USER_ID}/weekly-check-ins/history`), () => HttpResponse.json(noCheckIns)),
+    // The trainer overview asks for the on-track verdict.
+    http.get(apiUrl(`/trainer/clients/${CLIENT_ID}/verdict`), () => HttpResponse.json(noVerdict)),
   );
 }
 

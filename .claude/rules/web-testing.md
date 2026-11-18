@@ -55,11 +55,16 @@ case in the E2E list above, and name which case in the PR body.
   next to it in `web/src/test/` (`clientDetail.tsx`, `clientsList.tsx`,
   `inbox.tsx`).
 - Fake HTTP with msw (`web/src/test/msw/`). An unhandled request fails the
-  test. Type fake payloads with `src/api/generated.ts` types, so an API shape
-  change breaks the typecheck.
+  test after it runs (`setup.ts` records them; msw alone only fails the
+  request, which a page may swallow). Serve a page's background loads in its
+  helper, not per test. Type fake payloads with `src/api/generated.ts` types,
+  so an API shape change breaks the typecheck.
 - Don't `vi.mock` `src/api/*` or axios: the real axios layer, interceptors
   included, must run.
 - Query by role and accessible name. Copy is English (`lang` is pinned).
+- Scope a `findBy*` to the element you mean when the same text shows twice
+  (a toast and an inline message). It retries on "found multiple elements"
+  until one disappears, then passes on the wrong one (#2235).
 - Pin "now" when an assertion depends on the date.
 - Don't lower the time limits in `vitest.config.ts` (15 s per test) or
   `setup.ts` (5 s async wait). Page tests failed under load at the defaults
