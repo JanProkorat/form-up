@@ -1,26 +1,44 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Users } from 'lucide-react';
-import { BillingInterval, type PublicSubscriptionPlanDto } from '@/api/generated';
+import {
+  BillingInterval,
+  PromotionDuration,
+  type PublicPromotionDto,
+  type PublicSubscriptionPlanDto,
+} from '@/api/generated';
 import { scrollToAnchor } from '@/components/home/smoothAnchor';
 import { PRICING_COMPARE_ID, PRICING_FEATURES, includedFeatureCount } from '@/components/pricing/pricingFeatures';
 import { formatMoney } from '@/components/subscription/money';
 import { coachPlanName } from '@/components/subscription/planNames';
+import { planDiscountedPrice, planDisplayPrice } from '@/components/subscription/planPricing';
+import { promotionShortText } from '@/components/subscription/promotionText';
 import { Button } from '@/components/ui/button';
 
 interface Props {
   plan: PublicSubscriptionPlanDto;
+  /** The active automatic promotion, when there is one; the price row then reserves room for its note on every card. */
+  promotion?: PublicPromotionDto;
   /** Where the button leads: registration when signed out, Plan and billing when signed in. */
   ctaTo: string;
 }
 
 /** One plan of the public pricing page: name, price, second-role chip, choose link and a feature count. */
-export default function PricingPlanCard({ plan, ctaTo }: Props) {
+export default function PricingPlanCard({ plan, promotion, ctaTo }: Props) {
   const { t, i18n } = useTranslation();
   const name = coachPlanName(plan, i18n.language);
   const currency = plan.currency ?? 'CZK';
   const priceMinor = plan.priceMinorUnits ?? 0;
   const price = formatMoney(priceMinor, currency, i18n.language);
+  const discounted = planDiscountedPrice(plan, false);
+  const offer = promotion && discounted !== null && discounted < planDisplayPrice(plan, false) ? promotion : null;
+  const shortOffer = offer ? promotionShortText(t, offer, i18n.language) : null;
+  const offerNote =
+    offer && shortOffer
+      ? offer.duration === PromotionDuration.Forever
+        ? shortOffer
+        : t('subscription.promotion.card.then', { short: shortOffer, price })
+      : undefined;
   const interval = plan.billingInterval === BillingInterval.Annual ? 'year' : 'month';
   const addOn = plan.secondRoleAddOnPriceMinorUnits;
   const chip =
@@ -46,10 +64,29 @@ export default function PricingPlanCard({ plan, ctaTo }: Props) {
         )}
       </div>
 
-      <div className="flex items-baseline gap-2">
-        <span className="font-display text-price font-semibold tracking-heading text-ink">{price}</span>
-        <span className="text-body text-muted-foreground">{t(`pricing.card.per.${interval}`)}</span>
-      </div>
+      {promotion ? (
+        <div className="@container flex flex-col gap-1">
+          {/* Two lines are reserved for the price row and for the note so the buttons line up across the cards. */}
+          <div className="flex min-h-[2lh] flex-wrap items-baseline gap-x-1.5 text-stat">
+            <span className="text-stat font-semibold whitespace-nowrap text-ink @max-[15rem]:text-auth-title">
+              {formatMoney(offer && discounted !== null ? discounted : priceMinor, currency, i18n.language)}
+            </span>
+            {offer && (
+              <s className="text-copy whitespace-nowrap text-muted-foreground @max-[15rem]:text-body">
+                <span className="sr-only">{t('subscription.promotion.card.regularPrice')} </span>
+                {price}
+              </s>
+            )}
+            <span className="text-body whitespace-nowrap text-muted-foreground">{t(`pricing.card.per.${interval}`)}</span>
+          </div>
+          <span className="min-h-9 text-meta text-muted-foreground">{offerNote}</span>
+        </div>
+      ) : (
+        <div className="flex items-baseline gap-2">
+          <span className="font-display text-price font-semibold tracking-heading text-ink">{price}</span>
+          <span className="text-body text-muted-foreground">{t(`pricing.card.per.${interval}`)}</span>
+        </div>
+      )}
 
       {/* One line is reserved for the chip so the buttons line up across the cards. */}
       <div className="min-h-10">

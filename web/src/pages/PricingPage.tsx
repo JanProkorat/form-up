@@ -4,6 +4,7 @@ import HomeNav from '@/components/home/HomeNav';
 import PricingCompareTable from '@/components/pricing/PricingCompareTable';
 import PricingPlanCard from '@/components/pricing/PricingPlanCard';
 import { PLAN_BILLING_PATH } from '@/components/subscription/planLinks';
+import PromotionBanner from '@/components/subscription/PromotionBanner';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePublicPlans } from '@/hooks/useSubscriptionQueries';
@@ -20,6 +21,7 @@ export default function PricingPage() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const plansQuery = usePublicPlans();
   const plans = plansQuery.data?.plans ?? [];
+  const promotion = plansQuery.data?.promotion;
   const ctaTo = isAuthenticated ? PLAN_BILLING_PATH : REGISTER_PATH;
 
   return (
@@ -58,9 +60,10 @@ export default function PricingPage() {
           <p className="text-center text-copy text-muted-foreground">{t('pricing.empty')}</p>
         ) : (
           <>
+            {promotion && <PromotionBanner promotion={promotion} plans={plans} variant="picker" />}
             <div className="grid items-stretch gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {plans.map((plan) => (
-                <PricingPlanCard key={plan.code} plan={plan} ctaTo={ctaTo} />
+                <PricingPlanCard key={plan.code} plan={plan} promotion={promotion} ctaTo={ctaTo} />
               ))}
             </div>
             <PricingCompareTable plans={plans} />
