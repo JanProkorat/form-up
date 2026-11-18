@@ -210,7 +210,9 @@ describe('plan editor Day view: locked meals', () => {
 
     const card = screen.getByTestId('meal-block');
     const note = within(card).getByRole('textbox', { name: 'Note for Breakfast' });
-    await user.type(note, 'Eat slowly');
+    // clear + paste is one input event, like Playwright's fill(); typing re-renders the editor per key.
+    await user.clear(note);
+    await user.paste('Eat slowly');
     await user.click(screen.getByRole('button', { name: 'Save' }));
 
     expect(await screen.findByText(SAVE_ERROR_TOAST, { exact: false })).toBeInTheDocument();
@@ -219,7 +221,8 @@ describe('plan editor Day view: locked meals', () => {
     // The edit is still there: no reload, nothing reverted.
     expect(note).toHaveValue('Eat slowly');
 
-    await user.type(note, ', please');
+    await user.clear(note);
+    await user.paste('Eat slowly, please');
     await waitFor(() => expect(card).not.toHaveAttribute('data-lock-rejected', 'true'));
     expect(within(card).queryByTestId('meal-lock-conflict')).not.toBeInTheDocument();
   });
@@ -231,7 +234,8 @@ describe('plan editor Day view: locked meals', () => {
     const { user } = await openDayView(state, 'Mon');
 
     const card = screen.getByTestId('meal-block');
-    await user.type(within(card).getByRole('textbox', { name: 'Note for Breakfast' }), 'Eat slowly');
+    await user.clear(within(card).getByRole('textbox', { name: 'Note for Breakfast' }));
+    await user.paste('Eat slowly');
     state.locks = [mealLock(state)];
     await user.click(screen.getByRole('button', { name: 'Save' }));
 
