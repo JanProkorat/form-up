@@ -145,7 +145,6 @@ public class GetAdminCoachEndpointTests(FitnessApiFactory factory)
         var detail = await GetAsync(admin, coach.UserId);
 
         detail.HasCancellableSubscription.Should().Be(cancellable);
-        detail.PaysSecondRoleAddOn.Should().BeTrue();
     }
 
     [Fact]

@@ -48,8 +48,8 @@ internal sealed class GiveCoachPlanFreeEndpoint(
                             "notification and a subscriptionchanged event; a failure to notify does not fail the call. A given plan and a " +
                             "paid Stripe subscription never run together: a coach with an Active, Trialing, PastDue or Incomplete Stripe " +
                             "subscription has it cancelled at once and the unused days of the paid period are refunded to the card (nothing " +
-                            "for a payment that never went through or a 100 % discount). The second-role add-on ends with the subscription " +
-                            "(the roles the coach holds are not changed). If Stripe fails nothing is saved and repeating the call is safe.";
+                            "for a payment that never went through or a 100 % discount). The second-role add-on ends with the subscription, " +
+                            "and the given plan includes both professional roles while it is in force (no role is removed when it ends). If Stripe fails nothing is saved and repeating the call is safe.";
             s.Response<GiveCoachPlanFreeResponse>(StatusCodes.Status200OK, "The plan as it now stands");
             s.Response<ProblemDetails>(StatusCodes.Status502BadGateway,
                 "Stripe failed; nothing was saved (BILLING_PROVIDER_ERROR)");
@@ -143,7 +143,7 @@ internal sealed class GiveCoachPlanFreeEndpoint(
         subscription.Status = SubscriptionStatus.Active;
 
         // The add-on is billed on the subscription that was just cancelled. Only the billing flags go; no role is removed, so
-        // the coach keeps what they hold and the second-role gate decides what the given plan covers.
+        // the coach keeps what they hold. A given plan includes both roles while it is in force (EntitlementService).
         subscription.PaysSecondRoleAddOn = false;
         subscription.SecondRoleAddOnEndsAt = null;
 

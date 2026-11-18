@@ -15,8 +15,9 @@ namespace FormUp.Application.Domain.Services;
 /// <see cref="Entities.CoachSubscription.FreeUntil"/>, or while the status is Trialing, Active or PastDue,
 /// the assigned plan's own flags apply; Canceled and Incomplete fall back to the Free plan. A plan given for
 /// free (<see cref="Entities.CoachSubscription.GivenFreeAt"/> set) applies only until its end, whatever the
-/// status. After its end the coach must choose a plan; until they do, reads keep resolving to the ended plan's
-/// own flags and nobody is over the cap. When the
+/// status, and counts as including both roles whatever plan was given. After its end the coach must choose a
+/// plan; until they do, reads keep resolving to the ended plan's own flags (and its own second-role rule) and
+/// nobody is over the cap. When the
 /// Free plan row itself is missing the service logs an error and resolves to
 /// <see cref="CoachEntitlements.Locked"/> (fail closed).
 /// </remarks>
@@ -334,7 +335,10 @@ public class EntitlementService
         if (row is not null && UsesAssignedPlan(row))
         {
             return new Resolution(
-                row.Plan.ToEntitlements(), row.Plan.BothRolesIncluded, row.PaysSecondRoleAddOn, CanBuySecondRoleAddOn(row));
+                row.Plan.ToEntitlements(),
+                row.Plan.BothRolesIncluded || IsGiftInForce(row),
+                row.PaysSecondRoleAddOn,
+                CanBuySecondRoleAddOn(row));
         }
 
         return free is null
@@ -343,7 +347,13 @@ public class EntitlementService
     }
 
     /// <summary>
-    /// Mirrors what the paid add-on flow accepts: a live provider subscription with no gift in force, a plan without both
+    /// A plan given by Form Up that has not ended. Unlike <see cref="UsesAssignedPlan"/>, this is false once the gift
+    /// ended while the coach has yet to choose a plan.
+    /// </summary>
+    private bool IsGiftInForce(SubscriptionRow row) => row.GivenFreeAt is not null && PlanApplies(row);
+
+    /// <summary>
+    /// Mirrors what the paid add-on flow accepts: a live provider subscription with no gift, a plan without both
     /// roles and an add-on price, no add-on paid yet, and no plan change scheduled.
     /// </summary>
     private bool CanBuySecondRoleAddOn(SubscriptionRow row)

@@ -238,7 +238,6 @@ public class EntitlementServiceResolutionTests
     [InlineData("noAddOnPrice")]
     [InlineData("zeroAddOnPrice")]
     [InlineData("noPriceRow")]
-    [InlineData("giftInForce")]
     [InlineData("endedGiftAwaitingChoice")]
     [InlineData("pendingPlanChange")]
     [InlineData("cancelAtPeriodEnd")]
@@ -258,14 +257,37 @@ public class EntitlementServiceResolutionTests
             live: blocker != "noProviderIds",
             cancelAtPeriodEnd: blocker == "cancelAtPeriodEnd",
             pendingPriceId: blocker == "pendingPlanChange" ? 5 : null,
-            givenFreeAt: blocker is "giftInForce" or "endedGiftAwaitingChoice" ? Now.AddDays(-10) : null,
-            freeUntil: blocker switch
-            {
-                "giftInForce" => Now.AddDays(5),
-                "endedGiftAwaitingChoice" => Now.AddDays(-1),
-                _ => null,
-            });
+            givenFreeAt: blocker == "endedGiftAwaitingChoice" ? Now.AddDays(-10) : null,
+            freeUntil: blocker == "endedGiftAwaitingChoice" ? Now.AddDays(-1) : null);
         var service = CreateService([Plan(1, "free"), start], [subscription]);
+
+        (await service.GetSecondRoleStateAsync(ProfileId, TestContext.Current.CancellationToken))
+            .Should().Be(SecondRoleState.NotAvailable);
+    }
+
+    [Theory]
+    [InlineData(5, SecondRoleState.Included)]
+    [InlineData(null, SecondRoleState.Included)]
+    [InlineData(-1, SecondRoleState.NotAvailable)]
+    public async Task GetSecondRoleStateAsync_GivenSingleRolePlan_IsIncludedOnlyWhileTheGiftIsInForce(
+        int? freeUntilDaysFromNow, SecondRoleState expected)
+    {
+        var start = Plan(2, "start", bothRolesIncluded: false);
+        var subscription = Subscription(
+            start,
+            SubscriptionStatus.Active,
+            givenFreeAt: Now.AddDays(-10),
+            freeUntil: freeUntilDaysFromNow is null ? null : Now.AddDays(freeUntilDaysFromNow.Value));
+        var service = CreateService([Plan(1, "free"), start], [subscription]);
+
+        (await service.GetSecondRoleStateAsync(ProfileId, TestContext.Current.CancellationToken)).Should().Be(expected);
+    }
+
+    [Fact]
+    public async Task GetSecondRoleStateAsync_PaidSingleRolePlanWithoutAGift_IsUnchanged()
+    {
+        var start = Plan(2, "start", bothRolesIncluded: false);
+        var service = CreateService([Plan(1, "free"), start], [Subscription(start, SubscriptionStatus.Active)]);
 
         (await service.GetSecondRoleStateAsync(ProfileId, TestContext.Current.CancellationToken))
             .Should().Be(SecondRoleState.NotAvailable);

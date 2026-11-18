@@ -457,14 +457,14 @@ public class GetMySubscriptionEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task Get_AdminGiftInForce_ShowsTheSecondRoleAsNotAvailable()
+    public async Task Get_AdminGiftInForce_ShowsTheSecondRoleAsIncluded()
     {
         var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
         var (plan, _) = await BillingTestData.StripePlanAsync(factory, addOn: 9900, bothRolesIncluded: false);
         await BillingTestData.SubscribeLiveAsync(
             factory, coach, plan, givenFreeAt: DateTimeOffset.UtcNow.AddDays(-1), freeUntil: DateTimeOffset.UtcNow.AddDays(10));
 
-        (await GetAsync(coach)).SecondRole.Should().Be(SecondRoleState.NotAvailable);
+        (await GetAsync(coach)).SecondRole.Should().Be(SecondRoleState.Included);
     }
 
     [Fact]
