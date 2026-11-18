@@ -141,7 +141,7 @@ const router = createBrowserRouter(
             <Route path="/admin/plans" element={<AdminPlansPage />} />
             <Route path="/admin/plans/new" element={<AdminPlanEditorPage />} />
             <Route path="/admin/plans/:planId" element={<AdminPlanEditorPage />} />
-            <Route path="/admin/promotions" element={<AdminPromotionsPage />} />
+            <Route path="/admin/promotion-offers" element={<AdminPromotionsPage />} />
             <Route path="/admin/coach-accounts" element={<AdminCoachesPage />} />
             <Route path="/admin/coach-accounts/:coachId" element={<AdminCoachProfilePage />} />
           </Route>
