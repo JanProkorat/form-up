@@ -14,5 +14,15 @@ afterEach(() => {
 });
 afterAll(() => server.close());
 
-// Add jsdom gaps here only when a test hits them (Radix: ResizeObserver, pointer capture,
-// scrollIntoView; media queries: matchMedia). The pilot page needs none of them yet.
+// jsdom gaps, added only where a test hit them. Radix menus and dialogs need pointer capture
+// and scrollIntoView; its size observers need ResizeObserver.
+class ResizeObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+globalThis.ResizeObserver ??= ResizeObserverStub;
+Element.prototype.hasPointerCapture ??= () => false;
+Element.prototype.setPointerCapture ??= () => {};
+Element.prototype.releasePointerCapture ??= () => {};
+Element.prototype.scrollIntoView ??= () => {};
