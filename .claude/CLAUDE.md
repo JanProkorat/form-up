@@ -179,8 +179,11 @@ canvas (`HFzM8WqykBxJvkLdiqU85h`) is frozen; do not use it.
       gap (e.g. extend `QaSeedRunner` via `backend-dotnet`) or accept the
       gap with a follow-up issue; user decides. PARTIAL with a documented
       gap may proceed to code-review on user authorization.
-   d. PASS → orchestrator tells the user the task is done and (if applicable)
-      suggests closing via `github-issues` with `Fixes #<N>`.
+   d. PASS → orchestrator runs the browser walk of the test guide
+      ([`docs/guide-walk.md`](docs/guide-walk.md)) on the main thread and fixes
+      what it finds. Only then tell the user the task is done, pointing at the
+      guide's **Needs you** list, and (if applicable) suggest closing via
+      `github-issues` with `Fixes #<N>`.
    Skip only if the task did not originate from a GitHub issue. Never skip to
    save a round trip — the AC is the contract.
 
@@ -255,6 +258,7 @@ canvas (`HFzM8WqykBxJvkLdiqU85h`) is frozen; do not use it.
 | `ui-tradeoff`     | Enforces Working Principles §4 (two-attempt stop rule).                                                                       |
 | `root-cause-swarm`| Enforces Working Principles §1 (no speculative patches) for multi-layer bugs.                                                 |
 | `ship-epic`       | Full epic-to-PR lifecycle. Orchestrator-only. See [`rules/epic-branch.md`](rules/epic-branch.md).                            |
+| `test-guide`      | Living test-guide page (claude.ai artifact) per implementation request: steps per issue, Works/Broken marks, the maintainer's notes + screenshots, open decisions. Orchestrator-only; use on every implementation request and on "check the guide". |
 
 ## Chainable plugin skills (external)
 

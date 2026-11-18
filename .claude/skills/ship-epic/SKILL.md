@@ -490,6 +490,12 @@ epic branch (or been deferred with their say-so):
    (`fix/<epic-N>-qa-<k>`) and merges per Phase 1d on green CI; then
    re-run `qa-tester` on the delta.
 
+2b. **Walk the test guide in the browser.** Once `qa-tester` passes, the main thread runs
+   [`docs/guide-walk.md`](../../docs/guide-walk.md) on the epic's test guide (`test-guide` skill): every
+   `ready` step, in a real browser on the dev stack, with real Stripe test mode where billing is involved.
+   Fixes go on `fix/<epic-N>-walk-<k>` branches and merge per Phase 1d. Then hand the maintainer only the
+   guide's **Needs you** list, and continue to step 3 without waiting for their test.
+
 3. Open the **epic PR** with `pr-reviewer` once QA passes. Dispatch in
    `mode: open-and-review` with:
    - `branch: $EPIC_BRANCH` (the head)
@@ -582,6 +588,8 @@ manually for an excluded epic):
       PR) or explicitly deferred with the user's say-so.
 - [ ] Every task PR had a passing dev verify-skill run and green CI
       before it merged into the epic branch.
+- [ ] The guide walk (Phase 2 step 2b) marked every `ready` step by
+      Claude or flagged it for the maintainer, and its failures were fixed.
 - [ ] `qa-tester` returned PASS on the whole epic branch (epic ACs and
       every task's ACs) **and** `pr-reviewer` returned READY FOR MERGE
       on the epic PR's full diff before the user was asked to merge.

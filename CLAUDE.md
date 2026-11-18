@@ -257,3 +257,19 @@ token hygiene, no verbatim spec in subagent prompts). This repo adds only:
 - **Plans** go to `PLAN.md` (or `PLAN-<topic>.md`) at the repo root.
 - **Fresh context before `ship-epic`**; `ship-epic` and `signalr-event` must not
   paste issue bodies into child prompts.
+
+<!-- claude-reflect: learned rules (saved from the band; edit freely) -->
+## Learned rules
+- In Form Up, a plan from Form Up and a paid plan must never overlap; they replace each other, and a Form Up plan is only an edge case for when the coach cannot get a proper plan.
+- Disable paid accounts only at subscription end; disable free-plan accounts immediately.
+- Keep pricing on its own dedicated page; never include pricing content in the entry page.
+- Keep a single stored copy of .env.test in a stable location and reuse it in new worktrees instead of recreating it.
+- Show all package features in every paywall surface (cards, dialogs, etc.) so that features added later appear everywhere.
+- Don't ask the user to test individual PRs. When all changes are in the epic branch, Claude walks the test guide in a real browser first (`.claude/docs/guide-walk.md`) and fixes what it finds; the user tests only the guide's "Needs you" list.
+- After generating the iOS project with expo prebuild, remove the push notification entitlement from ios/FormUp/FormUp.entitlements before running the app.
+- When a save is rejected, show a translated error toast and highlight the offending tile with a red outline; never reload the page.
+- Always display active clients above clients who are out of plan in client lists.
+- Assume the user is a non-VAT-registered sole trader (IČO); do not add VAT to invoices, prices or tax calculations.
+- Continue through remaining tasks without prompting the user; only notify them when the full epic is ready for review and merge.
+- When an epic implementation is finished, automatically test its features end-to-end without asking the user to test them manually.
+<!-- end claude-reflect -->
