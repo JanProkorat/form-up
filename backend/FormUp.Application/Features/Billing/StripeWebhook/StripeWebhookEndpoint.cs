@@ -448,6 +448,16 @@ internal sealed class StripeWebhookEndpoint(
             return false;
         }
 
+        // An abandoned second subscription must not restore or clear anything on the tracked one. Recorded (true) like
+        // the other duplicate path, with the row unchanged.
+        if (TracksDifferentLiveSubscription(row, subscription.Id))
+        {
+            logger.LogInformation(
+                "Stripe event {EventId} expired an update of a second subscription of coach profile {ProfileId}; ignored",
+                stripeEvent.Id, row.ProfessionalProfileId);
+            return true;
+        }
+
         if (!subscriptions.IsConfigured)
         {
             return true;

@@ -1343,6 +1343,28 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task Webhook_PendingUpdateExpiredForASecondSubscription_TouchesNeitherTheTrackedOneNorItsMarkers()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var (tracked, _, pendingRowId) = await ArrangeUpgradeWithScheduledDowngradeAsync();
+        var duplicate = tracked with { SubscriptionId = $"sub_{Guid.NewGuid():N}" };
+        var eventId = NewEventId();
+
+        var response = await PostAsync(SubscriptionEvent(
+            eventId, "customer.subscription.pending_update_expired", duplicate, "incomplete_expired", pendingRole: "Nutritionist"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.ExpiredUpgradeRestores.Should().BeEmpty();
+        fake.ClearedPendingSecondRoles.Should().BeEmpty();
+        fake.CancelledNow.Should().BeEmpty();
+        var row = await ReadRowAsync(tracked.Coach.ProfileId);
+        row.ExternalSubscriptionId.Should().Be(tracked.SubscriptionId);
+        row.Status.Should().Be(SubscriptionStatus.Active);
+        row.PendingSubscriptionPlanPriceId.Should().Be(pendingRowId);
+        (await ProcessedCountAsync(eventId)).Should().Be(1);
+    }
+
+    [Fact]
     public async Task Webhook_WhenCancellingTheDuplicateFails_Returns500_AndStoresNoEventId_SoStripeRetries()
     {
         var (tracked, duplicate, fake) = await ArrangeTrackedAndDuplicateAsync();
