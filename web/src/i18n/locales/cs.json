@@ -393,7 +393,8 @@
         "confirm": "Přidat roli · zaplatit {{amount}}",
         "alreadyPaid": "Druhá role je už zaplacená, přidání dnes nic nestojí.",
         "paymentNotice": "Vaše banka musí platbu potvrdit. Dokončete ji na zabezpečené stránce Stripe. Role se přidá až po potvrzení platby.",
-        "paymentConfirmed": "Platba je potvrzena. Roli přidejte v Nastavení.",
+        "roleAdded": "Platba je potvrzena a role byla přidána.",
+        "roleNotAppeared": "Platba je potvrzena, ale role se zatím nezobrazila. Načtěte stránku znovu nebo se přihlaste znovu.",
         "notConfirmed": "Platbu se nepodařilo potvrdit, proto role nebyla přidána."
       },
       "errors": {

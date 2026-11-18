@@ -274,6 +274,10 @@ public interface ISubscriptionService
     /// <param name="interval">Billing cadence of the add-on price.</param>
     /// <param name="idempotencyKey">Repeating a call with the same key returns the first result instead of charging twice.</param>
     /// <param name="ct">Cancellation token.</param>
+    /// <param name="roleToAdd">
+    /// The coach role (Trainer or Nutritionist) this charge buys. Remembered on the subscription while the add-on awaits
+    /// payment, so the webhook can add the role once it is paid; null remembers nothing.
+    /// </param>
     Task<AddOnChargeResult> ChargeSecondRoleAddOnAsync(
         string subscriptionId,
         string planCode,
@@ -281,5 +285,13 @@ public interface ISubscriptionService
         string currency,
         BillingInterval interval,
         string idempotencyKey,
-        CancellationToken ct);
+        CancellationToken ct,
+        string? roleToAdd = null);
+
+    /// <summary>
+    /// Removes the role remembered by <see cref="ChargeSecondRoleAddOnAsync"/> from the subscription. A provider failure throws.
+    /// </summary>
+    /// <param name="subscriptionId">The provider subscription id.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task ClearPendingSecondRoleAsync(string subscriptionId, CancellationToken ct);
 }

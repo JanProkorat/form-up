@@ -452,9 +452,9 @@ public class StripeSubscriptionServiceChangePlanTests
             "price":{"id":"price_old","object":"price","product":"prod_1","recurring":{"interval":"month"}}}]}}
         """;
 
-    private static Task<AddOnChargeResult> ChargeAddOnAsync(StripeSubscriptionService service) =>
+    private static Task<AddOnChargeResult> ChargeAddOnAsync(StripeSubscriptionService service, string? roleToAdd = null) =>
         service.ChargeSecondRoleAddOnAsync(
-            SubscriptionId, "pro", 9900, "CZK", BillingInterval.Monthly, "formup-second-role-sub_1-attempt", TestContext.Current.CancellationToken);
+            SubscriptionId, "pro", 9900, "CZK", BillingInterval.Monthly, "formup-second-role-sub_1-attempt", TestContext.Current.CancellationToken, roleToAdd);
 
     private static ScriptedStripeHandler AddOnScript(ScriptedStripeHandler handler) =>
         handler.Respond(HttpMethod.Get, "/v1/prices", PricesListJson);
@@ -495,6 +495,48 @@ public class StripeSubscriptionServiceChangePlanTests
         pending.Form.Should().Contain(new KeyValuePair<string, string>("items[0][price]", "price_addon"));
         pending.Form.Should().Contain(new KeyValuePair<string, string>("expand[0]", "latest_invoice"));
         pending.IdempotencyKey.Should().Be("formup-second-role-sub_1-attempt-pending");
+    }
+
+    private const string RoleKey = "metadata[formup_pending_second_role]";
+
+    [Fact]
+    public async Task ChargeSecondRoleAddOn_WhenAuthenticationIsNeeded_RemembersTheRoleInAPlainUpdateBeforeThePendingUpdate()
+    {
+        var handler = AddOnScript(new ScriptedStripeHandler(HttpStatusCode.OK, SubscriptionJson))
+            .Sequence(
+                HttpMethod.Post,
+                "/v1/subscriptions/sub_1",
+                (HttpStatusCode.PaymentRequired, AuthenticationRequiredJson),
+                (HttpStatusCode.OK, SubscriptionJson),
+                (HttpStatusCode.OK, AddOnPendingSubscriptionJson));
+
+        var result = await ChargeAddOnAsync(NewService(handler), "Trainer");
+
+        result.Outcome.Should().Be(AddOnChargeOutcome.AwaitingPayment);
+        var updates = handler.Requests.Where(r => r.Method == HttpMethod.Post).ToList();
+        updates.Should().HaveCount(3);
+        updates[1].Form.Should().Equal([new KeyValuePair<string, string>(RoleKey, "Trainer")], "metadata goes in its own plain update");
+        updates[2].Form.Should().Contain(new KeyValuePair<string, string>("payment_behavior", "pending_if_incomplete"));
+        updates[2].Form.Should().NotContain(pair => pair.Key == RoleKey);
+    }
+
+    [Fact]
+    public async Task ChargeSecondRoleAddOn_WhenHoldingTheAddOnFailsAfterTheRoleWasWritten_ClearsTheRole_AndThrows()
+    {
+        var handler = AddOnScript(new ScriptedStripeHandler(HttpStatusCode.OK, SubscriptionJson))
+            .Sequence(
+                HttpMethod.Post,
+                "/v1/subscriptions/sub_1",
+                (HttpStatusCode.PaymentRequired, AuthenticationRequiredJson),
+                (HttpStatusCode.OK, SubscriptionJson),
+                (HttpStatusCode.OK, PendingWithoutUrlJson));
+
+        var act = () => ChargeAddOnAsync(NewService(handler), "Nutritionist");
+
+        await act.Should().ThrowAsync<BillingProviderException>();
+        var updates = handler.Requests.Where(r => r.Method == HttpMethod.Post).ToList();
+        updates.Should().HaveCount(4);
+        updates[3].Form.Should().Equal([new KeyValuePair<string, string>(RoleKey, string.Empty)], "an empty value removes the key");
     }
 
     [Fact]

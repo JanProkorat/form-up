@@ -575,7 +575,8 @@ public sealed class StripeSubscriptionService(
         string currency,
         BillingInterval interval,
         string idempotencyKey,
-        CancellationToken ct) =>
+        CancellationToken ct,
+        string? roleToAdd = null) =>
         RunAsync("charge-second-role", async stripe =>
         {
             var subscription = await GetSubscriptionAsync(stripe, subscriptionId, ct, expandLatestInvoice: true);
@@ -605,9 +606,18 @@ public sealed class StripeSubscriptionService(
                     "Second-role charge was not completed: {StatusCode} {ErrorCode}", ex.HttpStatusCode, ex.StripeError?.Code);
 
                 return IsAuthenticationRequired(ex)
-                    ? await HoldAddOnAsPendingAsync(stripe, subscriptionId, addOnPriceId, idempotencyKey, ct)
+                    ? await HoldAddOnAsPendingAsync(stripe, subscriptionId, addOnPriceId, idempotencyKey, roleToAdd, ct)
                     : AddOnChargeResult.Declined;
             }
+        });
+
+    /// <inheritdoc />
+    public Task ClearPendingSecondRoleAsync(string subscriptionId, CancellationToken ct) =>
+        RunAsync("clear-pending-second-role", async stripe =>
+        {
+            await ClearPendingSecondRoleAsync(stripe, subscriptionId, ct);
+
+            return true;
         });
 
     /// <summary>
@@ -628,19 +638,56 @@ public sealed class StripeSubscriptionService(
     }
 
     private async Task<AddOnChargeResult> HoldAddOnAsPendingAsync(
-        StripeClient stripe, string subscriptionId, string addOnPriceId, string idempotencyKey, CancellationToken ct)
+        StripeClient stripe, string subscriptionId, string addOnPriceId, string idempotencyKey, string? roleToAdd, CancellationToken ct)
     {
-        // The first attempt applied and charged nothing, so repeating it as a pending update invoices once.
-        var pending = await stripe.V1.Subscriptions.UpdateAsync(
-            subscriptionId,
-            StripeRequestBuilder.SecondRoleChargePending(addOnPriceId, settings),
-            new RequestOptions { IdempotencyKey = $"{idempotencyKey}-pending" },
-            ct);
+        // UNVERIFIED: metadata is not accepted inside a pending_if_incomplete update, so the role goes in a plain update first — https://docs.stripe.com/billing/subscriptions/pending-updates
+        if (roleToAdd is not null)
+        {
+            await stripe.V1.Subscriptions.UpdateAsync(
+                subscriptionId,
+                new SubscriptionUpdateOptions { Metadata = StripeRequestBuilder.PendingSecondRole(roleToAdd) },
+                cancellationToken: ct);
+        }
 
-        return pending.LatestInvoice?.HostedInvoiceUrl is { } url
-            ? AddOnChargeResult.AwaitingPayment(url)
-            : throw new BillingProviderException("The pending add-on has no hosted payment page.");
+        try
+        {
+            // The first attempt applied and charged nothing, so repeating it as a pending update invoices once.
+            var pending = await stripe.V1.Subscriptions.UpdateAsync(
+                subscriptionId,
+                StripeRequestBuilder.SecondRoleChargePending(addOnPriceId, settings),
+                new RequestOptions { IdempotencyKey = $"{idempotencyKey}-pending" },
+                ct);
+
+            return pending.LatestInvoice?.HostedInvoiceUrl is { } url
+                ? AddOnChargeResult.AwaitingPayment(url)
+                : throw new BillingProviderException("The pending add-on has no hosted payment page.");
+        }
+        catch (Exception holdFailure) when (roleToAdd is not null && holdFailure is not OperationCanceledException)
+        {
+            logger.LogWarning(holdFailure, "Holding the add-on of subscription {SubscriptionId} as pending failed", subscriptionId);
+            await TryClearPendingSecondRoleAsync(stripe, subscriptionId, ct);
+
+            throw;
+        }
     }
+
+    private async Task TryClearPendingSecondRoleAsync(StripeClient stripe, string subscriptionId, CancellationToken ct)
+    {
+        try
+        {
+            await ClearPendingSecondRoleAsync(stripe, subscriptionId, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Removing the remembered second role of subscription {SubscriptionId} failed", subscriptionId);
+        }
+    }
+
+    private static Task ClearPendingSecondRoleAsync(StripeClient stripe, string subscriptionId, CancellationToken ct) =>
+        stripe.V1.Subscriptions.UpdateAsync(
+            subscriptionId,
+            new SubscriptionUpdateOptions { Metadata = StripeRequestBuilder.ClearedPendingSecondRole() },
+            cancellationToken: ct);
 
     private static bool IsAuthenticationRequired(StripeException ex) =>
         IsCardError(ex) && ex.StripeError?.Code is "subscription_payment_intent_requires_action" or "authentication_required";

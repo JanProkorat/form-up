@@ -131,6 +131,7 @@ public class ConfirmSecondRoleAddOnEndpointTests(FitnessApiFactory factory) : ID
         var body = (await response.Content.ReadFromJsonAsync<ConfirmSecondRoleAddOnResponse>(Ct))!;
         body.PaysSecondRoleAddOn.Should().BeFalse();
         body.PaymentUrl.Should().Be("https://invoice.stripe.test/i/pay");
+        fake.Charges.Should().ContainSingle().Which.RoleToAdd.Should().Be("Trainer", "the nutritionist caller is buying the trainer role");
         var row = await BillingTestData.ReadRowAsync(factory, coach.ProfileId);
         row.PaysSecondRoleAddOn.Should().BeFalse("the webhook marks it paid after the coach pays");
         row.LastExternalEventAt.Should().BeCloseTo(lastEvent, TimeSpan.FromMilliseconds(1));

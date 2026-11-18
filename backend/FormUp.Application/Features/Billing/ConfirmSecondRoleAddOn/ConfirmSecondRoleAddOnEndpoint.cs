@@ -5,16 +5,18 @@ using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Extensions;
 using FormUp.Application.Domain.Interfaces;
+using FormUp.Application.Domain.Services;
 using FormUp.Application.Features.Billing.Shared;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Application.Infrastructure.Services.Billing;
+using Microsoft.EntityFrameworkCore;
 
 namespace FormUp.Application.Features.Billing.ConfirmSecondRoleAddOn;
 
 /// <summary>
 /// Charges the second-role add-on to the caller's own live subscription now. A declined card applies nothing and answers
-/// 402; a card that needs authentication answers 200 with Stripe's payment page. The role itself is added by the existing
-/// add-role endpoint.
+/// 402; a card that needs authentication answers 200 with Stripe's payment page. After a paid charge the client adds the
+/// role through the add-role endpoint; after a payment-page charge the Stripe webhook adds it.
 /// </summary>
 /// <param name="db">Application database context.</param>
 /// <param name="subscriptions">The payment provider seam.</param>
@@ -33,8 +35,10 @@ internal sealed class ConfirmSecondRoleAddOnEndpoint(
         {
             s.Summary = "Pay for the second role";
             s.Description = "Adds the second-role add-on to the caller's own live subscription and charges the prorated amount " +
-                            "immediately. Idempotent per attempt id. Does not create the role: the client then calls POST /users/me/roles. " +
-                            "A card that needs authentication leaves the add-on pending and returns paymentUrl, Stripe's payment page.";
+                            "immediately. Idempotent per attempt id. A paid charge (paysSecondRoleAddOn true) does not create the role: the client " +
+                            "then calls POST /users/me/roles. A card that needs authentication leaves the add-on pending and returns " +
+                            "paymentUrl, Stripe's payment page; the role is then added by the server once Stripe reports the payment, " +
+                            "so the client must not call POST /users/me/roles for it.";
             s.Response<ConfirmSecondRoleAddOnResponse>(StatusCodes.Status200OK,
                 "The add-on is paid, or awaits payment on paymentUrl (paysSecondRoleAddOn is false)");
             s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Invalid body");
@@ -93,7 +97,8 @@ internal sealed class ConfirmSecondRoleAddOnEndpoint(
                 subscription.SubscriptionPlanPrice.Currency,
                 subscription.SubscriptionPlan.BillingInterval,
                 $"formup-second-role-{subscription.ExternalSubscriptionId}-{req.AttemptId:N}",
-                ct);
+                ct,
+                await FindRoleToAddAsync(userId, ct));
         }
         catch (BillingProviderException)
         {
@@ -130,5 +135,21 @@ internal sealed class ConfirmSecondRoleAddOnEndpoint(
         await db.SaveChangesAsync(ct);
 
         await Send.OkAsync(new ConfirmSecondRoleAddOnResponse { PaysSecondRoleAddOn = true }, ct);
+    }
+
+    /// <summary>
+    /// The coach role the caller is buying: the one they do not hold, or hold only as removed. Null when both are active.
+    /// </summary>
+    private async Task<string?> FindRoleToAddAsync(Guid userId, CancellationToken ct)
+    {
+        var heldRoles = await db.UserRoles
+            .AsNoTracking()
+            .Where(userRole => userRole.UserId == userId)
+            .Join(db.Roles, userRole => userRole.RoleId, role => role.Id, (_, role) => role.Name!)
+            .ToListAsync(ct);
+        var profile = await db.ProfessionalProfiles.AsNoTracking().FirstOrDefaultAsync(p => p.UserId == userId, ct);
+        var activeRoles = CoachRoleStatus.ActiveRoles(heldRoles, profile);
+
+        return new[] { AppRoles.Trainer, AppRoles.Nutritionist }.FirstOrDefault(role => !activeRoles.Contains(role));
     }
 }

@@ -45,8 +45,21 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
         bool cancelAtPeriodEnd = false,
         string? userId = null,
         string[]? discountIds = null,
-        long? subscriptionCreated = null)
+        long? subscriptionCreated = null,
+        string? pendingRole = null)
     {
+        var metadata = new Dictionary<string, string>();
+
+        if (userId is not null)
+        {
+            metadata["userId"] = userId;
+        }
+
+        if (pendingRole is not null)
+        {
+            metadata["formup_pending_second_role"] = pendingRole;
+        }
+
         var periodEnd = DateTimeOffset.UtcNow.AddDays(20).ToUnixTimeSeconds();
         var periodStart = DateTimeOffset.UtcNow.AddDays(-10).ToUnixTimeSeconds();
         var items = new[] { scenario.PriceId }.Concat(extraPriceIds ?? []).Select((priceId, index) => new
@@ -67,7 +80,7 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
             Status = status,
             Created = subscriptionCreated ?? periodStart,
             CancelAtPeriodEnd = cancelAtPeriodEnd,
-            Metadata = userId is null ? new Dictionary<string, string>() : new Dictionary<string, string> { ["userId"] = userId },
+            Metadata = metadata,
             Items = new { Object = "list", Data = items, HasMore = false, Url = "/v1/subscription_items" },
             Discounts = discountIds ?? [],
         });
@@ -991,6 +1004,107 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
 
         (await ProcessedCountAsync(eventId)).Should().Be(1);
         (await ReadRowAsync(scenario.Coach.ProfileId)).PaysSecondRoleAddOn.Should().BeTrue();
+    }
+
+    private async Task<List<string>> RoleNamesAsync(Guid userId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        return await db.UserRoles
+            .Where(userRole => userRole.UserId == userId)
+            .Join(db.Roles, userRole => userRole.RoleId, role => role.Id, (_, role) => role.Name!)
+            .ToListAsync(Ct);
+    }
+
+    private const string AddOnPrice = "price_addon_unknown_to_plans";
+
+    [Fact]
+    public async Task Webhook_PendingUpdateAppliedWithTheAddOnAndARememberedRole_AddsTheRoleOnce_AndClearsTheMarker()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var scenario = await ArrangeOneRolePlanWithoutAddOnAsync();
+        var appliedId = NewEventId();
+
+        var first = await PostAsync(SubscriptionEvent(
+            appliedId, "customer.subscription.pending_update_applied", scenario, "active", extraPriceIds: [AddOnPrice], pendingRole: "Nutritionist"));
+        var again = await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.pending_update_applied", scenario, "active", extraPriceIds: [AddOnPrice], pendingRole: "Nutritionist"));
+
+        first.StatusCode.Should().Be(HttpStatusCode.OK);
+        again.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await RoleNamesAsync(scenario.Coach.UserId)).Should().BeEquivalentTo(["Trainer", "Nutritionist"], "a second applied event adds no duplicate");
+        (await ReadRowAsync(scenario.Coach.ProfileId)).PaysSecondRoleAddOn.Should().BeTrue();
+        fake.ClearedPendingSecondRoles.Should().Contain(scenario.SubscriptionId);
+        (await ProcessedCountAsync(appliedId)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Webhook_PendingUpdateAppliedWithTheAddOnAndARememberedRole_RestoresARemovedRole()
+    {
+        BillingTestData.ResetProvider(factory);
+        await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
+        var coach = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Nutritionist)
+            .WithRemovedCoachRoles(UserRole.Nutritionist).CreateAsync(Ct);
+        var plan = await PaidPlanBuilder.CreateAsync(factory, addOnMinorUnits: 9900, bothRolesIncluded: false);
+        var priceId = await SetStripePriceAsync(plan);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, plan);
+        var scenario = new Scenario(coach, plan, priceId, $"cus_{Guid.NewGuid():N}", $"sub_{Guid.NewGuid():N}");
+        await UpdateRowAsync(coach.ProfileId, row =>
+        {
+            row.ExternalCustomerId = scenario.CustomerId;
+            row.ExternalSubscriptionId = scenario.SubscriptionId;
+        });
+
+        await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.pending_update_applied", scenario, "active", extraPriceIds: [AddOnPrice], pendingRole: "Nutritionist"));
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var profile = await db.ProfessionalProfiles.AsNoTracking().SingleAsync(p => p.Id == coach.ProfileId, Ct);
+        profile.NutritionistRoleRemovedAt.Should().BeNull();
+        (await RoleNamesAsync(coach.UserId)).Should().BeEquivalentTo(["Trainer", "Nutritionist"]);
+    }
+
+    [Fact]
+    public async Task Webhook_PendingUpdateAppliedAfterTheUpdatedEvent_StillAddsTheRememberedRole()
+    {
+        BillingTestData.ResetProvider(factory);
+        var scenario = await ArrangeOneRolePlanWithoutAddOnAsync();
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        await PostAsync(SubscriptionEvent(NewEventId(), "customer.subscription.updated", scenario, "active", created: now, extraPriceIds: [AddOnPrice]));
+
+        await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.pending_update_applied", scenario, "active", created: now - 5, extraPriceIds: [AddOnPrice], pendingRole: "Nutritionist"));
+
+        (await RoleNamesAsync(scenario.Coach.UserId)).Should().Contain("Nutritionist");
+    }
+
+    [Fact]
+    public async Task Webhook_PendingUpdateAppliedWithoutTheAddOnLine_AddsNoRole_ButClearsALeftoverMarker()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var scenario = await ArrangeOneRolePlanWithoutAddOnAsync();
+
+        await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.pending_update_applied", scenario, "active", pendingRole: "Nutritionist"));
+
+        (await RoleNamesAsync(scenario.Coach.UserId)).Should().BeEquivalentTo(["Trainer"], "a plan upgrade must not buy a role");
+        fake.ClearedPendingSecondRoles.Should().Contain(scenario.SubscriptionId);
+    }
+
+    [Fact]
+    public async Task Webhook_PendingUpdateExpiredWithARememberedRole_AddsNoRole_AndClearsTheMarker()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var scenario = await ArrangeOneRolePlanWithoutAddOnAsync();
+
+        var response = await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.pending_update_expired", scenario, "active", pendingRole: "Nutritionist"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await RoleNamesAsync(scenario.Coach.UserId)).Should().BeEquivalentTo(["Trainer"]);
+        fake.ClearedPendingSecondRoles.Should().ContainSingle().Which.Should().Be(scenario.SubscriptionId);
     }
 
     [Fact]
