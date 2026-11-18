@@ -31,6 +31,8 @@ public class WalkSeedRunnerTests(WalkSeedFixture fixture)
     [Theory]
     [InlineData("Production", WalkSeedFixture.TestKey)]
     [InlineData("Staging", WalkSeedFixture.TestKey)]
+    [InlineData("Development.Local", WalkSeedFixture.TestKey)]
+    [InlineData("", WalkSeedFixture.TestKey)]
     [InlineData("Development", null)]
     [InlineData("Development", "")]
     [InlineData("Development", "sk_live_notarealkey")]
@@ -50,6 +52,14 @@ public class WalkSeedRunnerTests(WalkSeedFixture fixture)
         Directory.Exists(outputRoot).Should().BeFalse();
         gateway.CallCount.Should().Be(0);
         (await fixture.CountWalkUsersAsync()).Should().Be(usersBefore);
+    }
+
+    [Theory]
+    [InlineData("Development")]
+    [InlineData("Local")]
+    public void Check_AllowedEnvironmentWithTestKey_Passes(string environmentName)
+    {
+        WalkSeedGuard.Check(environmentName, WalkSeedFixture.TestKey).Should().BeNull();
     }
 
     [Fact]
