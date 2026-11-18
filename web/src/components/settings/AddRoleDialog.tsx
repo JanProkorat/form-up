@@ -17,7 +17,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Skeleton } from '@/components/ui/skeleton';
 import {
   useCoachPlans,
   useConfirmSecondRole,
@@ -131,7 +130,9 @@ export default function AddRoleDialog({ role, onClose, onPaid, adding }: Props) 
         </DialogHeader>
 
         {previewQuery.isPending && open ? (
-          <Skeleton className="h-40 w-full rounded-xl" />
+          <div role="status" aria-label={t('common.loading')} className="flex h-40 w-full items-center justify-center">
+            <Loader2 className="size-6 animate-spin text-muted-foreground" aria-hidden="true" />
+          </div>
         ) : loadFailed ? (
           <p role="alert" className="text-body text-error">
             {billingErrorMessage(previewQuery.error, 'subscription.billing.errors.preview')}
@@ -200,7 +201,6 @@ export default function AddRoleDialog({ role, onClose, onPaid, adding }: Props) 
               message={t('subscription.billing.addRole.paymentNotice')}
               paymentUrl={paymentUrl}
               onOpen={openPayment}
-              onDismiss={onClose}
             />
           )}
         </PaymentNoticeReveal>
