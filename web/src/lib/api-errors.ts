@@ -214,6 +214,6 @@ export function showError(messageKey: string) {
 /**
  * Shows a success toast.
  */
-export function showSuccess(messageKey: string) {
-  useToastStore.getState().addToast(i18n.t(messageKey), 'success');
+export function showSuccess(messageKey: string, params?: Record<string, string | number>) {
+  useToastStore.getState().addToast(i18n.t(messageKey, params), 'success');
 }

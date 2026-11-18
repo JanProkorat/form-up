@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
-import { TriangleAlert } from 'lucide-react';
+import { Loader2, TriangleAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
@@ -117,6 +117,7 @@ function ReasonForm({
           className={destructive ? 'bg-error text-primary-foreground hover:bg-error/90' : undefined}
           disabled={isSubmitting}
         >
+          {isSubmitting && <Loader2 className="animate-spin" aria-hidden="true" />}
           {confirmLabel}
         </Button>
       </div>

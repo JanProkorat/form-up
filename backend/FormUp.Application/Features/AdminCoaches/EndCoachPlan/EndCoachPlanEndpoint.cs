@@ -182,6 +182,10 @@ internal sealed class EndCoachPlanEndpoint(
             CoachId = req.CoachId,
             PlanCode = planCode,
             WasGivenFree = wasGivenFree,
+            RefundedMinorUnits = refund.RefundedMinorUnits > 0 && refund.Currency is not null
+                ? refund.RefundedMinorUnits
+                : null,
+            RefundCurrency = refund.RefundedMinorUnits > 0 ? refund.Currency?.ToUpperInvariant() : null,
         }, ct);
     }
 

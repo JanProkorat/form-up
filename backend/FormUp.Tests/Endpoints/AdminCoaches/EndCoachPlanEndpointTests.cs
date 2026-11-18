@@ -302,6 +302,31 @@ public class EndCoachPlanEndpointTests(FitnessApiFactory factory) : IDisposable
         subscription!.EndedAt.Should().NotBeNull().And.BeOnOrBefore(DateTimeOffset.UtcNow);
     }
 
+    [Theory]
+    [InlineData(8000L, "czk", 8000L, "CZK")]
+    [InlineData(1250L, "eur", 1250L, "EUR")]
+    [InlineData(0L, null, null, null)]
+    public async Task End_LiveStripeSubscription_ReturnsTheRefundOrNullFields(
+        long refundedMinorUnits, string? stripeCurrency, long? expectedAmount, string? expectedCurrency)
+    {
+        var fake = Billing.BillingTestData.ResetProvider(factory);
+        fake.CancelNowResult = refundedMinorUnits == 0
+            ? CancelRefundResult.None
+            : new CancelRefundResult(refundedMinorUnits, stripeCurrency);
+        await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (plan, _) = await Billing.BillingTestData.StripePlanAsync(factory);
+        await Billing.BillingTestData.SubscribeLiveAsync(factory, coach, plan);
+
+        var response = await EndAsync(admin, coach.UserId);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = (await response.Content.ReadFromJsonAsync<EndCoachPlanResponse>(JsonOptions, Ct))!;
+        body.RefundedMinorUnits.Should().Be(expectedAmount);
+        body.RefundCurrency.Should().Be(expectedCurrency);
+    }
+
     [Fact]
     public async Task End_WhenTheDeletedWebhookLandsDuringTheStripeCancel_StillEndsInTheFreeState()
     {

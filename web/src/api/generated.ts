@@ -35368,6 +35368,10 @@ export interface GiveCoachPlanFreeResponse {
     givenFreeAt?: string;
     /** When the gift ends; null means it has no end. */
     freeUntil?: string | undefined;
+    /** Amount refunded to the card in the smallest currency unit; null when nothing was refunded. */
+    refundedMinorUnits?: number | undefined;
+    /** Upper-case ISO 4217 currency of the refund; null when nothing was refunded. */
+    refundCurrency?: string | undefined;
 }
 
 /** Request for giving a coach a paid plan for free. */
@@ -35474,6 +35478,10 @@ export interface EndCoachPlanResponse {
     planCode?: string;
     /** True when the ended plan was a gift rather than a paid plan. */
     wasGivenFree?: boolean;
+    /** Amount refunded to the card in the smallest currency unit; null when nothing was refunded. */
+    refundedMinorUnits?: number | undefined;
+    /** Upper-case ISO 4217 currency of the refund; null when nothing was refunded. */
+    refundCurrency?: string | undefined;
 }
 
 /** Request for ending a coach's paid or given plan now. */

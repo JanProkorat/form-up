@@ -6859,6 +6859,7 @@
         "noEnd": "Ohne Enddatum",
         "button": "Plan ändern",
         "success": "Der Plan wurde geändert.",
+        "successRefund": "Der Plan wurde geändert. Erstattet: {{amount}}.",
         "error": "Der Plan konnte nicht geändert werden."
       },
       "promotion": {
@@ -6887,6 +6888,7 @@
         "button": "Plan beenden",
         "none": "Dieser Trainer hat keinen bezahlten oder geschenkten Plan, der beendet werden könnte.",
         "success": "Der Plan wurde beendet.",
+        "successRefund": "Der Plan wurde beendet. Erstattet: {{amount}}.",
         "error": "Der Plan konnte nicht beendet werden.",
         "refundNotice": "Das bezahlte Stripe-Abonnement des Trainers wird jetzt gekündigt, und die ungenutzten Tage werden auf die Karte zurückerstattet.",
         "dialogTitle": "Plan jetzt beenden?",
