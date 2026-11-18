@@ -170,6 +170,44 @@ public class GiveCoachPlanFreeEndpointTests(FitnessApiFactory factory) : IDispos
         values.RootElement.GetProperty("refundedMinorUnits").GetInt64().Should().Be(12300);
     }
 
+    [Theory]
+    [InlineData("czk", "CZK")]
+    [InlineData("eur", "EUR")]
+    public async Task Give_WhenStripeRefunds_ReturnsTheAmountAndUpperCasedCurrency(string stripeCurrency, string expected)
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        fake.CancelNowResult = new CancelRefundResult(65673, stripeCurrency);
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var plan = await PaidPlanBuilder.CreateAsync(factory);
+        await SubscribeWithStripeAsync(coach, plan);
+
+        var response = await admin.Http.PostAsJsonAsync($"/admin/coaches/{coach.UserId}/give-free", Body(plan, null), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = (await response.Content.ReadFromJsonAsync<GiveCoachPlanFreeResponse>(Ct))!;
+        body.RefundedMinorUnits.Should().Be(65673);
+        body.RefundCurrency.Should().Be(expected);
+    }
+
+    [Fact]
+    public async Task Give_WhenNothingIsRefunded_ReturnsNullRefundFields()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        fake.CancelNowResult = CancelRefundResult.None;
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var plan = await PaidPlanBuilder.CreateAsync(factory);
+        await SubscribeWithStripeAsync(coach, plan);
+
+        var response = await admin.Http.PostAsJsonAsync($"/admin/coaches/{coach.UserId}/give-free", Body(plan, null), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = (await response.Content.ReadFromJsonAsync<GiveCoachPlanFreeResponse>(Ct))!;
+        body.RefundedMinorUnits.Should().BeNull();
+        body.RefundCurrency.Should().BeNull();
+    }
+
     [Fact]
     public async Task Give_WhenTheDeletedWebhookLandsDuringTheStripeCancel_StillEndsActiveOnTheGivenPlan()
     {
