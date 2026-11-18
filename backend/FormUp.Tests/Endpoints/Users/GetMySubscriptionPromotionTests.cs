@@ -133,6 +133,26 @@ public class GetMySubscriptionPromotionTests(FitnessApiFactory factory) : IDispo
     }
 
     [Fact]
+    public async Task Get_PlanSetByFormUp_ZeroesEveryPriceLineAndTheDiscount()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var plan = await PaidPlanBuilder.CreateAsync(factory, priceMinorUnits: 29900, addOnMinorUnits: 9900, bothRolesIncluded: false);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(
+            factory, coach, plan, paysSecondRoleAddOn: true,
+            givenFreeAt: DateTimeOffset.UtcNow.AddDays(-1), freeUntil: DateTimeOffset.UtcNow.AddDays(10));
+        var promotion = await PromotionBuilder.CreateAsync(factory, [plan], PromotionMode.Automatic, p => p.Value = 30);
+        await SetCurrentPromotionAsync(coach.ProfileId, promotion.Id, null);
+
+        var response = await GetAsync(coach);
+
+        response.IsSetByFormUp.Should().BeTrue();
+        response.PriceLines.Select(line => line.Kind).Should().Equal(SubscriptionPriceLineKind.Plan, SubscriptionPriceLineKind.SecondRoleAddOn);
+        response.PriceLines.Should().OnlyContain(line => line.AmountMinorUnits == 0);
+        response.Promotion!.DiscountMinorUnits.Should().Be(0);
+        response.Promotion.DiscountedTotalMinorUnits.Should().Be(0);
+    }
+
+    [Fact]
     public async Task Get_ForeverPromotion_HasNoEnd()
     {
         var coach = await TestActors.Trainer(factory).CreateAsync(Ct);

@@ -5,9 +5,12 @@ using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Interfaces;
 using FormUp.Application.Features.Billing.PreviewSecondRoleAddOn;
+using FormUp.Application.Infrastructure.Data;
 using FormUp.Application.Infrastructure.Services.Billing;
 using FormUp.Tests.Builders;
 using FormUp.Tests.Infrastructure;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace FormUp.Tests.Endpoints.Billing;
 
@@ -19,7 +22,11 @@ namespace FormUp.Tests.Endpoints.Billing;
 public class PreviewSecondRoleAddOnEndpointTests(FitnessApiFactory factory) : IDisposable
 {
     /// <summary>Leaves the shared fake provider in its defaults for the next test class.</summary>
-    public void Dispose() => BillingTestData.ResetProvider(factory);
+    public void Dispose()
+    {
+        BillingTestData.ResetProvider(factory);
+        PromotionBuilder.ClearAsync(factory).GetAwaiter().GetResult();
+    }
 
     private const string Route = "/billing/second-role/preview";
 
@@ -58,6 +65,106 @@ public class PreviewSecondRoleAddOnEndpointTests(FitnessApiFactory factory) : ID
         fake.Previews.Should().ContainSingle().Which.Should().BeEquivalentTo(
             new FakeSubscriptionService.AddOnCall(subscriptionId, plan, 9900, null));
         (await BillingTestData.ReadRowAsync(factory, coach.ProfileId)).PaysSecondRoleAddOn.Should().BeFalse("a preview changes nothing");
+    }
+
+    private async Task<PreviewSecondRoleAddOnResponse> PreviewWithPromotionAsync(
+        Action<FormUp.Application.Domain.Entities.Promotion> configure, bool coversPlan, DateTimeOffset? endsAt)
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        fake.PreviewResult = new SecondRoleAddOnPreview(4840, 840, "CZK");
+        var coach = await TestActors.Nutritionist(factory).CreateAsync(Ct);
+        var (plan, _) = await BillingTestData.StripePlanAsync(factory, price: 29900, addOn: 9900, bothRolesIncluded: false);
+        await BillingTestData.SubscribeLiveAsync(factory, coach, plan);
+        var promotion = await PromotionBuilder.CreateAsync(
+            factory, [coversPlan ? plan : "another-plan"], PromotionMode.Automatic, configure);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+            await db.CoachSubscriptions
+                .Where(cs => cs.ProfessionalProfileId == coach.ProfileId)
+                .ExecuteUpdateAsync(
+                    setters => setters
+                        .SetProperty(cs => cs.CurrentPromotionId, promotion.Id)
+                        .SetProperty(cs => cs.CurrentPromotionEndsAt, endsAt),
+                    Ct);
+        }
+
+        var response = await coach.Http.PostAsJsonAsync(Route, new { }, Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        return (await response.Content.ReadFromJsonAsync<PreviewSecondRoleAddOnResponse>(BillingTestData.Json, Ct))!;
+    }
+
+    [Fact]
+    public async Task Preview_PercentPromotionCoveringThePlan_ReturnsDiscountedLinesTotalAndEnd()
+    {
+        var endsAt = DateTimeOffset.UtcNow.AddMonths(2);
+
+        var body = await PreviewWithPromotionAsync(p => p.Value = 30, coversPlan: true, endsAt);
+
+        body.PlanAmountMinorUnits.Should().Be(29900);
+        body.DiscountedPlanAmountMinorUnits.Should().Be(20930);
+        body.DiscountedAddOnAmountMinorUnits.Should().Be(6930);
+        body.DiscountedNewTotalMinorUnits.Should().Be(27860);
+        body.PromotionEndsAt.Should().BeCloseTo(endsAt, TimeSpan.FromSeconds(1));
+    }
+
+    [Fact]
+    public async Task Preview_FixedPromotionLargerThanThePlan_TakesTheRemainderOffTheAddOn()
+    {
+        var body = await PreviewWithPromotionAsync(
+            p =>
+            {
+                p.Kind = PromotionKind.FixedAmount;
+                p.Value = 30000;
+                p.Currency = "CZK";
+            },
+            coversPlan: true,
+            endsAt: null);
+
+        body.DiscountedPlanAmountMinorUnits.Should().Be(0);
+        body.DiscountedAddOnAmountMinorUnits.Should().Be(9800);
+        body.DiscountedNewTotalMinorUnits.Should().Be(9800);
+    }
+
+    [Fact]
+    public async Task Preview_PromotionNotCoveringThePlan_LeavesTheDiscountedFieldsNull()
+    {
+        var body = await PreviewWithPromotionAsync(p => p.Value = 30, coversPlan: false, endsAt: DateTimeOffset.UtcNow.AddMonths(1));
+
+        body.DiscountedPlanAmountMinorUnits.Should().BeNull();
+        body.DiscountedAddOnAmountMinorUnits.Should().BeNull();
+        body.DiscountedNewTotalMinorUnits.Should().BeNull();
+        body.PromotionEndsAt.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Preview_FixedPromotionInAnotherCurrency_LeavesTheDiscountedFieldsNull()
+    {
+        var body = await PreviewWithPromotionAsync(
+            p =>
+            {
+                p.Kind = PromotionKind.FixedAmount;
+                p.Value = 5000;
+                p.Currency = "EUR";
+            },
+            coversPlan: true,
+            endsAt: null);
+
+        body.DiscountedPlanAmountMinorUnits.Should().BeNull();
+        body.DiscountedNewTotalMinorUnits.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Preview_ForeverPromotion_ReturnsDiscountedAmountsWithoutAnEnd()
+    {
+        var body = await PreviewWithPromotionAsync(p => p.Value = 30, coversPlan: true, endsAt: null);
+
+        body.DiscountedNewTotalMinorUnits.Should().Be(27860);
+        body.PromotionEndsAt.Should().BeNull();
     }
 
     [Fact]

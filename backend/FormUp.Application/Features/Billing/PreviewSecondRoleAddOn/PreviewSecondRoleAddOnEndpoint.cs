@@ -4,9 +4,11 @@ using FormUp.Application.Domain.Authorization;
 using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Interfaces;
+using FormUp.Application.Domain.Services;
 using FormUp.Application.Features.Billing.Shared;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Application.Infrastructure.Services.Billing;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 namespace FormUp.Application.Features.Billing.PreviewSecondRoleAddOn;
@@ -89,12 +91,28 @@ internal sealed class PreviewSecondRoleAddOnEndpoint(
             return;
         }
 
+        var promotion = await db.CoachSubscriptions
+            .AsNoTracking()
+            .Where(cs => cs.Id == subscription.Id && cs.CurrentPromotionId != null)
+            .Select(cs => new { Promotion = cs.CurrentPromotion!, cs.CurrentPromotionEndsAt })
+            .FirstOrDefaultAsync(ct);
+
+        var applies = promotion is not null
+                      && PromotionPricing.Applies(promotion.Promotion, subscription.SubscriptionPlan.Code, price.Currency);
+        var discounted = applies
+            ? PromotionPricing.Apply(promotion!.Promotion, price.PriceMinorUnits, addOnAmount)
+            : ((long Plan, long? AddOn)?)null;
+
         await Send.OkAsync(
             new PreviewSecondRoleAddOnResponse
             {
                 PlanAmountMinorUnits = price.PriceMinorUnits,
                 AddOnAmountMinorUnits = addOnAmount,
                 NewTotalMinorUnits = price.PriceMinorUnits + addOnAmount,
+                DiscountedPlanAmountMinorUnits = discounted?.Plan,
+                DiscountedAddOnAmountMinorUnits = discounted?.AddOn,
+                DiscountedNewTotalMinorUnits = discounted is { } pair ? pair.Plan + (pair.AddOn ?? 0) : null,
+                PromotionEndsAt = applies ? promotion!.CurrentPromotionEndsAt : null,
                 BillingInterval = subscription.SubscriptionPlan.BillingInterval,
                 Currency = price.Currency,
                 TodayAmountMinorUnits = preview.TodayAmountMinorUnits,
