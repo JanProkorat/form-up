@@ -6824,8 +6824,7 @@
       "keepNoEnd": "stays, now with no end date.",
       "keepPickDate": "stays. Pick the new end date.",
       "confirmKeep": "Change end date",
-      "refundNotice": "{{name}}'s paid Stripe subscription is cancelled now and the unused days are refunded to their card.",
-      "addOnNotice": "The second-role add-on ends with it. {{name}} keeps only the roles the chosen plan covers; a plan with both roles keeps both."
+      "refundNotice": "{{name}}'s paid Stripe subscription is cancelled now and the unused days are refunded to their card."
     },
     "drawer": {
       "titleFallback": "Coach",
