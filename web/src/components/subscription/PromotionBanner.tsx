@@ -51,8 +51,8 @@ export default function PromotionBanner({ promotion, plans, variant }: Props) {
       : null;
 
   return (
-    <div role="status" className="flex items-start gap-3 rounded-xl bg-success-soft px-4 py-3.5">
-      <Tag className="mt-0.5 size-4.5 shrink-0 text-success-ink" aria-hidden="true" />
+    <div role="status" className="flex items-start gap-3 rounded-xl bg-training-soft px-4 py-3.5">
+      <Tag className="mt-0.5 size-4.5 shrink-0 text-training-ink" aria-hidden="true" />
       <div className="flex flex-col gap-0.5">
         <span className="text-copy font-semibold text-ink">{title}</span>
         <span className="text-body text-ink-2">{claimBy ? `${scope} ${claimBy}` : scope}</span>

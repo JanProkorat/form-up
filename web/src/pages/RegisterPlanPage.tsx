@@ -124,11 +124,7 @@ export default function RegisterPlanPage() {
           </div>
         </div>
 
-        {promotion && (
-          <div className="mx-auto w-full max-w-140">
-            <PromotionBanner promotion={promotion} plans={plans} variant="register" />
-          </div>
-        )}
+        {promotion && <PromotionBanner promotion={promotion} plans={plans} variant="register" />}
 
         <p className="text-center text-body text-muted-foreground">{t('subscription.billing.codeAtCheckout')}</p>
 

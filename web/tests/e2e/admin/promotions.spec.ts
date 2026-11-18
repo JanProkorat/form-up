@@ -342,15 +342,15 @@ trainerTest.describe('admin promotions', () => {
     await page.goto('/admin/promotions');
     await expect(page.getByRole('row', { name: /Launch offer/ })).toBeVisible();
 
-    await page.getByRole('button', { name: 'Scheduled' }).click();
+    await page.getByRole('tab', { name: 'Scheduled' }).click();
     await expect(page.getByRole('row', { name: /Black Friday/ })).toBeVisible();
     await expect(page.getByRole('row', { name: /Launch offer/ })).toHaveCount(0);
 
-    await page.getByRole('button', { name: 'Ended' }).click();
+    await page.getByRole('tab', { name: 'Ended' }).click();
     await expect(page.getByRole('row', { name: /Summer 2026/ })).toBeVisible();
     await expect(page.getByRole('row', { name: /Black Friday/ })).toHaveCount(0);
 
-    await page.getByRole('button', { name: 'All' }).click();
+    await page.getByRole('tab', { name: 'All' }).click();
     await expect(page.getByRole('row', { name: /Launch offer/ })).toBeVisible();
 
     expect(harness.listStatuses).toEqual(expect.arrayContaining(['All', 'Scheduled', 'Ended']));
@@ -364,6 +364,7 @@ trainerTest.describe('admin promotions', () => {
     const drawer = page.getByRole('dialog');
     await expect(drawer.getByRole('heading', { name: 'New promotion' })).toBeVisible();
     await expect(drawer.getByLabel('Code', { exact: true })).toHaveCount(0);
+    await expect(drawer.getByText('Covers the whole bill, second role included')).toBeVisible();
 
     await drawer.getByLabel('Name', { exact: true }).fill('Spring offer');
     await drawer.getByLabel('Value', { exact: true }).fill('25');

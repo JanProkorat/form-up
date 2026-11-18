@@ -129,26 +129,26 @@ function DrawerBody({ onSubmit, isSaving, onClose }: BodyProps) {
           >
             {(fieldControl) => <Input {...register('name')} autoComplete="off" className="h-10" {...fieldControl} />}
           </Field>
-          <div className="flex flex-col gap-1.5">
-            <span className="text-body font-medium text-ink-2">{t('adminPromotions.drawer.type')}</span>
-            <div role="group" aria-label={t('adminPromotions.drawer.type')} className="grid grid-cols-2 gap-2">
-              <ChoiceButton
-                selected={kind === 'percent'}
-                icon={null}
-                onClick={() => setValue('kind', 'percent', { shouldDirty: true })}
-              >
-                {t('adminPromotions.drawer.typePercent')}
-              </ChoiceButton>
-              <ChoiceButton
-                selected={kind === 'fixed'}
-                icon={null}
-                onClick={() => setValue('kind', 'fixed', { shouldDirty: true })}
-              >
-                {t('adminPromotions.drawer.typeFixed')}
-              </ChoiceButton>
-            </div>
-          </div>
           <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <span className="text-body font-medium text-ink-2">{t('adminPromotions.drawer.type')}</span>
+              <div role="group" aria-label={t('adminPromotions.drawer.type')} className="grid grid-cols-2 gap-2">
+                <ChoiceButton
+                  selected={kind === 'percent'}
+                  icon={null}
+                  onClick={() => setValue('kind', 'percent', { shouldDirty: true })}
+                >
+                  {t('adminPromotions.drawer.typePercent')}
+                </ChoiceButton>
+                <ChoiceButton
+                  selected={kind === 'fixed'}
+                  icon={null}
+                  onClick={() => setValue('kind', 'fixed', { shouldDirty: true })}
+                >
+                  {t('adminPromotions.drawer.typeFixed')}
+                </ChoiceButton>
+              </div>
+            </div>
             <Field label={t('adminPromotions.drawer.value')} error={errors.value?.message}>
               {(fieldControl) => (
                 <UnitInput unit={kind === 'percent' ? '%' : 'CZK'}>
@@ -345,12 +345,11 @@ function DrawerBody({ onSubmit, isSaving, onClose }: BodyProps) {
               )}
             />
           </div>
-          <p className="text-meta text-muted-foreground">{t('adminPromotions.drawer.coversBill')}</p>
         </section>
       </div>
 
       <SheetFooter className="flex-row items-center gap-2 border-t border-border px-6 py-4">
-        <span className="mr-auto" />
+        <span className="mr-auto text-meta text-muted-foreground">{t('adminPromotions.drawer.coversBill')}</span>
         <Button type="button" variant="outline" size="lg" onClick={onClose}>
           {t('common.cancel')}
         </Button>
