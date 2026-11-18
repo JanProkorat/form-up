@@ -98,12 +98,14 @@ function toastTitle(page: Page, text: string | RegExp) {
 const PENDING_VISIBLE_ADVANCE_MS = RETURN_WAIT_MS + 1_000;
 const PENDING_VISIBLE_STEP_MS = 1_000;
 
+type ToastCount = (text: string) => Promise<number>;
+
 /**
  * Counts every toast title that was ever added to the page, whether or not it is still there. The faked clock
  * auto-closes a toast long before a spec finishes advancing, so "announced once" cannot be read off the DOM later.
  * The script runs again on every document, so after a reload the count starts from zero.
  */
-async function trackToastTitles(page: Page): Promise<(text: string) => Promise<number>> {
+async function trackToastTitles(page: Page): Promise<ToastCount> {
   await page.addInitScript(() => {
     const seen = new Set<Element>();
     const texts: string[] = [];
@@ -144,11 +146,15 @@ async function reachSlowPhase(page: Page): Promise<void> {
   await advance(page, FAST_PHASE_MS, SLOW_STEP_MS);
 }
 
-/** Steps the clock in `step` sized ticks until the plan announcement is on screen. */
-async function advanceUntilActivated(page: Page, step: number): Promise<void> {
+/**
+ * Steps the clock in `step` sized ticks until the plan announcement has been shown. The toast closes after 5 s of the
+ * faked clock, which a 30 s step outruns when the poll answer lands early in it, so the recorded toast titles are
+ * read instead of the DOM.
+ */
+async function advanceUntilActivated(page: Page, step: number, toastsShown: ToastCount): Promise<void> {
   await expect(async () => {
     await advance(page, step, step);
-    await expect(toastTitle(page, ACTIVATED)).toBeVisible({ timeout: 500 });
+    expect(await toastsShown(ACTIVATED)).toBeGreaterThan(0);
   }).toPass();
 }
 
@@ -161,7 +167,7 @@ trainerTest.describe('checkout return with a late webhook', () => {
     await expect(toastTitle(page, ACTIVATED)).toHaveCount(0);
 
     mock.setPaid(true);
-    await advanceUntilActivated(page, POLL_STEP_MS);
+    await advanceUntilActivated(page, POLL_STEP_MS, toastsShown);
 
     // The watch ends with the announcement: no further reads on the polling cadence.
     await page.waitForLoadState('networkidle');
@@ -175,6 +181,7 @@ trainerTest.describe('checkout return with a late webhook', () => {
 
   trainerTest('announces the plan when it lands in the slow phase', async ({ page }) => {
     const mock = await mockSubscription(page, false);
+    const toastsShown = await trackToastTitles(page);
     await page.clock.install();
     await startWatch(page);
     await reachSlowPhase(page);
@@ -186,8 +193,9 @@ trainerTest.describe('checkout return with a late webhook', () => {
     expect(mock.reads() - readsBefore).toBeLessThanOrEqual(5);
 
     mock.setPaid(true);
-    await advanceUntilActivated(page, SLOW_STEP_MS);
+    await advanceUntilActivated(page, SLOW_STEP_MS, toastsShown);
     expect(await storedWatch(page)).toBeNull();
+    expect(await toastsShown(ACTIVATED)).toBe(1);
   });
 
   trainerTest('announces the plan once when it lands after a reload', async ({ page }) => {
@@ -207,7 +215,7 @@ trainerTest.describe('checkout return with a late webhook', () => {
     await expect(toastTitle(page, ACTIVATED)).toHaveCount(0);
 
     mock.setPaid(true);
-    await advanceUntilActivated(page, SLOW_STEP_MS);
+    await advanceUntilActivated(page, SLOW_STEP_MS, toastsShown);
 
     await page.waitForLoadState('networkidle');
     const readsAfterLanding = mock.reads();
@@ -255,6 +263,7 @@ trainerTest.describe('checkout return with a late webhook', () => {
 
   trainerTest('keeps watching through a failing subscription read', async ({ page }) => {
     const mock = await mockSubscription(page, false);
+    const toastsShown = await trackToastTitles(page);
     await page.clock.install();
     await startWatch(page);
 
@@ -265,7 +274,7 @@ trainerTest.describe('checkout return with a late webhook', () => {
 
     mock.setStatus(200);
     mock.setPaid(true);
-    await advanceUntilActivated(page, POLL_STEP_MS);
+    await advanceUntilActivated(page, POLL_STEP_MS, toastsShown);
   });
 
   trainerTest('clears the watch when the session cannot be refreshed', async ({ page }) => {
