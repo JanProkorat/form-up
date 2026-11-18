@@ -140,7 +140,16 @@ internal sealed class EndCoachPlanEndpoint(
             // Same end state as the deleted webhook; the event time lets a late older update be skipped as stale.
             subscription.ExternalSubscriptionId = null;
             subscription.NextPaymentAttemptAt = null;
-            subscription.LastExternalEventAt = new DateTimeOffset(now.Ticks - (now.Ticks % TimeSpan.TicksPerSecond), now.Offset);
+
+            // Read after the cancel and never behind the event time the deleted webhook may have stored meanwhile.
+            var storedEventAt = await db.CoachSubscriptions
+                .AsNoTracking()
+                .Where(cs => cs.Id == subscription.Id)
+                .Select(cs => cs.LastExternalEventAt)
+                .FirstAsync(ct);
+            var afterCancel = timeProvider.GetUtcNow();
+            var eventAt = new DateTimeOffset(afterCancel.Ticks - (afterCancel.Ticks % TimeSpan.TicksPerSecond), afterCancel.Offset);
+            subscription.LastExternalEventAt = storedEventAt is { } stored && stored > eventAt ? stored : eventAt;
         }
 
         await CoachLapseLinkReset.ResetAsync(db, profileId.Value, ct);

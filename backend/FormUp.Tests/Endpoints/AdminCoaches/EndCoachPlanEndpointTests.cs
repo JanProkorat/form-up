@@ -303,6 +303,46 @@ public class EndCoachPlanEndpointTests(FitnessApiFactory factory) : IDisposable
     }
 
     [Fact]
+    public async Task End_WhenTheDeletedWebhookLandsDuringTheStripeCancel_StillEndsInTheFreeState()
+    {
+        var fake = Billing.BillingTestData.ResetProvider(factory);
+        await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (plan, _) = await Billing.BillingTestData.StripePlanAsync(factory);
+        await Billing.BillingTestData.SubscribeLiveAsync(factory, coach, plan, paysSecondRoleAddOn: true);
+        var webhookAt = DateTimeOffset.UtcNow.AddSeconds(5);
+        webhookAt = new DateTimeOffset(webhookAt.Ticks - (webhookAt.Ticks % TimeSpan.TicksPerSecond), webhookAt.Offset);
+
+        // The deleted webhook for a row with no gift in force commits while the endpoint waits for Stripe.
+        fake.CancelNowHook = _ => Billing.BillingTestData.UpdateRowAsync(factory, coach.ProfileId, row =>
+        {
+            row.Status = SubscriptionStatus.Canceled;
+            row.ExternalSubscriptionId = null;
+            row.NextPaymentAttemptAt = null;
+            row.CancelAtPeriodEnd = false;
+            row.RenewalCancelledByAdminAt = null;
+            row.PendingSubscriptionPlanPriceId = null;
+            row.SecondRoleAddOnEndsAt = null;
+            row.LastExternalEventAt = webhookAt;
+        });
+        var before = DateTimeOffset.UtcNow;
+
+        var response = await EndAsync(admin, coach.UserId);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var row = await Billing.BillingTestData.ReadRowAsync(factory, coach.ProfileId);
+        row.Status.Should().Be(SubscriptionStatus.Canceled);
+        row.GivenFreeAt.Should().BeNull();
+        row.FreeUntil.Should().BeNull();
+        row.CancelAtPeriodEnd.Should().BeFalse();
+        row.ExternalSubscriptionId.Should().BeNull();
+        row.PaysSecondRoleAddOn.Should().BeFalse();
+        row.CurrentPeriodEndsAt.Should().BeOnOrAfter(before.AddSeconds(-1)).And.BeOnOrBefore(DateTimeOffset.UtcNow);
+        row.LastExternalEventAt.Should().BeOnOrAfter(webhookAt, "the event time never moves backwards");
+    }
+
+    [Fact]
     public async Task End_LiveStripeSubscription_WhenTheProviderFails_Returns502AndChangesNothing()
     {
         var fake = Billing.BillingTestData.ResetProvider(factory);
