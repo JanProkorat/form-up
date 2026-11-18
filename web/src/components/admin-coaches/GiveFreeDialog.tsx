@@ -103,7 +103,7 @@ function GiveFreeForm({
   })();
 
   return (
-    <form onSubmit={submit} noValidate className="flex flex-col">
+    <form onSubmit={submit} noValidate className="flex min-w-0 flex-col">
       <div className="flex items-center gap-3.5 px-6 pt-5.5 pr-14">
         <DialogIconTile tone="orange">
           <Repeat />
@@ -131,7 +131,8 @@ function GiveFreeForm({
           <div className="flex gap-2.5 rounded-xl bg-training-soft px-3.5 py-3 text-training-ink">
             <TriangleAlert aria-hidden="true" className="mt-px size-4 shrink-0" />
             <p className="text-body leading-normal">
-              {t('adminCoaches.giveFree.refundNotice', { name: coachFirstName })}            </p>
+              {t('adminCoaches.giveFree.refundNotice', { name: coachFirstName })}
+            </p>
           </div>
         )}
 

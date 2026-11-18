@@ -93,7 +93,7 @@ export default function PlanCard({
     <article
       aria-label={name}
       onClick={selectFromCard}
-      className={`flex flex-col gap-4 rounded-2xl bg-card p-5 shadow-panel ${heavy ? 'border-2 border-ink' : 'border border-line'} ${selection ? 'cursor-pointer' : ''}`}
+      className={`@container flex flex-col gap-4 rounded-2xl bg-card p-5 shadow-panel ${heavy ? 'border-2 border-ink' : 'border border-line'} ${selection ? 'cursor-pointer' : ''}`}
     >
       <div className="flex items-center gap-2">
         <h2 className="text-card-title font-semibold text-ink">{name}</h2>
@@ -108,15 +108,18 @@ export default function PlanCard({
           className={`col-start-1 row-start-1 flex flex-col gap-1 ${priceText ? 'invisible' : ''}`}
           aria-hidden={priceText ? true : undefined}
         >
-          <div className="flex items-baseline gap-2">
-            <span className="text-stat font-semibold text-ink">{price}</span>
+          {/* One line: each part keeps its width, the gap is tight and the struck price drops a type step on a narrow card. */}
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-stat font-semibold whitespace-nowrap text-ink">{price}</span>
             {originalPrice && !priceText && (
-              <s className="text-copy text-muted-foreground">
+              <s className="text-copy whitespace-nowrap text-muted-foreground @max-[15rem]:text-body">
                 <span className="sr-only">{t('subscription.promotion.card.regularPrice')} </span>
                 {originalPrice}
               </s>
             )}
-            <span className="text-body text-muted-foreground">{t(`subscription.planChoice.card.per.${interval}`)}</span>
+            <span className="text-body whitespace-nowrap text-muted-foreground">
+              {t(`subscription.planChoice.card.per.${interval}`)}
+            </span>
           </div>
           {/* Two lines are reserved for the note so the buttons line up across the cards. */}
           <span className="min-h-9 text-meta text-muted-foreground">{priceNote}</span>
