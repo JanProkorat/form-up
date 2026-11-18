@@ -382,6 +382,7 @@
         "planLine": "Tarif {{plan}}",
         "addOnLine": "Druhá role · {{role}}",
         "total": "Nová celková cena",
+        "discountEnds": "Sleva platí do {{date}}, poté {{amount}} {{per}}.",
         "today_one": "Dnes zaplatíte {{amount}} za {{count}} den do {{date}}.",
         "today_few": "Dnes zaplatíte {{amount}} za {{count}} dny do {{date}}.",
         "today_many": "Dnes zaplatíte {{amount}} za {{count}} dne do {{date}}.",

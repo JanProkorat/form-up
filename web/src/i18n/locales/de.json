@@ -378,6 +378,7 @@
         "planLine": "Tarif {{plan}}",
         "addOnLine": "Zweite Rolle · {{role}}",
         "total": "Neuer Gesamtpreis",
+        "discountEnds": "Ihr Rabatt gilt bis {{date}}, danach {{amount}} {{per}}.",
         "today_one": "Heute zahlen Sie {{amount}} für den {{count}} Tag bis zum {{date}}.",
         "today_other": "Heute zahlen Sie {{amount}} für die {{count}} Tage bis zum {{date}}.",
         "todayNoDate": "Heute zahlen Sie {{amount}} für den Rest dieses Abrechnungszeitraums.",
