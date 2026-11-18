@@ -739,6 +739,23 @@ coaches to the states above.
 
 ---
 
+## Walk accounts on the dev stack (#2228)
+
+Not part of the compose harness: the harness has no Stripe keys. For Claude's
+browser walk of a test guide, `dotnet run -- --walk-seed` (in
+`backend/FormUp.Application`, with the dev launch profile) creates or resets six
+signed-in accounts on the **dev** database and the Stripe sandbox: `admin`,
+`free`, `pro`, `pro3ds`, `given` and `manyclients`. It refuses unless the
+environment is `Development` or `Local` and the Stripe key is a `sk_test_` key.
+
+It writes the gitignored `.claude/private/walk-accounts.json` (generated
+passwords) and one Playwright session file per account in
+`.qa-artifacts/walk-sessions/<key>.json`, so the walk never logs in through the
+form. Sessions hold a refresh token that rotates on use; if one stops working,
+re-run the command. Full procedure: `.claude/docs/guide-walk.md` §2.
+
+---
+
 ## CI
 
 The `e2e.yml` GitHub Actions workflow sources `JWT_SECRET` and `QA_SEED_PASSWORD` from repository-level secrets (`secrets.JWT_SECRET`, `secrets.QA_SEED_PASSWORD`) and writes them into `.env.test` before `npm run e2e:up`. Configure these secrets at `Settings → Secrets and variables → Actions` before the first CI run, or the workflow will fail at the env-file write step with a clear error message.
