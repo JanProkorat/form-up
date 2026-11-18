@@ -108,9 +108,9 @@ export default function PlanCard({
           className={`col-start-1 row-start-1 flex flex-col gap-1 ${priceText ? 'invisible' : ''}`}
           aria-hidden={priceText ? true : undefined}
         >
-          {/* One line: each part keeps its width, the gap is tight and the struck price drops a type step on a narrow card. */}
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-stat font-semibold whitespace-nowrap text-ink">{price}</span>
+          {/* One line: each part keeps its width, the gap is tight, price and struck price drop a type step on a narrow card, and the row wraps only as a last resort. */}
+          <div className="flex flex-wrap items-baseline gap-x-1.5">
+            <span className="text-stat font-semibold whitespace-nowrap text-ink @max-[15rem]:text-auth-title">{price}</span>
             {originalPrice && !priceText && (
               <s className="text-copy whitespace-nowrap text-muted-foreground @max-[15rem]:text-body">
                 <span className="sr-only">{t('subscription.promotion.card.regularPrice')} </span>

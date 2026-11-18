@@ -245,12 +245,17 @@ export default function PlanBillingCard() {
               <div className="flex flex-col gap-2.5">
                 <h3 className="text-copy font-semibold text-ink">{t('subscription.plan.bill.title')}</h3>
                 <div className="flex flex-col gap-2.5 rounded-xl bg-sunken p-4">
-                  {setByFormUp ? (
-                    <span className="text-copy text-ink-2">{t('subscription.plan.setByFormUp')}</span>
-                  ) : lines.length === 0 ? (
-                    <span className="text-copy text-ink-2">{t('subscription.plan.bill.free')}</span>
+                  {lines.length === 0 ? (
+                    <span className="text-copy text-ink-2">
+                      {setByFormUp ? t('subscription.plan.setByFormUp') : t('subscription.plan.bill.free')}
+                    </span>
                   ) : (
                     <>
+                      {setByFormUp && (
+                        <span className="text-meta font-semibold text-muted-foreground">
+                          {t('subscription.plan.setByFormUp')}
+                        </span>
+                      )}
                       {lines.map((line) => (
                         <div key={line.kind} className="flex items-baseline gap-3 text-copy text-ink-2">
                           <span>
