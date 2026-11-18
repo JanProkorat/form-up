@@ -85,6 +85,9 @@ public sealed class FakeSubscriptionService : ISubscriptionService
     /// <summary>What <see cref="ISubscriptionService.CancelNowAsync"/> returns.</summary>
     public CancelRefundResult CancelNowResult { get; set; } = CancelRefundResult.None;
 
+    /// <summary>Runs inside <see cref="ISubscriptionService.CancelNowAsync"/> before it returns, to stage what Stripe's webhook does meanwhile. Cleared by <see cref="Reset"/>.</summary>
+    public Func<string, Task>? CancelNowHook { get; set; }
+
     /// <summary>Recorded <see cref="ISubscriptionService.ResumeRenewalAsync"/> calls (subscription ids).</summary>
     public List<string> ResumedRenewals { get; } = [];
 
@@ -185,6 +188,7 @@ public sealed class FakeSubscriptionService : ISubscriptionService
             CancelledAtPeriodEnd.Clear();
             CancelledNow.Clear();
             CancelNowResult = CancelRefundResult.None;
+            CancelNowHook = null;
             ResumedRenewals.Clear();
             FailResumeRenewal = false;
             PreviewResult = new SecondRoleAddOnPreview(12300, 0, "CZK");
@@ -469,16 +473,24 @@ public sealed class FakeSubscriptionService : ISubscriptionService
     }
 
     /// <inheritdoc />
-    public Task<CancelRefundResult> CancelNowAsync(string subscriptionId, CancellationToken ct)
+    public async Task<CancelRefundResult> CancelNowAsync(string subscriptionId, CancellationToken ct)
     {
         ThrowIfFailing();
+
+        CancelRefundResult result;
 
         lock (gate)
         {
             CancelledNow.Add(subscriptionId);
-
-            return Task.FromResult(CancelNowResult);
+            result = CancelNowResult;
         }
+
+        if (CancelNowHook is { } hook)
+        {
+            await hook(subscriptionId);
+        }
+
+        return result;
     }
 
     /// <inheritdoc />

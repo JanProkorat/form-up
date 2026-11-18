@@ -171,6 +171,43 @@ public class GiveCoachPlanFreeEndpointTests(FitnessApiFactory factory) : IDispos
     }
 
     [Fact]
+    public async Task Give_WhenTheDeletedWebhookLandsDuringTheStripeCancel_StillEndsActiveOnTheGivenPlan()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var plan = await PaidPlanBuilder.CreateAsync(factory);
+        var gift = await PaidPlanBuilder.CreateAsync(factory, priceMinorUnits: 50000);
+        await SubscribeWithStripeAsync(coach, plan, paysAddOn: true);
+        var webhookAt = DateTimeOffset.UtcNow.AddSeconds(5);
+        webhookAt = new DateTimeOffset(webhookAt.Ticks - (webhookAt.Ticks % TimeSpan.TicksPerSecond), webhookAt.Offset);
+
+        // The deleted webhook for a row with no gift in force commits while the endpoint waits for Stripe.
+        fake.CancelNowHook = _ => BillingTestData.UpdateRowAsync(factory, coach.ProfileId, row =>
+        {
+            row.Status = SubscriptionStatus.Canceled;
+            row.ExternalSubscriptionId = null;
+            row.NextPaymentAttemptAt = null;
+            row.CancelAtPeriodEnd = false;
+            row.RenewalCancelledByAdminAt = null;
+            row.PendingSubscriptionPlanPriceId = null;
+            row.SecondRoleAddOnEndsAt = null;
+            row.LastExternalEventAt = webhookAt;
+        });
+
+        var response = await admin.Http.PostAsJsonAsync($"/admin/coaches/{coach.UserId}/give-free", Body(gift, null), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var row = await ReadSubscriptionAsync(coach.ProfileId);
+        row.Status.Should().Be(SubscriptionStatus.Active, "the given plan must win over the webhook's Canceled");
+        row.SubscriptionPlan.Code.Should().Be(gift);
+        row.GivenFreeAt.Should().NotBeNull();
+        row.ExternalSubscriptionId.Should().BeNull();
+        row.PaysSecondRoleAddOn.Should().BeFalse();
+        row.LastExternalEventAt.Should().BeOnOrAfter(webhookAt, "the event time never moves backwards");
+    }
+
+    [Fact]
     public async Task Give_WhenStripeFails_Returns502_AndSavesNothing()
     {
         var fake = BillingTestData.ResetProvider(factory);

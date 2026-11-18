@@ -98,6 +98,29 @@ internal sealed class GiveCoachPlanFreeEndpoint(
         }
 
         var now = timeProvider.GetUtcNow();
+
+        // Stripe first, read untracked: the cancel takes seconds and Stripe's deleted webhook can rewrite the row meanwhile.
+        // The row is tracked only afterwards, so every assignment below is compared with what is stored now, not with a
+        // value loaded before the cancel. A refusal leaves the row untouched.
+        var beforeCancel = await db.CoachSubscriptions
+            .AsNoTracking()
+            .FirstOrDefaultAsync(cs => cs.ProfessionalProfileId == profileId, ct);
+        var cancelsAtProvider = beforeCancel?.HasCancellableProviderSubscription ?? false;
+        var endedAddOn = beforeCancel?.PaysSecondRoleAddOn ?? false;
+        var refund = CancelRefundResult.None;
+
+        if (cancelsAtProvider)
+        {
+            var cancelled = await TryCancelAtProviderAsync(beforeCancel!.ExternalSubscriptionId!, ct);
+
+            if (cancelled is null)
+            {
+                return;
+            }
+
+            refund = cancelled;
+        }
+
         var subscription = await db.CoachSubscriptions
             .FirstOrDefaultAsync(cs => cs.ProfessionalProfileId == profileId, ct);
 
@@ -111,24 +134,6 @@ internal sealed class GiveCoachPlanFreeEndpoint(
             };
             db.CoachSubscriptions.Add(subscription);
         }
-
-        // Stripe first: a refusal leaves the row untouched, so a later save cannot persist half a change.
-        var cancelsAtProvider = subscription.HasCancellableProviderSubscription;
-        var refund = CancelRefundResult.None;
-
-        if (cancelsAtProvider)
-        {
-            var cancelled = await TryCancelAtProviderAsync(subscription.ExternalSubscriptionId!, ct);
-
-            if (cancelled is null)
-            {
-                return;
-            }
-
-            refund = cancelled;
-        }
-
-        var endedAddOn = subscription.PaysSecondRoleAddOn;
 
         subscription.SubscriptionPlanId = openPrice.SubscriptionPlanId;
         subscription.SubscriptionPlanPriceId = openPrice.Id;
@@ -152,7 +157,11 @@ internal sealed class GiveCoachPlanFreeEndpoint(
             subscription.RenewalCancelledByAdminAt = null;
             subscription.CurrentPromotionId = null;
             subscription.CurrentPromotionEndsAt = null;
-            subscription.LastExternalEventAt = new DateTimeOffset(now.Ticks - (now.Ticks % TimeSpan.TicksPerSecond), now.Offset);
+
+            // Read after the cancel and never behind the webhook's stored event time, so the stored time only moves forward.
+            var afterCancel = timeProvider.GetUtcNow();
+            var eventAt = new DateTimeOffset(afterCancel.Ticks - (afterCancel.Ticks % TimeSpan.TicksPerSecond), afterCancel.Offset);
+            subscription.LastExternalEventAt = subscription.LastExternalEventAt is { } stored && stored > eventAt ? stored : eventAt;
         }
 
         await CoachLapseLinkReset.ResetAsync(db, profileId.Value, ct);
