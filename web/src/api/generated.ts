@@ -28036,6 +28036,9 @@ export interface GetSubscriptionPlansResponse {
 export interface GetPublicSubscriptionPlansResponse {
     /** Offered plans, cheapest first. */
     plans?: PublicSubscriptionPlanDto[];
+    /** The active automatic promotion for a new coach, or null. Same for every caller; a plan it does not cover shows
+no discounted price. */
+    promotion?: PublicPromotionDto | undefined;
 }
 
 /** One offered plan as the public pricing page shows it. Carries no ids, no activity flag and no coach counts. */
@@ -28052,6 +28055,10 @@ export interface PublicSubscriptionPlanDto {
     priceMinorUnits?: number;
     /** Second-role add-on price; null when both roles are included. */
     secondRoleAddOnPriceMinorUnits?: number | undefined;
+    /** Display-only price after the promotion; null when no promotion covers this plan. */
+    discountedPriceMinorUnits?: number | undefined;
+    /** Display-only add-on price after the promotion; null when not covered or both roles are included. */
+    discountedSecondRoleAddOnPriceMinorUnits?: number | undefined;
     /** True when the plan covers both professional roles. */
     bothRolesIncluded?: boolean;
     /** ISO 4217 currency code. */
@@ -28088,6 +28095,26 @@ export interface PublicSubscriptionPlanDto {
     canUsePackages?: boolean;
     /** True for the single plan with the most live coaches; no plan is flagged on a tie. */
     isMostPopular?: boolean;
+}
+
+/** The automatic promotion shown on the public pricing page. Carries no code, usage, limit or Stripe data. */
+export interface PublicPromotionDto {
+    /** Promotion name. */
+    name?: string;
+    /** Percentage or fixed amount. */
+    kind?: PromotionKind;
+    /** Percent (1 to 100), or the amount in the smallest unit of Currency. */
+    value?: number;
+    /** ISO 4217 currency of a fixed amount; null for a percentage. */
+    currency?: string | undefined;
+    /** How long the discount lasts once claimed. */
+    duration?: PromotionDuration;
+    /** Months the discount lasts; set only for Months. */
+    durationMonths?: number | undefined;
+    /** Last moment the offer can be claimed; null for no end. */
+    claimUntil?: string | undefined;
+    /** Codes of the plans the promotion covers. */
+    planCodes?: string[];
 }
 
 /** Request model for deactivating a subscription tier. */

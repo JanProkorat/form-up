@@ -21,14 +21,26 @@ export function vatRatePercent(taxMode: BillingTaxMode | undefined): number | nu
   return rate > 0 ? rate : null;
 }
 
+/** The price fields of a plan, shared by the coach and the public plan payloads. */
+export type PlanPriceFields = Pick<
+  CoachPlanDto,
+  'priceMinorUnits' | 'bothRolesIncluded' | 'secondRoleAddOnPriceMinorUnits'
+>;
+
+/** The promotion fields of a plan, shared by the coach and the public plan payloads. */
+export type PlanDiscountFields = Pick<
+  CoachPlanDto,
+  'discountedPriceMinorUnits' | 'discountedSecondRoleAddOnPriceMinorUnits'
+>;
+
 /** True when the plan charges a separate add-on for the second role. */
-export function secondRoleAddOnOf(plan: CoachPlanDto): number | null {
+export function secondRoleAddOnOf(plan: PlanPriceFields): number | null {
   if (plan.bothRolesIncluded) return null;
   return plan.secondRoleAddOnPriceMinorUnits ?? null;
 }
 
 /** What the plan costs per interval for a coach with one role, or with both roles when `withSecondRole`. */
-export function planDisplayPrice(plan: CoachPlanDto, withSecondRole: boolean): number {
+export function planDisplayPrice(plan: PlanPriceFields, withSecondRole: boolean): number {
   const base = plan.priceMinorUnits ?? 0;
   const addOn = withSecondRole ? secondRoleAddOnOf(plan) : null;
   return base + (addOn ?? 0);
@@ -38,7 +50,7 @@ export function planDisplayPrice(plan: CoachPlanDto, withSecondRole: boolean): n
  * What the plan costs per interval after the automatic promotion, in the same shape as {@link planDisplayPrice},
  * or null when no promotion covers the plan. Display only: both parts come from the server.
  */
-export function planDiscountedPrice(plan: CoachPlanDto, withSecondRole: boolean): number | null {
+export function planDiscountedPrice(plan: PlanDiscountFields, withSecondRole: boolean): number | null {
   const base = plan.discountedPriceMinorUnits;
   if (base === undefined || base === null) return null;
   const addOn = withSecondRole ? (plan.discountedSecondRoleAddOnPriceMinorUnits ?? 0) : 0;
