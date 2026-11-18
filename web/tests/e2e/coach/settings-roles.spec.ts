@@ -108,7 +108,8 @@ trainerTest.describe('settings roles card, adding a second role', () => {
 
     const notice = page.getByTestId('upgrade-payment-notice');
     await expect(notice).toBeVisible();
-    const link = notice.getByRole('link', { name: 'Continue to payment' });
+    await expect(notice.getByRole('link')).toHaveCount(0);
+    const link = page.getByRole('dialog').getByRole('link', { name: 'Continue to payment' });
     await expect(link).toHaveAttribute('href', paymentUrl);
     await expect(link).toHaveAttribute('target', '_blank');
     expect(addRoleRequests).toHaveLength(0);

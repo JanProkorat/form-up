@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ChevronRight, Dumbbell, Info, Leaf, Loader2 } from 'lucide-react';
+import { ChevronRight, Dumbbell, ExternalLink, Info, Leaf, Loader2 } from 'lucide-react';
 import { BillingInterval } from '@/api/generated';
 import type { CoachRoleKey } from '@/components/settings/RemoveRoleDialog';
 import { billingErrorCode, billingErrorMessage } from '@/components/subscription/billingErrors';
@@ -201,6 +201,7 @@ export default function AddRoleDialog({ role, onClose, onPaid, adding }: Props) 
               message={t('subscription.billing.addRole.paymentNotice')}
               paymentUrl={paymentUrl}
               onOpen={openPayment}
+              hideAction
             />
           )}
         </PaymentNoticeReveal>
@@ -219,8 +220,15 @@ export default function AddRoleDialog({ role, onClose, onPaid, adding }: Props) 
             <Button type="button" size="lg" disabled={busy} onClick={onPaid}>
               {t('settings.roles.add')}
             </Button>
+          ) : paymentUrl ? (
+            <Button asChild size="lg" className="gap-2">
+              <a href={paymentUrl} target="_blank" rel="noopener noreferrer" onClick={openPayment}>
+                {t('subscription.billing.upgradePayment.open')}
+                <ExternalLink className="size-4" aria-hidden="true" />
+              </a>
+            </Button>
           ) : (
-            <Button type="button" size="lg" disabled={busy || !preview || loadFailed || paymentUrl !== null} onClick={pay}>
+            <Button type="button" size="lg" disabled={busy || !preview || loadFailed} onClick={pay}>
               {busy && <Loader2 className="animate-spin" aria-hidden="true" />}
               {preview
                 ? t('subscription.billing.addRole.confirm', { amount: money(preview.todayAmountMinorUnits) })
