@@ -2,6 +2,7 @@
  * Creates or reuses the coach's weekly check-in rule through the API and puts it back afterwards.
  * A coach may have one enabled check-in rule, so the fixture adopts an existing one (and restores its
  * stored body on teardown) and only creates a rule, and deletes it again, when none exists.
+ * A new rule uses a seeded form, never a temporary "E2E ..." form that another spec deletes mid-run.
  */
 import { request as apiRequest, type APIRequestContext } from '@playwright/test';
 
@@ -30,6 +31,7 @@ interface RuleDto {
 
 interface QuestionnaireSummary {
   publicId: string;
+  title: string;
   isActive: boolean;
 }
 
@@ -105,9 +107,9 @@ export async function ensureCheckInRule(baseURL: string, email = 'qa.trainer@for
 
     const formsResponse = await api.get('/trainer/questionnaires', { params: { type: 'CheckIn' } });
     const forms = ((await formsResponse.json()) as { questionnaires?: QuestionnaireSummary[] }).questionnaires ?? [];
-    const form = forms.find((candidate) => candidate.isActive);
+    const form = forms.find((candidate) => candidate.isActive && !candidate.title.startsWith('E2E '));
     if (!form) {
-      throw new Error('[check-in-rule] The QA trainer has no active check-in form.');
+      throw new Error('[check-in-rule] The QA trainer has no active non-E2E check-in form.');
     }
 
     const name = `E2E weekly check-in ${Date.now().toString(36)}`;
