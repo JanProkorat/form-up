@@ -14,7 +14,7 @@
   },
   {
     "group": "public-coach",
-    "args": "--project=public --project=coach --project=nutritionist-chat",
+    "args": "--project=public --project=coach --project=nutritionist-chat --project=admin",
     "after": "--project=nutritionist-tags --no-deps"
   }
 ]
