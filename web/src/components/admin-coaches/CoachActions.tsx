@@ -21,13 +21,22 @@ import {
   showError,
   showSuccess,
 } from '@/lib/api-errors';
+import { formatPlanMoney } from '@/components/admin-plans/planForm';
 import { cn } from '@/lib/utils';
 
 const ERROR_NO_ACTIVE_ROLE = 'NO_ACTIVE_COACH_ROLE';
 const ERROR_NO_PLAN_TO_END = 'NO_PLAN_TO_END';
 const ERROR_PROFESSIONAL_NOT_FOUND = 'PROFESSIONAL_NOT_FOUND';
 
-const errorCodeOf = (error: unknown): string | null => getRfc7807ErrorCode(error) ?? getErrorCode(error);
+/** The refunded amount of a response, or null when nothing was refunded. */
+function refundOf(result: unknown): { minorUnits: number; currency: string | undefined } | null {
+  if (typeof result !== 'object' || result === null) return null;
+  const { refundedMinorUnits, refundCurrency } = result as { refundedMinorUnits?: unknown; refundCurrency?: unknown };
+  if (typeof refundedMinorUnits !== 'number' || refundedMinorUnits <= 0) return null;
+  return { minorUnits: refundedMinorUnits, currency: typeof refundCurrency === 'string' ? refundCurrency : undefined };
+}
+
+const errorCodeOf =(error: unknown): string | null => getRfc7807ErrorCode(error) ?? getErrorCode(error);
 
 /** Reports a failed action. The shared apiErrors text for NO_ACTIVE_COACH_ROLE speaks to the coach, so the admin gets its own. */
 function reportFailure(error: unknown, fallbackKey: string, onGone: () => void) {
@@ -141,11 +150,24 @@ export default function CoachActions({ coach, coachId, plans, onGone }: Props) {
 
   const close = (name: DialogName) => (next: boolean) => setOpen(next ? name : null);
 
-  /** Runs a mutation, shows the matching toast and tells the dialog whether to close. */
-  const attempt = async (action: () => Promise<unknown>, successKey: string, errorKey: string): Promise<boolean> => {
+  /**
+   * Runs a mutation, shows the matching toast and tells the dialog whether to close.
+   * With a refund key, a response that carries a refund shows that toast (with the amount) instead.
+   */
+  const attempt = async (
+    action: () => Promise<unknown>,
+    successKey: string,
+    errorKey: string,
+    refundKey?: string,
+  ): Promise<boolean> => {
     try {
-      await action();
-      showSuccess(successKey);
+      const result = await action();
+      const refund = refundKey ? refundOf(result) : null;
+      if (refundKey && refund) {
+        showSuccess(refundKey, { amount: formatPlanMoney(refund.minorUnits, refund.currency, i18n.language) });
+      } else {
+        showSuccess(successKey);
+      }
       return true;
     } catch (error) {
       reportFailure(error, errorKey, onGone);
@@ -238,6 +260,7 @@ export default function CoachActions({ coach, coachId, plans, onGone }: Props) {
         coachFirstName={firstName}
         plans={plans}
         currentPlanCode={coach.plan?.code}
+        hasCancellableSubscription={coach.hasCancellableSubscription === true}
         run={({ planCode, freeUntil, reason }) =>
           attempt(
             () =>
@@ -248,6 +271,7 @@ export default function CoachActions({ coach, coachId, plans, onGone }: Props) {
               }),
             'adminCoaches.actions.giveFree.success',
             'adminCoaches.actions.giveFree.error',
+            'adminCoaches.actions.giveFree.successRefund',
           )
         }
       />
@@ -285,9 +309,12 @@ export default function CoachActions({ coach, coachId, plans, onGone }: Props) {
         title={t('adminCoaches.actions.endPlan.dialogTitle')}
         description={t('adminCoaches.actions.endPlan.dialogDescription', { name: firstName, plan: planLabel })}
         callout={
-          overFreeLimit
-            ? t('adminCoaches.actions.endPlan.callout', { name: firstName, count: used, max: freeMax })
-            : undefined
+          [
+            coach.hasCancellableSubscription === true ? t('adminCoaches.actions.endPlan.refundNotice') : '',
+            overFreeLimit ? t('adminCoaches.actions.endPlan.callout', { name: firstName, count: used, max: freeMax }) : '',
+          ]
+            .filter(Boolean)
+            .join(' ') || undefined
         }
         placeholder={t('adminCoaches.actions.endPlan.placeholder')}
         cancelLabel={t('adminCoaches.actions.endPlan.cancel')}
@@ -297,6 +324,7 @@ export default function CoachActions({ coach, coachId, plans, onGone }: Props) {
             () => endPlan.mutateAsync(reason),
             'adminCoaches.actions.endPlan.success',
             'adminCoaches.actions.endPlan.error',
+            'adminCoaches.actions.endPlan.successRefund',
           )
         }
       />

@@ -21,6 +21,8 @@ interface Props {
   sharedWithOtherRoleCount: number;
   pending: boolean;
   errorMessage: string | null;
+  /** When the second-role add-on is billed: when it stops and the new monthly payment; absent otherwise. */
+  billingNote?: string | null;
   onConfirm: () => void;
   onClose: () => void;
 }
@@ -49,6 +51,7 @@ export default function RemoveRoleDialog({
   sharedWithOtherRoleCount,
   pending,
   errorMessage,
+  billingNote,
   onConfirm,
   onClose,
 }: Props) {
@@ -104,6 +107,13 @@ export default function RemoveRoleDialog({
               <Info className="mt-px size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
               <p className="text-body leading-normal">{t('settings.roles.removeDialog.footnote')}</p>
             </div>
+
+            {billingNote && (
+              <div className="flex gap-2.5 rounded-xl bg-sunken px-3.5 py-3 text-ink-2">
+                <Info className="mt-px size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                <p className="text-body leading-normal">{billingNote}</p>
+              </div>
+            )}
 
             {errorMessage && (
               <p role="alert" className="text-body text-error">

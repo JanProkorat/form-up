@@ -1,4 +1,5 @@
 using FormUp.Application.Domain.Enums;
+using FormUp.Application.Infrastructure.Services.Billing;
 
 namespace FormUp.Application.Features.Users.GetMySubscription;
 
@@ -20,13 +21,25 @@ public class GetMySubscriptionResponse
     /// <summary>German plan name.</summary>
     public string NameDe { get; set; } = string.Empty;
 
-    /// <summary>Subscription status, or null when the coach has no subscription and is on Free by default.</summary>
+    /// <summary>When the provider retries a failed payment next; null unless the last payment failed.</summary>
+    public DateTimeOffset? NextPaymentAttemptAt { get; set; }
+
+    /// <summary>VAT handling, so the plan page knows whether to show a VAT line.</summary>
+    public BillingTaxMode TaxMode { get; set; }
+
+    /// <summary>True when the coach has a billing customer, so the billing portal can be opened.</summary>
+    public bool HasBillingAccount { get; set; }
+
+    /// <summary>
+    /// Subscription status, or null when the coach has no subscription and is on Free by default. Also null once a plan
+    /// has ended (<see cref="IsLapsed"/>).
+    /// </summary>
     public SubscriptionStatus? Status { get; set; }
 
-    /// <summary>When the current billing period ends, if known.</summary>
+    /// <summary>When the current billing period ends, if known. Null once a plan has ended; see <see cref="EndedAt"/>.</summary>
     public DateTimeOffset? CurrentPeriodEndsAt { get; set; }
 
-    /// <summary>True when the subscription will not renew.</summary>
+    /// <summary>True when the subscription will not renew. False once a plan has ended.</summary>
     public bool CancelAtPeriodEnd { get; set; }
 
     /// <summary>While now is before this instant the assigned plan's features apply whatever the status is.</summary>
@@ -37,7 +50,8 @@ public class GetMySubscriptionResponse
 
     /// <summary>
     /// True when the paid plan has lapsed (Canceled or Incomplete with no free-features deadline in force). The plan
-    /// fields then describe the Free plan and <see cref="ActiveClientCount"/> is the number of kept clients.
+    /// fields then describe the Free plan, <see cref="Status"/>, <see cref="CurrentPeriodEndsAt"/> and
+    /// <see cref="CancelAtPeriodEnd"/> are empty, and <see cref="ActiveClientCount"/> is the number of kept clients.
     /// </summary>
     public bool IsLapsed { get; set; }
 
@@ -97,6 +111,89 @@ public class GetMySubscriptionResponse
 
     /// <summary>The feature flags that currently apply.</summary>
     public SubscriptionFeaturesDto Features { get; set; } = new();
+
+    /// <summary>The promotion discounting the live subscription now; null when there is none.</summary>
+    public CurrentPromotionDto? Promotion { get; set; }
+
+    /// <summary>
+    /// The plan that replaces the current one at the end of the period: a scheduled downgrade, or Free when the
+    /// subscription is set to end. Null when nothing is scheduled.
+    /// </summary>
+    public ScheduledPlanDto? ScheduledPlan { get; set; }
+
+    /// <summary>
+    /// When the second-role add-on stops being billed, while its removal is scheduled (the coach removed a role); the
+    /// <see cref="PriceLines"/> keep the add-on line until then. Null when nothing is scheduled, the subscription is not
+    /// live or it is set to end anyway.
+    /// </summary>
+    public DateTimeOffset? SecondRoleAddOnEndsAt { get; set; }
+}
+
+/// <summary>
+/// The plan a coach's subscription moves to at the end of the current period.
+/// </summary>
+public class ScheduledPlanDto
+{
+    /// <summary>Code of the plan that starts next.</summary>
+    public string PlanCode { get; set; } = string.Empty;
+
+    /// <summary>Czech plan name.</summary>
+    public string NameCs { get; set; } = string.Empty;
+
+    /// <summary>English plan name.</summary>
+    public string NameEn { get; set; } = string.Empty;
+
+    /// <summary>German plan name.</summary>
+    public string NameDe { get; set; } = string.Empty;
+
+    /// <summary>When the plan starts: the end of the current period; null when unknown.</summary>
+    public DateTimeOffset? StartsAt { get; set; }
+
+    /// <summary>
+    /// True when the coach can cancel this change: a live provider subscription, no admin gift in force, no pending
+    /// coach-account disable and no renewal cancelled by Form Up.
+    /// </summary>
+    public bool Cancellable { get; set; }
+
+    /// <summary>Price lines of the plan that starts next: the plan, plus the second-role add-on when the coach would pay it.</summary>
+    public List<SubscriptionPriceLineDto> PriceLines { get; set; } = [];
+}
+
+/// <summary>
+/// The promotion discounting the coach's subscription.
+/// </summary>
+public class CurrentPromotionDto
+{
+    /// <summary>Promotion name.</summary>
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>Percentage or fixed amount.</summary>
+    public PromotionKind Kind { get; set; }
+
+    /// <summary>Percent (1 to 100), or the amount in the smallest unit of <see cref="Currency"/>.</summary>
+    public long Value { get; set; }
+
+    /// <summary>ISO 4217 currency of a fixed amount; null for a percentage.</summary>
+    public string? Currency { get; set; }
+
+    /// <summary>How long the discount lasts for this coach.</summary>
+    public PromotionDuration Duration { get; set; }
+
+    /// <summary>Months the discount lasts; set only for <see cref="PromotionDuration.Months"/>.</summary>
+    public int? DurationMonths { get; set; }
+
+    /// <summary>When the discount ends, as Stripe reports it; null for a forever discount.</summary>
+    public DateTimeOffset? EndsAt { get; set; }
+
+    /// <summary>
+    /// Display-only amount the promotion takes off one billing period: the plan line plus the add-on line where the coupon
+    /// covers it, in the currency of <see cref="GetMySubscriptionResponse.PriceLines"/>. Zero when the promotion does not
+    /// apply to the coach's plan. Stripe computes the real charge.
+    /// </summary>
+    public long DiscountMinorUnits { get; set; }
+
+    /// <summary>Display-only total of the price lines after <see cref="DiscountMinorUnits"/>.</summary>
+    public long DiscountedTotalMinorUnits { get; set; }
 }
 
 /// <summary>

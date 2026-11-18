@@ -252,6 +252,157 @@
   },
   "subscription": {
     "seePlans": "Tarife ansehen",
+    "promotion": {
+      "percentOff": "−{{value}} %",
+      "amountOff": "−{{amount}}",
+      "short": {
+        "firstMonth": "{{value}} im ersten Monat",
+        "months_one": "{{value}} für {{count}} Monat",
+        "months_other": "{{value}} für {{count}} Monate",
+        "forever": "{{value}} dauerhaft"
+      },
+      "banner": {
+        "firstMonth": "{{name}}: {{value}} im ersten Monat",
+        "months_one": "{{name}}: {{value}} im ersten {{count}} Monat",
+        "months_other": "{{name}}: {{value}} in den ersten {{count}} Monaten",
+        "forever": "{{name}}: {{value}} für die gesamte Laufzeit",
+        "allPlans": "Wird beim Bezahlen auf jeden kostenpflichtigen Tarif angewendet.",
+        "somePlans": "Wird beim Bezahlen auf {{plans}} angewendet.",
+        "claimBy": "Sichern Sie sich das Angebot bis {{date}}.",
+        "taken": "Bereits von den Preisen der kostenpflichtigen Tarife unten abgezogen.",
+        "takenSomePlans": "Bereits von den Preisen von {{plans}} unten abgezogen."
+      },
+      "card": {
+        "then": "{{short}}, danach {{price}}",
+        "regularPrice": "Regulärer Preis"
+      }
+    },
+    "billing": {
+      "vat": "Preise ohne MwSt., {{rate}} % MwSt. werden hinzugerechnet.",
+      "codeAtCheckout": "Sie haben einen Code? Geben Sie ihn beim Bezahlen ein.",
+      "select": {
+        "select": "{{plan}} auswählen",
+        "selected": "Ausgewählt",
+        "region": "Ausgewählter Tarif",
+        "planLine": "{{plan}} · {{price}} {{per}}",
+        "secondRoleLater": "zweite Rolle später +{{amount}}",
+        "hintFree": "Keine Karte nötig",
+        "hintStripeCheckout": "Sie zahlen auf der sicheren Seite von Stripe",
+        "hintStripePages": "Karte und Rechnungen auf den sicheren Seiten von Stripe",
+        "hintPeriodEnd": "Gilt ab dem Ende des bezahlten Monats",
+        "hintStartsOn": "{{plan}} beginnt am {{date}}. Bis dahin behalten Sie {{current}}.",
+        "hintSpanMonth": "für den Rest dieses Monats",
+        "hintSpanYear": "für den Rest dieses Jahres",
+        "hintUpgradeToday": "Heute etwa {{today}} {{span}}, danach {{next}} {{per}} ab {{date}}",
+        "hintUpgradeTodayNoDate": "Heute etwa {{today}} {{span}}, danach {{next}} {{per}}",
+        "hintPreviewLoading": "Heutige Zahlung wird berechnet…",
+        "hintPreviewError": "Die heutige Zahlung konnte nicht berechnet werden. Sie können die Änderung trotzdem bestätigen.",
+        "hintCancelsFree": "Ihr Wechsel zu {{free}} wird aufgehoben.",
+        "hintEndsFormUpPlan": "Ihr Tarif von Form Up endet und Sie zahlen {{plan}} ab heute.",
+        "continue": "Weiter zur Zahlung"
+      },
+      "picker": {
+        "title": "Wählen Sie Ihren Tarif",
+        "subtitle": "Ihre Kundinnen und Kunden nutzen die App immer kostenlos. Sie können jederzeit wechseln oder kündigen.",
+        "back": "Zurück zu den Einstellungen",
+        "rolesBoth": "Sie arbeiten als {{first}} und {{second}}. Die Preise unten enthalten Ihre zweite Rolle.",
+        "rolesOne": "Sie arbeiten als {{role}}.",
+        "breakdown": "{{plan}} {{base}} + zweite Rolle {{addOn}}",
+        "noCard": "Für immer, ohne Karte",
+        "providedByFormUpUntil": "Von Form Up bereitgestellt bis {{date}}",
+        "providedByFormUp": "Von Form Up bereitgestellt",
+        "yourPlan": "Ihr Tarif",
+        "switchTo": "Zu {{plan}} wechseln",
+        "switchesToFree": "Wechsel zu {{free}} am {{date}}",
+        "switchesToFreeNoDate": "Wechsel zu {{free}} zum Periodenende",
+        "switchesTo": "Wechsel zu {{plan}} am {{date}}",
+        "switchesToNoDate": "Wechsel zu {{plan}} zum Periodenende",
+        "footer": "Monatliche Abrechnung. Kartenzahlung, Rechnungen und Kündigung laufen auf den sicheren Seiten von Stripe. Ein Downgrade oder eine Kündigung gilt zum Ende des bezahlten Monats."
+      },
+      "register": {
+        "signedInAs": "Angemeldet als {{email}}",
+        "title": "Wählen Sie Ihren Tarif",
+        "subtitle": "Starten Sie kostenlos und wechseln Sie, wenn Sie wachsen. Ihre Kundinnen und Kunden nutzen die App immer kostenlos.",
+        "noCardBadge": "Ohne Karte",
+        "startFree": "Kostenlos starten",
+        "secondRoleLater": "Zweite Rolle später +{{amount}}",
+        "secondRoleFree": "Eine zweite Rolle können Sie jederzeit kostenlos hinzufügen",
+        "rolesBoth": "Sie haben sich als {{first}} und {{second}} registriert. Die Preise unten enthalten Ihre zweite Rolle.",
+        "secondRoleIncluded": "Zweite Rolle inklusive +{{amount}}",
+        "footer": "Bezahlte Tarife führen zur sicheren Zahlung bei Stripe, danach kehren Sie hierher zurück und richten Ihr Profil ein. Sie können Ihren Tarif jederzeit in den Einstellungen ändern oder kündigen."
+      },
+      "returning": {
+        "title": "Wir schließen ab",
+        "body": "Wir bestätigen Ihre Zahlung bei Stripe.",
+        "pending": "Ihre Zahlung ist eingegangen. Die Aktivierung Ihres Tarifs kann einige Minuten dauern, wir informieren Sie, sobald sie abgeschlossen ist.",
+        "activated": "Ihr Tarif {{plan}} ist jetzt aktiv."
+      },
+      "changed": {
+        "now": "Sie nutzen jetzt den Tarif {{plan}}.",
+        "atRenewal": "Ihr Tarif wechselt am {{date}} zu {{plan}}.",
+        "atRenewalNoDate": "Ihr Tarif wechselt bei der nächsten Verlängerung zu {{plan}}."
+      },
+      "upgradePayment": {
+        "text": "Ihre Karte benötigt für den Wechsel zum Tarif {{plan}} eine zusätzliche Bestätigung. Schließen Sie die Zahlung auf der sicheren Stripe-Seite ab. Bis zur Bestätigung bleiben Sie beim Tarif {{current}}.",
+        "open": "Weiter zur Zahlung",
+        "dismiss": "Schließen",
+        "notConfirmed": "Die Zahlung konnte nicht bestätigt werden, daher bleiben Sie beim Tarif {{plan}}."
+      },
+      "switchFree": {
+        "scheduled": "Ihr Tarif wechselt am {{date}} zu {{free}}.",
+        "scheduledNoDate": "Ihr Tarif wechselt zum Ende des bezahlten Zeitraums zu {{free}}."
+      },
+      "cancelChange": {
+        "keep": "{{plan}} behalten",
+        "hint": "Hebt den Wechsel zu {{target}} am {{date}} auf. Sie bleiben bei {{plan}}, jetzt wird nichts berechnet.",
+        "hintNoDate": "Hebt den Wechsel zu {{target}} auf. Sie bleiben bei {{plan}}, jetzt wird nichts berechnet.",
+        "toast": "Änderung zurückgenommen. Sie bleiben beim Tarif {{plan}}."
+      },
+      "code": {
+        "applied": "Code eingelöst."
+      },
+      "pastDue": {
+        "title": "Ihre letzte Zahlung ist nicht durchgegangen",
+        "body": "Wir versuchen es am {{retry}} erneut mit der Karte. Alles funktioniert bis zum {{until}}.",
+        "bodyUntil": "Alles funktioniert bis zum {{until}}. Aktualisieren Sie Ihre Karte, um Ihren Tarif zu behalten.",
+        "bodyRetry": "Wir versuchen es am {{retry}} erneut mit der Karte.",
+        "bodyNoDates": "Aktualisieren Sie Ihre Karte, um Ihren Tarif zu behalten.",
+        "updateCard": "Karte aktualisieren"
+      },
+      "addRole": {
+        "title": "Rolle {{role}} hinzufügen?",
+        "body": {
+          "trainer": "Sie erhalten Trainingspläne, Einheiten und Übungen. Ihre Kundinnen und Kunden können Sie als Trainer wählen.",
+          "nutritionist": "Sie erhalten Ernährungspläne, Rezepte und Zutaten. Ihre Kundinnen und Kunden können Sie als Ernährungsberater wählen."
+        },
+        "planLine": "Tarif {{plan}}",
+        "addOnLine": "Zweite Rolle · {{role}}",
+        "total": "Neuer Gesamtpreis",
+        "discountEnds": "Ihr Rabatt gilt bis {{date}}, danach {{amount}} {{per}}.",
+        "today_one": "Heute zahlen Sie {{amount}} für den {{count}} Tag bis zum {{date}}.",
+        "today_other": "Heute zahlen Sie {{amount}} für die {{count}} Tage bis zum {{date}}.",
+        "todayNoDate": "Heute zahlen Sie {{amount}} für den Rest dieses Abrechnungszeitraums.",
+        "taxIncluded": "Enthält {{tax}} MwSt.",
+        "studio": "{{plan}} enthält beide Rollen für {{price}}.",
+        "compare": "Tarife vergleichen",
+        "confirm": "Rolle hinzufügen · {{amount}} zahlen",
+        "alreadyPaid": "Die zweite Rolle ist bereits bezahlt, das Hinzufügen kostet heute nichts.",
+        "paymentNotice": "Ihre Bank muss diese Zahlung bestätigen. Schließen Sie sie auf der sicheren Stripe-Seite ab. Die Rolle wird erst nach der Bestätigung der Zahlung hinzugefügt.",
+        "roleAdded": "Die Zahlung ist bestätigt und die Rolle wurde hinzugefügt.",
+        "roleNotAppeared": "Die Zahlung ist bestätigt, aber die Rolle wird noch nicht angezeigt. Laden Sie die Seite neu oder melden Sie sich erneut an.",
+        "notConfirmed": "Die Zahlung konnte nicht bestätigt werden, daher wurde die Rolle nicht hinzugefügt."
+      },
+      "errors": {
+        "generic": "Etwas ist schiefgegangen. Bitte versuchen Sie es erneut.",
+        "cancelChange": "Die Änderung konnte nicht zurückgenommen werden. Bitte versuchen Sie es erneut.",
+        "changePlan": "Der Tarif konnte nicht geändert werden. Bitte versuchen Sie es erneut.",
+        "switchFree": "Der Wechsel zu Free konnte nicht vorgemerkt werden. Bitte versuchen Sie es erneut.",
+        "portal": "Die Zahlungsverwaltung konnte nicht geöffnet werden. Bitte versuchen Sie es erneut.",
+        "code": "Der Code konnte nicht eingelöst werden. Bitte versuchen Sie es erneut.",
+        "addRole": "Die Zahlung ist fehlgeschlagen, daher wurde die Rolle nicht hinzugefügt. Bitte versuchen Sie es erneut.",
+        "preview": "Der Preis für die zweite Rolle konnte nicht geladen werden. Bitte versuchen Sie es erneut."
+      }
+    },
     "clientsOfLimit": "{{count}} von {{limit}} Klienten",
     "status": {
       "Trialing": "Testphase",
@@ -459,6 +610,18 @@
       "loadError": "Ihr Tarif konnte nicht geladen werden. Bitte laden Sie die Seite neu.",
       "renews": "Monatlich · Verlängerung am {{date}}",
       "ends": "Endet am {{date}}",
+      "scheduled": {
+        "until": "Monatlich · {{plan}} bis {{date}}",
+        "begins": "{{plan}} beginnt am {{date}}",
+        "beginsPriced": "{{plan}} beginnt am {{date}} · {{price}}",
+        "secondRoleEnds": "Die zweite Rolle wird ab dem {{date}} nicht mehr berechnet. Neue monatliche Zahlung: {{amount}}.",
+        "cancel": "Änderung zurücknehmen",
+        "cancelDialog": {
+          "title": "Geplante Änderung zurücknehmen?",
+          "body": "Sie bleiben beim Tarif {{plan}}, der sich am {{date}} verlängert. Jetzt wird nichts berechnet.",
+          "bodyNoDate": "Sie bleiben beim Tarif {{plan}}, der sich verlängert. Jetzt wird nichts berechnet."
+        }
+      },
       "freeUntil": "Inklusive bis {{date}}",
       "setByFormUpUntil": "Bis {{date}} · Von Form Up gesetzt",
       "setByFormUp": "Von Form Up gesetzt",
@@ -472,7 +635,13 @@
         "secondRole": "Zweite Rolle",
         "total": "Gesamt",
         "perMonth": "{{amount}} / Monat",
-        "secondRoleUnavailable": "Eine zweite Berufsrolle ist in diesem Tarif nicht enthalten."
+        "afterOffer": "Ab {{date}}: {{amount}} / Monat.",
+        "offer": {
+          "months_one": "{{name}} {{value}} · noch {{left}} von {{count}} Monat",
+          "months_other": "{{name}} {{value}} · noch {{left}} von {{count}} Monaten",
+          "firstMonth": "{{name}} {{value}} · erster Monat",
+          "forever": "{{name}} {{value}}"
+        }
       },
       "clients": {
         "title": "Klienten",
@@ -496,7 +665,8 @@
       },
       "card": {
         "title": "Karte, Rechnungen und Kündigung",
-        "description": "Verfügbar, sobald die Tarifauswahl öffnet."
+        "description": "Karte aktualisieren, Rechnungen herunterladen, Rechnungsdaten ändern oder im sicheren Stripe-Portal kündigen.",
+        "descriptionFree": "Verfügbar, sobald Sie einen bezahlten Tarif haben."
       }
     }
   },
@@ -625,8 +795,11 @@
       "loadError": "Ihre Rollen konnten nicht geladen werden. Bitte laden Sie die Seite neu.",
       "onlyRoleNote": "Das ist Ihre einzige Rolle. Sie zu entfernen deaktiviert Ihr Coach-Konto, genau wie die Schaltfläche unten.",
       "noRolesNote": "Ihr Coach-Konto ist deaktiviert. Fügen Sie eine Rolle hinzu, um es zu reaktivieren.",
+      "secondRoleUnavailable": "Eine zweite Berufsrolle ist in Ihrem Tarif nicht enthalten. Wechseln Sie den Tarif, um sie hinzuzufügen.",
+      "secondRoleAfterChange": "Sie können eine zweite Rolle nach Ihrem Tarifwechsel am {{date}} hinzufügen.",
       "removeDialog": {
         "keep": "Rolle behalten",
+        "billing": "Die zweite Rolle wird ab dem {{date}} nicht mehr berechnet. Neue monatliche Zahlung: {{amount}}.",
         "footnote": "Die Rolle verschwindet sofort aus der Suche und von Ihrer Profilkarte. Fügen Sie sie jederzeit wieder hinzu, um erneut zu bearbeiten.",
         "notified_zero": "Kein Klient wird benachrichtigt",
         "notified_one": "{{count}} Klient wird benachrichtigt",
@@ -3511,6 +3684,39 @@
     "SUBSCRIPTION_NOT_LAPSED": "Ihr Tarif ist nicht abgelaufen, daher gibt es nichts auszuwählen.",
     "PLAN_CHOICE_REQUIRED": "Ihr kostenloser Tarif ist beendet. Wählen Sie einen Tarif, um fortzufahren.",
     "PLAN_CHOICE_NOT_REQUIRED": "Sie haben bereits einen Tarif gewählt.",
+    "PLAN_NOT_PURCHASABLE": "Dieser Tarif kann derzeit nicht online gekauft werden.",
+    "BILLING_NO_SUBSCRIPTION": "Sie haben noch kein aktives bezahltes Abonnement.",
+    "BILLING_ALREADY_SUBSCRIBED": "Sie haben bereits ein bezahltes Abonnement. Nutzen Sie stattdessen Tarif ändern.",
+    "BILLING_GIFT_IN_FORCE": "Form Up hat Ihren aktuellen Tarif festgelegt, daher kann er hier erst nach seinem Ende geändert werden.",
+    "BILLING_RENEWAL_CANCELLED_BY_ADMIN": "Form Up hat die Verlängerung Ihres Tarifs beendet. Kontaktieren Sie uns, wenn Sie das ändern möchten.",
+    "BILLING_ACCOUNT_DISABLING": "Ihr Coach-Konto wird deaktiviert. Behalten Sie es zuerst.",
+    "BILLING_NOTHING_SCHEDULED": "Es ist keine Änderung geplant.",
+    "BILLING_PLAN_UNCHANGED": "Sie haben diesen Tarif bereits.",
+    "BILLING_CANCELLATION_PENDING": "Ihr Tarif endet bereits zum Ende des bezahlten Zeitraums.",
+    "BILLING_PLAN_CHANGE_PENDING": "Eine Tarifänderung ist bereits vorgemerkt. Versuchen Sie es erneut, sobald sie gilt.",
+    "PROMOTION_CODE_INVALID": "Dieser Code kann nicht verwendet werden.",
+    "PROMOTION_CODE_NOT_FOUND": "Diesen Code kennen wir nicht. Prüfen Sie ihn und versuchen Sie es erneut.",
+    "PROMOTION_CODE_NOT_STARTED": "Dieses Angebot hat noch nicht begonnen.",
+    "PROMOTION_CODE_PLAN_NOT_ELIGIBLE": "Dieser Code gilt nicht für Ihren Tarif.",
+    "PROMOTION_CODE_USED_UP": "Dieser Code ist aufgebraucht.",
+    "PROMOTION_CODE_NEW_COACHES_ONLY": "Dieser Code gilt nur für neue Trainer.",
+    "PROMOTION_CODE_ALREADY_USED": "Sie haben diesen Code bereits verwendet.",
+    "PROMOTION_CODE_TAKEN": "Diesen Code verwendet bereits eine andere Aktion, die noch nicht beendet ist.",
+    "PROMOTION_ALREADY_ENDED": "Diese Aktion ist bereits beendet.",
+    "PROMOTION_VALUE_INVALID": "Prüfen Sie den Wert der Aktion.",
+    "PROMOTION_MODE_INVALID": "Prüfen Sie den Code: Bei einer Aktion mit Code ist er Pflicht, bei einer automatischen Aktion nicht erlaubt.",
+    "PROMOTION_MONTHS_INVALID": "Geben Sie eine Monatszahl von 2 bis 36 ein.",
+    "PROMOTION_WINDOW_INVALID": "Das Einlösefenster muss nach seinem Beginn und in der Zukunft enden.",
+    "PROMOTION_PLANS_INVALID": "Wählen Sie mindestens einen kostenpflichtigen Tarif.",
+    "PROMOTION_MAX_USES_INVALID": "Die maximale Nutzungszahl muss mindestens 1 sein.",
+    "BILLING_RATE_LIMITED": "Zu viele Versuche. Warten Sie einen Moment und versuchen Sie es erneut.",
+    "BILLING_ADD_ON_NOT_AVAILABLE": "Ihr Tarif bietet keine kostenpflichtige zweite Rolle.",
+    "BILLING_ADD_ON_ALREADY_PAID": "Die zweite Rolle ist bereits bezahlt.",
+    "BILLING_PAYMENT_DECLINED": "Ihre Karte wurde abgelehnt. Es wurde nichts abgebucht und die Rolle wurde nicht hinzugefügt. Aktualisieren Sie Ihre Karte unter Abrechnung verwalten oder versuchen Sie eine andere.",
+    "BILLING_CUSTOMER_NOT_FOUND": "Es gibt noch kein Zahlungskonto. Wählen Sie zuerst einen bezahlten Tarif.",
+    "BILLING_NOT_CONFIGURED": "Zahlungen sind derzeit nicht verfügbar. Bitte versuchen Sie es später erneut.",
+    "BILLING_PROVIDER_ERROR": "Der Zahlungsanbieter hat nicht geantwortet. Bitte versuchen Sie es gleich erneut.",
+    "SECOND_ROLE_NOT_ON_SCHEDULED_PLAN": "Der für die nächste Verlängerung geplante Tarif enthält keine zweite Rolle.",
     "CHECK_IN_ANSWER_WINDOW_CLOSED": "Die Zeit zum Beantworten dieses Check-ins ist abgelaufen.",
     "INVALID_CREDENTIALS": "Ungültige E-Mail oder Passwort.",
     "ACCOUNT_DEACTIVATED": "Ihr Konto wurde deaktiviert.",
@@ -5843,7 +6049,10 @@
       "coach": {
         "ready": "Ihr Konto ist bereit.",
         "setUpProfile": "Profil einrichten",
-        "skip": "Vorerst überspringen und zum Portal",
+        "choosePlan": "Tarif wählen",
+        "skip": "Vorerst überspringen und mit Free starten",
+        "signInToChoosePlan": "Melden Sie sich an, um Ihren Tarif zu wählen",
+        "signInToSkip": "Anmelden und vorerst mit Free starten",
         "nextHeading": "WIE ES WEITERGEHT",
         "inviteTitle": "Laden Sie Ihren ersten Klienten ein",
         "inviteHint": "Er tritt über die Form-Up-App bei",
@@ -6620,7 +6829,8 @@
       "keepUntil": "bleibt, neu bis {{date}}. Danach wählt {{name}} einen Plan.",
       "keepNoEnd": "bleibt, jetzt ohne Enddatum.",
       "keepPickDate": "bleibt. Wählen Sie das neue Enddatum.",
-      "confirmKeep": "Enddatum ändern"
+      "confirmKeep": "Enddatum ändern",
+      "refundNotice": "Das bezahlte Stripe-Abonnement von {{name}} wird jetzt gekündigt, und die ungenutzten Tage werden auf die Karte zurückerstattet."
     },
     "drawer": {
       "titleFallback": "Trainer",
@@ -6649,6 +6859,7 @@
         "noEnd": "Ohne Enddatum",
         "button": "Plan ändern",
         "success": "Der Plan wurde geändert.",
+        "successRefund": "Der Plan wurde geändert. Erstattet: {{amount}}.",
         "error": "Der Plan konnte nicht geändert werden."
       },
       "promotion": {
@@ -6677,11 +6888,13 @@
         "button": "Plan beenden",
         "none": "Dieser Trainer hat keinen bezahlten oder geschenkten Plan, der beendet werden könnte.",
         "success": "Der Plan wurde beendet.",
+        "successRefund": "Der Plan wurde beendet. Erstattet: {{amount}}.",
         "error": "Der Plan konnte nicht beendet werden.",
+        "refundNotice": "Das bezahlte Stripe-Abonnement des Trainers wird jetzt gekündigt, und die ungenutzten Tage werden auf die Karte zurückerstattet.",
         "dialogTitle": "Plan jetzt beenden?",
         "dialogDescription": "{{name}} wechselt heute vom Plan {{plan}} auf Kostenlos und wird nicht mehr belastet.",
-        "callout_one": "{{name}} hat {{count}} Kunde und Kostenlos erlaubt {{max}}. Bei der nächsten Anmeldung wählt der Trainer aus, welche er behält. Die Pläne der übrigen Kunden laufen bis zur letzten veröffentlichten Woche.",
-        "callout_other": "{{name}} hat {{count}} Kunden und Kostenlos erlaubt {{max}}. Bei der nächsten Anmeldung wählt der Trainer aus, welche er behält. Die Pläne der übrigen Kunden laufen bis zur letzten veröffentlichten Woche.",
+        "callout_one": "{{name}} hat {{count}} Kunde und Kostenlos erlaubt {{max}}. Sobald der Trainer die App öffnet oder auf eine andere Seite wechselt, wählt er aus, welche er behält. Die Pläne der übrigen Kunden laufen bis zur letzten veröffentlichten Woche.",
+        "callout_other": "{{name}} hat {{count}} Kunden und Kostenlos erlaubt {{max}}. Sobald der Trainer die App öffnet oder auf eine andere Seite wechselt, wählt er aus, welche er behält. Die Pläne der übrigen Kunden laufen bis zur letzten veröffentlichten Woche.",
         "placeholder": "Warum beenden Sie den Plan?",
         "cancel": "Abbrechen",
         "confirm": "Plan jetzt beenden"
@@ -6883,6 +7096,123 @@
       "addOnInvalid": "Geben Sie einen Preis für die zweite Rolle über 0 ein oder wählen Sie „Im Preis inklusive“.",
       "clientsInvalid": "Geben Sie eine Klientenzahl ab 1 ein oder wählen Sie Unbegrenzt.",
       "perClientNeedsWeekly": "Check-in-Einstellungen pro Klient setzen wöchentliche Check-ins voraus."
+    }
+  },
+  "adminPromotions": {
+    "title": "Aktionen",
+    "subtitle": "Rabatte auf Form-Up-Tarife für Trainer. Die eigenen Rabatte eines Trainers für seine Kunden sind davon getrennt.",
+    "newPromotion": "Neue Aktion",
+    "note": "Pro Trainer gilt immer nur eine Aktion. Sie gilt für die gesamte Rechnung, einschließlich der zweiten Rolle.",
+    "loadError": "Die Aktionen konnten nicht geladen werden.",
+    "retry": "Erneut versuchen",
+    "empty": "Noch keine Aktionen.",
+    "saveSuccess": "Aktion gespeichert.",
+    "saveError": "Die Aktion konnte nicht gespeichert werden.",
+    "filters": {
+      "label": "Aktionen filtern",
+      "All": "Alle",
+      "Active": "Aktiv",
+      "Scheduled": "Geplant",
+      "Ended": "Beendet"
+    },
+    "status": {
+      "Active": "Aktiv",
+      "Scheduled": "Geplant",
+      "Ended": "Beendet"
+    },
+    "table": {
+      "promotion": "Aktion",
+      "how": "Wie",
+      "value": "Wert",
+      "lasts": "Dauer",
+      "window": "Angebotszeitraum",
+      "plans": "Tarife",
+      "used": "Genutzt",
+      "status": "Status",
+      "everyone": "Für alle beim Bezahlen",
+      "codeSubline": "Code",
+      "automatic": "Automatisch",
+      "allPaidPlans": "Alle kostenpflichtigen Tarife",
+      "actions": "Optionen",
+      "usedOf": "{{count}} von {{max}}"
+    },
+    "lasts": {
+      "firstMonth": "Erster Monat",
+      "months_one": "{{count}} Monat",
+      "months_other": "{{count}} Monate",
+      "forever": "Dauerhaft"
+    },
+    "window": {
+      "range": "{{from}} – {{to}}",
+      "noEnd": "Kein Enddatum"
+    },
+    "plans": {
+      "start": "Start",
+      "pro": "Pro",
+      "studio": "Studio"
+    },
+    "end": {
+      "action": "{{name}} beenden",
+      "tooltip": "Aktion beenden",
+      "title": "„{{name}}“ beenden?",
+      "description": "Sie gilt ab heute beim Bezahlen nicht mehr, und kein weiterer Trainer kann sie erhalten. Ihr Status wechselt zu Beendet.",
+      "note_one": "Der {{count}} Trainer, der sie bereits hat, behält seinen Rabatt, bis er ausläuft.",
+      "note_other": "Die {{count}} Trainer, die sie bereits haben, behalten ihren Rabatt, bis er ausläuft.",
+      "confirm": "Aktion beenden",
+      "success": "Aktion beendet.",
+      "notFound": "Diese Aktion gibt es nicht mehr.",
+      "error": "Die Aktion konnte nicht beendet werden."
+    },
+    "drawer": {
+      "titleNew": "Neue Aktion",
+      "description": "Wird beim Speichern in Stripe angelegt",
+      "sectionPromotion": "Aktion",
+      "name": "Name",
+      "nameHint": "Trainer sehen diesen Namen in der Tarifauswahl und in den Einstellungen, und er kann auf ihrer Rechnung erscheinen. Er ist auch der Name des Coupons in Stripe.",
+      "type": "Art",
+      "typePercent": "Prozent",
+      "typeFixed": "Fester Betrag",
+      "value": "Wert",
+      "sectionHow": "Wie Trainer sie erhalten",
+      "claimed": "Einlösung",
+      "automatic": "Automatisch für alle",
+      "withCode": "Mit Code",
+      "code": "Code",
+      "codeHint": "Buchstaben und Zahlen. Groß- und Kleinschreibung spielt keine Rolle.",
+      "sectionLasts": "Wie lange sie für einen Trainer gilt",
+      "lasts": "Dauer",
+      "firstMonth": "Erster Monat",
+      "months": "Mehrere Monate",
+      "forever": "Dauerhaft",
+      "monthCount": "Anzahl der Monate",
+      "monthCountHint": "Von {{min}} bis {{max}}.",
+      "sectionWindow": "Angebotszeitraum",
+      "claimFrom": "Einlösbar ab",
+      "claimUntil": "Einlösbar bis",
+      "optional": "Optional",
+      "sectionLimits": "Tarife und Grenzen",
+      "plans": "Tarife",
+      "maxUses": "Max. Nutzungen",
+      "maxUsesHint": "Leer = keine Grenze",
+      "newCoachesOnly": "Nur neue Trainer",
+      "oneUsePerCoach": "Eine Nutzung pro Trainer",
+      "coversBill": "Gilt für die gesamte Rechnung, einschließlich der zweiten Rolle",
+      "save": "Aktion speichern",
+      "saving": "Wird gespeichert…"
+    },
+    "validation": {
+      "nameRequired": "Geben Sie einen Namen ein.",
+      "nameTooLong": "Der Name darf höchstens 200 Zeichen lang sein.",
+      "valuePercent": "Geben Sie eine ganze Prozentzahl von 1 bis 100 ein.",
+      "valueAmount": "Geben Sie einen Betrag über 0 ein.",
+      "codeRequired": "Geben Sie einen Code ein.",
+      "codeInvalid": "Verwenden Sie nur Buchstaben und Zahlen, höchstens 50 Zeichen.",
+      "codeTaken": "Diesen Code verwendet bereits eine andere Aktion, die noch nicht beendet ist.",
+      "monthsInvalid": "Geben Sie eine ganze Monatszahl von 2 bis 36 ein.",
+      "claimFromRequired": "Wählen Sie ein Startdatum.",
+      "windowInvalid": "Das Enddatum muss nach dem Startdatum und in der Zukunft liegen.",
+      "plansRequired": "Wählen Sie mindestens einen Tarif.",
+      "maxUsesInvalid": "Geben Sie eine ganze Zahl ab 1 ein oder lassen Sie das Feld leer."
     }
   },
   "pricing": {

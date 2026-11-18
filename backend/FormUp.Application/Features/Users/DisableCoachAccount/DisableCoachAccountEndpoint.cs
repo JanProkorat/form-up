@@ -25,9 +25,11 @@ internal sealed class DisableCoachAccountEndpoint(CoachAccountDisabler disabler)
         {
             s.Summary = "Disable my coach account";
             s.Description = "Marks the coach account as not renewing. Roles are removed at the end of the paid period, or at once when there is none. Repeating the call while pending returns the same date.";
-            s.Responses[StatusCodes.Status200OK] = "Date the account stops being active and the roles removed by this call";
-            s.Responses[StatusCodes.Status400BadRequest] = "NO_ACTIVE_COACH_ROLE";
-            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller claim";
+            s.Response<DisableCoachAccountResponse>(StatusCodes.Status200OK, "Date the account stops being active and the roles removed by this call");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "NO_ACTIVE_COACH_ROLE");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status502BadGateway, "Stripe failed; nothing was saved (BILLING_PROVIDER_ERROR)");
+            s.Response(StatusCodes.Status503ServiceUnavailable, "You have a live Stripe subscription and Stripe is not configured on this server (BILLING_NOT_CONFIGURED)");
         });
     }
 
@@ -46,6 +48,18 @@ internal sealed class DisableCoachAccountEndpoint(CoachAccountDisabler disabler)
         if (result is null)
         {
             this.ThrowErrorWithCode(ErrorCodes.NoActiveCoachRole, "You have no active coach role.");
+            return;
+        }
+
+        if (result.Failure is { } failure)
+        {
+            await this.SendProblemAsync(
+                failure == CoachAccountDisableFailure.NotConfigured
+                    ? StatusCodes.Status503ServiceUnavailable
+                    : StatusCodes.Status502BadGateway,
+                failure == CoachAccountDisableFailure.NotConfigured ? ErrorCodes.BillingNotConfigured : ErrorCodes.BillingProviderError,
+                failure == CoachAccountDisableFailure.NotConfigured ? "Billing is not configured." : "The payment provider failed.",
+                ct);
             return;
         }
 

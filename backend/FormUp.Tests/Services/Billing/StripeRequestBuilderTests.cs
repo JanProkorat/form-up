@@ -1,0 +1,489 @@
+using FormUp.Application.Domain.Enums;
+using FormUp.Application.Domain.Interfaces;
+using FormUp.Application.Infrastructure.Services.Billing;
+using FluentAssertions;
+
+namespace FormUp.Tests.Services.Billing;
+
+/// <summary>
+/// The Stripe request options carry the billing rules: no trial, promotion codes, billing details, tax, CZK, locale and
+/// the invoice note. Built as plain functions, so nothing here touches the network.
+/// </summary>
+public class StripeRequestBuilderTests
+{
+    private static readonly Guid UserId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+
+    private static BillingOptions Options(BillingTaxMode taxMode = BillingTaxMode.None) => new()
+    {
+        SecretKey = "configured",
+        TaxMode = taxMode,
+        VatTaxRateId = taxMode == BillingTaxMode.Vat21 ? "txr_test" : null,
+        CheckoutSuccessUrl = "https://app.example/billing/success",
+        CheckoutCancelUrl = "https://app.example/billing/cancel",
+        PortalReturnUrl = "https://app.example/billing",
+    };
+
+    [Theory]
+    [InlineData(null, "cs")]
+    [InlineData("", "cs")]
+    [InlineData("en", "en")]
+    [InlineData("de-AT", "de")]
+    [InlineData("CS", "cs")]
+    [InlineData("fr", "cs")]
+    public void Locale_MapsLanguageToASupportedStripeLocale(string? language, string expected)
+    {
+        StripeRequestBuilder.Locale(language).Should().Be(expected);
+    }
+
+    [Fact]
+    public void Customer_NonVatPayer_CarriesTheInvoiceNoteAndLocale()
+    {
+        var customer = StripeRequestBuilder.Customer(UserId, "coach@example.test", "Coach", "de", Options());
+
+        customer.InvoiceSettings!.Footer.Should().Be("Nejsem plátce DPH");
+        customer.PreferredLocales.Should().Equal("de");
+        customer.Metadata.Should().Contain("userId", UserId.ToString());
+    }
+
+    [Fact]
+    public void Customer_VatPayer_HasNoNonVatPayerNote()
+    {
+        var customer = StripeRequestBuilder.Customer(UserId, "coach@example.test", null, null, Options(BillingTaxMode.Vat21));
+
+        customer.InvoiceSettings.Should().BeNull();
+        customer.PreferredLocales.Should().Equal("cs");
+    }
+
+    [Fact]
+    public void Checkout_BuildsASubscriptionWithNoTrialAndBillingDetailsCollection()
+    {
+        var session = StripeRequestBuilder.Checkout("cus_1", UserId, "pro", "price_plan", null, null, "cs", CheckoutFlow.Settings, Options());
+
+        session.Mode.Should().Be("subscription");
+        session.Customer.Should().Be("cus_1");
+        session.AllowPromotionCodes.Should().BeTrue();
+        session.Discounts.Should().BeNull();
+        session.BillingAddressCollection.Should().Be("required");
+        session.TaxIdCollection!.Enabled.Should().BeTrue();
+        session.NameCollection!.Business!.Enabled.Should().BeTrue();
+        session.CustomerUpdate!.Address.Should().Be("auto");
+        session.SubscriptionData!.TrialPeriodDays.Should().BeNull();
+        session.SubscriptionData.TrialEnd.Should().BeNull();
+        session.Locale.Should().Be("cs");
+        session.SuccessUrl.Should().Be("https://app.example/billing/success?flow=settings");
+        session.CancelUrl.Should().Be("https://app.example/billing/cancel?flow=settings");
+        session.SubscriptionData.Metadata.Should().Contain("planCode", "pro");
+        session.LineItems.Should().ContainSingle().Which.Price.Should().Be("price_plan");
+    }
+
+    [Fact]
+    public void Checkout_SignUpFlow_IsAppendedToBothReturnUrls()
+    {
+        var session = StripeRequestBuilder.Checkout("cus_1", UserId, "pro", "price_plan", null, null, "cs", CheckoutFlow.SignUp, Options());
+
+        session.SuccessUrl.Should().Be("https://app.example/billing/success?flow=signup");
+        session.CancelUrl.Should().Be("https://app.example/billing/cancel?flow=signup");
+    }
+
+    [Theory]
+    [InlineData("https://app.example/billing/success?session={CHECKOUT_SESSION_ID}", "https://app.example/billing/success?session={CHECKOUT_SESSION_ID}&flow=settings")]
+    [InlineData("https://app.example/billing?x=1#done", "https://app.example/billing?x=1&flow=settings#done")]
+    public void ReturnUrl_KeepsTheConfiguredQueryAndFragment(string configured, string expected)
+    {
+        StripeRequestBuilder.ReturnUrl(configured, CheckoutFlow.Settings).Should().Be(expected);
+    }
+
+    [Fact]
+    public void SecondRolePreview_AddsTheAddOnLineAndInvoicesTheProrationNow()
+    {
+        var preview = StripeRequestBuilder.SecondRolePreview("cus_1", "sub_1", "price_addon", Options(BillingTaxMode.Vat21));
+
+        preview.Customer.Should().Be("cus_1");
+        preview.Subscription.Should().Be("sub_1");
+        preview.SubscriptionDetails!.ProrationBehavior.Should().Be("always_invoice");
+        var item = preview.SubscriptionDetails.Items.Should().ContainSingle().Subject;
+        item.Price.Should().Be("price_addon");
+        item.Id.Should().BeNull("a new line, existing items stay");
+        item.TaxRates.Should().Equal("txr_test");
+    }
+
+    [Fact]
+    public void SecondRoleCharge_FailsInsteadOfLeavingTheSubscriptionHalfChanged()
+    {
+        var update = StripeRequestBuilder.SecondRoleCharge("price_addon", Options());
+
+        update.PaymentBehavior.Should().Be("error_if_incomplete");
+        update.ProrationBehavior.Should().Be("always_invoice");
+        update.Items.Should().ContainSingle().Which.Price.Should().Be("price_addon");
+    }
+
+    [Fact]
+    public void SecondRoleChargePending_IsTheSameCharge_HeldUntilTheCoachPays_AndExpandsTheInvoice()
+    {
+        var update = StripeRequestBuilder.SecondRoleChargePending("price_addon", Options());
+
+        update.PaymentBehavior.Should().Be("pending_if_incomplete");
+        update.ProrationBehavior.Should().Be("always_invoice");
+        update.Expand.Should().Equal("latest_invoice");
+        update.Items.Should().ContainSingle().Which.Price.Should().Be("price_addon");
+    }
+
+    [Fact]
+    public void PlanUpgrade_ChargesTheProrationNow_FailsOnAnIncompletePayment_AndClearsTheCancellation()
+    {
+        var update = StripeRequestBuilder.PlanUpgrade("si_plan", "price_new", null, null, null, Options());
+
+        update.ProrationBehavior.Should().Be("always_invoice");
+        update.PaymentBehavior.Should().Be("error_if_incomplete");
+        update.CancelAtPeriodEnd.Should().BeFalse("an upgrade drops a scheduled switch to Free");
+        var item = update.Items.Should().ContainSingle().Subject;
+        item.Id.Should().Be("si_plan");
+        item.Price.Should().Be("price_new");
+    }
+
+    [Fact]
+    public void PlanUpgradePending_IsTheSameUpgrade_HeldUntilTheCoachPays_AndExpandsTheInvoice()
+    {
+        var update = StripeRequestBuilder.PlanUpgradePending("si_plan", "price_new", "si_addon", "price_addon", null, Options());
+
+        update.PaymentBehavior.Should().Be("pending_if_incomplete");
+        update.ProrationBehavior.Should().Be("always_invoice");
+        update.CancelAtPeriodEnd.Should().BeFalse();
+        update.Expand.Should().Equal("latest_invoice");
+        update.Items.Select(line => line.Id).Should().Equal("si_plan", "si_addon");
+        update.Items.Last().Deleted.Should().BeTrue();
+    }
+
+    [Fact]
+    public void RestoreSnapshot_RoundTripsThePricesAndTheCancellation_AndEmptyKeysAreUnsets()
+    {
+        var written = StripeRequestBuilder.RestoreSnapshot(new ScheduleIntent(["price_a", "price_b"], CancelRenewal: true));
+
+        var read = StripeRequestBuilder.ReadRestoreSnapshot(written);
+
+        read.Should().NotBeNull();
+        read!.PendingPriceIds.Should().Equal("price_a", "price_b");
+        read.CancelRenewal.Should().BeTrue();
+        StripeRequestBuilder.ReadRestoreSnapshot(StripeRequestBuilder.RestoreSnapshot(new ScheduleIntent(null)))!.CancelRenewal.Should().BeFalse();
+        StripeRequestBuilder.RestoreSnapshot(new ScheduleIntent(null)).Values.Should().OnlyContain(value => value.Length == 0);
+        StripeRequestBuilder.ClearedRestoreSnapshot().Values.Should().OnlyContain(value => value.Length == 0);
+    }
+
+    [Fact]
+    public void ReadRestoreSnapshot_WithoutAnyKey_IsNull()
+    {
+        StripeRequestBuilder.ReadRestoreSnapshot(new Dictionary<string, string> { ["userId"] = "x" }).Should().BeNull();
+        StripeRequestBuilder.ReadRestoreSnapshot(null).Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData(null, null, "price_addon", 2, "si_plan,", "price_new,price_addon")]
+    [InlineData("si_addon", "price_addon_old", "price_addon", 2, "si_plan,si_addon", "price_new,price_addon")]
+    [InlineData("si_addon", "price_addon", "price_addon", 1, "si_plan", "price_new")]
+    [InlineData("si_addon", "price_addon", null, 2, "si_plan,si_addon", "price_new,")]
+    public void PlanUpgrade_AddsReplacesKeepsOrRemovesTheAddOnLine(
+        string? addOnItemId, string? currentAddOnPriceId, string? addOnPriceId, int lineCount, string itemIds, string priceIds)
+    {
+        var update = StripeRequestBuilder.PlanUpgrade("si_plan", "price_new", addOnItemId, currentAddOnPriceId, addOnPriceId, Options());
+
+        update.Items.Should().HaveCount(lineCount);
+        update.Items.Select(line => line.Id ?? string.Empty).Should().Equal(itemIds.Split(',').Take(lineCount).Select(id => id));
+        update.Items.Select(line => line.Price ?? string.Empty).Should().Equal(priceIds.Split(',').Take(lineCount));
+
+        if (addOnItemId is not null && addOnPriceId is null)
+        {
+            update.Items.Last().Deleted.Should().BeTrue();
+        }
+    }
+
+    [Fact]
+    public void PlanUpgrade_PutsTheTaxRateOnTheChargedLines()
+    {
+        var update = StripeRequestBuilder.PlanUpgrade("si_plan", "price_new", null, null, "price_addon", Options(BillingTaxMode.Vat21));
+
+        update.Items.Should().OnlyContain(line => line.TaxRates != null && line.TaxRates.SequenceEqual(new[] { "txr_test" }));
+    }
+
+    [Fact]
+    public void PlanUpgradePreview_MirrorsTheUpgradeAndInvoicesTheProrationNow()
+    {
+        var preview = StripeRequestBuilder.PlanUpgradePreview(
+            "cus_1", "sub_1", "si_plan", "price_new", null, null, "price_addon", Options());
+
+        preview.Customer.Should().Be("cus_1");
+        preview.Subscription.Should().Be("sub_1");
+        preview.SubscriptionDetails!.ProrationBehavior.Should().Be("always_invoice");
+        preview.SubscriptionDetails.Items.Select(line => (line.Id, line.Price)).Should().Equal(
+            ("si_plan", "price_new"), (null, "price_addon"));
+    }
+
+    [Fact]
+    public void Checkout_WithAddOn_AddsASecondLine()
+    {
+        var session = StripeRequestBuilder.Checkout("cus_1", UserId, "pro", "price_plan", "price_addon", null, "cs", CheckoutFlow.Settings, Options());
+
+        session.LineItems.Select(line => line.Price).Should().Equal("price_plan", "price_addon");
+    }
+
+    [Fact]
+    public void Checkout_WithAutomaticPromotion_AppliesTheCouponInsteadOfPromotionCodes()
+    {
+        var session = StripeRequestBuilder.Checkout("cus_1", UserId, "pro", "price_plan", null, "coupon_1", "cs", CheckoutFlow.Settings, Options());
+
+        session.Discounts.Should().ContainSingle().Which.Coupon.Should().Be("coupon_1");
+        session.AllowPromotionCodes.Should().BeNull("Stripe refuses discounts together with allow_promotion_codes");
+    }
+
+    [Fact]
+    public void Checkout_TaxRateComesFromConfiguration()
+    {
+        var withVat = StripeRequestBuilder.Checkout("cus_1", UserId, "pro", "price_plan", "price_addon", null, "cs", CheckoutFlow.Settings, Options(BillingTaxMode.Vat21));
+        var withoutVat = StripeRequestBuilder.Checkout("cus_1", UserId, "pro", "price_plan", "price_addon", null, "cs", CheckoutFlow.Settings, Options());
+
+        withVat.LineItems.Should().OnlyContain(line => line.TaxRates!.SequenceEqual(new[] { "txr_test" }));
+        withoutVat.LineItems.Should().OnlyContain(line => line.TaxRates == null);
+    }
+
+    [Fact]
+    public void Portal_ReturnsToTheConfiguredUrl()
+    {
+        var portal = StripeRequestBuilder.Portal("cus_1", "en", Options());
+
+        portal.Customer.Should().Be("cus_1");
+        portal.ReturnUrl.Should().Be("https://app.example/billing");
+        portal.Locale.Should().Be("en");
+    }
+
+    [Theory]
+    [InlineData(BillingInterval.Monthly, "month")]
+    [InlineData(BillingInterval.Annual, "year")]
+    public void Price_IsARecurringCzkAmountInTheBillingInterval(BillingInterval interval, string expected)
+    {
+        var price = StripeRequestBuilder.Price("pro", "formup-plan-pro", 49900, "CZK", interval);
+
+        price.Currency.Should().Be("czk");
+        price.UnitAmount.Should().Be(49900);
+        price.Recurring!.Interval.Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-5)]
+    public void Price_ZeroOrNegative_IsRefused(long amount)
+    {
+        var build = () => StripeRequestBuilder.Price("free", "formup-plan-free", amount, "CZK", BillingInterval.Monthly);
+
+        build.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void PlanProductId_IsTheSameForTheSamePlanCode_AndDiffersPerPlan()
+    {
+        StripeRequestBuilder.PlanProductId("pro").Should().Be("formup-plan-pro");
+        StripeRequestBuilder.PlanProductId("pro").Should().Be(StripeRequestBuilder.PlanProductId("pro"));
+        StripeRequestBuilder.PlanProductId("pro").Should().NotBe(StripeRequestBuilder.PlanProductId("team"));
+    }
+
+    [Fact]
+    public void PlanProduct_IsCreatedUnderTheStableId()
+    {
+        var product = StripeRequestBuilder.PlanProduct("pro");
+
+        product.Id.Should().Be(StripeRequestBuilder.PlanProductId("pro"));
+        product.Name.Should().Be("Form Up pro");
+        product.Metadata.Should().Contain("planCode", "pro");
+    }
+
+    [Fact]
+    public void Price_IsCreatedOnTheGivenProduct_WithoutNewProductData()
+    {
+        var price = StripeRequestBuilder.Price("pro", StripeRequestBuilder.PlanProductId("pro"), 49900, "CZK", BillingInterval.Monthly);
+
+        price.Product.Should().Be("formup-plan-pro");
+        price.ProductData.Should().BeNull("every price row of a plan must stay on the plan's one product");
+    }
+
+    [Fact]
+    public void ACouponLimitedToAPlan_AfterAPriceChange_StillNamesThePlansProduct()
+    {
+        var productId = StripeRequestBuilder.PlanProductId("pro");
+        var coupon = StripeRequestBuilder.Coupon(Spec(), [productId]);
+        var oldPrice = StripeRequestBuilder.Price("pro", productId, 49900, "CZK", BillingInterval.Monthly);
+        var newPrice = StripeRequestBuilder.Price("pro", productId, 59900, "CZK", BillingInterval.Monthly);
+
+        coupon.AppliesTo!.Products.Should().Contain(oldPrice.Product);
+        coupon.AppliesTo!.Products.Should().Contain(newPrice.Product);
+    }
+
+    [Fact]
+    public void AddOnPrice_CanBeFoundAgainByLookupKey_WhichNamesTheProduct()
+    {
+        var price = StripeRequestBuilder.AddOnPrice("pro", "prod_pro", 9900, "CZK", BillingInterval.Monthly);
+
+        price.LookupKey.Should().Be("formup-addon-pro-czk-9900-month-prod_pro");
+        price.LookupKey.Should().StartWith(StripeRequestBuilder.AddOnLookupPrefix);
+    }
+
+    [Fact]
+    public void AddOnPrice_IsCreatedOnThePlansOwnProduct_SoACouponLimitedToThatProductCoversIt()
+    {
+        var price = StripeRequestBuilder.AddOnPrice("pro", "prod_pro", 9900, "CZK", BillingInterval.Monthly);
+
+        price.Product.Should().Be("prod_pro");
+        price.ProductData.Should().BeNull("a new product would sit outside the coupon's product list");
+        price.UnitAmount.Should().Be(9900);
+        price.Currency.Should().Be("czk");
+        price.Recurring.Interval.Should().Be("month");
+    }
+
+    [Fact]
+    public void ACouponLimitedToAPlansProduct_NamesTheSameProductAsThePlansAddOnPrice()
+    {
+        const string planProduct = "prod_pro";
+        var coupon = StripeRequestBuilder.Coupon(Spec(), [planProduct]);
+        var addOn = StripeRequestBuilder.AddOnPrice("pro", planProduct, 9900, "CZK", BillingInterval.Monthly);
+
+        coupon.AppliesTo!.Products.Should().Contain(addOn.Product, "the add-on line sits on a product the coupon covers");
+    }
+
+    [Fact]
+    public void AddOnLookupKey_DiffersPerProduct_SoAnOldPriceOnAnotherProductIsNeverReused()
+    {
+        var older = StripeRequestBuilder.AddOnLookupKey("pro", "prod_old", 9900, "CZK", BillingInterval.Monthly);
+        var current = StripeRequestBuilder.AddOnLookupKey("pro", "prod_pro", 9900, "CZK", BillingInterval.Monthly);
+
+        older.Should().NotBe(current);
+    }
+
+    [Theory]
+    [InlineData(0, "prod_pro")]
+    [InlineData(9900, "")]
+    public void AddOnPrice_WithoutAnAmountOrProduct_IsRefused(long amount, string productId)
+    {
+        var build = () => StripeRequestBuilder.AddOnPrice("pro", productId, amount, "CZK", BillingInterval.Monthly);
+
+        build.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void SchedulePhases_FirstPhaseStartsNow_LastRunsOneInterval()
+    {
+        var start = new DateTimeOffset(2026, 11, 1, 0, 0, 0, TimeSpan.Zero);
+        var end = start.AddDays(10);
+        var phases = StripeRequestBuilder.SchedulePhases(
+            [
+                new SchedulePhasePlan(start, end, ["price_old"]),
+                new SchedulePhasePlan(end, null, ["price_new"]),
+            ],
+            BillingInterval.Annual,
+            null);
+
+        phases[0].StartDate.Should().NotBeNull();
+        phases[0].EndDate.Should().NotBeNull();
+        phases[1].StartDate.Should().BeNull();
+        phases[1].Duration!.Interval.Should().Be("year");
+        phases[1].Duration!.IntervalCount.Should().Be(1);
+    }
+
+    [Theory]
+    [InlineData("sk", "https://a.example/s", "https://a.example/c", "https://a.example/p", BillingTaxMode.None, null, true)]
+    [InlineData(null, "https://a.example/s", "https://a.example/c", "https://a.example/p", BillingTaxMode.None, null, false)]
+    [InlineData("sk", "not a url", "https://a.example/c", "https://a.example/p", BillingTaxMode.None, null, false)]
+    [InlineData("sk", "javascript:alert(1)", "https://a.example/c", "https://a.example/p", BillingTaxMode.None, null, false)]
+    [InlineData("sk", "https://a.example/s", "https://a.example/c", "https://a.example/p", BillingTaxMode.Vat21, null, false)]
+    [InlineData("sk", "https://a.example/s", "https://a.example/c", "https://a.example/p", BillingTaxMode.Vat21, "txr_1", true)]
+    public void BillingOptions_IsConfigured_NeedsKeyUrlsAndTaxRate(
+        string? key, string success, string cancel, string portal, BillingTaxMode taxMode, string? taxRate, bool expected)
+    {
+        var options = new BillingOptions
+        {
+            SecretKey = key,
+            CheckoutSuccessUrl = success,
+            CheckoutCancelUrl = cancel,
+            PortalReturnUrl = portal,
+            TaxMode = taxMode,
+            VatTaxRateId = taxRate,
+        };
+
+        options.IsConfigured.Should().Be(expected);
+    }
+
+    private static CouponSpec Spec(
+        PromotionKind kind = PromotionKind.Percent,
+        long value = 30,
+        PromotionDuration duration = PromotionDuration.Forever,
+        int? months = null,
+        int? maxUses = null,
+        DateTimeOffset? claimUntil = null) =>
+        new("Launch offer", kind, value, kind == PromotionKind.FixedAmount ? "CZK" : null, duration, months, maxUses, claimUntil, null, "key");
+
+    [Theory]
+    [InlineData(PromotionDuration.FirstMonth, "once", null)]
+    [InlineData(PromotionDuration.Months, "repeating", 3)]
+    [InlineData(PromotionDuration.Forever, "forever", null)]
+    public void Coupon_MapsTheDurationToStripesOnceRepeatingOrForever(PromotionDuration duration, string expected, int? months)
+    {
+        var coupon = StripeRequestBuilder.Coupon(Spec(duration: duration, months: months), null);
+
+        coupon.Duration.Should().Be(expected);
+        coupon.DurationInMonths.Should().Be(months);
+    }
+
+    [Fact]
+    public void Coupon_Percentage_SetsPercentOffOnly()
+    {
+        var coupon = StripeRequestBuilder.Coupon(Spec(value: 30), null);
+
+        coupon.PercentOff.Should().Be(30);
+        coupon.AmountOff.Should().BeNull();
+        coupon.Currency.Should().BeNull();
+    }
+
+    [Fact]
+    public void Coupon_FixedAmount_SetsAmountOffInLowerCaseCurrency()
+    {
+        var coupon = StripeRequestBuilder.Coupon(Spec(PromotionKind.FixedAmount, 50000), null);
+
+        coupon.AmountOff.Should().Be(50000);
+        coupon.Currency.Should().Be("czk");
+        coupon.PercentOff.Should().BeNull();
+    }
+
+    [Fact]
+    public void Coupon_PushesMaxUsesClaimEndAndProductsToStripe()
+    {
+        var until = new DateTimeOffset(2026, 12, 31, 22, 59, 0, TimeSpan.Zero);
+
+        var coupon = StripeRequestBuilder.Coupon(Spec(maxUses: 50, claimUntil: until), ["prod_a", "prod_b"]);
+
+        coupon.MaxRedemptions.Should().Be(50);
+        coupon.RedeemBy.Should().Be(until.UtcDateTime);
+        coupon.AppliesTo!.Products.Should().Equal("prod_a", "prod_b");
+    }
+
+    [Fact]
+    public void Coupon_WithoutProducts_IsNotRestricted()
+    {
+        StripeRequestBuilder.Coupon(Spec(), null).AppliesTo.Should().BeNull();
+    }
+
+    [Fact]
+    public void PromotionCode_ForNewCoachesOnly_RestrictsToAFirstTimeTransaction()
+    {
+        var until = new DateTimeOffset(2026, 12, 31, 22, 59, 0, TimeSpan.Zero);
+
+        var code = StripeRequestBuilder.PromotionCode("coupon_1", "COACH20", until, firstTimeOnly: true);
+
+        code.Code.Should().Be("COACH20");
+        code.Promotion.Type.Should().Be("coupon");
+        code.Promotion.Coupon.Should().Be("coupon_1");
+        code.ExpiresAt.Should().Be(until.UtcDateTime);
+        code.Restrictions!.FirstTimeTransaction.Should().BeTrue();
+    }
+
+    [Fact]
+    public void PromotionCode_ForEveryone_HasNoRestrictions()
+    {
+        StripeRequestBuilder.PromotionCode("coupon_1", "COACH20", null, firstTimeOnly: false).Restrictions.Should().BeNull();
+    }
+}

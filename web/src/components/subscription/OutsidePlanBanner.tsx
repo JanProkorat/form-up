@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { KEEP_CLIENTS_PATH, PLAN_BILLING_PATH, PLAN_CHOICE_PATH } from '@/components/subscription/planLinks';
+import { KEEP_CLIENTS_PATH, PLAN_CHOICE_PATH, PLAN_PICKER_PATH } from '@/components/subscription/planLinks';
 
 interface Props {
   /** Set on a restricted client's detail: the banner then names that client instead of the plan's limit. */
@@ -54,7 +54,7 @@ export default function OutsidePlanBanner({ clientName, planName, clientLimit, o
           </Button>
         )}
         <Button asChild size="lg" className="px-3.5 font-semibold">
-          <Link to={PLAN_BILLING_PATH}>{t('subscription.outsidePlan.upgrade')}</Link>
+          <Link to={PLAN_PICKER_PATH}>{t('subscription.outsidePlan.upgrade')}</Link>
         </Button>
       </div>
     </div>

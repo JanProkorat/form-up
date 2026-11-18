@@ -42,6 +42,26 @@ versions above.
 were re-exported, light and dark. `GlassRecipeDetail` is now 1280 px tall; the merged
 `canvas.json` keeps the old row positions, so it overlaps the row below there only.
 
+**Partial update, 2026-11-14 (#2113):** `PageAdminPromotionEnd` (C and D, frames "1 End button"
+and "2 End promotion") added from web portal 1794676722-091e, source files only: no static
+export, no PNGs, and the merged `canvas.json` does not list it yet.
+
+**Partial update, 2026-11-16 (#2154):** `PageSettingsPlanScheduled` updated ("Cancel change" beside the scheduled
+line) and `PagePlanPickerKeep` added (C and D, keep the current plan while a switch to Free is scheduled) from web
+portal 1794833339-d392 (canvas v58), source files only: no static export, no PNGs, merged `canvas.json` not updated.
+
+**Partial update, 2026-11-16 (#2144):** `PagePlanPickerSelected` updated (back button beside the title, upgrade
+"pay now" hint), `PagePlanPickerDowngrade` and `PageSettingsPlanScheduled` added (C and D) from web portal
+1794821595-7b47 (canvas v56), source files only: no static export, no PNGs, merged `canvas.json` not updated.
+
+**Partial update, 2026-11-15 (#2142):** `PageRegisterPlanSelected` and `PagePlanPickerSelected` (C and D,
+select a plan then confirm in a sticky bottom bar, Pro selected) added from web portal 1794776115-811e (canvas v54),
+source files only: no static export, no PNGs, and the merged `canvas.json` does not list them yet.
+
+**Partial update, 2026-11-15 (#2139):** `PageRegisterPlanBothRoles` (C and D, the sign-up plan
+step for a coach who picked both roles) added from web portal 1794760905-f0cb (canvas v53), source
+files only: no static export, no PNGs, and the merged `canvas.json` does not list it yet.
+
 **Partial update, 2026-11-14 (#2107):** `PageAdminPlanDrawer` was replaced by
 `PageAdminPlanEditor` and `PageAdminPlanEditorNew` (web portal 1794650599-2dcb), light
 and dark. The admin coach boards moved one column right (`39-06`…`39-08`, `40-06`…`40-08`).

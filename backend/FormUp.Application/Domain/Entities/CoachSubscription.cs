@@ -57,6 +57,12 @@ public class CoachSubscription : TimestampableEntity
     public bool PaysSecondRoleAddOn { get; set; }
 
     /// <summary>
+    /// When the second-role add-on stops being billed, set while its removal is scheduled at the provider (the coach
+    /// removed a role and the add-on still runs to the end of the paid period). Null when no removal is scheduled.
+    /// </summary>
+    public DateTimeOffset? SecondRoleAddOnEndsAt { get; set; }
+
+    /// <summary>
     /// Current lifecycle status of the subscription.
     /// </summary>
     public SubscriptionStatus Status { get; set; }
@@ -89,6 +95,12 @@ public class CoachSubscription : TimestampableEntity
     public bool CancelAtPeriodEnd { get; set; }
 
     /// <summary>
+    /// When an admin cancelled the renewal; the coach cannot undo it. Null when the coach's own switch to Free (or nothing)
+    /// is what stops the renewal. Cleared whenever the flag is cleared by a purchase, the provider or an admin ending the plan.
+    /// </summary>
+    public DateTimeOffset? RenewalCancelledByAdminAt { get; set; }
+
+    /// <summary>
     /// External payment-provider customer identifier.
     /// </summary>
     public string? ExternalCustomerId { get; set; }
@@ -97,4 +109,58 @@ public class CoachSubscription : TimestampableEntity
     /// External payment-provider subscription identifier.
     /// </summary>
     public string? ExternalSubscriptionId { get; set; }
+
+    /// <summary>
+    /// Creation time of the newest provider event applied to this subscription. An older event arriving later is skipped.
+    /// </summary>
+    public DateTimeOffset? LastExternalEventAt { get; set; }
+
+    /// <summary>
+    /// When the provider will retry a failed payment next. Set by a failed invoice, cleared once an invoice is paid or the
+    /// subscription ends.
+    /// </summary>
+    public DateTimeOffset? NextPaymentAttemptAt { get; set; }
+
+    /// <summary>
+    /// The promotion discounting the provider subscription now, or null. Set from the provider's subscription event.
+    /// </summary>
+    public long? CurrentPromotionId { get; set; }
+
+    /// <summary>
+    /// Navigation to the promotion discounting the subscription now.
+    /// </summary>
+    public Promotion? CurrentPromotion { get; set; }
+
+    /// <summary>
+    /// When the current promotion's discount ends, as the provider reports it; null for a forever discount.
+    /// </summary>
+    public DateTimeOffset? CurrentPromotionEndsAt { get; set; }
+
+    /// <summary>
+    /// When a provider subscription of this coach was first seen live. Null for a coach who never paid, which is what
+    /// "new coaches only" promotions test.
+    /// </summary>
+    public DateTimeOffset? FirstPaidAt { get; set; }
+
+    /// <summary>
+    /// True while an admin-given plan applies: <see cref="GivenFreeAt"/> is set and <see cref="FreeUntil"/> is null or
+    /// still in the future.
+    /// </summary>
+    /// <param name="now">The current instant.</param>
+    public bool IsGiftInForce(DateTimeOffset now) => GivenFreeAt is not null && (FreeUntil is null || FreeUntil > now);
+
+    /// <summary>
+    /// True while the provider subscription is live: it has a provider id and the status is Active, Trialing or PastDue.
+    /// </summary>
+    public bool HasLiveProviderSubscription =>
+        ExternalSubscriptionId is not null
+        && Status is SubscriptionStatus.Active or SubscriptionStatus.Trialing or SubscriptionStatus.PastDue;
+
+    /// <summary>
+    /// True while the provider subscription can still be cancelled: it has a provider id and the status is Active, Trialing,
+    /// PastDue or Incomplete (a first payment that has not gone through yet).
+    /// </summary>
+    public bool HasCancellableProviderSubscription =>
+        ExternalSubscriptionId is not null
+        && Status is SubscriptionStatus.Active or SubscriptionStatus.Trialing or SubscriptionStatus.PastDue or SubscriptionStatus.Incomplete;
 }

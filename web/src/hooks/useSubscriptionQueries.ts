@@ -1,16 +1,24 @@
+import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import {
+  applyPromotionCode,
   chooseFreePlan,
+  confirmSecondRole,
+  createPortalSession,
   getCoachPlans,
   getKeepClients,
   getMySubscription,
   getPublicSubscriptionPlans,
+  previewPlanChange,
+  previewSecondRole,
   pricingKeys,
   setKeepClients,
   subscriptionKeys,
 } from '@/api/subscription';
+import { getMyProfile, profileKeys } from '@/api/profile';
 import type { GetMySubscriptionResponse, SubscriptionFeaturesDto } from '@/api/generated';
+import { isCheckoutSettled } from '@/components/subscription/planPricing';
 import { useAuthStore } from '@/stores/auth';
 
 const COACH_ROLES = new Set(['trainer', 'nutritionist']);
@@ -150,4 +158,142 @@ export function useChooseFreePlan() {
       ]);
     },
   });
+}
+
+/** Applies a promotion code to the coach's subscription, then refreshes the subscription. */
+export function useApplyPromotionCode() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: applyPromotionCode,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: subscriptionKeys.mine }),
+  });
+}
+
+/**
+ * Opens the Stripe Customer Portal in a new tab. `open` must run synchronously in the click handler so the
+ * browser treats the tab as user-initiated: a blank tab is opened first, then pointed at the portal URL once
+ * the session is created, and closed again when that fails. A blocked pop-up falls back to this tab. After the
+ * portal was opened, coming back to this tab re-reads the subscription and profile, because the portal can
+ * change the plan and the global stale time would otherwise skip the focus refetch.
+ */
+export function useOpenBillingPortal() {
+  const queryClient = useQueryClient();
+  const mutation = useMutation({ mutationFn: createPortalSession });
+  const { mutateAsync } = mutation;
+  const opened = useRef(false);
+
+  useEffect(() => {
+    const refresh = () => {
+      if (!opened.current) return;
+      void queryClient.invalidateQueries({ queryKey: subscriptionKeys.mine });
+      void queryClient.invalidateQueries({ queryKey: profileKeys.me });
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') refresh();
+    };
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [queryClient]);
+
+  const open = async (onError: (error: unknown) => void) => {
+    const tab = window.open('', '_blank');
+    if (tab) tab.opener = null;
+    try {
+      const url = await mutateAsync();
+      opened.current = true;
+      if (!tab) {
+        window.location.assign(url);
+      } else if (!tab.closed) {
+        tab.location.replace(url);
+      }
+    } catch (error) {
+      tab?.close();
+      onError(error);
+    }
+  };
+
+  return { open, isPending: mutation.isPending };
+}
+
+/** What adding the second-role add-on would cost; read once per opened dialog, never cached. */
+export function useSecondRolePreview(enabled: boolean) {
+  return useQuery({
+    queryKey: subscriptionKeys.secondRolePreview,
+    queryFn: previewSecondRole,
+    enabled,
+    retry: false,
+    gcTime: 0,
+    staleTime: 0,
+    refetchOnWindowFocus: false,
+  });
+}
+
+/** What moving the live subscription to a paid plan would charge and when; read per selection, never cached. */
+export function usePlanChangePreview(planCode: string | null, enabled: boolean) {
+  return useQuery({
+    queryKey: subscriptionKeys.planChangePreview(planCode ?? ''),
+    queryFn: () => previewPlanChange(planCode ?? ''),
+    enabled: enabled && planCode !== null,
+    retry: false,
+    gcTime: 0,
+    staleTime: 0,
+    refetchOnWindowFocus: false,
+  });
+}
+
+/** Pays the second-role add-on now. The caller adds the role itself once this succeeds. */
+export function useConfirmSecondRole() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: confirmSecondRole,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: subscriptionKeys.mine }),
+  });
+}
+
+const RETURN_POLL_INTERVAL_MS = 1000;
+const RETURN_POLL_LIMIT_MS = 10_000;
+
+/**
+ * The page Stripe sends the coach back to can load before the webhook has written the new plan, so this
+ * refetches the subscription and /users/me for up to about 10 s until the plan changes. Bounded polling is
+ * the agreed exception to the no-polling rule: no push event announces a webhook landing.
+ */
+export function useCheckoutReturn() {
+  const isCoach = useAuthStore((s) => s.user?.roles.some((role) => COACH_ROLES.has(role.toLowerCase())) ?? false);
+  const [timedOut, setTimedOut] = useState(false);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setTimedOut(true), RETURN_POLL_LIMIT_MS);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  const [settled, setSettled] = useState(false);
+  const polling = isCoach && !settled && !timedOut;
+  const refetchInterval = polling ? RETURN_POLL_INTERVAL_MS : false;
+
+  const subscription = useQuery({
+    queryKey: subscriptionKeys.mine,
+    queryFn: getMySubscription,
+    enabled: isCoach,
+    refetchOnMount: 'always',
+    refetchInterval,
+  });
+  useQuery({
+    queryKey: profileKeys.me,
+    queryFn: getMyProfile,
+    enabled: isCoach,
+    refetchOnMount: 'always',
+    refetchInterval,
+  });
+
+  // Derived from the query result: the first answer that shows a live paid plan ends the wait.
+  if (!settled && isCheckoutSettled(subscription.data)) {
+    setSettled(true);
+  }
+
+  return { settled, timedOut, isCoach };
 }

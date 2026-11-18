@@ -47,6 +47,23 @@ public class CoachAccountActiveUntilResolverTests
     public void Resolve_ActiveRowWithoutPeriodEnd_ReturnsNow() =>
         CoachAccountActiveUntilResolver.Resolve(Row(SubscriptionStatus.Active, null), Now).Should().Be(Now);
 
+    [Theory]
+    [InlineData(SubscriptionStatus.Active, 20, 0, 20)] // FreeUntil
+    [InlineData(SubscriptionStatus.Active, null, null, 0)] // no FreeUntil -> now
+    [InlineData(SubscriptionStatus.Active, -5, null, 0)] // past FreeUntil -> now
+    [InlineData(SubscriptionStatus.Canceled, 12, 25, 12)] // a stale paid period end never counts for a given plan
+    [InlineData(SubscriptionStatus.Trialing, null, 30, 0)] // nor does a leftover trial row's period end
+    public void Resolve_GiftRow_ReturnsTheFreeUntilDateOrNow(
+        SubscriptionStatus status, int? freeUntilDays, int? periodEndDays, int expectedDays)
+    {
+        var row = Row(status, periodEndDays is { } period ? new DateTimeOffset(Now.AddDays(period)) : null);
+        row.GivenFreeAt = new DateTimeOffset(Now.AddDays(-30));
+        row.FreeUntil = freeUntilDays is { } free ? new DateTimeOffset(Now.AddDays(free)) : null;
+        row.ExternalSubscriptionId = null;
+
+        CoachAccountActiveUntilResolver.Resolve(row, Now).Should().Be(Now.AddDays(expectedDays));
+    }
+
     [Fact]
     public void Resolve_PeriodEndInThePast_ReturnsNow() =>
         CoachAccountActiveUntilResolver.Resolve(

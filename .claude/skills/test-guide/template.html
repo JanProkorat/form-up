@@ -1,0 +1,428 @@
+<title>__GUIDE_TITLE__</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: one reading column — status strip, decisions inbox, setup, then one card per issue with steps and notes. */
+:root {
+  --bg: #f6f7f4;
+  --surface: #ffffff;
+  --sunken: #eef0eb;
+  --ink: #1b1f1a;
+  --muted: #5d6459;
+  --line: #dde1d8;
+  --accent: #2f6b3a;
+  --accent-ink: #ffffff;
+  --pass: #2f7d45;
+  --pass-bg: #e3f2e6;
+  --fail: #b3362b;
+  --fail-bg: #f8e3e0;
+  --warn: #9a6400;
+  --warn-bg: #f9edd3;
+  --info-bg: #e7eef8;
+  --info: #2c5a94;
+  --shadow: 0 1px 2px rgba(27, 31, 26, .06);
+  --font-body: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121512; --surface: #1a1e19; --sunken: #232822; --ink: #e8ebe5; --muted: #9ca394; --line: #2e342c;
+    --accent: #7cc48a; --accent-ink: #0f1a11; --pass: #7cc48a; --pass-bg: #1f3324; --fail: #ef8b80; --fail-bg: #3a2220;
+    --warn: #e8b85a; --warn-bg: #3a2f17; --info-bg: #1d2a3b; --info: #8fb6e8; --shadow: none; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121512; --surface: #1a1e19; --sunken: #232822; --ink: #e8ebe5; --muted: #9ca394; --line: #2e342c;
+  --accent: #7cc48a; --accent-ink: #0f1a11; --pass: #7cc48a; --pass-bg: #1f3324; --fail: #ef8b80; --fail-bg: #3a2220;
+  --warn: #e8b85a; --warn-bg: #3a2f17; --info-bg: #1d2a3b; --info: #8fb6e8; --shadow: none; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 64px;
+}
+.wrap { max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+h1, h2, h3 { margin: 0; text-wrap: balance; }
+h1 { font-size: 26px; font-weight: 700; letter-spacing: -.01em; }
+h2 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+h3 { font-size: 17px; font-weight: 600; }
+p { margin: 0; }
+.muted { color: var(--muted); }
+.mono { font-family: var(--font-mono); font-size: 13px; }
+button, textarea, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+header.top { display: flex; flex-direction: column; gap: 6px; }
+.strip { display: flex; flex-wrap: wrap; gap: 8px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; display: flex; gap: 8px; align-items: baseline; font-variant-numeric: tabular-nums; }
+.stat b { font-size: 18px; }
+.stat.fail b { color: var(--fail); } .stat.pass b { color: var(--pass); } .stat.warn b { color: var(--warn); }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 12px; box-shadow: var(--shadow); }
+.panel.decide { border-color: var(--warn); }
+.empty { color: var(--muted); font-size: 14px; }
+
+.decision { border-top: 1px solid var(--line); padding-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+.decision:first-of-type { border-top: 0; padding-top: 0; }
+.decision .q { font-weight: 600; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip-btn { border: 1px solid var(--line); background: var(--sunken); border-radius: 999px; padding: 4px 10px; font-size: 13px; }
+.chip-btn:hover { border-color: var(--accent); }
+
+ol.setup { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+ol.setup code, .step code, .summary code { font-family: var(--font-mono); font-size: 12.5px; background: var(--sunken); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+
+.filters { display: flex; gap: 6px; flex-wrap: wrap; }
+.filters button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 5px 12px; font-size: 13px; }
+.filters button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); overflow: hidden; }
+.card-head { display: flex; gap: 10px; align-items: flex-start; padding: 14px 16px; cursor: pointer; }
+.card-head .num { font-family: var(--font-mono); font-size: 13px; color: var(--muted); padding-top: 3px; min-width: 52px; }
+.card-head .t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.card-head .meta { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.pill { font-size: 12px; font-weight: 600; border-radius: 999px; padding: 2px 9px; white-space: nowrap; }
+.pill.ready { background: var(--pass-bg); color: var(--pass); }
+.pill.progress { background: var(--info-bg); color: var(--info); }
+.pill.superseded, .pill.planned { background: var(--sunken); color: var(--muted); }
+.pill.fails { background: var(--fail-bg); color: var(--fail); }
+.pill.count { background: var(--sunken); color: var(--muted); font-variant-numeric: tabular-nums; }
+.caret { color: var(--muted); padding-top: 2px; transition: transform .15s; }
+.card.open .caret { transform: rotate(90deg); }
+.card-body { padding: 0 16px 16px; display: none; flex-direction: column; gap: 14px; }
+.card.open .card-body { display: flex; }
+.summary { color: var(--muted); }
+.notready { background: var(--info-bg); color: var(--info); border-radius: 8px; padding: 8px 12px; font-size: 14px; }
+
+ol.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; counter-reset: step; }
+.step { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.step::before { counter-increment: step; content: counter(step); font-family: var(--font-mono); font-size: 12px; color: var(--muted); padding-top: 2px; }
+.step.pass { border-color: var(--pass); background: var(--pass-bg); }
+.step.fail { border-color: var(--fail); background: var(--fail-bg); }
+.step .what { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.step .expect { font-size: 13.5px; color: var(--muted); }
+.step .expect::before { content: "Expect: "; font-weight: 600; }
+.step .by { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12.5px; color: var(--muted); }
+.step .by .tag { font-weight: 600; border-radius: 999px; padding: 1px 8px; background: var(--sunken); }
+.step .by .tag.claude { background: var(--info-bg); color: var(--info); }
+.step .finding { font-size: 13.5px; }
+.step .finding::before { content: "Claude saw: "; font-weight: 600; }
+.step .yours { font-size: 13.5px; background: var(--warn-bg); color: var(--warn); border-radius: 6px; padding: 4px 8px; }
+.step .yours::before { content: "Needs your eye: "; font-weight: 600; }
+.step .thumb { width: 96px; height: 68px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; background: var(--surface); }
+.seg button { border: 0; background: transparent; padding: 4px 9px; font-size: 12.5px; color: var(--muted); }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"].s-todo { background: var(--sunken); color: var(--ink); }
+.seg button[aria-pressed="true"].s-pass { background: var(--pass); color: var(--accent-ink); }
+.seg button[aria-pressed="true"].s-fail { background: var(--fail); color: #fff; }
+
+.notes { display: flex; flex-direction: column; gap: 10px; }
+.note { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; background: var(--sunken); }
+.note .nhead { display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px; color: var(--muted); flex-wrap: wrap; }
+.note .ntext { white-space: pre-wrap; overflow-wrap: anywhere; }
+.note .reply { border-left: 3px solid var(--accent); padding-left: 10px; font-size: 14px; white-space: pre-wrap; }
+.note .reply b { font-weight: 600; }
+.state { font-weight: 600; }
+.state.new { color: var(--warn); } .state.seen { color: var(--info); } .state.done { color: var(--pass); }
+.thumbs { display: flex; flex-wrap: wrap; gap: 8px; }
+.thumb { position: relative; width: 112px; height: 80px; border-radius: 6px; overflow: hidden; border: 1px solid var(--line); background: var(--surface); padding: 0; }
+.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.thumb .x { position: absolute; top: 3px; right: 3px; width: 22px; height: 22px; border-radius: 50%; border: 0; background: rgba(0,0,0,.6); color: #fff; font-size: 13px; line-height: 22px; padding: 0; }
+.thumb.loading { display: grid; place-items: center; font-size: 12px; color: var(--muted); }
+
+.composer { display: flex; flex-direction: column; gap: 8px; border: 1px dashed var(--line); border-radius: 8px; padding: 10px; }
+.composer.drag { border-color: var(--accent); background: var(--pass-bg); }
+.composer textarea, .decision textarea { width: 100%; min-height: 76px; resize: vertical; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; background: var(--surface); }
+.composer .row, .decision .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.hint { font-size: 12.5px; color: var(--muted); flex: 1; min-width: 160px; }
+.btn { border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); border-radius: 7px; padding: 6px 14px; font-weight: 600; font-size: 14px; }
+.btn[disabled] { opacity: .5; cursor: default; }
+.btn.ghost { background: transparent; color: var(--accent); }
+.err { color: var(--fail); font-size: 13px; }
+
+dialog.lightbox { border: 0; padding: 0; background: transparent; max-width: 96vw; max-height: 94vh; }
+dialog.lightbox::backdrop { background: rgba(0,0,0,.75); }
+dialog.lightbox img { max-width: 96vw; max-height: 90vh; display: block; border-radius: 6px; }
+dialog.lightbox button { position: fixed; top: calc(12px + env(safe-area-inset-top, 0px)); right: calc(12px + env(safe-area-inset-right, 0px)); border: 0; border-radius: 50%; width: 36px; height: 36px; background: rgba(255,255,255,.9); color: #111; font-size: 18px; }
+@media (max-width: 560px) {
+  .step { grid-template-columns: 22px minmax(0, 1fr); }
+  .step .seg { grid-column: 2; justify-self: start; }
+  .card-head .num { min-width: 44px; }
+}
+@media (prefers-reduced-motion: reduce) { .caret { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <h1 id="title">__GUIDE_TITLE__</h1>
+    <p class="muted" id="intro">Loading the guide…</p>
+  </header>
+
+  <div class="strip" id="strip" aria-live="polite"></div>
+
+  <section class="panel decide" aria-labelledby="dec-h">
+    <h2 id="dec-h">Needs your decision</h2>
+    <div id="decisions"><p class="empty">Nothing waiting on you.</p></div>
+  </section>
+
+  <section class="panel" aria-labelledby="setup-h" id="setup-panel" hidden>
+    <h2 id="setup-h">Before you start</h2>
+    <ol class="setup" id="setup"></ol>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:12px" aria-labelledby="issues-h">
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center">
+      <h2 id="issues-h">What to test</h2>
+      <div class="filters" role="group" aria-label="Show">
+        <button type="button" data-filter="yours" aria-pressed="false">Needs you</button>
+        <button type="button" data-filter="open" aria-pressed="true">To do</button>
+        <button type="button" data-filter="fail" aria-pressed="false">Broken</button>
+        <button type="button" data-filter="all" aria-pressed="false">All</button>
+      </div>
+    </div>
+    <div id="cards" style="display:flex;flex-direction:column;gap:10px"><p class="empty">Issues appear here as they are planned and merged. Each one lists the steps to try and has a box for your notes and screenshots.</p></div>
+  </section>
+</div>
+
+<dialog class="lightbox" id="lightbox"><button type="button" aria-label="Close" id="lb-close">✕</button><img id="lb-img" alt=""></dialog>
+
+<script>
+(() => {
+  const $ = (s, r = document) => r.querySelector(s);
+  const el = (tag, attrs = {}, ...kids) => {
+    const n = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (v == null || v === false) continue;
+      if (k === "class") n.className = v;
+      else if (k === "text") n.textContent = v;
+      else if (k.startsWith("on")) n.addEventListener(k.slice(2), v);
+      else n.setAttribute(k, v === true ? "" : v);
+    }
+    for (const k of kids.flat()) if (k != null) n.append(k.nodeType ? k : document.createTextNode(String(k)));
+    return n;
+  };
+  // Inline `code` spans only; everything else stays plain text.
+  const rich = (text) => {
+    const span = el("span");
+    String(text || "").split(/(`[^`]+`)/).forEach((part) => {
+      if (part.startsWith("`") && part.endsWith("`") && part.length > 2) span.append(el("code", { text: part.slice(1, -1) }));
+      else span.append(document.createTextNode(part));
+    });
+    return span;
+  };
+  const fmt = (iso) => { try { return new Date(iso).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); } catch { return ""; } };
+  const store = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch { return null; } };
+
+  const state = { meta: null, sections: [], steps: [], notes: [], decisions: [], filter: store("tg-filter") || "open", open: new Set(JSON.parse(store("tg-open") || "[]")), drafts: {} };
+  let db = null, assets = null;
+
+  const lb = $("#lightbox");
+  const showImage = (src) => { $("#lb-img").src = src; try { lb.showModal(); } catch { lb.setAttribute("open", ""); } };
+  $("#lb-close").addEventListener("click", () => lb.close());
+  lb.addEventListener("click", (e) => { if (e.target === lb) lb.close(); });
+
+  document.querySelectorAll(".filters button").forEach((b) => {
+    b.setAttribute("aria-pressed", String(b.dataset.filter === state.filter));
+    b.addEventListener("click", () => {
+      state.filter = b.dataset.filter; store("tg-filter", state.filter);
+      document.querySelectorAll(".filters button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+      renderCards();
+    });
+  });
+
+  const stepsOf = (id) => state.steps.filter((s) => s.section === id).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  const notesOf = (id) => state.notes.filter((n) => n.section === id).sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
+  // A step waits on the maintainer when Claude flagged it and they have not marked it yet.
+  const needsYou = (s) => !!s.yourCheck && s.by !== "maintainer";
+  const evidenceSrc = (e) => (typeof e === "string" ? "/_blob/" + e : e.url || "/_blob/" + e.id);
+
+  function renderStrip() {
+    const testable = state.steps.filter((s) => (state.sections.find((x) => x.id === s.section) || {}).status === "ready");
+    const pass = testable.filter((s) => s.status === "pass").length;
+    const fail = testable.filter((s) => s.status === "fail").length;
+    const todo = testable.length - pass - fail;
+    const openDec = state.decisions.filter((d) => d.state === "open").length;
+    const newNotes = state.notes.filter((n) => (n.state || "new") === "new").length;
+    const strip = $("#strip"); strip.replaceChildren();
+    const stat = (cls, n, label) => strip.append(el("div", { class: "stat " + cls }, el("b", { text: n }), el("span", { class: "muted", text: label })));
+    const yours = testable.filter(needsYou).length;
+    stat(yours ? "warn" : "", yours, "need your eye");
+    stat("", todo, "steps to test");
+    stat("pass", pass, "work");
+    stat(fail ? "fail" : "", fail, "broken");
+    stat(openDec ? "warn" : "", openDec, openDec === 1 ? "decision waiting" : "decisions waiting");
+    stat("", newNotes, "notes not yet read by Claude");
+  }
+
+  function renderMeta() {
+    const m = state.meta;
+    if (!m) return;
+    if (m.title) { $("#title").textContent = m.title; }
+    $("#intro").replaceChildren(rich(m.intro || ""));
+    const list = $("#setup"); list.replaceChildren();
+    (m.setup || []).forEach((s) => list.append(el("li", {}, rich(s))));
+    $("#setup-panel").hidden = !(m.setup || []).length;
+  }
+
+  function renderDecisions() {
+    const box = $("#decisions"); box.replaceChildren();
+    const open = state.decisions.filter((d) => d.state === "open").sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    const answered = state.decisions.filter((d) => d.state === "answered");
+    if (!open.length) box.append(el("p", { class: "empty", text: answered.length ? `Nothing waiting on you. ${answered.length} answered, Claude picks them up next.` : "Nothing waiting on you." }));
+    open.forEach((d) => {
+      const id = "dec-" + d.id;
+      const ta = el("textarea", { id, placeholder: "Your answer, or pick an option above", "aria-label": "Answer: " + d.question });
+      ta.value = state.drafts[id] ?? d.answer ?? "";
+      ta.addEventListener("input", () => { state.drafts[id] = ta.value; });
+      const err = el("span", { class: "err" });
+      const save = el("button", { class: "btn", type: "button", text: "Send answer", onclick: async () => {
+        if (!ta.value.trim()) { err.textContent = "Write an answer or pick an option first."; return; }
+        save.disabled = true; err.textContent = "";
+        try { await db.doc("decisions/" + d.id).update({ answer: ta.value.trim(), state: "answered", answeredAt: new Date().toISOString() }); delete state.drafts[id]; }
+        catch (e) { err.textContent = "Not saved: " + (e && e.message ? e.message : "try again"); save.disabled = false; }
+      } });
+      box.append(el("div", { class: "decision" },
+        el("p", { class: "q" }, d.section ? el("span", { class: "mono muted", text: "#" + d.section + "  " }) : null, rich(d.question)),
+        d.context ? el("p", { class: "muted" }, rich(d.context)) : null,
+        (d.options || []).length ? el("div", { class: "chips" }, d.options.map((o) => el("button", { class: "chip-btn", type: "button", text: o, onclick: () => { ta.value = o; state.drafts[id] = o; ta.focus(); } }))) : null,
+        ta,
+        el("div", { class: "row" }, db ? save : el("span", { class: "muted", text: "Answers can't be saved in this view." }), err)
+      ));
+    });
+  }
+
+  function stepRow(s) {
+    const seg = el("div", { class: "seg", role: "group", "aria-label": "Result" });
+    [["todo", "Not tested"], ["pass", "Works"], ["fail", "Broken"]].forEach(([v, label]) => {
+      seg.append(el("button", { type: "button", class: "s-" + v, "aria-pressed": String((s.status || "todo") === v), text: label, disabled: !db, onclick: async () => {
+        try { await db.doc("steps/" + s.id).update({ status: v, by: "maintainer", at: new Date().toISOString() }); } catch { /* the snapshot keeps the stored value */ }
+      } }));
+    });
+    const ev = s.evidence || [];
+    const by = s.by === "claude" ? el("div", { class: "by" }, el("span", { class: "tag claude", text: "Checked by Claude" }), s.at ? el("span", { text: fmt(s.at) }) : null)
+      : s.by === "maintainer" ? el("div", { class: "by" }, el("span", { class: "tag", text: "Checked by you" })) : null;
+    return el("li", { class: "step " + (s.status === "pass" ? "pass" : s.status === "fail" ? "fail" : "") },
+      el("div", { class: "what" }, el("span", {}, rich(s.text)), s.expect ? el("span", { class: "expect" }, rich(s.expect)) : null,
+        by,
+        s.finding ? el("span", { class: "finding" }, rich(s.finding)) : null,
+        needsYou(s) ? el("span", { class: "yours" }, rich(s.yourCheck)) : null,
+        ev.length ? el("div", { class: "thumbs" }, ev.map((e) => el("button", { class: "thumb", type: "button", "aria-label": "Open evidence screenshot", title: e.label || "", onclick: () => showImage(evidenceSrc(e)) }, el("img", { src: evidenceSrc(e), alt: e.label || "Evidence screenshot", loading: "lazy" })))) : null),
+      seg);
+  }
+
+  function noteView(n) {
+    const st = n.state || "new";
+    const label = { new: "Not read yet", seen: "Read by Claude", done: "Handled" }[st] || st;
+    return el("div", { class: "note" },
+      el("div", { class: "nhead" }, el("span", { text: fmt(n.createdAt) }), el("span", { class: "state " + st, text: label })),
+      n.text ? el("p", { class: "ntext", text: n.text }) : null,
+      (n.images || []).length ? el("div", { class: "thumbs" }, n.images.map((id) => el("button", { class: "thumb", type: "button", "aria-label": "Open screenshot", onclick: () => showImage("/_blob/" + id) }, el("img", { src: "/_blob/" + id, alt: "Screenshot", loading: "lazy" })))) : null,
+      n.reply ? el("p", { class: "reply" }, el("b", { text: "Claude: " }), rich(n.reply)) : null);
+  }
+
+  function composer(sectionId) {
+    const key = "note-" + sectionId;
+    const draft = state.drafts[key] || (state.drafts[key] = { text: "", images: [], uploading: 0 });
+    const ta = el("textarea", { id: key, placeholder: assets ? "What did you find? Paste or drop screenshots here too." : "What did you find?", "aria-label": "Note for #" + sectionId });
+    ta.value = draft.text;
+    const thumbs = el("div", { class: "thumbs" });
+    const err = el("span", { class: "err" });
+    const save = el("button", { class: "btn", type: "button", text: "Add note" });
+    const refresh = () => {
+      thumbs.replaceChildren(...draft.images.map((img, i) => el("div", { class: "thumb" }, el("img", { src: img.url, alt: "Screenshot to attach" }), el("button", { class: "x", type: "button", "aria-label": "Remove screenshot", text: "✕", onclick: () => { draft.images.splice(i, 1); refresh(); } }))),
+        ...Array.from({ length: draft.uploading }, () => el("div", { class: "thumb loading", text: "Uploading…" })));
+      save.disabled = draft.uploading > 0 || (!ta.value.trim() && !draft.images.length);
+    };
+    const addFiles = async (files) => {
+      if (!assets) { err.textContent = "Screenshots can't be added in this view. Describe it in text."; return; }
+      const imgs = [...files].filter((f) => f.type && f.type.startsWith("image/"));
+      if (!imgs.length) return;
+      err.textContent = "";
+      draft.uploading += imgs.length; refresh();
+      for (const f of imgs) {
+        try { const r = await assets.upload(f); draft.images.push({ id: r.id, url: r.url }); }
+        catch (e) { err.textContent = e && e.code === "too_large" ? "That image is over 20 MB." : "A screenshot didn't upload: " + (e && e.message ? e.message : "try again"); }
+        draft.uploading -= 1; refresh();
+      }
+    };
+    ta.addEventListener("input", () => { draft.text = ta.value; refresh(); });
+    ta.addEventListener("paste", (e) => { const files = [...(e.clipboardData?.files || [])]; if (files.some((f) => f.type.startsWith("image/"))) { e.preventDefault(); addFiles(files); } });
+    const pick = el("input", { type: "file", accept: "image/*", multiple: true, hidden: true, onchange: (e) => { addFiles(e.target.files); e.target.value = ""; } });
+    const box = el("div", { class: "composer" }, ta, thumbs,
+      el("div", { class: "row" },
+        el("span", { class: "hint", text: assets ? "Paste (⌘V) or drop screenshots." : "" }),
+        assets ? el("button", { class: "btn ghost", type: "button", text: "Add image", onclick: () => pick.click() }) : null,
+        pick, db ? save : el("span", { class: "muted", text: "Notes can't be saved in this view." })),
+      err);
+    box.addEventListener("dragover", (e) => { if (assets) { e.preventDefault(); box.classList.add("drag"); } });
+    box.addEventListener("dragleave", () => box.classList.remove("drag"));
+    box.addEventListener("drop", (e) => { box.classList.remove("drag"); if (assets && e.dataTransfer?.files?.length) { e.preventDefault(); addFiles(e.dataTransfer.files); } });
+    save.addEventListener("click", async () => {
+      if (save.disabled) return;
+      save.disabled = true; err.textContent = "";
+      try {
+        await db.collection("notes").add({ section: sectionId, text: ta.value.trim(), images: draft.images.map((i) => i.id), state: "new", createdAt: new Date().toISOString() });
+        state.drafts[key] = { text: "", images: [], uploading: 0 };
+        renderCards();
+      } catch (e) { err.textContent = e && e.code === "quota_exceeded" ? "The guide is full. Ask Claude to archive old notes." : "Not saved: " + (e && e.message ? e.message : "try again"); save.disabled = false; }
+    });
+    refresh();
+    return box;
+  }
+
+  function renderCards() {
+    const box = $("#cards");
+    // Keep focus and caret if the viewer is typing while a snapshot lands.
+    const active = document.activeElement && document.activeElement.id;
+    const caret = active && document.activeElement.selectionStart;
+    box.replaceChildren();
+    let list = [...state.sections].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    if (state.filter === "fail") list = list.filter((s) => stepsOf(s.id).some((x) => x.status === "fail"));
+    if (state.filter === "yours") list = list.filter((s) => s.status === "ready" && (stepsOf(s.id).some(needsYou) || stepsOf(s.id).some((x) => x.status === "fail")));
+    if (state.filter === "open") list = list.filter((s) => s.status !== "superseded" && (stepsOf(s.id).some((x) => (x.status || "todo") !== "pass") || notesOf(s.id).some((n) => n.state !== "done") || s.status !== "ready"));
+    if (!state.sections.length) { box.append(el("p", { class: "empty", text: "Issues appear here as they are planned and merged. Each one lists the steps to try and has a box for your notes and screenshots." })); return; }
+    if (!list.length) { box.append(el("p", { class: "empty", text: state.filter === "fail" ? "Nothing marked broken." : state.filter === "yours" ? "Nothing waits on you. Claude checked every step it could." :"Everything here is tested and handled. Switch to All to see it." })); return; }
+    list.forEach((s) => {
+      const steps = stepsOf(s.id), notes = notesOf(s.id);
+      const passed = steps.filter((x) => x.status === "pass").length, failed = steps.filter((x) => x.status === "fail").length;
+      const statusPill = { ready: ["ready", "Ready to test"], "in-progress": ["progress", "Being built"], planned: ["planned", "Planned"], superseded: ["superseded", "Replaced"] }[s.status] || ["planned", s.status || ""];
+      const card = el("article", { class: "card" + (state.open.has(s.id) ? " open" : ""), id: "issue-" + s.id });
+      const head = el("div", { class: "card-head", role: "button", tabindex: "0", "aria-expanded": String(state.open.has(s.id)), onclick: () => toggle(), onkeydown: (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); } } },
+        el("span", { class: "num", text: "#" + s.id }),
+        el("div", { class: "t" }, el("h3", { text: s.title || "" }),
+          el("div", { class: "meta" }, el("span", { class: "pill " + statusPill[0], text: statusPill[1] }),
+            steps.length ? el("span", { class: "pill count", text: `${passed}/${steps.length} work` }) : null,
+            failed ? el("span", { class: "pill fails", text: `${failed} broken` }) : null,
+            notes.length ? el("span", { class: "pill count", text: notes.length === 1 ? "1 note" : `${notes.length} notes` }) : null,
+            s.pr ? el("span", { class: "mono muted", text: "PR #" + s.pr }) : null)),
+        el("span", { class: "caret", "aria-hidden": "true", text: "▸" }));
+      function toggle() { state.open.has(s.id) ? state.open.delete(s.id) : state.open.add(s.id); store("tg-open", JSON.stringify([...state.open])); card.classList.toggle("open"); head.setAttribute("aria-expanded", String(state.open.has(s.id))); }
+      const body = el("div", { class: "card-body" },
+        s.summary ? el("p", { class: "summary" }, rich(s.summary)) : null,
+        s.status !== "ready" && s.status !== "superseded" ? el("p", { class: "notready", text: "Not merged yet. The steps below are a preview. Wait for the Ready to test label before trying them." }) : null,
+        steps.length ? el("ol", { class: "steps" }, steps.map(stepRow)) : null,
+        el("div", { class: "notes" }, notes.map(noteView), s.status === "superseded" ? null : composer(s.id)));
+      card.append(head, body);
+      box.append(card);
+    });
+    if (active) { const n = document.getElementById(active); if (n) { n.focus(); try { if (caret != null) n.setSelectionRange(caret, caret); } catch {} } }
+  }
+
+  const renderAll = () => { renderMeta(); renderStrip(); renderDecisions(); renderCards(); };
+  const rows = (snap) => snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+  (async () => {
+    try { db = await window.claude?.use?.("db"); } catch { db = null; }
+    try { assets = await window.claude?.use?.("assets"); } catch { assets = null; }
+    if (!db) { $("#intro").textContent = "This view can't load the saved guide. Open it on claude.ai while signed in."; return; }
+    db.doc("meta/guide").onSnapshot((d) => { state.meta = d.exists ? d.data() : null; if (!state.meta) $("#intro").textContent = "This guide is empty so far."; renderMeta(); });
+    const live = (name) => db.collection(name).onSnapshot((snap) => { state[name] = rows(snap); renderAll(); }, () => {});
+    live("sections"); live("steps"); live("notes"); live("decisions");
+  })();
+})();
+</script>

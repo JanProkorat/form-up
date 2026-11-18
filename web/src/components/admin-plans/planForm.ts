@@ -214,7 +214,7 @@ export function formValuesToCreateRequest(values: PlanFormValues): CreateSubscri
 }
 
 /**
- * Builds the update body. Fields the editor does not edit (currency, billing, external price id)
+ * Builds the update body. Fields the editor does not edit (currency, billing)
  * keep the saved plan's value, and the cap key is always present.
  */
 export function formValuesToUpdateRequest(
@@ -234,7 +234,6 @@ export function formValuesToUpdateRequest(
     priceMinorUnits,
     currency: plan.currency ?? DEFAULT_CURRENCY,
     billingInterval: plan.billingInterval ?? BillingInterval.Monthly,
-    externalPriceId: plan.externalPriceId,
     isActive: isFreePlan(plan) ? true : values.isActive,
   };
 }

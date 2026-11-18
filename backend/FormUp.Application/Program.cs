@@ -201,6 +201,19 @@ builder.Services.AddRateLimiter(options =>
                     QueueLimit = 0
                 }));
 
+    // Promotion codes: partitioned by the coach's UserId, see AppPolicies.PromotionCodeRateLimit.
+    options.AddPolicy(AppPolicies.PromotionCodeRateLimit, context =>
+        rateLimitingDisabled
+            ? RateLimitPartition.GetNoLimiter("disabled")
+            : RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: context.User.FindFirst(AppClaims.UserId)?.Value ?? GetPartitionKey(context),
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 10,
+                    Window = TimeSpan.FromMinutes(15),
+                    QueueLimit = 0
+                }));
+
     // Anonymous notification email links: see AppPolicies.EmailLinkRateLimit for why this is not the auth budget.
     options.AddPolicy(AppPolicies.EmailLinkRateLimit, context =>
         rateLimitingDisabled
@@ -366,6 +379,13 @@ builder.Services.AddScoped<ISessionLockService, SessionLockService>();
 // Client app switches (optional "ClientApp" section; defaults show everything)
 builder.Services.Configure<FormUp.Application.Features.Client.GetClientAppConfig.ClientAppOptions>(
     builder.Configuration.GetSection(FormUp.Application.Features.Client.GetClientAppConfig.ClientAppOptions.SectionName));
+
+// Stripe billing seam. The secret key and webhook secret come only from the Stripe__SecretKey and
+// Stripe__WebhookSecret environment variables (or user-secrets); without them the app still boots and
+// ISubscriptionService.IsConfigured is false.
+builder.Services.Configure<FormUp.Application.Infrastructure.Services.Billing.BillingOptions>(
+    builder.Configuration.GetSection(FormUp.Application.Infrastructure.Services.Billing.BillingOptions.SectionName));
+builder.Services.AddSingleton<ISubscriptionService, FormUp.Application.Infrastructure.Services.Billing.StripeSubscriptionService>();
 
 // Compliance
 builder.Services.AddScoped<IComplianceService, ComplianceService>();

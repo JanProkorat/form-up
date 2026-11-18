@@ -46,7 +46,7 @@ public class AddRoleEndpointTests
         _userManager.AddToRoleAsync(user, AppRoles.Nutritionist).Returns(IdentityResult.Success);
 
         var ep = Factory.Create<AddRoleEndpoint>(
-            _userManager, db, CreateFakeConfig(), _audit);
+            _userManager, db, CreateFakeConfig(), _audit, Substitute.For<ISubscriptionService>(), TimeProvider.System);
         ep.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
             new System.Security.Claims.ClaimsIdentity(
                 EndpointTestHelpers.FakeUserClaims(userId, AppRoles.Trainer)));
@@ -74,7 +74,7 @@ public class AddRoleEndpointTests
         _userManager.AddToRoleAsync(user, AppRoles.Trainer).Returns(IdentityResult.Success);
 
         var ep = Factory.Create<AddRoleEndpoint>(
-            _userManager, db, CreateFakeConfig(), _audit);
+            _userManager, db, CreateFakeConfig(), _audit, Substitute.For<ISubscriptionService>(), TimeProvider.System);
         ep.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
             new System.Security.Claims.ClaimsIdentity(
                 EndpointTestHelpers.FakeUserClaims(userId, AppRoles.Nutritionist)));
@@ -99,7 +99,7 @@ public class AddRoleEndpointTests
             .Returns(new List<string> { AppRoles.Trainer, AppRoles.Nutritionist });
 
         var ep = Factory.Create<AddRoleEndpoint>(
-            _userManager, db, CreateFakeConfig(), _audit);
+            _userManager, db, CreateFakeConfig(), _audit, Substitute.For<ISubscriptionService>(), TimeProvider.System);
         ep.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
             new System.Security.Claims.ClaimsIdentity(
                 EndpointTestHelpers.FakeUserClaims(userId, AppRoles.Trainer)));
@@ -139,7 +139,7 @@ public class AddRoleEndpointTests
         var db = new MockDbBuilder().Build();
 
         var ep = Factory.Create<AddRoleEndpoint>(
-            _userManager, db, CreateFakeConfig(), _audit);
+            _userManager, db, CreateFakeConfig(), _audit, Substitute.For<ISubscriptionService>(), TimeProvider.System);
         ep.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
             new System.Security.Claims.ClaimsIdentity(
                 EndpointTestHelpers.FakeUserClaims(userId, AppRoles.Trainer)));
@@ -157,7 +157,7 @@ public class AddRoleEndpointTests
         var db = new MockDbBuilder().Build();
 
         var ep = Factory.Create<AddRoleEndpoint>(
-            _userManager, db, CreateFakeConfig(), _audit);
+            _userManager, db, CreateFakeConfig(), _audit, Substitute.For<ISubscriptionService>(), TimeProvider.System);
         ep.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
             new System.Security.Claims.ClaimsIdentity(
                 EndpointTestHelpers.FakeUserClaims(userId, AppRoles.Trainer)));
@@ -185,7 +185,7 @@ public class AddRoleEndpointTests
         _userManager.AddToRoleAsync(user, AppRoles.Nutritionist).Returns(IdentityResult.Success);
 
         var ep = Factory.Create<AddRoleEndpoint>(
-            _userManager, db, CreateFakeConfig(), _audit);
+            _userManager, db, CreateFakeConfig(), _audit, Substitute.For<ISubscriptionService>(), TimeProvider.System);
         ep.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
             new System.Security.Claims.ClaimsIdentity(
                 EndpointTestHelpers.FakeUserClaims(userId, AppRoles.Trainer)));

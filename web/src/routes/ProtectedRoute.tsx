@@ -1,4 +1,5 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { CheckoutActivationWatcher } from '@/components/subscription/CheckoutActivationWatcher';
 import { useAuthStore } from '@/stores/auth';
 
 export default function ProtectedRoute() {
@@ -25,5 +26,10 @@ export default function ProtectedRoute() {
     return <Navigate to="/download-app" replace />;
   }
 
-  return <Outlet />;
+  return (
+    <>
+      <Outlet />
+      <CheckoutActivationWatcher />
+    </>
+  );
 }

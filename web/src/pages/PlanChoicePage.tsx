@@ -2,11 +2,16 @@ import { useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Info, LogOut } from 'lucide-react';
-import type { CoachPlanDto } from '@/api/generated';
+import { CheckoutFlow, type CoachPlanDto } from '@/api/generated';
 import Wordmark from '@/components/brand/Wordmark';
 import KeepClientsTable from '@/components/subscription/KeepClientsTable';
 import PlanCard from '@/components/subscription/PlanCard';
 import { coachPlanName } from '@/components/subscription/planNames';
+import { planDisplayPrice, secondRoleAddOnOf } from '@/components/subscription/planPricing';
+import TaxNote from '@/components/subscription/TaxNote';
+import UpgradePaymentNotice from '@/components/subscription/UpgradePaymentNotice';
+import { usePlanSelection } from '@/components/subscription/usePlanSelection';
+import { useActiveRoles } from '@/hooks/useActiveRoles';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -39,10 +44,16 @@ export default function PlanChoicePage() {
   const keepQuery = useKeepClients(decisionRequired);
   const chooseMutation = useChooseFreePlan();
   const keepMutation = useSetKeepClients();
+  const selection = usePlanSelection(CheckoutFlow.Settings);
+  const { hasRole } = useActiveRoles();
+  // Prices include the second-role add-on for a coach who holds both roles.
+  const bothRoles = hasRole('Trainer') && hasRole('Nutritionist');
   const saving = chooseMutation.isPending || keepMutation.isPending;
   const [step, setStep] = useState<'plans' | 'keep'>('plans');
   // null = untouched: the selection is whatever Free keeps by default.
   const [choice, setChoice] = useState<ReadonlySet<string> | null>(null);
+  // The card whose button started the running request: only that one shows the spinner.
+  const [clickedCode, setClickedCode] = useState<string | null>(null);
 
   const clients = keepQuery.data?.clients ?? [];
   const cap = keepQuery.data?.cap ?? null;
@@ -121,7 +132,9 @@ export default function PlanChoicePage() {
         ? t('subscription.planChoice.decision.lapse', { plan: lapsedPlan, count: limit, have })
         : t('subscription.planChoice.decision.free', { count: limit, have });
 
-  const actionFor = (item: CoachPlanDto): { label: string; primary: boolean; disabled: boolean; current: boolean } => {
+  const actionFor = (
+    item: CoachPlanDto,
+  ): { label: string; primary: boolean; current: boolean; onClick: () => void } => {
     const name = coachPlanName(item, i18n.language);
     if (item.code === currentCode) {
       return {
@@ -129,15 +142,25 @@ export default function PlanChoicePage() {
           ? t('subscription.planChoice.card.keep', { plan: name, count: required })
           : t('subscription.planChoice.card.keepAll', { plan: name }),
         primary: true,
-        disabled: false,
         current: true,
+        onClick: keepCurrent,
       };
     }
-    // Nothing else is takeable yet: a paid plan waits for billing, and a paid coach has no path down to Free.
+    // Free ends a paid plan at the end of the period; a paid plan goes through Stripe Checkout.
     if (item.code === FREE_PLAN_CODE) {
-      return { label: t('subscription.planChoice.card.switchFree'), primary: false, disabled: true, current: false };
+      return {
+        label: t('subscription.planChoice.card.switchFree'),
+        primary: false,
+        current: false,
+        onClick: () => selection.switchToFree(name),
+      };
     }
-    return { label: t('subscription.planChoice.card.upgrade', { plan: name }), primary: true, disabled: true, current: false };
+    return {
+      label: t('subscription.planChoice.card.upgrade', { plan: name }),
+      primary: true,
+      current: false,
+      onClick: () => selection.choosePaid(item, bothRoles && secondRoleAddOnOf(item) !== null),
+    };
   };
 
   return (
@@ -218,6 +241,16 @@ export default function PlanChoicePage() {
               <p className="text-copy text-muted-foreground">{subtitle}</p>
             </div>
 
+            {selection.awaitingPayment && (
+              <UpgradePaymentNotice
+                plan={selection.awaitingPayment.planName}
+                current={currentName}
+                paymentUrl={selection.awaitingPayment.paymentUrl}
+                onOpen={selection.startPaymentWatch}
+                onDismiss={selection.dismissAwaitingPayment}
+              />
+            )}
+
             {plansQuery.isError ? (
               <div role="alert" className="flex flex-col items-start gap-3">
                 <p className="text-copy text-error">{t('subscription.planChoice.loadError')}</p>
@@ -234,23 +267,31 @@ export default function PlanChoicePage() {
             ) : plansQuery.isPending ? (
               <Skeleton className="h-96 w-full rounded-2xl" />
             ) : (
-              <div className="grid items-stretch gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                {plans.map((item) => {
-                  const action = actionFor(item);
-                  return (
-                    <PlanCard
-                      key={item.code}
-                      plan={item}
-                      current={action.current}
-                      actionLabel={action.label}
-                      primary={action.primary}
-                      actionDisabled={action.disabled}
-                      busy={saving || (action.current && keepQuery.isPending)}
-                      onAction={keepCurrent}
-                    />
-                  );
-                })}
-              </div>
+              <>
+                <div className="grid items-stretch gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                  {plans.map((item) => {
+                    const action = actionFor(item);
+                    return (
+                      <PlanCard
+                        key={item.code}
+                        plan={item}
+                        current={action.current}
+                        actionLabel={action.label}
+                        primary={action.primary}
+                        actionDisabled={false}
+                        busy={saving || selection.busy || (action.current && keepQuery.isPending)}
+                        priceMinorUnits={planDisplayPrice(item, bothRoles)}
+                        pending={clickedCode === item.code && (saving || selection.busy)}
+                        onAction={() => {
+                          setClickedCode(item.code ?? null);
+                          action.onClick();
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+                <TaxNote taxMode={plansQuery.data?.taxMode} />
+              </>
             )}
           </>
         )}

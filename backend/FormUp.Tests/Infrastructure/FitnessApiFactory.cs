@@ -19,6 +19,9 @@ namespace FormUp.Tests.Infrastructure;
 /// </summary>
 public class FitnessApiFactory(SharedTestContainers sharedContainers) : WebApplicationFactory<Program>, IAsyncLifetime
 {
+    /// <summary>Webhook signing secret the test host verifies against; a test-only constant, not a credential.</summary>
+    public const string TestWebhookSecret = "test-only-webhook-signing-secret";
+
     private string _postgresConnectionString = string.Empty;
     private string _mongoDatabaseName = string.Empty;
 
@@ -31,6 +34,7 @@ public class FitnessApiFactory(SharedTestContainers sharedContainers) : WebAppli
         builder.UseSetting("MINIO_SECRET_KEY", "test");
         builder.UseSetting("JWT_SECRET", new string('x', 64));
         builder.UseSetting("RateLimiting:Disabled", "true");
+        builder.UseSetting("Stripe:WebhookSecret", TestWebhookSecret);
 
         // Provide placeholder connection strings so Program.cs ConnectionStringFactory
         // does not throw during host startup.  The real DB contexts are replaced below
@@ -109,6 +113,17 @@ public class FitnessApiFactory(SharedTestContainers sharedContainers) : WebAppli
             services.AddSingleton<FakePushNotificationService>();
             services.AddSingleton<IPushNotificationService>(
                 sp => sp.GetRequiredService<FakePushNotificationService>());
+
+            // Replace the Stripe seam with an in-memory fake so no test makes a network call and billing
+            // behaviour can be asserted. Tests reset it before use; it is shared across the host.
+            var subscriptionDescriptor = services.SingleOrDefault(
+                d => d.ServiceType == typeof(ISubscriptionService));
+            if (subscriptionDescriptor is not null)
+                services.Remove(subscriptionDescriptor);
+
+            services.AddSingleton<FakeSubscriptionService>();
+            services.AddSingleton<ISubscriptionService>(
+                sp => sp.GetRequiredService<FakeSubscriptionService>());
 
             // #1104: PBKDF2 at the production default (100,000 iterations) is deliberately slow
             // and dominates every real register/login round trip in the suite. Test-host-only —

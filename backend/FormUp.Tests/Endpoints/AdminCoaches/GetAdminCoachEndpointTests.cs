@@ -10,6 +10,7 @@ using FormUp.Application.Features.AdminCoaches.GetAdminCoach;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Tests.Builders;
 using FormUp.Tests.Infrastructure;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace FormUp.Tests.Endpoints.AdminCoaches;
@@ -121,6 +122,31 @@ public class GetAdminCoachEndpointTests(FitnessApiFactory factory)
         detail.FreePlanMaxActiveClients.Should().Be(2);
     }
 
+    [Theory]
+    [InlineData(SubscriptionStatus.Active, true, true)]
+    [InlineData(SubscriptionStatus.Incomplete, true, true)]
+    [InlineData(SubscriptionStatus.Canceled, true, false)]
+    [InlineData(SubscriptionStatus.Active, false, false)]
+    public async Task Get_ReportsACancellableStripeSubscription_AndTheAddOn(SubscriptionStatus status, bool withStripeId, bool cancellable)
+    {
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var plan = await PaidPlanBuilder.CreateAsync(factory);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, plan, status, paysSecondRoleAddOn: true);
+
+        if (withStripeId)
+        {
+            using var scope = factory.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            await db.CoachSubscriptions.Where(cs => cs.ProfessionalProfileId == coach.ProfileId)
+                .ExecuteUpdateAsync(s => s.SetProperty(cs => cs.ExternalSubscriptionId, $"sub_{Guid.NewGuid():N}"), Ct);
+        }
+
+        var detail = await GetAsync(admin, coach.UserId);
+
+        detail.HasCancellableSubscription.Should().Be(cancellable);
+    }
+
     [Fact]
     public async Task Get_AfterAdminAndCoachActions_ListsThemNewestFirstWithTheActorAndReason()
     {
@@ -137,7 +163,7 @@ public class GetAdminCoachEndpointTests(FitnessApiFactory factory)
         var detail = await GetAsync(admin, coach.UserId);
 
         detail.Status.Should().Be(AdminCoachStatus.GivenFree);
-        detail.Roles.Should().BeEmpty("the account ended at once");
+        detail.Roles.Should().NotBeEmpty("the account stays active until the plan set by Form Up ends (#2177)");
         detail.History.Select(entry => entry.Kind).Should().Equal(
             AdminCoachHistoryKind.AccountDisabled, AdminCoachHistoryKind.GivenFree, AdminCoachHistoryKind.Joined);
 

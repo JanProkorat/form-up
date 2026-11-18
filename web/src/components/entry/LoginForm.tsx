@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 import { Apple, EyeIcon, EyeOffIcon } from 'lucide-react';
@@ -28,19 +28,28 @@ import { Checkbox } from '@/components/ui/checkbox';
  */
 class ProfileLoadError extends Error {}
 
-/** In-app path only; anything else (protocol-relative, backslash, /login itself) falls back to /clients. */
-function resolveReturnTo(state: unknown): string {
-  const from = (state as { from?: unknown } | null)?.from;
+/** In-app path only: no protocol-relative, backslash, /login, or control/whitespace characters (browsers strip them). */
+function isSafeInAppPath(value: unknown): value is string {
   if (
-    typeof from === 'string' &&
-    from.startsWith('/') &&
-    !from.startsWith('//') &&
-    !from.startsWith('/\\') &&
-    !from.startsWith('/login')
+    typeof value !== 'string' ||
+    !value.startsWith('/') ||
+    value.startsWith('//') ||
+    value.startsWith('/\\') ||
+    value.startsWith('/login')
   ) {
-    return from;
+    return false;
   }
-  return '/clients';
+  return ![...value].some((ch) => {
+    const code = ch.charCodeAt(0);
+    return code <= 0x20 || (code >= 0x7f && code <= 0x9f) || /\s/.test(ch);
+  });
+}
+
+/** Query-string `returnTo` first (survives reloads and new tabs), then router state, then /clients. */
+function resolveReturnTo(queryValue: string | null, state: unknown): string {
+  if (isSafeInAppPath(queryValue)) return queryValue;
+  const from = (state as { from?: unknown } | null)?.from;
+  return isSafeInAppPath(from) ? from : '/clients';
 }
 
 interface LoginFormValues {
@@ -68,6 +77,7 @@ export default function LoginForm() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const setTokens = useAuthStore((s) => s.setTokens);
   const storeLogin = useAuthStore((s) => s.login);
   const storeLogout = useAuthStore((s) => s.logout);
@@ -129,7 +139,7 @@ export default function LoginForm() {
       );
     },
     onSuccess: () => {
-      navigate(resolveReturnTo(location.state), { replace: true });
+      navigate(resolveReturnTo(searchParams.get('returnTo'), location.state), { replace: true });
     },
   });
 

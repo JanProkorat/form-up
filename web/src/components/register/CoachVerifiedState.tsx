@@ -1,16 +1,15 @@
-import { Link } from 'react-router-dom';
+import { Link, createSearchParams } from 'react-router-dom';
 import { CalendarIcon, CheckIcon, ChevronRightIcon, MessageSquareIcon } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import RegisterStepper from '@/components/register/RegisterStepper';
+import { REGISTER_PLAN_PATH } from '@/components/subscription/planLinks';
 
 interface CoachVerifiedStateProps {
   firstName: string;
-  /** Primary action target; "/login" (carrying return-to /profile) when the stored session is stale. */
-  profileTo: '/profile' | '/login';
-  /** Skip link target; "/login" when the stored session is stale and cannot pass the auth guard. */
-  skipTo: '/clients' | '/login';
+  /** True when there is no usable session: both actions go through "/login" and say so. */
+  needsSignIn: boolean;
 }
 
 function NextStep({ icon: Icon, title, hint }: { icon: LucideIcon; title: string; hint: string }) {
@@ -28,7 +27,7 @@ function NextStep({ icon: Icon, title, hint }: { icon: LucideIcon; title: string
 }
 
 /** Final register step for coaches: the account is verified, next they set up a profile or enter the portal. */
-export default function CoachVerifiedState({ firstName, profileTo, skipTo }: CoachVerifiedStateProps) {
+export default function CoachVerifiedState({ firstName, needsSignIn }: CoachVerifiedStateProps) {
   const { t } = useTranslation();
 
   return (
@@ -54,20 +53,27 @@ export default function CoachVerifiedState({ firstName, profileTo, skipTo }: Coa
 
         <Button asChild className="h-12 gap-2 self-stretch rounded-field text-subhead font-bold">
           <Link
-            to={profileTo}
+            to={
+              needsSignIn
+                ? { pathname: '/login', search: `?${createSearchParams({ returnTo: REGISTER_PLAN_PATH })}` }
+                : REGISTER_PLAN_PATH
+            }
             replace
-            state={profileTo === '/login' ? { from: '/profile' } : undefined}
           >
-            {t('entry.verifyEmail.coach.setUpProfile')}
+            {needsSignIn
+              ? t('entry.verifyEmail.coach.signInToChoosePlan')
+              : t('entry.verifyEmail.coach.choosePlan')}
             <ChevronRightIcon aria-hidden="true" />
           </Link>
         </Button>
         <Link
-          to={skipTo}
+          to={needsSignIn ? '/login' : '/clients'}
           replace
           className="text-body font-semibold text-muted-foreground underline hover:text-ink"
         >
-          {t('entry.verifyEmail.coach.skip')}
+          {needsSignIn
+            ? t('entry.verifyEmail.coach.signInToSkip')
+            : t('entry.verifyEmail.coach.skip')}
         </Link>
 
         <section className="flex flex-col self-stretch pt-1.5">
