@@ -143,3 +143,11 @@ export function renderNutritionTab() {
     auth: { roles: ['Nutritionist'] },
   });
 }
+
+/** Mounts ClientDetailPage on the Overview tab, signed in with `roles`. */
+export function renderOverviewTab(roles: string[] = ['Nutritionist']) {
+  return renderWithProviders([{ path: '/clients/:clientId/*', element: <ClientDetailPage /> }], {
+    initialEntries: [`/clients/${CLIENT_ID}`],
+    auth: { roles },
+  });
+}
