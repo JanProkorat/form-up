@@ -6886,8 +6886,8 @@
         "refundNotice": "The coach's paid Stripe subscription is cancelled now and the unused days are refunded to their card.",
         "dialogTitle": "End plan now?",
         "dialogDescription": "{{name}} moves from {{plan}} to Free today and isn't charged again.",
-        "callout_one": "{{name}} has {{count}} client and Free allows {{max}}. Next time they sign in, they pick which to keep. The other clients' plans run until their last published week.",
-        "callout_other": "{{name}} has {{count}} clients and Free allows {{max}}. Next time they sign in, they pick which to keep. The other clients' plans run until their last published week.",
+        "callout_one": "{{name}} has {{count}} client and Free allows {{max}}. As soon as they open the app or move to another page, they pick which to keep. The other clients' plans run until their last published week.",
+        "callout_other": "{{name}} has {{count}} clients and Free allows {{max}}. As soon as they open the app or move to another page, they pick which to keep. The other clients' plans run until their last published week.",
         "placeholder": "Why are you ending the plan?",
         "cancel": "Cancel",
         "confirm": "End plan now"

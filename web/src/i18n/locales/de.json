@@ -6891,8 +6891,8 @@
         "refundNotice": "Das bezahlte Stripe-Abonnement des Trainers wird jetzt gekündigt, und die ungenutzten Tage werden auf die Karte zurückerstattet.",
         "dialogTitle": "Plan jetzt beenden?",
         "dialogDescription": "{{name}} wechselt heute vom Plan {{plan}} auf Kostenlos und wird nicht mehr belastet.",
-        "callout_one": "{{name}} hat {{count}} Kunde und Kostenlos erlaubt {{max}}. Bei der nächsten Anmeldung wählt der Trainer aus, welche er behält. Die Pläne der übrigen Kunden laufen bis zur letzten veröffentlichten Woche.",
-        "callout_other": "{{name}} hat {{count}} Kunden und Kostenlos erlaubt {{max}}. Bei der nächsten Anmeldung wählt der Trainer aus, welche er behält. Die Pläne der übrigen Kunden laufen bis zur letzten veröffentlichten Woche.",
+        "callout_one": "{{name}} hat {{count}} Kunde und Kostenlos erlaubt {{max}}. Sobald der Trainer die App öffnet oder auf eine andere Seite wechselt, wählt er aus, welche er behält. Die Pläne der übrigen Kunden laufen bis zur letzten veröffentlichten Woche.",
+        "callout_other": "{{name}} hat {{count}} Kunden und Kostenlos erlaubt {{max}}. Sobald der Trainer die App öffnet oder auf eine andere Seite wechselt, wählt er aus, welche er behält. Die Pläne der übrigen Kunden laufen bis zur letzten veröffentlichten Woche.",
         "placeholder": "Warum beenden Sie den Plan?",
         "cancel": "Abbrechen",
         "confirm": "Plan jetzt beenden"
