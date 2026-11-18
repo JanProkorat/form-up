@@ -28,8 +28,56 @@ permissions:
   contents: read
 
 jobs:
-  playwright:
+  # Reads the shard groups from web/tests/e2e/ci-shards.json so the matrix
+  # below and the coverage check share one source.
+  e2e-plan:
     runs-on: ubuntu-latest
+    outputs:
+      groups: ${{ steps.groups.outputs.groups }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: web/tests/e2e/ci-shards.json
+          sparse-checkout-cone-mode: false
+
+      - name: Read shard groups
+        id: groups
+        run: echo "groups=$(jq -c . web/tests/e2e/ci-shards.json)" >> "$GITHUB_OUTPUT"
+
+  # Fails when a Playwright test is in no shard group, or in two.
+  # Runs alongside the shards; needs no harness, only `--list`.
+  e2e-shard-coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install web dependencies
+        run: npm ci
+        working-directory: web
+
+      - name: Every test runs in exactly one shard group
+        run: node tests/e2e/ci-shards-check.mjs
+        working-directory: web
+
+  playwright:
+    name: playwright (${{ matrix.group }})
+    needs: e2e-plan
+    runs-on: ubuntu-latest
+    strategy:
+      # One shard failing must not cancel the others: each is a separate
+      # part of the suite and its result is needed on its own.
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.e2e-plan.outputs.groups) }}
     env:
       # Pass the branch name through to scripts/test-env so the per-branch
       # COMPOSE_PROJECT_NAME is stable across this job's steps (each step
@@ -140,6 +188,8 @@ jobs:
       - name: Wiki screen inventory check
         # Validates docs/wiki/screens.json against the harness's live Swagger,
         # so an endpoint rename or a deleted page file fails here, not in Notion.
+        # One shard group runs it; every shard boots the same API.
+        if: matrix.wikiCheck
         run: |
           set -euo pipefail
           python3 scripts/test_wiki_check.py
@@ -149,10 +199,31 @@ jobs:
           curl -ksSf "$E2E_API_URL/swagger/v1/swagger.json" -o "$RUNNER_TEMP/swagger.json"
           python3 scripts/wiki-check.py --swagger "$RUNNER_TEMP/swagger.json"
 
-      - name: Run Playwright tests (host suite — regression smoke)
-        run: npx playwright test
+      - name: Run Playwright tests (host suite — ${{ matrix.group }})
+        # Each shard runs the projects its group in web/tests/e2e/ci-shards.json
+        # names, on its own freshly seeded harness. `after` is a second run on
+        # the same harness for a project that must follow the first run, kept
+        # out of a dependency chain so the chain can split across shards. It
+        # writes to after/ subfolders so the first run's evidence survives.
+        run: |
+          # Actions runs bash with -e; turn it off so a failing first run
+          # still lets the `after` run report, and exit with the first failure.
+          set +e -uo pipefail
+          read -ra first <<< "$SHARD_ARGS"
+          npx playwright test "${first[@]}"
+          rc=$?
+          if [ -n "$SHARD_AFTER" ]; then
+            read -ra after <<< "$SHARD_AFTER"
+            PLAYWRIGHT_HTML_OUTPUT_DIR=playwright-report/after \
+              npx playwright test "${after[@]}" --output=test-results/after
+            rc2=$?
+            [ "$rc" -eq 0 ] && rc=$rc2
+          fi
+          exit "$rc"
         working-directory: web
         env:
+          SHARD_ARGS: ${{ matrix.args }}
+          SHARD_AFTER: ${{ matrix.after || '' }}
           E2E_API_URL: ${{ env.E2E_API_URL }}
           CI: 'true'
           # Pass secrets explicitly so auth.setup.ts receives them even before
@@ -195,7 +266,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: qa-artifacts-${{ github.run_number }}
+          name: qa-artifacts-${{ github.run_number }}-${{ matrix.group }}
           path: .qa-artifacts/
           retention-days: 7
           if-no-files-found: ignore
@@ -204,7 +275,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-${{ github.run_number }}
+          name: playwright-report-${{ github.run_number }}-${{ matrix.group }}
           path: web/playwright-report/
           retention-days: 7
           if-no-files-found: ignore
@@ -213,7 +284,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-test-results-${{ github.run_number }}
+          name: playwright-test-results-${{ github.run_number }}-${{ matrix.group }}
           path: web/test-results/
           retention-days: 7
           if-no-files-found: ignore
@@ -229,3 +300,23 @@ jobs:
       - name: Remove .env.test
         if: always()
         run: rm -f .env.test
+
+  # One check that is green only when every shard and the coverage check
+  # passed — the single E2E result to read on a PR.
+  e2e-result:
+    name: E2E result
+    needs: [e2e-plan, e2e-shard-coverage, playwright]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: All E2E jobs passed
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Job results: $RESULTS"
+          for r in $RESULTS; do
+            if [ "$r" != "success" ]; then
+              echo "::error::An E2E job did not succeed ($RESULTS)"
+              exit 1
+            fi
+          done
