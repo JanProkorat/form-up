@@ -206,6 +206,12 @@ internal sealed class StripeWebhookEndpoint(
             return false;
         }
 
+        // Runs before every write to the row, so a duplicate never moves the stale-event clock or notifies the coach.
+        if (TracksDifferentLiveSubscription(row, subscription.Id))
+        {
+            return await HandleDuplicateSubscriptionAsync(stripeEvent, row, subscription, ct);
+        }
+
         if (IsStale(stripeEvent, row))
         {
             // The updated event that carried the new items may have been applied first; the scheduled-change marker still goes.
@@ -274,6 +280,43 @@ internal sealed class StripeWebhookEndpoint(
             await GrantPaidRoleAsync(subscription, planPrice, row, ct);
         }
 
+        return true;
+    }
+
+    /// <summary>
+    /// True when the row tracks a live, paid provider subscription other than <paramref name="subscriptionId"/>. A given plan
+    /// (GivenFreeAt set) never counts: a stale id there is only what the admin's cancel left behind.
+    /// </summary>
+    private static bool TracksDifferentLiveSubscription(CoachSubscription row, string subscriptionId) =>
+        !string.IsNullOrEmpty(row.ExternalSubscriptionId)
+        && row.ExternalSubscriptionId != subscriptionId
+        && row.GivenFreeAt is null
+        && row.Status is SubscriptionStatus.Active or SubscriptionStatus.Trialing or SubscriptionStatus.PastDue;
+
+    /// <summary>
+    /// A second subscription of a coach whose row already tracks a live one (two Checkout sessions both paid). It is never
+    /// applied; when it is live it is cancelled and refunded, otherwise ignored. A provider failure propagates so Stripe retries.
+    /// </summary>
+    private async Task<bool> HandleDuplicateSubscriptionAsync(
+        Event stripeEvent, CoachSubscription row, Subscription subscription, CancellationToken ct)
+    {
+        var isLive = StripeWebhookMapper.ToStatus(subscription.Status) is SubscriptionStatus.Active or SubscriptionStatus.Trialing or SubscriptionStatus.PastDue;
+
+        if (!isLive || !subscriptions.IsConfigured)
+        {
+            logger.LogInformation(
+                "Stripe event {EventId} is for a second subscription of coach profile {ProfileId} that is not live; ignored",
+                stripeEvent.Id, row.ProfessionalProfileId);
+            return false;
+        }
+
+        logger.LogWarning(
+            "Stripe event {EventId} is for a second live subscription of coach profile {ProfileId}; cancelling it",
+            stripeEvent.Id, row.ProfessionalProfileId);
+        await subscriptions.CancelNowAsync(subscription.Id, ct);
+
+        // The event id is recorded (true) but the row is left unchanged (_changedRow stays null), so a Stripe replay is
+        // answered from the processed-events table and never calls the provider again.
         return true;
     }
 
@@ -405,6 +448,16 @@ internal sealed class StripeWebhookEndpoint(
             return false;
         }
 
+        // An abandoned second subscription must not restore or clear anything on the tracked one. Recorded (true) like
+        // the other duplicate path, with the row unchanged.
+        if (TracksDifferentLiveSubscription(row, subscription.Id))
+        {
+            logger.LogInformation(
+                "Stripe event {EventId} expired an update of a second subscription of coach profile {ProfileId}; ignored",
+                stripeEvent.Id, row.ProfessionalProfileId);
+            return true;
+        }
+
         if (!subscriptions.IsConfigured)
         {
             return true;
@@ -428,6 +481,15 @@ internal sealed class StripeWebhookEndpoint(
         if (row is null)
         {
             logger.LogWarning("Stripe event {EventId} ({EventType}) matches no coach; ignored", stripeEvent.Id, stripeEvent.Type);
+            return false;
+        }
+
+        // The row tracks another subscription (the duplicate we cancelled ends here); its end must not wipe the tracked one.
+        if (!string.IsNullOrEmpty(row.ExternalSubscriptionId) && row.ExternalSubscriptionId != subscription.Id)
+        {
+            logger.LogInformation(
+                "Stripe event {EventId} ended a subscription the coach profile {ProfileId} does not track; ignored",
+                stripeEvent.Id, row.ProfessionalProfileId);
             return false;
         }
 

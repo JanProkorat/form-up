@@ -7,6 +7,7 @@ using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Interfaces;
 using FormUp.Application.Domain.Services;
 using FormUp.Application.Infrastructure.Data;
+using FormUp.Application.Infrastructure.Services.Billing;
 using FormUp.Tests.Builders;
 using FormUp.Tests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -1197,6 +1198,185 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
         response.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
         (await ProcessedCountAsync(eventId)).Should().Be(0, "a retry from Stripe must be able to reprocess the event");
         (await ReadRowAsync(scenario.Coach.ProfileId)).Status.Should().Be(SubscriptionStatus.Active, "the staged change rolls back with the event id");
+    }
+
+    /// <summary>A coach whose row tracks live subscription A, and a second subscription B of the same customer and price.</summary>
+    private async Task<(Scenario Tracked, Scenario Duplicate, FakeSubscriptionService Fake)> ArrangeTrackedAndDuplicateAsync()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var tracked = await ArrangeOnPaidPlanAsync();
+
+        return (tracked, tracked with { SubscriptionId = $"sub_{Guid.NewGuid():N}" }, fake);
+    }
+
+    private async Task AssertStillTracksAsync(Scenario tracked)
+    {
+        var row = await ReadRowAsync(tracked.Coach.ProfileId);
+
+        row.ExternalSubscriptionId.Should().Be(tracked.SubscriptionId);
+        row.Status.Should().Be(SubscriptionStatus.Active);
+        row.LastExternalEventAt.Should().BeNull("the duplicate must not move the stale-event clock");
+    }
+
+    [Fact]
+    public async Task Webhook_SecondSubscriptionCreatedActive_KeepsTheTrackedOne_AndCancelsTheDuplicate()
+    {
+        var (tracked, duplicate, fake) = await ArrangeTrackedAndDuplicateAsync();
+        var notifiedBefore = CallsTo(tracked.Coach).Count;
+
+        var response = await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.created", duplicate, "active", created: Now, subscriptionCreated: Now));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        await AssertStillTracksAsync(tracked);
+        fake.CancelledNow.Should().Equal(duplicate.SubscriptionId);
+        CallsTo(tracked.Coach).Count.Should().Be(notifiedBefore, "the row did not change");
+    }
+
+    [Fact]
+    public async Task Webhook_SecondSubscriptionCreatedIncomplete_IsIgnored_ThenCancelledOnceItBecomesActive()
+    {
+        var (tracked, duplicate, fake) = await ArrangeTrackedAndDuplicateAsync();
+
+        var created = await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.created", duplicate, "incomplete", created: Now, subscriptionCreated: Now));
+
+        created.StatusCode.Should().Be(HttpStatusCode.OK);
+        await AssertStillTracksAsync(tracked);
+        fake.CancelledNow.Should().BeEmpty("an unpaid subscription is not cancelled yet");
+
+        var activated = await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.updated", duplicate, "active", created: Now + 1, subscriptionCreated: Now));
+
+        activated.StatusCode.Should().Be(HttpStatusCode.OK);
+        await AssertStillTracksAsync(tracked);
+        fake.CancelledNow.Should().Equal(duplicate.SubscriptionId);
+    }
+
+    [Fact]
+    public async Task Webhook_SecondSubscriptionUpdatedCanceled_ChangesNothing_AndCancelsNothing()
+    {
+        var (tracked, duplicate, fake) = await ArrangeTrackedAndDuplicateAsync();
+
+        var response = await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.updated", duplicate, "canceled", created: Now, subscriptionCreated: Now));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        await AssertStillTracksAsync(tracked);
+        fake.CancelledNow.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Webhook_SecondSubscriptionDeleted_LeavesTheTrackedOneActive()
+    {
+        var (tracked, duplicate, fake) = await ArrangeTrackedAndDuplicateAsync();
+
+        var response = await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.deleted", duplicate, "canceled", created: Now, subscriptionCreated: Now));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        await AssertStillTracksAsync(tracked);
+        (await ReadRowAsync(tracked.Coach.ProfileId)).SubscriptionPlan.Code.Should().Be(tracked.PlanCode);
+        fake.CancelledNow.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Webhook_SecondSubscriptionActiveEventReplayed_CancelsOnce_AndLeavesTheRowAlone()
+    {
+        // Chosen path: the duplicate's event id is recorded (the event counts as handled) without marking the row changed,
+        // so a Stripe replay is answered from the processed-events table and never reaches the provider again.
+        var (tracked, duplicate, fake) = await ArrangeTrackedAndDuplicateAsync();
+        var eventId = NewEventId();
+        var payload = SubscriptionEvent(eventId, "customer.subscription.created", duplicate, "active", created: Now, subscriptionCreated: Now);
+
+        await PostAsync(payload);
+        var replay = await PostAsync(payload);
+
+        replay.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await ProcessedCountAsync(eventId)).Should().Be(1);
+        fake.CancelledNow.Should().Equal(duplicate.SubscriptionId);
+        await AssertStillTracksAsync(tracked);
+    }
+
+    [Fact]
+    public async Task Webhook_SecondSubscriptionAfterAGiftWithAStaleId_IsAppliedAsAPurchase_WithoutCancelling()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var stale = await ArrangeOnPaidPlanAsync();
+        await UpdateRowAsync(stale.Coach.ProfileId, row => row.GivenFreeAt = DateTimeOffset.UtcNow.AddDays(-1));
+        var bought = stale with { SubscriptionId = $"sub_{Guid.NewGuid():N}" };
+
+        var response = await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.created", bought, "active", created: Now, subscriptionCreated: Now));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        await AssertBoughtPlanReplacedGiftAsync(bought);
+        fake.CancelledNow.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Webhook_NewSubscriptionAfterTheTrackedOneEnded_IsApplied_WithoutCancelling()
+    {
+        var (tracked, replacement, fake) = await ArrangeTrackedAndDuplicateAsync();
+
+        await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.deleted", tracked, "canceled", created: Now - 10, subscriptionCreated: Now - 100));
+        var response = await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.created", replacement, "active", created: Now, subscriptionCreated: Now));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        await AssertBoughtPlanReplacedGiftAsync(replacement);
+        fake.CancelledNow.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Webhook_UpdateOfTheTrackedSubscription_StillApplies_WhenAnotherOneExists()
+    {
+        var (tracked, _, fake) = await ArrangeTrackedAndDuplicateAsync();
+
+        var response = await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.updated", tracked, "past_due", created: Now, subscriptionCreated: Now - 100));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await ReadRowAsync(tracked.Coach.ProfileId)).Status.Should().Be(SubscriptionStatus.PastDue);
+        fake.CancelledNow.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Webhook_PendingUpdateExpiredForASecondSubscription_TouchesNeitherTheTrackedOneNorItsMarkers()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var (tracked, _, pendingRowId) = await ArrangeUpgradeWithScheduledDowngradeAsync();
+        var duplicate = tracked with { SubscriptionId = $"sub_{Guid.NewGuid():N}" };
+        var eventId = NewEventId();
+
+        var response = await PostAsync(SubscriptionEvent(
+            eventId, "customer.subscription.pending_update_expired", duplicate, "incomplete_expired", pendingRole: "Nutritionist"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.ExpiredUpgradeRestores.Should().BeEmpty();
+        fake.ClearedPendingSecondRoles.Should().BeEmpty();
+        fake.CancelledNow.Should().BeEmpty();
+        var row = await ReadRowAsync(tracked.Coach.ProfileId);
+        row.ExternalSubscriptionId.Should().Be(tracked.SubscriptionId);
+        row.Status.Should().Be(SubscriptionStatus.Active);
+        row.PendingSubscriptionPlanPriceId.Should().Be(pendingRowId);
+        (await ProcessedCountAsync(eventId)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Webhook_WhenCancellingTheDuplicateFails_Returns500_AndStoresNoEventId_SoStripeRetries()
+    {
+        var (tracked, duplicate, fake) = await ArrangeTrackedAndDuplicateAsync();
+        fake.CancelNowHook = _ => throw new BillingProviderException("Fake cancel failure.");
+        var eventId = NewEventId();
+
+        var response = await PostAsync(SubscriptionEvent(
+            eventId, "customer.subscription.created", duplicate, "active", created: Now, subscriptionCreated: Now));
+
+        response.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+        (await ProcessedCountAsync(eventId)).Should().Be(0);
+        await AssertStillTracksAsync(tracked);
     }
 
     private async Task<int> RedemptionCountAsync(long promotionId)
