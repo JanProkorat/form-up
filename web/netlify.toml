@@ -104,6 +104,18 @@
   force = true
 
 [[redirects]]
+  from = "/billing/change-plan/preview"
+  to = "https://dev-fitnessplatform.onrender.com/billing/change-plan/preview"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/billing/scheduled-change/cancel"
+  to = "https://dev-fitnessplatform.onrender.com/billing/scheduled-change/cancel"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/billing/switch-to-free"
   to = "https://dev-fitnessplatform.onrender.com/billing/switch-to-free"
   status = 200
@@ -132,6 +144,19 @@
 [[redirects]]
   from = "/admin/subscription-plans/*"
   to = "https://dev-fitnessplatform.onrender.com/admin/subscription-plans/:splat"
+  status = 200
+  force = true
+
+# Same reasoning: the SPA page lives at /admin/promotion-offers, the API at /admin/promotions[/:id/end].
+[[redirects]]
+  from = "/admin/promotions"
+  to = "https://dev-fitnessplatform.onrender.com/admin/promotions"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/admin/promotions/*"
+  to = "https://dev-fitnessplatform.onrender.com/admin/promotions/:splat"
   status = 200
   force = true
 
