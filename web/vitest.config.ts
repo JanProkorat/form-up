@@ -12,6 +12,8 @@ export default mergeConfig(
       setupFiles: ['./src/test/setup.ts'],
       include: ['src/**/*.test.{ts,tsx}'],
       restoreMocks: true,
+      // Page tests take up to ~1.3 s locally and several times that on a loaded CI runner.
+      testTimeout: 15_000,
     },
   }),
 )
