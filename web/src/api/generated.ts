@@ -24600,6 +24600,13 @@ export class ApiClient {
             result502 = JSON.parse(resultData502);
             return throwException("Stripe failed; nothing was saved (BILLING_PROVIDER_ERROR)", status, _responseText, _headers, result502);
 
+        } else if (status === 503) {
+            const _responseText = response.data;
+            let result503: any = null;
+            let resultData503  = _responseText;
+            result503 = JSON.parse(resultData503);
+            return throwException("The coach has a cancellable Stripe subscription and Stripe is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers, result503);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -25474,18 +25481,20 @@ export interface GetMySubscriptionResponse {
     taxMode?: BillingTaxMode;
     /** True when the coach has a billing customer, so the billing portal can be opened. */
     hasBillingAccount?: boolean;
-    /** Subscription status, or null when the coach has no subscription and is on Free by default. */
+    /** Subscription status, or null when the coach has no subscription and is on Free by default. Also null once a plan
+has ended (IsLapsed). */
     status?: SubscriptionStatus | undefined;
-    /** When the current billing period ends, if known. */
+    /** When the current billing period ends, if known. Null once a plan has ended; see EndedAt. */
     currentPeriodEndsAt?: string | undefined;
-    /** True when the subscription will not renew. */
+    /** True when the subscription will not renew. False once a plan has ended. */
     cancelAtPeriodEnd?: boolean;
     /** While now is before this instant the assigned plan's features apply whatever the status is. */
     freeUntil?: string | undefined;
     /** True when an admin set the plan (given free) and it still applies. */
     isSetByFormUp?: boolean;
     /** True when the paid plan has lapsed (Canceled or Incomplete with no free-features deadline in force). The plan
-fields then describe the Free plan and ActiveClientCount is the number of kept clients. */
+fields then describe the Free plan, Status, CurrentPeriodEndsAt and
+CancelAtPeriodEnd are empty, and ActiveClientCount is the number of kept clients. */
     isLapsed?: boolean;
     /** Czech name of the plan that lapsed; null unless IsLapsed. */
     lapsedPlanNameCs?: string | undefined;
@@ -35409,6 +35418,11 @@ export interface GetAdminCoachResponse {
     clientsMax?: number | undefined;
     /** True when an admin can end the plan now: the coach pays, or has a gift in force. */
     canEndPlanNow?: boolean;
+    /** True when the coach has a Stripe subscription that giving a plan or ending the plan cancels (Active, Trialing, PastDue
+or Incomplete), so the unused days are refunded to the card. */
+    hasCancellableSubscription?: boolean;
+    /** True when the coach pays the second-role add-on; it ends together with a cancelled subscription. */
+    paysSecondRoleAddOn?: boolean;
     /** The Free plan's client limit, to show what ending the plan leaves; null means unlimited. */
     freePlanMaxActiveClients?: number | undefined;
     /** Newest first. Holds the admin and coach actions on the subscription and account, not payments. */
