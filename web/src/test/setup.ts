@@ -9,11 +9,28 @@ configure({ asyncUtilTimeout: 5_000 });
 // i18n reads this key at import time; pin English so copy assertions are stable.
 localStorage.setItem('lang', 'en');
 
-// Any request without a handler is a test bug, not a network call.
-beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));
+// Any request without a handler is a test bug, not a network call. msw's 'error' only fails the request,
+// and pages often swallow a failed load, so record each one and fail the test after it runs.
+const unhandledRequests: string[] = [];
+beforeAll(() =>
+  server.listen({
+    onUnhandledFrame({ frame, defaults }) {
+      defaults.error();
+      const { request } = frame.data as { request?: Request };
+      if (request) {
+        const url = new URL(request.url);
+        unhandledRequests.push(`${request.method} ${url.pathname}${url.search}`);
+      }
+    },
+  }),
+);
 afterEach(() => {
   cleanup();
   server.resetHandlers();
+  const found = unhandledRequests.splice(0);
+  if (found.length > 0) {
+    throw new Error(`Requests without an msw handler (add one to the test's fakes):\n  ${found.join('\n  ')}`);
+  }
 });
 afterAll(() => server.close());
 

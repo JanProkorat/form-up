@@ -21,6 +21,8 @@ import type {
   GetPlanResponse,
   MealLockDto,
   OfflineSyncConflictDto,
+  SearchFoodsResponse,
+  SearchRecipesResponse,
 } from '@/api/generated';
 import { CLIENT_ID, COACH_USER_ID, newClientDetailState, serveClientDetail } from '@/test/clientDetail';
 import { HttpResponse, apiUrl, http } from '@/test/msw/handlers';
@@ -258,7 +260,12 @@ export function servePlanEditor(state: PlanEditorState): void {
   serveClientDetail(newClientDetailState());
   // The last plan served, so a successful save can answer with it.
   let lastPlan: GetPlanResponse = editorPlan(state);
+  // The editor's side library loads its first page of recipes and foods; these tests don't use it.
+  const noRecipes: SearchRecipesResponse = { recipes: [], totalCount: 0, page: 1, pageSize: 25 };
+  const noFoods: SearchFoodsResponse = { foods: [], totalCount: 0, page: 1, pageSize: 25 };
   server.use(
+    http.get(apiUrl('/recipes'), () => HttpResponse.json(noRecipes)),
+    http.get(apiUrl('/foods/search'), () => HttpResponse.json(noFoods)),
     http.get(apiUrl(`/nutrition/plans/${PLAN_ID}`), () => {
       lastPlan = editorPlan(state);
       return HttpResponse.json(lastPlan);
