@@ -17,13 +17,23 @@ interface UpgradePaymentNoticeProps {
   onOpen: () => void;
   /** Hides the notice; when omitted the dismiss button is not rendered and the action row is right-aligned. */
   onDismiss?: () => void;
+  /** Hides the action row, for a host that renders the payment link itself (e.g. in a dialog footer). */
+  hideAction?: boolean;
 }
 
 /**
  * Shown when an upgrade needs the card to be confirmed on Stripe's page. The link is a real click, so the browser
  * opens the new tab without a popup block; the plan stays as it is until Stripe confirms the payment.
  */
-export default function UpgradePaymentNotice({ plan, current, message, paymentUrl, onOpen, onDismiss }: UpgradePaymentNoticeProps) {
+export default function UpgradePaymentNotice({
+  plan,
+  current,
+  message,
+  paymentUrl,
+  onOpen,
+  onDismiss,
+  hideAction = false,
+}: UpgradePaymentNoticeProps) {
   const { t } = useTranslation();
   return (
     <div
@@ -35,19 +45,21 @@ export default function UpgradePaymentNotice({ plan, current, message, paymentUr
         <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
         <p className="min-w-0 flex-1 text-copy">{message ?? t('subscription.billing.upgradePayment.text', { plan, current })}</p>
       </div>
-      <div className={cn('flex flex-wrap items-center gap-3', !onDismiss && 'justify-end')}>
-        <Button asChild size="lg" className="gap-2 px-3.5 font-semibold">
-          <a href={paymentUrl} target="_blank" rel="noopener noreferrer" onClick={onOpen}>
-            {t('subscription.billing.upgradePayment.open')}
-            <ExternalLink className="size-4" aria-hidden="true" />
-          </a>
-        </Button>
-        {onDismiss && (
-          <Button type="button" variant="outline" size="lg" className="px-3.5 font-semibold" onClick={onDismiss}>
-            {t('subscription.billing.upgradePayment.dismiss')}
+      {!hideAction && (
+        <div className={cn('flex flex-wrap items-center gap-3', !onDismiss && 'justify-end')}>
+          <Button asChild size="lg" className="gap-2 px-3.5 font-semibold">
+            <a href={paymentUrl} target="_blank" rel="noopener noreferrer" onClick={onOpen}>
+              {t('subscription.billing.upgradePayment.open')}
+              <ExternalLink className="size-4" aria-hidden="true" />
+            </a>
           </Button>
-        )}
-      </div>
+          {onDismiss && (
+            <Button type="button" variant="outline" size="lg" className="px-3.5 font-semibold" onClick={onDismiss}>
+              {t('subscription.billing.upgradePayment.dismiss')}
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
