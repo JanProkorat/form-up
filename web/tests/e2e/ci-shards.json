@@ -1,0 +1,20 @@
+[
+  {
+    "group": "nutritionist-1",
+    "args": "--project=nutritionist --shard=1/2"
+  },
+  {
+    "group": "nutritionist-2",
+    "args": "--project=nutritionist --shard=2/2"
+  },
+  {
+    "group": "trainer",
+    "args": "--project=trainer --project=trainer-chat --project=trainer-media --project=trainer-ending",
+    "wikiCheck": true
+  },
+  {
+    "group": "public-coach",
+    "args": "--project=public --project=coach --project=nutritionist-chat",
+    "after": "--project=nutritionist-tags --no-deps"
+  }
+]
