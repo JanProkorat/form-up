@@ -382,6 +382,7 @@
         "planLine": "Tarif {{plan}}",
         "addOnLine": "Druhá role · {{role}}",
         "total": "Nová celková cena",
+        "discountEnds": "Sleva platí do {{date}}, poté {{amount}} {{per}}.",
         "today_one": "Dnes zaplatíte {{amount}} za {{count}} den do {{date}}.",
         "today_few": "Dnes zaplatíte {{amount}} za {{count}} dny do {{date}}.",
         "today_many": "Dnes zaplatíte {{amount}} za {{count}} dne do {{date}}.",
@@ -7084,7 +7085,7 @@
       "keepNoEnd": "zůstává, nově bez data konce.",
       "keepPickDate": "zůstává. Zvolte nové datum konce.",
       "confirmKeep": "Změnit datum konce",
-      "refundNotice": "Placené předplatné trenéra {{name}} ve Stripe se hned zruší a nevyužité dny se vrátí na jeho kartu."
+      "refundNotice": "Placené předplatné trenéra {{name}} ve Stripe se hned zruší a nevyužité dny se vrátí na kartu trenéra."
     },
     "drawer": {
       "titleFallback": "Trenér",
@@ -7144,7 +7145,7 @@
         "success": "Plán byl ukončen.",
         "successRefund": "Plán byl ukončen. Vráceno {{amount}}.",
         "error": "Plán se nepodařilo ukončit.",
-        "refundNotice": "Placené předplatné trenéra ve Stripe se hned zruší a nevyužité dny se vrátí na jeho kartu.",
+        "refundNotice": "Placené předplatné trenéra ve Stripe se hned zruší a nevyužité dny se vrátí na kartu trenéra.",
         "dialogTitle": "Ukončit plán hned?",
         "dialogDescription": "Trenér {{name}} dnes přejde z plánu {{plan}} na Zdarma a už se mu nic neúčtuje.",
         "callout_one": "Trenér {{name}} má {{count}} klienta a Zdarma jich povoluje {{max}}. Jakmile otevře aplikaci nebo přejde na jinou stránku, vybere si, které si ponechá. Plány ostatních klientů doběhnou do posledního zveřejněného týdne.",

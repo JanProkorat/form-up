@@ -157,7 +157,8 @@ export default function PlanBillingCard() {
   const promotion = data?.promotion;
   // A promotion that does not cover the coach's plan takes nothing off, so it gets no line.
   const discount = promotion?.discountMinorUnits ?? 0;
-  const offerActive = promotion !== undefined && discount > 0;
+  const setByFormUp = data?.isSetByFormUp === true;
+  const offerActive = !setByFormUp && promotion !== undefined && discount > 0;
   const billTotal = offerActive ? (promotion.discountedTotalMinorUnits ?? total) : total;
   const offerValue = promotion ? promotionValueText(t, promotion, language) : '';
   const offerName = promotion?.name ?? '';
@@ -245,9 +246,16 @@ export default function PlanBillingCard() {
                 <h3 className="text-copy font-semibold text-ink">{t('subscription.plan.bill.title')}</h3>
                 <div className="flex flex-col gap-2.5 rounded-xl bg-sunken p-4">
                   {lines.length === 0 ? (
-                    <span className="text-copy text-ink-2">{t('subscription.plan.bill.free')}</span>
+                    <span className="text-copy text-ink-2">
+                      {setByFormUp ? t('subscription.plan.setByFormUp') : t('subscription.plan.bill.free')}
+                    </span>
                   ) : (
                     <>
+                      {setByFormUp && (
+                        <span className="text-meta font-semibold text-muted-foreground">
+                          {t('subscription.plan.setByFormUp')}
+                        </span>
+                      )}
                       {lines.map((line) => (
                         <div key={line.kind} className="flex items-baseline gap-3 text-copy text-ink-2">
                           <span>
@@ -290,7 +298,7 @@ export default function PlanBillingCard() {
                   )}
                 </div>
                 {secondRoleNote && <span className="text-meta text-muted-foreground">{secondRoleNote}</span>}
-                {lines.length > 0 && <TaxNote taxMode={data.taxMode} className="text-meta text-muted-foreground" />}
+                {lines.length > 0 && !setByFormUp && <TaxNote taxMode={data.taxMode} className="text-meta text-muted-foreground" />}
               </div>
 
               <div className="flex flex-col gap-2.5">

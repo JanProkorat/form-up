@@ -48,10 +48,8 @@ public static class PromotionPricing
         Promotion promotion, string planCode, string currency, long planPriceMinorUnits, long? addOnPriceMinorUnits)
     {
         var total = planPriceMinorUnits + (addOnPriceMinorUnits ?? 0);
-        var currencyFits = promotion.Kind == PromotionKind.Percent
-                           || string.Equals(promotion.Currency, currency, StringComparison.OrdinalIgnoreCase);
 
-        if (!currencyFits || !PromotionRules.CoversPlan(promotion, planCode))
+        if (!Applies(promotion, planCode, currency))
         {
             return (0, total);
         }
@@ -61,6 +59,18 @@ public static class PromotionPricing
 
         return (total - discountedTotal, discountedTotal);
     }
+
+    /// <summary>
+    /// Whether the promotion discounts a plan billed in the given currency: it covers the plan, and a fixed amount is in
+    /// the same currency (a percentage has no currency).
+    /// </summary>
+    /// <param name="promotion">The promotion to test.</param>
+    /// <param name="planCode">The plan code.</param>
+    /// <param name="currency">ISO 4217 currency of the plan price.</param>
+    public static bool Applies(Promotion promotion, string planCode, string currency) =>
+        (promotion.Kind == PromotionKind.Percent
+         || string.Equals(promotion.Currency, currency, StringComparison.OrdinalIgnoreCase))
+        && PromotionRules.CoversPlan(promotion, planCode);
 
     private static long Reduce(long price, long percent) =>
         price - (long)Math.Round(price * percent / 100m, MidpointRounding.AwayFromZero);

@@ -426,10 +426,18 @@ internal sealed class GetMySubscriptionEndpoint(
                 });
             }
 
+            if (response.IsSetByFormUp)
+            {
+                foreach (var line in response.PriceLines)
+                {
+                    line.AmountMinorUnits = 0;
+                }
+            }
+
             return response;
         }
 
-        var free = await db.SubscriptionPlans
+        var free =await db.SubscriptionPlans
             .AsNoTracking()
             .Where(p => p.Code == SubscriptionPlanCodes.Free)
             .FirstOrDefaultAsync(ct);

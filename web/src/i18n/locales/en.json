@@ -378,6 +378,7 @@
         "planLine": "{{plan}} plan",
         "addOnLine": "Second role · {{role}}",
         "total": "New total",
+        "discountEnds": "Your discount runs until {{date}}, then {{amount}} {{per}}.",
         "today_one": "Today you pay {{amount}} for the {{count}} day left until {{date}}.",
         "today_other": "Today you pay {{amount}} for the {{count}} days left until {{date}}.",
         "todayNoDate": "Today you pay {{amount}} for the rest of this billing period.",

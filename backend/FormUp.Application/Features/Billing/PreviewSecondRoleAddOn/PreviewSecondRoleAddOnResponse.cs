@@ -17,6 +17,18 @@ public class PreviewSecondRoleAddOnResponse
     /// <summary>The recurring total after the add-on: plan plus add-on, before any tax.</summary>
     public long NewTotalMinorUnits { get; set; }
 
+    /// <summary>The plan line after the coach's promotion; null when no promotion applies.</summary>
+    public long? DiscountedPlanAmountMinorUnits { get; set; }
+
+    /// <summary>The add-on line after the coach's promotion; null when no promotion applies.</summary>
+    public long? DiscountedAddOnAmountMinorUnits { get; set; }
+
+    /// <summary>The recurring total after the add-on and the promotion; null when no promotion applies.</summary>
+    public long? DiscountedNewTotalMinorUnits { get; set; }
+
+    /// <summary>When the promotion ends; null when none applies or it lasts forever.</summary>
+    public DateTimeOffset? PromotionEndsAt { get; set; }
+
     /// <summary>How often the bill recurs.</summary>
     public BillingInterval BillingInterval { get; set; }
 

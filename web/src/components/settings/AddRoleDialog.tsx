@@ -87,6 +87,15 @@ export default function AddRoleDialog({ role, onClose, onPaid, adding }: Props) 
       ? Math.max(1, Math.ceil((new Date(preview.periodEndsAt).getTime() - previewQuery.dataUpdatedAt) / DAY_MS))
       : null;
   const tax = preview?.todayTaxMinorUnits ?? 0;
+  // The discounted amounts come together: all null when no promotion covers the plan. A forever promotion has no end date.
+  const hasDiscount =
+    preview?.discountedPlanAmountMinorUnits != null &&
+    preview.discountedAddOnAmountMinorUnits != null &&
+    preview.discountedNewTotalMinorUnits != null;
+  const discountedPlan = hasDiscount ? preview.discountedPlanAmountMinorUnits : undefined;
+  const discountedAddOn = hasDiscount ? preview.discountedAddOnAmountMinorUnits : undefined;
+  const discountedTotal = hasDiscount ? preview.discountedNewTotalMinorUnits : undefined;
+  const discountEndsAt = hasDiscount && preview.promotionEndsAt ? new Date(preview.promotionEndsAt) : null;
   const studio = (plansQuery.data?.plans ?? [])
     .filter((plan) => plan.bothRolesIncluded && (plan.priceMinorUnits ?? 0) > 0)
     .sort((a, b) => (a.priceMinorUnits ?? 0) - (b.priceMinorUnits ?? 0))[0];
@@ -147,18 +156,31 @@ export default function AddRoleDialog({ role, onClose, onPaid, adding }: Props) 
             <div className="flex flex-col gap-2.5 rounded-xl bg-sunken p-4">
               <div className="flex items-baseline gap-3 text-copy text-ink-2">
                 <span>{t('subscription.billing.addRole.planLine', { plan: subscription.planName })}</span>
-                <span className="ml-auto font-semibold whitespace-nowrap">{money(preview.planAmountMinorUnits)}</span>
+                <span className="ml-auto font-semibold whitespace-nowrap">
+                  {money(discountedPlan ?? preview.planAmountMinorUnits)}
+                </span>
               </div>
               <div className="flex items-baseline gap-3 text-copy text-ink-2">
                 <span>{t('subscription.billing.addRole.addOnLine', { role: roleLabel })}</span>
-                <span className="ml-auto font-semibold whitespace-nowrap">+{money(preview.addOnAmountMinorUnits)}</span>
+                <span className="ml-auto font-semibold whitespace-nowrap">
+                  +{money(discountedAddOn ?? preview.addOnAmountMinorUnits)}
+                </span>
               </div>
               <div className="flex items-baseline gap-3 border-t border-border pt-2.5 text-subhead font-semibold text-ink">
                 <span>{t('subscription.billing.addRole.total')}</span>
                 <span className="ml-auto whitespace-nowrap">
-                  {money(preview.newTotalMinorUnits)} {per}
+                  {money(discountedTotal ?? preview.newTotalMinorUnits)} {per}
                 </span>
               </div>
+              {discountEndsAt && (
+                <span className="text-meta text-muted-foreground">
+                  {t('subscription.billing.addRole.discountEnds', {
+                    date: new Intl.DateTimeFormat(language, { dateStyle: 'medium' }).format(discountEndsAt),
+                    amount: money(preview.newTotalMinorUnits),
+                    per,
+                  })}
+                </span>
+              )}
             </div>
 
             <div className="flex gap-2.5 rounded-xl bg-sunken px-3.5 py-3 text-ink-2">

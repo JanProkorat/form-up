@@ -34416,6 +34416,14 @@ export interface PreviewSecondRoleAddOnResponse {
     addOnAmountMinorUnits?: number;
     /** The recurring total after the add-on: plan plus add-on, before any tax. */
     newTotalMinorUnits?: number;
+    /** The plan line after the coach's promotion; null when no promotion applies. */
+    discountedPlanAmountMinorUnits?: number | undefined;
+    /** The add-on line after the coach's promotion; null when no promotion applies. */
+    discountedAddOnAmountMinorUnits?: number | undefined;
+    /** The recurring total after the add-on and the promotion; null when no promotion applies. */
+    discountedNewTotalMinorUnits?: number | undefined;
+    /** When the promotion ends; null when none applies or it lasts forever. */
+    promotionEndsAt?: string | undefined;
     /** How often the bill recurs. */
     billingInterval?: BillingInterval;
     /** ISO 4217 currency of every amount. */
