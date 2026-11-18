@@ -1002,7 +1002,16 @@
         "web/src/components/subscription/SidebarPlanRow.tsx",
         "web/src/components/subscription/UsageBar.tsx",
         "web/src/components/subscription/money.ts",
-        "web/src/components/subscription/planLinks.ts"
+        "web/src/components/subscription/planLinks.ts",
+        "web/src/components/subscription/billingErrors.ts",
+        "web/src/components/subscription/promotionText.ts",
+        "web/src/components/subscription/TaxNote.tsx",
+        "web/src/components/subscription/planNames.ts",
+        "web/src/components/subscription/planPricing.ts",
+        "web/src/components/subscription/UpgradePaymentNotice.tsx",
+        "web/src/components/subscription/usePlanSelection.ts",
+        "web/src/api/subscription.ts",
+        "web/src/lib/api-errors.ts"
       ],
       "endpoints": [
         "GET /users/me",
@@ -1016,7 +1025,13 @@
         "POST /users/me/coach-account/disable",
         "POST /users/me/coach-account/keep",
         "DELETE /users/me",
-        "GET /users/me/subscription"
+        "GET /users/me/subscription",
+        "GET /users/me/subscription/plans",
+        "POST /billing/portal-session",
+        "POST /billing/promotion-code",
+        "POST /billing/scheduled-change/cancel",
+        "POST /billing/second-role/preview",
+        "POST /billing/second-role/confirm"
       ],
       "board": "PageSettings",
       "shots": [
@@ -1176,6 +1191,38 @@
       "notionPageId": null
     },
     {
+      "id": "web.admin.promotions",
+      "app": "web",
+      "area": "Admin",
+      "title": "Promotions",
+      "route": "/admin/promotion-offers",
+      "roles": ["Admin"],
+      "files": [
+        "web/src/pages/AdminPromotionsPage.tsx",
+        "web/src/components/admin-promotions/**",
+        "web/src/components/admin-plans/planForm.ts",
+        "web/src/components/admin-coaches/ReasonDialog.tsx",
+        "web/src/components/package-catalog/catalogParts.tsx",
+        "web/src/components/package-catalog/packageFormParts.tsx",
+        "web/src/components/automations/automationFormParts.tsx",
+        "web/src/components/subscription/billingErrors.ts",
+        "web/src/components/subscription/promotionText.ts",
+        "web/src/api/admin-promotions.ts",
+        "web/src/lib/api-errors.ts",
+        "web/src/lib/money.ts"
+      ],
+      "endpoints": [
+        "GET /admin/promotions",
+        "POST /admin/promotions",
+        "POST /admin/promotions/{promotionId}/end"
+      ],
+      "board": "PageAdminPromotions",
+      "shots": [
+        { "name": "default" }
+      ],
+      "notionPageId": null
+    },
+    {
       "id": "web.admin.coaches",
       "app": "web",
       "area": "Admin",
@@ -1245,6 +1292,15 @@
         "web/src/components/subscription/money.ts",
         "web/src/components/subscription/planLinks.ts",
         "web/src/components/subscription/planNames.ts",
+        "web/src/components/subscription/planPricing.ts",
+        "web/src/components/subscription/TaxNote.tsx",
+        "web/src/components/subscription/UpgradePaymentNotice.tsx",
+        "web/src/components/subscription/usePlanSelection.ts",
+        "web/src/components/subscription/billingErrors.ts",
+        "web/src/components/subscription/promotionText.ts",
+        "web/src/api/subscription.ts",
+        "web/src/hooks/useActiveRoles.ts",
+        "web/src/lib/api-errors.ts",
         "web/src/lib/subscriptionErrors.ts"
       ],
       "endpoints": [
@@ -1252,7 +1308,10 @@
         "GET /users/me/subscription/plans",
         "POST /users/me/subscription/choose-free",
         "GET /users/me/subscription/keep-clients",
-        "PUT /users/me/subscription/keep-clients"
+        "PUT /users/me/subscription/keep-clients",
+        "POST /billing/checkout-session",
+        "POST /billing/change-plan",
+        "POST /billing/switch-to-free"
       ],
       "board": "PagePlanDecision",
       "shots": [
@@ -1281,6 +1340,117 @@
       "board": "PageLapseKeepClients",
       "shots": [
         { "name": "default" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "web.plan.picker",
+      "app": "web",
+      "area": "Account",
+      "title": "Plan picker",
+      "route": "/plan",
+      "roles": ["Trainer", "Nutritionist"],
+      "files": [
+        "web/src/pages/PlanPickerPage.tsx",
+        "web/src/components/subscription/PlanCard.tsx",
+        "web/src/components/subscription/PlanConfirmBar.tsx",
+        "web/src/components/subscription/TaxNote.tsx",
+        "web/src/components/subscription/UpgradePaymentNotice.tsx",
+        "web/src/components/subscription/PromotionBanner.tsx",
+        "web/src/components/subscription/promotionText.ts",
+        "web/src/components/subscription/usePlanSelection.ts",
+        "web/src/components/subscription/billingErrors.ts",
+        "web/src/components/subscription/planFeatures.ts",
+        "web/src/components/subscription/planLinks.ts",
+        "web/src/components/subscription/planNames.ts",
+        "web/src/components/subscription/planPricing.ts",
+        "web/src/components/subscription/money.ts",
+        "web/src/hooks/useSubscriptionQueries.ts",
+        "web/src/hooks/useActiveRoles.ts",
+        "web/src/api/subscription.ts",
+        "web/src/api/profile.ts",
+        "web/src/lib/api-errors.ts"
+      ],
+      "endpoints": [
+        "GET /users/me/subscription",
+        "GET /users/me/subscription/plans",
+        "POST /billing/change-plan/preview",
+        "POST /billing/checkout-session",
+        "POST /billing/change-plan",
+        "POST /billing/switch-to-free",
+        "POST /billing/scheduled-change/cancel",
+        "GET /users/me"
+      ],
+      "board": "PagePlanPicker",
+      "shots": [
+        { "name": "default" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "web.plan.register-plan",
+      "app": "web",
+      "area": "Account",
+      "title": "Sign-up plan step",
+      "route": "/register/plan",
+      "roles": ["Trainer", "Nutritionist"],
+      "files": [
+        "web/src/pages/RegisterPlanPage.tsx",
+        "web/src/components/register/RegisterShell.tsx",
+        "web/src/components/register/RegisterStepper.tsx",
+        "web/src/components/subscription/PlanCard.tsx",
+        "web/src/components/subscription/PlanConfirmBar.tsx",
+        "web/src/components/subscription/TaxNote.tsx",
+        "web/src/components/subscription/PromotionBanner.tsx",
+        "web/src/components/subscription/promotionText.ts",
+        "web/src/components/subscription/usePlanSelection.ts",
+        "web/src/components/subscription/billingErrors.ts",
+        "web/src/components/subscription/planFeatures.ts",
+        "web/src/components/subscription/planLinks.ts",
+        "web/src/components/subscription/planNames.ts",
+        "web/src/components/subscription/planPricing.ts",
+        "web/src/components/subscription/money.ts",
+        "web/src/hooks/useSubscriptionQueries.ts",
+        "web/src/hooks/useActiveRoles.ts",
+        "web/src/api/subscription.ts",
+        "web/src/api/profile.ts",
+        "web/src/lib/api-errors.ts"
+      ],
+      "endpoints": [
+        "GET /users/me/subscription",
+        "GET /users/me/subscription/plans",
+        "POST /billing/checkout-session",
+        "POST /billing/change-plan",
+        "GET /users/me"
+      ],
+      "board": "PageRegisterPlan",
+      "shots": [
+        { "name": "default" }
+      ],
+      "notionPageId": null
+    },
+    {
+      "id": "web.plan.billing-return",
+      "app": "web",
+      "area": "Account",
+      "title": "Billing return (Stripe checkout and portal)",
+      "route": "/billing/success",
+      "roles": ["Trainer", "Nutritionist"],
+      "files": [
+        "web/src/pages/BillingReturnPage.tsx",
+        "web/src/components/subscription/planLinks.ts",
+        "web/src/components/subscription/planPricing.ts",
+        "web/src/hooks/useSubscriptionQueries.ts",
+        "web/src/api/subscription.ts",
+        "web/src/api/profile.ts",
+        "web/src/stores/checkoutActivation.ts"
+      ],
+      "endpoints": [
+        "GET /users/me/subscription",
+        "GET /users/me"
+      ],
+      "shots": [
+        { "name": "default", "steps": "open /billing/success as a coach; the page polls the subscription until the plan activates. /billing/cancel and /billing (portal return) render the same page" }
       ],
       "notionPageId": null
     },

@@ -179,7 +179,7 @@ async function mockAdminPromotions(
   });
 
   await page.route(/\/admin\/promotions(\?.*)?$/, async (route) => {
-    // The page navigation to /admin/promotions is not an API call; only fetch and XHR are mocked.
+    // The page navigation to /admin/promotion-offers is not an API call; only fetch and XHR are mocked.
     const resourceType = route.request().resourceType();
     if (resourceType !== 'fetch' && resourceType !== 'xhr') {
       return route.fallback();
@@ -223,7 +223,7 @@ async function mockAdminPromotions(
 trainerTest.describe('admin promotions', () => {
   trainerTest('the list shows each promotion with how, value, length, window, plans, uses and status', async ({ page }) => {
     await mockAdminPromotions(page);
-    await page.goto('/admin/promotions');
+    await page.goto('/admin/promotion-offers');
 
     await expect(page.getByRole('heading', { name: 'Promotions', level: 1 })).toBeVisible();
     for (const header of ['Promotion', 'How', 'Value', 'Lasts', 'Offer window', 'Plans', 'Used', 'Status']) {
@@ -257,7 +257,7 @@ trainerTest.describe('admin promotions', () => {
 
   trainerTest('ending a promotion confirms, posts an empty JSON body and refetches the list', async ({ page }) => {
     const harness = await mockAdminPromotions(page);
-    await page.goto('/admin/promotions');
+    await page.goto('/admin/promotion-offers');
     await expect(page.getByRole('row', { name: /Launch offer/ })).toBeVisible();
     const readsBefore = harness.listStatuses.length;
 
@@ -285,7 +285,7 @@ trainerTest.describe('admin promotions', () => {
 
   trainerTest('the note is hidden when nobody has the promotion yet, and Cancel ends nothing', async ({ page }) => {
     const harness = await mockAdminPromotions(page);
-    await page.goto('/admin/promotions');
+    await page.goto('/admin/promotion-offers');
 
     await page.getByRole('button', { name: 'End Black Friday' }).click();
     const dialog = page.getByRole('dialog');
@@ -302,7 +302,7 @@ trainerTest.describe('admin promotions', () => {
       status: 409,
       body: { status: 409, title: 'Conflict', errorCode: 'PROMOTION_ALREADY_ENDED' },
     });
-    await page.goto('/admin/promotions');
+    await page.goto('/admin/promotion-offers');
     const readsBefore = harness.listStatuses.length;
 
     await page.getByRole('button', { name: 'End Partner code' }).click();
@@ -318,7 +318,7 @@ trainerTest.describe('admin promotions', () => {
       status: 502,
       body: { status: 502, title: 'Bad Gateway', errorCode: 'BILLING_PROVIDER_ERROR' },
     });
-    await page.goto('/admin/promotions');
+    await page.goto('/admin/promotion-offers');
     await expect(page.getByRole('row', { name: /Partner code/ })).toBeVisible();
     const readsBefore = harness.listStatuses.length;
 
@@ -339,7 +339,7 @@ trainerTest.describe('admin promotions', () => {
 
   trainerTest('the tabs ask the server for that status and show only its promotions', async ({ page }) => {
     const harness = await mockAdminPromotions(page);
-    await page.goto('/admin/promotions');
+    await page.goto('/admin/promotion-offers');
     await expect(page.getByRole('row', { name: /Launch offer/ })).toBeVisible();
 
     await page.getByRole('tab', { name: 'Scheduled' }).click();
@@ -358,7 +358,7 @@ trainerTest.describe('admin promotions', () => {
 
   trainerTest('the drawer creates a coded promotion; the code field shows only for a code', async ({ page }) => {
     const harness = await mockAdminPromotions(page);
-    await page.goto('/admin/promotions');
+    await page.goto('/admin/promotion-offers');
     await page.getByRole('button', { name: 'New promotion' }).click();
 
     const drawer = page.getByRole('dialog');
@@ -405,7 +405,7 @@ trainerTest.describe('admin promotions', () => {
 
   trainerTest('a fixed amount is sent in minor units and blocks an empty name before any request', async ({ page }) => {
     const harness = await mockAdminPromotions(page);
-    await page.goto('/admin/promotions');
+    await page.goto('/admin/promotion-offers');
     await page.getByRole('button', { name: 'New promotion' }).click();
 
     const drawer = page.getByRole('dialog');
@@ -427,7 +427,7 @@ trainerTest.describe('admin promotions', () => {
       status: 409,
       body: { status: 409, title: 'Conflict', errorCode: 'PROMOTION_CODE_TAKEN' },
     });
-    await page.goto('/admin/promotions');
+    await page.goto('/admin/promotion-offers');
     await page.getByRole('button', { name: 'New promotion' }).click();
 
     const drawer = page.getByRole('dialog');
