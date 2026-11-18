@@ -7084,8 +7084,7 @@
       "keepNoEnd": "zůstává, nově bez data konce.",
       "keepPickDate": "zůstává. Zvolte nové datum konce.",
       "confirmKeep": "Změnit datum konce",
-      "refundNotice": "Placené předplatné trenéra {{name}} ve Stripe se hned zruší a nevyužité dny se vrátí na jeho kartu.",
-      "addOnNotice": "Skončí s ním i doplněk druhé role. Trenér {{name}} si ponechá jen role, které vybraný plán zahrnuje; plán s oběma rolemi ponechá obě."
+      "refundNotice": "Placené předplatné trenéra {{name}} ve Stripe se hned zruší a nevyužité dny se vrátí na jeho kartu."
     },
     "drawer": {
       "titleFallback": "Trenér",

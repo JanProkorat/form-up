@@ -218,6 +218,37 @@ public class AddRoleEndpointIntegrationTests(FitnessApiFactory factory) : IDispo
     }
 
     [Fact]
+    public async Task Post_RolesMe_GivenSingleRolePlanInForce_AddsTheRoleWithoutPayment()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(
+            factory,
+            coach,
+            "start",
+            freeUntil: DateTimeOffset.UtcNow.AddDays(30),
+            givenFreeAt: DateTimeOffset.UtcNow.AddDays(-1));
+
+        var resp = await coach.Http.PostAsJsonAsync(
+            "/users/me/roles", new { Role = "Nutritionist" }, TestContext.Current.CancellationToken);
+
+        resp.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task Post_RolesMe_GivenSingleRolePlanThatEnded_Returns403PlanChoiceRequired()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        await CoachSubscriptionBuilder.SubscribeWithEndedGiftAsync(factory, coach, "start");
+
+        var resp = await coach.Http.PostAsJsonAsync(
+            "/users/me/roles", new { Role = "Nutritionist" }, TestContext.Current.CancellationToken);
+
+        resp.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))
+            .Should().Contain(FormUp.Application.Domain.Constants.ErrorCodes.PlanChoiceRequired);
+    }
+
+    [Fact]
     public async Task Post_RolesMe_PlanWithoutBothRolesButPaidAddOn_AddsTheRole()
     {
         var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);

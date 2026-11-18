@@ -69,9 +69,6 @@ public class GetAdminCoachResponse
     /// </summary>
     public bool HasCancellableSubscription { get; set; }
 
-    /// <summary>True when the coach pays the second-role add-on; it ends together with a cancelled subscription.</summary>
-    public bool PaysSecondRoleAddOn { get; set; }
-
     /// <summary>The Free plan's client limit, to show what ending the plan leaves; null means unlimited.</summary>
     public int? FreePlanMaxActiveClients { get; set; }
 

@@ -261,7 +261,6 @@ export default function CoachActions({ coach, coachId, plans, onGone }: Props) {
         plans={plans}
         currentPlanCode={coach.plan?.code}
         hasCancellableSubscription={coach.hasCancellableSubscription === true}
-        paysSecondRoleAddOn={coach.paysSecondRoleAddOn === true}
         run={({ planCode, freeUntil, reason }) =>
           attempt(
             () =>

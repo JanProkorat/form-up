@@ -35425,8 +35425,6 @@ export interface GetAdminCoachResponse {
     /** True when the coach has a Stripe subscription that giving a plan or ending the plan cancels (Active, Trialing, PastDue
 or Incomplete), so the unused days are refunded to the card. */
     hasCancellableSubscription?: boolean;
-    /** True when the coach pays the second-role add-on; it ends together with a cancelled subscription. */
-    paysSecondRoleAddOn?: boolean;
     /** The Free plan's client limit, to show what ending the plan leaves; null means unlimited. */
     freePlanMaxActiveClients?: number | undefined;
     /** Newest first. Holds the admin and coach actions on the subscription and account, not payments. */
