@@ -7114,6 +7114,7 @@
         "noEnd": "Bez data konce",
         "button": "Změnit plán",
         "success": "Plán byl změněn.",
+        "successRefund": "Plán byl změněn. Vráceno {{amount}}.",
         "error": "Plán se nepodařilo změnit."
       },
       "promotion": {
@@ -7142,6 +7143,7 @@
         "button": "Ukončit plán",
         "none": "Tento trenér nemá placený ani darovaný plán, který by šel ukončit.",
         "success": "Plán byl ukončen.",
+        "successRefund": "Plán byl ukončen. Vráceno {{amount}}.",
         "error": "Plán se nepodařilo ukončit.",
         "refundNotice": "Placené předplatné trenéra ve Stripe se hned zruší a nevyužité dny se vrátí na jeho kartu.",
         "dialogTitle": "Ukončit plán hned?",

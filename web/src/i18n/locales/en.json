@@ -6854,6 +6854,7 @@
         "noEnd": "No end date",
         "button": "Change plan",
         "success": "The plan was changed.",
+        "successRefund": "The plan was changed. Refunded {{amount}}.",
         "error": "Could not change the plan."
       },
       "promotion": {
@@ -6882,6 +6883,7 @@
         "button": "End plan",
         "none": "This coach has no paid or given plan to end.",
         "success": "The plan was ended.",
+        "successRefund": "The plan was ended. Refunded {{amount}}.",
         "error": "Could not end the plan.",
         "refundNotice": "The coach's paid Stripe subscription is cancelled now and the unused days are refunded to their card.",
         "dialogTitle": "End plan now?",

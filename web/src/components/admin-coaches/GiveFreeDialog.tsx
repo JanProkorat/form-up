@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
-import { Repeat, TriangleAlert } from 'lucide-react';
+import { Loader2, Repeat, TriangleAlert } from 'lucide-react';
 import type { SubscriptionPlanDto } from '@/api/admin-subscription-plans';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -196,7 +196,7 @@ function GiveFreeForm({
           {t('common.cancel')}
         </Button>
         <Button type="submit" size="lg" disabled={isSubmitting}>
-          <Repeat aria-hidden="true" />
+          {isSubmitting ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Repeat aria-hidden="true" />}
           {keepsPlan
             ? t('adminCoaches.giveFree.confirmKeep')
             : chosen
