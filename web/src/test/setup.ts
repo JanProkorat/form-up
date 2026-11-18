@@ -15,7 +15,7 @@ afterEach(() => {
 afterAll(() => server.close());
 
 // jsdom gaps, added only where a test hit them. Radix menus and dialogs need pointer capture
-// and scrollIntoView; its size observers need ResizeObserver.
+// and scrollIntoView; its size observers need ResizeObserver; the inbox thread scrolls with scrollTo.
 class ResizeObserverStub {
   observe() {}
   unobserve() {}
@@ -26,3 +26,4 @@ Element.prototype.hasPointerCapture ??= () => false;
 Element.prototype.setPointerCapture ??= () => {};
 Element.prototype.releasePointerCapture ??= () => {};
 Element.prototype.scrollIntoView ??= () => {};
+Element.prototype.scrollTo ??= () => {};
