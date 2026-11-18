@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, createSearchParams } from 'react-router-dom';
 import { CalendarIcon, CheckIcon, ChevronRightIcon, MessageSquareIcon } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -53,9 +53,12 @@ export default function CoachVerifiedState({ firstName, needsSignIn }: CoachVeri
 
         <Button asChild className="h-12 gap-2 self-stretch rounded-field text-subhead font-bold">
           <Link
-            to={needsSignIn ? '/login' : REGISTER_PLAN_PATH}
+            to={
+              needsSignIn
+                ? { pathname: '/login', search: `?${createSearchParams({ returnTo: REGISTER_PLAN_PATH })}` }
+                : REGISTER_PLAN_PATH
+            }
             replace
-            state={needsSignIn ? { from: REGISTER_PLAN_PATH } : undefined}
           >
             {needsSignIn
               ? t('entry.verifyEmail.coach.signInToChoosePlan')
@@ -66,7 +69,6 @@ export default function CoachVerifiedState({ firstName, needsSignIn }: CoachVeri
         <Link
           to={needsSignIn ? '/login' : '/clients'}
           replace
-          state={needsSignIn ? { from: '/clients' } : undefined}
           className="text-body font-semibold text-muted-foreground underline hover:text-ink"
         >
           {needsSignIn
