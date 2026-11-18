@@ -5,9 +5,18 @@ import { coachPlanName } from '@/components/subscription/planNames';
 import { FREE_PLAN_CODE } from '@/components/subscription/planPricing';
 import { formatNameList, promotionValueText } from '@/components/subscription/promotionText';
 
+/** The coach and the public promotion payloads both fit. */
+type BannerPromotion = Pick<
+  CoachPromotionDto,
+  'name' | 'kind' | 'value' | 'currency' | 'duration' | 'durationMonths' | 'claimUntil' | 'planCodes'
+>;
+
+/** The coach and the public plan payloads both fit. */
+type BannerPlan = Pick<CoachPlanDto, 'code' | 'nameCs' | 'nameEn' | 'nameDe'>;
+
 interface Props {
-  promotion: CoachPromotionDto;
-  plans: CoachPlanDto[];
+  promotion: BannerPromotion;
+  plans: BannerPlan[];
   /** "picker": prices still get the offer at checkout. "register": the prices below already show it. */
   variant: 'picker' | 'register';
 }

@@ -36,6 +36,9 @@
         "web/src/components/subscription/money.ts",
         "web/src/components/subscription/planNames.ts",
         "web/src/components/subscription/planLinks.ts",
+        "web/src/components/subscription/planPricing.ts",
+        "web/src/components/subscription/promotionText.ts",
+        "web/src/components/subscription/PromotionBanner.tsx",
         "web/src/components/admin-plans/planFeatureLabels.ts",
         "web/src/hooks/useSubscriptionQueries.ts",
         "web/src/api/subscription.ts"
