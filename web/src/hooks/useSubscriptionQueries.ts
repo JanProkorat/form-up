@@ -17,7 +17,7 @@ import {
   subscriptionKeys,
 } from '@/api/subscription';
 import { getMyProfile, profileKeys } from '@/api/profile';
-import type { GetMySubscriptionResponse, SubscriptionFeaturesDto } from '@/api/generated';
+import type { BillingInterval, GetMySubscriptionResponse, SubscriptionFeaturesDto } from '@/api/generated';
 import { isCheckoutSettled } from '@/components/subscription/planPricing';
 import { useAuthStore } from '@/stores/auth';
 
@@ -232,11 +232,14 @@ export function useSecondRolePreview(enabled: boolean) {
   });
 }
 
-/** What moving the live subscription to a paid plan would charge and when; read per selection, never cached. */
-export function usePlanChangePreview(planCode: string | null, enabled: boolean) {
+/**
+ * What moving the live subscription to a paid plan on the given billing interval would charge and when; read per
+ * selection, never cached. The interval is part of the key, so switching Monthly | Annual reads again.
+ */
+export function usePlanChangePreview(planCode: string | null, billingInterval: BillingInterval, enabled: boolean) {
   return useQuery({
-    queryKey: subscriptionKeys.planChangePreview(planCode ?? ''),
-    queryFn: () => previewPlanChange(planCode ?? ''),
+    queryKey: subscriptionKeys.planChangePreview(planCode ?? '', billingInterval),
+    queryFn: () => previewPlanChange(planCode ?? '', billingInterval),
     enabled: enabled && planCode !== null,
     retry: false,
     gcTime: 0,

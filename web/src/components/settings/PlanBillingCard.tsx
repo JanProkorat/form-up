@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { CalendarClock, Check, CreditCard, ExternalLink, Ticket } from 'lucide-react';
 import { monthsUntil, promotionValueText } from '@/components/subscription/promotionText';
 import {
+  BillingInterval,
   PromotionDuration,
   SubscriptionPriceLineKind,
   SubscriptionStatus,
@@ -103,6 +104,9 @@ export default function PlanBillingCard() {
   const scheduledDate = scheduled?.startsAt ? dateFormat.format(new Date(scheduled.startsAt)) : periodEnd;
   const scheduledLines = scheduled?.priceLines ?? [];
   const scheduledTotal = scheduledLines.reduce((sum, line) => sum + (line.amountMinorUnits ?? 0), 0);
+  // The period the subscription bills on now, and the one the scheduled plan will bill on.
+  const annual = data?.billingInterval === BillingInterval.Annual;
+  const scheduledAnnual = scheduled?.billingInterval === BillingInterval.Annual;
   const scheduledCurrency = scheduledLines[0]?.currency ?? data?.priceLines?.[0]?.currency ?? 'CZK';
   const scheduledLine =
     scheduled && scheduledDate
@@ -110,7 +114,7 @@ export default function PlanBillingCard() {
         ? t('subscription.plan.scheduled.beginsPriced', {
             plan: scheduledName,
             date: scheduledDate,
-            price: t('subscription.plan.bill.perMonth', {
+            price: t(scheduledAnnual ? 'subscription.plan.bill.perYear' : 'subscription.plan.bill.perMonth', {
               amount: formatMoney(scheduledTotal, scheduledCurrency, language),
             }),
           })
@@ -121,7 +125,7 @@ export default function PlanBillingCard() {
   const addOnEndsAt = data?.secondRoleAddOnEndsAt;
   const addOnEndLine =
     !scheduled && addOnEndsAt
-      ? t('subscription.plan.scheduled.secondRoleEnds', {
+      ? t(annual ? 'subscription.plan.scheduled.secondRoleEndsAnnual' : 'subscription.plan.scheduled.secondRoleEnds', {
           date: dateFormat.format(new Date(addOnEndsAt)),
           amount: formatMoney(
             (data?.priceLines ?? [])
@@ -137,8 +141,18 @@ export default function PlanBillingCard() {
   const subtitle = [
     periodEnd
       ? scheduled
-        ? t('subscription.plan.scheduled.until', { plan: planName, date: periodEnd })
-        : t(data?.cancelAtPeriodEnd ? 'subscription.plan.ends' : 'subscription.plan.renews', { date: periodEnd })
+        ? t(annual ? 'subscription.plan.scheduled.untilAnnual' : 'subscription.plan.scheduled.until', {
+            plan: planName,
+            date: periodEnd,
+          })
+        : t(
+            data?.cancelAtPeriodEnd
+              ? 'subscription.plan.ends'
+              : annual
+                ? 'subscription.plan.renewsAnnual'
+                : 'subscription.plan.renews',
+            { date: periodEnd },
+          )
       : null,
     data?.isSetByFormUp
       ? freeUntil && !freeUntilRepeatsPeriodEnd
@@ -160,6 +174,13 @@ export default function PlanBillingCard() {
   const setByFormUp = data?.isSetByFormUp === true;
   const offerActive = !setByFormUp && promotion !== undefined && discount > 0;
   const billTotal = offerActive ? (promotion.discountedTotalMinorUnits ?? total) : total;
+  // The full price after a limited offer; an annual plan always names what next year costs and how to go monthly.
+  const nextBillDate =
+    offerActive && promotion?.endsAt
+      ? dateFormat.format(new Date(promotion.endsAt))
+      : annual && !setByFormUp && !data?.cancelAtPeriodEnd
+        ? periodEnd
+        : null;
   const offerValue = promotion ? promotionValueText(t, promotion, language) : '';
   const offerName = promotion?.name ?? '';
   const offerLabel = !promotion
@@ -243,7 +264,9 @@ export default function PlanBillingCard() {
 
             <div className="grid gap-6 md:grid-cols-2">
               <div className="flex flex-col gap-2.5">
-                <h3 className="text-copy font-semibold text-ink">{t('subscription.plan.bill.title')}</h3>
+                <h3 className="text-copy font-semibold text-ink">
+                  {t(annual ? 'subscription.plan.bill.titleAnnual' : 'subscription.plan.bill.title')}
+                </h3>
                 <div className="flex flex-col gap-2.5 rounded-xl bg-sunken p-4">
                   {lines.length === 0 ? (
                     <span className="text-copy text-ink-2">
@@ -281,17 +304,18 @@ export default function PlanBillingCard() {
                       <div className="flex items-baseline gap-3 border-t border-border pt-2.5 text-subhead font-semibold text-ink">
                         <span>{t('subscription.plan.bill.total')}</span>
                         <span className="ml-auto whitespace-nowrap">
-                          {t('subscription.plan.bill.perMonth', {
+                          {t(annual ? 'subscription.plan.bill.perYear' : 'subscription.plan.bill.perMonth', {
                             amount: formatMoney(billTotal, currency, language),
                           })}
                         </span>
                       </div>
-                      {offerActive && promotion?.endsAt && (
+                      {nextBillDate && (
                         <span className="text-meta text-muted-foreground">
-                          {t('subscription.plan.bill.afterOffer', {
-                            date: dateFormat.format(new Date(promotion.endsAt)),
+                          {t(annual ? 'subscription.plan.bill.afterOfferAnnual' : 'subscription.plan.bill.afterOffer', {
+                            date: nextBillDate,
                             amount: formatMoney(total, currency, language),
                           })}
+                          {annual && !scheduled && ` ${t('subscription.plan.bill.annualSwitch')}`}
                         </span>
                       )}
                     </>

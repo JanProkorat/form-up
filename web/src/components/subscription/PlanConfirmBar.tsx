@@ -17,6 +17,8 @@ interface Props {
   /** Confirm button text, already translated. */
   confirmLabel: string;
   busy: boolean;
+  /** Keeps the confirm button off while the choice cannot be taken, for example a plan the server cannot sell. */
+  confirmDisabled?: boolean;
   onConfirm: () => void;
   /**
    * Bleed past the padding of the scrolling main area (AppShell `p-6`): full width and flush with the viewport bottom.
@@ -29,7 +31,19 @@ interface Props {
 }
 
 /** Sticky bottom bar of the plan screens: the selected plan on the left, the confirm button on the right. */
-export default function PlanConfirmBar({ title, note, codeField, hint, extraHint, confirmLabel, busy, onConfirm, bleed = false, className = '' }: Props) {
+export default function PlanConfirmBar({
+  title,
+  note,
+  codeField,
+  hint,
+  extraHint,
+  confirmLabel,
+  busy,
+  confirmDisabled = false,
+  onConfirm,
+  bleed = false,
+  className = '',
+}: Props) {
   const { t } = useTranslation();
 
   return (
@@ -48,7 +62,7 @@ export default function PlanConfirmBar({ title, note, codeField, hint, extraHint
           {extraHint && <span>{extraHint}</span>}
         </div>
       </div>
-      <Button type="button" size="lg" className="h-11 shrink-0 gap-2 whitespace-nowrap px-4.5 font-semibold" disabled={busy} onClick={onConfirm}>
+      <Button type="button" size="lg" className="h-11 shrink-0 gap-2 whitespace-nowrap px-4.5 font-semibold" disabled={busy || confirmDisabled} onClick={onConfirm}>
         {confirmLabel}
         {busy ? <Loader2 className="animate-spin" aria-hidden="true" /> : <ArrowRight aria-hidden="true" />}
       </Button>

@@ -163,7 +163,7 @@ trainerTest.describe('plan picker', () => {
     await expect(free.getByRole('button', { name: 'Your plan' })).toBeDisabled();
     await expect(page.getByRole('article', { name: 'Pro' }).getByRole('button', { name: 'Select Pro' })).toBeEnabled();
     await expect(page.getByRole('link', { name: 'Back to settings' })).toBeVisible();
-    await expect(page.getByText('Have a code? Enter it at checkout.')).toBeVisible();
+    await expect(page.getByText('Have a code? Enter it next to the price below. It replaces any current offer.')).toBeVisible();
     await expect(page.getByText('Prices without VAT, 21 % VAT is added.')).toBeVisible();
   });
 
@@ -234,7 +234,12 @@ trainerTest.describe('plan picker', () => {
 
     await page.waitForURL(`${CHECKOUT_URL}**`);
     await expect(page.getByRole('heading', { name: 'Stripe Checkout stand-in' })).toBeVisible();
-    expect(checkoutBody).toEqual({ planCode: 'pro', includeSecondRoleAddOn: false, flow: 'Settings' });
+    expect(checkoutBody).toEqual({
+      planCode: 'pro',
+      billingInterval: 'Monthly',
+      includeSecondRoleAddOn: false,
+      flow: 'Settings',
+    });
   });
 
   trainerTest('billing not configured shows a localized toast and stays on the picker', async ({ page }) => {
@@ -407,7 +412,7 @@ trainerTest.describe('plan picker: changing a live paid plan', () => {
     const bar = page.getByRole('region', { name: 'Selected plan' });
     await expect(bar.getByText(/Today about .*158.* for the rest of this month, then .*599.* \/ month from .*2026/)).toBeVisible();
     await expect(bar.getByText('Your switch to Free will be cancelled.')).toHaveCount(0);
-    expect(previewBodies).toEqual([{ planCode: 'pro' }]);
+    expect(previewBodies).toEqual([{ planCode: 'pro', billingInterval: 'Monthly' }]);
 
     // A declined charge ends that attempt: the retry carries a new id.
     await bar.getByRole('button', { name: 'Upgrade to Pro' }).click();
