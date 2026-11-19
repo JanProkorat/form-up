@@ -30,6 +30,8 @@ interface Props {
   priceNote?: string;
   /** Second-role line, already translated; null hides it, undefined derives it from the plan. */
   secondRoleText?: string | null;
+  /** The interval the shown price bills on; defaults to the plan's own (monthly) one. */
+  billingInterval?: BillingInterval;
   /** Pill next to the plan name, already translated; defaults to the "Your plan now" pill for the current plan. */
   badge?: string;
   /** Heavy outline: the plan the coach is on, or the one preselected. Defaults to `current`. */
@@ -64,6 +66,7 @@ export default function PlanCard({
   priceNote,
   secondRoleText,
   badge,
+  billingInterval,
   emphasized,
   selection,
 }: Props) {
@@ -73,7 +76,7 @@ export default function PlanCard({
   const price = formatMoney(priceMinorUnits ?? plan.priceMinorUnits ?? 0, currency, i18n.language);
   const originalPrice =
     originalPriceMinorUnits === undefined ? null : formatMoney(originalPriceMinorUnits, currency, i18n.language);
-  const interval = plan.billingInterval === BillingInterval.Annual ? 'year' : 'month';
+  const interval = (billingInterval ?? plan.billingInterval) === BillingInterval.Annual ? 'year' : 'month';
   const addOn = plan.secondRoleAddOnPriceMinorUnits;
   const derivedSecondRole =
     addOn !== undefined && addOn !== null
@@ -110,7 +113,7 @@ export default function PlanCard({
         >
           {/* One line: each part keeps its width, the gap is tight, price and struck price drop a type step on a narrow card, and the row wraps only as a last resort. */}
           {/* text-stat sets this row's own line height, so two of its lines are reserved and the buttons line up whether or not the row wraps. */}
-          <div className="flex min-h-[2lh] flex-wrap items-baseline gap-x-1.5 text-stat">
+          <div className={`flex min-h-[2lh] ${interval === 'year' ? 'flex-nowrap' : 'flex-wrap'} items-baseline gap-x-1.5 text-stat`}>
             <span className="text-stat font-semibold whitespace-nowrap text-ink @max-[15rem]:text-auth-title">{price}</span>
             {originalPrice && !priceText && (
               <s className="text-copy whitespace-nowrap text-muted-foreground @max-[15rem]:text-body">

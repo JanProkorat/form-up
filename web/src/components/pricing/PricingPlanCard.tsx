@@ -11,7 +11,12 @@ import { scrollToAnchor } from '@/components/home/smoothAnchor';
 import { PRICING_COMPARE_ID, PRICING_FEATURES, includedFeatureCount } from '@/components/pricing/pricingFeatures';
 import { formatMoney } from '@/components/subscription/money';
 import { coachPlanName } from '@/components/subscription/planNames';
-import { planDiscountedPrice, planDisplayPrice } from '@/components/subscription/planPricing';
+import {
+  effectiveInterval,
+  planDiscountedPriceFor,
+  planPriceFor,
+  secondRoleAddOnFor,
+} from '@/components/subscription/planPricing';
 import { promotionShortText } from '@/components/subscription/promotionText';
 import { Button } from '@/components/ui/button';
 
@@ -19,30 +24,38 @@ interface Props {
   plan: PublicSubscriptionPlanDto;
   /** The active automatic promotion, when there is one; the price row then reserves room for its note on every card. */
   promotion?: PublicPromotionDto;
+  /** The interval the coach picked on the switch; a paid plan without an annual price keeps showing its monthly one. */
+  interval?: BillingInterval;
   /** Where the button leads: registration when signed out, Plan and billing when signed in. */
   ctaTo: string;
 }
 
 /** One plan of the public pricing page: name, price, second-role chip, choose link and a feature count. */
-export default function PricingPlanCard({ plan, promotion, ctaTo }: Props) {
+export default function PricingPlanCard({ plan, promotion, interval: chosen = BillingInterval.Monthly, ctaTo }: Props) {
   const { t, i18n } = useTranslation();
   const name = coachPlanName(plan, i18n.language);
   const currency = plan.currency ?? 'CZK';
+  const interval = effectiveInterval(plan, chosen);
+  const annual = interval === BillingInterval.Annual;
   const priceMinor = plan.priceMinorUnits ?? 0;
-  const price = formatMoney(priceMinor, currency, i18n.language);
-  const discounted = planDiscountedPrice(plan, false);
-  const offer = promotion && discounted !== null && discounted < planDisplayPrice(plan, false) ? promotion : null;
+  const shownMinor = planPriceFor(plan, interval, false);
+  const price = formatMoney(shownMinor, currency, i18n.language);
+  const discounted = planDiscountedPriceFor(plan, interval, false);
+  const offer = promotion && discounted !== null && discounted < shownMinor ? promotion : null;
   const shortOffer = offer ? promotionShortText(t, offer, i18n.language) : null;
-  const offerNote =
-    offer && shortOffer
+  const offerNote = offer
+    ? annual
       ? offer.duration === PromotionDuration.Forever
         ? shortOffer
+        : t('pricing.card.thenAnnual', { price })
+      : offer.duration === PromotionDuration.Forever
+        ? shortOffer
         : t('subscription.promotion.card.then', { short: shortOffer, price })
-      : undefined;
-  const interval = plan.billingInterval === BillingInterval.Annual ? 'year' : 'month';
-  const addOn = plan.secondRoleAddOnPriceMinorUnits;
+    : undefined;
+  const per = annual ? 'year' : 'month';
+  const addOn = secondRoleAddOnFor(plan, interval);
   const chip =
-    addOn !== undefined && addOn !== null
+    addOn !== null
       ? t('pricing.card.secondRoleAddOn', { amount: formatMoney(addOn, currency, i18n.language) })
       : plan.bothRolesIncluded
         ? t('pricing.card.bothRoles')
@@ -67,24 +80,24 @@ export default function PricingPlanCard({ plan, promotion, ctaTo }: Props) {
       {promotion ? (
         <div className="@container flex flex-col gap-1">
           {/* Two lines are reserved for the price row and for the note so the buttons line up across the cards. */}
-          <div className="flex min-h-[2lh] flex-wrap items-baseline gap-x-1.5 text-stat">
+          <div className={`flex min-h-[2lh] ${annual ? 'flex-nowrap' : 'flex-wrap'} items-baseline gap-x-1.5 text-stat`}>
             <span className="text-stat font-semibold whitespace-nowrap text-ink @max-[15rem]:text-auth-title">
-              {formatMoney(offer && discounted !== null ? discounted : priceMinor, currency, i18n.language)}
+              {formatMoney(offer && discounted !== null ? discounted : shownMinor, currency, i18n.language)}
             </span>
-            {offer && (
+            {offer && !annual && (
               <s className="text-copy whitespace-nowrap text-muted-foreground @max-[15rem]:text-body">
                 <span className="sr-only">{t('subscription.promotion.card.regularPrice')} </span>
                 {price}
               </s>
             )}
-            <span className="text-body whitespace-nowrap text-muted-foreground">{t(`pricing.card.per.${interval}`)}</span>
+            <span className="text-body whitespace-nowrap text-muted-foreground">{t(`pricing.card.per.${per}`)}</span>
           </div>
           <span className="min-h-9 text-meta text-muted-foreground">{offerNote}</span>
         </div>
       ) : (
         <div className="flex items-baseline gap-2">
           <span className="font-display text-price font-semibold tracking-heading text-ink">{price}</span>
-          <span className="text-body text-muted-foreground">{t(`pricing.card.per.${interval}`)}</span>
+          <span className="text-body text-muted-foreground">{t(`pricing.card.per.${per}`)}</span>
         </div>
       )}
 

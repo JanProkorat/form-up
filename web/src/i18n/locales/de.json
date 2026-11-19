@@ -270,16 +270,35 @@
         "somePlans": "Wird beim Bezahlen auf {{plans}} angewendet.",
         "claimBy": "Sichern Sie sich das Angebot bis {{date}}.",
         "taken": "Bereits von den Preisen der kostenpflichtigen Tarife unten abgezogen.",
-        "takenSomePlans": "Bereits von den Preisen von {{plans}} unten abgezogen."
+        "takenSomePlans": "Bereits von den Preisen von {{plans}} unten abgezogen.",
+        "annualOnly": "{{name}}: {{value}} im ersten Jahr bei jährlicher Zahlung",
+        "monthlyOnly": "{{title}}, nur bei monatlicher Zahlung",
+        "orFirstYear": "{{title}} oder im ersten Jahr bei jährlicher Zahlung",
+        "otherPeriod": "Gilt nicht für diesen Zahlungszeitraum."
       },
       "card": {
         "then": "{{short}}, danach {{price}}",
-        "regularPrice": "Regulärer Preis"
+        "regularPrice": "Regulärer Preis",
+        "thenAnnual": "{{value}} im ersten Jahr, danach {{price}}"
       }
     },
     "billing": {
       "vat": "Preise ohne MwSt., {{rate}} % MwSt. werden hinzugerechnet.",
       "codeAtCheckout": "Sie haben einen Code? Geben Sie ihn beim Bezahlen ein.",
+      "interval": {
+        "label": "Zahlungszeitraum",
+        "monthly": "Monatlich",
+        "annual": "Jährlich",
+        "save": "Bis zu {{percent}} % sparen"
+      },
+      "promoCode": {
+        "label": "Sie haben einen Code?",
+        "apply": "Einlösen",
+        "applied": "Code {{code}}",
+        "remove": "Code entfernen",
+        "annualOnly": "Dieser Code gilt nur für Jahrestarife.",
+        "monthlyOnly": "Dieser Code gilt nur für Monatstarife."
+      },
       "select": {
         "select": "{{plan}} auswählen",
         "selected": "Ausgewählt",
@@ -324,6 +343,8 @@
         "title": "Wählen Sie Ihren Tarif",
         "subtitle": "Starten Sie kostenlos und wechseln Sie, wenn Sie wachsen. Ihre Kundinnen und Kunden nutzen die App immer kostenlos.",
         "noCardBadge": "Ohne Karte",
+        "codeNote": "Sie haben einen Code? Geben Sie ihn neben dem Preis ein, bevor Sie bezahlen.",
+        "annualNote": "Einmal pro Jahr bezahlt. Nach Ablauf des Jahres können Sie auf monatliche Zahlung wechseln.",
         "startFree": "Kostenlos starten",
         "secondRoleLater": "Zweite Rolle später +{{amount}}",
         "secondRoleFree": "Eine zweite Rolle können Sie jederzeit kostenlos hinzufügen",
@@ -3701,6 +3722,7 @@
     "PROMOTION_CODE_USED_UP": "Dieser Code ist aufgebraucht.",
     "PROMOTION_CODE_NEW_COACHES_ONLY": "Dieser Code gilt nur für neue Trainer.",
     "PROMOTION_CODE_ALREADY_USED": "Sie haben diesen Code bereits verwendet.",
+    "PROMOTION_CODE_INTERVAL_NOT_ELIGIBLE": "Dieser Code gilt nicht für den gewählten Zahlungszeitraum.",
     "PROMOTION_CODE_TAKEN": "Diesen Code verwendet bereits eine andere Aktion, die noch nicht beendet ist.",
     "PROMOTION_ALREADY_ENDED": "Diese Aktion ist bereits beendet.",
     "PROMOTION_VALUE_INVALID": "Prüfen Sie den Wert der Aktion.",
@@ -7245,7 +7267,12 @@
       "clientCap_one": "Bis zu {{count}} Klient",
       "clientCap_other": "Bis zu {{count}} Klienten",
       "featureCount": "{{count}} von {{total}} Funktionen",
-      "seeAll": "alle anzeigen"
+      "seeAll": "alle anzeigen",
+      "thenAnnual": "im ersten Jahr, danach {{price}}"
+    },
+    "interval": {
+      "annualNote": "Einmal pro Jahr bezahlt. Jeder Tarif zeigt, was Sie gegenüber 12 Monatszahlungen sparen.",
+      "annualFooter": "Jährliche Abrechnung über Stripe. Ein Downgrade, der Wechsel zu monatlicher Zahlung oder eine Kündigung wird am Ende des bezahlten Jahres wirksam."
     },
     "table": {
       "title": "Funktionen im Vergleich",

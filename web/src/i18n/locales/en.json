@@ -270,16 +270,35 @@
         "somePlans": "Applied at checkout on {{plans}}.",
         "claimBy": "Claim it by {{date}}.",
         "taken": "Already taken off the paid prices below.",
-        "takenSomePlans": "Already taken off the prices of {{plans}} below."
+        "takenSomePlans": "Already taken off the prices of {{plans}} below.",
+        "annualOnly": "{{name}}: {{value}} on your first year on annual",
+        "monthlyOnly": "{{title}}, on monthly billing only",
+        "orFirstYear": "{{title}}, or your first year on annual",
+        "otherPeriod": "It doesn't apply to this billing period."
       },
       "card": {
         "then": "{{short}}, then {{price}}",
-        "regularPrice": "Regular price"
+        "regularPrice": "Regular price",
+        "thenAnnual": "{{value}} on the first year, then {{price}}"
       }
     },
     "billing": {
       "vat": "Prices without VAT, {{rate}} % VAT is added.",
       "codeAtCheckout": "Have a code? Enter it at checkout.",
+      "interval": {
+        "label": "Billing period",
+        "monthly": "Monthly",
+        "annual": "Annual",
+        "save": "Save up to {{percent}} %"
+      },
+      "promoCode": {
+        "label": "Have a code?",
+        "apply": "Apply",
+        "applied": "Code {{code}}",
+        "remove": "Remove code",
+        "annualOnly": "This code is for annual plans only.",
+        "monthlyOnly": "This code is for monthly plans only."
+      },
       "select": {
         "select": "Select {{plan}}",
         "selected": "Selected",
@@ -324,6 +343,8 @@
         "title": "Choose your plan",
         "subtitle": "Start free and upgrade when you grow. Your clients always use the app for free.",
         "noCardBadge": "No card needed",
+        "codeNote": "Have a code? Enter it next to the price before you pay.",
+        "annualNote": "Paid once a year. You can switch to monthly when the year ends.",
         "startFree": "Start free",
         "secondRoleLater": "Second role later +{{amount}}",
         "secondRoleFree": "Add a second role any time, free",
@@ -3702,6 +3723,7 @@
     "PROMOTION_CODE_USED_UP": "This code has been used up.",
     "PROMOTION_CODE_NEW_COACHES_ONLY": "This code is only for new coaches.",
     "PROMOTION_CODE_ALREADY_USED": "You have already used this code.",
+    "PROMOTION_CODE_INTERVAL_NOT_ELIGIBLE": "This code doesn't apply to the chosen billing period.",
     "PROMOTION_CODE_TAKEN": "Another promotion that has not ended uses this code.",
     "PROMOTION_ALREADY_ENDED": "This promotion has already ended.",
     "PROMOTION_VALUE_INVALID": "Check the value of the promotion.",
@@ -7240,7 +7262,12 @@
       "clientCap_one": "Up to {{count}} client",
       "clientCap_other": "Up to {{count}} clients",
       "featureCount": "{{count}} of {{total}} features",
-      "seeAll": "see all"
+      "seeAll": "see all",
+      "thenAnnual": "for the first year, then {{price}}"
+    },
+    "interval": {
+      "annualNote": "Paid once a year. Each plan shows what you save against 12 monthly payments.",
+      "annualFooter": "Billed yearly through Stripe. A downgrade, a switch to monthly or a cancellation takes effect at the end of the paid year."
     },
     "table": {
       "title": "Compare features",
