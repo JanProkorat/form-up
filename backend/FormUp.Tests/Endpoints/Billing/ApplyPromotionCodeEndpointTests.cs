@@ -52,7 +52,7 @@ public class ApplyPromotionCodeEndpointTests(FitnessApiFactory factory) : IDispo
     }
 
     [Fact]
-    public async Task ApplyCode_OnTheCallersOwnLiveSubscription_Returns204_AndPassesThePromotionCodeId()
+    public async Task ApplyCode_OnTheCallersOwnLiveSubscription_Returns204_AndAttachesTheCouponNotAPromotionCode()
     {
         var fake = BillingTestData.ResetProvider(factory);
         var (coach, subscriptionId, promotion) = await ArrangeAsync();
@@ -61,7 +61,7 @@ public class ApplyPromotionCodeEndpointTests(FitnessApiFactory factory) : IDispo
 
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
         fake.PromotionCodeSubscriptions.Should().ContainSingle().Which.Should().Be(subscriptionId);
-        fake.AppliedPromotionCodeIds.Should().ContainSingle().Which.Should().Be(promotion.StripePromotionCodeId);
+        fake.AppliedCouponIds.Should().ContainSingle().Which.Should().Be(promotion.StripeCouponId);
     }
 
     [Fact]
@@ -73,7 +73,7 @@ public class ApplyPromotionCodeEndpointTests(FitnessApiFactory factory) : IDispo
         var response = await coach.Http.PostAsJsonAsync(Route, Body(promotion.Code!.ToLowerInvariant()), Ct);
 
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
-        fake.AppliedPromotionCodeIds.Should().ContainSingle();
+        fake.AppliedCouponIds.Should().ContainSingle();
     }
 
     [Fact]
@@ -86,7 +86,7 @@ public class ApplyPromotionCodeEndpointTests(FitnessApiFactory factory) : IDispo
 
         await AssertErrorAsync(response, HttpStatusCode.NotFound, "PROMOTION_CODE_NOT_FOUND");
         (await response.Content.ReadAsStringAsync(Ct)).Should().NotContain("SECRETCODE");
-        fake.AppliedPromotionCodeIds.Should().BeEmpty();
+        fake.AppliedCouponIds.Should().BeEmpty();
     }
 
     [Fact]
@@ -101,7 +101,7 @@ public class ApplyPromotionCodeEndpointTests(FitnessApiFactory factory) : IDispo
 
         await AssertErrorAsync(
             await coach.Http.PostAsJsonAsync(Route, Body(promotion.Code!), Ct), HttpStatusCode.NotFound, "PROMOTION_CODE_NOT_FOUND");
-        fake.AppliedPromotionCodeIds.Should().BeEmpty();
+        fake.AppliedCouponIds.Should().BeEmpty();
     }
 
     [Fact]
@@ -112,7 +112,7 @@ public class ApplyPromotionCodeEndpointTests(FitnessApiFactory factory) : IDispo
 
         await AssertErrorAsync(
             await coach.Http.PostAsJsonAsync(Route, Body(promotion.Code!), Ct), HttpStatusCode.NotFound, "PROMOTION_CODE_NOT_FOUND");
-        fake.AppliedPromotionCodeIds.Should().BeEmpty();
+        fake.AppliedCouponIds.Should().BeEmpty();
     }
 
     [Fact]
@@ -123,7 +123,7 @@ public class ApplyPromotionCodeEndpointTests(FitnessApiFactory factory) : IDispo
 
         await AssertErrorAsync(
             await coach.Http.PostAsJsonAsync(Route, Body(promotion.Code!), Ct), HttpStatusCode.Conflict, "PROMOTION_CODE_NOT_STARTED");
-        fake.AppliedPromotionCodeIds.Should().BeEmpty();
+        fake.AppliedCouponIds.Should().BeEmpty();
     }
 
     [Fact]
@@ -134,7 +134,7 @@ public class ApplyPromotionCodeEndpointTests(FitnessApiFactory factory) : IDispo
 
         await AssertErrorAsync(
             await coach.Http.PostAsJsonAsync(Route, Body(promotion.Code!), Ct), HttpStatusCode.Conflict, "PROMOTION_CODE_PLAN_NOT_ELIGIBLE");
-        fake.AppliedPromotionCodeIds.Should().BeEmpty();
+        fake.AppliedCouponIds.Should().BeEmpty();
     }
 
     [Fact]
@@ -147,7 +147,7 @@ public class ApplyPromotionCodeEndpointTests(FitnessApiFactory factory) : IDispo
 
         await AssertErrorAsync(
             await coach.Http.PostAsJsonAsync(Route, Body(promotion.Code!), Ct), HttpStatusCode.Conflict, "PROMOTION_CODE_USED_UP");
-        fake.AppliedPromotionCodeIds.Should().BeEmpty();
+        fake.AppliedCouponIds.Should().BeEmpty();
     }
 
     [Fact]
@@ -159,7 +159,7 @@ public class ApplyPromotionCodeEndpointTests(FitnessApiFactory factory) : IDispo
 
         await AssertErrorAsync(
             await coach.Http.PostAsJsonAsync(Route, Body(promotion.Code!), Ct), HttpStatusCode.Conflict, "PROMOTION_CODE_NEW_COACHES_ONLY");
-        fake.AppliedPromotionCodeIds.Should().BeEmpty();
+        fake.AppliedCouponIds.Should().BeEmpty();
     }
 
     [Fact]
@@ -171,7 +171,7 @@ public class ApplyPromotionCodeEndpointTests(FitnessApiFactory factory) : IDispo
 
         await AssertErrorAsync(
             await coach.Http.PostAsJsonAsync(Route, Body(promotion.Code!), Ct), HttpStatusCode.Conflict, "PROMOTION_CODE_ALREADY_USED");
-        fake.AppliedPromotionCodeIds.Should().BeEmpty();
+        fake.AppliedCouponIds.Should().BeEmpty();
     }
 
     [Fact]
@@ -194,7 +194,7 @@ public class ApplyPromotionCodeEndpointTests(FitnessApiFactory factory) : IDispo
 
         first.StatusCode.Should().Be(HttpStatusCode.NoContent);
         second.StatusCode.Should().Be(HttpStatusCode.NoContent);
-        fake.AppliedPromotionCodeIds.Should().BeEmpty("the discount is already on the subscription");
+        fake.AppliedCouponIds.Should().BeEmpty("the discount is already on the subscription");
     }
 
     [Fact]

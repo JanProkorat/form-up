@@ -44,6 +44,9 @@ public class CoachPromotionDto
     /// <summary>Months the discount lasts; set only for <see cref="PromotionDuration.Months"/>.</summary>
     public int? DurationMonths { get; set; }
 
+    /// <summary>Which billing cadences the promotion discounts; the discounted fields of a cadence it does not cover stay null.</summary>
+    public PromotionBillingPeriod BillingPeriod { get; set; }
+
     /// <summary>Last moment the offer can be claimed; null for no end.</summary>
     public DateTimeOffset? ClaimUntil { get; set; }
 

@@ -103,7 +103,8 @@ internal sealed class ChangePlanEndpoint(
                     target.Currency,
                     target.BillingInterval,
                     upgradeKey,
-                    ct);
+                    ct,
+                    await PlanChangeEndpointExtensions.ResolveDiscountChangeAsync(db, subscription, target, ct));
             }
             else
             {
@@ -115,7 +116,8 @@ internal sealed class ChangePlanEndpoint(
                     target.Currency,
                     target.BillingInterval,
                     atNextRenewal: true,
-                    ct);
+                    ct,
+                    pendingPhaseCouponId: await PlanChangeEndpointExtensions.ResolvePendingPhaseCouponIdAsync(db, subscription, target, ct));
             }
         }
         catch (BillingProviderException)

@@ -191,6 +191,9 @@ public class CurrentPromotionDto
     /// <summary>Months the discount lasts; set only for <see cref="PromotionDuration.Months"/>.</summary>
     public int? DurationMonths { get; set; }
 
+    /// <summary>Which billing cadences the promotion discounts.</summary>
+    public PromotionBillingPeriod BillingPeriod { get; set; }
+
     /// <summary>When the discount ends, as Stripe reports it; null for a forever discount.</summary>
     public DateTimeOffset? EndsAt { get; set; }
 

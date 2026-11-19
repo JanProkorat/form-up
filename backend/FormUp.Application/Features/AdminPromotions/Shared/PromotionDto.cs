@@ -42,6 +42,9 @@ public class PromotionDto
     /// <summary>When the promotion stops being claimable; null for no end.</summary>
     public DateTimeOffset? ClaimUntil { get; set; }
 
+    /// <summary>Which billing cadences the promotion discounts.</summary>
+    public PromotionBillingPeriod BillingPeriod { get; set; }
+
     /// <summary>Codes of the plans the promotion covers.</summary>
     public List<string> PlanCodes { get; set; } = [];
 
@@ -80,6 +83,7 @@ public class PromotionDto
         DurationMonths = promotion.DurationMonths,
         ClaimFrom = promotion.ClaimFrom,
         ClaimUntil = promotion.ClaimUntil,
+        BillingPeriod = promotion.BillingPeriod,
         PlanCodes = promotion.PlanCodes.ToList(),
         MaxUses = promotion.MaxUses,
         UsedCount = usedCount,

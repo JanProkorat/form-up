@@ -112,7 +112,8 @@ internal sealed class PreviewPlanChangeEndpoint(
                     addOnAmount,
                     target.Currency,
                     target.BillingInterval,
-                    ct);
+                    ct,
+                    await PlanChangeEndpointExtensions.ResolveDiscountChangeAsync(db, subscription, target, ct));
             }
             catch (BillingProviderException)
             {

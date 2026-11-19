@@ -13,8 +13,10 @@ namespace FormUp.Application.Infrastructure.Services.Billing;
 /// The billing interval of <paramref name="PriceIds"/> when known. The open last phase needs it; when it is null the service
 /// reads it from the phase's own price before sending the schedule.
 /// </param>
+/// <param name="CouponId">The coupon the phase's prices carry, or null for no discount in the phase.</param>
 public sealed record SchedulePhasePlan(
     DateTimeOffset Start,
     DateTimeOffset? End,
     IReadOnlyList<string> PriceIds,
-    BillingInterval? Interval = null);
+    BillingInterval? Interval = null,
+    string? CouponId = null);

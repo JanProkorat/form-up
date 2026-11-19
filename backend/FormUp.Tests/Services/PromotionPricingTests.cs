@@ -86,7 +86,7 @@ public class PromotionPricingTests
     [Fact]
     public void ForSubscription_PercentOnACoveredPlan_DiscountsPlanAndAddOn()
     {
-        var (discount, total) = PromotionPricing.ForSubscription(Make(PromotionKind.Percent, 30), "pro", "CZK", 29900, 9900);
+        var (discount, total) = PromotionPricing.ForSubscription(Make(PromotionKind.Percent, 30), "pro", "CZK", BillingInterval.Monthly, 29900, 9900);
 
         discount.Should().Be(11940);
         total.Should().Be(27860);
@@ -98,7 +98,7 @@ public class PromotionPricingTests
         var promotion = Make(PromotionKind.Percent, 30);
         promotion.PlanCodes = ["start", "pro"];
 
-        var (discount, total) = PromotionPricing.ForSubscription(promotion, "pro", "CZK", 29900, 9900);
+        var (discount, total) = PromotionPricing.ForSubscription(promotion, "pro", "CZK", BillingInterval.Monthly, 29900, 9900);
 
         discount.Should().Be(11940, "30 % of the plan line and 30 % of the add-on line");
         total.Should().Be(27860);
@@ -107,7 +107,7 @@ public class PromotionPricingTests
     [Fact]
     public void ForSubscription_WithoutAnAddOn_UsesThePlanLineOnly()
     {
-        var (discount, total) = PromotionPricing.ForSubscription(Make(PromotionKind.Percent, 30), "pro", "CZK", 29900, null);
+        var (discount, total) = PromotionPricing.ForSubscription(Make(PromotionKind.Percent, 30), "pro", "CZK", BillingInterval.Monthly, 29900, null);
 
         discount.Should().Be(8970);
         total.Should().Be(20930);
@@ -117,7 +117,7 @@ public class PromotionPricingTests
     public void ForSubscription_APlanThePromotionDoesNotCover_TakesNothingOffEitherLine()
     {
         var (discount, total) = PromotionPricing.ForSubscription(
-            Make(PromotionKind.Percent, 30, plan: "start"), "pro", "CZK", 29900, 9900);
+            Make(PromotionKind.Percent, 30, plan: "start"), "pro", "CZK", BillingInterval.Monthly, 29900, 9900);
 
         discount.Should().Be(0);
         total.Should().Be(39800);
@@ -128,7 +128,7 @@ public class PromotionPricingTests
     {
         var promotion = Make(PromotionKind.FixedAmount, 30000, currency: "CZK");
 
-        var (discount, total) = PromotionPricing.ForSubscription(promotion, "pro", "czk", 29900, 9900);
+        var (discount, total) = PromotionPricing.ForSubscription(promotion, "pro", "czk", BillingInterval.Monthly, 29900, 9900);
 
         discount.Should().Be(30000);
         total.Should().Be(9800);
@@ -139,7 +139,7 @@ public class PromotionPricingTests
     {
         var promotion = Make(PromotionKind.FixedAmount, 30000, currency: "CZK");
 
-        var (discount, total) = PromotionPricing.ForSubscription(promotion, "pro", "EUR", 1900, null);
+        var (discount, total) = PromotionPricing.ForSubscription(promotion, "pro", "EUR", BillingInterval.Monthly, 1900, null);
 
         discount.Should().Be(0);
         total.Should().Be(1900);

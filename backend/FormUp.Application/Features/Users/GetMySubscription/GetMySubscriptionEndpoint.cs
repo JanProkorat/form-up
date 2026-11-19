@@ -168,7 +168,12 @@ internal sealed class GetMySubscriptionEndpoint(
         var (discount, discountedTotal) = planLine is null
             ? (0L, 0L)
             : PromotionPricing.ForSubscription(
-                current.Promotion, response.PlanCode, planLine.Currency, planLine.AmountMinorUnits, addOnLine?.AmountMinorUnits);
+                current.Promotion,
+                response.PlanCode,
+                planLine.Currency,
+                response.BillingInterval,
+                planLine.AmountMinorUnits,
+                addOnLine?.AmountMinorUnits);
 
         return new CurrentPromotionDto
         {
@@ -178,6 +183,7 @@ internal sealed class GetMySubscriptionEndpoint(
             Currency = current.Promotion.Currency,
             Duration = current.Promotion.Duration,
             DurationMonths = current.Promotion.DurationMonths,
+            BillingPeriod = current.Promotion.BillingPeriod,
             EndsAt = current.CurrentPromotionEndsAt,
             DiscountMinorUnits = discount,
             DiscountedTotalMinorUnits = discountedTotal,

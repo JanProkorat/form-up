@@ -37,6 +37,7 @@ internal sealed class CreatePromotionValidator : Validator<CreatePromotionReques
         RuleFor(x => x.Kind).IsInEnum();
         RuleFor(x => x.Mode).IsInEnum();
         RuleFor(x => x.Duration).IsInEnum();
+        RuleFor(x => x.BillingPeriod).IsInEnum();
 
         RuleFor(x => x.Value)
             .InclusiveBetween(1, 100)

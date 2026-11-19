@@ -18,4 +18,10 @@ public class CreateCheckoutSessionRequest
 
     /// <summary>Where the coach started, so the return URL lands on the right page. Never a URL.</summary>
     public CheckoutFlow Flow { get; set; } = CheckoutFlow.Settings;
+
+    /// <summary>
+    /// Optional promotion code typed in our app. It is checked against our promotion before anything is sent to Stripe and
+    /// replaces the automatic promotion. Never logged or echoed back.
+    /// </summary>
+    public string? Code { get; set; }
 }
