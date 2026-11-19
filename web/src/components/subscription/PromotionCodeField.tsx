@@ -76,7 +76,7 @@ export default function PromotionCodeField({ appliedCode, onApply, onRemove, err
           disabled={disabled}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? errorId : undefined}
-          className="h-10 w-37.5"
+          className="h-10 min-w-0 flex-1 md:w-37.5 md:flex-none"
           onChange={(event) => {
             setDraft(event.target.value);
             // Editing after a refusal drops the refused code and its message.
@@ -84,7 +84,7 @@ export default function PromotionCodeField({ appliedCode, onApply, onRemove, err
           }}
           onKeyDown={onKeyDown}
         />
-        <Button type="button" variant="outline" className="h-10 px-3.5 font-semibold" disabled={disabled || !trimmed} onClick={apply}>
+        <Button type="button" variant="outline" className="h-10 shrink-0 px-3.5 font-semibold" disabled={disabled || !trimmed} onClick={apply}>
           {t('subscription.billing.promoCode.apply')}
         </Button>
       </div>

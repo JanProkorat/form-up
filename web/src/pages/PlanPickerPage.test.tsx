@@ -147,6 +147,50 @@ describe('PlanPickerPage preview and plan change', () => {
     expect(changes[0]).not.toHaveProperty('code');
   });
 
+  it('an "about" amount in the move-to-annual hint is whole crowns, not hellers', async () => {
+    servePlanScreens({ subscription: liveSubscription('start', BillingInterval.Monthly) });
+    servePlanPreview((body) =>
+      HttpResponse.json(
+        previewBody({
+          planCode: body.planCode,
+          billingInterval: BillingInterval.Annual,
+          currentBillingInterval: BillingInterval.Monthly,
+          todayAmountMinorUnits: 535104,
+          nextAmountMinorUnits: 299000,
+        }),
+      ),
+    );
+
+    const { user } = renderPicker();
+    await user.click(await annualSwitch());
+    await selectPlan(user, 'Start');
+
+    const hint = await within(bar()).findByText(/Today about .*5,351.*: the unused part/);
+    expect(hint).not.toHaveTextContent('5,351.04');
+  });
+
+  it('an "about" amount in the upgrade hint is whole crowns too', async () => {
+    servePlanScreens({ subscription: liveSubscription('start', BillingInterval.Monthly) });
+    servePlanPreview((body) =>
+      HttpResponse.json(
+        previewBody({
+          planCode: body.planCode,
+          billingInterval: BillingInterval.Monthly,
+          currentBillingInterval: BillingInterval.Monthly,
+          todayAmountMinorUnits: 123450,
+          nextAmountMinorUnits: 59900,
+        }),
+      ),
+    );
+
+    const { user } = renderPicker();
+    await selectPlan(user, 'Pro');
+
+    const hint = await within(bar()).findByText(/Today about/);
+    expect(hint).toHaveTextContent(/1,235/);
+    expect(hint).not.toHaveTextContent('1,234.50');
+  });
+
   it('annual to monthly says it switches when the paid year ends, with no refund', async () => {
     servePlanScreens({ subscription: liveSubscription('start', BillingInterval.Annual) });
     servePlanPreview((body) =>

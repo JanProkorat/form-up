@@ -49,9 +49,9 @@ export default function PlanConfirmBar({
   return (
     <section
       aria-label={t('subscription.billing.select.region')}
-      className={`sticky ${bleed ? '-bottom-6 -mx-6 mt-auto' : 'bottom-0'} z-10 flex items-center gap-4 border-t border-line bg-card px-4 py-3 sm:px-8 ${className}`}
+      className={`sticky ${bleed ? '-bottom-6 -mx-6 mt-auto' : 'bottom-0'} z-10 flex flex-col items-stretch gap-3 border-t border-line bg-card px-4 py-3 sm:px-8 md:flex-row md:items-center md:gap-4 ${className}`}
     >
-      <div className="flex min-w-0 flex-1 flex-col gap-1.5 md:flex-row md:items-center md:gap-4">
+      <div className="flex min-w-0 flex-col gap-1.5 md:flex-1 md:flex-row md:items-center md:gap-4">
         <div className="flex min-w-0 flex-col gap-0.75">
           <span className="text-subhead font-semibold text-ink">{title}</span>
           {note && <span className="text-meta text-muted-foreground">{note}</span>}
@@ -62,7 +62,7 @@ export default function PlanConfirmBar({
           {extraHint && <span>{extraHint}</span>}
         </div>
       </div>
-      <Button type="button" size="lg" className="h-11 shrink-0 gap-2 whitespace-nowrap px-4.5 font-semibold" disabled={busy || confirmDisabled} onClick={onConfirm}>
+      <Button type="button" size="lg" className="h-11 w-full shrink-0 gap-2 whitespace-nowrap px-4.5 font-semibold md:w-auto" disabled={busy || confirmDisabled} onClick={onConfirm}>
         {confirmLabel}
         {busy ? <Loader2 className="animate-spin" aria-hidden="true" /> : <ArrowRight aria-hidden="true" />}
       </Button>

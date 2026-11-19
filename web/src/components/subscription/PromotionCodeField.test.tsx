@@ -16,6 +16,14 @@ describe('PromotionCodeField', () => {
     expect(onApply).toHaveBeenCalledWith('YEAR40');
   });
 
+  it('the input grows to the row on narrow screens and Apply never shrinks (jsdom has no layout: classes only)', () => {
+    renderWithProviders(<PromotionCodeField appliedCode={null} onApply={() => undefined} onRemove={() => undefined} />);
+
+    const input = screen.getByLabelText('Have a code?');
+    expect(input).toHaveClass('flex-1', 'min-w-0', 'md:w-37.5', 'md:flex-none');
+    expect(screen.getByRole('button', { name: 'Apply' })).toHaveClass('shrink-0');
+  });
+
   it('Enter applies the code', async () => {
     const onApply = vi.fn();
     const { user } = renderWithProviders(<PromotionCodeField appliedCode={null} onApply={onApply} onRemove={() => undefined} />);
