@@ -29,6 +29,10 @@ const planShape = z.object({
   price: z.string(),
   secondRole: z.enum(['addon', 'included']),
   addOnPrice: z.string(),
+  /** Yearly plan price; empty means the plan is not sold annually. */
+  annualPrice: z.string(),
+  /** Yearly second-role price; only used with a yearly price and a paid add-on. */
+  annualAddOnPrice: z.string(),
   unlimited: z.boolean(),
   maxActiveClients: z.string(),
   canCreatePlans: z.boolean(),
@@ -50,8 +54,17 @@ const planShape = z.object({
 
 export type PlanFormValues = z.infer<typeof planShape>;
 
+/** Whole percent a yearly price saves against twelve monthly ones; null when there is no saving. */
+export function annualSavingPercent(monthlyMinor: number, annualMinor: number): number | null {
+  if (monthlyMinor <= 0 || annualMinor <= 0) {
+    return null;
+  }
+  const percent = Math.round(((12 * monthlyMinor - annualMinor) / (12 * monthlyMinor)) * 100);
+  return percent > 0 ? percent : null;
+}
+
 /** The form's validation; the code is only checked while creating, because it is locked afterwards. */
-export function createPlanSchema(isNew: boolean) {
+export function createPlanSchema(isNew: boolean, isFree = false) {
   return planShape.superRefine((values, ctx) => {
     const fail = (path: keyof PlanFormValues, message: string) =>
       ctx.addIssue({ code: 'custom', path: [path], message });
@@ -81,6 +94,20 @@ export function createPlanSchema(isNew: boolean) {
       }
     }
 
+    // Mirrors the server: the Free plan has no yearly price, an empty one means "not sold annually", and a paid
+    // add-on needs its own yearly price next to a yearly plan price.
+    if (!isFree && values.annualPrice.trim() !== '') {
+      const annual = parseAmount(values.annualPrice);
+      if (annual === null || annual <= 0 || annual > PLAN_PRICE_MAX) {
+        fail('annualPrice', 'adminPlans.validation.annualInvalid');
+      } else if (values.secondRole === 'addon') {
+        const annualAddOn = parseAmount(values.annualAddOnPrice);
+        if (annualAddOn === null || annualAddOn <= 0 || annualAddOn > PLAN_PRICE_MAX) {
+          fail('annualAddOnPrice', 'adminPlans.validation.annualAddOnInvalid');
+        }
+      }
+    }
+
     if (values.canUsePerClientCheckInConfig && !values.canUseWeeklyCheckIns) {
       fail('canUsePerClientCheckInConfig', 'adminPlans.validation.perClientNeedsWeekly');
     }
@@ -103,6 +130,8 @@ export function defaultPlanValues(): PlanFormValues {
     price: '',
     secondRole: 'addon',
     addOnPrice: '',
+    annualPrice: '',
+    annualAddOnPrice: '',
     unlimited: false,
     maxActiveClients: '',
     canCreatePlans: false,
@@ -148,6 +177,8 @@ export function planToFormValues(plan: SubscriptionPlanDto): PlanFormValues {
     price: minorToInput(plan.priceMinorUnits ?? 0),
     secondRole: plan.bothRolesIncluded ? 'included' : 'addon',
     addOnPrice: minorToInput(plan.secondRoleAddOnPriceMinorUnits),
+    annualPrice: minorToInput(plan.annualPriceMinorUnits),
+    annualAddOnPrice: minorToInput(plan.annualSecondRoleAddOnPriceMinorUnits),
     unlimited,
     maxActiveClients: unlimited ? '' : String(plan.maxActiveClients),
     canCreatePlans: plan.canCreatePlans ?? false,
@@ -196,6 +227,22 @@ const secondRoleFields = (values: PlanFormValues) =>
     ? { bothRolesIncluded: true, secondRoleAddOnPriceMinorUnits: undefined }
     : { bothRolesIncluded: false, secondRoleAddOnPriceMinorUnits: inputToMinor(values.addOnPrice) };
 
+/**
+ * The yearly price fields. A PUT is a full update and the server closes the plan's annual price when it is
+ * missing, so these must always travel back. Nothing is sent for the Free plan or an empty Per year; the yearly
+ * add-on is sent only next to a yearly price and a paid second role.
+ */
+function annualFields(values: PlanFormValues, free: boolean) {
+  if (free || values.annualPrice.trim() === '') {
+    return {};
+  }
+  return {
+    annualPriceMinorUnits: inputToMinor(values.annualPrice),
+    annualSecondRoleAddOnPriceMinorUnits:
+      values.secondRole === 'addon' ? inputToMinor(values.annualAddOnPrice) : undefined,
+  };
+}
+
 export function formValuesToCreateRequest(values: PlanFormValues): CreateSubscriptionPlanRequest {
   return {
     code: values.code.trim(),
@@ -203,6 +250,7 @@ export function formValuesToCreateRequest(values: PlanFormValues): CreateSubscri
     nameEn: values.nameEn.trim(),
     nameDe: values.nameDe.trim(),
     ...secondRoleFields(values),
+    ...annualFields(values, values.code.trim() === FREE_PLAN_CODE),
     ...featureFlags(values),
     maxActiveClients: values.unlimited ? undefined : Number(values.maxActiveClients),
     priceMinorUnits: inputToMinor(values.price),
@@ -226,6 +274,7 @@ export function formValuesToUpdateRequest(
     nameEn: values.nameEn.trim(),
     nameDe: values.nameDe.trim(),
     ...secondRoleFields(values),
+    ...annualFields(values, isFreePlan(plan)),
     ...featureFlags(values),
     moveExistingCoachesAtNextRenewal: priceChanged && values.moveExistingCoaches,
     maxActiveClients: values.unlimited ? null : Number(values.maxActiveClients),
