@@ -5,6 +5,7 @@ import { CreditCard } from 'lucide-react';
 import { BillingInterval, CheckoutFlow, PromotionDuration } from '@/api/generated';
 import RegisterShell from '@/components/register/RegisterShell';
 import RegisterStepper from '@/components/register/RegisterStepper';
+import BillingIntervalSwitch from '@/components/subscription/BillingIntervalSwitch';
 import PlanCard from '@/components/subscription/PlanCard';
 import PlanConfirmBar from '@/components/subscription/PlanConfirmBar';
 import TaxNote from '@/components/subscription/TaxNote';
@@ -12,12 +13,16 @@ import { formatMoney } from '@/components/subscription/money';
 import { coachPlanName } from '@/components/subscription/planNames';
 import {
   FREE_PLAN_CODE,
-  planDiscountedPrice,
-  planDisplayPrice,
-  secondRoleAddOnOf,
+  anyPlanSoldAnnually,
+  effectiveInterval,
+  maxAnnualSavingPercent,
+  planDiscountedPriceFor,
+  planPriceFor,
+  secondRoleAddOnFor,
 } from '@/components/subscription/planPricing';
 import PromotionBanner from '@/components/subscription/PromotionBanner';
-import { promotionShortText } from '@/components/subscription/promotionText';
+import PromotionCodeField from '@/components/subscription/PromotionCodeField';
+import { promotionAnnualNote, promotionShortText } from '@/components/subscription/promotionText';
 import { usePlanSelection } from '@/components/subscription/usePlanSelection';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -45,13 +50,21 @@ export default function RegisterPlanPage() {
 
   // Free is preselected; a selection that the plan list no longer contains falls back to it.
   const [selectedCode, setSelectedCode] = useState(FREE_PLAN_CODE);
+  // The switch only exists while some plan is sold annually; without it the page stays monthly.
+  const [chosenInterval, setChosenInterval] = useState(BillingInterval.Monthly);
+  const showSwitch = anyPlanSoldAnnually(plans);
+  const pageInterval = showSwitch ? chosenInterval : BillingInterval.Monthly;
+  // The typed code lives in the browser only: not in the URL, a query key or storage. The checkout request checks it.
+  const [appliedCode, setAppliedCode] = useState<string | null>(null);
 
   const startFree = () => navigate('/profile', { replace: true });
 
   const cards = plans.map((plan) => {
     const free = plan.code === FREE_PLAN_CODE;
     const name = coachPlanName(plan, i18n.language);
-    const addOn = secondRoleAddOnOf(plan);
+    const interval = effectiveInterval(plan, pageInterval);
+    const annual = interval === BillingInterval.Annual;
+    const addOn = secondRoleAddOnFor(plan, interval);
     const currency = plan.currency ?? 'CZK';
     const secondRoleText = free
       ? bothRoles
@@ -64,22 +77,24 @@ export default function RegisterPlanPage() {
         : bothRoles && plan.bothRolesIncluded
           ? t('subscription.planChoice.card.bothRoles')
           : undefined;
-    const fullPrice = planDisplayPrice(plan, bothRoles);
-    const discounted = planDiscountedPrice(plan, bothRoles);
+    const fullPrice = planPriceFor(plan, interval, bothRoles);
+    const discounted = planDiscountedPriceFor(plan, interval, bothRoles);
     const offer = promotion && discounted !== null && discounted < fullPrice ? promotion : null;
     const offerNote = offer
-      ? offer.duration === PromotionDuration.Forever
-        ? promotionShortText(t, offer, i18n.language)
-        : t('subscription.promotion.card.then', {
-            short: promotionShortText(t, offer, i18n.language),
-            price: formatMoney(fullPrice, currency, i18n.language),
-          })
+      ? annual
+        ? promotionAnnualNote(t, offer, formatMoney(fullPrice, currency, i18n.language), i18n.language)
+        : offer.duration === PromotionDuration.Forever
+          ? promotionShortText(t, offer, i18n.language)
+          : t('subscription.promotion.card.then', {
+              short: promotionShortText(t, offer, i18n.language),
+              price: formatMoney(fullPrice, currency, i18n.language),
+            })
       : undefined;
     const breakdown =
       bothRoles && addOn !== null
         ? t('subscription.billing.picker.breakdown', {
             plan: name,
-            base: formatMoney(plan.priceMinorUnits ?? 0, currency, i18n.language),
+            base: formatMoney(planPriceFor(plan, interval, false), currency, i18n.language),
             addOn: formatMoney(addOn, currency, i18n.language),
           })
         : null;
@@ -95,13 +110,12 @@ export default function RegisterPlanPage() {
         ]
           .filter(Boolean)
           .join(' · ') || undefined);
-    const interval = plan.billingInterval === BillingInterval.Annual ? 'year' : 'month';
     const barTitle = t('subscription.billing.select.planLine', {
       plan: name,
       price: formatMoney(offer ? (discounted ?? fullPrice) : fullPrice, currency, i18n.language),
-      per: t(`subscription.planChoice.card.per.${interval}`),
+      per: t(`subscription.planChoice.card.per.${annual ? 'year' : 'month'}`),
     });
-    return { plan, free, name, secondRoleText, fullPrice, discounted, offer, note, barNote, barTitle, addOn };
+    return { plan, free, name, interval, annual, secondRoleText, fullPrice, discounted, offer, note, barNote, barTitle, addOn };
   });
   const selected = cards.find((card) => card.plan.code === selectedCode) ?? cards.find((card) => card.free);
   const showBar = !plansQuery.isError && !plansQuery.isPending && !rolesLoading && selected !== undefined;
@@ -124,9 +138,34 @@ export default function RegisterPlanPage() {
           </div>
         </div>
 
-        {promotion && <PromotionBanner promotion={promotion} plans={plans} variant="register" />}
+        {promotion ? (
+          <PromotionBanner
+            promotion={promotion}
+            plans={plans}
+            variant="register"
+            interval={pageInterval}
+            note={t('subscription.billing.register.codeNote')}
+          />
+        ) : (
+          <p className="text-center text-body text-muted-foreground">{t('subscription.billing.register.codeNote')}</p>
+        )}
 
-        <p className="text-center text-body text-muted-foreground">{t('subscription.billing.codeAtCheckout')}</p>
+        {showSwitch && !plansQuery.isError && (
+          <div className="flex flex-wrap items-center justify-center gap-3.5">
+            <BillingIntervalSwitch
+              value={pageInterval}
+              savingPercent={maxAnnualSavingPercent(plans)}
+              onChange={(next) => {
+                setChosenInterval(next);
+                // A refusal may have been about the other period; the next attempt starts clean.
+                selection.clearCodeError();
+              }}
+            />
+            {pageInterval === BillingInterval.Annual && (
+              <span className="text-body text-muted-foreground">{t('subscription.billing.register.annualNote')}</span>
+            )}
+          </div>
+        )}
 
         {bothRoles && (
           <p className="text-center text-copy text-muted-foreground">
@@ -159,7 +198,7 @@ export default function RegisterPlanPage() {
           <Skeleton className="h-96 w-full rounded-2xl" />
         ) : (
           <div className="grid items-stretch gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {cards.map(({ plan, free, name, secondRoleText, fullPrice, discounted, offer, note }) => (
+            {cards.map(({ plan, free, name, interval, annual, secondRoleText, fullPrice, discounted, offer, note }) => (
               <PlanCard
                 key={plan.code}
                 plan={plan}
@@ -169,7 +208,8 @@ export default function RegisterPlanPage() {
                 actionDisabled={false}
                 busy={selection.busy}
                 priceMinorUnits={offer ? (discounted ?? fullPrice) : fullPrice}
-                originalPriceMinorUnits={offer ? fullPrice : undefined}
+                originalPriceMinorUnits={offer && !annual ? fullPrice : undefined}
+                billingInterval={interval}
                 priceNote={free ? t('subscription.billing.picker.noCard') : note}
                 secondRoleText={secondRoleText}
                 onAction={() => undefined}
@@ -200,8 +240,31 @@ export default function RegisterPlanPage() {
           )}
           confirmLabel={t(selected.free ? 'subscription.billing.register.startFree' : 'subscription.billing.select.continue')}
           busy={selection.busy}
+          codeField={
+            selected.free ? undefined : (
+              <PromotionCodeField
+                appliedCode={appliedCode}
+                error={selection.codeError}
+                disabled={selection.busy}
+                onApply={(code) => {
+                  selection.clearCodeError();
+                  setAppliedCode(code);
+                }}
+                onRemove={() => {
+                  selection.clearCodeError();
+                  setAppliedCode(null);
+                }}
+              />
+            )
+          }
           onConfirm={
-            selected.free ? startFree : () => selection.choosePaid(selected.plan, bothRoles && selected.addOn !== null)
+            selected.free
+              ? startFree
+              : () =>
+                  selection.choosePaid(selected.plan, bothRoles && selected.addOn !== null, {
+                    billingInterval: selected.interval,
+                    code: appliedCode ?? undefined,
+                  })
           }
         />
       )}
