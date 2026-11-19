@@ -49,3 +49,24 @@ export function billingErrorMessage(error: unknown, fallbackKey: string): string
 export function showBillingError(error: unknown, fallbackKey: string): void {
   useToastStore.getState().addToast(billingErrorMessage(error, fallbackKey), 'error');
 }
+
+/** Code a checkout answers when the promotion code does not fit the chosen billing interval. */
+export const PROMOTION_CODE_INTERVAL_NOT_ELIGIBLE = 'PROMOTION_CODE_INTERVAL_NOT_ELIGIBLE';
+
+const PROMOTION_CODE_PREFIX = 'PROMOTION_CODE_';
+
+/** True when a checkout error is about the promotion code that was sent (or a rate limit while one was sent). */
+export function isPromotionCodeError(error: unknown, codeSent: boolean): boolean {
+  const codes = billingErrorCodes(error);
+  return codes.some((code) => code.startsWith(PROMOTION_CODE_PREFIX)) || (codeSent && codes.includes(BILLING_RATE_LIMITED));
+}
+
+/** Translated text of a promotion-code error, shown next to the field. Unknown codes read as "can't be used". */
+export function promotionCodeErrorMessage(error: unknown): string {
+  const code = billingErrorCodes(error).find(
+    (candidate) =>
+      (candidate.startsWith(PROMOTION_CODE_PREFIX) || candidate === BILLING_RATE_LIMITED) &&
+      i18n.exists(`apiErrors.${candidate}`),
+  );
+  return i18n.t(`apiErrors.${code ?? 'PROMOTION_CODE_INVALID'}`);
+}

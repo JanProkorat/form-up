@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,6 +8,8 @@ interface Props {
   title: string;
   /** Promotion and/or second-role line under the title, already translated. */
   note?: string;
+  /** Optional slot between the plan and the hint, for the promotion code field. */
+  codeField?: ReactNode;
   /** Short line next to the button, already translated. */
   hint: string;
   /** Optional second line under the hint, same style, already translated. */
@@ -26,7 +29,7 @@ interface Props {
 }
 
 /** Sticky bottom bar of the plan screens: the selected plan on the left, the confirm button on the right. */
-export default function PlanConfirmBar({ title, note, hint, extraHint, confirmLabel, busy, onConfirm, bleed = false, className = '' }: Props) {
+export default function PlanConfirmBar({ title, note, codeField, hint, extraHint, confirmLabel, busy, onConfirm, bleed = false, className = '' }: Props) {
   const { t } = useTranslation();
 
   return (
@@ -39,6 +42,7 @@ export default function PlanConfirmBar({ title, note, hint, extraHint, confirmLa
           <span className="text-subhead font-semibold text-ink">{title}</span>
           {note && <span className="text-meta text-muted-foreground">{note}</span>}
         </div>
+        {codeField && <div className="min-w-0 md:ml-6">{codeField}</div>}
         <div className="flex min-w-0 flex-col gap-0.75 text-body text-muted-foreground md:ml-auto md:text-right" aria-live="polite">
           <span>{hint}</span>
           {extraHint && <span>{extraHint}</span>}

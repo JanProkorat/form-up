@@ -6,7 +6,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { screen, within } from '@testing-library/react';
-import { BillingInterval, PromotionDuration, PromotionKind } from '@/api/generated';
+import { BillingInterval, PromotionBillingPeriod, PromotionDuration, PromotionKind } from '@/api/generated';
 import type { GetPublicSubscriptionPlansResponse, PublicPromotionDto, PublicSubscriptionPlanDto } from '@/api/generated';
 import EntryPage from '@/pages/EntryPage';
 import PricingPage from '@/pages/PricingPage';
@@ -188,5 +188,121 @@ describe('PricingPage launch offer', () => {
     expect(await screen.findByRole('article', { name: 'Pro' })).toBeInTheDocument();
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
     expect(screen.queryByText(/Regular price/)).not.toBeInTheDocument();
+  });
+});
+
+function annualPlans(): PublicSubscriptionPlanDto[] {
+  return [
+    plan({}),
+    plan({
+      code: 'pro',
+      nameEn: 'Pro',
+      priceMinorUnits: 59900,
+      secondRoleAddOnPriceMinorUnits: 29900,
+      annualPriceMinorUnits: 599000,
+      annualSecondRoleAddOnPriceMinorUnits: 299000,
+      annualSavingPercent: 17,
+    }),
+    plan({
+      code: 'studio',
+      nameEn: 'Studio',
+      priceMinorUnits: 99900,
+      bothRolesIncluded: true,
+      annualPriceMinorUnits: 999000,
+      annualSavingPercent: 17,
+    }),
+  ];
+}
+
+function serveAnnual(overrides: Partial<GetPublicSubscriptionPlansResponse> = {}) {
+  const body: GetPublicSubscriptionPlansResponse = { plans: annualPlans(), ...overrides };
+  server.use(http.get(PLANS, () => HttpResponse.json(body)));
+}
+
+describe('PricingPage annual billing', () => {
+  it('starts on Monthly with the switch, the saving badge and the monthly prices', async () => {
+    serveAnnual();
+
+    renderPricing();
+
+    const group = await screen.findByRole('group', { name: 'Billing period' });
+    expect(within(group).getByRole('button', { name: 'Monthly' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(group).getByText('Save up to 17 %')).toBeInTheDocument();
+    const pro = screen.getByRole('article', { name: 'Pro' });
+    expect(within(pro).getByText(/599/)).toBeInTheDocument();
+    expect(within(pro).getByText('/ month')).toBeInTheDocument();
+    expect(screen.queryByText(/Billed yearly through Stripe/)).not.toBeInTheDocument();
+  });
+
+  it('Annual shows the yearly prices, the second-role add-on of the year, Free at 0 per year and the footnotes', async () => {
+    serveAnnual();
+
+    const { user } = renderPricing();
+    await user.click(await screen.findByRole('button', { name: /Annual/ }));
+
+    const pro = screen.getByRole('article', { name: 'Pro' });
+    expect(within(pro).getByText(/5,990/)).toBeInTheDocument();
+    expect(within(pro).getByText('/ year')).toBeInTheDocument();
+    expect(within(pro).getByText(/Second role \+.*2,990/)).toBeInTheDocument();
+    expect(within(screen.getByRole('article', { name: 'Free' })).getByText('/ year')).toBeInTheDocument();
+    expect(screen.getByText(/Paid once a year\. Each plan shows what you save/)).toBeInTheDocument();
+    expect(screen.getByText(/Billed yearly through Stripe/)).toBeInTheDocument();
+
+    const secondRoleRow = within(screen.getByRole('table')).getByRole('row', { name: /Second role/ });
+    expect(within(secondRoleRow).getByText(/\+.*2,990/)).toBeInTheDocument();
+    expect(within(secondRoleRow).queryByText(/\+.*299(?!\d|,)/)).not.toBeInTheDocument();
+  });
+
+  it('hides the switch when no plan is sold annually', async () => {
+    server.use(http.get(PLANS, () => HttpResponse.json(offered)));
+
+    renderPricing();
+
+    expect(await screen.findAllByRole('article')).toHaveLength(2);
+    expect(screen.queryByRole('group', { name: 'Billing period' })).not.toBeInTheDocument();
+  });
+
+  it('hides the saving badge when no plan saves anything', async () => {
+    serveAnnual({ plans: annualPlans().map((entry) => ({ ...entry, annualSavingPercent: undefined })) });
+
+    renderPricing();
+
+    expect(await screen.findByRole('group', { name: 'Billing period' })).toBeInTheDocument();
+    expect(screen.queryByText(/Save up to/)).not.toBeInTheDocument();
+  });
+
+  it('a promotion on both periods shows the first-year wording and no crossed-out yearly price', async () => {
+    serveAnnual({
+      promotion: { ...promotion, billingPeriod: PromotionBillingPeriod.Both, planCodes: ['pro'] },
+      plans: annualPlans().map((entry) =>
+        entry.code === 'pro' ? { ...entry, discountedPriceMinorUnits: 41900, annualDiscountedPriceMinorUnits: 419300 } : entry,
+      ),
+    });
+
+    const { user } = renderPricing();
+    expect(await screen.findByRole('status')).not.toHaveTextContent('first year on annual');
+    await user.click(screen.getByRole('button', { name: /Annual/ }));
+
+    expect(screen.getByRole('status')).toHaveTextContent('Launch offer: −30 % for your first 3 months, or your first year on annual');
+    const pro = screen.getByRole('article', { name: 'Pro' });
+    expect(within(pro).getByText(/4,193/)).toBeInTheDocument();
+    expect(within(pro).queryByText(/Regular price/)).not.toBeInTheDocument();
+    expect(within(pro).getByText(/for the first year, then .*5,990/)).toBeInTheDocument();
+  });
+
+  it('an annual-only promotion names the first year and shows nothing off the monthly prices', async () => {
+    serveAnnual({
+      promotion: { ...promotion, billingPeriod: PromotionBillingPeriod.Annual, planCodes: ['pro'] },
+      plans: annualPlans().map((entry) => (entry.code === 'pro' ? { ...entry, annualDiscountedPriceMinorUnits: 419300 } : entry)),
+    });
+
+    const { user } = renderPricing();
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Launch offer: −30 % on your first year on annual');
+    expect(within(screen.getByRole('article', { name: 'Pro' })).queryByText(/then/)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /Annual/ }));
+
+    expect(within(screen.getByRole('article', { name: 'Pro' })).getByText(/4,193/)).toBeInTheDocument();
   });
 });

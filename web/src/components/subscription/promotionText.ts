@@ -1,5 +1,5 @@
 import type { TFunction } from 'i18next';
-import { PromotionDuration, PromotionKind } from '@/api/generated';
+import { BillingInterval, PromotionBillingPeriod, PromotionDuration, PromotionKind } from '@/api/generated';
 import { formatMoney } from '@/components/subscription/money';
 
 /** What a promotion takes off: a percentage, or a fixed amount in minor units. */
@@ -43,6 +43,29 @@ export function promotionShortText(
     default:
       return t('subscription.promotion.short.forever', { value });
   }
+}
+
+/** True when a promotion with this billing period discounts `interval`; a missing period means both. */
+export function promotionCoversInterval(period: PromotionBillingPeriod | undefined, interval: BillingInterval): boolean {
+  if (period === undefined || period === PromotionBillingPeriod.Both) return true;
+  return period === (interval === BillingInterval.Annual ? PromotionBillingPeriod.Annual : PromotionBillingPeriod.Monthly);
+}
+
+/**
+ * The note under an annual price that carries a promotion, "−30 % on the first year, then 2 990 Kč".
+ * A forever promotion keeps its own short text, because it does not end after the first year.
+ */
+export function promotionAnnualNote(
+  t: TFunction,
+  promotion: PromotionValueFields & PromotionLastsFields,
+  regularPrice: string,
+  language: string,
+): string {
+  if (promotion.duration === PromotionDuration.Forever) return promotionShortText(t, promotion, language);
+  return t('subscription.promotion.card.thenAnnual', {
+    value: promotionValueText(t, promotion, language),
+    price: regularPrice,
+  });
 }
 
 /** Names joined as a locale list, "Pro and Studio". */

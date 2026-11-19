@@ -236,7 +236,7 @@ trainerTest.describe('register plan step', () => {
     await page.getByRole('region', { name: 'Selected plan' }).getByRole('button', { name: 'Continue to payment' }).click();
 
     await page.waitForURL(`${CHECKOUT_URL}**`);
-    expect(checkoutBody).toEqual({ planCode: 'pro', includeSecondRoleAddOn: true, flow: 'SignUp' });
+    expect(checkoutBody).toEqual({ planCode: 'pro', billingInterval: 'Monthly', includeSecondRoleAddOn: true, flow: 'SignUp' });
   });
 
   trainerTest('billing not configured shows a localized toast and stays on the sign-up plan step', async ({ page }) => {
