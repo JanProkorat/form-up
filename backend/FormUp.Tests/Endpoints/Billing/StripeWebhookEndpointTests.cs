@@ -398,6 +398,39 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task Webhook_SubscriptionItemWithTheAnnualRowsPriceId_PutsTheCoachOnTheAnnualRow()
+    {
+        var scenario = await ArrangeOnPaidPlanAsync();
+        var annualPriceId = $"price_{Guid.NewGuid():N}";
+        long annualRowId;
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var planId = await db.SubscriptionPlans.Where(p => p.Code == scenario.PlanCode).Select(p => p.Id).SingleAsync(Ct);
+            var annualRow = new SubscriptionPlanPrice
+            {
+                SubscriptionPlanId = planId,
+                BillingInterval = BillingInterval.Annual,
+                PriceMinorUnits = 299000,
+                Currency = "CZK",
+                ExternalPriceId = annualPriceId,
+                ValidFrom = DateTime.UtcNow,
+            };
+            db.SubscriptionPlanPrices.Add(annualRow);
+            await db.SaveChangesAsync(Ct);
+            annualRowId = annualRow.Id;
+        }
+
+        var response = await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.updated", scenario with { PriceId = annualPriceId }, "active"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var after = await ReadRowAsync(scenario.Coach.ProfileId);
+        after.SubscriptionPlanPriceId.Should().Be(annualRowId);
+    }
+
+    [Fact]
     public async Task Webhook_RenewalToAOneRolePlanWithAnAddOnLine_SetsTheAddOnFlag_AndClearsThePendingId()
     {
         var scenario = await ArrangeOnPaidPlanAsync();

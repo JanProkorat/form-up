@@ -1254,14 +1254,17 @@ public static class CoachSubscriptionBuilder
         DateTimeOffset? givenFreeAt = null,
         bool cancelAtPeriodEnd = false,
         DateTimeOffset? currentPeriodEndsAt = null,
-        BillingInterval interval = BillingInterval.Monthly)
+        BillingInterval? interval = null)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
+        // Without an interval the Monthly row wins, so a plan sold only annually (PaidPlanBuilder) still resolves.
         var price = await db.SubscriptionPlanPrices
-            .Where(p => p.SubscriptionPlan.Code == planCode && p.ValidTo == null && p.BillingInterval == interval)
-            .SingleAsync(TestContext.Current.CancellationToken);
+            .Where(p => p.SubscriptionPlan.Code == planCode && p.ValidTo == null
+                        && (interval == null || p.BillingInterval == interval))
+            .OrderBy(p => p.BillingInterval)
+            .FirstAsync(TestContext.Current.CancellationToken);
 
         await ReplaceSubscriptionAsync(db, coach);
         db.CoachSubscriptions.Add(new CoachSubscription

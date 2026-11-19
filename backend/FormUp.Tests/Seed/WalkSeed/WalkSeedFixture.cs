@@ -140,7 +140,8 @@ public sealed class WalkSeedFixture(SharedTestContainers sharedContainers) : IAs
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
         var price = await db.SubscriptionPlanPrices
-            .SingleAsync(p => p.SubscriptionPlan.Code == "pro" && p.ValidTo == null);
+            .SingleAsync(p => p.SubscriptionPlan.Code == "pro" && p.ValidTo == null
+                              && p.BillingInterval == BillingInterval.Monthly);
         price.ExternalPriceId = ProExternalPriceId;
         await db.SaveChangesAsync();
     }

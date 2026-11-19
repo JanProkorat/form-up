@@ -22,6 +22,9 @@ public sealed class FakeSubscriptionService : ISubscriptionService
     /// <summary>When true only <see cref="ISubscriptionService.ChangePlanAsync"/> throws <see cref="BillingProviderException"/>.</summary>
     public bool FailPlanChanges { get; set; }
 
+    /// <summary>When true only <see cref="ISubscriptionService.CreatePriceAsync"/> for the annual interval throws <see cref="BillingProviderException"/>.</summary>
+    public bool FailAnnualPriceCreation { get; set; }
+
     /// <summary>Recorded <see cref="ISubscriptionService.CreateCustomerAsync"/> calls.</summary>
     public List<CustomerCall> Customers { get; } = [];
 
@@ -165,6 +168,7 @@ public sealed class FakeSubscriptionService : ISubscriptionService
         {
             IsConfigured = true;
             Fail = false;
+            FailAnnualPriceCreation = false;
             FailPlanChanges = false;
             FailClearScheduledChange = false;
             UpgradeOutcome = PlanUpgradeOutcome.Applied;
@@ -450,6 +454,11 @@ public sealed class FakeSubscriptionService : ISubscriptionService
         string planCode, long amountMinorUnits, string currency, BillingInterval interval, CancellationToken ct)
     {
         ThrowIfFailing();
+
+        if (FailAnnualPriceCreation && interval == BillingInterval.Annual)
+        {
+            throw new BillingProviderException("Annual price creation failed.");
+        }
 
         lock (gate)
         {
