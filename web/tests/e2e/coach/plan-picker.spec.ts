@@ -234,7 +234,12 @@ trainerTest.describe('plan picker', () => {
 
     await page.waitForURL(`${CHECKOUT_URL}**`);
     await expect(page.getByRole('heading', { name: 'Stripe Checkout stand-in' })).toBeVisible();
-    expect(checkoutBody).toEqual({ planCode: 'pro', includeSecondRoleAddOn: false, flow: 'Settings' });
+    expect(checkoutBody).toEqual({
+      planCode: 'pro',
+      billingInterval: 'Monthly',
+      includeSecondRoleAddOn: false,
+      flow: 'Settings',
+    });
   });
 
   trainerTest('billing not configured shows a localized toast and stays on the picker', async ({ page }) => {
