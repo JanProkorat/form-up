@@ -55,11 +55,11 @@ public sealed class FakeSubscriptionService : ISubscriptionService
     /// <summary>Recorded <see cref="ISubscriptionService.CreatePriceAsync"/> calls.</summary>
     public List<PriceCall> Prices { get; } = [];
 
-    /// <summary>Recorded <see cref="ISubscriptionService.ApplyPromotionCodeAsync"/> calls (subscription ids only; never the code text).</summary>
+    /// <summary>Recorded <see cref="ISubscriptionService.ApplyCouponAsync"/> calls (subscription ids only; never the code text).</summary>
     public List<string> PromotionCodeSubscriptions { get; } = [];
 
-    /// <summary>Recorded provider promotion code ids passed to <see cref="ISubscriptionService.ApplyPromotionCodeAsync"/>.</summary>
-    public List<string> AppliedPromotionCodeIds { get; } = [];
+    /// <summary>Recorded provider coupon ids passed to <see cref="ISubscriptionService.ApplyCouponAsync"/>.</summary>
+    public List<string> AppliedCouponIds { get; } = [];
 
     /// <summary>Recorded <see cref="ISubscriptionService.CreateCouponAsync"/> calls.</summary>
     public List<CouponCall> Coupons { get; } = [];
@@ -75,6 +75,9 @@ public sealed class FakeSubscriptionService : ISubscriptionService
 
     /// <summary>When true only <see cref="ISubscriptionService.CreatePromotionCodeAsync"/> throws <see cref="BillingProviderException"/>.</summary>
     public bool FailPromotionCodeCreation { get; set; }
+
+    /// <summary>When true only <see cref="ISubscriptionService.CreateCouponAsync"/> for the annual interval throws <see cref="BillingProviderException"/>.</summary>
+    public bool FailAnnualCouponCreation { get; set; }
 
     /// <summary>What <see cref="ISubscriptionService.GetSubscriptionDiscountAsync"/> returns, by provider subscription id.</summary>
     public Dictionary<string, SubscriptionDiscount> SubscriptionDiscounts { get; } = [];
@@ -138,7 +141,9 @@ public sealed class FakeSubscriptionService : ISubscriptionService
         bool AtNextRenewal,
         long? AddOnAmountMinorUnits = null,
         string? IdempotencyKey = null,
-        BillingInterval Interval = BillingInterval.Monthly);
+        BillingInterval Interval = BillingInterval.Monthly,
+        SubscriptionDiscountChange? Discount = null,
+        string? PendingPhaseCouponId = null);
 
     /// <summary>A recorded restore after an expired pending upgrade.</summary>
     public sealed record RestoreCall(string SubscriptionId, bool KeepScheduledChange);
@@ -150,7 +155,8 @@ public sealed class FakeSubscriptionService : ISubscriptionService
         string PlanCode,
         string PlanPriceExternalId,
         long? AddOnAmountMinorUnits,
-        BillingInterval Interval = BillingInterval.Monthly);
+        BillingInterval Interval = BillingInterval.Monthly,
+        SubscriptionDiscountChange? Discount = null);
 
     /// <summary>A recorded add-on preview or charge; the idempotency key is null for a preview.</summary>
     public sealed record AddOnCall(
@@ -194,12 +200,13 @@ public sealed class FakeSubscriptionService : ISubscriptionService
             PlanChanges.Clear();
             Prices.Clear();
             PromotionCodeSubscriptions.Clear();
-            AppliedPromotionCodeIds.Clear();
+            AppliedCouponIds.Clear();
             Coupons.Clear();
             PromotionCodes.Clear();
             DeletedCoupons.Clear();
             DeactivatedPromotionCodes.Clear();
             FailPromotionCodeCreation = false;
+            FailAnnualCouponCreation = false;
             SubscriptionDiscounts.Clear();
             CancelledAtPeriodEnd.Clear();
             CancelledNow.Clear();
@@ -276,7 +283,8 @@ public sealed class FakeSubscriptionService : ISubscriptionService
         BillingInterval interval,
         bool atNextRenewal,
         CancellationToken ct,
-        string? idempotencyKey = null)
+        string? idempotencyKey = null,
+        string? pendingPhaseCouponId = null)
     {
         ThrowIfFailing();
 
@@ -287,7 +295,9 @@ public sealed class FakeSubscriptionService : ISubscriptionService
 
         lock (gate)
         {
-            PlanChanges.Add(new ChangePlanCall(subscriptionId, planCode, planPriceExternalId, atNextRenewal, addOnAmountMinorUnits, idempotencyKey, interval));
+            PlanChanges.Add(new ChangePlanCall(
+                subscriptionId, planCode, planPriceExternalId, atNextRenewal, addOnAmountMinorUnits, idempotencyKey, interval,
+                PendingPhaseCouponId: pendingPhaseCouponId));
         }
 
         return Task.CompletedTask;
@@ -302,7 +312,8 @@ public sealed class FakeSubscriptionService : ISubscriptionService
         string currency,
         BillingInterval interval,
         string idempotencyKey,
-        CancellationToken ct)
+        CancellationToken ct,
+        SubscriptionDiscountChange? discount = null)
     {
         ThrowIfFailing();
 
@@ -313,7 +324,8 @@ public sealed class FakeSubscriptionService : ISubscriptionService
 
         lock (gate)
         {
-            PlanChanges.Add(new ChangePlanCall(subscriptionId, planCode, planPriceExternalId, false, addOnAmountMinorUnits, idempotencyKey, interval));
+            PlanChanges.Add(new ChangePlanCall(
+                subscriptionId, planCode, planPriceExternalId, false, addOnAmountMinorUnits, idempotencyKey, interval, discount));
         }
 
         return Task.FromResult(UpgradeOutcome);
@@ -364,27 +376,29 @@ public sealed class FakeSubscriptionService : ISubscriptionService
         long? addOnAmountMinorUnits,
         string currency,
         BillingInterval interval,
-        CancellationToken ct)
+        CancellationToken ct,
+        SubscriptionDiscountChange? discount = null)
     {
         ThrowIfFailing();
 
         lock (gate)
         {
-            PlanChangePreviews.Add(new PlanChangePreviewCall(customerId, subscriptionId, planCode, planPriceExternalId, addOnAmountMinorUnits, interval));
+            PlanChangePreviews.Add(new PlanChangePreviewCall(
+                customerId, subscriptionId, planCode, planPriceExternalId, addOnAmountMinorUnits, interval, discount));
         }
 
         return Task.FromResult(PlanChangePreviewResult with { Currency = currency });
     }
 
     /// <inheritdoc />
-    public Task ApplyPromotionCodeAsync(string subscriptionId, string promotionCodeId, CancellationToken ct)
+    public Task ApplyCouponAsync(string subscriptionId, string couponId, CancellationToken ct)
     {
         ThrowIfFailing();
 
         lock (gate)
         {
             PromotionCodeSubscriptions.Add(subscriptionId);
-            AppliedPromotionCodeIds.Add(promotionCodeId);
+            AppliedCouponIds.Add(couponId);
         }
 
         return Task.CompletedTask;
@@ -394,6 +408,11 @@ public sealed class FakeSubscriptionService : ISubscriptionService
     public Task<string> CreateCouponAsync(CouponSpec spec, CancellationToken ct)
     {
         ThrowIfFailing();
+
+        if (FailAnnualCouponCreation && spec.Interval == BillingInterval.Annual)
+        {
+            throw new BillingProviderException("Fake annual coupon failure.");
+        }
 
         lock (gate)
         {

@@ -82,6 +82,21 @@ public class EndPromotionEndpointTests(FitnessApiFactory factory) : IDisposable
     }
 
     [Fact]
+    public async Task End_CodePromotionWithoutAStripePromotionCode_EndsLocallyWithoutAStripeCall_EvenWhenStripeIsNotConfigured()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        fake.IsConfigured = false;
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var promotion = await PromotionBuilder.CreateAsync(factory, ["pro"], configure: p => p.StripePromotionCodeId = null);
+
+        var response = await admin.Http.PostAsJsonAsync(RouteFor(promotion.PublicId), new { }, Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK, await response.Content.ReadAsStringAsync(Ct));
+        fake.DeactivatedPromotionCodes.Should().BeEmpty("a code entered in our own app has nothing at Stripe to deactivate");
+        (await ReadPromotionAsync(promotion.PublicId)).EndedAt.Should().NotBeNull();
+    }
+
+    [Fact]
     public async Task End_AutomaticPromotion_EndsLocallyWithoutAStripeCall_EvenWhenStripeIsNotConfigured()
     {
         var fake = BillingTestData.ResetProvider(factory);

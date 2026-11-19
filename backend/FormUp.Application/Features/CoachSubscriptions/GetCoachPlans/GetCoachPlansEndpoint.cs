@@ -123,12 +123,15 @@ internal sealed class GetCoachPlansEndpoint(IApplicationDbContext db, IOptions<B
     {
         foreach (var plan in plans.Where(plan => PromotionRules.CoversPlan(winner, plan.Code)))
         {
-            var (planPrice, addOnPrice) = PromotionPricing.Apply(winner, plan.PriceMinorUnits, plan.SecondRoleAddOnPriceMinorUnits);
+            if (PromotionRules.CoversInterval(winner, BillingInterval.Monthly))
+            {
+                var (planPrice, addOnPrice) = PromotionPricing.Apply(winner, plan.PriceMinorUnits, plan.SecondRoleAddOnPriceMinorUnits);
 
-            plan.DiscountedPriceMinorUnits = planPrice;
-            plan.DiscountedSecondRoleAddOnPriceMinorUnits = addOnPrice;
+                plan.DiscountedPriceMinorUnits = planPrice;
+                plan.DiscountedSecondRoleAddOnPriceMinorUnits = addOnPrice;
+            }
 
-            if (plan.AnnualPriceMinorUnits is { } annualPrice)
+            if (plan.AnnualPriceMinorUnits is { } annualPrice && PromotionRules.CoversInterval(winner, BillingInterval.Annual))
             {
                 var (annualPlanPrice, annualAddOnPrice) =
                     PromotionPricing.Apply(winner, annualPrice, plan.AnnualSecondRoleAddOnPriceMinorUnits);
@@ -147,6 +150,7 @@ internal sealed class GetCoachPlansEndpoint(IApplicationDbContext db, IOptions<B
         Currency = promotion.Currency,
         Duration = promotion.Duration,
         DurationMonths = promotion.DurationMonths,
+        BillingPeriod = promotion.BillingPeriod,
         ClaimUntil = promotion.ClaimUntil,
         PlanCodes = promotion.PlanCodes.ToList(),
     };

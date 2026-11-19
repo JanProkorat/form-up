@@ -18,12 +18,14 @@ public static class StripeSchedulePlanner
     /// <param name="currentPriceIds">Prices billed now.</param>
     /// <param name="intent">The price change to achieve.</param>
     /// <param name="pendingInterval">The billing interval of the pending prices when the caller knows it; the open last phase carries it.</param>
+    /// <param name="pendingCouponId">The coupon the pending prices carry from the renewal on, or null for no discount in that phase.</param>
     public static IReadOnlyList<SchedulePhasePlan> Build(
         DateTimeOffset currentStart,
         DateTimeOffset currentEnd,
         IReadOnlyList<string> currentPriceIds,
         ScheduleIntent intent,
-        BillingInterval? pendingInterval = null)
+        BillingInterval? pendingInterval = null,
+        string? pendingCouponId = null)
     {
         if (intent.PendingPriceIds is not { } pending)
         {
@@ -34,7 +36,7 @@ public static class StripeSchedulePlanner
 
         return intent.CancelRenewal
             ? [current]
-            : [current, new SchedulePhasePlan(currentEnd, null, pending, pendingInterval)];
+            : [current, new SchedulePhasePlan(currentEnd, null, pending, pendingInterval, pendingCouponId)];
     }
 
     /// <summary>

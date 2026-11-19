@@ -1483,6 +1483,27 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task Webhook_ADiscountOfTheAnnualCoupon_ResolvesThePromotion_AndWritesTheRedemption()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var scenario = await ArrangeOnFreePlanAsync();
+        var promotion = await PromotionBuilder.CreateAsync(
+            factory, [scenario.PlanCode], PromotionMode.Automatic, p =>
+            {
+                p.Duration = PromotionDuration.Months;
+                p.DurationMonths = 3;
+                p.StripePromotionCodeId = null;
+                p.StripeAnnualCouponId = $"coupon_annual_{Guid.NewGuid():N}";
+            });
+        fake.SubscriptionDiscounts[scenario.SubscriptionId] = new SubscriptionDiscount(promotion.StripeAnnualCouponId, null, null);
+
+        await PostAsync(SubscriptionEvent(NewEventId(), "customer.subscription.created", scenario, "active", discountIds: ["di_1"]));
+
+        (await ReadRowAsync(scenario.Coach.ProfileId)).CurrentPromotionId.Should().Be(promotion.Id);
+        (await RedemptionCountAsync(promotion.Id)).Should().Be(1);
+    }
+
+    [Fact]
     public async Task Webhook_TheSamePromotionOnALaterEvent_StaysOneRedemptionPerCoach()
     {
         var (scenario, promotion, _) = await ArrangeDiscountAsync();

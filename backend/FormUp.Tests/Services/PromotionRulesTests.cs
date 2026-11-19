@@ -63,4 +63,66 @@ public class PromotionRulesTests
     [InlineData("studio", false)]
     public void CoversPlan_ComparesPlanCodesIgnoringCase(string planCode, bool expected) =>
         PromotionRules.CoversPlan(Make(Now), planCode).Should().Be(expected);
+
+    [Theory]
+    [InlineData(PromotionBillingPeriod.Both, BillingInterval.Monthly, true)]
+    [InlineData(PromotionBillingPeriod.Both, BillingInterval.Annual, true)]
+    [InlineData(PromotionBillingPeriod.Monthly, BillingInterval.Monthly, true)]
+    [InlineData(PromotionBillingPeriod.Monthly, BillingInterval.Annual, false)]
+    [InlineData(PromotionBillingPeriod.Annual, BillingInterval.Monthly, false)]
+    [InlineData(PromotionBillingPeriod.Annual, BillingInterval.Annual, true)]
+    public void CoversInterval_FollowsTheBillingPeriod(
+        PromotionBillingPeriod period, BillingInterval interval, bool expected)
+    {
+        var promotion = Make(Now);
+        promotion.BillingPeriod = period;
+
+        PromotionRules.CoversInterval(promotion, interval).Should().Be(expected);
+    }
+
+    [Fact]
+    public void BillingPeriod_DefaultsToBoth_SoARowFromBeforeTheColumnStillCoversEverything() =>
+        Make(Now).BillingPeriod.Should().Be(PromotionBillingPeriod.Both);
+
+    [Fact]
+    public void CouponIdFor_BothWithAnAnnualCoupon_UsesTheAnnualCouponForAnnualAndTheOtherOneForMonthly()
+    {
+        var promotion = Make(Now);
+        promotion.StripeAnnualCouponId = "coupon_annual";
+
+        PromotionRules.CouponIdFor(promotion, BillingInterval.Annual).Should().Be("coupon_annual");
+        PromotionRules.CouponIdFor(promotion, BillingInterval.Monthly).Should().Be("coupon");
+    }
+
+    [Fact]
+    public void CouponIdFor_BothWithOneCoupon_UsesItForEveryInterval()
+    {
+        var promotion = Make(Now);
+
+        PromotionRules.CouponIdFor(promotion, BillingInterval.Annual).Should().Be("coupon");
+        PromotionRules.CouponIdFor(promotion, BillingInterval.Monthly).Should().Be("coupon");
+    }
+
+    [Fact]
+    public void CouponIdFor_AnIntervalThePromotionDoesNotCover_IsNull_SoNoCouponIsEverAttached()
+    {
+        var monthlyOnly = Make(Now);
+        monthlyOnly.BillingPeriod = PromotionBillingPeriod.Monthly;
+        var annualOnly = Make(Now);
+        annualOnly.BillingPeriod = PromotionBillingPeriod.Annual;
+
+        PromotionRules.CouponIdFor(monthlyOnly, BillingInterval.Annual).Should().BeNull();
+        PromotionRules.CouponIdFor(annualOnly, BillingInterval.Monthly).Should().BeNull();
+        PromotionRules.CouponIdFor(annualOnly, BillingInterval.Annual).Should().Be("coupon", "an annual-only promotion keeps its annual-shaped coupon in the single slot");
+    }
+
+    [Theory]
+    [InlineData(PromotionBillingPeriod.Both, PromotionDuration.FirstMonth, true)]
+    [InlineData(PromotionBillingPeriod.Both, PromotionDuration.Months, true)]
+    [InlineData(PromotionBillingPeriod.Both, PromotionDuration.Forever, false)]
+    [InlineData(PromotionBillingPeriod.Monthly, PromotionDuration.Months, false)]
+    [InlineData(PromotionBillingPeriod.Annual, PromotionDuration.FirstMonth, false)]
+    public void NeedsAnnualCoupon_OnlyWhenBothPeriodsAreCoveredAndTheDiscountIsNotForever(
+        PromotionBillingPeriod period, PromotionDuration duration, bool expected) =>
+        PromotionRules.NeedsAnnualCoupon(period, duration).Should().Be(expected);
 }

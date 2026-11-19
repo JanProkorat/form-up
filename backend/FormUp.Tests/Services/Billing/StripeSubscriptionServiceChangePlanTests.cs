@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using FluentAssertions;
 using FormUp.Application.Domain.Enums;
+using FormUp.Application.Domain.Interfaces;
 using FormUp.Application.Infrastructure.Services.Billing;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -90,6 +91,77 @@ public class StripeSubscriptionServiceChangePlanTests
         update.Form.Should().Contain(new KeyValuePair<string, string>("items[0][price]", "price_new"));
         update.IdempotencyKey.Should().Be("formup-plan-upgrade-key");
         handler.Requests.Should().NotContain(r => r.Path.StartsWith("/v1/subscription_schedules", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task UpgradeNow_WithAnAnnualCoupon_ReplacesTheDiscountInTheSameUpdateAsThePriceChange()
+    {
+        var handler = new ScriptedStripeHandler(HttpStatusCode.OK, SubscriptionJson);
+
+        await NewService(handler).UpgradePlanNowAsync(
+            SubscriptionId, "pro", "price_new", null, "CZK", BillingInterval.Annual, "key",
+            TestContext.Current.CancellationToken, SubscriptionDiscountChange.Replace("coupon_annual"));
+
+        var update = handler.Requests.Single(r => r.Method == HttpMethod.Post && r.Path == "/v1/subscriptions/sub_1");
+        update.Form.Should().Contain(new KeyValuePair<string, string>("items[0][price]", "price_new"));
+        update.Form.Should().Contain(new KeyValuePair<string, string>("discounts[0][coupon]", "coupon_annual"));
+    }
+
+    [Fact]
+    public async Task UpgradeNow_WithAClearedDiscount_SendsAnEmptyDiscountsValueInTheSameUpdate()
+    {
+        var handler = new ScriptedStripeHandler(HttpStatusCode.OK, SubscriptionJson);
+
+        await NewService(handler).UpgradePlanNowAsync(
+            SubscriptionId, "pro", "price_new", null, "CZK", BillingInterval.Annual, "key",
+            TestContext.Current.CancellationToken, SubscriptionDiscountChange.Clear);
+
+        var update = handler.Requests.Single(r => r.Method == HttpMethod.Post && r.Path == "/v1/subscriptions/sub_1");
+        update.Form.Should().Contain(new KeyValuePair<string, string>("items[0][price]", "price_new"));
+        update.Form.Should().Contain(new KeyValuePair<string, string>("discounts", string.Empty));
+    }
+
+    [Fact]
+    public async Task UpgradeNow_WithoutADiscountChange_LeavesTheDiscountsOutOfTheUpdate()
+    {
+        var handler = new ScriptedStripeHandler(HttpStatusCode.OK, SubscriptionJson);
+
+        await UpgradeAsync(NewService(handler));
+
+        var update = handler.Requests.Single(r => r.Method == HttpMethod.Post && r.Path == "/v1/subscriptions/sub_1");
+        update.Form.Should().NotContain(pair => pair.Key.StartsWith("discounts", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task PreviewPlanChange_WithADiscountChange_SendsTheSameChangeToThePreview()
+    {
+        var handler = new ScriptedStripeHandler(HttpStatusCode.OK, SubscriptionJson)
+            .Respond(HttpMethod.Post, "/v1/invoices/create_preview", "{\"id\":\"in_preview\",\"object\":\"invoice\",\"total\":12000}");
+
+        var preview = await NewService(handler).PreviewPlanChangeAsync(
+            "cus_1", SubscriptionId, "pro", "price_new", null, "CZK", BillingInterval.Annual,
+            TestContext.Current.CancellationToken, SubscriptionDiscountChange.Replace("coupon_annual"));
+
+        preview.TodayAmountMinorUnits.Should().Be(12000);
+        var request = handler.Requests.Single(r => r.Method == HttpMethod.Post && r.Path == "/v1/invoices/create_preview");
+        request.Form.Should().Contain(new KeyValuePair<string, string>("discounts[0][coupon]", "coupon_annual"));
+    }
+
+    [Fact]
+    public async Task ChangePlan_ScheduledWithAPendingCoupon_PutsItOnTheNewPhaseOnly()
+    {
+        var handler = new ScriptedStripeHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
+            .Respond(HttpMethod.Get, "/v1/subscriptions/sub_1", SubscriptionJson)
+            .Respond(HttpMethod.Post, "/v1/subscription_schedules", "{\"id\":\"sub_sched_new\",\"object\":\"subscription_schedule\"}");
+
+        await NewService(handler).ChangePlanAsync(
+            SubscriptionId, "pro", "price_new", null, "CZK", BillingInterval.Monthly, atNextRenewal: true,
+            TestContext.Current.CancellationToken, pendingPhaseCouponId: "coupon_forever");
+
+        var update = handler.Requests.Last();
+        update.Path.Should().Be("/v1/subscription_schedules/sub_sched_new");
+        update.Form.Should().Contain(new KeyValuePair<string, string>("phases[1][discounts][0][coupon]", "coupon_forever"));
+        update.Form.Should().NotContain(pair => pair.Key.StartsWith("phases[0][discounts][0]", StringComparison.Ordinal));
     }
 
     [Fact]

@@ -817,6 +817,9 @@ public static class ErrorCodes
     /// <summary>The coach's current plan is not one of the promotion's plans.</summary>
     public const string PromotionCodePlanNotEligible = "PROMOTION_CODE_PLAN_NOT_ELIGIBLE";
 
+    /// <summary>The promotion does not cover the billing interval (monthly or annual) of the subscription or checkout.</summary>
+    public const string PromotionCodeIntervalNotEligible = "PROMOTION_CODE_INTERVAL_NOT_ELIGIBLE";
+
     /// <summary>Every use of the promotion is taken.</summary>
     public const string PromotionCodeUsedUp = "PROMOTION_CODE_USED_UP";
 

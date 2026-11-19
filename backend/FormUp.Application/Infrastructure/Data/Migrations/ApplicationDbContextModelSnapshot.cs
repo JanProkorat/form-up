@@ -3134,6 +3134,10 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<int>("BillingPeriod")
+                        .HasColumnType("integer")
+                        .HasColumnName("billing_period");
+
                     b.Property<DateTimeOffset>("ClaimFrom")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("claim_from");
@@ -3212,6 +3216,11 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("public_id");
 
+                    b.Property<string>("StripeAnnualCouponId")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("stripe_annual_coupon_id");
+
                     b.Property<string>("StripeCouponId")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -3236,6 +3245,9 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                     b.HasIndex("PublicId")
                         .IsUnique()
                         .HasDatabaseName("ix_promotions_public_id");
+
+                    b.HasIndex("StripeAnnualCouponId")
+                        .HasDatabaseName("ix_promotions_stripe_annual_coupon_id");
 
                     b.HasIndex("StripeCouponId")
                         .HasDatabaseName("ix_promotions_stripe_coupon_id");

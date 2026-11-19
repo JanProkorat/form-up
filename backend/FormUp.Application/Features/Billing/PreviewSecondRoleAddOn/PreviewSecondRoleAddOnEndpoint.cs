@@ -98,7 +98,8 @@ internal sealed class PreviewSecondRoleAddOnEndpoint(
             .FirstOrDefaultAsync(ct);
 
         var applies = promotion is not null
-                      && PromotionPricing.Applies(promotion.Promotion, subscription.SubscriptionPlan.Code, price.Currency);
+                      && PromotionPricing.Applies(
+                          promotion.Promotion, subscription.SubscriptionPlan.Code, price.Currency, price.BillingInterval);
         var discounted = applies
             ? PromotionPricing.Apply(promotion!.Promotion, price.PriceMinorUnits, addOnAmount)
             : ((long Plan, long? AddOn)?)null;

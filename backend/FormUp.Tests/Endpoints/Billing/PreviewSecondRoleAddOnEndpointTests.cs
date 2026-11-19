@@ -244,6 +244,34 @@ public class PreviewSecondRoleAddOnEndpointTests(FitnessApiFactory factory) : ID
         await AssertErrorAsync(await coach.Http.PostAsJsonAsync(Route, new { }, Ct), HttpStatusCode.Forbidden, ErrorCodes.CoachRoleRemoved);
     }
 
+    [Theory]
+    [InlineData(PromotionBillingPeriod.Monthly, false)]
+    [InlineData(PromotionBillingPeriod.Annual, true)]
+    [InlineData(PromotionBillingPeriod.Both, true)]
+    public async Task Preview_OnAnAnnualRow_ShowsADiscountOnlyWhenThePromotionCoversAnnual(
+        PromotionBillingPeriod period, bool discounted)
+    {
+        BillingTestData.ResetProvider(factory);
+        var coach = await TestActors.Nutritionist(factory).CreateAsync(Ct);
+        var (plan, _, _) = await BillingTestData.StripePlanWithAnnualAsync(
+            factory, monthlyPrice: 29900, annualPrice: 299000, monthlyAddOn: 9900, annualAddOn: 99000, bothRolesIncluded: false);
+        await BillingTestData.SubscribeLiveAsync(factory, coach, plan, interval: BillingInterval.Annual);
+        var promotion = await PromotionBuilder.CreateAsync(
+            factory, [plan], PromotionMode.Automatic, p =>
+            {
+                p.Value = 30;
+                p.BillingPeriod = period;
+            });
+        await BillingTestData.UpdateRowAsync(factory, coach.ProfileId, row => row.CurrentPromotionId = promotion.Id);
+
+        var response = await coach.Http.PostAsJsonAsync(Route, new { }, Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = (await response.Content.ReadFromJsonAsync<PreviewSecondRoleAddOnResponse>(BillingTestData.Json, Ct))!;
+        body.DiscountedPlanAmountMinorUnits.Should().Be(discounted ? 209300 : null);
+        body.DiscountedAddOnAmountMinorUnits.Should().Be(discounted ? 69300 : null);
+    }
+
     [Fact]
     public async Task Preview_OnAnAnnualRow_UsesTheAnnualPlanAndAddOnAmounts_AndTheAnnualInterval()
     {

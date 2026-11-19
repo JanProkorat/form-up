@@ -372,8 +372,9 @@ internal sealed class StripeWebhookEndpoint(
 
     /// <summary>
     /// Mirrors the subscription's discount onto the coach: the current promotion (cleared when the subscription has no
-    /// discount or one of ours does not match) and, once per coach and promotion, a redemption row. Covers codes typed on
-    /// Stripe Checkout and automatic coupons. A provider failure propagates so Stripe retries the event.
+    /// discount or one of ours does not match) and, once per coach and promotion, a redemption row. A discount is matched by
+    /// its monthly or annual coupon id, or by the promotion code id of a promotion made before codes were typed in our app.
+    /// A provider failure propagates so Stripe retries the event.
     /// </summary>
     private async Task ApplyDiscountAsync(Event stripeEvent, CoachSubscription row, Subscription subscription, CancellationToken ct)
     {
@@ -430,7 +431,7 @@ internal sealed class StripeWebhookEndpoint(
         return await db.Promotions
             .AsNoTracking()
             .Where(p => (promotionCodeId != null && p.StripePromotionCodeId == promotionCodeId)
-                        || (couponId != null && p.StripeCouponId == couponId))
+                        || (couponId != null && (p.StripeCouponId == couponId || p.StripeAnnualCouponId == couponId)))
             .FirstOrDefaultAsync(ct);
     }
 

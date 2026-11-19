@@ -4,6 +4,7 @@ using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Extensions;
 using FormUp.Application.Domain.Interfaces;
+using FormUp.Application.Domain.Services;
 using FormUp.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -103,6 +104,63 @@ internal static class PlanChangeEndpointExtensions
 
         return new PlanChangeDecision(await AppliesNowAsync(db, subscription, target, carryAddOn, ct), carryAddOn);
     }
+
+    /// <summary>
+    /// What an immediate change does to the subscription's discount in the same provider update. Only a change of billing
+    /// interval touches it: the coupon of the new interval replaces the current one when the promotion still covers the target
+    /// plan and interval, and a promotion that does not is removed. Null leaves the discount alone (same interval, or no
+    /// promotion on the subscription). The change and its preview both call this, so they cannot disagree.
+    /// </summary>
+    /// <param name="db">Application database context.</param>
+    /// <param name="subscription">The caller's subscription row with its current price loaded.</param>
+    /// <param name="target">The plan and interval to move to.</param>
+    /// <param name="ct">Cancellation token.</param>
+    public static async Task<SubscriptionDiscountChange?> ResolveDiscountChangeAsync(
+        IApplicationDbContext db, CoachSubscription subscription, PlanChangeTarget target, CancellationToken ct)
+    {
+        if (subscription.SubscriptionPlanPrice.BillingInterval == target.BillingInterval)
+        {
+            return null;
+        }
+
+        var promotion = await LoadCurrentPromotionAsync(db, subscription, ct);
+
+        if (promotion is null)
+        {
+            return null;
+        }
+
+        return PromotionPricing.Applies(promotion, target.Code, target.Currency, target.BillingInterval)
+               && PromotionRules.CouponIdFor(promotion, target.BillingInterval) is { } couponId
+            ? SubscriptionDiscountChange.Replace(couponId)
+            : SubscriptionDiscountChange.Clear;
+    }
+
+    /// <summary>
+    /// The coupon the new price carries from the renewal on, for a change that waits for the renewal. Only a promotion that
+    /// lasts forever continues into the new phase: a first-month or several-months coupon attached to a later phase would
+    /// start its discount again instead of continuing it. Null means no discount in the new phase.
+    /// </summary>
+    /// <param name="db">Application database context.</param>
+    /// <param name="subscription">The caller's subscription row.</param>
+    /// <param name="target">The plan and interval to move to.</param>
+    /// <param name="ct">Cancellation token.</param>
+    public static async Task<string?> ResolvePendingPhaseCouponIdAsync(
+        IApplicationDbContext db, CoachSubscription subscription, PlanChangeTarget target, CancellationToken ct)
+    {
+        var promotion = await LoadCurrentPromotionAsync(db, subscription, ct);
+
+        return promotion is { Duration: PromotionDuration.Forever }
+               && PromotionPricing.Applies(promotion, target.Code, target.Currency, target.BillingInterval)
+            ? PromotionRules.CouponIdFor(promotion, target.BillingInterval)
+            : null;
+    }
+
+    private static async Task<Promotion?> LoadCurrentPromotionAsync(
+        IApplicationDbContext db, CoachSubscription subscription, CancellationToken ct) =>
+        subscription.CurrentPromotionId is { } promotionId
+            ? await db.Promotions.AsNoTracking().FirstOrDefaultAsync(p => p.Id == promotionId, ct)
+            : null;
 
     private static async Task<bool> AppliesNowAsync(
         IApplicationDbContext db, CoachSubscription subscription, PlanChangeTarget target, bool carryAddOn, CancellationToken ct)
