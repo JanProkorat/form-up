@@ -101,6 +101,33 @@ public class GetCoachPlansPromotionTests(FitnessApiFactory factory) : IDisposabl
         monthlyOnlyPlan.AnnualDiscountedPriceMinorUnits.Should().BeNull("a plan not sold annually has no annual lines");
     }
 
+    [Theory]
+    [InlineData(PromotionBillingPeriod.Monthly, true, false)]
+    [InlineData(PromotionBillingPeriod.Annual, false, true)]
+    [InlineData(PromotionBillingPeriod.Both, true, true)]
+    public async Task Get_TheBillingPeriodGatesTheMonthlyAndTheAnnualDiscountedFieldsSeparately(
+        PromotionBillingPeriod period, bool monthlyDiscounted, bool annualDiscounted)
+    {
+        await PromotionBuilder.ClearAsync(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var plan = await PlanWithAddOnAsync();
+        await SubscriptionPlanPriceBuilder.AddOpenAnnualPriceAsync(factory, plan, 299000, 99000);
+        await PromotionBuilder.CreateAsync(factory, [plan], PromotionMode.Automatic, p =>
+        {
+            p.Value = 30;
+            p.BillingPeriod = period;
+        });
+
+        var response = await GetAsync(coach);
+
+        var dto = response.Plans.Single(candidate => candidate.Code == plan);
+        (dto.DiscountedPriceMinorUnits is not null).Should().Be(monthlyDiscounted);
+        (dto.DiscountedSecondRoleAddOnPriceMinorUnits is not null).Should().Be(monthlyDiscounted);
+        (dto.AnnualDiscountedPriceMinorUnits is not null).Should().Be(annualDiscounted);
+        (dto.AnnualDiscountedSecondRoleAddOnPriceMinorUnits is not null).Should().Be(annualDiscounted);
+        response.Promotion!.BillingPeriod.Should().Be(period);
+    }
+
     [Fact]
     public async Task Get_APromotionLimitedToSomePlans_DiscountsTheAddOnOfEachCoveredPlan_AndOnlyThose()
     {

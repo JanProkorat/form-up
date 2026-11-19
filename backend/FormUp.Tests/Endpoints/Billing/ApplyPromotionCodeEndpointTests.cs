@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using FluentAssertions;
 using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Entities;
+using FormUp.Application.Domain.Enums;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Tests.Builders;
 using FormUp.Tests.Infrastructure;
@@ -172,6 +173,69 @@ public class ApplyPromotionCodeEndpointTests(FitnessApiFactory factory) : IDispo
         await AssertErrorAsync(
             await coach.Http.PostAsJsonAsync(Route, Body(promotion.Code!), Ct), HttpStatusCode.Conflict, "PROMOTION_CODE_ALREADY_USED");
         fake.AppliedCouponIds.Should().BeEmpty();
+    }
+
+    /// <summary>A coach on the annual price of a plan that is also sold monthly, and a code promotion covering the plan.</summary>
+    private async Task<(Actor Coach, string SubscriptionId, Promotion Promotion)> ArrangeAnnualAsync(
+        BillingInterval interval, Action<Promotion>? configure = null)
+    {
+        await PromotionBuilder.ClearAsync(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (plan, _, _) = await BillingTestData.StripePlanWithAnnualAsync(factory);
+        var subscriptionId = await BillingTestData.SubscribeLiveAsync(factory, coach, plan, interval: interval);
+        var promotion = await PromotionBuilder.CreateAsync(factory, [plan], configure: configure);
+
+        return (coach, subscriptionId, promotion);
+    }
+
+    [Theory]
+    [InlineData(PromotionBillingPeriod.Monthly, BillingInterval.Annual)]
+    [InlineData(PromotionBillingPeriod.Annual, BillingInterval.Monthly)]
+    public async Task ApplyCode_ThatDoesNotCoverTheSubscriptionsInterval_Returns409_WithoutCallingStripe(
+        PromotionBillingPeriod period, BillingInterval interval)
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var (coach, _, promotion) = await ArrangeAnnualAsync(interval, p => p.BillingPeriod = period);
+
+        await AssertErrorAsync(
+            await coach.Http.PostAsJsonAsync(Route, Body(promotion.Code!), Ct),
+            HttpStatusCode.Conflict,
+            "PROMOTION_CODE_INTERVAL_NOT_ELIGIBLE");
+        fake.AppliedCouponIds.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(BillingInterval.Annual, true)]
+    [InlineData(BillingInterval.Monthly, false)]
+    public async Task ApplyCode_OfABothPeriodsPromotion_AttachesTheCouponOfTheSubscriptionsInterval(
+        BillingInterval interval, bool expectsAnnualCoupon)
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var (coach, _, promotion) = await ArrangeAnnualAsync(
+            interval, p =>
+            {
+                p.Duration = PromotionDuration.Months;
+                p.DurationMonths = 3;
+                p.StripeAnnualCouponId = $"coupon_annual_{Guid.NewGuid():N}";
+            });
+
+        var response = await coach.Http.PostAsJsonAsync(Route, Body(promotion.Code!), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        fake.AppliedCouponIds.Should().ContainSingle().Which.Should().Be(
+            expectsAnnualCoupon ? promotion.StripeAnnualCouponId : promotion.StripeCouponId);
+    }
+
+    [Fact]
+    public async Task ApplyCode_OfACodePromotionWithoutAStripePromotionCode_StillWorks()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var (coach, _, promotion) = await ArrangeAsync(p => p.StripePromotionCodeId = null);
+
+        var response = await coach.Http.PostAsJsonAsync(Route, Body(promotion.Code!), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        fake.AppliedCouponIds.Should().ContainSingle().Which.Should().Be(promotion.StripeCouponId);
     }
 
     [Fact]

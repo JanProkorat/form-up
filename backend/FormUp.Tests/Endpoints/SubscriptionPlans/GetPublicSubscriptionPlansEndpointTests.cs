@@ -251,6 +251,32 @@ public class GetPublicSubscriptionPlansEndpointTests(FitnessApiFactory factory) 
         uncoveredPlan.GetProperty("annualDiscountedSecondRoleAddOnPriceMinorUnits").ValueKind.Should().Be(JsonValueKind.Null);
     }
 
+    [Theory]
+    [InlineData(PromotionBillingPeriod.Monthly, true, false)]
+    [InlineData(PromotionBillingPeriod.Annual, false, true)]
+    [InlineData(PromotionBillingPeriod.Both, true, true)]
+    public async Task Get_TheBillingPeriodGatesTheMonthlyAndTheAnnualDiscountedFieldsSeparately(
+        PromotionBillingPeriod period, bool monthlyDiscounted, bool annualDiscounted)
+    {
+        await PromotionBuilder.ClearAsync(factory);
+        var plan = await PaidPlanBuilder.CreateAsync(factory, priceMinorUnits: 29900, addOnMinorUnits: 9900, bothRolesIncluded: false);
+        await SubscriptionPlanPriceBuilder.AddOpenAnnualPriceAsync(factory, plan, 299000, 99000);
+        await PromotionBuilder.CreateAsync(factory, [plan], PromotionMode.Automatic, configured =>
+        {
+            configured.Value = 30;
+            configured.BillingPeriod = period;
+        });
+
+        using var document = await GetJsonAsync(factory.CreateClient());
+
+        var item = document.RootElement.GetProperty("plans").EnumerateArray().Single(candidate => candidate.GetProperty("code").GetString() == plan);
+        (item.GetProperty("discountedPriceMinorUnits").ValueKind != JsonValueKind.Null).Should().Be(monthlyDiscounted);
+        (item.GetProperty("discountedSecondRoleAddOnPriceMinorUnits").ValueKind != JsonValueKind.Null).Should().Be(monthlyDiscounted);
+        (item.GetProperty("annualDiscountedPriceMinorUnits").ValueKind != JsonValueKind.Null).Should().Be(annualDiscounted);
+        (item.GetProperty("annualDiscountedSecondRoleAddOnPriceMinorUnits").ValueKind != JsonValueKind.Null).Should().Be(annualDiscounted);
+        document.RootElement.GetProperty("promotion").GetProperty("billingPeriod").GetString().Should().Be(period.ToString());
+    }
+
     private static async Task<JsonDocument> GetJsonAsync(HttpClient client)
     {
         var response = await client.GetAsync("/subscription-plans", Ct);

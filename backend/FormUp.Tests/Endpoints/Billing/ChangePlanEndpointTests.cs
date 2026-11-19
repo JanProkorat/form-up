@@ -2,7 +2,9 @@ using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
 using FormUp.Application.Domain.Constants;
+using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
+using FormUp.Application.Domain.Interfaces;
 using FormUp.Application.Features.Billing.ChangePlan;
 using FormUp.Tests.Builders;
 using FormUp.Application.Infrastructure.Data;
@@ -509,6 +511,102 @@ public class ChangePlanEndpointTests(FitnessApiFactory factory) : IDisposable
         row.SubscriptionPlanPrice.BillingInterval.Should().Be(BillingInterval.Annual);
         row.PaysSecondRoleAddOn.Should().BeTrue();
         row.PendingSubscriptionPlanPriceId.Should().BeNull("an immediate change drops the switch that was scheduled for the renewal");
+    }
+
+    private async Task<(Actor Coach, string Plan, Promotion Promotion)> CoachWithPromotionAsync(
+        BillingInterval currentInterval, Action<Promotion>? configure = null)
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (plan, _, _) = await BillingTestData.StripePlanWithAnnualAsync(factory);
+        await BillingTestData.SubscribeLiveAsync(factory, coach, plan, interval: currentInterval);
+        var promotion = await PromotionBuilder.CreateAsync(factory, [plan], PromotionMode.Code, configure);
+        await BillingTestData.UpdateRowAsync(factory, coach.ProfileId, row => row.CurrentPromotionId = promotion.Id);
+
+        return (coach, plan, promotion);
+    }
+
+    [Fact]
+    public async Task ChangePlan_MonthlyToAnnual_SwapsABothPeriodsPromotionToItsAnnualCoupon_InTheSameUpdate()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var (coach, plan, promotion) = await CoachWithPromotionAsync(
+            BillingInterval.Monthly, p =>
+            {
+                p.Duration = PromotionDuration.Months;
+                p.DurationMonths = 3;
+                p.StripeAnnualCouponId = $"coupon_annual_{Guid.NewGuid():N}";
+            });
+
+        await ReadBodyAsync(await coach.Http.PostAsJsonAsync(Route, BodyFor(plan, BillingInterval.Annual), Ct));
+
+        fake.PlanChanges.Should().ContainSingle().Which.Discount.Should().Be(SubscriptionDiscountChange.Replace(promotion.StripeAnnualCouponId!));
+    }
+
+    [Fact]
+    public async Task ChangePlan_MonthlyToAnnual_DropsAMonthlyOnlyPromotion_InTheSameUpdate()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var (coach, plan, _) = await CoachWithPromotionAsync(BillingInterval.Monthly, p => p.BillingPeriod = PromotionBillingPeriod.Monthly);
+
+        await ReadBodyAsync(await coach.Http.PostAsJsonAsync(Route, BodyFor(plan, BillingInterval.Annual), Ct));
+
+        fake.PlanChanges.Should().ContainSingle().Which.Discount.Should().Be(SubscriptionDiscountChange.Clear);
+    }
+
+    [Fact]
+    public async Task ChangePlan_MonthlyToAnnualWithoutAPromotion_LeavesTheDiscountAlone()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (plan, _, _) = await BillingTestData.StripePlanWithAnnualAsync(factory);
+        await BillingTestData.SubscribeLiveAsync(factory, coach, plan);
+
+        await ReadBodyAsync(await coach.Http.PostAsJsonAsync(Route, BodyFor(plan, BillingInterval.Annual), Ct));
+
+        fake.PlanChanges.Should().ContainSingle().Which.Discount.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ChangePlan_UpgradeAtTheSameInterval_LeavesThePromotionAlone()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var (coach, _, _) = await CoachWithPromotionAsync(BillingInterval.Monthly);
+        var (dearer, _) = await BillingTestData.StripePlanAsync(factory, price: 59900);
+
+        await ReadBodyAsync(await coach.Http.PostAsJsonAsync(Route, Body(dearer), Ct));
+
+        fake.PlanChanges.Should().ContainSingle().Which.Discount.Should().BeNull("only a change of interval touches the discount");
+    }
+
+    [Theory]
+    [InlineData(PromotionDuration.Forever, true)]
+    [InlineData(PromotionDuration.Months, false)]
+    public async Task ChangePlan_AnnualToMonthlyAtRenewal_CarriesOnlyAForeverPromotionIntoTheNewPhase(
+        PromotionDuration duration, bool expectsCoupon)
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var (coach, plan, promotion) = await CoachWithPromotionAsync(
+            BillingInterval.Annual, p =>
+            {
+                p.Duration = duration;
+                p.DurationMonths = duration == PromotionDuration.Months ? 3 : null;
+                p.StripeAnnualCouponId = $"coupon_annual_{Guid.NewGuid():N}";
+            });
+
+        await ReadBodyAsync(await coach.Http.PostAsJsonAsync(Route, BodyFor(plan, BillingInterval.Monthly), Ct));
+
+        fake.PlanChanges.Should().ContainSingle().Which.PendingPhaseCouponId.Should().Be(expectsCoupon ? promotion.StripeCouponId : null);
+    }
+
+    [Fact]
+    public async Task ChangePlan_AnnualToMonthlyAtRenewal_DoesNotCarryAnAnnualOnlyPromotionIntoTheMonthlyPhase()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var (coach, plan, _) = await CoachWithPromotionAsync(BillingInterval.Annual, p => p.BillingPeriod = PromotionBillingPeriod.Annual);
+
+        await ReadBodyAsync(await coach.Http.PostAsJsonAsync(Route, BodyFor(plan, BillingInterval.Monthly), Ct));
+
+        fake.PlanChanges.Should().ContainSingle().Which.PendingPhaseCouponId.Should().BeNull();
     }
 
     [Fact]
