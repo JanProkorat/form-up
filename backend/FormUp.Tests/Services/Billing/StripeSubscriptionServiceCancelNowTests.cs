@@ -18,12 +18,12 @@ public class StripeSubscriptionServiceCancelNowTests
     private const long TenDaysIn = PeriodStart + (10 * 86400);
 
     // The period is 30 days long and the subscription was cancelled on day 10, so two thirds of it is unused.
-    private static string SubscriptionJson(string status, string? scheduleId, long? canceledAt = null) =>
+    private static string SubscriptionJson(string status, string? scheduleId, long? canceledAt = null, int periodDays = 30) =>
         "{\"id\":\"sub_1\",\"object\":\"subscription\",\"status\":\"" + status + "\",\"schedule\":"
         + (scheduleId is null ? "null" : "\"" + scheduleId + "\"")
         + ",\"canceled_at\":" + (canceledAt?.ToString() ?? "null")
         + ",\"discounts\":[],\"items\":{\"object\":\"list\",\"has_more\":false,\"data\":[{\"id\":\"si_1\",\"object\":\"subscription_item\","
-        + "\"current_period_start\":" + PeriodStart + ",\"current_period_end\":" + (PeriodStart + (30 * 86400))
+        + "\"current_period_start\":" + PeriodStart + ",\"current_period_end\":" + (PeriodStart + (periodDays * 86400L))
         + ",\"price\":{\"id\":\"price_1\",\"object\":\"price\"}}]}}";
 
     private static string InvoicesJson(long amountPaid, long created = PeriodStart) =>
@@ -58,13 +58,14 @@ public class StripeSubscriptionServiceCancelNowTests
     }
 
     /// <summary>A live subscription that is first read active and, once cancelled, read again as canceled ten days in.</summary>
-    private static ScriptedStripeHandler CancellableSubscription(string? scheduleId = null, string status = "active") =>
+    private static ScriptedStripeHandler CancellableSubscription(
+        string? scheduleId = null, string status = "active", int periodDays = 30, long canceledAt = TenDaysIn) =>
         new ScriptedStripeHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\",\"object\":\"refund\"}")
             .Sequence(
                 HttpMethod.Get,
                 "/v1/subscriptions/sub_1",
-                (HttpStatusCode.OK, SubscriptionJson(status, scheduleId)),
-                (HttpStatusCode.OK, SubscriptionJson("canceled", scheduleId, TenDaysIn)));
+                (HttpStatusCode.OK, SubscriptionJson(status, scheduleId, periodDays: periodDays)),
+                (HttpStatusCode.OK, SubscriptionJson("canceled", scheduleId, canceledAt, periodDays)));
 
     private static ScriptedStripeHandler WithPaidInvoice(ScriptedStripeHandler handler, long invoiced, long paid, long alreadyRefunded = 0) =>
         handler
@@ -108,6 +109,20 @@ public class StripeSubscriptionServiceCancelNowTests
         refund.IdempotencyKey.Should().Be("formup-refund-sub_1");
         handler.Requests.IndexOf(refund).Should().BeGreaterThan(handler.Requests.IndexOf(cancel), "nothing is refunded before the cancel succeeded");
         result.Should().Be(new CancelRefundResult(20000, "czk"));
+    }
+
+    [Fact]
+    public async Task CancelNow_OnAYearPeriod_RefundsTheUnusedShareOfTheYear()
+    {
+        // A 365-day period cancelled on day 100: 265 of 365 days are unused, so floor(299000 * 265 / 365) = 217082 goes back.
+        var handler = WithPaidInvoice(
+            CancellableSubscription(periodDays: 365, canceledAt: PeriodStart + (100 * 86400L)), invoiced: 299000, paid: 299000);
+
+        var result = await CancelAsync(handler);
+
+        handler.Requests.Should().ContainSingle(r => r.Method == HttpMethod.Post && r.Path == "/v1/refunds")
+            .Which.Form.Should().Contain(new KeyValuePair<string, string>("amount", "217082"));
+        result.Should().Be(new CancelRefundResult(217082, "czk"));
     }
 
     [Fact]

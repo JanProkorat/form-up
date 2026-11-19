@@ -243,7 +243,6 @@ public class StripeRequestEncodingTests
         var start = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
         var phases = StripeRequestBuilder.SchedulePhases(
             [new SchedulePhasePlan(start, start.AddMonths(1), ["price_plan", "price_addon"])],
-            BillingInterval.Monthly,
             StripeRequestBuilder.TaxRates(Options(taxMode)));
 
         await client.V1.SubscriptionSchedules.UpdateAsync(

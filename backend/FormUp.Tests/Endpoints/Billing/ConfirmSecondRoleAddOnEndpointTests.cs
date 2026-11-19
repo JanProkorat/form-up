@@ -66,6 +66,24 @@ public class ConfirmSecondRoleAddOnEndpointTests(FitnessApiFactory factory) : ID
     }
 
     [Fact]
+    public async Task Confirm_OnAnAnnualRow_ChargesTheAnnualAddOnAmount_AtTheAnnualInterval()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var coach = await TestActors.Nutritionist(factory).CreateAsync(Ct);
+        var (plan, _, _) = await BillingTestData.StripePlanWithAnnualAsync(
+            factory, monthlyPrice: 29900, annualPrice: 299000, monthlyAddOn: 9900, annualAddOn: 99000, bothRolesIncluded: false);
+        await BillingTestData.SubscribeLiveAsync(factory, coach, plan, interval: BillingInterval.Annual);
+
+        var response = await coach.Http.PostAsJsonAsync(Route, Body(), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var charge = fake.Charges.Should().ContainSingle().Subject;
+        charge.AmountMinorUnits.Should().Be(99000);
+        charge.Interval.Should().Be(BillingInterval.Annual);
+        (await BillingTestData.ReadRowAsync(factory, coach.ProfileId)).PaysSecondRoleAddOn.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task Confirm_WhenTheAddOnIsAlreadyPaid_Returns409_WithoutChargingAgain()
     {
         var fake = BillingTestData.ResetProvider(factory);

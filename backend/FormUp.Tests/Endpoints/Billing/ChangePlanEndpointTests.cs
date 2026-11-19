@@ -463,4 +463,246 @@ public class ChangePlanEndpointTests(FitnessApiFactory factory) : IDisposable
 
         await AssertErrorAsync(await coach.Http.PostAsJsonAsync(Route, Body("anything"), Ct), HttpStatusCode.Forbidden, ErrorCodes.CoachRoleRemoved);
     }
+
+    private static object BodyFor(string planCode, BillingInterval interval) =>
+        new { PlanCode = planCode, BillingInterval = interval.ToString(), AttemptId = Guid.NewGuid() };
+
+    private async Task<long> OpenPriceRowIdAsync(string planCode, BillingInterval interval)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        return await db.SubscriptionPlanPrices
+            .Where(p => p.SubscriptionPlan.Code == planCode && p.ValidTo == null && p.BillingInterval == interval)
+            .Select(p => p.Id)
+            .SingleAsync(Ct);
+    }
+
+    private async Task<ChangePlanResponse> ReadBodyAsync(HttpResponseMessage response)
+    {
+        response.StatusCode.Should().Be(HttpStatusCode.OK, await response.Content.ReadAsStringAsync(Ct));
+
+        return (await response.Content.ReadFromJsonAsync<ChangePlanResponse>(BillingTestData.Json, Ct))!;
+    }
+
+    [Fact]
+    public async Task ChangePlan_MonthlyToAnnualOnTheSamePlan_AppliesNow_WithTheAnnualPriceAndAddOn_AndDropsTheScheduledSwitch()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var coach = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Nutritionist).CreateAsync(Ct);
+        var (plan, _, annualPriceId) = await BillingTestData.StripePlanWithAnnualAsync(
+            factory, monthlyPrice: 29900, annualPrice: 299000, monthlyAddOn: 9900, annualAddOn: 99000, bothRolesIncluded: false);
+        var (scheduled, _) = await BillingTestData.StripePlanAsync(factory, price: 9900, addOn: 1900, bothRolesIncluded: false);
+        var subscriptionId = await BillingTestData.SubscribeLiveAsync(factory, coach, plan, paysSecondRoleAddOn: true);
+        await BillingTestData.SetPendingPlanAsync(factory, coach.ProfileId, scheduled);
+
+        var body = await ReadBodyAsync(await coach.Http.PostAsJsonAsync(Route, BodyFor(plan, BillingInterval.Annual), Ct));
+
+        body.Timing.Should().Be(PlanChangeTiming.Now);
+        var call = fake.PlanChanges.Should().ContainSingle().Subject;
+        call.AtNextRenewal.Should().BeFalse();
+        call.SubscriptionId.Should().Be(subscriptionId);
+        call.PlanPriceExternalId.Should().Be(annualPriceId);
+        call.AddOnAmountMinorUnits.Should().Be(99000, "the add-on is the annual one, per year");
+        call.Interval.Should().Be(BillingInterval.Annual);
+        var row = await BillingTestData.ReadRowAsync(factory, coach.ProfileId);
+        row.SubscriptionPlanPrice.BillingInterval.Should().Be(BillingInterval.Annual);
+        row.PaysSecondRoleAddOn.Should().BeTrue();
+        row.PendingSubscriptionPlanPriceId.Should().BeNull("an immediate change drops the switch that was scheduled for the renewal");
+    }
+
+    [Fact]
+    public async Task ChangePlan_AnnualToMonthlyOnTheSamePlan_WaitsForRenewal_WithTheMonthlyPrice()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (plan, monthlyPriceId, _) = await BillingTestData.StripePlanWithAnnualAsync(factory);
+        var periodEnd = DateTimeOffset.UtcNow.AddDays(200);
+        await BillingTestData.SubscribeLiveAsync(factory, coach, plan, currentPeriodEndsAt: periodEnd, interval: BillingInterval.Annual);
+
+        var body = await ReadBodyAsync(await coach.Http.PostAsJsonAsync(Route, BodyFor(plan, BillingInterval.Monthly), Ct));
+
+        body.Timing.Should().Be(PlanChangeTiming.AtNextRenewal);
+        body.EffectiveAt.Should().BeCloseTo(periodEnd, TimeSpan.FromSeconds(1));
+        var call = fake.PlanChanges.Should().ContainSingle().Subject;
+        call.AtNextRenewal.Should().BeTrue();
+        call.PlanPriceExternalId.Should().Be(monthlyPriceId);
+        call.Interval.Should().Be(BillingInterval.Monthly);
+        var row = await BillingTestData.ReadRowAsync(factory, coach.ProfileId);
+        row.SubscriptionPlanPrice.BillingInterval.Should().Be(BillingInterval.Annual, "the year is paid for until it ends");
+        row.PendingSubscriptionPlanPriceId.Should().Be(await OpenPriceRowIdAsync(plan, BillingInterval.Monthly));
+    }
+
+    [Fact]
+    public async Task ChangePlan_AnnualToMonthlyOnADearerPlan_StillWaitsForRenewal()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (current, _, _) = await BillingTestData.StripePlanWithAnnualAsync(factory, monthlyPrice: 29900, annualPrice: 299000);
+        var (target, _, _) = await BillingTestData.StripePlanWithAnnualAsync(factory, monthlyPrice: 99900, annualPrice: 999000);
+        await BillingTestData.SubscribeLiveAsync(factory, coach, current, interval: BillingInterval.Annual);
+
+        var body = await ReadBodyAsync(await coach.Http.PostAsJsonAsync(Route, BodyFor(target, BillingInterval.Monthly), Ct));
+
+        body.Timing.Should().Be(PlanChangeTiming.AtNextRenewal);
+        fake.PlanChanges.Should().ContainSingle().Which.AtNextRenewal.Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData(399000, PlanChangeTiming.Now)]
+    [InlineData(299000, PlanChangeTiming.AtNextRenewal)]
+    [InlineData(199000, PlanChangeTiming.AtNextRenewal)]
+    public async Task ChangePlan_AnnualToAnotherAnnualPlan_AppliesNowOnlyWhenStrictlyDearerPerYear(long targetAnnual, PlanChangeTiming expected)
+    {
+        BillingTestData.ResetProvider(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (current, _, _) = await BillingTestData.StripePlanWithAnnualAsync(factory, annualPrice: 299000);
+        var (target, _, _) = await BillingTestData.StripePlanWithAnnualAsync(factory, annualPrice: targetAnnual);
+        await BillingTestData.SubscribeLiveAsync(factory, coach, current, interval: BillingInterval.Annual);
+
+        var body = await ReadBodyAsync(await coach.Http.PostAsJsonAsync(Route, BodyFor(target, BillingInterval.Annual), Ct));
+
+        body.Timing.Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData(29900L, 299000L, 59900L, 599000L, PlanChangeTiming.Now)]
+    [InlineData(29900L, 299000L, 29900L, 299000L, PlanChangeTiming.Now)]
+    [InlineData(29900L, 299000L, 19900L, 199000L, PlanChangeTiming.AtNextRenewal)]
+    [InlineData(59900L, null, 79900L, 700000L, PlanChangeTiming.Now)]
+    [InlineData(59900L, null, 29900L, 900000L, PlanChangeTiming.AtNextRenewal)]
+    public async Task ChangePlan_MonthlyToAnnualOnAnotherPlan_AppliesNowWhenTheTargetRanksTheSameOrHigherAtOneInterval(
+        long currentMonthly, long? currentAnnual, long targetMonthly, long targetAnnual, PlanChangeTiming expected)
+    {
+        // Rows 4 and 5 have no annual row on the current plan, so the monthly rows are compared: the target annual price
+        // against 12 times the current monthly one would give the opposite answer in both.
+        BillingTestData.ResetProvider(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        string current;
+
+        if (currentAnnual is { } annual)
+        {
+            (current, _, _) = await BillingTestData.StripePlanWithAnnualAsync(factory, currentMonthly, annual);
+        }
+        else
+        {
+            (current, _) = await BillingTestData.StripePlanAsync(factory, price: currentMonthly);
+        }
+
+        var (target, _, _) = await BillingTestData.StripePlanWithAnnualAsync(factory, targetMonthly, targetAnnual);
+        await BillingTestData.SubscribeLiveAsync(factory, coach, current);
+
+        var body = await ReadBodyAsync(await coach.Http.PostAsJsonAsync(Route, BodyFor(target, BillingInterval.Annual), Ct));
+
+        body.Timing.Should().Be(expected);
+    }
+
+    [Fact]
+    public async Task ChangePlan_SameIntervalComparison_CountsTheAddOnTheCoachPaysNow()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var coach = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Nutritionist).CreateAsync(Ct);
+        var (current, _) = await BillingTestData.StripePlanAsync(factory, price: 30000, addOn: 5000, bothRolesIncluded: false);
+        var (target, _) = await BillingTestData.StripePlanAsync(factory, price: 33000, bothRolesIncluded: true);
+        await BillingTestData.SubscribeLiveAsync(factory, coach, current, paysSecondRoleAddOn: true);
+
+        var body = await ReadBodyAsync(await coach.Http.PostAsJsonAsync(Route, Body(target), Ct));
+
+        body.Timing.Should().Be(PlanChangeTiming.AtNextRenewal, "33000 is below the 35000 the coach pays now, although the plan price alone is higher");
+        fake.PlanChanges.Should().ContainSingle().Which.AtNextRenewal.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ChangePlan_SameIntervalComparison_CountsTheAddOnTheTargetWouldCarry()
+    {
+        BillingTestData.ResetProvider(factory);
+        var coach = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Nutritionist).CreateAsync(Ct);
+        var (current, _) = await BillingTestData.StripePlanAsync(factory, price: 30000, bothRolesIncluded: true);
+        var (target, _) = await BillingTestData.StripePlanAsync(factory, price: 28000, addOn: 5000, bothRolesIncluded: false);
+        await BillingTestData.SubscribeLiveAsync(factory, coach, current);
+
+        var body = await ReadBodyAsync(await coach.Http.PostAsJsonAsync(Route, Body(target), Ct));
+
+        body.Timing.Should().Be(PlanChangeTiming.Now, "28000 plus the 5000 add-on is dearer than the 30000 now, although the plan price alone is lower");
+    }
+
+    [Fact]
+    public async Task ChangePlan_ToThePlanAndIntervalTheCoachIsOnAnnually_Returns409()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (plan, _, _) = await BillingTestData.StripePlanWithAnnualAsync(factory);
+        await BillingTestData.SubscribeLiveAsync(factory, coach, plan, interval: BillingInterval.Annual);
+
+        await AssertErrorAsync(
+            await coach.Http.PostAsJsonAsync(Route, BodyFor(plan, BillingInterval.Annual), Ct), HttpStatusCode.Conflict, "BILLING_PLAN_UNCHANGED");
+
+        fake.PlanChanges.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ChangePlan_ToAnIntervalThePlanHasNoOpenRowFor_Returns400_AndCallsNothing()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (current, _) = await BillingTestData.StripePlanAsync(factory, price: 29900);
+        var (monthlyOnly, _) = await BillingTestData.StripePlanAsync(factory, price: 59900);
+        await BillingTestData.SubscribeLiveAsync(factory, coach, current);
+
+        await AssertErrorAsync(
+            await coach.Http.PostAsJsonAsync(Route, BodyFor(monthlyOnly, BillingInterval.Annual), Ct), HttpStatusCode.BadRequest, "PLAN_NOT_PURCHASABLE");
+
+        fake.PlanChanges.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ChangePlan_TwoRoleCoachToAnAnnualRowWithoutAnAddOnPrice_Returns400_AndCallsNothing()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var coach = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Nutritionist).CreateAsync(Ct);
+        var (current, _) = await BillingTestData.StripePlanAsync(factory, price: 29900, addOn: 9900, bothRolesIncluded: false);
+        var (target, _, _) = await BillingTestData.StripePlanWithAnnualAsync(
+            factory, monthlyPrice: 59900, annualPrice: 599000, monthlyAddOn: 9900, annualAddOn: null, bothRolesIncluded: false);
+        await BillingTestData.SubscribeLiveAsync(factory, coach, current, paysSecondRoleAddOn: true);
+
+        await AssertErrorAsync(
+            await coach.Http.PostAsJsonAsync(Route, BodyFor(target, BillingInterval.Annual), Ct), HttpStatusCode.BadRequest, "PLAN_NOT_PURCHASABLE");
+
+        fake.PlanChanges.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ChangePlan_WithAnOutOfRangeInterval_Returns400_AndCallsNothing()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (current, _) = await BillingTestData.StripePlanAsync(factory, price: 29900);
+        var (target, _) = await BillingTestData.StripePlanAsync(factory, price: 59900);
+        await BillingTestData.SubscribeLiveAsync(factory, coach, current);
+
+        var response = await coach.Http.PostAsJsonAsync(Route, new { PlanCode = target, BillingInterval = 99, AttemptId = Guid.NewGuid() }, Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        fake.PlanChanges.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ChangePlan_DeferredChangeWhileAnotherSwitchIsScheduled_ReplacesIt_SoTheLatestChoiceWins()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (current, _, _) = await BillingTestData.StripePlanWithAnnualAsync(factory, monthlyPrice: 99900, annualPrice: 999000);
+        var (earlier, _) = await BillingTestData.StripePlanAsync(factory, price: 9900);
+        var (later, laterPriceId) = await BillingTestData.StripePlanAsync(factory, price: 19900);
+        await BillingTestData.SubscribeLiveAsync(factory, coach, current, interval: BillingInterval.Annual);
+        await BillingTestData.SetPendingPlanAsync(factory, coach.ProfileId, earlier);
+
+        await ReadBodyAsync(await coach.Http.PostAsJsonAsync(Route, BodyFor(later, BillingInterval.Monthly), Ct));
+
+        var call = fake.PlanChanges.Should().ContainSingle().Subject;
+        call.AtNextRenewal.Should().BeTrue();
+        call.PlanPriceExternalId.Should().Be(laterPriceId);
+        (await BillingTestData.ReadRowAsync(factory, coach.ProfileId)).PendingSubscriptionPlanPriceId
+            .Should().Be(await OpenPriceRowIdAsync(later, BillingInterval.Monthly));
+    }
 }

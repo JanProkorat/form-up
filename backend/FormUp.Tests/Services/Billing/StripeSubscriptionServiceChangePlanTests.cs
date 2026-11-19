@@ -605,4 +605,162 @@ public class StripeSubscriptionServiceChangePlanTests
         await act.Should().ThrowAsync<BillingProviderException>();
         handler.Requests.Should().NotContain(r => r.Method == HttpMethod.Post && r.Path == "/v1/subscriptions/sub_1", "the snapshot stays for the retry");
     }
+
+    private const string AnnualSubscriptionJson = """
+        {"id":"sub_1","object":"subscription","schedule":null,"discounts":[],
+         "items":{"object":"list","has_more":false,"data":[
+           {"id":"si_plan","object":"subscription_item","current_period_start":1700000000,"current_period_end":1731536000,
+            "price":{"id":"price_old","object":"price","product":"prod_1","recurring":{"interval":"year"}}}]}}
+        """;
+
+    private const string NewSchedule = "{\"id\":\"sub_sched_new\",\"object\":\"subscription_schedule\"}";
+
+    private static string PriceJson(string id, string interval) =>
+        "{\"id\":\"" + id + "\",\"object\":\"price\",\"product\":\"prod_1\",\"recurring\":{\"interval\":\"" + interval + "\"}}";
+
+    private static string OpenPhaseDurationInterval(CapturedRequest scheduleUpdate) =>
+        scheduleUpdate.Form.Single(pair => pair.Key == "phases[1][duration][interval]").Value;
+
+    [Fact]
+    public async Task ChangePlan_MonthlyToAnnualUpgrade_MovesThePlanLineAndTheAddOnLineToAnnualPricesInOneUpdate()
+    {
+        var handler = new ScriptedStripeHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
+            .Respond(HttpMethod.Get, "/v1/subscriptions/sub_1", SubscriptionWithAddOnJson)
+            .Respond(HttpMethod.Get, "/v1/prices/price_annual", PriceJson("price_annual", "year"))
+            .Respond(HttpMethod.Get, "/v1/prices", "{\"object\":\"list\",\"has_more\":false,\"data\":[]}")
+            .Respond(HttpMethod.Post, "/v1/prices", PriceJson("price_addon_annual", "year"));
+
+        await NewService(handler).ChangePlanAsync(
+            SubscriptionId, "pro", "price_annual", 99000, "CZK", BillingInterval.Annual, atNextRenewal: false,
+            TestContext.Current.CancellationToken, "formup-key");
+
+        var addOnPrice = handler.Requests.Single(r => r.Method == HttpMethod.Post && r.Path == "/v1/prices");
+        addOnPrice.Form.Should().Contain(new KeyValuePair<string, string>("recurring[interval]", "year"));
+        addOnPrice.Form.Should().Contain(new KeyValuePair<string, string>("unit_amount", "99000"));
+
+        var update = handler.Requests.Single(r => r.Method == HttpMethod.Post && r.Path == "/v1/subscriptions/sub_1");
+        update.Form.Should().Contain(new KeyValuePair<string, string>("items[0][id]", "si_plan"));
+        update.Form.Should().Contain(new KeyValuePair<string, string>("items[0][price]", "price_annual"));
+        update.Form.Should().Contain(new KeyValuePair<string, string>("items[1][id]", "si_addon"));
+        update.Form.Should().Contain(new KeyValuePair<string, string>("items[1][price]", "price_addon_annual"));
+        update.Form.Should().Contain(new KeyValuePair<string, string>("proration_behavior", "always_invoice"));
+    }
+
+    [Fact]
+    public async Task ChangePlan_ScheduledMonthlyToAnnual_RunsTheOpenPhaseForAYear_EvenThoughTheSubscriptionBillsMonthly()
+    {
+        var handler = new ScriptedStripeHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
+            .Respond(HttpMethod.Get, "/v1/subscriptions/sub_1", SubscriptionJson)
+            .Respond(HttpMethod.Post, "/v1/subscription_schedules", NewSchedule);
+
+        await NewService(handler).ChangePlanAsync(
+            SubscriptionId, "pro", "price_annual", null, "CZK", BillingInterval.Annual, atNextRenewal: true, TestContext.Current.CancellationToken);
+
+        var update = handler.Requests.Last();
+        update.Path.Should().Be("/v1/subscription_schedules/sub_sched_new");
+        update.Form.Should().Contain(new KeyValuePair<string, string>("phases[1][items][0][price]", "price_annual"));
+        OpenPhaseDurationInterval(update).Should().Be("year");
+        update.Form.Should().NotContain(pair => pair.Key == "phases[0][duration][interval]", "the current phase ends on a date");
+    }
+
+    [Fact]
+    public async Task ChangePlan_ScheduledAnnualToMonthly_RunsTheOpenPhaseForAMonth_EvenThoughTheSubscriptionBillsYearly()
+    {
+        var handler = new ScriptedStripeHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
+            .Respond(HttpMethod.Get, "/v1/subscriptions/sub_1", AnnualSubscriptionJson)
+            .Respond(HttpMethod.Post, "/v1/subscription_schedules", NewSchedule);
+
+        await NewService(handler).ChangePlanAsync(
+            SubscriptionId, "pro", "price_monthly", null, "CZK", BillingInterval.Monthly, atNextRenewal: true, TestContext.Current.CancellationToken);
+
+        var update = handler.Requests.Last();
+        update.Form.Should().Contain(new KeyValuePair<string, string>("phases[1][items][0][price]", "price_monthly"));
+        OpenPhaseDurationInterval(update).Should().Be("month");
+    }
+
+    [Fact]
+    public async Task ChangePlan_ScheduledWhileAnotherSwitchIsScheduled_RebuildsTheSameScheduleWithTheNewTarget()
+    {
+        var handler = new ScriptedStripeHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
+            .Respond(HttpMethod.Get, "/v1/subscriptions/sub_1", SubscriptionWithScheduleJson)
+            .Respond(HttpMethod.Get, "/v1/subscription_schedules/sub_sched_1", ScheduleJson);
+
+        await NewService(handler).ChangePlanAsync(
+            SubscriptionId, "pro", "price_other", null, "CZK", BillingInterval.Monthly, atNextRenewal: true, TestContext.Current.CancellationToken);
+
+        var update = handler.Requests.Single(r => r.Method == HttpMethod.Post);
+        update.Path.Should().Be("/v1/subscription_schedules/sub_sched_1", "the existing schedule is updated, not a second one created");
+        update.Form.Should().Contain(new KeyValuePair<string, string>("phases[0][items][0][price]", "price_old"));
+        update.Form.Should().Contain(new KeyValuePair<string, string>("phases[1][items][0][price]", "price_other"));
+        update.Form.Should().NotContain(pair => pair.Value == "price_cheaper", "the latest choice replaces the earlier scheduled switch");
+        update.Form.Should().Contain(new KeyValuePair<string, string>("end_behavior", "release"));
+    }
+
+    [Fact]
+    public async Task ChangePlan_ScheduledWhileTheRenewalIsCancelled_KeepsTheCancellation()
+    {
+        var cancellingScheduleJson = ScheduleJson.Replace("\"object\":\"subscription_schedule\",", "\"object\":\"subscription_schedule\",\"end_behavior\":\"cancel\",", StringComparison.Ordinal);
+        var handler = new ScriptedStripeHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
+            .Respond(HttpMethod.Get, "/v1/subscriptions/sub_1", SubscriptionWithScheduleJson)
+            .Respond(HttpMethod.Get, "/v1/subscription_schedules/sub_sched_1", cancellingScheduleJson);
+
+        await NewService(handler).ChangePlanAsync(
+            SubscriptionId, "pro", "price_other", null, "CZK", BillingInterval.Annual, atNextRenewal: true, TestContext.Current.CancellationToken);
+
+        var update = handler.Requests.Single(r => r.Method == HttpMethod.Post);
+        update.Form.Should().Contain(new KeyValuePair<string, string>("end_behavior", "cancel"));
+        update.Form.Should().NotContain(pair => pair.Key.StartsWith("phases[1]", StringComparison.Ordinal), "a coach who is leaving never reaches the new price");
+    }
+
+    [Fact]
+    public async Task ChangePlan_UpgradeWithADeclinedCard_RestoresAScheduledAnnualPhaseForAYear_ReadingTheIntervalFromItsPrice()
+    {
+        var handler = new ScriptedStripeHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
+            .Respond(HttpMethod.Get, "/v1/subscriptions/sub_1", SubscriptionWithScheduleJson)
+            .Respond(HttpMethod.Get, "/v1/subscription_schedules/sub_sched_1", ScheduleJson)
+            .Respond(HttpMethod.Get, "/v1/prices/price_cheaper", PriceJson("price_cheaper", "year"))
+            .Respond(HttpMethod.Post, "/v1/subscription_schedules", NewSchedule)
+            .Fail(HttpMethod.Post, "/v1/subscriptions/sub_1", HttpStatusCode.PaymentRequired, CardDeclinedJson);
+
+        var act = () => UpgradeAsync(NewService(handler));
+
+        await act.Should().ThrowAsync<BillingProviderException>();
+        OpenPhaseDurationInterval(handler.Requests.Last()).Should().Be("year", "the pending phase bills an annual price while the subscription bills monthly");
+    }
+
+    [Fact]
+    public async Task RestoreAfterExpiredUpgrade_RebuildsAnAnnualPendingPhaseForAYear_ReadingTheIntervalFromTheSnapshotPrice()
+    {
+        var handler = new ScriptedStripeHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
+            .Respond(HttpMethod.Get, "/v1/subscriptions/sub_1", SnapshotSubscriptionJson(false, false))
+            .Respond(HttpMethod.Get, "/v1/prices/price_cheaper", PriceJson("price_cheaper", "year"))
+            .Respond(HttpMethod.Post, "/v1/subscription_schedules", NewSchedule);
+
+        await NewService(handler).RestoreAfterExpiredUpgradeAsync(SubscriptionId, true, TestContext.Current.CancellationToken);
+
+        OpenPhaseDurationInterval(handler.Requests.Single(r => r.Path == "/v1/subscription_schedules/sub_sched_new")).Should().Be("year");
+    }
+
+    [Fact]
+    public async Task ResumeRenewal_OnAScheduleThatCancels_RebuildsTheMonthlyPendingPhaseOfAnAnnualSubscription_ForAMonth()
+    {
+        const string cancellingScheduleJson = """
+            {"id":"sub_sched_1","object":"subscription_schedule","end_behavior":"cancel",
+             "current_phase":{"start_date":1700000000,"end_date":1731536000},
+             "phases":[
+               {"start_date":1700000000,"end_date":1731536000,"items":[{"price":"price_old","quantity":1}]},
+               {"start_date":1731536000,"end_date":1734214400,"items":[{"price":"price_monthly","quantity":1}]}]}
+            """;
+        var handler = new ScriptedStripeHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
+            .Respond(HttpMethod.Get, "/v1/subscriptions/sub_1", AnnualSubscriptionJson.Replace("\"schedule\":null", "\"schedule\":\"sub_sched_1\"", StringComparison.Ordinal))
+            .Respond(HttpMethod.Get, "/v1/subscription_schedules/sub_sched_1", cancellingScheduleJson)
+            .Respond(HttpMethod.Get, "/v1/prices/price_monthly", PriceJson("price_monthly", "month"));
+
+        await NewService(handler).ResumeRenewalAsync(SubscriptionId, TestContext.Current.CancellationToken);
+
+        var update = handler.Requests.Single(r => r.Method == HttpMethod.Post);
+        update.Path.Should().Be("/v1/subscription_schedules/sub_sched_1");
+        update.Form.Should().Contain(new KeyValuePair<string, string>("end_behavior", "release"));
+        OpenPhaseDurationInterval(update).Should().Be("month");
+    }
 }

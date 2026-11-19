@@ -243,4 +243,25 @@ public class PreviewSecondRoleAddOnEndpointTests(FitnessApiFactory factory) : ID
 
         await AssertErrorAsync(await coach.Http.PostAsJsonAsync(Route, new { }, Ct), HttpStatusCode.Forbidden, ErrorCodes.CoachRoleRemoved);
     }
+
+    [Fact]
+    public async Task Preview_OnAnAnnualRow_UsesTheAnnualPlanAndAddOnAmounts_AndTheAnnualInterval()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var coach = await TestActors.Nutritionist(factory).CreateAsync(Ct);
+        var (plan, _, _) = await BillingTestData.StripePlanWithAnnualAsync(
+            factory, monthlyPrice: 29900, annualPrice: 299000, monthlyAddOn: 9900, annualAddOn: 99000, bothRolesIncluded: false);
+        var subscriptionId = await BillingTestData.SubscribeLiveAsync(factory, coach, plan, interval: BillingInterval.Annual);
+
+        var response = await coach.Http.PostAsJsonAsync(Route, new { }, Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = (await response.Content.ReadFromJsonAsync<PreviewSecondRoleAddOnResponse>(BillingTestData.Json, Ct))!;
+        body.PlanAmountMinorUnits.Should().Be(299000);
+        body.AddOnAmountMinorUnits.Should().Be(99000);
+        body.NewTotalMinorUnits.Should().Be(398000);
+        body.BillingInterval.Should().Be(BillingInterval.Annual);
+        fake.Previews.Should().ContainSingle().Which.Should().BeEquivalentTo(
+            new FakeSubscriptionService.AddOnCall(subscriptionId, plan, 99000, null, Interval: BillingInterval.Annual));
+    }
 }

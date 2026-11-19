@@ -365,24 +365,38 @@ public class StripeRequestBuilderTests
         build.Should().Throw<ArgumentException>();
     }
 
-    [Fact]
-    public void SchedulePhases_FirstPhaseStartsNow_LastRunsOneInterval()
+    [Theory]
+    [InlineData(BillingInterval.Annual, "year")]
+    [InlineData(BillingInterval.Monthly, "month")]
+    public void SchedulePhases_FirstPhaseStartsNow_LastRunsOneIntervalOfItsOwnPrices(BillingInterval lastPhaseInterval, string expected)
     {
         var start = new DateTimeOffset(2026, 11, 1, 0, 0, 0, TimeSpan.Zero);
         var end = start.AddDays(10);
+
+        // The first phase bills the other interval, so the last phase cannot borrow one from the subscription.
+        var otherInterval = lastPhaseInterval == BillingInterval.Annual ? BillingInterval.Monthly : BillingInterval.Annual;
         var phases = StripeRequestBuilder.SchedulePhases(
             [
-                new SchedulePhasePlan(start, end, ["price_old"]),
-                new SchedulePhasePlan(end, null, ["price_new"]),
+                new SchedulePhasePlan(start, end, ["price_old"], otherInterval),
+                new SchedulePhasePlan(end, null, ["price_new"], lastPhaseInterval),
             ],
-            BillingInterval.Annual,
             null);
 
         phases[0].StartDate.Should().NotBeNull();
         phases[0].EndDate.Should().NotBeNull();
+        phases[0].Duration.Should().BeNull();
         phases[1].StartDate.Should().BeNull();
-        phases[1].Duration!.Interval.Should().Be("year");
+        phases[1].Duration!.Interval.Should().Be(expected);
         phases[1].Duration!.IntervalCount.Should().Be(1);
+    }
+
+    [Fact]
+    public void SchedulePhases_OpenPhaseWithoutAnInterval_IsRefused()
+    {
+        var start = new DateTimeOffset(2026, 11, 1, 0, 0, 0, TimeSpan.Zero);
+        var build = () => StripeRequestBuilder.SchedulePhases([new SchedulePhasePlan(start, null, ["price_new"])], null);
+
+        build.Should().Throw<InvalidOperationException>();
     }
 
     [Theory]

@@ -396,4 +396,78 @@ public class CreateCheckoutSessionEndpointTests(FitnessApiFactory factory) : IDi
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         fake.Checkouts.Should().ContainSingle(call => call.UserId == coach.UserId).Which.CouponId.Should().BeNull();
     }
+
+    private static object BodyFor(string planCode, BillingInterval interval) =>
+        new { PlanCode = planCode, BillingInterval = interval.ToString() };
+
+    [Fact]
+    public async Task Checkout_AnnualForATwoRoleCoach_UsesTheAnnualPriceAndTheAnnualAddOn()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
+        var coach = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Nutritionist).CreateAsync(Ct);
+        var (plan, _, annualPriceId) = await BillingTestData.StripePlanWithAnnualAsync(
+            factory, monthlyPrice: 29900, annualPrice: 299000, monthlyAddOn: 9900, annualAddOn: 99000, bothRolesIncluded: false);
+
+        var response = await coach.Http.PostAsJsonAsync(Route, BodyFor(plan, BillingInterval.Annual), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var call = fake.Checkouts.Should().ContainSingle(c => c.UserId == coach.UserId).Subject;
+        call.PlanPriceExternalId.Should().Be(annualPriceId);
+        call.AddOnAmountMinorUnits.Should().Be(99000, "the add-on is billed per year next to the annual plan");
+        call.Interval.Should().Be(BillingInterval.Annual);
+    }
+
+    [Fact]
+    public async Task Checkout_WithoutAnInterval_StaysMonthly_EvenWhenThePlanIsAlsoSoldAnnually()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
+        var coach = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Nutritionist).CreateAsync(Ct);
+        var (plan, monthlyPriceId, _) = await BillingTestData.StripePlanWithAnnualAsync(
+            factory, monthlyAddOn: 9900, annualAddOn: 99000, bothRolesIncluded: false);
+
+        var response = await coach.Http.PostAsJsonAsync(Route, Body(plan), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var call = fake.Checkouts.Should().ContainSingle(c => c.UserId == coach.UserId).Subject;
+        call.PlanPriceExternalId.Should().Be(monthlyPriceId);
+        call.AddOnAmountMinorUnits.Should().Be(9900);
+        call.Interval.Should().Be(BillingInterval.Monthly);
+    }
+
+    [Fact]
+    public async Task Checkout_AnnualForAPlanSoldOnlyMonthly_Returns400_AndStartsNoCheckout()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (plan, _) = await StripePlanAsync();
+
+        await AssertNotPurchasableAsync(await coach.Http.PostAsJsonAsync(Route, BodyFor(plan, BillingInterval.Annual), Ct));
+        fake.Checkouts.Should().NotContain(call => call.UserId == coach.UserId);
+    }
+
+    [Fact]
+    public async Task Checkout_AnnualForATwoRoleCoachWhenTheAnnualRowHasNoAddOnPrice_Returns400_AndStartsNoCheckout()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var coach = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Nutritionist).CreateAsync(Ct);
+        var (plan, _, _) = await BillingTestData.StripePlanWithAnnualAsync(
+            factory, monthlyAddOn: 9900, annualAddOn: null, bothRolesIncluded: false);
+
+        await AssertNotPurchasableAsync(await coach.Http.PostAsJsonAsync(Route, BodyFor(plan, BillingInterval.Annual), Ct));
+        fake.Checkouts.Should().NotContain(call => call.UserId == coach.UserId);
+    }
+
+    [Fact]
+    public async Task Checkout_WithAnOutOfRangeInterval_Returns400()
+    {
+        BillingTestData.ResetProvider(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (plan, _) = await StripePlanAsync();
+
+        var response = await coach.Http.PostAsJsonAsync(Route, new { PlanCode = plan, BillingInterval = 99 }, Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
 }
