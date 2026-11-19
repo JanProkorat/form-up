@@ -63,6 +63,57 @@ describe('PlanBillingCard billing interval', () => {
     expect(screen.getByText(/From .*2026: .*8,980.* \/ year\./)).toBeInTheDocument();
   });
 
+  it('an annual subscription with an N-month promotion labels it as the first year and names the renewal, not the discount end', async () => {
+    const discountEnd = '2027-02-19T00:00:00Z';
+    servePlanScreens({
+      subscription: liveSubscription('pro', BillingInterval.Annual, {
+        priceLines: [planLine(599000)],
+        promotion: {
+          name: 'Launch offer',
+          kind: PromotionKind.Percent,
+          value: 30,
+          duration: PromotionDuration.Months,
+          durationMonths: 3,
+          billingPeriod: PromotionBillingPeriod.Monthly,
+          endsAt: discountEnd,
+          discountMinorUnits: 179700,
+          discountedTotalMinorUnits: 419300,
+        },
+      }),
+    });
+
+    renderCard();
+
+    expect(await screen.findByText(/Launch offer .* · first year/)).toBeInTheDocument();
+    expect(screen.queryByText(/months? left/)).not.toBeInTheDocument();
+    const renewal = new Intl.DateTimeFormat('en', { dateStyle: 'medium' }).format(new Date(PERIOD_END));
+    const discountEndText = new Intl.DateTimeFormat('en', { dateStyle: 'medium' }).format(new Date(discountEnd));
+    expect(screen.getByText(new RegExp(`From ${renewal}: .*5,990.* / year\\.`))).toBeInTheDocument();
+    expect(screen.queryByText(new RegExp(`From ${discountEndText}`))).not.toBeInTheDocument();
+  });
+
+  it('an annual subscription with a scheduled plan change shows no next-year line', async () => {
+    servePlanScreens({
+      subscription: liveSubscription('pro', BillingInterval.Annual, {
+        priceLines: [planLine(599000)],
+        scheduledPlan: {
+          planCode: 'start',
+          nameEn: 'Start',
+          startsAt: PERIOD_END,
+          cancellable: true,
+          billingInterval: BillingInterval.Monthly,
+          priceLines: [planLine(29900)],
+        },
+      }),
+    });
+
+    renderCard();
+
+    expect(await screen.findByText(/Start begins on/)).toBeInTheDocument();
+    expect(screen.queryByText(/From .*2026: .* \/ year/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/To pay monthly/)).not.toBeInTheDocument();
+  });
+
   it('a monthly subscription keeps "Monthly · Renews", "Your monthly bill" and no annual note', async () => {
     servePlanScreens({ subscription: liveSubscription('start', BillingInterval.Monthly) });
 

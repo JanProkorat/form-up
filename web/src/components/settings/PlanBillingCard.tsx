@@ -175,17 +175,23 @@ export default function PlanBillingCard() {
   const offerActive = !setByFormUp && promotion !== undefined && discount > 0;
   const billTotal = offerActive ? (promotion.discountedTotalMinorUnits ?? total) : total;
   // The full price after a limited offer; an annual plan always names what next year costs and how to go monthly.
+  // On a yearly subscription a limited promotion only discounts the first yearly invoice. Its endsAt is Stripe's
+  // discount end (months after purchase), so it is not the price-change date: the renewal is.
+  const annualFirstYearOffer =
+    annual && (promotion?.duration === PromotionDuration.Months || promotion?.duration === PromotionDuration.FirstMonth);
   const nextBillDate =
-    offerActive && promotion?.endsAt
+    offerActive && promotion?.endsAt && !annualFirstYearOffer
       ? dateFormat.format(new Date(promotion.endsAt))
-      : annual && !setByFormUp && !data?.cancelAtPeriodEnd
+      : annual && !setByFormUp && !data?.cancelAtPeriodEnd && !scheduled
         ? periodEnd
         : null;
   const offerValue = promotion ? promotionValueText(t, promotion, language) : '';
   const offerName = promotion?.name ?? '';
   const offerLabel = !promotion
     ? ''
-    : promotion.duration === PromotionDuration.Months && promotion.endsAt
+    : annualFirstYearOffer
+      ? t('subscription.plan.bill.offer.firstYear', { name: offerName, value: offerValue })
+      : promotion.duration === PromotionDuration.Months && promotion.endsAt
       ? t('subscription.plan.bill.offer.months', {
           name: offerName,
           value: offerValue,

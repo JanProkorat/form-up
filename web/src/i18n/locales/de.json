@@ -678,6 +678,7 @@
           "months_one": "{{name}} {{value}} · noch {{left}} von {{count}} Monat",
           "months_other": "{{name}} {{value}} · noch {{left}} von {{count}} Monaten",
           "firstMonth": "{{name}} {{value}} · erster Monat",
+          "firstYear": "{{name}} {{value}} · erstes Jahr",
           "forever": "{{name}} {{value}}"
         }
       },

@@ -9,7 +9,7 @@ import { PLAN_BILLING_PATH } from '@/components/subscription/planLinks';
 import PlanCard from '@/components/subscription/PlanCard';
 import PlanConfirmBar from '@/components/subscription/PlanConfirmBar';
 import TaxNote from '@/components/subscription/TaxNote';
-import { formatMoney } from '@/components/subscription/money';
+import { formatApproxMoney, formatMoney } from '@/components/subscription/money';
 import { coachPlanName } from '@/components/subscription/planNames';
 import {
   FREE_PLAN_CODE,
@@ -296,7 +296,8 @@ export default function PlanPickerPage() {
     const currency = preview.currency ?? 'CZK';
     const nextDate = formatDate(preview.nextChargeAt);
     const annual = preview.billingInterval === BillingInterval.Annual;
-    const today = formatMoney(preview.todayAmountMinorUnits ?? 0, currency, i18n.language);
+    // Both "Today about ..." hints are approximate, so they show whole crowns.
+    const today = formatApproxMoney(preview.todayAmountMinorUnits ?? 0, currency, i18n.language);
     const extraHint = preview.cancelsScheduledSwitchToFree
       ? t('subscription.billing.select.hintCancelsFree', { free: freeName })
       : undefined;

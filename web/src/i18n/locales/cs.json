@@ -718,6 +718,7 @@
           "months_many": "{{name}} {{value}} · zbývá {{left}} z {{count}} měsíců",
           "months_other": "{{name}} {{value}} · zbývá {{left}} z {{count}} měsíců",
           "firstMonth": "{{name}} {{value}} · první měsíc",
+          "firstYear": "{{name}} {{value}} · první rok",
           "forever": "{{name}} {{value}}"
         }
       },
