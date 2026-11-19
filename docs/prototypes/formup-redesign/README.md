@@ -46,6 +46,11 @@ were re-exported, light and dark. `GlassRecipeDetail` is now 1280 px tall; the m
 and "2 End promotion") added from web portal 1794676722-091e, source files only: no static
 export, no PNGs, and the merged `canvas.json` does not list it yet.
 
+**Partial update, 2026-11-19 (#2156, code field):** `PageRegisterPlanCode` (sign-up confirm bar with a "Have a code?"
+field, wrong-period code refused) and `PagePlanPickerAnnualCode` (/plan confirm bar, code applied with a remove button)
+added (C and D) from web portal 1795097417-de32 (canvas v68). Source files only: no static export, no PNGs, merged
+`canvas.json` not updated.
+
 **Partial update, 2026-11-19 (#2156):** annual billing boards added (C and D): `PagePricingAnnual`,
 `PageRegisterPlanAnnual`, `PagePlanPickerAnnualSelected`, `PageSettingsPlanAnnual`, `PageAdminPlanEditorAnnual`,
 `PageAdminPromotionDrawerAnnual`, from web portal 1795086551-384f (canvas v66). Source files only: no static
