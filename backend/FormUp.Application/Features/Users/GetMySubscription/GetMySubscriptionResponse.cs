@@ -4,7 +4,7 @@ using FormUp.Application.Infrastructure.Services.Billing;
 namespace FormUp.Application.Features.Users.GetMySubscription;
 
 /// <summary>
-/// The caller's coach subscription: plan, standing, client usage, second-role state, monthly price and
+/// The caller's coach subscription: plan, standing, client usage, second-role state, price and
 /// the feature flags that currently apply.
 /// </summary>
 public class GetMySubscriptionResponse
@@ -106,7 +106,13 @@ public class GetMySubscriptionResponse
     /// <summary>Whether a second professional role is included, paid for as an add-on, or not available.</summary>
     public SecondRoleState SecondRole { get; set; }
 
-    /// <summary>Monthly price lines: the plan, plus the second-role add-on when it is paid.</summary>
+    /// <summary>
+    /// How often the <see cref="PriceLines"/> bill: the interval of the subscription's own price row. Monthly for the Free
+    /// plan and for a lapsed plan.
+    /// </summary>
+    public BillingInterval BillingInterval { get; set; }
+
+    /// <summary>Price lines per <see cref="BillingInterval"/>: the plan, plus the second-role add-on when it is paid.</summary>
     public List<SubscriptionPriceLineDto> PriceLines { get; set; } = [];
 
     /// <summary>The feature flags that currently apply.</summary>
@@ -154,6 +160,9 @@ public class ScheduledPlanDto
     /// coach-account disable and no renewal cancelled by Form Up.
     /// </summary>
     public bool Cancellable { get; set; }
+
+    /// <summary>How often the scheduled plan's <see cref="PriceLines"/> bill; Monthly when it is Free.</summary>
+    public BillingInterval BillingInterval { get; set; }
 
     /// <summary>Price lines of the plan that starts next: the plan, plus the second-role add-on when the coach would pay it.</summary>
     public List<SubscriptionPriceLineDto> PriceLines { get; set; } = [];

@@ -68,7 +68,7 @@ public class CoachPlanDto
     /// <summary>German plan name.</summary>
     public string NameDe { get; set; } = string.Empty;
 
-    /// <summary>Current price per billing interval, in the smallest unit of <see cref="Currency"/>.</summary>
+    /// <summary>Current monthly price, in the smallest unit of <see cref="Currency"/>.</summary>
     public long PriceMinorUnits { get; set; }
 
     /// <summary>Current price of the second-role add-on in the same unit; null when both roles are included.</summary>
@@ -89,7 +89,22 @@ public class CoachPlanDto
     /// </summary>
     public long? DiscountedSecondRoleAddOnPriceMinorUnits { get; set; }
 
-    /// <summary>How often the plan is billed.</summary>
+    /// <summary>Annual plan price per year; null when the plan is not sold annually.</summary>
+    public long? AnnualPriceMinorUnits { get; set; }
+
+    /// <summary>Annual second-role add-on price per year; null when not sold annually or the plan has no annual add-on.</summary>
+    public long? AnnualSecondRoleAddOnPriceMinorUnits { get; set; }
+
+    /// <summary>Display-only annual plan price after the promotion; null when not sold annually or no promotion covers this plan.</summary>
+    public long? AnnualDiscountedPriceMinorUnits { get; set; }
+
+    /// <summary>Display-only annual add-on price after the promotion; null when not covered or there is no annual add-on.</summary>
+    public long? AnnualDiscountedSecondRoleAddOnPriceMinorUnits { get; set; }
+
+    /// <summary>Whole percent the annual plan line saves against twelve monthly ones; null when there is no saving.</summary>
+    public int? AnnualSavingPercent { get; set; }
+
+    /// <summary>Billing cadence of the monthly price fields; always Monthly, the annual price has its own fields.</summary>
     public BillingInterval BillingInterval { get; set; }
 
     /// <summary>Active-client cap; null means unlimited.</summary>

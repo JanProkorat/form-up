@@ -51,6 +51,8 @@ public class PreviewPlanChangeEndpointTests(FitnessApiFactory factory) : IDispos
         body.PlanCode.Should().Be(target);
         body.Timing.Should().Be(PlanChangeTiming.Now);
         body.Currency.Should().Be("CZK");
+        body.BillingInterval.Should().Be(BillingInterval.Monthly);
+        body.CurrentBillingInterval.Should().Be(BillingInterval.Monthly);
         body.TodayAmountMinorUnits.Should().Be(4840);
         body.TodayTaxMinorUnits.Should().Be(840);
         body.NextAmountMinorUnits.Should().Be(59900);
@@ -63,6 +65,30 @@ public class PreviewPlanChangeEndpointTests(FitnessApiFactory factory) : IDispos
         call.AddOnAmountMinorUnits.Should().BeNull();
         fake.PlanChanges.Should().BeEmpty("a preview changes nothing");
         (await BillingTestData.ReadRowAsync(factory, coach.ProfileId)).SubscriptionPlan.Code.Should().Be(current);
+    }
+
+    [Fact]
+    public async Task Preview_FromAnAnnualSubscription_ReportsTheCurrentIntervalAndKeepsTheTargetMonthly()
+    {
+        BillingTestData.ResetProvider(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (current, _) = await BillingTestData.StripePlanAsync(factory, price: 29900);
+        await SubscriptionPlanPriceBuilder.AddOpenAnnualPriceAsync(factory, current, 299000);
+        var (target, _) = await BillingTestData.StripePlanAsync(factory, price: 59900);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(
+            factory, coach, current, currentPeriodEndsAt: DateTimeOffset.UtcNow.AddDays(20), interval: BillingInterval.Annual);
+        await BillingTestData.UpdateRowAsync(factory, coach.ProfileId, row =>
+        {
+            row.ExternalSubscriptionId = $"sub_{Guid.NewGuid():N}";
+            row.ExternalCustomerId = $"cus_{Guid.NewGuid():N}";
+        });
+
+        var response = await coach.Http.PostAsJsonAsync(Route, Body(target), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK, await response.Content.ReadAsStringAsync(Ct));
+        var body = (await response.Content.ReadFromJsonAsync<PreviewPlanChangeResponse>(BillingTestData.Json, Ct))!;
+        body.CurrentBillingInterval.Should().Be(BillingInterval.Annual);
+        body.BillingInterval.Should().Be(BillingInterval.Monthly);
     }
 
     [Fact]

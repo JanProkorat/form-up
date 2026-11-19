@@ -74,6 +74,34 @@ public class GetCoachPlansPromotionTests(FitnessApiFactory factory) : IDisposabl
     }
 
     [Fact]
+    public async Task Get_APromotionCoveringAnAnnualPlan_DiscountsBothAnnualLines_AndOnlyOnCoveredPlans()
+    {
+        await PromotionBuilder.ClearAsync(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var covered = await PlanWithAddOnAsync();
+        await SubscriptionPlanPriceBuilder.AddOpenAnnualPriceAsync(factory, covered, 299000, 99000);
+        var uncovered = await PlanWithAddOnAsync();
+        await SubscriptionPlanPriceBuilder.AddOpenAnnualPriceAsync(factory, uncovered, 299000, 99000);
+        var monthlyOnly = await PlanWithAddOnAsync();
+        await PromotionBuilder.CreateAsync(factory, [covered, monthlyOnly], PromotionMode.Automatic, p => p.Value = 30);
+
+        var plans = (await GetAsync(coach)).Plans;
+
+        var coveredPlan = plans.Single(plan => plan.Code == covered);
+        coveredPlan.AnnualDiscountedPriceMinorUnits.Should().Be(209300);
+        coveredPlan.AnnualDiscountedSecondRoleAddOnPriceMinorUnits.Should().Be(69300);
+        coveredPlan.DiscountedPriceMinorUnits.Should().Be(20930, "the monthly discounted line is unchanged");
+
+        var uncoveredPlan = plans.Single(plan => plan.Code == uncovered);
+        uncoveredPlan.AnnualDiscountedPriceMinorUnits.Should().BeNull();
+        uncoveredPlan.AnnualDiscountedSecondRoleAddOnPriceMinorUnits.Should().BeNull();
+
+        var monthlyOnlyPlan = plans.Single(plan => plan.Code == monthlyOnly);
+        monthlyOnlyPlan.DiscountedPriceMinorUnits.Should().Be(20930);
+        monthlyOnlyPlan.AnnualDiscountedPriceMinorUnits.Should().BeNull("a plan not sold annually has no annual lines");
+    }
+
+    [Fact]
     public async Task Get_APromotionLimitedToSomePlans_DiscountsTheAddOnOfEachCoveredPlan_AndOnlyThose()
     {
         await PromotionBuilder.ClearAsync(factory);
