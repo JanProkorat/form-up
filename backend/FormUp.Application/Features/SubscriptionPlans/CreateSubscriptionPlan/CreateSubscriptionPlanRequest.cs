@@ -1,5 +1,3 @@
-using FormUp.Application.Domain.Enums;
-
 namespace FormUp.Application.Features.SubscriptionPlans.CreateSubscriptionPlan;
 
 /// <summary>
@@ -72,14 +70,20 @@ public class CreateSubscriptionPlanRequest
     /// <summary>Maximum number of active clients allowed under this plan. Null means unlimited.</summary>
     public int? MaxActiveClients { get; set; }
 
-    /// <summary>Plan price, expressed in the smallest unit of <see cref="Currency"/>.</summary>
+    /// <summary>Monthly plan price, expressed in the smallest unit of <see cref="Currency"/>.</summary>
     public long PriceMinorUnits { get; set; }
 
     /// <summary>ISO 4217 currency code for <see cref="PriceMinorUnits"/>.</summary>
     public string Currency { get; set; } = string.Empty;
 
-    /// <summary>Billing cadence for this plan.</summary>
-    public BillingInterval BillingInterval { get; set; }
+    /// <summary>Annual plan price per year. Omit when the plan is not sold annually; never set on the Free plan.</summary>
+    public long? AnnualPriceMinorUnits { get; set; }
+
+    /// <summary>
+    /// Annual price of the second-role add-on per year. Required with an annual price when the plan has a paid add-on;
+    /// not allowed when both roles are included or there is no annual price.
+    /// </summary>
+    public long? AnnualSecondRoleAddOnPriceMinorUnits { get; set; }
 
     /// <summary>
     /// Ignored. The backend creates the Stripe price itself when a price row opens; the field stays only so existing

@@ -83,7 +83,8 @@ internal sealed class ChooseFreePlanEndpoint(IApplicationDbContext db, TimeProvi
 
         var freePrice = await db.SubscriptionPlanPrices
             .AsNoTracking()
-            .Where(p => p.SubscriptionPlan.Code == SubscriptionPlanCodes.Free && p.ValidTo == null)
+            .Where(p => p.SubscriptionPlan.Code == SubscriptionPlanCodes.Free && p.ValidTo == null
+                        && p.BillingInterval == BillingInterval.Monthly)
             .Select(p => new { PriceId = p.Id, p.SubscriptionPlanId, p.SubscriptionPlan.MaxActiveClients })
             .FirstOrDefaultAsync(ct);
 

@@ -173,7 +173,8 @@ public class CreatePromotionEndpointTests(FitnessApiFactory factory) : IDisposab
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             everyPurchasablePlan = await db.SubscriptionPlanPrices
                 .AsNoTracking()
-                .Where(price => price.ValidTo == null && price.SubscriptionPlan.IsActive
+                .Where(price => price.ValidTo == null && price.BillingInterval == BillingInterval.Monthly
+                                && price.SubscriptionPlan.IsActive
                                 && price.SubscriptionPlan.Code != "free" && price.PriceMinorUnits > 0
                                 && price.ExternalPriceId != null && price.ExternalPriceId != "")
                 .Select(price => price.SubscriptionPlan.Code)

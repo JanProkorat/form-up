@@ -1114,12 +1114,14 @@ public static class SubscriptionPlanPriceBuilder
     /// is saved together with the plan.
     /// </summary>
     /// <param name="plan">The plan to give a price row.</param>
-    public static SubscriptionPlanPrice OpenPriceFor(SubscriptionPlan plan)
+    /// <param name="interval">Billing cadence of the row.</param>
+    public static SubscriptionPlanPrice OpenPriceFor(SubscriptionPlan plan, BillingInterval interval = BillingInterval.Monthly)
     {
         var price = new SubscriptionPlanPrice
         {
             SubscriptionPlanId = 0,
             SubscriptionPlan = plan,
+            BillingInterval = interval,
             PriceMinorUnits = plan.PriceMinorUnits,
             SecondRoleAddOnPriceMinorUnits = plan.SecondRoleAddOnPriceMinorUnits,
             Currency = plan.Currency,
@@ -1161,7 +1163,6 @@ public static class SubscriptionPlanPriceBuilder
             MaxActiveClients = 2,
             PriceMinorUnits = 0,
             Currency = "CZK",
-            BillingInterval = BillingInterval.Monthly,
             IsActive = true,
         };
         OpenPriceFor(plan);
@@ -1215,10 +1216,9 @@ public static class PaidPlanBuilder
             PriceMinorUnits = priceMinorUnits,
             SecondRoleAddOnPriceMinorUnits = addOnMinorUnits,
             Currency = currency,
-            BillingInterval = interval,
             IsActive = true,
         };
-        SubscriptionPlanPriceBuilder.OpenPriceFor(plan);
+        SubscriptionPlanPriceBuilder.OpenPriceFor(plan, interval);
         db.SubscriptionPlans.Add(plan);
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -1243,6 +1243,7 @@ public static class CoachSubscriptionBuilder
     /// <param name="givenFreeAt">When an admin gave the plan for free, or null when it is not a gift.</param>
     /// <param name="cancelAtPeriodEnd">True when the renewal is cancelled.</param>
     /// <param name="currentPeriodEndsAt">When the current paid period ends.</param>
+    /// <param name="interval">Which of the plan's open price rows the coach is on.</param>
     public static async Task SubscribeToPlanAsync(
         FitnessApiFactory factory,
         Actor coach,
@@ -1252,14 +1253,18 @@ public static class CoachSubscriptionBuilder
         bool paysSecondRoleAddOn = false,
         DateTimeOffset? givenFreeAt = null,
         bool cancelAtPeriodEnd = false,
-        DateTimeOffset? currentPeriodEndsAt = null)
+        DateTimeOffset? currentPeriodEndsAt = null,
+        BillingInterval? interval = null)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
+        // Without an interval the Monthly row wins, so a plan sold only annually (PaidPlanBuilder) still resolves.
         var price = await db.SubscriptionPlanPrices
-            .Where(p => p.SubscriptionPlan.Code == planCode && p.ValidTo == null)
-            .SingleAsync(TestContext.Current.CancellationToken);
+            .Where(p => p.SubscriptionPlan.Code == planCode && p.ValidTo == null
+                        && (interval == null || p.BillingInterval == interval))
+            .OrderBy(p => p.BillingInterval)
+            .FirstAsync(TestContext.Current.CancellationToken);
 
         await ReplaceSubscriptionAsync(db, coach);
         db.CoachSubscriptions.Add(new CoachSubscription
@@ -1334,7 +1339,6 @@ public static class CoachSubscriptionBuilder
             MaxActiveClients = maxActiveClients,
             PriceMinorUnits = 99900,
             Currency = "CZK",
-            BillingInterval = BillingInterval.Monthly,
             IsActive = true,
         };
         var price = SubscriptionPlanPriceBuilder.OpenPriceFor(plan);
@@ -1386,7 +1390,6 @@ public static class CoachSubscriptionBuilder
             CanUsePackages = true,
             PriceMinorUnits = 99900,
             Currency = "CZK",
-            BillingInterval = BillingInterval.Monthly,
             IsActive = true,
         };
         configure(plan);
@@ -1432,7 +1435,6 @@ public static class CoachSubscriptionBuilder
             CanUseAutomations = true,
             PriceMinorUnits = 99900,
             Currency = "CZK",
-            BillingInterval = BillingInterval.Monthly,
             IsActive = true,
         };
         var price = SubscriptionPlanPriceBuilder.OpenPriceFor(plan);

@@ -37,7 +37,6 @@ public class DeactivateSubscriptionPlanEndpointTests(FitnessApiFactory factory)
             BothRolesIncluded = true,
             Currency = "CZK",
             PriceMinorUnits = 0,
-            BillingInterval = BillingInterval.Monthly,
             IsActive = isActive,
         };
         SubscriptionPlanPriceBuilder.OpenPriceFor(plan);

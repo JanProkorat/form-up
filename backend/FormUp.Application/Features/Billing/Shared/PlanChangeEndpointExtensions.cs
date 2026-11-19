@@ -28,14 +28,15 @@ internal static class PlanChangeEndpointExtensions
     {
         var target = await db.SubscriptionPlanPrices
             .AsNoTracking()
-            .Where(p => p.SubscriptionPlan.Code == planCode && p.ValidTo == null)
+            .Where(p => p.SubscriptionPlan.Code == planCode && p.ValidTo == null
+                        && p.BillingInterval == BillingInterval.Monthly)
             .Select(p => new PlanChangeTarget(
                 p.Id,
                 p.SubscriptionPlanId,
                 p.SubscriptionPlan.Code,
                 p.SubscriptionPlan.IsActive,
                 p.SubscriptionPlan.BothRolesIncluded,
-                p.SubscriptionPlan.BillingInterval,
+                p.BillingInterval,
                 p.PriceMinorUnits,
                 p.SecondRoleAddOnPriceMinorUnits,
                 p.Currency,
@@ -94,7 +95,7 @@ internal static class PlanChangeEndpointExtensions
         }
 
         var currentPerYear = subscription.SubscriptionPlanPrice.PriceMinorUnits
-                             * (subscription.SubscriptionPlan.BillingInterval == BillingInterval.Annual ? 1 : 12);
+                             * (subscription.SubscriptionPlanPrice.BillingInterval == BillingInterval.Annual ? 1 : 12);
         var targetPerYear = target.PriceMinorUnits * (target.BillingInterval == BillingInterval.Annual ? 1 : 12);
 
         return new PlanChangeDecision(targetPerYear > currentPerYear, carryAddOn);

@@ -160,6 +160,7 @@ internal sealed class CreatePromotionEndpoint(
         var paid = await db.SubscriptionPlanPrices
             .AsNoTracking()
             .Where(price => price.ValidTo == null
+                            && price.BillingInterval == BillingInterval.Monthly
                             && price.SubscriptionPlan.IsActive
                             && price.SubscriptionPlan.Code != SubscriptionPlanCodes.Free
                             && price.PriceMinorUnits > 0)

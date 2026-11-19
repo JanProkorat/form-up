@@ -1,12 +1,13 @@
 using FormUp.Application.Domain.Common;
+using FormUp.Application.Domain.Enums;
 
 namespace FormUp.Application.Domain.Entities;
 
 /// <summary>
-/// One price a <see cref="SubscriptionPlan"/> has been sold at. A plan has exactly one open row
-/// (<see cref="ValidTo"/> is null); a new row is written only when the price, the second-role
-/// add-on price or the currency changes, so coaches already on the plan can stay on the row
-/// they pay.
+/// One price a <see cref="SubscriptionPlan"/> has been sold at for one <see cref="BillingInterval"/>.
+/// A plan has at most one open row (<see cref="ValidTo"/> is null) per interval; a new row is written
+/// only when the price, the second-role add-on price or the currency changes, so coaches already on
+/// the plan can stay on the row they pay.
 /// </summary>
 public class SubscriptionPlanPrice : TimestampableEntity
 {
@@ -21,7 +22,12 @@ public class SubscriptionPlanPrice : TimestampableEntity
     public SubscriptionPlan SubscriptionPlan { get; set; } = null!;
 
     /// <summary>
-    /// Plan price, expressed in the smallest unit of <see cref="Currency"/>.
+    /// Billing cadence this row is priced for.
+    /// </summary>
+    public BillingInterval BillingInterval { get; set; }
+
+    /// <summary>
+    /// Price per billing period, expressed in the smallest unit of <see cref="Currency"/>.
     /// </summary>
     public long PriceMinorUnits { get; set; }
 

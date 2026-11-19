@@ -108,14 +108,14 @@ public class SubscriptionPlan : TimestampableEntity
     public int? MaxActiveClients { get; set; }
 
     /// <summary>
-    /// Current plan price, expressed in the smallest unit of <see cref="Currency"/> (e.g. cents).
-    /// Mirrors the open <see cref="Prices"/> row.
+    /// Current monthly plan price, expressed in the smallest unit of <see cref="Currency"/> (e.g. cents).
+    /// Mirrors the open Monthly <see cref="Prices"/> row.
     /// </summary>
     public long PriceMinorUnits { get; set; }
 
     /// <summary>
-    /// Current price of the second-role add-on in the same unit. Null when
-    /// <see cref="BothRolesIncluded"/>. Mirrors the open <see cref="Prices"/> row.
+    /// Current monthly price of the second-role add-on in the same unit. Null when
+    /// <see cref="BothRolesIncluded"/>. Mirrors the open Monthly <see cref="Prices"/> row.
     /// </summary>
     public long? SecondRoleAddOnPriceMinorUnits { get; set; }
 
@@ -125,17 +125,12 @@ public class SubscriptionPlan : TimestampableEntity
     public required string Currency { get; set; }
 
     /// <summary>
-    /// Billing cadence for this plan.
-    /// </summary>
-    public BillingInterval BillingInterval { get; set; }
-
-    /// <summary>
     /// Whether the plan is currently offered/selectable.
     /// </summary>
     public bool IsActive { get; set; }
 
     /// <summary>
-    /// Price history, one row per price the plan has been sold at. Exactly one row is open.
+    /// Price history, one row per price the plan has been sold at. At most one row per billing interval is open.
     /// </summary>
     public ICollection<SubscriptionPlanPrice> Prices { get; set; } = [];
 }

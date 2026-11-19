@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FormUp.Application.Domain.Constants;
+using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Services;
 using FormUp.Application.Infrastructure.Data;
@@ -61,7 +62,7 @@ internal sealed class GetCoachPlansEndpoint(IApplicationDbContext db, IOptions<B
                 PriceMinorUnits = p.PriceMinorUnits,
                 SecondRoleAddOnPriceMinorUnits = p.SecondRoleAddOnPriceMinorUnits,
                 Currency = p.Currency,
-                BillingInterval = p.BillingInterval,
+                BillingInterval = BillingInterval.Monthly,
                 MaxActiveClients = p.MaxActiveClients,
                 BothRolesIncluded = p.BothRolesIncluded,
                 CanCreatePlans = p.CanCreatePlans,

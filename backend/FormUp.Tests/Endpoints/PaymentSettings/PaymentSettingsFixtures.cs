@@ -58,7 +58,6 @@ internal static class PaymentSettingsFixtures
             CanUseAutomations = true,
             PriceMinorUnits = 99900,
             Currency = "CZK",
-            BillingInterval = BillingInterval.Monthly,
             IsActive = true
         };
         var price = SubscriptionPlanPriceBuilder.OpenPriceFor(plan);

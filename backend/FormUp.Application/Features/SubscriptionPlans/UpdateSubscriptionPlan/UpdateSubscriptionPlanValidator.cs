@@ -97,8 +97,26 @@ internal sealed class UpdateSubscriptionPlanValidator : Validator<UpdateSubscrip
         RuleFor(x => x.IsActive)
             .NotNull().WithErrorCode(ErrorCodes.Required);
 
-        RuleFor(x => x.BillingInterval)
-            .IsInEnum().WithErrorCode(ErrorCodes.OutOfRange);
+        RuleFor(x => x.AnnualPriceMinorUnits)
+            .GreaterThan(0).WithErrorCode(ErrorCodes.OutOfRange)
+            .When(x => x.AnnualPriceMinorUnits.HasValue);
+
+        RuleFor(x => x)
+            .Must(x => x.Code != SubscriptionPlanCodes.Free)
+            .WithErrorCode(ErrorCodes.AnnualPriceInvalid)
+            .WithMessage("The Free plan is not sold annually.")
+            .When(x => x.AnnualPriceMinorUnits.HasValue);
+
+        RuleFor(x => x.AnnualSecondRoleAddOnPriceMinorUnits)
+            .GreaterThan(0).WithErrorCode(ErrorCodes.OutOfRange)
+            .When(x => x.AnnualSecondRoleAddOnPriceMinorUnits.HasValue);
+
+        RuleFor(x => x)
+            .Must(x => x.AnnualSecondRoleAddOnPriceMinorUnits.HasValue
+                       == (x.AnnualPriceMinorUnits.HasValue && x.BothRolesIncluded == false))
+            .WithErrorCode(ErrorCodes.AnnualAddOnPriceInvalid)
+            .WithMessage("The annual add-on price is required with an annual price on a plan with a paid add-on, and not allowed otherwise.")
+            .When(x => x.BothRolesIncluded.HasValue);
 
         RuleFor(x => x.Currency)
             .Matches("^[A-Z]{3}$").WithErrorCode(ErrorCodes.OutOfRange)

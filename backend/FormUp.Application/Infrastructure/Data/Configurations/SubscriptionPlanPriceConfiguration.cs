@@ -22,8 +22,8 @@ public class SubscriptionPlanPriceConfiguration : IEntityTypeConfiguration<Subsc
             .WithMany(sp => sp.Prices)
             .HasForeignKey(spp => spp.SubscriptionPlanId);
 
-        // A plan has at most one open price row.
-        builder.HasIndex(spp => spp.SubscriptionPlanId)
+        // A plan has at most one open price row per billing interval.
+        builder.HasIndex(spp => new { spp.SubscriptionPlanId, spp.BillingInterval })
             .IsUnique()
             .HasFilter("valid_to IS NULL");
     }

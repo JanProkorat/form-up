@@ -69,12 +69,13 @@ internal sealed class CreateCheckoutSessionEndpoint(
 
         var price = await db.SubscriptionPlanPrices
             .AsNoTracking()
-            .Where(p => p.SubscriptionPlan.Code == req.PlanCode && p.ValidTo == null)
+            .Where(p => p.SubscriptionPlan.Code == req.PlanCode && p.ValidTo == null
+                        && p.BillingInterval == BillingInterval.Monthly)
             .Select(p => new PlanOffer(
                 p.SubscriptionPlan.Code,
                 p.SubscriptionPlan.IsActive,
                 p.SubscriptionPlan.BothRolesIncluded,
-                p.SubscriptionPlan.BillingInterval,
+                p.BillingInterval,
                 p.PriceMinorUnits,
                 p.SecondRoleAddOnPriceMinorUnits,
                 p.Currency,
@@ -176,7 +177,8 @@ internal sealed class CreateCheckoutSessionEndpoint(
         {
             var free = await db.SubscriptionPlanPrices
                 .AsNoTracking()
-                .Where(p => p.SubscriptionPlan.Code == SubscriptionPlanCodes.Free && p.ValidTo == null)
+                .Where(p => p.SubscriptionPlan.Code == SubscriptionPlanCodes.Free && p.ValidTo == null
+                        && p.BillingInterval == BillingInterval.Monthly)
                 .Select(p => new { PriceId = p.Id, p.SubscriptionPlanId })
                 .FirstOrDefaultAsync(ct);
 

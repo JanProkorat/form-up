@@ -53,7 +53,6 @@ public class CreateSubscriptionPlanEndpointTests(FitnessApiFactory factory) : ID
         MaxActiveClients: 10,
         PriceMinorUnits: 29900,
         Currency: "CZK",
-        BillingInterval: "Monthly",
         ExternalPriceId: null,
         IsActive: true);
 
@@ -164,6 +163,38 @@ public class CreateSubscriptionPlanEndpointTests(FitnessApiFactory factory) : ID
     }
 
     [Fact]
+    public async Task Create_WithAnAnnualPrice_WritesAMonthlyAndAnAnnualRowAndCreatesBothStripePrices()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var client = await TestHelpers.RegisterAdminAsync(factory, TestContext.Current.CancellationToken);
+        var code = UniqueCode();
+
+        var response = await client.PostAsJsonAsync(
+            "/admin/subscription-plans",
+            ValidPayload(code) with { AnnualPriceMinorUnits = 299000 },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        fake.Prices.Where(call => call.PlanCode == code).Select(call => (call.AmountMinorUnits, call.Interval))
+            .Should().BeEquivalentTo([(29900L, BillingInterval.Monthly), (299000L, BillingInterval.Annual)]);
+
+        var body = await response.Content.ReadFromJsonAsync<SubscriptionPlanDto>(
+            JsonOptions, TestContext.Current.CancellationToken);
+        body!.PriceMinorUnits.Should().Be(29900);
+        body.AnnualPriceMinorUnits.Should().Be(299000);
+        body.AnnualExternalPriceId.Should().StartWith("price_fake_");
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var prices = await db.SubscriptionPlanPrices.AsNoTracking()
+            .Where(p => p.SubscriptionPlan.Code == code).ToListAsync(TestContext.Current.CancellationToken);
+
+        prices.Should().HaveCount(2);
+        prices.Should().OnlyContain(p => p.ValidTo == null);
+        prices.Select(p => p.BillingInterval).Should().BeEquivalentTo([BillingInterval.Monthly, BillingInterval.Annual]);
+    }
+
+    [Fact]
     public async Task Create_ZeroPrice_NeverCreatesAStripePrice()
     {
         var fake = BillingTestData.ResetProvider(factory);
@@ -244,7 +275,6 @@ public class CreateSubscriptionPlanEndpointTests(FitnessApiFactory factory) : ID
                 NameDe = "Klein",
                 BothRolesIncluded = true,
                 Currency = "CZK",
-                BillingInterval = "Monthly",
             },
             TestContext.Current.CancellationToken);
 
@@ -319,7 +349,8 @@ public class CreateSubscriptionPlanEndpointTests(FitnessApiFactory factory) : ID
         int? MaxActiveClients,
         long PriceMinorUnits,
         string Currency,
-        string BillingInterval,
         string? ExternalPriceId,
-        bool IsActive);
+        bool IsActive,
+        long? AnnualPriceMinorUnits = null,
+        long? AnnualSecondRoleAddOnPriceMinorUnits = null);
 }
