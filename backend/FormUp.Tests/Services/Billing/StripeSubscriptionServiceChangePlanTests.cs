@@ -679,6 +679,40 @@ public class StripeSubscriptionServiceChangePlanTests
     }
 
     [Fact]
+    public async Task ChangePlan_ScheduledWhileAnotherSwitchIsScheduled_RebuildsTheSameScheduleWithTheNewTarget()
+    {
+        var handler = new ScriptedStripeHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
+            .Respond(HttpMethod.Get, "/v1/subscriptions/sub_1", SubscriptionWithScheduleJson)
+            .Respond(HttpMethod.Get, "/v1/subscription_schedules/sub_sched_1", ScheduleJson);
+
+        await NewService(handler).ChangePlanAsync(
+            SubscriptionId, "pro", "price_other", null, "CZK", BillingInterval.Monthly, atNextRenewal: true, TestContext.Current.CancellationToken);
+
+        var update = handler.Requests.Single(r => r.Method == HttpMethod.Post);
+        update.Path.Should().Be("/v1/subscription_schedules/sub_sched_1", "the existing schedule is updated, not a second one created");
+        update.Form.Should().Contain(new KeyValuePair<string, string>("phases[0][items][0][price]", "price_old"));
+        update.Form.Should().Contain(new KeyValuePair<string, string>("phases[1][items][0][price]", "price_other"));
+        update.Form.Should().NotContain(pair => pair.Value == "price_cheaper", "the latest choice replaces the earlier scheduled switch");
+        update.Form.Should().Contain(new KeyValuePair<string, string>("end_behavior", "release"));
+    }
+
+    [Fact]
+    public async Task ChangePlan_ScheduledWhileTheRenewalIsCancelled_KeepsTheCancellation()
+    {
+        var cancellingScheduleJson = ScheduleJson.Replace("\"object\":\"subscription_schedule\",", "\"object\":\"subscription_schedule\",\"end_behavior\":\"cancel\",", StringComparison.Ordinal);
+        var handler = new ScriptedStripeHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")
+            .Respond(HttpMethod.Get, "/v1/subscriptions/sub_1", SubscriptionWithScheduleJson)
+            .Respond(HttpMethod.Get, "/v1/subscription_schedules/sub_sched_1", cancellingScheduleJson);
+
+        await NewService(handler).ChangePlanAsync(
+            SubscriptionId, "pro", "price_other", null, "CZK", BillingInterval.Annual, atNextRenewal: true, TestContext.Current.CancellationToken);
+
+        var update = handler.Requests.Single(r => r.Method == HttpMethod.Post);
+        update.Form.Should().Contain(new KeyValuePair<string, string>("end_behavior", "cancel"));
+        update.Form.Should().NotContain(pair => pair.Key.StartsWith("phases[1]", StringComparison.Ordinal), "a coach who is leaving never reaches the new price");
+    }
+
+    [Fact]
     public async Task ChangePlan_UpgradeWithADeclinedCard_RestoresAScheduledAnnualPhaseForAYear_ReadingTheIntervalFromItsPrice()
     {
         var handler = new ScriptedStripeHandler(HttpStatusCode.OK, "{\"id\":\"obj_1\"}")

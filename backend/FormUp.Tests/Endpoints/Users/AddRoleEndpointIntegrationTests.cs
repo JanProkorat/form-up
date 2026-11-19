@@ -401,6 +401,27 @@ public class AddRoleEndpointIntegrationTests(FitnessApiFactory factory) : IDispo
         row.PendingSubscriptionPlanPriceId.Should().NotBeNull();
     }
 
+    [Fact]
+    public async Task Post_RolesMe_RestoringWithAScheduledAnnualPlan_SchedulesItWithTheAnnualAddOn()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var coach = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Nutritionist).CreateAsync(Ct);
+        var (plan, _) = await BillingTestData.StripePlanAsync(factory, price: 29900, addOn: 9900, bothRolesIncluded: false);
+        var (scheduled, _, scheduledAnnualPriceId) = await BillingTestData.StripePlanWithAnnualAsync(
+            factory, monthlyPrice: 19900, annualPrice: 199000, monthlyAddOn: 4900, annualAddOn: 49000, bothRolesIncluded: false);
+        var subscriptionId = await BillingTestData.SubscribeLiveAsync(
+            factory, coach, plan, paysSecondRoleAddOn: true, currentPeriodEndsAt: DateTimeOffset.UtcNow.AddDays(12));
+        await BillingTestData.SetPendingPlanAsync(factory, coach.ProfileId, scheduled, BillingInterval.Annual);
+        (await coach.Http.DeleteAsync("/users/me/roles/Trainer", Ct)).StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var resp = await coach.Http.PostAsJsonAsync("/users/me/roles", new { Role = "Trainer" }, Ct);
+
+        resp.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.PlanChanges.Should().HaveCount(2);
+        fake.PlanChanges[1].Should().BeEquivalentTo(new FakeSubscriptionService.ChangePlanCall(
+            subscriptionId, scheduled, scheduledAnnualPriceId, AtNextRenewal: true, AddOnAmountMinorUnits: 49000, Interval: BillingInterval.Annual));
+    }
+
     /// <summary>Removes the Trainer role of a coach paying the add-on, with a downgrade to the given plan scheduled.</summary>
     private async Task<(Actor Coach, string DowngradeCode)> ArrangeRemovalThenDowngradeAsync(long? downgradeAddOn, bool downgradeBothRoles)
     {
