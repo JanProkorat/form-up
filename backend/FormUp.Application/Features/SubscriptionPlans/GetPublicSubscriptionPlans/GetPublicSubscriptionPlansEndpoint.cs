@@ -27,8 +27,9 @@ internal sealed class GetPublicSubscriptionPlansEndpoint(IApplicationDbContext d
         {
             s.Summary = "List the offered plans for the public pricing page";
             s.Description = "Anonymous on purpose: prices are public marketing content for the web pricing page, and the " +
-                            "mobile app never calls this route. Only offered plans are returned, cheapest first, with no " +
-                            "ids or coach counts. Also carries the active automatic promotion as a new coach would get it, " +
+                            "mobile app never calls this route. Only offered plans are returned, cheapest monthly price first, with no " +
+                            "ids or coach counts. Each plan also carries its annual price lines, discounted values and saving percent, " +
+                            "all null when the plan is not sold annually. Also carries the active automatic promotion as a new coach would get it, " +
                             "with display-only discounted prices on the plans it covers; it never depends on the caller, so " +
                             "the shared cache stays valid. The response is cacheable for five minutes.";
             s.Response<GetPublicSubscriptionPlansResponse>(StatusCodes.Status200OK, "The offered plans, cheapest first");
@@ -57,6 +58,18 @@ internal sealed class GetPublicSubscriptionPlansEndpoint(IApplicationDbContext d
             .Select(group => new { PlanId = group.Key, Count = group.Count() })
             .ToDictionaryAsync(row => row.PlanId, row => row.Count, ct);
 
+        var annualPrices = await db.SubscriptionPlanPrices
+            .AsNoTracking()
+            .Where(price => activePlanIds.Contains(price.SubscriptionPlanId)
+                            && price.ValidTo == null
+                            && price.BillingInterval == BillingInterval.Annual)
+            .Select(price => new
+            {
+                price.SubscriptionPlanId,
+                Price = new AnnualPriceSnapshot(price.PriceMinorUnits, price.SecondRoleAddOnPriceMinorUnits, price.ExternalPriceId),
+            })
+            .ToDictionaryAsync(row => row.SubscriptionPlanId, row => row.Price, ct);
+
         var mostPopularCode = MostPopularPlanPicker.Pick(plans.Select(plan =>
             (plan.Code, plan.PriceMinorUnits, coachCounts.GetValueOrDefault(plan.Id))));
 
@@ -68,15 +81,19 @@ internal sealed class GetPublicSubscriptionPlansEndpoint(IApplicationDbContext d
         await Send.OkAsync(new GetPublicSubscriptionPlansResponse
         {
             Promotion = promotion is null ? null : ToDto(promotion),
-            Plans = plans.Select(plan => ToDto(plan, promotion, mostPopularCode)).ToList(),
+            Plans = plans.Select(plan => ToDto(plan, annualPrices.GetValueOrDefault(plan.Id), promotion, mostPopularCode)).ToList(),
         }, ct);
     }
 
-    private static PublicSubscriptionPlanDto ToDto(SubscriptionPlan plan, Promotion? promotion, string? mostPopularCode)
+    private static PublicSubscriptionPlanDto ToDto(
+        SubscriptionPlan plan, AnnualPriceSnapshot? annualPrice, Promotion? promotion, string? mostPopularCode)
     {
         var addOnPrice = plan.BothRolesIncluded ? null : plan.SecondRoleAddOnPriceMinorUnits;
+        var annualAddOnPrice = plan.BothRolesIncluded ? null : annualPrice?.SecondRoleAddOnPriceMinorUnits;
         long? discountedPrice = null;
         long? discountedAddOn = null;
+        long? annualDiscountedPrice = null;
+        long? annualDiscountedAddOn = null;
 
         if (promotion is not null && PromotionRules.CoversPlan(promotion, plan.Code))
         {
@@ -84,6 +101,15 @@ internal sealed class GetPublicSubscriptionPlansEndpoint(IApplicationDbContext d
 
             discountedPrice = planPrice;
             discountedAddOn = addOnDiscounted;
+
+            if (annualPrice is not null)
+            {
+                var (annualPlanPrice, annualAddOnDiscounted) =
+                    PromotionPricing.Apply(promotion, annualPrice.PriceMinorUnits, annualAddOnPrice);
+
+                annualDiscountedPrice = annualPlanPrice;
+                annualDiscountedAddOn = annualAddOnDiscounted;
+            }
         }
 
         return new PublicSubscriptionPlanDto
@@ -96,6 +122,11 @@ internal sealed class GetPublicSubscriptionPlansEndpoint(IApplicationDbContext d
             SecondRoleAddOnPriceMinorUnits = addOnPrice,
             DiscountedPriceMinorUnits = discountedPrice,
             DiscountedSecondRoleAddOnPriceMinorUnits = discountedAddOn,
+            AnnualPriceMinorUnits = annualPrice?.PriceMinorUnits,
+            AnnualSecondRoleAddOnPriceMinorUnits = annualAddOnPrice,
+            AnnualDiscountedPriceMinorUnits = annualDiscountedPrice,
+            AnnualDiscountedSecondRoleAddOnPriceMinorUnits = annualDiscountedAddOn,
+            AnnualSavingPercent = AnnualSaving.Percent(plan.PriceMinorUnits, annualPrice?.PriceMinorUnits),
             BothRolesIncluded = plan.BothRolesIncluded,
             Currency = plan.Currency,
             BillingInterval = BillingInterval.Monthly,

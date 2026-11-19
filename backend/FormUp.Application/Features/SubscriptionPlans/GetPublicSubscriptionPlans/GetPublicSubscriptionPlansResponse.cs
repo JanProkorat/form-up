@@ -64,7 +64,7 @@ public class PublicSubscriptionPlanDto
     /// <summary>German name.</summary>
     public string NameDe { get; set; } = string.Empty;
 
-    /// <summary>Current price in minor units of <see cref="Currency"/>.</summary>
+    /// <summary>Current monthly price in minor units of <see cref="Currency"/>.</summary>
     public long PriceMinorUnits { get; set; }
 
     /// <summary>Second-role add-on price; null when both roles are included.</summary>
@@ -76,13 +76,28 @@ public class PublicSubscriptionPlanDto
     /// <summary>Display-only add-on price after the promotion; null when not covered or both roles are included.</summary>
     public long? DiscountedSecondRoleAddOnPriceMinorUnits { get; set; }
 
+    /// <summary>Annual plan price per year; null when the plan is not sold annually.</summary>
+    public long? AnnualPriceMinorUnits { get; set; }
+
+    /// <summary>Annual second-role add-on price per year; null when not sold annually, none is set or both roles are included.</summary>
+    public long? AnnualSecondRoleAddOnPriceMinorUnits { get; set; }
+
+    /// <summary>Display-only annual price after the promotion; null when not sold annually or no promotion covers this plan.</summary>
+    public long? AnnualDiscountedPriceMinorUnits { get; set; }
+
+    /// <summary>Display-only annual add-on price after the promotion; null when not covered or there is no annual add-on.</summary>
+    public long? AnnualDiscountedSecondRoleAddOnPriceMinorUnits { get; set; }
+
+    /// <summary>Whole percent the annual plan line saves against twelve monthly ones; null when there is no saving.</summary>
+    public int? AnnualSavingPercent { get; set; }
+
     /// <summary>True when the plan covers both professional roles.</summary>
     public bool BothRolesIncluded { get; set; }
 
     /// <summary>ISO 4217 currency code.</summary>
     public string Currency { get; set; } = string.Empty;
 
-    /// <summary>Billing cadence.</summary>
+    /// <summary>Billing cadence of the monthly price fields; always Monthly, the annual price has its own fields.</summary>
     public BillingInterval BillingInterval { get; set; }
 
     /// <summary>Active-client cap; null means unlimited.</summary>

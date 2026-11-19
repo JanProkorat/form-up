@@ -17,6 +17,9 @@ public class PreviewPlanChangeResponse
     /// <summary>How often the target plan bills.</summary>
     public BillingInterval BillingInterval { get; set; }
 
+    /// <summary>How often the caller's current subscription bills.</summary>
+    public BillingInterval CurrentBillingInterval { get; set; }
+
     /// <summary>ISO 4217 currency of every amount.</summary>
     public string Currency { get; set; } = string.Empty;
 

@@ -78,6 +78,7 @@ public class GetMySubscriptionEndpointTests(FitnessApiFactory factory)
         block.ClientLimit.Should().Be(2);
         block.SecondRole.Should().Be(SecondRoleState.Included);
         block.PriceLines.Should().ContainSingle(line => line.Kind == SubscriptionPriceLineKind.Plan && line.AmountMinorUnits == 0);
+        block.BillingInterval.Should().Be(BillingInterval.Monthly);
         block.Features.CanCreatePlans.Should().BeTrue();
         block.Features.CanSendQuestionnaires.Should().BeFalse();
     }
@@ -97,6 +98,39 @@ public class GetMySubscriptionEndpointTests(FitnessApiFactory factory)
         block.PriceLines.Select(line => line.Kind).Should()
             .Equal(SubscriptionPriceLineKind.Plan, SubscriptionPriceLineKind.SecondRoleAddOn);
         block.PriceLines.Should().OnlyContain(line => line.Currency == "CZK" && line.AmountMinorUnits > 0);
+        block.BillingInterval.Should().Be(BillingInterval.Monthly);
+    }
+
+    [Fact]
+    public async Task Get_CoachOnTheAnnualPrice_ReportsAnnualIntervalAndTheAnnualLines()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var plan = await PaidPlanBuilder.CreateAsync(factory, priceMinorUnits: 29900, addOnMinorUnits: 9900, bothRolesIncluded: false);
+        await SubscriptionPlanPriceBuilder.AddOpenAnnualPriceAsync(factory, plan, 299000, 99000);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(
+            factory, coach, plan, paysSecondRoleAddOn: true, interval: BillingInterval.Annual);
+
+        var block = await GetAsync(coach);
+
+        block.BillingInterval.Should().Be(BillingInterval.Annual);
+        block.PriceLines.Select(line => line.AmountMinorUnits).Should().Equal(299000, 99000);
+    }
+
+    [Fact]
+    public async Task Get_AnnualSubscriptionThatLapsed_ReadsAsFreeOnTheMonthlyInterval()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
+        var plan = await PaidPlanBuilder.CreateAsync(factory);
+        await SubscriptionPlanPriceBuilder.AddOpenAnnualPriceAsync(factory, plan, 299000);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(
+            factory, coach, plan, SubscriptionStatus.Canceled, interval: BillingInterval.Annual);
+        await SetPeriodEndAsync(coach, DateTimeOffset.UtcNow.AddDays(-3));
+
+        var block = await GetAsync(coach);
+
+        block.IsLapsed.Should().BeTrue();
+        block.BillingInterval.Should().Be(BillingInterval.Monthly);
     }
 
     [Fact]
@@ -307,6 +341,36 @@ public class GetMySubscriptionEndpointTests(FitnessApiFactory factory)
         scheduled.PlanCode.Should().Be(next);
         scheduled.StartsAt.Should().BeCloseTo(periodEnd, TimeSpan.FromSeconds(1));
         scheduled.PriceLines.Should().ContainSingle().Which.AmountMinorUnits.Should().Be(29900);
+        scheduled.BillingInterval.Should().Be(BillingInterval.Monthly);
+    }
+
+    [Fact]
+    public async Task Get_WithAScheduledAnnualPrice_ReportsItsIntervalAndLines_WhileTheCurrentOneStaysMonthly()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (current, _) = await BillingTestData.StripePlanAsync(factory, price: 59900);
+        var (next, _) = await BillingTestData.StripePlanAsync(factory, price: 29900);
+        await SubscriptionPlanPriceBuilder.AddOpenAnnualPriceAsync(factory, next, 299000);
+        await BillingTestData.SubscribeLiveAsync(factory, coach, current);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var annualPriceId = await db.SubscriptionPlanPrices
+                .Where(price => price.SubscriptionPlan.Code == next && price.ValidTo == null && price.BillingInterval == BillingInterval.Annual)
+                .Select(price => price.Id)
+                .SingleAsync(Ct);
+
+            await db.CoachSubscriptions
+                .Where(cs => cs.ProfessionalProfileId == coach.ProfileId)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(cs => cs.PendingSubscriptionPlanPriceId, annualPriceId), Ct);
+        }
+
+        var block = await GetAsync(coach);
+
+        block.BillingInterval.Should().Be(BillingInterval.Monthly);
+        block.ScheduledPlan!.BillingInterval.Should().Be(BillingInterval.Annual);
+        block.ScheduledPlan.PriceLines.Should().ContainSingle().Which.AmountMinorUnits.Should().Be(299000);
     }
 
     [Fact]
@@ -343,6 +407,7 @@ public class GetMySubscriptionEndpointTests(FitnessApiFactory factory)
         scheduled!.PlanCode.Should().Be("free");
         scheduled.StartsAt.Should().BeCloseTo(periodEnd, TimeSpan.FromSeconds(1));
         scheduled.PriceLines.Should().ContainSingle().Which.AmountMinorUnits.Should().Be(0);
+        scheduled.BillingInterval.Should().Be(BillingInterval.Monthly);
     }
 
     [Fact]

@@ -126,6 +126,7 @@ internal sealed class PreviewPlanChangeEndpoint(
                 PlanCode = target.Code,
                 Timing = decision.IsUpgrade ? PlanChangeTiming.Now : PlanChangeTiming.AtNextRenewal,
                 BillingInterval = target.BillingInterval,
+                CurrentBillingInterval = subscription.SubscriptionPlanPrice.BillingInterval,
                 Currency = target.Currency,
                 TodayAmountMinorUnits = today.TodayAmountMinorUnits,
                 TodayTaxMinorUnits = today.TodayTaxMinorUnits,

@@ -1132,6 +1132,34 @@ public static class SubscriptionPlanPriceBuilder
     }
 
     /// <summary>
+    /// Adds an open Annual price row to an existing plan, next to its open Monthly row, without touching the plan's own
+    /// price fields (which mirror the Monthly row).
+    /// </summary>
+    /// <param name="factory">The test host.</param>
+    /// <param name="planCode">Code of the plan to sell annually.</param>
+    /// <param name="priceMinorUnits">Annual plan price per year.</param>
+    /// <param name="addOnMinorUnits">Annual second-role add-on price per year, or null.</param>
+    public static async Task AddOpenAnnualPriceAsync(
+        FitnessApiFactory factory, string planCode, long priceMinorUnits, long? addOnMinorUnits = null)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var plan = await db.SubscriptionPlans.SingleAsync(p => p.Code == planCode, TestContext.Current.CancellationToken);
+
+        db.SubscriptionPlanPrices.Add(new SubscriptionPlanPrice
+        {
+            SubscriptionPlanId = plan.Id,
+            BillingInterval = BillingInterval.Annual,
+            PriceMinorUnits = priceMinorUnits,
+            SecondRoleAddOnPriceMinorUnits = addOnMinorUnits,
+            Currency = plan.Currency,
+            ValidFrom = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>
     /// Makes sure the Free plan exists (price 0, active) — the shared test database only has it
     /// after something ran the seed.
     /// </summary>
