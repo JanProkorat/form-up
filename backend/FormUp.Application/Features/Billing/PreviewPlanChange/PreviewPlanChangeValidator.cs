@@ -16,5 +16,8 @@ internal sealed class PreviewPlanChangeValidator : Validator<PreviewPlanChangeRe
         RuleFor(x => x.PlanCode)
             .NotEmpty()
             .MaximumLength(100);
+
+        RuleFor(x => x.BillingInterval)
+            .IsInEnum();
     }
 }

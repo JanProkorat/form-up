@@ -37,15 +37,17 @@ internal sealed class ChangePlanEndpoint(
                             "plan applies now and its prorated difference is charged at once (a scheduled switch to Free is dropped); a card " +
                             "that needs authentication answers AwaitingPayment with Stripe's hosted payment page in PaymentUrl and the plan " +
                             "changes only once the coach pays there; a cheaper " +
-                            "or equal one is scheduled for the next renewal. A coach " +
+                            "or equal one is scheduled for the next renewal. BillingInterval picks the target's cadence (Monthly when omitted): " +
+                            "annual to monthly always waits for the renewal, monthly to annual applies now for the same plan or a plan " +
+                            "that is not a step down, and a switch that waits replaces an earlier scheduled one. A coach " +
                             "with two active roles pays the second-role add-on on a plan that does not include both roles.";
             s.Response<ChangePlanResponse>(StatusCodes.Status200OK, "The change was applied or scheduled, or awaits payment on the hosted page (Timing AwaitingPayment, PaymentUrl set)");
             s.Response<ProblemDetails>(StatusCodes.Status400BadRequest,
-                "Invalid body (including a missing AttemptId), or the plan cannot be bought: unknown, Free, inactive, not priced in Stripe, or the caller has two active roles and the plan has no add-on price (PLAN_NOT_PURCHASABLE)");
+                "Invalid body (including a missing AttemptId), or the plan cannot be bought: unknown, Free, inactive, no open price for the interval, not priced in Stripe, or the caller has two active roles and the plan has no add-on price (PLAN_NOT_PURCHASABLE)");
             s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
             s.Response(StatusCodes.Status403Forbidden, "The caller is not a trainer or nutritionist, or the coach role was removed");
             s.Response(StatusCodes.Status409Conflict,
-                "No live paid subscription (BILLING_NO_SUBSCRIPTION), an admin gift is in force (BILLING_GIFT_IN_FORCE), or the plan is the current one (BILLING_PLAN_UNCHANGED)");
+                "No live paid subscription (BILLING_NO_SUBSCRIPTION), an admin gift is in force (BILLING_GIFT_IN_FORCE), or the plan is the current one at the current interval (BILLING_PLAN_UNCHANGED)");
             s.Response(StatusCodes.Status502BadGateway, "Stripe failed or the card was declined; nothing was changed or saved (BILLING_PROVIDER_ERROR)");
             s.Response(StatusCodes.Status503ServiceUnavailable, "Stripe is not configured on this server (BILLING_NOT_CONFIGURED)");
         });
@@ -65,7 +67,7 @@ internal sealed class ChangePlanEndpoint(
             return;
         }
 
-        var target = await this.LoadPlanChangeTargetOrRespondAsync(db, req.PlanCode, ct);
+        var target = await this.LoadPlanChangeTargetOrRespondAsync(db, req.PlanCode, req.BillingInterval, ct);
 
         if (target is null)
         {
@@ -79,7 +81,7 @@ internal sealed class ChangePlanEndpoint(
             return;
         }
 
-        var decision = await this.DecidePlanChangeOrRespondAsync(coachRoleStatus, userId, subscription, target, ct);
+        var decision = await this.DecidePlanChangeOrRespondAsync(db, coachRoleStatus, userId, subscription, target, ct);
 
         if (decision is null)
         {

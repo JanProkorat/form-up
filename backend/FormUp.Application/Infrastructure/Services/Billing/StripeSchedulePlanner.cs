@@ -1,3 +1,5 @@
+using FormUp.Application.Domain.Enums;
+
 namespace FormUp.Application.Infrastructure.Services.Billing;
 
 /// <summary>
@@ -15,11 +17,13 @@ public static class StripeSchedulePlanner
     /// <param name="currentEnd">End of the current billing phase, which is the next renewal.</param>
     /// <param name="currentPriceIds">Prices billed now.</param>
     /// <param name="intent">The price change to achieve.</param>
+    /// <param name="pendingInterval">The billing interval of the pending prices when the caller knows it; the open last phase carries it.</param>
     public static IReadOnlyList<SchedulePhasePlan> Build(
         DateTimeOffset currentStart,
         DateTimeOffset currentEnd,
         IReadOnlyList<string> currentPriceIds,
-        ScheduleIntent intent)
+        ScheduleIntent intent,
+        BillingInterval? pendingInterval = null)
     {
         if (intent.PendingPriceIds is not { } pending)
         {
@@ -30,7 +34,7 @@ public static class StripeSchedulePlanner
 
         return intent.CancelRenewal
             ? [current]
-            : [current, new SchedulePhasePlan(currentEnd, null, pending)];
+            : [current, new SchedulePhasePlan(currentEnd, null, pending, pendingInterval)];
     }
 
     /// <summary>

@@ -115,10 +115,10 @@ public sealed class StripeSubscriptionService(
                     change.State.Start,
                     change.State.End,
                     change.State.CurrentPriceIds,
-                    change.State.Intent with { PendingPriceIds = newPriceIds });
+                    change.State.Intent with { PendingPriceIds = newPriceIds },
+                    interval);
 
-                await ApplyPhasesAsync(
-                    stripe, subscriptionId, change.State.ScheduleId, phases, IntervalOf(change.Subscription), change.State.Intent.CancelRenewal, ct);
+                await ApplyPhasesAsync(stripe, subscriptionId, change.State.ScheduleId, phases, change.State.Intent.CancelRenewal, ct);
 
                 return true;
             }
@@ -188,7 +188,7 @@ public sealed class StripeSubscriptionService(
 
                 if (phases.Count > 0)
                 {
-                    await ApplyPhasesAsync(stripe, subscriptionId, null, phases, IntervalOf(subscription), snapshot.CancelRenewal, ct);
+                    await ApplyPhasesAsync(stripe, subscriptionId, null, phases, snapshot.CancelRenewal, ct);
                 }
                 else if (snapshot.CancelRenewal)
                 {
@@ -221,8 +221,7 @@ public sealed class StripeSubscriptionService(
 
             if (phases.Count > 0)
             {
-                await ApplyPhasesAsync(
-                    stripe, subscriptionId, state.ScheduleId, phases, IntervalOf(subscription), state.Intent.CancelRenewal, ct);
+                await ApplyPhasesAsync(stripe, subscriptionId, state.ScheduleId, phases, state.Intent.CancelRenewal, ct);
 
                 return true;
             }
@@ -263,7 +262,8 @@ public sealed class StripeSubscriptionService(
                 addOnPriceId = await EnsureAddOnPriceAsync(stripe, planCode, productId, amount, currency, interval, ct);
             }
 
-            // UNVERIFIED: an always_invoice preview holds only the proration lines, not the next period — https://docs.stripe.com/api/invoices/create_preview
+            // The preview invoice holds the proration lines and, when the interval changes, also the full line of the new period; its total is what is charged now.
+            // UNVERIFIED: an always_invoice preview of an interval change carries the full new-interval line next to the credit for the unused time — https://docs.stripe.com/api/invoices/create_preview
             var invoice = await stripe.V1.Invoices.CreatePreviewAsync(
                 StripeRequestBuilder.PlanUpgradePreview(
                     customerId, subscriptionId, planItem.Id, planPriceExternalId, addOnItem?.Id, addOnItem?.Price.Id, addOnPriceId, settings),
@@ -410,7 +410,7 @@ public sealed class StripeSubscriptionService(
 
         if (phases.Count > 0)
         {
-            await ApplyPhasesAsync(stripe, subscriptionId, state.ScheduleId, phases, IntervalOf(subscription), true, ct);
+            await ApplyPhasesAsync(stripe, subscriptionId, state.ScheduleId, phases, true, ct);
 
             return;
         }
@@ -575,7 +575,7 @@ public sealed class StripeSubscriptionService(
 
         if (phases.Count > 0)
         {
-            await ApplyPhasesAsync(stripe, subscriptionId, state.ScheduleId, phases, IntervalOf(subscription), false, ct);
+            await ApplyPhasesAsync(stripe, subscriptionId, state.ScheduleId, phases, false, ct);
 
             return;
         }
@@ -886,9 +886,6 @@ public sealed class StripeSubscriptionService(
     private static bool IsAddOn(SubscriptionItem item) =>
         item.Price?.LookupKey?.StartsWith(StripeRequestBuilder.AddOnLookupPrefix, StringComparison.Ordinal) == true;
 
-    private static BillingInterval IntervalOf(Subscription subscription) =>
-        subscription.Items.Data.FirstOrDefault()?.Price?.Recurring?.Interval == "year" ? BillingInterval.Annual : BillingInterval.Monthly;
-
     private async Task<T> RunAsync<T>(string operation, Func<StripeClient, Task<T>> call)
     {
         if (!settings.IsConfigured)
@@ -1009,7 +1006,7 @@ public sealed class StripeSubscriptionService(
 
             if (phases.Count > 0)
             {
-                await ApplyPhasesAsync(stripe, subscriptionId, null, phases, IntervalOf(subscription), state.Intent.CancelRenewal, ct);
+                await ApplyPhasesAsync(stripe, subscriptionId, null, phases, state.Intent.CancelRenewal, ct);
             }
             else if (state.Intent.CancelRenewal)
             {
@@ -1023,15 +1020,20 @@ public sealed class StripeSubscriptionService(
         }
     }
 
+    /// <summary>
+    /// Sends the phases to the subscription's schedule, creating it when there is none. The open last phase runs one interval of
+    /// its own prices, which the plan carries when the caller knows it and which is otherwise read from that price (the
+    /// phases of a schedule read back from Stripe, and a restore snapshot, only know price ids).
+    /// </summary>
     private async Task ApplyPhasesAsync(
         StripeClient stripe,
         string subscriptionId,
         string? scheduleId,
         IReadOnlyList<SchedulePhasePlan> phases,
-        BillingInterval interval,
         bool cancelRenewal,
         CancellationToken ct)
     {
+        phases = await WithOpenPhaseIntervalAsync(stripe, phases, ct);
         scheduleId ??= (await stripe.V1.SubscriptionSchedules.CreateAsync(
             new SubscriptionScheduleCreateOptions { FromSubscription = subscriptionId }, cancellationToken: ct)).Id;
 
@@ -1041,9 +1043,24 @@ public sealed class StripeSubscriptionService(
             {
                 EndBehavior = cancelRenewal ? "cancel" : "release",
                 ProrationBehavior = "none",
-                Phases = StripeRequestBuilder.SchedulePhases(phases, interval, StripeRequestBuilder.TaxRates(settings)),
+                Phases = StripeRequestBuilder.SchedulePhases(phases, StripeRequestBuilder.TaxRates(settings)),
             },
             cancellationToken: ct);
+    }
+
+    private static async Task<IReadOnlyList<SchedulePhasePlan>> WithOpenPhaseIntervalAsync(
+        StripeClient stripe, IReadOnlyList<SchedulePhasePlan> phases, CancellationToken ct)
+    {
+        if (phases.Count == 0 || phases[^1] is not { End: null, Interval: null } open)
+        {
+            return phases;
+        }
+
+        // UNVERIFIED: the phases of one schedule may bill prices of different intervals (an annual phase followed by a monthly one) — https://docs.stripe.com/billing/subscriptions/subscription-schedules
+        var price = await stripe.V1.Prices.GetAsync(open.PriceIds[0], cancellationToken: ct);
+        var interval = price.Recurring?.Interval == "year" ? BillingInterval.Annual : BillingInterval.Monthly;
+
+        return [.. phases.Take(phases.Count - 1), open with { Interval = interval }];
     }
 
     private static async Task<SubscriptionState> ReadStateAsync(StripeClient stripe, Subscription subscription, CancellationToken ct)

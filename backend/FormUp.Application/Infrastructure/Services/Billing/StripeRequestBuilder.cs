@@ -307,6 +307,7 @@ public static class StripeRequestBuilder
         BillingOptions options)
     {
         // UNVERIFIED: pending_if_incomplete accepts item tax_rates, a deleted add-on line and cancel_at_period_end=false together — https://docs.stripe.com/billing/subscriptions/pending-updates
+        // UNVERIFIED: pending_if_incomplete accepts a price change that also changes the billing interval — https://docs.stripe.com/billing/subscriptions/pending-updates
         var update = PlanUpgradeWith("pending_if_incomplete", planItemId, planPriceId, addOnItemId, currentAddOnPriceId, addOnPriceId, options);
         update.Expand = ["latest_invoice"];
 
@@ -371,6 +372,9 @@ public static class StripeRequestBuilder
     {
         var taxRates = TaxRates(options);
 
+        // Both lines move to the target interval in this one update, so the subscription never holds a plan and an add-on of different intervals.
+        // UNVERIFIED: an interval change restarts the billing period now and always_invoice credits the unused time of the old price on the same invoice — https://docs.stripe.com/billing/subscriptions/prorations
+        // UNVERIFIED: a subscription with a plan line and an add-on line needs one shared interval, so both prices change together — https://docs.stripe.com/billing/subscriptions/multiple-products
         return new SubscriptionUpdateOptions
         {
             Items = PlanChangeLines(
@@ -566,14 +570,13 @@ public static class StripeRequestBuilder
 
     /// <summary>
     /// Converts planned schedule phases to Stripe phases. Only the first phase carries a start (Stripe keeps the current
-    /// phase's own); the open last phase runs one billing interval and then the schedule releases. Every phase sends an
-    /// empty discount list.
+    /// phase's own); the open last phase runs one billing interval of its own prices and then the schedule releases, so it
+    /// must carry its interval. Every phase sends an empty discount list.
     /// </summary>
     /// <param name="phases">The planned phases.</param>
-    /// <param name="interval">Billing cadence of the subscription.</param>
     /// <param name="taxRates">Tax rate ids for every item, or null.</param>
     public static List<SubscriptionSchedulePhaseOptions> SchedulePhases(
-        IReadOnlyList<SchedulePhasePlan> phases, BillingInterval interval, List<string>? taxRates)
+        IReadOnlyList<SchedulePhasePlan> phases, List<string>? taxRates)
     {
         var result = new List<SubscriptionSchedulePhaseOptions>();
 
@@ -602,7 +605,8 @@ public static class StripeRequestBuilder
             {
                 options.Duration = new SubscriptionSchedulePhaseDurationOptions
                 {
-                    Interval = IntervalName(interval),
+                    Interval = IntervalName(
+                        phase.Interval ?? throw new InvalidOperationException("The open schedule phase has no billing interval.")),
                     IntervalCount = 1,
                 };
             }
