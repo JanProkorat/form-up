@@ -144,4 +144,28 @@ public class PromotionPricingTests
         discount.Should().Be(0);
         total.Should().Be(1900);
     }
+
+    [Theory]
+    [InlineData(PromotionBillingPeriod.Monthly, BillingInterval.Annual)]
+    [InlineData(PromotionBillingPeriod.Annual, BillingInterval.Monthly)]
+    public void ForSubscription_AnIntervalThePromotionDoesNotCover_TakesNothingOff(
+        PromotionBillingPeriod period, BillingInterval interval)
+    {
+        var promotion = Make(PromotionKind.Percent, 30);
+        promotion.BillingPeriod = period;
+
+        var (discount, total) = PromotionPricing.ForSubscription(promotion, "pro", "CZK", interval, 299000, null);
+
+        discount.Should().Be(0);
+        total.Should().Be(299000);
+    }
+
+    [Fact]
+    public void Applies_BothPeriods_CoversMonthlyAndAnnualAlike()
+    {
+        var promotion = Make(PromotionKind.Percent, 30);
+
+        PromotionPricing.Applies(promotion, "pro", "CZK", BillingInterval.Monthly).Should().BeTrue();
+        PromotionPricing.Applies(promotion, "pro", "CZK", BillingInterval.Annual).Should().BeTrue();
+    }
 }

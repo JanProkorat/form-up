@@ -61,7 +61,7 @@ public class StripeRequestBuilderTests
 
         session.Mode.Should().Be("subscription");
         session.Customer.Should().Be("cus_1");
-        session.AllowPromotionCodes.Should().BeTrue();
+        session.AllowPromotionCodes.Should().BeNull("a code is typed in our app, never in Stripe's hosted field");
         session.Discounts.Should().BeNull();
         session.BillingAddressCollection.Should().Be("required");
         session.TaxIdCollection!.Enabled.Should().BeTrue();
@@ -218,6 +218,60 @@ public class StripeRequestBuilderTests
     }
 
     [Fact]
+    public void PlanUpgrade_WithoutADiscountChange_SendsNoDiscounts()
+    {
+        var update = StripeRequestBuilder.PlanUpgrade("si_plan", "price_new", null, null, null, Options());
+
+        update.Discounts.Should().BeNull();
+        update.ExtraParams.Should().BeNullOrEmpty();
+    }
+
+    [Fact]
+    public void PlanUpgrade_WithACouponChange_ReplacesTheDiscountsInTheSameUpdate()
+    {
+        var update = StripeRequestBuilder.PlanUpgrade(
+            "si_plan", "price_new", null, null, null, Options(), SubscriptionDiscountChange.Replace("coupon_annual"));
+
+        update.Discounts.Should().ContainSingle().Which.Coupon.Should().Be("coupon_annual");
+        update.Items.Should().NotBeEmpty("the plan change travels in the same update");
+    }
+
+    [Fact]
+    public void PlanUpgrade_WithAClearedDiscount_SendsAnEmptyStringBecauseAnEmptyListWouldChangeNothing()
+    {
+        var update = StripeRequestBuilder.PlanUpgrade(
+            "si_plan", "price_new", null, null, null, Options(), SubscriptionDiscountChange.Clear);
+
+        update.Discounts.Should().BeNull();
+        update.ExtraParams.Should().Contain(new KeyValuePair<string, object>("discounts", string.Empty));
+    }
+
+    [Fact]
+    public void PlanUpgradePending_CarriesTheSameDiscountChange()
+    {
+        var update = StripeRequestBuilder.PlanUpgradePending(
+            "si_plan", "price_new", null, null, null, Options(), SubscriptionDiscountChange.Replace("coupon_annual"));
+
+        update.PaymentBehavior.Should().Be("pending_if_incomplete");
+        update.Discounts.Should().ContainSingle().Which.Coupon.Should().Be("coupon_annual");
+    }
+
+    [Fact]
+    public void PlanUpgradePreview_MirrorsTheDiscountChange()
+    {
+        var replaced = StripeRequestBuilder.PlanUpgradePreview(
+            "cus_1", "sub_1", "si_plan", "price_new", null, null, null, Options(), SubscriptionDiscountChange.Replace("coupon_annual"));
+        var cleared = StripeRequestBuilder.PlanUpgradePreview(
+            "cus_1", "sub_1", "si_plan", "price_new", null, null, null, Options(), SubscriptionDiscountChange.Clear);
+        var untouched = StripeRequestBuilder.PlanUpgradePreview("cus_1", "sub_1", "si_plan", "price_new", null, null, null, Options());
+
+        replaced.Discounts.Should().ContainSingle().Which.Coupon.Should().Be("coupon_annual");
+        cleared.ExtraParams.Should().Contain(new KeyValuePair<string, object>("discounts", string.Empty));
+        untouched.Discounts.Should().BeNull();
+        untouched.ExtraParams.Should().BeNullOrEmpty();
+    }
+
+    [Fact]
     public void Checkout_WithAddOn_AddsASecondLine()
     {
         var session = StripeRequestBuilder.Checkout("cus_1", UserId, "pro", "price_plan", "price_addon", null, "cs", CheckoutFlow.Settings, Options());
@@ -226,12 +280,12 @@ public class StripeRequestBuilderTests
     }
 
     [Fact]
-    public void Checkout_WithAutomaticPromotion_AppliesTheCouponInsteadOfPromotionCodes()
+    public void Checkout_WithACoupon_AppliesItAsTheOnlyDiscount_AndNeverSendsPromotionCodes()
     {
         var session = StripeRequestBuilder.Checkout("cus_1", UserId, "pro", "price_plan", null, "coupon_1", "cs", CheckoutFlow.Settings, Options());
 
         session.Discounts.Should().ContainSingle().Which.Coupon.Should().Be("coupon_1");
-        session.AllowPromotionCodes.Should().BeNull("Stripe refuses discounts together with allow_promotion_codes");
+        session.AllowPromotionCodes.Should().BeNull();
     }
 
     [Fact]
@@ -391,6 +445,23 @@ public class StripeRequestBuilderTests
     }
 
     [Fact]
+    public void SchedulePhases_ACouponOnAPhase_IsItsOnlyDiscount_AndOtherPhasesSendNone()
+    {
+        var start = new DateTimeOffset(2026, 11, 1, 0, 0, 0, TimeSpan.Zero);
+        var end = start.AddDays(10);
+
+        var phases = StripeRequestBuilder.SchedulePhases(
+            [
+                new SchedulePhasePlan(start, end, ["price_old"], BillingInterval.Monthly),
+                new SchedulePhasePlan(end, null, ["price_new"], BillingInterval.Annual, "coupon_annual"),
+            ],
+            null);
+
+        phases[0].Discounts.Should().BeEmpty();
+        phases[1].Discounts.Should().ContainSingle().Which.Coupon.Should().Be("coupon_annual");
+    }
+
+    [Fact]
     public void SchedulePhases_OpenPhaseWithoutAnInterval_IsRefused()
     {
         var start = new DateTimeOffset(2026, 11, 1, 0, 0, 0, TimeSpan.Zero);
@@ -428,8 +499,9 @@ public class StripeRequestBuilderTests
         PromotionDuration duration = PromotionDuration.Forever,
         int? months = null,
         int? maxUses = null,
-        DateTimeOffset? claimUntil = null) =>
-        new("Launch offer", kind, value, kind == PromotionKind.FixedAmount ? "CZK" : null, duration, months, maxUses, claimUntil, null, "key");
+        DateTimeOffset? claimUntil = null,
+        BillingInterval interval = BillingInterval.Monthly) =>
+        new("Launch offer", kind, value, kind == PromotionKind.FixedAmount ? "CZK" : null, duration, months, maxUses, claimUntil, null, "key", interval);
 
     [Theory]
     [InlineData(PromotionDuration.FirstMonth, "once", null)]
@@ -441,6 +513,31 @@ public class StripeRequestBuilderTests
 
         coupon.Duration.Should().Be(expected);
         coupon.DurationInMonths.Should().Be(months);
+    }
+
+    [Theory]
+    [InlineData(PromotionDuration.FirstMonth, "once", null)]
+    [InlineData(PromotionDuration.Months, "once", null)]
+    [InlineData(PromotionDuration.Forever, "forever", null)]
+    public void Coupon_ForAnAnnualSubscription_IsOnceForTheFirstYearlyInvoice_AndForeverStaysForever(
+        PromotionDuration duration, string expected, int? expectedMonths)
+    {
+        var coupon = StripeRequestBuilder.Coupon(
+            Spec(duration: duration, months: duration == PromotionDuration.Months ? 3 : null, interval: BillingInterval.Annual), null);
+
+        coupon.Duration.Should().Be(expected);
+        coupon.DurationInMonths.Should().Be(expectedMonths, "an annual coupon never repeats by month");
+    }
+
+    [Fact]
+    public void Coupon_AnnualAndMonthlyOfOnePromotion_BothCarryTheSameMaxUses()
+    {
+        var monthly = StripeRequestBuilder.Coupon(Spec(duration: PromotionDuration.Months, months: 3, maxUses: 20), null);
+        var annual = StripeRequestBuilder.Coupon(
+            Spec(duration: PromotionDuration.Months, months: 3, maxUses: 20, interval: BillingInterval.Annual), null);
+
+        monthly.MaxRedemptions.Should().Be(20);
+        annual.MaxRedemptions.Should().Be(20, "Stripe caps each coupon separately, so its own ceiling is up to twice the limit");
     }
 
     [Fact]
