@@ -15236,7 +15236,7 @@ export class ApiClient {
 
     /**
      * List the plans a coach can choose
-     * @return The active plans, cheapest first
+     * @return The active plans, cheapest monthly price first
      */
     getCoachPlansEndpoint(signal?: AbortSignal): Promise<GetCoachPlansResponse> {
         let url_ = this.baseUrl + "/users/me/subscription/plans";
@@ -22035,7 +22035,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Invalid body, or the plan cannot be bought: unknown, Free, inactive, not priced in Stripe, or the caller has two active roles and the plan has no add-on price (PLAN_NOT_PURCHASABLE)", status, _responseText, _headers, result400);
+            return throwException("Invalid body, or the plan cannot be bought: unknown, Free, inactive, no open price for the interval, not priced in Stripe, or the caller has two active roles and the plan has no add-on price (PLAN_NOT_PURCHASABLE)", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -22047,7 +22047,7 @@ export class ApiClient {
 
         } else if (status === 409) {
             const _responseText = response.data;
-            return throwException("No live paid subscription (BILLING_NO_SUBSCRIPTION), an admin gift is in force (BILLING_GIFT_IN_FORCE), or the plan is the current one (BILLING_PLAN_UNCHANGED)", status, _responseText, _headers);
+            return throwException("No live paid subscription (BILLING_NO_SUBSCRIPTION), an admin gift is in force (BILLING_GIFT_IN_FORCE), or the plan is the current one at the current interval (BILLING_PLAN_UNCHANGED)", status, _responseText, _headers);
 
         } else if (status === 502) {
             const _responseText = response.data;
@@ -22190,7 +22190,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Invalid body, or the plan cannot be bought: unknown, Free, inactive, not priced in Stripe, or the caller has two active roles and the plan has no add-on price (PLAN_NOT_PURCHASABLE)", status, _responseText, _headers, result400);
+            return throwException("Invalid body (a Code that is too long or has invalid characters is PROMOTION_CODE_INVALID), or the plan cannot be bought: unknown, Free, inactive, no open price for the interval, not priced in Stripe, or the caller has two active roles and the plan has no add-on price (PLAN_NOT_PURCHASABLE)", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -22202,11 +22202,15 @@ export class ApiClient {
 
         } else if (status === 404) {
             const _responseText = response.data;
-            return throwException("The caller has no professional profile, or the Free plan is missing", status, _responseText, _headers);
+            return throwException("The caller has no professional profile, or the Free plan is missing, or no promotion has the Code, its claim window has closed, or an admin ended it (PROMOTION_CODE_NOT_FOUND)", status, _responseText, _headers);
 
         } else if (status === 409) {
             const _responseText = response.data;
-            return throwException("The coach already has a live paid subscription (BILLING_ALREADY_SUBSCRIBED)", status, _responseText, _headers);
+            return throwException("The coach already has a live paid subscription (BILLING_ALREADY_SUBSCRIBED), or the Code fails a rule: PROMOTION_CODE_NOT_STARTED, PROMOTION_CODE_PLAN_NOT_ELIGIBLE, PROMOTION_CODE_INTERVAL_NOT_ELIGIBLE, PROMOTION_CODE_USED_UP, PROMOTION_CODE_NEW_COACHES_ONLY, PROMOTION_CODE_ALREADY_USED", status, _responseText, _headers);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("The per-account rate limit was exceeded", status, _responseText, _headers);
 
         } else if (status === 502) {
             const _responseText = response.data;
@@ -22364,7 +22368,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Invalid body (including a missing AttemptId), or the plan cannot be bought: unknown, Free, inactive, not priced in Stripe, or the caller has two active roles and the plan has no add-on price (PLAN_NOT_PURCHASABLE)", status, _responseText, _headers, result400);
+            return throwException("Invalid body (including a missing AttemptId), or the plan cannot be bought: unknown, Free, inactive, no open price for the interval, not priced in Stripe, or the caller has two active roles and the plan has no add-on price (PLAN_NOT_PURCHASABLE)", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -22376,7 +22380,7 @@ export class ApiClient {
 
         } else if (status === 409) {
             const _responseText = response.data;
-            return throwException("No live paid subscription (BILLING_NO_SUBSCRIPTION), an admin gift is in force (BILLING_GIFT_IN_FORCE), or the plan is the current one (BILLING_PLAN_UNCHANGED)", status, _responseText, _headers);
+            return throwException("No live paid subscription (BILLING_NO_SUBSCRIPTION), an admin gift is in force (BILLING_GIFT_IN_FORCE), or the plan is the current one at the current interval (BILLING_PLAN_UNCHANGED)", status, _responseText, _headers);
 
         } else if (status === 502) {
             const _responseText = response.data;
@@ -22531,7 +22535,7 @@ export class ApiClient {
 
         } else if (status === 409) {
             const _responseText = response.data;
-            return throwException("No live paid subscription (BILLING_NO_SUBSCRIPTION), an admin gift is in force (BILLING_GIFT_IN_FORCE), or the code fails a rule: PROMOTION_CODE_NOT_STARTED, PROMOTION_CODE_PLAN_NOT_ELIGIBLE, PROMOTION_CODE_USED_UP, PROMOTION_CODE_NEW_COACHES_ONLY, PROMOTION_CODE_ALREADY_USED", status, _responseText, _headers);
+            return throwException("No live paid subscription (BILLING_NO_SUBSCRIPTION), an admin gift is in force (BILLING_GIFT_IN_FORCE), or the code fails a rule: PROMOTION_CODE_NOT_STARTED, PROMOTION_CODE_PLAN_NOT_ELIGIBLE, PROMOTION_CODE_INTERVAL_NOT_ELIGIBLE, PROMOTION_CODE_USED_UP, PROMOTION_CODE_NEW_COACHES_ONLY, PROMOTION_CODE_ALREADY_USED", status, _responseText, _headers);
 
         } else if (status === 429) {
             const _responseText = response.data;
@@ -24302,7 +24306,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Invalid request: name, value, code, month count, claim window, plans or max uses (PROMOTION_VALUE_INVALID, PROMOTION_CODE_INVALID, PROMOTION_MODE_INVALID, PROMOTION_MONTHS_INVALID, PROMOTION_WINDOW_INVALID, PROMOTION_PLANS_INVALID, PROMOTION_MAX_USES_INVALID)", status, _responseText, _headers, result400);
+            return throwException("Invalid request: name, value, code, month count, claim window, plans, billing period or max uses (PROMOTION_VALUE_INVALID, PROMOTION_CODE_INVALID, PROMOTION_MODE_INVALID, PROMOTION_MONTHS_INVALID, PROMOTION_WINDOW_INVALID, PROMOTION_PLANS_INVALID, PROMOTION_MAX_USES_INVALID)", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -24427,7 +24431,7 @@ export class ApiClient {
             let result503: any = null;
             let resultData503  = _responseText;
             result503 = JSON.parse(resultData503);
-            return throwException("A code promotion needs Stripe, which is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers, result503);
+            return throwException("A promotion with a Stripe promotion code needs Stripe, which is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers, result503);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -25465,7 +25469,7 @@ export interface GetNotificationPreferencesResponse {
     preferences?: NotificationPreferenceDto[];
 }
 
-/** The caller's coach subscription: plan, standing, client usage, second-role state, monthly price and the feature flags that currently apply. */
+/** The caller's coach subscription: plan, standing, client usage, second-role state, price and the feature flags that currently apply. */
 export interface GetMySubscriptionResponse {
     /** Code of the plan the subscription is on (the Free plan when the coach has no subscription). */
     planCode?: string;
@@ -25527,7 +25531,10 @@ the cap, the plan is unlimited or a plan choice is required. */
     clientLimit?: number | undefined;
     /** Whether a second professional role is included, paid for as an add-on, or not available. */
     secondRole?: SecondRoleState;
-    /** Monthly price lines: the plan, plus the second-role add-on when it is paid. */
+    /** How often the PriceLines bill: the interval of the subscription's own price row. Monthly for the Free
+plan and for a lapsed plan. */
+    billingInterval?: BillingInterval;
+    /** Price lines per BillingInterval: the plan, plus the second-role add-on when it is paid. */
     priceLines?: SubscriptionPriceLineDto[];
     /** The feature flags that currently apply. */
     features?: SubscriptionFeaturesDto;
@@ -25563,6 +25570,12 @@ export enum SecondRoleState {
     PaidAddOn = "PaidAddOn",
     NotAvailable = "NotAvailable",
     Purchasable = "Purchasable",
+}
+
+/** Billing cadence for a SubscriptionPlan. */
+export enum BillingInterval {
+    Monthly = "Monthly",
+    Annual = "Annual",
 }
 
 /** One line of the monthly price. */
@@ -25625,6 +25638,8 @@ export interface CurrentPromotionDto {
     duration?: PromotionDuration;
     /** Months the discount lasts; set only for Months. */
     durationMonths?: number | undefined;
+    /** Which billing cadences the promotion discounts. */
+    billingPeriod?: PromotionBillingPeriod;
     /** When the discount ends, as Stripe reports it; null for a forever discount. */
     endsAt?: string | undefined;
     /** Display-only amount the promotion takes off one billing period: the plan line plus the add-on line where the coupon
@@ -25648,6 +25663,13 @@ export enum PromotionDuration {
     Forever = "Forever",
 }
 
+/** Which billing cadences a Promotion discounts. Stored as an integer; Both is 0 so a promotion created before the cadence existed keeps covering monthly and annual alike. */
+export enum PromotionBillingPeriod {
+    Both = "Both",
+    Monthly = "Monthly",
+    Annual = "Annual",
+}
+
 /** The plan a coach's subscription moves to at the end of the current period. */
 export interface ScheduledPlanDto {
     /** Code of the plan that starts next. */
@@ -25663,6 +25685,8 @@ export interface ScheduledPlanDto {
     /** True when the coach can cancel this change: a live provider subscription, no admin gift in force, no pending
 coach-account disable and no renewal cancelled by Form Up. */
     cancellable?: boolean;
+    /** How often the scheduled plan's PriceLines bill; Monthly when it is Free. */
+    billingInterval?: BillingInterval;
     /** Price lines of the plan that starts next: the plan, plus the second-role add-on when the coach would pay it. */
     priceLines?: SubscriptionPriceLineDto[];
 }
@@ -27935,27 +27959,27 @@ export interface SubscriptionPlanDto {
     canUsePackages?: boolean;
     /** Maximum number of active clients allowed under this plan. Null means unlimited. */
     maxActiveClients?: number | undefined;
-    /** Current plan price, expressed in the smallest unit of Currency. */
+    /** Current monthly plan price, expressed in the smallest unit of Currency. */
     priceMinorUnits?: number;
-    /** Current price of the second-role add-on. Null when both roles are included. */
+    /** Current monthly price of the second-role add-on. Null when both roles are included. */
     secondRoleAddOnPriceMinorUnits?: number | undefined;
     /** ISO 4217 currency code for the prices. */
     currency?: string;
-    /** Billing cadence for this plan. */
+    /** Billing cadence of the price fields above; always Monthly, the annual price has its own fields. */
     billingInterval?: BillingInterval;
-    /** External payment-provider price identifier of the current price, once billing integration ships. */
+    /** External payment-provider price identifier of the current monthly price. */
     externalPriceId?: string | undefined;
+    /** Current annual plan price per year. Null when the plan is not sold annually. */
+    annualPriceMinorUnits?: number | undefined;
+    /** Current annual price of the second-role add-on per year. Null when none. */
+    annualSecondRoleAddOnPriceMinorUnits?: number | undefined;
+    /** External payment-provider price identifier of the current annual price. */
+    annualExternalPriceId?: string | undefined;
     /** Whether the plan is currently offered/selectable. */
     isActive?: boolean;
     /** Number of coaches with a live subscription (trialing, active or past due) on this plan.
 Coaches without a subscription row are not counted. */
     coachCount?: number;
-}
-
-/** Billing cadence for a SubscriptionPlan. */
-export enum BillingInterval {
-    Monthly = "Monthly",
-    Annual = "Annual",
 }
 
 /** Request model for updating an existing subscription tier. Code is bound from the route and identifies which plan to update — it is not an updatable field (immutable after create; see Code). */
@@ -28003,12 +28027,16 @@ at their next renewal. Defaults to false: coaches keep the price row they pay. *
     /** Maximum number of active clients allowed under this plan. Required — must be present
 in the body. An explicit null means unlimited; omitting the field entirely 400s. */
     maxActiveClients?: OptionalFieldOfNullableOfInt32;
-    /** Plan price, expressed in the smallest unit of Currency. */
+    /** Monthly plan price, expressed in the smallest unit of Currency. */
     priceMinorUnits?: number;
     /** ISO 4217 currency code for PriceMinorUnits. */
     currency?: string;
-    /** Billing cadence for this plan. */
-    billingInterval?: BillingInterval;
+    /** Annual plan price per year. A PUT is a full update: omitting it closes the plan's open annual price, so the plan
+is no longer sold annually (coaches already on it keep their row). Never set on the Free plan. */
+    annualPriceMinorUnits?: number | undefined;
+    /** Annual price of the second-role add-on per year. Required with an annual price when the plan has a paid add-on;
+not allowed when both roles are included or there is no annual price. */
+    annualSecondRoleAddOnPriceMinorUnits?: number | undefined;
     /** Ignored. The backend creates the Stripe price itself when a price row opens; the field stays only so existing
 clients keep working. The response returns the price id the backend stored. */
     externalPriceId?: string | undefined;
@@ -28051,7 +28079,7 @@ export interface PublicSubscriptionPlanDto {
     nameEn?: string;
     /** German name. */
     nameDe?: string;
-    /** Current price in minor units of Currency. */
+    /** Current monthly price in minor units of Currency. */
     priceMinorUnits?: number;
     /** Second-role add-on price; null when both roles are included. */
     secondRoleAddOnPriceMinorUnits?: number | undefined;
@@ -28059,11 +28087,21 @@ export interface PublicSubscriptionPlanDto {
     discountedPriceMinorUnits?: number | undefined;
     /** Display-only add-on price after the promotion; null when not covered or both roles are included. */
     discountedSecondRoleAddOnPriceMinorUnits?: number | undefined;
+    /** Annual plan price per year; null when the plan is not sold annually. */
+    annualPriceMinorUnits?: number | undefined;
+    /** Annual second-role add-on price per year; null when not sold annually, none is set or both roles are included. */
+    annualSecondRoleAddOnPriceMinorUnits?: number | undefined;
+    /** Display-only annual price after the promotion; null when not sold annually or no promotion covers this plan. */
+    annualDiscountedPriceMinorUnits?: number | undefined;
+    /** Display-only annual add-on price after the promotion; null when not covered or there is no annual add-on. */
+    annualDiscountedSecondRoleAddOnPriceMinorUnits?: number | undefined;
+    /** Whole percent the annual plan line saves against twelve monthly ones; null when there is no saving. */
+    annualSavingPercent?: number | undefined;
     /** True when the plan covers both professional roles. */
     bothRolesIncluded?: boolean;
     /** ISO 4217 currency code. */
     currency?: string;
-    /** Billing cadence. */
+    /** Billing cadence of the monthly price fields; always Monthly, the annual price has its own fields. */
     billingInterval?: BillingInterval;
     /** Active-client cap; null means unlimited. */
     maxActiveClients?: number | undefined;
@@ -28111,6 +28149,8 @@ export interface PublicPromotionDto {
     duration?: PromotionDuration;
     /** Months the discount lasts; set only for Months. */
     durationMonths?: number | undefined;
+    /** Which billing cadences the promotion discounts; the discounted fields of a cadence it does not cover stay null. */
+    billingPeriod?: PromotionBillingPeriod;
     /** Last moment the offer can be claimed; null for no end. */
     claimUntil?: string | undefined;
     /** Codes of the plans the promotion covers. */
@@ -28164,12 +28204,15 @@ and SecondRoleAddOnPriceMinorUnits must be set. */
     canUsePackages?: boolean;
     /** Maximum number of active clients allowed under this plan. Null means unlimited. */
     maxActiveClients?: number | undefined;
-    /** Plan price, expressed in the smallest unit of Currency. */
+    /** Monthly plan price, expressed in the smallest unit of Currency. */
     priceMinorUnits?: number;
     /** ISO 4217 currency code for PriceMinorUnits. */
     currency?: string;
-    /** Billing cadence for this plan. */
-    billingInterval?: BillingInterval;
+    /** Annual plan price per year. Omit when the plan is not sold annually; never set on the Free plan. */
+    annualPriceMinorUnits?: number | undefined;
+    /** Annual price of the second-role add-on per year. Required with an annual price when the plan has a paid add-on;
+not allowed when both roles are included or there is no annual price. */
+    annualSecondRoleAddOnPriceMinorUnits?: number | undefined;
     /** Ignored. The backend creates the Stripe price itself when a price row opens; the field stays only so existing
 clients keep working. The response returns the price id the backend stored. */
     externalPriceId?: string | undefined;
@@ -31695,7 +31738,7 @@ export interface CoachPlanDto {
     nameEn?: string;
     /** German plan name. */
     nameDe?: string;
-    /** Current price per billing interval, in the smallest unit of Currency. */
+    /** Current monthly price, in the smallest unit of Currency. */
     priceMinorUnits?: number;
     /** Current price of the second-role add-on in the same unit; null when both roles are included. */
     secondRoleAddOnPriceMinorUnits?: number | undefined;
@@ -31707,7 +31750,17 @@ the real charge. */
     /** Display-only second-role add-on price after the promotion; null when no promotion covers this plan or the plan has
 no add-on. A promotion that covers a plan always discounts its add-on line too. */
     discountedSecondRoleAddOnPriceMinorUnits?: number | undefined;
-    /** How often the plan is billed. */
+    /** Annual plan price per year; null when the plan is not sold annually. */
+    annualPriceMinorUnits?: number | undefined;
+    /** Annual second-role add-on price per year; null when not sold annually or the plan has no annual add-on. */
+    annualSecondRoleAddOnPriceMinorUnits?: number | undefined;
+    /** Display-only annual plan price after the promotion; null when not sold annually or no promotion covers this plan. */
+    annualDiscountedPriceMinorUnits?: number | undefined;
+    /** Display-only annual add-on price after the promotion; null when not covered or there is no annual add-on. */
+    annualDiscountedSecondRoleAddOnPriceMinorUnits?: number | undefined;
+    /** Whole percent the annual plan line saves against twelve monthly ones; null when there is no saving. */
+    annualSavingPercent?: number | undefined;
+    /** Billing cadence of the monthly price fields; always Monthly, the annual price has its own fields. */
     billingInterval?: BillingInterval;
     /** Active-client cap; null means unlimited. */
     maxActiveClients?: number | undefined;
@@ -31755,6 +31808,8 @@ export interface CoachPromotionDto {
     duration?: PromotionDuration;
     /** Months the discount lasts; set only for Months. */
     durationMonths?: number | undefined;
+    /** Which billing cadences the promotion discounts; the discounted fields of a cadence it does not cover stay null. */
+    billingPeriod?: PromotionBillingPeriod;
     /** Last moment the offer can be claimed; null for no end. */
     claimUntil?: string | undefined;
     /** Codes of the plans the promotion covers. */
@@ -34473,6 +34528,8 @@ export interface PreviewPlanChangeResponse {
     timing?: PlanChangeTiming;
     /** How often the target plan bills. */
     billingInterval?: BillingInterval;
+    /** How often the caller's current subscription bills. */
+    currentBillingInterval?: BillingInterval;
     /** ISO 4217 currency of every amount. */
     currency?: string;
     /** The prorated amount charged now including tax; zero when the change is scheduled for renewal. */
@@ -34501,6 +34558,8 @@ export enum PlanChangeTiming {
 export interface PreviewPlanChangeRequest {
     /** Code of the paid plan to move to. Never the Free plan. */
     planCode: string;
+    /** How often the target plan bills. Monthly when omitted, so clients that predate annual billing keep working. */
+    billingInterval?: BillingInterval;
 }
 
 /** The Stripe Customer Portal page to send the coach to. */
@@ -34519,10 +34578,15 @@ export interface CreateCheckoutSessionResponse {
 export interface CreateCheckoutSessionRequest {
     /** Code of the paid plan to buy. Never the Free plan. */
     planCode: string;
+    /** How often the plan bills. Monthly when omitted, so clients that predate annual billing keep working. */
+    billingInterval?: BillingInterval;
     /** Ignored: the server bills the second-role add-on from the coach's active roles. Kept so existing clients still bind. */
     includeSecondRoleAddOn?: boolean;
     /** Where the coach started, so the return URL lands on the right page. Never a URL. */
     flow?: CheckoutFlow;
+    /** Optional promotion code typed in our app. It is checked against our promotion before anything is sent to Stripe and
+replaces the automatic promotion. Never logged or echoed back. */
+    code?: string | undefined;
 }
 
 /** Where in the web app a coach started a checkout, so the return URL lands on the right page. */
@@ -34563,6 +34627,8 @@ export interface ChangePlanResponse {
 export interface ChangePlanRequest {
     /** Code of the paid plan to move to. Never the Free plan. */
     planCode: string;
+    /** How often the target plan bills. Monthly when omitted, so clients that predate annual billing keep working. */
+    billingInterval?: BillingInterval;
     /** Client-generated id of this attempt. It keys the charge, so a double click does not bill twice; the client sends a
 fresh one after a declined card. */
     attemptId: string;
@@ -35210,6 +35276,8 @@ export interface PromotionDto {
     claimFrom?: string;
     /** When the promotion stops being claimable; null for no end. */
     claimUntil?: string | undefined;
+    /** Which billing cadences the promotion discounts. */
+    billingPeriod?: PromotionBillingPeriod;
     /** Codes of the plans the promotion covers. */
     planCodes?: string[];
     /** Most coaches who may claim it; null for no limit. */
@@ -35277,6 +35345,9 @@ export interface CreatePromotionRequest {
     claimFrom?: string;
     /** When the promotion stops being claimable; null for no end. Must be after ClaimFrom. */
     claimUntil?: string | undefined;
+    /** Which billing cadences the promotion discounts; both when omitted. An annual-only promotion needs every selected plan
+to have an open annual price. */
+    billingPeriod?: PromotionBillingPeriod;
     /** Codes of the paid plans the promotion covers; at least one. */
     planCodes: string[];
     /** Most coaches who may claim it, at least 1; null for no limit. */
