@@ -81,7 +81,7 @@ public class GetCoachPlansEndpointTests(FitnessApiFactory factory)
             PriceMinorUnits = pro.PriceMinorUnits,
             SecondRoleAddOnPriceMinorUnits = pro.SecondRoleAddOnPriceMinorUnits,
             Currency = pro.Currency,
-            BillingInterval = pro.BillingInterval,
+            BillingInterval = BillingInterval.Monthly,
             MaxActiveClients = pro.MaxActiveClients,
             BothRolesIncluded = pro.BothRolesIncluded,
             CanCreatePlans = pro.CanCreatePlans,

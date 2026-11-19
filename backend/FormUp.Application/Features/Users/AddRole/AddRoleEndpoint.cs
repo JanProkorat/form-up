@@ -278,7 +278,7 @@ public class AddRoleEndpoint(
                     pendingPriceId,
                     addOnAmount,
                     pending.Currency,
-                    pendingPlan.BillingInterval,
+                    pending.BillingInterval,
                     atNextRenewal: true,
                     ct);
             }

@@ -49,7 +49,6 @@ public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory) : ID
             SecondRoleAddOnPriceMinorUnits = 5000,
             Currency = "CZK",
             PriceMinorUnits = 10000,
-            BillingInterval = BillingInterval.Monthly,
             MaxActiveClients = 5,
             IsActive = true,
         };
@@ -95,7 +94,6 @@ public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory) : ID
         MaxActiveClients: 20,
         PriceMinorUnits: 50000,
         Currency: "EUR",
-        BillingInterval: "Annual",
         ExternalPriceId: "price_123",
         IsActive: true);
 
@@ -123,7 +121,6 @@ public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory) : ID
 
         persisted.NameEn.Should().Be("Updated");
         persisted.PriceMinorUnits.Should().Be(50000);
-        persisted.BillingInterval.Should().Be(BillingInterval.Annual);
         persisted.CanUsePayments.Should().BeTrue();
         persisted.CanUsePackages.Should().BeTrue();
         persisted.CanUseAutomations.Should().BeTrue();
@@ -284,7 +281,7 @@ public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory) : ID
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         fake.Prices.Should().ContainSingle(call => call.PlanCode == code)
-            .Which.Should().Be(new FakeSubscriptionService.PriceCall(code, 50000, "EUR", BillingInterval.Annual));
+            .Which.Should().Be(new FakeSubscriptionService.PriceCall(code, 50000, "EUR", BillingInterval.Monthly));
     }
 
     [Fact]
@@ -391,7 +388,7 @@ public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory) : ID
 
         var response = await client.PutAsJsonAsync(
             "/admin/subscription-plans/free",
-            UpdatedPayload("free") with { PriceMinorUnits = 100, Currency = "CZK", BillingInterval = "Monthly" },
+            UpdatedPayload("free") with { PriceMinorUnits = 100, Currency = "CZK" },
             TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.Conflict);
@@ -411,7 +408,6 @@ public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory) : ID
             {
                 PriceMinorUnits = 0,
                 Currency = "CZK",
-                BillingInterval = "Monthly",
                 IsActive = false,
             },
             TestContext.Current.CancellationToken);
@@ -517,7 +513,6 @@ public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory) : ID
                 // MaxActiveClients intentionally omitted — must 400, not silently grant unlimited.
                 PriceMinorUnits = 50000,
                 Currency = "EUR",
-                BillingInterval = "Annual",
                 IsActive = true,
             },
             TestContext.Current.CancellationToken);
@@ -556,7 +551,6 @@ public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory) : ID
                 MaxActiveClients = 20,
                 PriceMinorUnits = 50000,
                 Currency = "EUR",
-                BillingInterval = "Annual",
                 // IsActive intentionally omitted — must 400, not silently deactivate.
             },
             TestContext.Current.CancellationToken);
@@ -595,7 +589,6 @@ public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory) : ID
                 MaxActiveClients = 20,
                 PriceMinorUnits = 50000,
                 Currency = "EUR",
-                BillingInterval = "Annual",
                 IsActive = true,
             },
             TestContext.Current.CancellationToken);
@@ -634,7 +627,6 @@ public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory) : ID
                 MaxActiveClients = 20,
                 PriceMinorUnits = 50000,
                 Currency = "EUR",
-                BillingInterval = "Annual",
                 IsActive = true,
             },
             TestContext.Current.CancellationToken);
@@ -687,8 +679,9 @@ public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory) : ID
         int? MaxActiveClients,
         long PriceMinorUnits,
         string Currency,
-        string BillingInterval,
         string? ExternalPriceId,
         bool IsActive,
-        bool MoveExistingCoachesAtNextRenewal = false);
+        bool MoveExistingCoachesAtNextRenewal = false,
+        long? AnnualPriceMinorUnits = null,
+        long? AnnualSecondRoleAddOnPriceMinorUnits = null);
 }

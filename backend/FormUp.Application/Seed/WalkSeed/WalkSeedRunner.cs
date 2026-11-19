@@ -100,6 +100,7 @@ internal sealed class WalkSeedRunner(
             .AsNoTracking()
             .Where(p => p.SubscriptionPlan.Code == planCode
                         && p.ValidTo == null
+                        && p.BillingInterval == BillingInterval.Monthly
                         && (!requireExternalId || p.ExternalPriceId != null))
             .OrderByDescending(p => p.Id)
             .Select(p => new { p.SubscriptionPlanId, p.Id, p.ExternalPriceId })

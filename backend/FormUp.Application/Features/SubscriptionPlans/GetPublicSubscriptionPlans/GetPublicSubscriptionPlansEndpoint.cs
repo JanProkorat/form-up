@@ -1,5 +1,6 @@
 using FastEndpoints;
 using FormUp.Application.Domain.Constants;
+using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Services;
 using FormUp.Application.Features.SubscriptionPlans.Shared;
@@ -97,7 +98,7 @@ internal sealed class GetPublicSubscriptionPlansEndpoint(IApplicationDbContext d
             DiscountedSecondRoleAddOnPriceMinorUnits = discountedAddOn,
             BothRolesIncluded = plan.BothRolesIncluded,
             Currency = plan.Currency,
-            BillingInterval = plan.BillingInterval,
+            BillingInterval = BillingInterval.Monthly,
             MaxActiveClients = plan.MaxActiveClients,
             CanCreatePlans = plan.CanCreatePlans,
             CanMessage = plan.CanMessage,

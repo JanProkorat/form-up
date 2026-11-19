@@ -3676,10 +3676,6 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
-                    b.Property<int>("BillingInterval")
-                        .HasColumnType("integer")
-                        .HasColumnName("billing_interval");
-
                     b.Property<bool>("BothRolesIncluded")
                         .HasColumnType("boolean")
                         .HasColumnName("both_roles_included");
@@ -3804,6 +3800,10 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<int>("BillingInterval")
+                        .HasColumnType("integer")
+                        .HasColumnName("billing_interval");
+
                     b.Property<string>("Currency")
                         .IsRequired()
                         .HasMaxLength(3)
@@ -3846,9 +3846,9 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                     b.HasKey("Id")
                         .HasName("pk_subscription_plan_prices");
 
-                    b.HasIndex("SubscriptionPlanId")
+                    b.HasIndex("SubscriptionPlanId", "BillingInterval")
                         .IsUnique()
-                        .HasDatabaseName("ix_subscription_plan_prices_subscription_plan_id")
+                        .HasDatabaseName("ix_subscription_plan_prices_subscription_plan_id_billing_inter")
                         .HasFilter("valid_to IS NULL");
 
                     b.ToTable("subscription_plan_prices", (string)null);

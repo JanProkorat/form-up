@@ -82,7 +82,7 @@ internal sealed class PreviewSecondRoleAddOnEndpoint(
                 subscription.SubscriptionPlan.Code,
                 addOnAmount,
                 price.Currency,
-                subscription.SubscriptionPlan.BillingInterval,
+                price.BillingInterval,
                 ct);
         }
         catch (BillingProviderException)
@@ -113,7 +113,7 @@ internal sealed class PreviewSecondRoleAddOnEndpoint(
                 DiscountedAddOnAmountMinorUnits = discounted?.AddOn,
                 DiscountedNewTotalMinorUnits = discounted is { } pair ? pair.Plan + (pair.AddOn ?? 0) : null,
                 PromotionEndsAt = applies ? promotion!.CurrentPromotionEndsAt : null,
-                BillingInterval = subscription.SubscriptionPlan.BillingInterval,
+                BillingInterval = price.BillingInterval,
                 Currency = price.Currency,
                 TodayAmountMinorUnits = preview.TodayAmountMinorUnits,
                 TodayTaxMinorUnits = preview.TodayTaxMinorUnits,

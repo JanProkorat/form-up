@@ -1,4 +1,3 @@
-using FormUp.Application.Domain.Enums;
 using FormUp.Application.Features.SubscriptionPlans.Shared;
 
 namespace FormUp.Application.Features.SubscriptionPlans.UpdateSubscriptionPlan;
@@ -91,14 +90,23 @@ public class UpdateSubscriptionPlanRequest
     /// </summary>
     public OptionalField<int?> MaxActiveClients { get; set; }
 
-    /// <summary>Plan price, expressed in the smallest unit of <see cref="Currency"/>.</summary>
+    /// <summary>Monthly plan price, expressed in the smallest unit of <see cref="Currency"/>.</summary>
     public long PriceMinorUnits { get; set; }
 
     /// <summary>ISO 4217 currency code for <see cref="PriceMinorUnits"/>.</summary>
     public string Currency { get; set; } = string.Empty;
 
-    /// <summary>Billing cadence for this plan.</summary>
-    public BillingInterval BillingInterval { get; set; }
+    /// <summary>
+    /// Annual plan price per year. A PUT is a full update: omitting it closes the plan's open annual price, so the plan
+    /// is no longer sold annually (coaches already on it keep their row). Never set on the Free plan.
+    /// </summary>
+    public long? AnnualPriceMinorUnits { get; set; }
+
+    /// <summary>
+    /// Annual price of the second-role add-on per year. Required with an annual price when the plan has a paid add-on;
+    /// not allowed when both roles are included or there is no annual price.
+    /// </summary>
+    public long? AnnualSecondRoleAddOnPriceMinorUnits { get; set; }
 
     /// <summary>
     /// Ignored. The backend creates the Stripe price itself when a price row opens; the field stays only so existing

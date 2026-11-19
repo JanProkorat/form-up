@@ -95,7 +95,7 @@ internal sealed class ConfirmSecondRoleAddOnEndpoint(
                 subscription.SubscriptionPlan.Code,
                 subscription.SubscriptionPlanPrice.SecondRoleAddOnPriceMinorUnits!.Value,
                 subscription.SubscriptionPlanPrice.Currency,
-                subscription.SubscriptionPlan.BillingInterval,
+                subscription.SubscriptionPlanPrice.BillingInterval,
                 $"formup-second-role-{subscription.ExternalSubscriptionId}-{req.AttemptId:N}",
                 ct,
                 await FindRoleToAddAsync(userId, ct));

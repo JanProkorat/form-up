@@ -852,7 +852,8 @@ public static class QaSeedRunner
 
         var studioPrice = await db.SubscriptionPlanPrices
             .AsNoTracking()
-            .Where(p => p.SubscriptionPlan.Code == "studio" && p.ValidTo == null)
+            .Where(p => p.SubscriptionPlan.Code == "studio" && p.ValidTo == null
+                        && p.BillingInterval == BillingInterval.Monthly)
             .Select(p => new { p.Id, p.SubscriptionPlanId })
             .FirstOrDefaultAsync()
             ?? throw new InvalidOperationException(
@@ -949,7 +950,8 @@ public static class QaSeedRunner
 
         var price = await db.SubscriptionPlanPrices
             .AsNoTracking()
-            .Where(p => p.SubscriptionPlan.Code == planCode && p.ValidTo == null)
+            .Where(p => p.SubscriptionPlan.Code == planCode && p.ValidTo == null
+                        && p.BillingInterval == BillingInterval.Monthly)
             .Select(p => new { p.Id, p.SubscriptionPlanId })
             .FirstOrDefaultAsync()
             ?? throw new InvalidOperationException(
