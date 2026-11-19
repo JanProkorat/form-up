@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import {
-  BillingInterval,
   type CreateSubscriptionPlanRequest,
   type SubscriptionPlanDto,
   type UpdateSubscriptionPlanBody,
@@ -208,7 +207,6 @@ export function formValuesToCreateRequest(values: PlanFormValues): CreateSubscri
     maxActiveClients: values.unlimited ? undefined : Number(values.maxActiveClients),
     priceMinorUnits: inputToMinor(values.price),
     currency: DEFAULT_CURRENCY,
-    billingInterval: BillingInterval.Monthly,
     isActive: values.isActive,
   };
 }
@@ -233,7 +231,6 @@ export function formValuesToUpdateRequest(
     maxActiveClients: values.unlimited ? null : Number(values.maxActiveClients),
     priceMinorUnits,
     currency: plan.currency ?? DEFAULT_CURRENCY,
-    billingInterval: plan.billingInterval ?? BillingInterval.Monthly,
     isActive: isFreePlan(plan) ? true : values.isActive,
   };
 }
