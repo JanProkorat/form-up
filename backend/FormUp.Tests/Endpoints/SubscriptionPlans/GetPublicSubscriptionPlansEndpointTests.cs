@@ -182,7 +182,7 @@ public class GetPublicSubscriptionPlansEndpointTests(FitnessApiFactory factory) 
         using var document = JsonDocument.Parse(anonymousBody);
         var promotionNames = document.RootElement.GetProperty("promotion").EnumerateObject().Select(property => property.Name).ToList();
         promotionNames.Should().BeEquivalentTo(
-            "name", "kind", "value", "currency", "duration", "durationMonths", "claimUntil", "planCodes");
+            "name", "kind", "value", "currency", "duration", "durationMonths", "billingPeriod", "claimUntil", "planCodes");
         anonymousBody.Should().NotContainAny("stripe", "maxUses", "usedCount", "newCoachesOnly", "oneUsePerCoach", "\"code\":\"CODE");
     }
 

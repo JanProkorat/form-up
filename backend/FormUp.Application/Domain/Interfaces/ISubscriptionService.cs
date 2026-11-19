@@ -168,7 +168,8 @@ public interface ISubscriptionService
     Task<string> CreateCouponAsync(CouponSpec spec, CancellationToken ct);
 
     /// <summary>
-    /// Creates a customer-facing promotion code for a coupon and returns its id. The code is usable at Checkout.
+    /// Creates a customer-facing promotion code for a coupon and returns its id. No longer called for new promotions: codes
+    /// are typed in our own app and resolved to a coupon there. Kept with the deactivation below for promotions made before.
     /// </summary>
     /// <param name="couponId">The provider coupon id.</param>
     /// <param name="code">The code text customers type.</param>
