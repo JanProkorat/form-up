@@ -103,6 +103,7 @@ function DrawerBody({ onSubmit, isSaving, onClose }: BodyProps) {
   const kind = values.kind ?? initial.kind;
   const mode = values.mode ?? initial.mode;
   const duration = values.duration ?? initial.duration;
+  const billingPeriod = values.billingPeriod ?? initial.billingPeriod;
   const today = toDateInput(new Date());
 
   const submit = handleSubmit(async (formValues) => {
@@ -241,6 +242,39 @@ function DrawerBody({ onSubmit, isSaving, onClose }: BodyProps) {
               </Field>
             </div>
           )}
+          <div className="flex flex-col gap-1.5">
+            <span className="text-body font-medium text-ink-2">{t('adminPromotions.drawer.billingPeriod')}</span>
+            <div
+              role="group"
+              aria-label={t('adminPromotions.drawer.billingPeriod')}
+              className="grid grid-cols-3 gap-2"
+            >
+              <ChoiceButton
+                selected={billingPeriod === 'monthly'}
+                icon={null}
+                onClick={() => setValue('billingPeriod', 'monthly', { shouldDirty: true })}
+              >
+                {t('adminPromotions.drawer.periodMonthly')}
+              </ChoiceButton>
+              <ChoiceButton
+                selected={billingPeriod === 'annual'}
+                icon={null}
+                onClick={() => setValue('billingPeriod', 'annual', { shouldDirty: true })}
+              >
+                {t('adminPromotions.drawer.periodAnnual')}
+              </ChoiceButton>
+              <ChoiceButton
+                selected={billingPeriod === 'both'}
+                icon={null}
+                onClick={() => setValue('billingPeriod', 'both', { shouldDirty: true })}
+              >
+                {t('adminPromotions.drawer.periodBoth')}
+              </ChoiceButton>
+            </div>
+            {billingPeriod !== 'monthly' && (
+              <span className="text-meta font-normal text-muted-foreground">{t('adminPromotions.drawer.annualHint')}</span>
+            )}
+          </div>
         </section>
 
         <section className="flex flex-col gap-4">
