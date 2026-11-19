@@ -99,6 +99,11 @@ export default function AddRoleDialog({ role, onClose, onPaid, adding }: Props) 
   const studio = (plansQuery.data?.plans ?? [])
     .filter((plan) => plan.bothRolesIncluded && (plan.priceMinorUnits ?? 0) > 0)
     .sort((a, b) => (a.priceMinorUnits ?? 0) - (b.priceMinorUnits ?? 0))[0];
+  // The Studio line follows the subscription's interval; a Studio not sold yearly falls back to its monthly price.
+  const studioAnnual =
+    preview?.billingInterval === BillingInterval.Annual && (studio?.annualPriceMinorUnits ?? 0) > 0;
+  const studioPrice = studioAnnual ? (studio?.annualPriceMinorUnits ?? 0) : (studio?.priceMinorUnits ?? 0);
+  const studioPer = t(`subscription.planChoice.card.per.${studioAnnual ? 'year' : 'month'}`);
 
   const pay = () => {
     setConfirmError(null);
@@ -202,7 +207,8 @@ export default function AddRoleDialog({ role, onClose, onPaid, adding }: Props) 
                 <span>
                   {t('subscription.billing.addRole.studio', {
                     plan: coachPlanName(studio, language),
-                    price: formatMoney(studio.priceMinorUnits ?? 0, studio.currency ?? currency, language),
+                    price: formatMoney(studioPrice, studio.currency ?? currency, language),
+                    per: studioPer,
                   })}
                 </span>
                 <Link

@@ -414,7 +414,7 @@
         "today_other": "Today you pay {{amount}} for the {{count}} days left until {{date}}.",
         "todayNoDate": "Today you pay {{amount}} for the rest of this billing period.",
         "taxIncluded": "Includes {{tax}} VAT.",
-        "studio": "{{plan}} includes both roles for {{price}}.",
+        "studio": "{{plan}} includes both roles for {{price}} {{per}}.",
         "compare": "Compare plans",
         "confirm": "Add role · pay {{amount}}",
         "alreadyPaid": "The second role is already paid for, so adding it costs nothing today.",

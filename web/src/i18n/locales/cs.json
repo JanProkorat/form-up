@@ -420,7 +420,7 @@
         "today_other": "Dnes zaplatíte {{amount}} za {{count}} dní do {{date}}.",
         "todayNoDate": "Dnes zaplatíte {{amount}} za zbytek tohoto období.",
         "taxIncluded": "Včetně DPH {{tax}}.",
-        "studio": "Tarif {{plan}} zahrnuje obě role za {{price}}.",
+        "studio": "Tarif {{plan}} zahrnuje obě role za {{price}} {{per}}.",
         "compare": "Porovnat tarify",
         "confirm": "Přidat roli · zaplatit {{amount}}",
         "alreadyPaid": "Druhá role je už zaplacená, přidání dnes nic nestojí.",

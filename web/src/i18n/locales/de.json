@@ -414,7 +414,7 @@
         "today_other": "Heute zahlen Sie {{amount}} für die {{count}} Tage bis zum {{date}}.",
         "todayNoDate": "Heute zahlen Sie {{amount}} für den Rest dieses Abrechnungszeitraums.",
         "taxIncluded": "Enthält {{tax}} MwSt.",
-        "studio": "{{plan}} enthält beide Rollen für {{price}}.",
+        "studio": "{{plan}} enthält beide Rollen für {{price}} {{per}}.",
         "compare": "Tarife vergleichen",
         "confirm": "Rolle hinzufügen · {{amount}} zahlen",
         "alreadyPaid": "Die zweite Rolle ist bereits bezahlt, das Hinzufügen kostet heute nichts.",
