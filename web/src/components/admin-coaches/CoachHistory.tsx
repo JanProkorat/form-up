@@ -16,12 +16,18 @@ const HISTORY_KEY: Record<AdminCoachHistoryKind, string> = {
   [AdminCoachHistoryKind.RoleAdded]: 'roleAdded',
   [AdminCoachHistoryKind.RoleRemoved]: 'roleRemoved',
   [AdminCoachHistoryKind.PlanEnded]: 'planEnded',
+  [AdminCoachHistoryKind.ChoseFreePlan]: 'choseFreePlan',
+  [AdminCoachHistoryKind.PaidPlanStarted]: 'paidPlanStarted',
+  [AdminCoachHistoryKind.PaidPlanUpgraded]: 'paidPlanUpgraded',
+  [AdminCoachHistoryKind.PaidPlanDowngraded]: 'paidPlanDowngraded',
+  [AdminCoachHistoryKind.PaidPlanEnded]: 'paidPlanEnded',
 };
 
 /** Entries that end something get a red dot. */
 const ENDING_KINDS: ReadonlySet<AdminCoachHistoryKind> = new Set([
   AdminCoachHistoryKind.AccountDisabled,
   AdminCoachHistoryKind.PlanEnded,
+  AdminCoachHistoryKind.PaidPlanEnded,
 ]);
 
 interface Props {

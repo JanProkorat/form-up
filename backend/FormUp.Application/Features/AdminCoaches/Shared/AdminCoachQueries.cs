@@ -47,6 +47,7 @@ internal static class AdminCoachQueries
         PriceMinorUnits = (long?)profile.CoachSubscription!.SubscriptionPlanPrice.PriceMinorUnits,
         AddOnMinorUnits = profile.CoachSubscription!.SubscriptionPlanPrice.SecondRoleAddOnPriceMinorUnits,
         Currency = profile.CoachSubscription!.SubscriptionPlanPrice.Currency,
+        StripeCustomerId = profile.CoachSubscription!.ExternalCustomerId,
     };
 
     /// <summary>

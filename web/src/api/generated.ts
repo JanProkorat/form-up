@@ -35844,7 +35844,7 @@ export interface GetAdminCoachResponse {
     givenFreeUntil?: string | undefined;
     /** True when the renewal is cancelled. */
     cancelAtPeriodEnd?: boolean;
-    /** Why the last payment failed. Always null: there is no payment provider yet. */
+    /** Why the last payment failed. Always null: the failure reason is not stored. */
     failureDetail?: string | undefined;
     /** Active clients: distinct clients with a link that is not ended. */
     clientsUsed?: number;
@@ -35857,6 +35857,8 @@ or Incomplete), so the unused days are refunded to the card. */
     hasCancellableSubscription?: boolean;
     /** The Free plan's client limit, to show what ending the plan leaves; null means unlimited. */
     freePlanMaxActiveClients?: number | undefined;
+    /** The coach's Stripe customer id; null when the coach has no subscription row or no Stripe customer yet. */
+    stripeCustomerId?: string | undefined;
     /** Newest first. Holds the admin and coach actions on the subscription and account, not payments. */
     history?: AdminCoachHistoryEntryDto[];
 }
@@ -35892,6 +35894,11 @@ export enum AdminCoachHistoryKind {
     RoleAdded = "RoleAdded",
     RoleRemoved = "RoleRemoved",
     PlanEnded = "PlanEnded",
+    ChoseFreePlan = "ChoseFreePlan",
+    PaidPlanStarted = "PaidPlanStarted",
+    PaidPlanUpgraded = "PaidPlanUpgraded",
+    PaidPlanDowngraded = "PaidPlanDowngraded",
+    PaidPlanEnded = "PaidPlanEnded",
 }
 
 /** Request for one coach's admin detail. */

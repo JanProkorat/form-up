@@ -57,4 +57,6 @@ internal class AdminCoachRecord
     public long? AddOnMinorUnits { get; set; }
 
     public string? Currency { get; set; }
+
+    public string? StripeCustomerId { get; set; }
 }

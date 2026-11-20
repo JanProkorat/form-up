@@ -51,7 +51,7 @@ public class GetAdminCoachResponse
     /// <summary>True when the renewal is cancelled.</summary>
     public bool CancelAtPeriodEnd { get; set; }
 
-    /// <summary>Why the last payment failed. Always null: there is no payment provider yet.</summary>
+    /// <summary>Why the last payment failed. Always null: the failure reason is not stored.</summary>
     public string? FailureDetail { get; set; }
 
     /// <summary>Active clients: distinct clients with a link that is not ended.</summary>
@@ -71,6 +71,9 @@ public class GetAdminCoachResponse
 
     /// <summary>The Free plan's client limit, to show what ending the plan leaves; null means unlimited.</summary>
     public int? FreePlanMaxActiveClients { get; set; }
+
+    /// <summary>The coach's Stripe customer id; null when the coach has no subscription row or no Stripe customer yet.</summary>
+    public string? StripeCustomerId { get; set; }
 
     /// <summary>Newest first. Holds the admin and coach actions on the subscription and account, not payments.</summary>
     public List<AdminCoachHistoryEntryDto> History { get; set; } = [];

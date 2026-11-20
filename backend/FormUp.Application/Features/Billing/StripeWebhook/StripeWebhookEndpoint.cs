@@ -130,8 +130,8 @@ internal sealed class StripeWebhookEndpoint(
     }
 
     /// <summary>
-    /// Tells the coach's open app to refresh the subscription after a saved change. A failure is logged and swallowed so
-    /// Stripe still gets its 200.
+    /// Tells the coach's open app, and every connected admin, to refresh the subscription after a saved change. Each
+    /// failure is logged and swallowed so Stripe still gets its 200.
     /// </summary>
     private async Task TryNotifyCoachAsync(string eventId, long profileId, CancellationToken ct)
     {
@@ -153,6 +153,20 @@ internal sealed class StripeWebhookEndpoint(
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             logger.LogWarning(ex, "Subscription change notification failed for Stripe event {EventId} and coach {CoachId}", eventId, coachUserId);
+        }
+
+        if (coachUserId is not { } adminViewCoachId)
+        {
+            return;
+        }
+
+        try
+        {
+            await notifier.NotifyAdminsAsync("admincoachsubscriptionchanged", new { coachId = adminViewCoachId }, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogWarning(ex, "Admin subscription change notification failed for Stripe event {EventId} and coach {CoachId}", eventId, adminViewCoachId);
         }
     }
 

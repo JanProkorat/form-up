@@ -13,12 +13,21 @@ public class NotificationHub(
     PresenceTracker presence,
     IServiceScopeFactory scopeFactory) : Hub
 {
+    /// <summary>Group every connected admin belongs to; receives the admin-only events.</summary>
+    public const string AdminGroup = "admins";
+
     public override async Task OnConnectedAsync()
     {
         var userId = Context.User?.FindFirst(AppClaims.UserId)?.Value;
         if (userId is not null)
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, userId);
+
+            if (Context.User?.IsInRole(AppRoles.Admin) == true)
+            {
+                await Groups.AddToGroupAsync(Context.ConnectionId, AdminGroup);
+            }
+
             presence.UserConnected(userId);
             await BroadcastPresenceAsync(userId, true);
         }
@@ -31,6 +40,12 @@ public class NotificationHub(
         if (userId is not null)
         {
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, userId);
+
+            if (Context.User?.IsInRole(AppRoles.Admin) == true)
+            {
+                await Groups.RemoveFromGroupAsync(Context.ConnectionId, AdminGroup);
+            }
+
             presence.UserDisconnected(userId);
             if (!presence.IsOnline(userId))
             {

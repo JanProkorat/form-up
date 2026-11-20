@@ -10,4 +10,9 @@ public class SignalRNotifier(IHubContext<NotificationHub> hubContext) : IRealtim
     {
         await hubContext.Clients.Group(userId.ToString()).SendAsync(eventType, payload, ct);
     }
+
+    public async Task NotifyAdminsAsync(string eventType, object payload, CancellationToken ct = default)
+    {
+        await hubContext.Clients.Group(NotificationHub.AdminGroup).SendAsync(eventType, payload, ct);
+    }
 }

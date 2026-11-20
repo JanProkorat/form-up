@@ -9,8 +9,10 @@ namespace FormUp.Tests.Infrastructure;
 public class FakeRealtimeNotifier : IRealtimeNotifier
 {
     private readonly List<NotifyCall> _calls = [];
+    private readonly List<AdminNotifyCall> _adminCalls = [];
     private readonly Lock _lock = new();
     private bool _throwOnNextCall;
+    private bool _throwOnNextAdminCall;
 
     /// <summary>
     /// Returns a snapshot of all recorded <c>NotifyAsync</c> invocations.
@@ -41,6 +43,34 @@ public class FakeRealtimeNotifier : IRealtimeNotifier
     }
 
     /// <summary>
+    /// Returns a snapshot of all recorded <c>NotifyAdminsAsync</c> invocations.
+    /// </summary>
+    public IReadOnlyList<AdminNotifyCall> AdminCalls
+    {
+        get
+        {
+            lock (_lock) return _adminCalls.ToList();
+        }
+    }
+
+    /// <inheritdoc />
+    public Task NotifyAdminsAsync(string eventType, object payload, CancellationToken ct = default)
+    {
+        lock (_lock)
+        {
+            if (_throwOnNextAdminCall)
+            {
+                _throwOnNextAdminCall = false;
+                throw new InvalidOperationException("hub unavailable (simulated)");
+            }
+
+            _adminCalls.Add(new AdminNotifyCall(eventType, payload));
+        }
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
     /// Clears all recorded calls. Call between tests if the notifier is shared.
     /// </summary>
     public void Reset()
@@ -48,7 +78,9 @@ public class FakeRealtimeNotifier : IRealtimeNotifier
         lock (_lock)
         {
             _calls.Clear();
+            _adminCalls.Clear();
             _throwOnNextCall = false;
+            _throwOnNextAdminCall = false;
         }
     }
 
@@ -63,7 +95,20 @@ public class FakeRealtimeNotifier : IRealtimeNotifier
     }
 
     /// <summary>
+    /// Configures the notifier to throw on the next <c>NotifyAdminsAsync</c> call only.
+    /// </summary>
+    public void SimulateThrowOnNextAdminCall()
+    {
+        lock (_lock) _throwOnNextAdminCall = true;
+    }
+
+    /// <summary>
     /// A single recorded invocation of <c>NotifyAsync</c>.
     /// </summary>
     public record NotifyCall(Guid UserId, string EventType, object Payload);
+
+    /// <summary>
+    /// A single recorded invocation of <c>NotifyAdminsAsync</c>.
+    /// </summary>
+    public record AdminNotifyCall(string EventType, object Payload);
 }

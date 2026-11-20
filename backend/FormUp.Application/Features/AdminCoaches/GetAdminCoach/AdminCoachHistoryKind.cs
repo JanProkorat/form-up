@@ -31,4 +31,19 @@ public enum AdminCoachHistoryKind
 
     /// <summary>An admin ended the paid or given plan at once.</summary>
     PlanEnded,
+
+    /// <summary>The coach chose the Free plan after a given plan ended.</summary>
+    ChoseFreePlan,
+
+    /// <summary>The coach's paid subscription went live.</summary>
+    PaidPlanStarted,
+
+    /// <summary>The coach moved to a dearer plan or price.</summary>
+    PaidPlanUpgraded,
+
+    /// <summary>The coach's plan or price went down.</summary>
+    PaidPlanDowngraded,
+
+    /// <summary>The coach's paid subscription ended, by the coach or at the provider.</summary>
+    PaidPlanEnded,
 }

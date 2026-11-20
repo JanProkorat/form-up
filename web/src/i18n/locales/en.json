@@ -6887,7 +6887,8 @@
       "clientsUnlimited": "{{used}}, unlimited",
       "actions": "Actions",
       "privacy": "Client names and data aren't shown to admins. Counts only.",
-      "openInStripe": "Open in Stripe"
+      "openInStripe": "Open in Stripe",
+      "noStripeCustomer": "This coach has no Stripe customer yet."
     },
     "actions": {
       "reason": "Reason",
@@ -6961,6 +6962,11 @@
         "givenFree_plain": "Changed to {{plan}}, no end date",
         "planAssigned": "Plan changed to {{plan}}",
         "planEnded": "Plan ended: {{plan}}",
+        "choseFreePlan": "Chose the Free plan",
+        "paidPlanStarted": "Paid plan started: {{plan}}",
+        "paidPlanUpgraded": "Paid plan upgraded: {{plan}}",
+        "paidPlanDowngraded": "Paid plan downgraded: {{plan}}",
+        "paidPlanEnded": "Paid plan ended",
         "renewalCancelled_until": "Renewal cancelled, plan ends {{date}}",
         "renewalCancelled_plain": "Renewal cancelled",
         "accountDisabled_until": "Account disabled, active until {{date}}",

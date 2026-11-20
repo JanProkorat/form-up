@@ -1262,7 +1262,10 @@
         "web/src/api/admin-coaches.ts",
         "web/src/components/admin-plans/planFeatureLabels.ts",
         "web/src/components/subscription/planFeatures.ts",
-        "web/src/hooks/useScrollEdgeFade.ts"
+        "web/src/hooks/useScrollEdgeFade.ts",
+        "web/src/hooks/useSignalR.ts",
+        "web/src/lib/config.ts",
+        "web/src/components/admin-reports/reportFormat.ts"
       ],
       "endpoints": [
         "GET /admin/coaches/{coachId}",
