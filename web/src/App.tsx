@@ -35,6 +35,7 @@ import AdminPlanEditorPage from '@/pages/AdminPlanEditorPage';
 import AdminCoachesPage from '@/pages/AdminCoachesPage';
 import AdminPromotionsPage from '@/pages/AdminPromotionsPage';
 import AdminCoachProfilePage from '@/pages/AdminCoachProfilePage';
+import AdminReportsPage from '@/pages/AdminReportsPage';
 import FormBuilderPage from '@/pages/FormBuilderPage';
 import IngredientsPage from '@/pages/IngredientsPage';
 import RecipesPage from '@/pages/RecipesPage';
@@ -144,6 +145,7 @@ const router = createBrowserRouter(
             <Route path="/admin/promotion-offers" element={<AdminPromotionsPage />} />
             <Route path="/admin/coach-accounts" element={<AdminCoachesPage />} />
             <Route path="/admin/coach-accounts/:coachId" element={<AdminCoachProfilePage />} />
+            <Route path="/admin/business-reports" element={<AdminReportsPage />} />
           </Route>
           <Route element={<RoleGuard allowedRoles={['Trainer', 'Nutritionist']} />}>
             <Route path={KEEP_CLIENTS_PATH} element={<LapseKeepClientsPage />} />

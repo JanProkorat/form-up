@@ -1,4 +1,5 @@
 using FormUp.Application.Domain.Interfaces;
+using FormUp.Application.Domain.Services;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Application.Infrastructure.Data.MongoDb;
 using FormUp.Application.Infrastructure.Services;
@@ -124,6 +125,18 @@ public class FitnessApiFactory(SharedTestContainers sharedContainers) : WebAppli
             services.AddSingleton<FakeSubscriptionService>();
             services.AddSingleton<ISubscriptionService>(
                 sp => sp.GetRequiredService<FakeSubscriptionService>());
+
+            // Coach-event recorder with a test hook (no-op unless a test sets one), to simulate a concurrent request
+            // storing the same idempotency key without starting a second host.
+            var recorderDescriptor = services.SingleOrDefault(
+                d => d.ServiceType == typeof(ICoachEventRecorder));
+            if (recorderDescriptor is not null)
+                services.Remove(recorderDescriptor);
+
+            services.AddSingleton<CoachEventRecorderHooks>();
+            services.AddScoped<ICoachEventRecorder>(sp => new HookedCoachEventRecorder(
+                ActivatorUtilities.CreateInstance<CoachEventRecorder>(sp),
+                sp.GetRequiredService<CoachEventRecorderHooks>()));
 
             // #1104: PBKDF2 at the production default (100,000 iterations) is deliberately slow
             // and dominates every real register/login round trip in the suite. Test-host-only —

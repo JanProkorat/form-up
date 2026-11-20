@@ -352,6 +352,75 @@ describe('RegisterPlanPage checkout', () => {
   });
 });
 
+describe('RegisterPlanPage keeping Free', () => {
+  /** Counts keep-free POSTs; answers with `respond` (204 unless a test says otherwise). */
+  function serveKeepFree(respond: () => Response = () => new HttpResponse(null, { status: 204 })) {
+    const calls: string[] = [];
+    server.use(
+      http.post(apiUrl('/users/me/subscription/keep-free'), () => {
+        calls.push('keep-free');
+        return respond();
+      }),
+    );
+    return calls;
+  }
+
+  it('Start free sends exactly one keep-free request and lands on /profile', async () => {
+    serve();
+    const calls = serveKeepFree();
+
+    const { user, router } = renderPlanStep();
+    const start = await within(await screen.findByRole('region', { name: 'Selected plan' })).findByRole('button', {
+      name: 'Start free',
+    });
+    await user.dblClick(start);
+
+    await vi.waitFor(() => expect(router.state.location.pathname).toBe('/profile'));
+    expect(calls).toHaveLength(1);
+  });
+
+  it('still lands on /profile, with no error shown, when the request is refused', async () => {
+    serve();
+    const calls = serveKeepFree(() => problem(409, 'NOT_ON_FREE_PLAN'));
+
+    const { user, router } = renderPlanStep();
+    await user.click(await within(await screen.findByRole('region', { name: 'Selected plan' })).findByRole('button', { name: 'Start free' }));
+
+    await vi.waitFor(() => expect(router.state.location.pathname).toBe('/profile'));
+    expect(calls).toHaveLength(1);
+    expect(useToastStore.getState().toasts).toHaveLength(0);
+  });
+
+  it('the plans-load-error "Start free" button records the choice too', async () => {
+    server.use(
+      http.get(apiUrl('/users/me/subscription'), () => HttpResponse.json(subscription)),
+      http.get(apiUrl('/users/me/subscription/plans'), () => HttpResponse.json({}, { status: 500 })),
+      http.get(apiUrl('/users/me/roles'), () => HttpResponse.json(roles)),
+    );
+    const calls = serveKeepFree();
+
+    const { user, router } = renderPlanStep();
+    await user.click(await screen.findByRole('button', { name: 'Start free' }));
+
+    await vi.waitFor(() => expect(router.state.location.pathname).toBe('/profile'));
+    expect(calls).toHaveLength(1);
+  });
+
+  it('choosing a paid plan and continuing sends no keep-free request', async () => {
+    serve();
+    const calls = serveKeepFree();
+    const bodies = serveCheckout();
+    vi.stubGlobal('location', { ...window.location, assign: vi.fn() });
+
+    const { user } = renderPlanStep();
+    await selectPlan(user, 'Pro');
+    await user.click(within(bar()).getByRole('button', { name: 'Continue to payment' }));
+
+    await vi.waitFor(() => expect(bodies).toHaveLength(1));
+    expect(calls).toHaveLength(0);
+  });
+});
+
 describe('RegisterPlanPage code errors', () => {
   async function submitCode(code: string, interval: 'Monthly' | 'Annual' = 'Monthly') {
     const rendered = renderPlanStep();

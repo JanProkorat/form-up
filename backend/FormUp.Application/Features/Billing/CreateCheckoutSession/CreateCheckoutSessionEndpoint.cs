@@ -21,9 +21,14 @@ namespace FormUp.Application.Features.Billing.CreateCheckoutSession;
 /// <param name="subscriptions">The payment provider seam.</param>
 /// <param name="timeProvider">Clock.</param>
 /// <param name="coachRoleStatus">Resolves the coach roles that are not removed.</param>
+/// <param name="coachEvents">Records that the coach chose a plan once the checkout exists.</param>
 [RemovedCoachRole(RemovedCoachRoleMode.Refuse)]
 internal sealed class CreateCheckoutSessionEndpoint(
-    IApplicationDbContext db, ISubscriptionService subscriptions, TimeProvider timeProvider, ICoachRoleStatus coachRoleStatus)
+    IApplicationDbContext db,
+    ISubscriptionService subscriptions,
+    TimeProvider timeProvider,
+    ICoachRoleStatus coachRoleStatus,
+    ICoachEventRecorder coachEvents)
     : Endpoint<CreateCheckoutSessionRequest, CreateCheckoutSessionResponse>
 {
     /// <inheritdoc />
@@ -163,6 +168,15 @@ internal sealed class CreateCheckoutSessionEndpoint(
                 req.Flow,
                 coach.Language,
                 ct);
+
+            // Stripe's session id is not exposed by the provider seam, so a coach's repeat of the same plan on the same day is one event.
+            await coachEvents.RecordAsync(
+                CoachEventType.ChosePlan,
+                userId,
+                $"checkout:{coach.ProfileId}:{price.Code}:{price.BillingInterval}:{timeProvider.GetUtcNow():yyyyMMdd}",
+                ct,
+                planCode: price.Code);
+            await CoachEventSaves.SaveIgnoringDuplicateAsync(db, ct);
 
             await Send.OkAsync(new CreateCheckoutSessionResponse { Url = url }, ct);
         }

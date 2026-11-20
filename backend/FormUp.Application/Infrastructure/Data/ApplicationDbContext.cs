@@ -166,6 +166,21 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public virtual DbSet<ProcessedWebhookEvent> ProcessedWebhookEvents { get; set; } = null!;
 
     /// <summary>
+    /// The coach sign-up and billing event history behind the admin Reports funnel.
+    /// </summary>
+    public virtual DbSet<CoachEvent> CoachEvents { get; set; } = null!;
+
+    /// <summary>
+    /// One row of totals per UTC day for the admin Reports trends.
+    /// </summary>
+    public virtual DbSet<DailyReportSnapshot> DailyReportSnapshots { get; set; } = null!;
+
+    /// <summary>
+    /// Paid Stripe invoices of coach subscriptions, for revenue reporting.
+    /// </summary>
+    public virtual DbSet<PaidInvoice> PaidInvoices { get; set; } = null!;
+
+    /// <summary>
     /// Our copy of the Stripe coupons that discount coach plans.
     /// </summary>
     public virtual DbSet<Promotion> Promotions { get; set; } = null!;

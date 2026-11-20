@@ -36,6 +36,7 @@ public class MockDbBuilder
     private readonly List<ClientTag> _clientTags = [];
     private readonly List<SubscriptionPlan> _subscriptionPlans = [];
     private readonly List<CoachSubscription> _coachSubscriptions = [];
+    private readonly List<CoachEvent> _coachEvents = [];
 
     /// <summary>
     /// Adds an <see cref="ApplicationUser"/> to the mock context.
@@ -172,6 +173,11 @@ public class MockDbBuilder
     public MockDbBuilder With(CoachSubscription subscription) { _coachSubscriptions.Add(subscription); return this; }
 
     /// <summary>
+    /// Adds a <see cref="CoachEvent"/> to the mock context.
+    /// </summary>
+    public MockDbBuilder With(CoachEvent coachEvent) { _coachEvents.Add(coachEvent); return this; }
+
+    /// <summary>
     /// The Free plan as the seed writes it, so a coach with no subscription row resolves to it in a unit test.
     /// </summary>
     private static SubscriptionPlan SeededFreePlan() => new()
@@ -235,6 +241,7 @@ public class MockDbBuilder
 
         var subscriptionPlansSet = _subscriptionPlans.BuildMockDbSet();
         var coachSubscriptionsSet = _coachSubscriptions.BuildMockDbSet();
+        var coachEventsSet = _coachEvents.BuildMockDbSet();
 
         // Built before the Returns() below, per the same NSubstitute pitfall noted above.
         var transaction = Substitute.For<IDbContextTransaction>();
@@ -267,6 +274,7 @@ public class MockDbBuilder
         db.ClientPaymentAssignments.Returns(clientPaymentAssignmentsSet);
         db.SubscriptionPlans.Returns(subscriptionPlansSet);
         db.CoachSubscriptions.Returns(coachSubscriptionsSet);
+        db.CoachEvents.Returns(coachEventsSet);
 
         db.SaveChangesAsync(Arg.Any<CancellationToken>()).Returns(1);
 

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import {
   BookOpen,
   CalendarDays,
+  ChartLine,
   ChevronDown,
   ChevronsLeft,
   ChevronsRight,
@@ -96,6 +97,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
       { to: '/admin/plans', labelKey: 'sidebar.adminPlans', Icon: Layers },
       { to: '/admin/promotion-offers', labelKey: 'sidebar.adminPromotions', Icon: Tag },
       { to: '/admin/coach-accounts', labelKey: 'sidebar.adminCoaches', Icon: Users },
+      { to: '/admin/business-reports', labelKey: 'sidebar.adminReports', Icon: ChartLine },
     ],
   },
 ];

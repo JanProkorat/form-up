@@ -23,8 +23,10 @@ namespace FormUp.Application.Features.Billing.ApplyPromotionCode;
 /// <param name="db">Application database context.</param>
 /// <param name="subscriptions">The payment provider seam.</param>
 /// <param name="timeProvider">Clock.</param>
+/// <param name="coachEvents">Records the applied code once Stripe has accepted it.</param>
 [RemovedCoachRole(RemovedCoachRoleMode.Refuse)]
-internal sealed class ApplyPromotionCodeEndpoint(IApplicationDbContext db, ISubscriptionService subscriptions, TimeProvider timeProvider)
+internal sealed class ApplyPromotionCodeEndpoint(
+    IApplicationDbContext db, ISubscriptionService subscriptions, TimeProvider timeProvider, ICoachEventRecorder coachEvents)
     : Endpoint<ApplyPromotionCodeRequest>
 {
     /// <inheritdoc />
@@ -121,7 +123,9 @@ internal sealed class ApplyPromotionCodeEndpoint(IApplicationDbContext db, ISubs
             return;
         }
 
+        await coachEvents.RecordPromotionAppliedAsync(subscription, promotion, ct);
+        await CoachEventSaves.SaveIgnoringDuplicateAsync(db, ct);
+
         await Send.NoContentAsync(ct);
     }
-
 }
