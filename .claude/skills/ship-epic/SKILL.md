@@ -372,6 +372,11 @@ set its state entry to `merged`, `SendMessage` any in-flight sibling to
 merge the new epic tip, and start every child whose dependencies are
 now all merged. When none are left, go to Phase 2.
 
+A child session that stops without reporting a merge (failed, stopped,
+or idle on a question) is not done: check its branch and PR, answer or
+surface its question, and send it a follow-up or finish the step here.
+Its dependents stay unstarted until it really merges.
+
 Steps 1a–1d, as run **inside the task session**:
 
 ### 1a. Task branch
@@ -400,8 +405,9 @@ result at `.claude/state/handoff-design-<N>.json`:
 - **APPROVE** → proceed to 1c. Pass `approved_scope` forward — the
   dev sub-agent reads it as its first action.
 - **NEEDS-REVISION** → tighten the brief per the findings, re-submit.
-  Loop up to 3 rounds total. Round 4 → escalate to user, mark this
-  child as blocked in `state/ship-epic.json`, continue with siblings.
+  Loop up to 3 rounds total. Round 4 → escalate to user and report the
+  block to the coordinator (it marks the child `blocked` in the state
+  file; siblings continue).
 - **BLOCK** → surface `blocked_reason` to user. Common: AC ambiguity
   → route to `github-issues` to clarify; missing parent epic branch
   → can't happen here since you created it in Phase 0.
@@ -418,7 +424,7 @@ scope→agent map in `.claude/CLAUDE.md`:
 - `BE` → `backend-dotnet`
 - `Web` → `web-react`
 - `Mobile` → `mobile-expo`
-- `Chore` with no package label → orchestrator handles it directly
+- `Chore` with no package label → the task session does it itself
 
 The prompt must include:
 
@@ -428,7 +434,7 @@ The prompt must include:
   epic #`$EPIC_N` and that the PR will target the epic branch, NOT
   `develop`. Without this nudge an agent that hasn't read the latest
   CLAUDE.md will default to `develop`.
-- The absolute worktree path if one was created (so the agent `cd`s
+- The task session's absolute worktree path (so the agent `cd`s
   there first).
 - A pointer to the epic so the agent has context.
 - An explicit reminder to run `regen-api` at the end if the child
