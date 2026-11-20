@@ -22,6 +22,7 @@ public class VerifyEmailEndpointTests
     private readonly IPendingInviteConversationSeeder _inviteConversationSeeder = Substitute.For<IPendingInviteConversationSeeder>();
     private readonly IPendingInviteNotificationSeeder _inviteNotificationSeeder = Substitute.For<IPendingInviteNotificationSeeder>();
     private readonly ILogger<VerifyEmailEndpoint> _logger = Substitute.For<ILogger<VerifyEmailEndpoint>>();
+    private readonly FormUp.Application.Domain.Interfaces.ICoachEventRecorder _coachEvents = Substitute.For<FormUp.Application.Domain.Interfaces.ICoachEventRecorder>();
 
     private static ApplicationUser CreateUser(Guid id, string email) => new()
     {
@@ -36,7 +37,7 @@ public class VerifyEmailEndpointTests
     private readonly UserManager<ApplicationUser> _userManager = EndpointTestHelpers.CreateFakeUserManager();
 
     private VerifyEmailEndpoint CreateEndpoint(Application.Infrastructure.Data.IApplicationDbContext db) =>
-        Factory.Create<VerifyEmailEndpoint>(db, _notifier, _inviteConversationSeeder, _inviteNotificationSeeder, _logger, _userManager);
+        Factory.Create<VerifyEmailEndpoint>(db, _notifier, _inviteConversationSeeder, _inviteNotificationSeeder, _logger, _userManager, _coachEvents);
 
     [Fact]
     public async Task HandleAsync_ValidToken_ConfirmsEmail_AndNotifies()
@@ -60,6 +61,38 @@ public class VerifyEmailEndpointTests
         user.EmailConfirmed.Should().BeTrue();
         token.UsedAt.Should().NotBeNull();
         await _notifier.Received(1).NotifyAsync(userId, "emailverified", Arg.Any<object>(), Arg.Any<CancellationToken>());
+    }
+
+    [Theory]
+    [InlineData(true, 1)]
+    [InlineData(false, 0)]
+    public async Task HandleAsync_ValidToken_RecordsEmailVerifiedForCoachesOnly(bool isCoach, int expectedEvents)
+    {
+        var userId = Guid.NewGuid();
+        var user = CreateUser(userId, "someone@example.com");
+        var token = new EmailVerificationToken
+        {
+            UserId = userId,
+            User = user,
+            Token = "valid-token",
+            ExpiresAt = DateTime.UtcNow.AddHours(1)
+        };
+        var builder = new MockDbBuilder().With(user).With(token);
+
+        if (isCoach)
+        {
+            builder.With(new ProfessionalProfile { UserId = userId });
+        }
+
+        var ep = CreateEndpoint(builder.Build());
+
+        await ep.HandleAsync(new VerifyEmailRequest { Token = "valid-token" }, TestContext.Current.CancellationToken);
+
+        await _coachEvents.Received(expectedEvents).RecordAsync(
+            Application.Domain.Enums.CoachEventType.EmailVerified,
+            userId,
+            $"verify:{userId}",
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]

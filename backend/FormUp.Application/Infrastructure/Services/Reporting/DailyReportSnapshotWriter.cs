@@ -132,7 +132,12 @@ public class DailyReportSnapshotWriter(IServiceScopeFactory scopeFactory)
         snapshot.MedianClientsPerCoach = Median(allProfileIds.Select(id => clientCounts.GetValueOrDefault(id)).ToList());
     }
 
-    private static decimal Median(List<int> values)
+    /// <summary>
+    /// The median of the counts: the middle one, or the mean of the two middle ones for an even number of values.
+    /// Zero for no values. Sorts the list in place.
+    /// </summary>
+    /// <param name="values">The counts.</param>
+    public static decimal Median(List<int> values)
     {
         if (values.Count == 0)
         {
