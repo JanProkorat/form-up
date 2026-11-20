@@ -196,6 +196,7 @@
     "adminPlans": "Plány",
     "adminPromotions": "Akce",
     "adminCoaches": "Trenéři",
+    "adminReports": "Přehledy",
     "automations": "Automatizace",
     "dashboard": "Dashboard",
     "profile": "Profil",
@@ -7409,6 +7410,94 @@
       "annualAddOnInvalid": "Zadejte roční cenu druhé role vyšší než 0.",
       "clientsInvalid": "Zadejte počet klientů od 1, nebo zvolte Neomezeně.",
       "perClientNeedsWeekly": "Check-iny pro jednotlivé klienty vyžadují týdenní check-iny."
+    }
+  },
+  "adminReports": {
+    "title": "Přehledy",
+    "subtitle": "Součty za všechny trenéry, aktualizované jednou denně. Data jejich klientů zůstávají soukromá.",
+    "stripeDashboard": "Stripe dashboard",
+    "loadError": "Přehledy se nepodařilo načíst.",
+    "retry": "Zkusit znovu",
+    "footnote": "Tržby vycházejí z uhrazených faktur ze Stripe, které si ukládáme průběžně. Poplatky, vratky a výplaty zůstávají ve Stripe dashboardu.",
+    "period": {
+      "label": "Období",
+      "Days30": "30 dní",
+      "Days90": "90 dní",
+      "Months12": "12 měsíců",
+      "window": {
+        "Days30": "posledních 30 dní",
+        "Days90": "posledních 90 dní",
+        "Months12": "posledních 12 měsíců"
+      }
+    },
+    "money": {
+      "title": "Peníze",
+      "subtitle": "Stav k {{day}} · změna oproti stavu k {{against}}",
+      "subtitleNoBaseline": "Stav k {{day}} · zatím není s čím porovnat",
+      "noSnapshot": "Zatím žádný denní snímek",
+      "revenue": "Měsíční tržby",
+      "revenueNote": "Po slevách · plná cena {{full}}",
+      "revenueNoteShort": "Po slevách",
+      "collected": "Přijato tento měsíc",
+      "collectedNote": "Uhrazené faktury ze Stripe tento měsíc",
+      "lost": "Ztraceno zrušeními",
+      "lostNote": "Zrušení: {{count}}",
+      "lostNoteChurn": "Zrušení: {{count}} · odchod {{churn}} %",
+      "average": "Průměr na platícího trenéra",
+      "averageNote": "Měsíční tržby ÷ platící trenéři ({{count}})"
+    },
+    "mrr": {
+      "title": "Měsíční opakované tržby",
+      "subtitle": "Kolik se platícím trenérům účtuje každý měsíc · denní snímky",
+      "afterPromotions": "Po slevách",
+      "fullPrice": "Plná cena",
+      "empty": "V tomto období zatím nejsou žádné snímky.",
+      "chartLabel": "Měsíční opakované tržby po slevách, od {{from}} do {{to}}"
+    },
+    "plans": {
+      "title": "Platící trenéři podle tarifu",
+      "subtitle": "Platících trenérů: {{count}} · účtováno po slevách",
+      "barLabel": "Platící trenéři podle tarifu: {{summary}}",
+      "perMonth": "{{amount}} / měs.",
+      "addOn": "Doplněk druhé role"
+    },
+    "coaches": {
+      "title": "Trenéři",
+      "subtitle": "Registrace, konverze a změny tarifů"
+    },
+    "funnel": {
+      "title": "Cesta nových trenérů",
+      "subtitle": "Trenéři, kteří se zaregistrovali za {{window}}",
+      "signedUp": "Registrace",
+      "emailVerified": "Ověřený e-mail",
+      "chosePlan": "Vybraný tarif",
+      "startedPaidPlan": "Placený tarif",
+      "note": "Procenta porovnávají každý krok s předchozím."
+    },
+    "changes": {
+      "title": "Změny tarifů",
+      "subtitle": "Dopad na měsíční tržby za {{window}}",
+      "upgraded": "Přechod na vyšší tarif",
+      "downgraded": "Přechod na nižší tarif",
+      "cancelled": "Zrušení",
+      "paymentFailed": "Platba selhala",
+      "paymentFailedNote": "Stripe to zkouší znovu",
+      "promotionCodes": "Použité slevové kódy"
+    },
+    "usage": {
+      "title": "Využití",
+      "subtitle": "Používá se produkt",
+      "empty": "Zatím neexistuje žádný denní snímek, takže nejsou k dispozici čísla o využití. Objeví se po prvním snímku.",
+      "activeCoaches": "Aktivní trenéři",
+      "activeCoachesNote": "Přihlášení za posledních 30 dní, ze všech trenérů",
+      "clientsPerCoach": "Klientů na trenéra",
+      "clientsPerCoachNote": "Medián přes všechny trenéry",
+      "atCap": "Trenéři na tarifu Zdarma na limitu",
+      "atCapNote": "Na limitu klientů tarifu Zdarma",
+      "activeClients": "Aktivní klienti v aplikaci",
+      "activeClientsNote": "Otevřeli aplikaci za posledních 7 dní",
+      "planWeeks": "Zveřejněné týdny plánů",
+      "planWeeksNote": "Trénink a výživa, posledních 7 dní"
     }
   },
   "adminPromotions": {
