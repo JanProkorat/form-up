@@ -1,4 +1,5 @@
 using FormUp.Application.Infrastructure.Services;
+using FormUp.Application.Infrastructure.Services.Reporting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -78,6 +79,7 @@ public static class TestHostedServiceExtensions
     [
         typeof(PhotoDiaryReminderScheduler),
         typeof(CoachRoleLinkSweeper),
+        typeof(DailyReportSnapshotService),
         typeof(SocialLoginNonceReaperService),
         typeof(AutomationScheduler),
         typeof(NotificationEmailGroupingScheduler),

@@ -1877,6 +1877,80 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                     b.ToTable("coach_discount_packages", (string)null);
                 });
 
+            modelBuilder.Entity("FormUp.Application.Domain.Entities.CoachEvent", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<Guid?>("CoachUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("coach_user_id");
+
+                    b.Property<string>("Currency")
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasColumnName("currency");
+
+                    b.Property<DateTime>("DateCreated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_created");
+
+                    b.Property<DateTime?>("DateUpdated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_updated");
+
+                    b.Property<long>("DiscountedMonthlyRevenueEffectMinorUnits")
+                        .HasColumnType("bigint")
+                        .HasColumnName("discounted_monthly_revenue_effect_minor_units");
+
+                    b.Property<int>("EventType")
+                        .HasColumnType("integer")
+                        .HasColumnName("event_type");
+
+                    b.Property<long>("FullMonthlyRevenueEffectMinorUnits")
+                        .HasColumnType("bigint")
+                        .HasColumnName("full_monthly_revenue_effect_minor_units");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("idempotency_key");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("occurred_at");
+
+                    b.Property<string>("PlanCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("plan_code");
+
+                    b.Property<string>("PreviousPlanCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("previous_plan_code");
+
+                    b.HasKey("Id")
+                        .HasName("pk_coach_events");
+
+                    b.HasIndex("CoachUserId")
+                        .HasDatabaseName("ix_coach_events_coach_user_id");
+
+                    b.HasIndex("IdempotencyKey")
+                        .IsUnique()
+                        .HasDatabaseName("ix_coach_events_idempotency_key");
+
+                    b.HasIndex("EventType", "OccurredAt")
+                        .HasDatabaseName("ix_coach_events_event_type_occurred_at");
+
+                    b.ToTable("coach_events", (string)null);
+                });
+
             modelBuilder.Entity("FormUp.Application.Domain.Entities.CoachPackage", b =>
                 {
                     b.Property<long>("Id")
@@ -2315,6 +2389,74 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                         .HasDatabaseName("ix_conversations_professional_user_id_client_user_id");
 
                     b.ToTable("conversations", (string)null);
+                });
+
+            modelBuilder.Entity("FormUp.Application.Domain.Entities.DailyReportSnapshot", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<int>("ActiveClientsLast7Days")
+                        .HasColumnType("integer")
+                        .HasColumnName("active_clients_last7days");
+
+                    b.Property<int>("ActiveCoachesLast30Days")
+                        .HasColumnType("integer")
+                        .HasColumnName("active_coaches_last30days");
+
+                    b.Property<DateTime>("DateCreated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_created");
+
+                    b.Property<DateTime?>("DateUpdated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_updated");
+
+                    b.Property<DateOnly>("Day")
+                        .HasColumnType("date")
+                        .HasColumnName("day");
+
+                    b.Property<int>("FreeCoachCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("free_coach_count");
+
+                    b.Property<int>("FreeCoachesAtClientCap")
+                        .HasColumnType("integer")
+                        .HasColumnName("free_coaches_at_client_cap");
+
+                    b.Property<int>("GivenFreeCoachCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("given_free_coach_count");
+
+                    b.Property<decimal>("MedianClientsPerCoach")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)")
+                        .HasColumnName("median_clients_per_coach");
+
+                    b.Property<int>("PayingCoachCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("paying_coach_count");
+
+                    b.Property<int>("PlanWeeksPublishedLast7Days")
+                        .HasColumnType("integer")
+                        .HasColumnName("plan_weeks_published_last7days");
+
+                    b.Property<int>("TotalCoachCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("total_coach_count");
+
+                    b.HasKey("Id")
+                        .HasName("pk_daily_report_snapshots");
+
+                    b.HasIndex("Day")
+                        .IsUnique()
+                        .HasDatabaseName("ix_daily_report_snapshots_day");
+
+                    b.ToTable("daily_report_snapshots", (string)null);
                 });
 
             modelBuilder.Entity("FormUp.Application.Domain.Entities.DevicePushToken", b =>
@@ -4522,6 +4664,15 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                     b.Navigation("CoachPackage");
                 });
 
+            modelBuilder.Entity("FormUp.Application.Domain.Entities.CoachEvent", b =>
+                {
+                    b.HasOne("FormUp.Application.Domain.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("CoachUserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_coach_events_users_coach_user_id");
+                });
+
             modelBuilder.Entity("FormUp.Application.Domain.Entities.CoachPackage", b =>
                 {
                     b.HasOne("FormUp.Application.Domain.Entities.ProfessionalProfile", "ProfessionalProfile")
@@ -4635,6 +4786,91 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                     b.Navigation("Client");
 
                     b.Navigation("Professional");
+                });
+
+            modelBuilder.Entity("FormUp.Application.Domain.Entities.DailyReportSnapshot", b =>
+                {
+                    b.OwnsMany("FormUp.Application.Domain.Entities.ReportCurrencyAmount", "MonthlyRevenueAfterPromotions", b1 =>
+                        {
+                            b1.Property<long>("DailyReportSnapshotId");
+
+                            b1.Property<int>("__synthesizedOrdinal")
+                                .ValueGeneratedOnAdd();
+
+                            b1.Property<long>("AmountMinorUnits");
+
+                            b1.Property<string>("Currency")
+                                .IsRequired();
+
+                            b1.HasKey("DailyReportSnapshotId", "__synthesizedOrdinal");
+
+                            b1.ToTable("daily_report_snapshots");
+
+                            b1
+                                .ToJson("monthly_revenue_after_promotions")
+                                .HasColumnType("jsonb");
+
+                            b1.WithOwner()
+                                .HasForeignKey("DailyReportSnapshotId")
+                                .HasConstraintName("fk_daily_report_snapshots_daily_report_snapshots_daily_report_sn");
+                        });
+
+                    b.OwnsMany("FormUp.Application.Domain.Entities.ReportCurrencyAmount", "MonthlyRevenueFull", b1 =>
+                        {
+                            b1.Property<long>("DailyReportSnapshotId");
+
+                            b1.Property<int>("__synthesizedOrdinal")
+                                .ValueGeneratedOnAdd();
+
+                            b1.Property<long>("AmountMinorUnits");
+
+                            b1.Property<string>("Currency")
+                                .IsRequired();
+
+                            b1.HasKey("DailyReportSnapshotId", "__synthesizedOrdinal")
+                                .HasName("pk_daily_report_snapshots");
+
+                            b1.ToTable("daily_report_snapshots");
+
+                            b1
+                                .ToJson("monthly_revenue_full")
+                                .HasColumnType("jsonb");
+
+                            b1.WithOwner()
+                                .HasForeignKey("DailyReportSnapshotId")
+                                .HasConstraintName("fk_daily_report_snapshots_daily_report_snapshots_daily_report_sn");
+                        });
+
+                    b.OwnsMany("FormUp.Application.Domain.Entities.ReportPlanCount", "PayingCoachesByPlan", b1 =>
+                        {
+                            b1.Property<long>("DailyReportSnapshotId");
+
+                            b1.Property<int>("__synthesizedOrdinal")
+                                .ValueGeneratedOnAdd();
+
+                            b1.Property<int>("Count");
+
+                            b1.Property<string>("PlanCode")
+                                .IsRequired();
+
+                            b1.HasKey("DailyReportSnapshotId", "__synthesizedOrdinal");
+
+                            b1.ToTable("daily_report_snapshots");
+
+                            b1
+                                .ToJson("paying_coaches_by_plan")
+                                .HasColumnType("jsonb");
+
+                            b1.WithOwner()
+                                .HasForeignKey("DailyReportSnapshotId")
+                                .HasConstraintName("fk_daily_report_snapshots_daily_report_snapshots_daily_report_sn");
+                        });
+
+                    b.Navigation("MonthlyRevenueAfterPromotions");
+
+                    b.Navigation("MonthlyRevenueFull");
+
+                    b.Navigation("PayingCoachesByPlan");
                 });
 
             modelBuilder.Entity("FormUp.Application.Domain.Entities.DevicePushToken", b =>

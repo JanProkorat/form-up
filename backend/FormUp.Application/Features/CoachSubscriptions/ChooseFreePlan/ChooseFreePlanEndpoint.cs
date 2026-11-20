@@ -19,8 +19,10 @@ namespace FormUp.Application.Features.CoachSubscriptions.ChooseFreePlan;
 /// <param name="db">Application database context.</param>
 /// <param name="timeProvider">Clock used to tell that the given plan ended.</param>
 /// <param name="audit">Audit logging service.</param>
+/// <param name="coachEvents">Records the plan choice in the same save as the plan change.</param>
 [RemovedCoachRole(RemovedCoachRoleMode.Refuse)]
-internal sealed class ChooseFreePlanEndpoint(IApplicationDbContext db, TimeProvider timeProvider, IAuditService audit)
+internal sealed class ChooseFreePlanEndpoint(
+    IApplicationDbContext db, TimeProvider timeProvider, IAuditService audit, ICoachEventRecorder coachEvents)
     : Endpoint<ChooseFreePlanRequest>
 {
     /// <summary>Audit action of choosing the Free plan.</summary>
@@ -143,6 +145,13 @@ internal sealed class ChooseFreePlanEndpoint(IApplicationDbContext db, TimeProvi
         subscription.GivenFreeAt = null;
         subscription.PaysSecondRoleAddOn = false;
         subscription.SecondRoleAddOnEndsAt = null;
+
+        await coachEvents.RecordAsync(
+            CoachEventType.ChosePlan,
+            userId,
+            $"free:{profileId}:{timeProvider.GetUtcNow():yyyyMMdd}",
+            ct,
+            planCode: SubscriptionPlanCodes.Free);
 
         await db.SaveChangesAsync(ct);
 

@@ -13,6 +13,7 @@ using FormUp.Application.Infrastructure.Data.MongoDb;
 using FormUp.Application.Infrastructure.HealthChecks;
 using FormUp.Application.Infrastructure.Hubs;
 using FormUp.Application.Infrastructure.Services;
+using FormUp.Application.Infrastructure.Services.Reporting;
 using FormUp.Application.Middleware;
 using FormUp.Application.Seed;
 using MongoDB.Driver;
@@ -285,6 +286,8 @@ builder.Services.AddSingleton(TimeProvider.System);
 // call site resolves professional/client link capabilities through; see #958, #964.
 builder.Services.AddScoped<IClientLinkAuthorizationService, ClientLinkAuthorizationService>();
 builder.Services.AddScoped<ICoachRoleStatus, CoachRoleStatus>();
+builder.Services.AddScoped<ICoachRevenueService, CoachRevenueService>();
+builder.Services.AddScoped<ICoachEventRecorder, CoachEventRecorder>();
 builder.Services.AddScoped<ICoachDisciplineAccess, CoachDisciplineAccess>();
 builder.Services.AddScoped<ICoachRoleRemover, CoachRoleRemover>();
 builder.Services.AddScoped<IPrDetectionService, PrDetectionService>();
@@ -338,6 +341,11 @@ builder.Services.AddSingleton<PhotoDiaryReminderScheduler>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<PhotoDiaryReminderScheduler>());
 builder.Services.AddSingleton<CoachRoleLinkSweeper>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<CoachRoleLinkSweeper>());
+
+// Daily reporting snapshot — the writer is a separate singleton so tests call it directly; the hosted service only schedules it.
+builder.Services.AddSingleton<DailyReportSnapshotWriter>();
+builder.Services.AddSingleton<DailyReportSnapshotService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<DailyReportSnapshotService>());
 
 // Automation worker — runs due schedule rows and polled events. Singleton (for test access, which
 // calls RunDueNowAsync) and hosted service; its units of work are scoped and resolved per claim.

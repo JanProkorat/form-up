@@ -3,6 +3,7 @@ using FastEndpoints;
 using FastEndpoints.Security;
 using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Entities;
+using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Extensions;
 using FormUp.Application.Domain.Interfaces;
 using FormUp.Application.Domain.Services;
@@ -31,7 +32,9 @@ public class GoogleSocialLoginEndpoint(
     IPendingInviteConversationSeeder inviteConversationSeeder,
     IPendingInviteNotificationSeeder inviteNotificationSeeder,
     IAuditService audit,
-    ILogger<GoogleSocialLoginEndpoint> logger) : Endpoint<GoogleSocialLoginRequest, GoogleSocialLoginResponse>
+    ILogger<GoogleSocialLoginEndpoint> logger,
+    // Records the new coach's sign-up and email-verified events in the same save as the profile.
+    ICoachEventRecorder coachEvents) : Endpoint<GoogleSocialLoginRequest, GoogleSocialLoginResponse>
 {
     private const string GoogleProvider = "google";
 
@@ -204,6 +207,10 @@ public class GoogleSocialLoginEndpoint(
             if (isCoach)
             {
                 db.ProfessionalProfiles.Add(new ProfessionalProfile { UserId = newUser.Id });
+
+                // The provider already verified the email, so a coach signs up and is verified in one step.
+                await coachEvents.RecordAsync(CoachEventType.SignedUp, newUser.Id, $"signup:{newUser.Id}", ct);
+                await coachEvents.RecordAsync(CoachEventType.EmailVerified, newUser.Id, $"verify:{newUser.Id}", ct);
             }
             else
             {
