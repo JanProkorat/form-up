@@ -1,5 +1,6 @@
 import { apiClient } from '@/api/client';
 import type {
+  BillingInterval,
   CancelScheduledPlanChangeResponse,
   ChangePlanResponse,
   ConfirmSecondRoleAddOnResponse,
@@ -40,15 +41,25 @@ export async function chooseFreePlan(keepClientIds: string[]): Promise<void> {
 
 /**
  * POST /billing/change-plan — moves a live paid subscription to another paid plan (upgrade now, downgrade at renewal).
- * The attempt id keys the immediate charge: repeating it never bills twice.
+ * The attempt id keys the immediate charge: repeating it never bills twice. The interval defaults to monthly on the server.
  */
-export async function changePlan(planCode: string, attemptId: string): Promise<ChangePlanResponse> {
-  return apiClient.changePlanEndpoint({ planCode, attemptId });
+export async function changePlan(
+  planCode: string,
+  attemptId: string,
+  billingInterval?: BillingInterval,
+): Promise<ChangePlanResponse> {
+  return apiClient.changePlanEndpoint({ planCode, attemptId, billingInterval });
 }
 
-/** POST /billing/change-plan/preview — when a move to a paid plan applies, what is charged today and the regular bill after. */
-export async function previewPlanChange(planCode: string): Promise<PreviewPlanChangeResponse> {
-  return apiClient.previewPlanChangeEndpoint({ planCode });
+/**
+ * POST /billing/change-plan/preview — when a move to a paid plan applies, what is charged today and the regular bill after.
+ * The interval is the one the coach would buy; without it the server previews monthly.
+ */
+export async function previewPlanChange(
+  planCode: string,
+  billingInterval?: BillingInterval,
+): Promise<PreviewPlanChangeResponse> {
+  return apiClient.previewPlanChangeEndpoint({ planCode, billingInterval });
 }
 
 /** POST /billing/switch-to-free — ends the paid plan at the end of the paid period. */
@@ -104,5 +115,6 @@ export const subscriptionKeys = {
   keepClients: ['subscription', 'keep-clients'] as const,
   plans: ['subscription', 'plans'] as const,
   secondRolePreview: ['subscription', 'second-role-preview'] as const,
-  planChangePreview: (planCode: string) => ['subscription', 'plan-change-preview', planCode] as const,
+  planChangePreview: (planCode: string, billingInterval: BillingInterval) =>
+    ['subscription', 'plan-change-preview', planCode, billingInterval] as const,
 };

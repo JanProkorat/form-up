@@ -138,15 +138,15 @@ public static class StripeRequestBuilder
 
     /// <summary>
     /// A subscription Checkout session: no trial, billing address, company name and tax id collection, the coach's
-    /// subscription tagged with their user and the plan. Promotion codes are allowed unless an automatic coupon is
-    /// applied, because Stripe refuses both together.
+    /// subscription tagged with their user and the plan. Stripe's own promotion-code field is never sent: a code is typed in
+    /// our app, resolved there, and arrives here as the one coupon id to attach.
     /// </summary>
     /// <param name="customerId">The provider customer id.</param>
     /// <param name="userId">The coach's user id, kept as metadata.</param>
     /// <param name="planCode">The plan code, kept as metadata.</param>
     /// <param name="planPriceId">The provider price id of the plan.</param>
     /// <param name="addOnPriceId">The provider price id of the add-on line, or null.</param>
-    /// <param name="couponId">Automatic promotion coupon id, or null.</param>
+    /// <param name="couponId">The coupon to attach, or null for no discount.</param>
     /// <param name="locale">The Stripe locale.</param>
     /// <param name="flow">Where the coach started; appended to both return URLs as <c>flow</c>.</param>
     /// <param name="options">Billing settings.</param>
@@ -184,7 +184,6 @@ public static class StripeRequestBuilder
             Customer = customerId,
             ClientReferenceId = userId.ToString(),
             LineItems = lineItems,
-            AllowPromotionCodes = couponId is null ? true : null,
             Discounts = couponId is null ? null : [new SessionDiscountOptions { Coupon = couponId }],
             BillingAddressCollection = "required",
             NameCollection = new SessionNameCollectionOptions
@@ -278,14 +277,16 @@ public static class StripeRequestBuilder
     /// <param name="currentAddOnPriceId">The provider price id on the add-on line now, or null.</param>
     /// <param name="addOnPriceId">The provider price id the add-on line must have after the change, or null for no add-on.</param>
     /// <param name="options">Billing settings.</param>
+    /// <param name="discount">What the same update does to the discount, or null to leave it.</param>
     public static SubscriptionUpdateOptions PlanUpgrade(
         string planItemId,
         string planPriceId,
         string? addOnItemId,
         string? currentAddOnPriceId,
         string? addOnPriceId,
-        BillingOptions options) =>
-        PlanUpgradeWith("error_if_incomplete", planItemId, planPriceId, addOnItemId, currentAddOnPriceId, addOnPriceId, options);
+        BillingOptions options,
+        SubscriptionDiscountChange? discount = null) =>
+        PlanUpgradeWith("error_if_incomplete", planItemId, planPriceId, addOnItemId, currentAddOnPriceId, addOnPriceId, options, discount);
 
     /// <summary>
     /// The same upgrade as <see cref="PlanUpgrade"/>, held as a pending update: the proration is invoiced now, and when the
@@ -298,16 +299,20 @@ public static class StripeRequestBuilder
     /// <param name="currentAddOnPriceId">The provider price id on the add-on line now, or null.</param>
     /// <param name="addOnPriceId">The provider price id the add-on line must have after the change, or null for no add-on.</param>
     /// <param name="options">Billing settings.</param>
+    /// <param name="discount">What the same update does to the discount, or null to leave it.</param>
     public static SubscriptionUpdateOptions PlanUpgradePending(
         string planItemId,
         string planPriceId,
         string? addOnItemId,
         string? currentAddOnPriceId,
         string? addOnPriceId,
-        BillingOptions options)
+        BillingOptions options,
+        SubscriptionDiscountChange? discount = null)
     {
         // UNVERIFIED: pending_if_incomplete accepts item tax_rates, a deleted add-on line and cancel_at_period_end=false together — https://docs.stripe.com/billing/subscriptions/pending-updates
-        var update = PlanUpgradeWith("pending_if_incomplete", planItemId, planPriceId, addOnItemId, currentAddOnPriceId, addOnPriceId, options);
+        // UNVERIFIED: pending_if_incomplete accepts a price change that also changes the billing interval — https://docs.stripe.com/billing/subscriptions/pending-updates
+        // UNVERIFIED: pending_if_incomplete accepts a top-level discounts change (the page lists discounts among the supported attributes, in a German-language read) — https://docs.stripe.com/billing/subscriptions/pending-updates
+        var update = PlanUpgradeWith("pending_if_incomplete", planItemId, planPriceId, addOnItemId, currentAddOnPriceId, addOnPriceId, options, discount);
         update.Expand = ["latest_invoice"];
 
         return update;
@@ -367,11 +372,15 @@ public static class StripeRequestBuilder
         string? addOnItemId,
         string? currentAddOnPriceId,
         string? addOnPriceId,
-        BillingOptions options)
+        BillingOptions options,
+        SubscriptionDiscountChange? discount)
     {
         var taxRates = TaxRates(options);
 
-        return new SubscriptionUpdateOptions
+        // Both lines move to the target interval in this one update, so the subscription never holds a plan and an add-on of different intervals.
+        // UNVERIFIED: an interval change restarts the billing period now and always_invoice credits the unused time of the old price on the same invoice — https://docs.stripe.com/billing/subscriptions/prorations
+        // UNVERIFIED: a subscription with a plan line and an add-on line needs one shared interval, so both prices change together — https://docs.stripe.com/billing/subscriptions/multiple-products
+        var update = new SubscriptionUpdateOptions
         {
             Items = PlanChangeLines(
                 planItemId,
@@ -386,6 +395,18 @@ public static class StripeRequestBuilder
             PaymentBehavior = paymentBehavior,
             CancelAtPeriodEnd = false,
         };
+
+        // UNVERIFIED: a populated discounts list overwrites the subscription's discounts and the proration of the same update uses the new discount; an empty string clears them (an empty array leaves them unchanged) — https://docs.stripe.com/api/subscriptions/update
+        if (discount?.CouponId is { } couponId)
+        {
+            update.Discounts = [new SubscriptionDiscountOptions { Coupon = couponId }];
+        }
+        else if (discount is not null)
+        {
+            update.ExtraParams = new Dictionary<string, object> { ["discounts"] = string.Empty };
+        }
+
+        return update;
     }
 
     /// <summary>
@@ -399,6 +420,7 @@ public static class StripeRequestBuilder
     /// <param name="currentAddOnPriceId">The provider price id on the add-on line now, or null.</param>
     /// <param name="addOnPriceId">The provider price id the add-on line must have after the change, or null for no add-on.</param>
     /// <param name="options">Billing settings.</param>
+    /// <param name="discount">What the real change does to the discount, or null to leave it (the preview then inherits it).</param>
     public static InvoiceCreatePreviewOptions PlanUpgradePreview(
         string customerId,
         string subscriptionId,
@@ -407,11 +429,12 @@ public static class StripeRequestBuilder
         string? addOnItemId,
         string? currentAddOnPriceId,
         string? addOnPriceId,
-        BillingOptions options)
+        BillingOptions options,
+        SubscriptionDiscountChange? discount = null)
     {
         var taxRates = TaxRates(options);
 
-        return new InvoiceCreatePreviewOptions
+        var preview = new InvoiceCreatePreviewOptions
         {
             Customer = customerId,
             Subscription = subscriptionId,
@@ -429,6 +452,18 @@ public static class StripeRequestBuilder
                 ProrationBehavior = "always_invoice",
             },
         };
+
+        // UNVERIFIED: a populated discounts list replaces the inherited discount in the preview and an empty string avoids inheriting any; the page does not say a specified list replaces rather than adds — https://docs.stripe.com/api/invoices/create_preview
+        if (discount?.CouponId is { } couponId)
+        {
+            preview.Discounts = [new InvoiceDiscountOptions { Coupon = couponId }];
+        }
+        else if (discount is not null)
+        {
+            preview.ExtraParams = new Dictionary<string, object> { ["discounts"] = string.Empty };
+        }
+
+        return preview;
     }
 
     /// <summary>A Customer Portal session that returns to the configured URL.</summary>
@@ -513,23 +548,27 @@ public static class StripeRequestBuilder
     }
 
     /// <summary>
-    /// A coupon for a promotion. The first month is Stripe's "once" (the first invoice), several months is "repeating".
-    /// Max uses and the claim end are enforced by Stripe at Checkout; a product list restricts the discount to those lines.
+    /// A coupon for a promotion. Monthly: the first month is Stripe's "once" (the first invoice), several months is
+    /// "repeating". Annual: the first month and several months are both "once", because the first yearly invoice is the only
+    /// one inside that time; forever stays "forever". Max uses and the claim end are enforced by Stripe on redemption; a
+    /// product list restricts the discount to those lines.
     /// </summary>
     /// <param name="spec">The promotion's coupon terms.</param>
     /// <param name="productIds">Provider product ids the discount is limited to, or null for no restriction.</param>
     public static CouponCreateOptions Coupon(CouponSpec spec, List<string>? productIds)
     {
+        var yearly = spec.Interval == BillingInterval.Annual;
+        var repeating = spec.Duration == PromotionDuration.Months && !yearly;
         var options = new CouponCreateOptions
         {
             Name = spec.Name,
             Duration = spec.Duration switch
             {
                 PromotionDuration.FirstMonth => "once",
-                PromotionDuration.Months => "repeating",
+                PromotionDuration.Months => yearly ? "once" : "repeating",
                 _ => "forever",
             },
-            DurationInMonths = spec.Duration == PromotionDuration.Months ? spec.DurationMonths : null,
+            DurationInMonths = repeating ? spec.DurationMonths : null,
             MaxRedemptions = spec.MaxUses,
             RedeemBy = spec.ClaimUntil?.UtcDateTime,
             AppliesTo = productIds is null ? null : new CouponAppliesToOptions { Products = productIds },
@@ -566,14 +605,14 @@ public static class StripeRequestBuilder
 
     /// <summary>
     /// Converts planned schedule phases to Stripe phases. Only the first phase carries a start (Stripe keeps the current
-    /// phase's own); the open last phase runs one billing interval and then the schedule releases. Every phase sends an
-    /// empty discount list.
+    /// phase's own); the open last phase runs one billing interval of its own prices and then the schedule releases, so it
+    /// must carry its interval. A phase with a coupon sends it as its only discount; every other phase sends an empty
+    /// discount list.
     /// </summary>
     /// <param name="phases">The planned phases.</param>
-    /// <param name="interval">Billing cadence of the subscription.</param>
     /// <param name="taxRates">Tax rate ids for every item, or null.</param>
     public static List<SubscriptionSchedulePhaseOptions> SchedulePhases(
-        IReadOnlyList<SchedulePhasePlan> phases, BillingInterval interval, List<string>? taxRates)
+        IReadOnlyList<SchedulePhasePlan> phases, List<string>? taxRates)
     {
         var result = new List<SubscriptionSchedulePhaseOptions>();
 
@@ -585,7 +624,10 @@ public static class StripeRequestBuilder
                 Items = phase.PriceIds
                     .Select(priceId => WithTaxRates(new SubscriptionSchedulePhaseItemOptions { Price = priceId, Quantity = 1 }, taxRates))
                     .ToList(),
-                Discounts = [],
+                // UNVERIFIED: phases[].discounts takes a coupon and an empty list means no discount in the phase — https://docs.stripe.com/api/subscription_schedules/update
+                Discounts = phase.CouponId is { } couponId
+                    ? [new SubscriptionSchedulePhaseDiscountOptions { Coupon = couponId }]
+                    : [],
                 ProrationBehavior = "none",
             };
 
@@ -602,7 +644,8 @@ public static class StripeRequestBuilder
             {
                 options.Duration = new SubscriptionSchedulePhaseDurationOptions
                 {
-                    Interval = IntervalName(interval),
+                    Interval = IntervalName(
+                        phase.Interval ?? throw new InvalidOperationException("The open schedule phase has no billing interval.")),
                     IntervalCount = 1,
                 };
             }

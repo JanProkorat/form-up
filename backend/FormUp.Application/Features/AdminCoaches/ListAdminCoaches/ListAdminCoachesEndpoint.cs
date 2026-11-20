@@ -150,7 +150,7 @@ internal sealed class ListAdminCoachesEndpoint(IApplicationDbContext db, TimePro
             .Select(profile => new
             {
                 profile.CoachSubscription!.SubscriptionPlanPrice.Currency,
-                Annual = profile.CoachSubscription.SubscriptionPlan.BillingInterval == BillingInterval.Annual,
+                Annual = profile.CoachSubscription.SubscriptionPlanPrice.BillingInterval == BillingInterval.Annual,
                 Amount = profile.CoachSubscription.SubscriptionPlanPrice.PriceMinorUnits
                          + (profile.CoachSubscription.PaysSecondRoleAddOn && !profile.CoachSubscription.SubscriptionPlan.BothRolesIncluded
                              ? profile.CoachSubscription.SubscriptionPlanPrice.SecondRoleAddOnPriceMinorUnits ?? 0

@@ -5,6 +5,7 @@
  */
 import { apiClient } from '@/api/client';
 import {
+  PromotionBillingPeriod,
   PromotionDuration,
   PromotionKind,
   PromotionMode,
@@ -13,7 +14,7 @@ import {
 } from '@/api/generated';
 import type { CreatePromotionRequest, PromotionDto } from '@/api/generated';
 
-export { PromotionDuration, PromotionKind, PromotionMode, PromotionStatus, PromotionStatusFilter };
+export { PromotionBillingPeriod, PromotionDuration, PromotionKind, PromotionMode, PromotionStatus, PromotionStatusFilter };
 export type { CreatePromotionRequest, PromotionDto };
 
 export const adminPromotionsKey = ['admin', 'promotions'] as const;

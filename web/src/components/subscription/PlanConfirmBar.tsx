@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,6 +8,8 @@ interface Props {
   title: string;
   /** Promotion and/or second-role line under the title, already translated. */
   note?: string;
+  /** Optional slot between the plan and the hint, for the promotion code field. */
+  codeField?: ReactNode;
   /** Short line next to the button, already translated. */
   hint: string;
   /** Optional second line under the hint, same style, already translated. */
@@ -14,6 +17,8 @@ interface Props {
   /** Confirm button text, already translated. */
   confirmLabel: string;
   busy: boolean;
+  /** Keeps the confirm button off while the choice cannot be taken, for example a plan the server cannot sell. */
+  confirmDisabled?: boolean;
   onConfirm: () => void;
   /**
    * Bleed past the padding of the scrolling main area (AppShell `p-6`): full width and flush with the viewport bottom.
@@ -26,25 +31,38 @@ interface Props {
 }
 
 /** Sticky bottom bar of the plan screens: the selected plan on the left, the confirm button on the right. */
-export default function PlanConfirmBar({ title, note, hint, extraHint, confirmLabel, busy, onConfirm, bleed = false, className = '' }: Props) {
+export default function PlanConfirmBar({
+  title,
+  note,
+  codeField,
+  hint,
+  extraHint,
+  confirmLabel,
+  busy,
+  confirmDisabled = false,
+  onConfirm,
+  bleed = false,
+  className = '',
+}: Props) {
   const { t } = useTranslation();
 
   return (
     <section
       aria-label={t('subscription.billing.select.region')}
-      className={`sticky ${bleed ? '-bottom-6 -mx-6 mt-auto' : 'bottom-0'} z-10 flex items-center gap-4 border-t border-line bg-card px-4 py-3 sm:px-8 ${className}`}
+      className={`sticky ${bleed ? '-bottom-6 -mx-6 mt-auto' : 'bottom-0'} z-10 flex flex-col items-stretch gap-3 border-t border-line bg-card px-4 py-3 sm:px-8 md:flex-row md:items-center md:gap-4 ${className}`}
     >
-      <div className="flex min-w-0 flex-1 flex-col gap-1.5 md:flex-row md:items-center md:gap-4">
+      <div className="flex min-w-0 flex-col gap-1.5 md:flex-1 md:flex-row md:items-center md:gap-4">
         <div className="flex min-w-0 flex-col gap-0.75">
           <span className="text-subhead font-semibold text-ink">{title}</span>
           {note && <span className="text-meta text-muted-foreground">{note}</span>}
         </div>
+        {codeField && <div className="min-w-0 md:ml-6">{codeField}</div>}
         <div className="flex min-w-0 flex-col gap-0.75 text-body text-muted-foreground md:ml-auto md:text-right" aria-live="polite">
           <span>{hint}</span>
           {extraHint && <span>{extraHint}</span>}
         </div>
       </div>
-      <Button type="button" size="lg" className="h-11 shrink-0 gap-2 whitespace-nowrap px-4.5 font-semibold" disabled={busy} onClick={onConfirm}>
+      <Button type="button" size="lg" className="h-11 w-full shrink-0 gap-2 whitespace-nowrap px-4.5 font-semibold md:w-auto" disabled={busy || confirmDisabled} onClick={onConfirm}>
         {confirmLabel}
         {busy ? <Loader2 className="animate-spin" aria-hidden="true" /> : <ArrowRight aria-hidden="true" />}
       </Button>

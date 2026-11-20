@@ -43,7 +43,7 @@ internal static class AdminCoachQueries
         PlanNameDe = profile.CoachSubscription!.SubscriptionPlan.NameDe,
         PlanMaxActiveClients = profile.CoachSubscription!.SubscriptionPlan.MaxActiveClients,
         PlanBothRolesIncluded = profile.CoachSubscription != null && profile.CoachSubscription.SubscriptionPlan.BothRolesIncluded,
-        PlanBillingInterval = (BillingInterval?)profile.CoachSubscription!.SubscriptionPlan.BillingInterval,
+        PlanBillingInterval = (BillingInterval?)profile.CoachSubscription!.SubscriptionPlanPrice.BillingInterval,
         PriceMinorUnits = (long?)profile.CoachSubscription!.SubscriptionPlanPrice.PriceMinorUnits,
         AddOnMinorUnits = profile.CoachSubscription!.SubscriptionPlanPrice.SecondRoleAddOnPriceMinorUnits,
         Currency = profile.CoachSubscription!.SubscriptionPlanPrice.Currency,

@@ -191,7 +191,7 @@ internal sealed class RemoveCoachRoleEndpoint(
                 renewalPrice.ExternalPriceId,
                 null,
                 renewalPrice.Currency,
-                renewalPlan.BillingInterval,
+                renewalPrice.BillingInterval,
                 atNextRenewal: true,
                 ct);
         }
@@ -226,7 +226,7 @@ internal sealed class RemoveCoachRoleEndpoint(
                     pendingPriceId,
                     addOnAmount,
                     pending.Currency,
-                    pendingPlan.BillingInterval,
+                    pending.BillingInterval,
                     atNextRenewal: true,
                     CancellationToken.None);
             }

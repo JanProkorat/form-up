@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import {
+  BillingInterval,
   CheckoutFlow,
   PlanChangeTiming,
   type CancelScheduledPlanChangeResponse,
@@ -11,7 +12,14 @@ import {
 } from '@/api/generated';
 import { profileKeys } from '@/api/profile';
 import { cancelScheduledChange, changePlan, createCheckoutSession, subscriptionKeys, switchToFree } from '@/api/subscription';
-import { billingErrorCode, showBillingError } from '@/components/subscription/billingErrors';
+import {
+  PROMOTION_CODE_INTERVAL_NOT_ELIGIBLE,
+  billingErrorCode,
+  billingErrorCodes,
+  isPromotionCodeError,
+  promotionCodeErrorMessage,
+  showBillingError,
+} from '@/components/subscription/billingErrors';
 import { coachPlanName } from '@/components/subscription/planNames';
 import { hasLivePaidSubscription } from '@/components/subscription/planPricing';
 import { useSubscription } from '@/hooks/useSubscriptionQueries';
@@ -28,7 +36,15 @@ interface AwaitingPayment {
 
 type PlanOutcome = { kind: 'checkout'; url: string } | { kind: 'changed'; response: ChangePlanResponse };
 
-interface PaidPlanRequest {
+/** How a paid plan is taken; both parts are optional so callers that know nothing of annual billing stay monthly. */
+export interface PaidPlanOptions {
+  /** Billing interval to buy; omitted means the server default (monthly). */
+  billingInterval?: BillingInterval;
+  /** Promotion code typed by the coach; sent with a checkout only, never with an in-place plan change. */
+  code?: string;
+}
+
+interface PaidPlanRequest extends PaidPlanOptions {
   plan: CoachPlanDto;
   includeSecondRoleAddOn: boolean;
 }
@@ -38,7 +54,7 @@ interface PaidPlanRequest {
  * Checkout. Each path falls back to the other once when the server says it is the wrong one.
  */
 async function selectPaidPlan(
-  { plan, includeSecondRoleAddOn }: PaidPlanRequest,
+  { plan, includeSecondRoleAddOn, billingInterval, code }: PaidPlanRequest,
   flow: CheckoutFlow,
   live: boolean,
   attemptId: string,
@@ -46,9 +62,9 @@ async function selectPaidPlan(
   const planCode = plan.code ?? '';
   const checkout = async (): Promise<PlanOutcome> => ({
     kind: 'checkout',
-    url: await createCheckoutSession({ planCode, includeSecondRoleAddOn, flow }),
+    url: await createCheckoutSession({ planCode, billingInterval, includeSecondRoleAddOn, flow, code }),
   });
-  const change = async (): Promise<PlanOutcome> => ({ kind: 'changed', response: await changePlan(planCode, attemptId) });
+  const change = async (): Promise<PlanOutcome> => ({ kind: 'changed', response: await changePlan(planCode, attemptId, billingInterval) });
 
   if (live) {
     try {
@@ -110,6 +126,8 @@ export function usePlanSelection(flow: CheckoutFlow) {
   // twice. A settled attempt (paid or declined) is final for its id, so the next one gets a fresh id.
   const attemptId = useRef(crypto.randomUUID());
   const [awaiting, setAwaiting] = useState<AwaitingPayment | null>(null);
+  // Translated refusal of the promotion code a checkout carried; shown next to the code field, not as a toast.
+  const [codeError, setCodeError] = useState<string | null>(null);
 
   const dateFormat = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' });
   const toast = (message: string) => useToastStore.getState().addToast(message, 'success');
@@ -122,7 +140,10 @@ export function usePlanSelection(flow: CheckoutFlow) {
 
   const paidPlan = useMutation({
     mutationFn: (request: PaidPlanRequest) => selectPaidPlan(request, flow, live, attemptId.current),
-    onMutate: () => setAwaiting(null),
+    onMutate: () => {
+      setAwaiting(null);
+      setCodeError(null);
+    },
     onSettled: () => {
       attemptId.current = crypto.randomUUID();
     },
@@ -154,8 +175,21 @@ export function usePlanSelection(flow: CheckoutFlow) {
       }
       void refresh();
     },
-    onError: (error) => {
-      showBillingError(error, 'subscription.billing.errors.changePlan');
+    onError: (error, { code, billingInterval }) => {
+      if (isPromotionCodeError(error, code !== undefined)) {
+        // A code for the other billing period gets a message that names the period the code is for.
+        setCodeError(
+          billingErrorCodes(error).includes(PROMOTION_CODE_INTERVAL_NOT_ELIGIBLE)
+            ? t(
+                billingInterval === BillingInterval.Annual
+                  ? 'subscription.billing.promoCode.monthlyOnly'
+                  : 'subscription.billing.promoCode.annualOnly',
+              )
+            : promotionCodeErrorMessage(error),
+        );
+      } else {
+        showBillingError(error, 'subscription.billing.errors.changePlan');
+      }
       // The subscription may have changed under us (for example a cancellation already pending): re-read it.
       void queryClient.invalidateQueries({ queryKey: subscriptionKeys.mine });
     },
@@ -193,8 +227,15 @@ export function usePlanSelection(flow: CheckoutFlow) {
       if (userId && pendingPayment) useCheckoutActivationStore.getState().start(userId, pendingPayment.planCode);
     },
     dismissAwaitingPayment: () => setAwaiting(null),
-    /** Takes a paid plan: in place for a live subscription, through Stripe Checkout otherwise. */
-    choosePaid: (plan: CoachPlanDto, includeSecondRoleAddOn: boolean) => paidPlan.mutate({ plan, includeSecondRoleAddOn }),
+    /**
+     * Takes a paid plan: in place for a live subscription, through Stripe Checkout otherwise. The options carry the
+     * billing interval and, for a checkout, the promotion code.
+     */
+    choosePaid: (plan: CoachPlanDto, includeSecondRoleAddOn: boolean, options: PaidPlanOptions = {}) =>
+      paidPlan.mutate({ plan, includeSecondRoleAddOn, ...options }),
+    /** Translated refusal of the promotion code from the last checkout, or null; clears on the next attempt. */
+    codeError,
+    clearCodeError: () => setCodeError(null),
     /** Ends the paid plan at the end of the period; takes the Free plan's localized name for the toast. */
     switchToFree: (freeName: string) => freePlan.mutate(freeName),
     /** Code of the paid plan being taken right now. */

@@ -117,6 +117,31 @@ public class GetMySubscriptionPromotionTests(FitnessApiFactory factory) : IDispo
         response.Promotion.DiscountedTotalMinorUnits.Should().Be(9800);
     }
 
+    [Theory]
+    [InlineData(PromotionBillingPeriod.Both, 89700)]
+    [InlineData(PromotionBillingPeriod.Annual, 89700)]
+    [InlineData(PromotionBillingPeriod.Monthly, 0)]
+    public async Task Get_OnAnAnnualSubscription_OnlyAPromotionCoveringAnnualShowsADiscount_OnTheYearlyLine(
+        PromotionBillingPeriod period, long expectedDiscount)
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var plan = await PaidPlanBuilder.CreateAsync(factory, priceMinorUnits: 29900);
+        await SubscriptionPlanPriceBuilder.AddOpenAnnualPriceAsync(factory, plan, 299000, null);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, plan, interval: BillingInterval.Annual);
+        var promotion = await PromotionBuilder.CreateAsync(factory, [plan], PromotionMode.Automatic, p =>
+        {
+            p.Value = 30;
+            p.BillingPeriod = period;
+        });
+        await SetCurrentPromotionAsync(coach.ProfileId, promotion.Id, null);
+
+        var response = await GetAsync(coach);
+
+        response.Promotion!.BillingPeriod.Should().Be(period);
+        response.Promotion.DiscountMinorUnits.Should().Be(expectedDiscount, "30 % of the 299 000 yearly line, or nothing when it covers monthly only");
+        response.Promotion.DiscountedTotalMinorUnits.Should().Be(299000 - expectedDiscount);
+    }
+
     [Fact]
     public async Task Get_PromotionThatDoesNotCoverTheCoachsPlan_ShowsNoDiscount()
     {

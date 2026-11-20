@@ -220,7 +220,7 @@ internal sealed class CancelScheduledPlanChangeEndpoint(
             price.ExternalPriceId,
             null,
             price.Currency,
-            subscription.SubscriptionPlan.BillingInterval,
+            price.BillingInterval,
             atNextRenewal: true,
             ct);
     }

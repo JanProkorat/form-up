@@ -87,7 +87,8 @@ internal sealed class GiveCoachPlanFreeEndpoint(
 
         var openPrice = await db.SubscriptionPlanPrices
             .AsNoTracking()
-            .Where(p => p.SubscriptionPlan.Code == req.PlanCode && p.ValidTo == null)
+            .Where(p => p.SubscriptionPlan.Code == req.PlanCode && p.ValidTo == null
+                        && p.BillingInterval == BillingInterval.Monthly)
             .Select(p => new { p.Id, p.SubscriptionPlanId })
             .FirstOrDefaultAsync(ct);
         if (openPrice is null)

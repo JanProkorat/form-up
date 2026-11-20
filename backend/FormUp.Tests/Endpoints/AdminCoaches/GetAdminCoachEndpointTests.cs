@@ -83,6 +83,23 @@ public class GetAdminCoachEndpointTests(FitnessApiFactory factory)
         detail.History.Should().ContainSingle(entry => entry.Kind == AdminCoachHistoryKind.Joined);
     }
 
+    [Fact]
+    public async Task Get_CoachOnTheAnnualPrice_ReportsAnnualIntervalAndTheirYearlyPrice()
+    {
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var plan = await PaidPlanBuilder.CreateAsync(
+            factory, "EUR", priceMinorUnits: 2900, addOnMinorUnits: 900, bothRolesIncluded: false);
+        await SubscriptionPlanPriceBuilder.AddOpenAnnualPriceAsync(factory, plan, 29000, 9000);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(
+            factory, coach, plan, paysSecondRoleAddOn: true, interval: BillingInterval.Annual);
+
+        var detail = await GetAsync(admin, coach.UserId);
+
+        detail.BillingInterval.Should().Be(BillingInterval.Annual);
+        detail.PriceMinorUnits.Should().Be(38000, "the annual plan price plus the annual add-on the coach pays");
+    }
+
     [Theory]
     [InlineData("paying", true)]
     [InlineData("failed", true)]

@@ -193,7 +193,6 @@ public class SetCoachSubscriptionEndpointTests(FitnessApiFactory factory)
             NameDe = "Plan",
             Currency = "CZK",
             PriceMinorUnits = 1000,
-            BillingInterval = BillingInterval.Monthly,
             IsActive = false,
         };
         SubscriptionPlanPriceBuilder.OpenPriceFor(plan);

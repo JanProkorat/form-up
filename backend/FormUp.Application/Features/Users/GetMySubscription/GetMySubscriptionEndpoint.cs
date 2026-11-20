@@ -36,7 +36,7 @@ internal sealed class GetMySubscriptionEndpoint(
         {
             s.Summary = "Get my coach subscription";
             s.Description = "The caller's plan, status, secondRoleAddOnEndsAt (when a removed second role's add-on stops being billed, " +
-                            "or null), active-client usage and limit, second-role state, monthly price lines and the " +
+                            "or null), active-client usage and limit, second-role state, price lines with their billingInterval (the subscription's own price row; Monthly on Free) and the " +
                             "feature flags that currently apply. A coach with no subscription is shown on the Free plan with no status. When the paid " +
                             "plan has lapsed the plan fields read as Free with no status, period end or cancelAtPeriodEnd (all empty once a plan has ended), " +
                             "the lapsed plan's names and end date are returned separately, " +
@@ -168,7 +168,12 @@ internal sealed class GetMySubscriptionEndpoint(
         var (discount, discountedTotal) = planLine is null
             ? (0L, 0L)
             : PromotionPricing.ForSubscription(
-                current.Promotion, response.PlanCode, planLine.Currency, planLine.AmountMinorUnits, addOnLine?.AmountMinorUnits);
+                current.Promotion,
+                response.PlanCode,
+                planLine.Currency,
+                response.BillingInterval,
+                planLine.AmountMinorUnits,
+                addOnLine?.AmountMinorUnits);
 
         return new CurrentPromotionDto
         {
@@ -178,6 +183,7 @@ internal sealed class GetMySubscriptionEndpoint(
             Currency = current.Promotion.Currency,
             Duration = current.Promotion.Duration,
             DurationMonths = current.Promotion.DurationMonths,
+            BillingPeriod = current.Promotion.BillingPeriod,
             EndsAt = current.CurrentPromotionEndsAt,
             DiscountMinorUnits = discount,
             DiscountedTotalMinorUnits = discountedTotal,
@@ -240,6 +246,7 @@ internal sealed class GetMySubscriptionEndpoint(
                     NameDe = free.NameDe,
                     StartsAt = row.CurrentPeriodEndsAt,
                     Cancellable = cancellable,
+                    BillingInterval = BillingInterval.Monthly,
                     PriceLines =
                     [
                         new SubscriptionPriceLineDto
@@ -267,6 +274,7 @@ internal sealed class GetMySubscriptionEndpoint(
                 p.SubscriptionPlan.NameEn,
                 p.SubscriptionPlan.NameDe,
                 p.SubscriptionPlan.BothRolesIncluded,
+                p.BillingInterval,
                 p.PriceMinorUnits,
                 p.SecondRoleAddOnPriceMinorUnits,
                 p.Currency,
@@ -286,6 +294,7 @@ internal sealed class GetMySubscriptionEndpoint(
             NameDe = pending.NameDe,
             StartsAt = row.CurrentPeriodEndsAt,
             Cancellable = cancellable,
+            BillingInterval = pending.BillingInterval,
             PriceLines =
             [
                 new SubscriptionPriceLineDto
@@ -344,6 +353,7 @@ internal sealed class GetMySubscriptionEndpoint(
         response.NameCs = free.NameCs;
         response.NameEn = free.NameEn;
         response.NameDe = free.NameDe;
+        response.BillingInterval = BillingInterval.Monthly;
         response.PriceLines =
         [
             new SubscriptionPriceLineDto
@@ -378,6 +388,7 @@ internal sealed class GetMySubscriptionEndpoint(
                 cs.SecondRoleAddOnEndsAt,
                 cs.NextPaymentAttemptAt,
                 HasBillingAccount = cs.ExternalCustomerId != null,
+                cs.SubscriptionPlanPrice.BillingInterval,
                 cs.SubscriptionPlanPrice.PriceMinorUnits,
                 cs.SubscriptionPlanPrice.SecondRoleAddOnPriceMinorUnits,
                 cs.SubscriptionPlanPrice.Currency,
@@ -395,6 +406,7 @@ internal sealed class GetMySubscriptionEndpoint(
                 Status = subscription.Status,
                 CurrentPeriodEndsAt = subscription.CurrentPeriodEndsAt,
                 CancelAtPeriodEnd = subscription.CancelAtPeriodEnd,
+                BillingInterval = subscription.BillingInterval,
                 FreeUntil = subscription.FreeUntil,
                 NextPaymentAttemptAt = subscription.NextPaymentAttemptAt,
                 HasBillingAccount = subscription.HasBillingAccount,
@@ -453,6 +465,7 @@ internal sealed class GetMySubscriptionEndpoint(
             NameCs = free.NameCs,
             NameEn = free.NameEn,
             NameDe = free.NameDe,
+            BillingInterval = BillingInterval.Monthly,
             PriceLines =
             [
                 new SubscriptionPriceLineDto

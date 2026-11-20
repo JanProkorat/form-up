@@ -49,7 +49,6 @@ public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory) : ID
             SecondRoleAddOnPriceMinorUnits = 5000,
             Currency = "CZK",
             PriceMinorUnits = 10000,
-            BillingInterval = BillingInterval.Monthly,
             MaxActiveClients = 5,
             IsActive = true,
         };
@@ -95,7 +94,6 @@ public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory) : ID
         MaxActiveClients: 20,
         PriceMinorUnits: 50000,
         Currency: "EUR",
-        BillingInterval: "Annual",
         ExternalPriceId: "price_123",
         IsActive: true);
 
@@ -123,7 +121,6 @@ public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory) : ID
 
         persisted.NameEn.Should().Be("Updated");
         persisted.PriceMinorUnits.Should().Be(50000);
-        persisted.BillingInterval.Should().Be(BillingInterval.Annual);
         persisted.CanUsePayments.Should().BeTrue();
         persisted.CanUsePackages.Should().BeTrue();
         persisted.CanUseAutomations.Should().BeTrue();
@@ -284,7 +281,7 @@ public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory) : ID
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         fake.Prices.Should().ContainSingle(call => call.PlanCode == code)
-            .Which.Should().Be(new FakeSubscriptionService.PriceCall(code, 50000, "EUR", BillingInterval.Annual));
+            .Which.Should().Be(new FakeSubscriptionService.PriceCall(code, 50000, "EUR", BillingInterval.Monthly));
     }
 
     [Fact]
@@ -381,6 +378,187 @@ public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory) : ID
         (await ReadPricesAsync(code)).Should().ContainSingle();
     }
 
+    private async Task<string> SeedPlanWithAnnualRowAsync()
+    {
+        var code = await SeedPlanAsync();
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var planId = await db.SubscriptionPlans.Where(p => p.Code == code).Select(p => p.Id)
+            .SingleAsync(TestContext.Current.CancellationToken);
+        db.SubscriptionPlanPrices.Add(new SubscriptionPlanPrice
+        {
+            SubscriptionPlanId = planId,
+            BillingInterval = BillingInterval.Annual,
+            PriceMinorUnits = 100000,
+            SecondRoleAddOnPriceMinorUnits = 50000,
+            Currency = "CZK",
+            ExternalPriceId = "price_annual_seed",
+            ValidFrom = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        return code;
+    }
+
+    /// <summary>The seeded plan's own prices, so the payload changes nothing unless a test overrides a field.</summary>
+    private static UpdatePlanPayload UnchangedPayload(string code) => UpdatedPayload(code) with
+    {
+        BothRolesIncluded = false,
+        SecondRoleAddOnPriceMinorUnits = 5000,
+        PriceMinorUnits = 10000,
+        Currency = "CZK",
+        AnnualPriceMinorUnits = 100000,
+        AnnualSecondRoleAddOnPriceMinorUnits = 50000,
+    };
+
+    [Fact]
+    public async Task Update_OnlyMonthlyPriceChanges_OpensOneMonthlyRowAndLeavesTheAnnualRow()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var client = await TestHelpers.RegisterAdminAsync(factory, TestContext.Current.CancellationToken);
+        var code = await SeedPlanWithAnnualRowAsync();
+
+        var response = await client.PutAsJsonAsync(
+            $"/admin/subscription-plans/{code}",
+            UnchangedPayload(code) with { PriceMinorUnits = 12000 },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var prices = await ReadPricesAsync(code);
+        prices.Count(p => p.BillingInterval == BillingInterval.Monthly).Should().Be(2);
+        prices.Count(p => p.BillingInterval == BillingInterval.Monthly && p.ValidTo is null).Should().Be(1);
+        var annual = prices.Should().ContainSingle(p => p.BillingInterval == BillingInterval.Annual).Subject;
+        annual.ValidTo.Should().BeNull();
+        annual.ExternalPriceId.Should().Be("price_annual_seed");
+        fake.Prices.Should().ContainSingle(call => call.PlanCode == code)
+            .Which.Interval.Should().Be(BillingInterval.Monthly);
+    }
+
+    [Fact]
+    public async Task Update_AnnualPriceUnchanged_OpensNoAnnualRowAndCreatesNoAnnualStripePrice()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var client = await TestHelpers.RegisterAdminAsync(factory, TestContext.Current.CancellationToken);
+        var code = await SeedPlanWithAnnualRowAsync();
+
+        var response = await client.PutAsJsonAsync(
+            $"/admin/subscription-plans/{code}", UnchangedPayload(code), TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var prices = await ReadPricesAsync(code);
+        prices.Count(p => p.BillingInterval == BillingInterval.Annual).Should().Be(1);
+        prices.Single(p => p.BillingInterval == BillingInterval.Annual).ExternalPriceId.Should().Be("price_annual_seed");
+        fake.Prices.Should().NotContain(call => call.Interval == BillingInterval.Annual);
+    }
+
+    [Fact]
+    public async Task Update_AnnualPriceChangedWithMoveFlag_MovesOnlyAnnualCoachesToTheNewAnnualRow()
+    {
+        var client = await TestHelpers.RegisterAdminAsync(factory, TestContext.Current.CancellationToken);
+        var code = await SeedPlanWithAnnualRowAsync();
+        var annualCoach = await TestActors.Trainer(factory).CreateAsync();
+        var monthlyCoach = await TestActors.Trainer(factory).CreateAsync();
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(
+            factory, annualCoach, code, interval: BillingInterval.Annual);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, monthlyCoach, code);
+        var oldAnnualId = (await ReadPricesAsync(code)).Single(p => p.BillingInterval == BillingInterval.Annual).Id;
+
+        var response = await client.PutAsJsonAsync(
+            $"/admin/subscription-plans/{code}",
+            UnchangedPayload(code) with { AnnualPriceMinorUnits = 120000, MoveExistingCoachesAtNextRenewal = true },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var newAnnualId = (await ReadPricesAsync(code))
+            .Single(p => p.BillingInterval == BillingInterval.Annual && p.ValidTo is null).Id;
+        newAnnualId.Should().NotBe(oldAnnualId);
+
+        var annual = await ReadSubscriptionAsync(annualCoach.ProfileId);
+        annual.SubscriptionPlanPriceId.Should().Be(oldAnnualId, "the coach keeps paying the old price until renewal");
+        annual.PendingSubscriptionPlanPriceId.Should().Be(newAnnualId);
+
+        var monthly = await ReadSubscriptionAsync(monthlyCoach.ProfileId);
+        monthly.PendingSubscriptionPlanPriceId.Should().BeNull("a monthly coach is not moved onto the annual price");
+    }
+
+    [Fact]
+    public async Task Update_AnnualPriceOmitted_ClosesTheAnnualRowAndTheCoachOnItKeepsIt()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var client = await TestHelpers.RegisterAdminAsync(factory, TestContext.Current.CancellationToken);
+        var code = await SeedPlanWithAnnualRowAsync();
+        var coach = await TestActors.Trainer(factory).CreateAsync();
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, code, interval: BillingInterval.Annual);
+        var annualId = (await ReadPricesAsync(code)).Single(p => p.BillingInterval == BillingInterval.Annual).Id;
+
+        var response = await client.PutAsJsonAsync(
+            $"/admin/subscription-plans/{code}",
+            UnchangedPayload(code) with { AnnualPriceMinorUnits = null, AnnualSecondRoleAddOnPriceMinorUnits = null },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<SubscriptionPlanDto>(
+            JsonOptions, TestContext.Current.CancellationToken);
+        body!.AnnualPriceMinorUnits.Should().BeNull();
+
+        var annual = (await ReadPricesAsync(code)).Single(p => p.BillingInterval == BillingInterval.Annual);
+        annual.Id.Should().Be(annualId);
+        annual.ValidTo.Should().NotBeNull();
+        (await ReadSubscriptionAsync(coach.ProfileId)).SubscriptionPlanPriceId.Should().Be(annualId);
+        fake.Prices.Should().NotContain(call => call.Interval == BillingInterval.Annual);
+    }
+
+    [Fact]
+    public async Task Update_StripeFailsCreatingTheAnnualPrice_Returns502_AndTheOpenAnnualRowStaysOpen()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        fake.FailAnnualPriceCreation = true;
+        var client = await TestHelpers.RegisterAdminAsync(factory, TestContext.Current.CancellationToken);
+        var code = await SeedPlanWithAnnualRowAsync();
+
+        var response = await client.PutAsJsonAsync(
+            $"/admin/subscription-plans/{code}",
+            UnchangedPayload(code) with { AnnualPriceMinorUnits = 120000 },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadGateway);
+        (await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))
+            .Should().Contain(ErrorCodes.BillingProviderError);
+
+        var prices = await ReadPricesAsync(code);
+        prices.Should().HaveCount(2);
+        prices.Should().OnlyContain(p => p.ValidTo == null);
+        prices.Single(p => p.BillingInterval == BillingInterval.Annual).PriceMinorUnits.Should().Be(100000);
+    }
+
+    [Fact]
+    public async Task Update_NewAnnualPrice_CreatesAYearStripePriceAndExposesItInTheDto()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var client = await TestHelpers.RegisterAdminAsync(factory, TestContext.Current.CancellationToken);
+        var code = await SeedPlanAsync();
+
+        var response = await client.PutAsJsonAsync(
+            $"/admin/subscription-plans/{code}",
+            UnchangedPayload(code),
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.Prices.Should().Contain(new FakeSubscriptionService.PriceCall(code, 100000, "CZK", BillingInterval.Annual));
+
+        var body = await response.Content.ReadFromJsonAsync<SubscriptionPlanDto>(
+            JsonOptions, TestContext.Current.CancellationToken);
+        body!.AnnualPriceMinorUnits.Should().Be(100000);
+        body.AnnualSecondRoleAddOnPriceMinorUnits.Should().Be(50000);
+        body.AnnualExternalPriceId.Should().StartWith("price_fake_");
+        body.PriceMinorUnits.Should().Be(10000);
+    }
+
     public void Dispose() => BillingTestData.ResetProvider(factory);
 
     [Fact]
@@ -391,7 +569,7 @@ public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory) : ID
 
         var response = await client.PutAsJsonAsync(
             "/admin/subscription-plans/free",
-            UpdatedPayload("free") with { PriceMinorUnits = 100, Currency = "CZK", BillingInterval = "Monthly" },
+            UpdatedPayload("free") with { PriceMinorUnits = 100, Currency = "CZK" },
             TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.Conflict);
@@ -411,7 +589,6 @@ public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory) : ID
             {
                 PriceMinorUnits = 0,
                 Currency = "CZK",
-                BillingInterval = "Monthly",
                 IsActive = false,
             },
             TestContext.Current.CancellationToken);
@@ -517,7 +694,6 @@ public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory) : ID
                 // MaxActiveClients intentionally omitted — must 400, not silently grant unlimited.
                 PriceMinorUnits = 50000,
                 Currency = "EUR",
-                BillingInterval = "Annual",
                 IsActive = true,
             },
             TestContext.Current.CancellationToken);
@@ -556,7 +732,6 @@ public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory) : ID
                 MaxActiveClients = 20,
                 PriceMinorUnits = 50000,
                 Currency = "EUR",
-                BillingInterval = "Annual",
                 // IsActive intentionally omitted — must 400, not silently deactivate.
             },
             TestContext.Current.CancellationToken);
@@ -595,7 +770,6 @@ public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory) : ID
                 MaxActiveClients = 20,
                 PriceMinorUnits = 50000,
                 Currency = "EUR",
-                BillingInterval = "Annual",
                 IsActive = true,
             },
             TestContext.Current.CancellationToken);
@@ -634,7 +808,6 @@ public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory) : ID
                 MaxActiveClients = 20,
                 PriceMinorUnits = 50000,
                 Currency = "EUR",
-                BillingInterval = "Annual",
                 IsActive = true,
             },
             TestContext.Current.CancellationToken);
@@ -687,8 +860,9 @@ public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory) : ID
         int? MaxActiveClients,
         long PriceMinorUnits,
         string Currency,
-        string BillingInterval,
         string? ExternalPriceId,
         bool IsActive,
-        bool MoveExistingCoachesAtNextRenewal = false);
+        bool MoveExistingCoachesAtNextRenewal = false,
+        long? AnnualPriceMinorUnits = null,
+        long? AnnualSecondRoleAddOnPriceMinorUnits = null);
 }

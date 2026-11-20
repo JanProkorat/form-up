@@ -398,6 +398,39 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task Webhook_SubscriptionItemWithTheAnnualRowsPriceId_PutsTheCoachOnTheAnnualRow()
+    {
+        var scenario = await ArrangeOnPaidPlanAsync();
+        var annualPriceId = $"price_{Guid.NewGuid():N}";
+        long annualRowId;
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var planId = await db.SubscriptionPlans.Where(p => p.Code == scenario.PlanCode).Select(p => p.Id).SingleAsync(Ct);
+            var annualRow = new SubscriptionPlanPrice
+            {
+                SubscriptionPlanId = planId,
+                BillingInterval = BillingInterval.Annual,
+                PriceMinorUnits = 299000,
+                Currency = "CZK",
+                ExternalPriceId = annualPriceId,
+                ValidFrom = DateTime.UtcNow,
+            };
+            db.SubscriptionPlanPrices.Add(annualRow);
+            await db.SaveChangesAsync(Ct);
+            annualRowId = annualRow.Id;
+        }
+
+        var response = await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.updated", scenario with { PriceId = annualPriceId }, "active"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var after = await ReadRowAsync(scenario.Coach.ProfileId);
+        after.SubscriptionPlanPriceId.Should().Be(annualRowId);
+    }
+
+    [Fact]
     public async Task Webhook_RenewalToAOneRolePlanWithAnAddOnLine_SetsTheAddOnFlag_AndClearsThePendingId()
     {
         var scenario = await ArrangeOnPaidPlanAsync();
@@ -1442,6 +1475,27 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
     public async Task Webhook_AnAutomaticCouponWithoutAPromotionCode_IsMappedByItsCouponId()
     {
         var (scenario, promotion, _) = await ArrangeDiscountAsync(reportedAsCode: false);
+
+        await PostAsync(SubscriptionEvent(NewEventId(), "customer.subscription.created", scenario, "active", discountIds: ["di_1"]));
+
+        (await ReadRowAsync(scenario.Coach.ProfileId)).CurrentPromotionId.Should().Be(promotion.Id);
+        (await RedemptionCountAsync(promotion.Id)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Webhook_ADiscountOfTheAnnualCoupon_ResolvesThePromotion_AndWritesTheRedemption()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var scenario = await ArrangeOnFreePlanAsync();
+        var promotion = await PromotionBuilder.CreateAsync(
+            factory, [scenario.PlanCode], PromotionMode.Automatic, p =>
+            {
+                p.Duration = PromotionDuration.Months;
+                p.DurationMonths = 3;
+                p.StripePromotionCodeId = null;
+                p.StripeAnnualCouponId = $"coupon_annual_{Guid.NewGuid():N}";
+            });
+        fake.SubscriptionDiscounts[scenario.SubscriptionId] = new SubscriptionDiscount(promotion.StripeAnnualCouponId, null, null);
 
         await PostAsync(SubscriptionEvent(NewEventId(), "customer.subscription.created", scenario, "active", discountIds: ["di_1"]));
 

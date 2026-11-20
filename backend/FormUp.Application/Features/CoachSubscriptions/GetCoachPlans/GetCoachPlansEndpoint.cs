@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FormUp.Application.Domain.Constants;
+using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Services;
 using FormUp.Application.Infrastructure.Data;
@@ -28,11 +29,11 @@ internal sealed class GetCoachPlansEndpoint(IApplicationDbContext db, IOptions<B
         Summary(s =>
         {
             s.Summary = "List the plans a coach can choose";
-            s.Description = "Active plans with names in all locales, current price, second-role add-on price, currency, " +
+            s.Description = "Active plans with names in all locales, current monthly price, second-role add-on price, annual price lines and saving percent (null when the plan is not sold annually), currency, " +
                             "client cap, feature flags and whether both roles are included. When an automatic promotion applies to " +
                             "the caller (the latest claim-from among those they qualify for) it is returned with a display-only " +
                             "discounted price per plan it covers, second-role line included; other plans show no discounted price.";
-            s.Response<GetCoachPlansResponse>(StatusCodes.Status200OK, "The active plans, cheapest first");
+            s.Response<GetCoachPlansResponse>(StatusCodes.Status200OK, "The active plans, cheapest monthly price first");
             s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
             s.Response(StatusCodes.Status403Forbidden, "The caller is not a trainer or nutritionist");
         });
@@ -61,7 +62,7 @@ internal sealed class GetCoachPlansEndpoint(IApplicationDbContext db, IOptions<B
                 PriceMinorUnits = p.PriceMinorUnits,
                 SecondRoleAddOnPriceMinorUnits = p.SecondRoleAddOnPriceMinorUnits,
                 Currency = p.Currency,
-                BillingInterval = p.BillingInterval,
+                BillingInterval = BillingInterval.Monthly,
                 MaxActiveClients = p.MaxActiveClients,
                 BothRolesIncluded = p.BothRolesIncluded,
                 CanCreatePlans = p.CanCreatePlans,
@@ -79,6 +80,24 @@ internal sealed class GetCoachPlansEndpoint(IApplicationDbContext db, IOptions<B
                 CanUsePackages = p.CanUsePackages,
             })
             .ToListAsync(ct);
+
+        var planCodes = plans.Select(plan => plan.Code).ToList();
+        var annualPrices = await db.SubscriptionPlanPrices
+            .AsNoTracking()
+            .Where(price => planCodes.Contains(price.SubscriptionPlan.Code)
+                            && price.ValidTo == null
+                            && price.BillingInterval == BillingInterval.Annual)
+            .Select(price => new { price.SubscriptionPlan.Code, price.PriceMinorUnits, price.SecondRoleAddOnPriceMinorUnits })
+            .ToDictionaryAsync(row => row.Code, ct);
+
+        foreach (var plan in plans.Where(plan => annualPrices.ContainsKey(plan.Code)))
+        {
+            var annual = annualPrices[plan.Code];
+
+            plan.AnnualPriceMinorUnits = annual.PriceMinorUnits;
+            plan.AnnualSecondRoleAddOnPriceMinorUnits = annual.SecondRoleAddOnPriceMinorUnits;
+            plan.AnnualSavingPercent = AnnualSaving.Percent(plan.PriceMinorUnits, annual.PriceMinorUnits);
+        }
 
         var profileId = await db.ProfessionalProfiles
             .AsNoTracking()
@@ -104,10 +123,22 @@ internal sealed class GetCoachPlansEndpoint(IApplicationDbContext db, IOptions<B
     {
         foreach (var plan in plans.Where(plan => PromotionRules.CoversPlan(winner, plan.Code)))
         {
-            var (planPrice, addOnPrice) = PromotionPricing.Apply(winner, plan.PriceMinorUnits, plan.SecondRoleAddOnPriceMinorUnits);
+            if (PromotionRules.CoversInterval(winner, BillingInterval.Monthly))
+            {
+                var (planPrice, addOnPrice) = PromotionPricing.Apply(winner, plan.PriceMinorUnits, plan.SecondRoleAddOnPriceMinorUnits);
 
-            plan.DiscountedPriceMinorUnits = planPrice;
-            plan.DiscountedSecondRoleAddOnPriceMinorUnits = addOnPrice;
+                plan.DiscountedPriceMinorUnits = planPrice;
+                plan.DiscountedSecondRoleAddOnPriceMinorUnits = addOnPrice;
+            }
+
+            if (plan.AnnualPriceMinorUnits is { } annualPrice && PromotionRules.CoversInterval(winner, BillingInterval.Annual))
+            {
+                var (annualPlanPrice, annualAddOnPrice) =
+                    PromotionPricing.Apply(winner, annualPrice, plan.AnnualSecondRoleAddOnPriceMinorUnits);
+
+                plan.AnnualDiscountedPriceMinorUnits = annualPlanPrice;
+                plan.AnnualDiscountedSecondRoleAddOnPriceMinorUnits = annualAddOnPrice;
+            }
         }
     }
 
@@ -119,6 +150,7 @@ internal sealed class GetCoachPlansEndpoint(IApplicationDbContext db, IOptions<B
         Currency = promotion.Currency,
         Duration = promotion.Duration,
         DurationMonths = promotion.DurationMonths,
+        BillingPeriod = promotion.BillingPeriod,
         ClaimUntil = promotion.ClaimUntil,
         PlanCodes = promotion.PlanCodes.ToList(),
     };

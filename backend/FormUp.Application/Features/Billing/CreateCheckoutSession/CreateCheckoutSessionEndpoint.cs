@@ -31,21 +31,31 @@ internal sealed class CreateCheckoutSessionEndpoint(
     {
         Post("/billing/checkout-session");
         Roles(AppRoles.Trainer, AppRoles.Nutritionist);
+        Options(x => x.RequireRateLimiting(AppPolicies.PromotionCodeRateLimit));
         Summary(s =>
         {
             s.Summary = "Start a Stripe Checkout";
-            s.Description = "Creates a hosted Checkout session for a paid plan with no trial. A coach with two active roles pays the " +
-                            "second-role add-on line on a plan that does not include both roles; the request flag is ignored. " +
-                            "Promotion codes are allowed unless an automatic promotion applies (the latest claim-from the coach qualifies " +
-                            "for, covering the chosen plan), whose coupon is then attached. Billing address and tax id are collected. " +
-                            "Acts only on the caller's own profile. Reachable while a plan choice is required.";
+            s.Description = "Creates a hosted Checkout session for a paid plan with no trial, billed monthly (the default) or annually " +
+                            "(BillingInterval). A coach with two active roles pays the " +
+                            "second-role add-on line on a plan that does not include both roles, at the same interval as the plan; the request flag is ignored. " +
+                            "An optional Code is checked against our promotion (claim window, plan, billing interval, max uses, new " +
+                            "coaches only, one use per coach) before anything is sent to Stripe, and its coupon replaces the automatic " +
+                            "promotion. Without a code, the automatic promotion the coach qualifies for (the latest claim-from, covering " +
+                            "the chosen plan and interval) is attached. Stripe's own promotion-code field is never shown. Billing address " +
+                            "and tax id are collected. Acts only on the caller's own profile. Reachable while a plan choice is required. " +
+                            "Rate limited per account, because a typed code can be probed.";
             s.Response<CreateCheckoutSessionResponse>(StatusCodes.Status200OK, "The Checkout page to redirect to");
             s.Response<ProblemDetails>(StatusCodes.Status400BadRequest,
-                "Invalid body, or the plan cannot be bought: unknown, Free, inactive, not priced in Stripe, or the caller has two active roles and the plan has no add-on price (PLAN_NOT_PURCHASABLE)");
+                "Invalid body (a Code that is too long or has invalid characters is PROMOTION_CODE_INVALID), or the plan cannot be bought: unknown, Free, inactive, no open price for the interval, not priced in Stripe, or the caller has two active roles and the plan has no add-on price (PLAN_NOT_PURCHASABLE)");
             s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
             s.Response(StatusCodes.Status403Forbidden, "The caller is not a trainer or nutritionist, or the coach role was removed");
-            s.Response(StatusCodes.Status404NotFound, "The caller has no professional profile, or the Free plan is missing");
-            s.Response(StatusCodes.Status409Conflict, "The coach already has a live paid subscription (BILLING_ALREADY_SUBSCRIBED)");
+            s.Response(StatusCodes.Status404NotFound,
+                "The caller has no professional profile, or the Free plan is missing, or no promotion has the Code, its claim window has closed, or an admin ended it (PROMOTION_CODE_NOT_FOUND)");
+            s.Response(StatusCodes.Status409Conflict,
+                "The coach already has a live paid subscription (BILLING_ALREADY_SUBSCRIBED), or the Code fails a rule: " +
+                "PROMOTION_CODE_NOT_STARTED, PROMOTION_CODE_PLAN_NOT_ELIGIBLE, PROMOTION_CODE_INTERVAL_NOT_ELIGIBLE, " +
+                "PROMOTION_CODE_USED_UP, PROMOTION_CODE_NEW_COACHES_ONLY, PROMOTION_CODE_ALREADY_USED");
+            s.Response(StatusCodes.Status429TooManyRequests, "The per-account rate limit was exceeded");
             s.Response(StatusCodes.Status502BadGateway, "Stripe failed; nothing was started (BILLING_PROVIDER_ERROR)");
             s.Response(StatusCodes.Status503ServiceUnavailable, "Stripe is not configured on this server (BILLING_NOT_CONFIGURED)");
         });
@@ -69,12 +79,13 @@ internal sealed class CreateCheckoutSessionEndpoint(
 
         var price = await db.SubscriptionPlanPrices
             .AsNoTracking()
-            .Where(p => p.SubscriptionPlan.Code == req.PlanCode && p.ValidTo == null)
+            .Where(p => p.SubscriptionPlan.Code == req.PlanCode && p.ValidTo == null
+                        && p.BillingInterval == req.BillingInterval)
             .Select(p => new PlanOffer(
                 p.SubscriptionPlan.Code,
                 p.SubscriptionPlan.IsActive,
                 p.SubscriptionPlan.BothRolesIncluded,
-                p.SubscriptionPlan.BillingInterval,
+                p.BillingInterval,
                 p.PriceMinorUnits,
                 p.SecondRoleAddOnPriceMinorUnits,
                 p.Currency,
@@ -121,6 +132,14 @@ internal sealed class CreateCheckoutSessionEndpoint(
             return;
         }
 
+        // Everything that can refuse the code runs here, before the first call to Stripe (no customer, no session).
+        var coupon = await ResolveCouponOrRespondAsync(req.Code, price, coach.ProfileId, subscription?.FirstPaidAt, ct);
+
+        if (coupon is null)
+        {
+            return;
+        }
+
         try
         {
             var customerId = subscription?.ExternalCustomerId ?? await CreateCustomerAsync(coach, userId, subscription, ct);
@@ -140,7 +159,7 @@ internal sealed class CreateCheckoutSessionEndpoint(
                 carryAddOn ? price.AddOnAmount : null,
                 price.Currency,
                 price.BillingInterval,
-                await AutomaticCouponIdAsync(coach.ProfileId, price.Code, ct),
+                coupon.CouponId,
                 req.Flow,
                 coach.Language,
                 ct);
@@ -155,14 +174,45 @@ internal sealed class CreateCheckoutSessionEndpoint(
     }
 
     /// <summary>
-    /// The Stripe coupon of the coach's winning automatic promotion, or null. The winner is picked per coach, so a plan the
-    /// winner does not cover gets no coupon and keeps the promotion-code field on Checkout.
+    /// The coupon to attach. A typed code is looked up and checked with <see cref="PromotionEligibility"/>; a code that is
+    /// unknown (404) or fails a rule (409) is answered here and null is returned. Without a code the coach's winning
+    /// automatic promotion is used when it covers the plan and interval. The winner is per coach, so a plan or interval the
+    /// winner does not cover gets no coupon rather than a fallback to another promotion.
     /// </summary>
-    private async Task<string?> AutomaticCouponIdAsync(long profileId, string planCode, CancellationToken ct)
+    private async Task<ResolvedCoupon?> ResolveCouponOrRespondAsync(
+        string? code, PlanOffer price, long profileId, DateTimeOffset? firstPaidAt, CancellationToken ct)
     {
-        var winner = await PromotionSelector.PickForCoachAsync(db, profileId, timeProvider.GetUtcNow(), ct);
+        var now = timeProvider.GetUtcNow();
 
-        return winner is not null && PromotionRules.CoversPlan(winner, planCode) ? winner.StripeCouponId : null;
+        if (string.IsNullOrEmpty(code))
+        {
+            var winner = await PromotionSelector.PickForCoachAsync(db, profileId, now, ct);
+
+            return new ResolvedCoupon(
+                winner is not null && PromotionRules.CoversPlan(winner, price.Code)
+                    ? PromotionRules.CouponIdFor(winner, price.BillingInterval)
+                    : null);
+        }
+
+        var promotion = await PromotionEligibility.FindByCodeAsync(db, code, now, ct);
+
+        if (promotion is null)
+        {
+            await this.SendProblemAsync(
+                StatusCodes.Status404NotFound, ErrorCodes.PromotionCodeNotFound, "The promotion code was not found.", ct);
+            return null;
+        }
+
+        var refusal = await PromotionEligibility.CheckAsync(
+            db, promotion, price.Code, price.BillingInterval, profileId, firstPaidAt, now, ct);
+
+        if (refusal is not null)
+        {
+            await this.SendProblemAsync(StatusCodes.Status409Conflict, refusal.ErrorCode, refusal.Detail, ct);
+            return null;
+        }
+
+        return new ResolvedCoupon(PromotionRules.CouponIdFor(promotion, price.BillingInterval));
     }
 
     /// <summary>
@@ -176,7 +226,8 @@ internal sealed class CreateCheckoutSessionEndpoint(
         {
             var free = await db.SubscriptionPlanPrices
                 .AsNoTracking()
-                .Where(p => p.SubscriptionPlan.Code == SubscriptionPlanCodes.Free && p.ValidTo == null)
+                .Where(p => p.SubscriptionPlan.Code == SubscriptionPlanCodes.Free && p.ValidTo == null
+                        && p.BillingInterval == BillingInterval.Monthly)
                 .Select(p => new { PriceId = p.Id, p.SubscriptionPlanId })
                 .FirstOrDefaultAsync(ct);
 
@@ -214,6 +265,8 @@ internal sealed class CreateCheckoutSessionEndpoint(
         long? AddOnAmount,
         string Currency,
         string? ExternalPriceId);
+
+    private sealed record ResolvedCoupon(string? CouponId);
 
     private sealed record CoachIdentity(long ProfileId, string? Email, string FirstName, string LastName, string? Language);
 }

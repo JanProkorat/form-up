@@ -24,7 +24,8 @@ public interface ISubscriptionService
 
     /// <summary>
     /// Creates a hosted Checkout session for a plan and an optional second-role add-on line (no trial) and returns its URL.
-    /// Promotion codes are allowed unless <paramref name="couponId"/> applies an automatic promotion.
+    /// The provider's own promotion-code field is never shown; the only discount is <paramref name="couponId"/>, which the
+    /// caller resolved from an automatic promotion or a code the coach typed in our app.
     /// </summary>
     /// <param name="customerId">The provider customer id.</param>
     /// <param name="userId">The coach's <c>ApplicationUser.Id</c>, stored as subscription metadata.</param>
@@ -33,7 +34,7 @@ public interface ISubscriptionService
     /// <param name="addOnAmountMinorUnits">The second-role add-on price, or null for no add-on line.</param>
     /// <param name="currency">ISO 4217 currency of the add-on price.</param>
     /// <param name="interval">Billing cadence of the add-on price.</param>
-    /// <param name="couponId">Automatic promotion coupon id, or null.</param>
+    /// <param name="couponId">The coupon to attach for this interval (automatic winner or the typed code's), or null for none.</param>
     /// <param name="flow">Where the coach started, appended to the configured return URLs as a query parameter.</param>
     /// <param name="language">The coach's language (cs, en, de) for the hosted page, or null for Czech.</param>
     /// <param name="ct">Cancellation token.</param>
@@ -70,6 +71,7 @@ public interface ISubscriptionService
     /// <param name="atNextRenewal">True to bill the renewal at the new price instead of changing now.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <param name="idempotencyKey">For an immediate change: repeating a call with the same key returns the first result instead of charging twice. Ignored for a scheduled change.</param>
+    /// <param name="pendingPhaseCouponId">For a scheduled change: the coupon the new price carries from the renewal on, or null for no discount in that phase.</param>
     Task ChangePlanAsync(
         string subscriptionId,
         string planCode,
@@ -79,7 +81,8 @@ public interface ISubscriptionService
         BillingInterval interval,
         bool atNextRenewal,
         CancellationToken ct,
-        string? idempotencyKey = null);
+        string? idempotencyKey = null,
+        string? pendingPhaseCouponId = null);
 
     /// <summary>
     /// Moves a subscription to a dearer plan price now and charges the prorated difference. A card that needs no
@@ -96,6 +99,7 @@ public interface ISubscriptionService
     /// <param name="interval">Billing cadence of the add-on price.</param>
     /// <param name="idempotencyKey">Repeating a call with the same key returns the first result instead of charging twice.</param>
     /// <param name="ct">Cancellation token.</param>
+    /// <param name="discount">What the same update does to the subscription's discount; null leaves it alone. Used when the interval changes.</param>
     Task<PlanUpgradeOutcome> UpgradePlanNowAsync(
         string subscriptionId,
         string planCode,
@@ -104,7 +108,8 @@ public interface ISubscriptionService
         string currency,
         BillingInterval interval,
         string idempotencyKey,
-        CancellationToken ct);
+        CancellationToken ct,
+        SubscriptionDiscountChange? discount = null);
 
     /// <summary>
     /// Cleans up after a pending upgrade expired unpaid: puts a scheduled downgrade back from the snapshot taken before the
@@ -136,6 +141,7 @@ public interface ISubscriptionService
     /// <param name="currency">ISO 4217 currency of the add-on price.</param>
     /// <param name="interval">Billing cadence of the add-on price.</param>
     /// <param name="ct">Cancellation token.</param>
+    /// <param name="discount">What the real change would do to the discount, so the preview matches; null leaves it alone.</param>
     Task<PlanChangePreview> PreviewPlanChangeAsync(
         string customerId,
         string subscriptionId,
@@ -144,16 +150,17 @@ public interface ISubscriptionService
         long? addOnAmountMinorUnits,
         string currency,
         BillingInterval interval,
-        CancellationToken ct);
+        CancellationToken ct,
+        SubscriptionDiscountChange? discount = null);
 
     /// <summary>
-    /// Makes a promotion code the subscription's only discount. The subscription's discount list is replaced, never
-    /// added to, so repeating the call or switching codes cannot stack discounts.
+    /// Makes a coupon the subscription's only discount. The subscription's discount list is replaced, never added to, so
+    /// repeating the call or switching codes cannot stack discounts.
     /// </summary>
     /// <param name="subscriptionId">The provider subscription id.</param>
-    /// <param name="promotionCodeId">The provider promotion code id, not the text a customer types.</param>
+    /// <param name="couponId">The provider coupon id for the subscription's billing interval.</param>
     /// <param name="ct">Cancellation token.</param>
-    Task ApplyPromotionCodeAsync(string subscriptionId, string promotionCodeId, CancellationToken ct);
+    Task ApplyCouponAsync(string subscriptionId, string couponId, CancellationToken ct);
 
     /// <summary>Creates a discount coupon and returns its id.</summary>
     /// <param name="spec">What the coupon discounts, for how long, and the limits the provider can enforce.</param>
@@ -161,7 +168,8 @@ public interface ISubscriptionService
     Task<string> CreateCouponAsync(CouponSpec spec, CancellationToken ct);
 
     /// <summary>
-    /// Creates a customer-facing promotion code for a coupon and returns its id. The code is usable at Checkout.
+    /// Creates a customer-facing promotion code for a coupon and returns its id. No longer called for new promotions: codes
+    /// are typed in our own app and resolved to a coupon there. Kept with the deactivation below for promotions made before.
     /// </summary>
     /// <param name="couponId">The provider coupon id.</param>
     /// <param name="code">The code text customers type.</param>

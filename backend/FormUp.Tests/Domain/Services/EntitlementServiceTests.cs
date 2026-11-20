@@ -115,7 +115,6 @@ public class EntitlementServiceTests(FitnessApiFactory factory)
             MaxActiveClients = maxActiveClients,
             PriceMinorUnits = 99900,
             Currency = "CZK",
-            BillingInterval = BillingInterval.Monthly,
             IsActive = true
         };
 

@@ -15,6 +15,10 @@ namespace FormUp.Application.Domain.Interfaces;
 /// <param name="ClaimUntil">Last moment the coupon can be redeemed, or null for no end.</param>
 /// <param name="PlanPriceExternalIds">Provider price ids of the covered plans; null leaves the coupon unrestricted.</param>
 /// <param name="IdempotencyKey">Repeating a call with the same key returns the first coupon instead of a second one.</param>
+/// <param name="Interval">
+/// The billing interval the coupon is for. A yearly subscription is invoiced once a year, so for it a first-month or
+/// several-months discount is a "once" coupon (the first yearly invoice); "forever" stays "forever".
+/// </param>
 public sealed record CouponSpec(
     string Name,
     PromotionKind Kind,
@@ -25,4 +29,5 @@ public sealed record CouponSpec(
     int? MaxUses,
     DateTimeOffset? ClaimUntil,
     IReadOnlyList<string>? PlanPriceExternalIds,
-    string IdempotencyKey);
+    string IdempotencyKey,
+    BillingInterval Interval = BillingInterval.Monthly);

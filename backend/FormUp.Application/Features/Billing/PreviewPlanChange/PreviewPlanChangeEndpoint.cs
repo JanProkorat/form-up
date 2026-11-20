@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FastEndpoints;
 using FormUp.Application.Domain.Authorization;
 using FormUp.Application.Domain.Constants;
+using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Extensions;
 using FormUp.Application.Domain.Interfaces;
@@ -44,11 +45,11 @@ internal sealed class PreviewPlanChangeEndpoint(
                             "charged or changed.";
             s.Response<PreviewPlanChangeResponse>(StatusCodes.Status200OK, "The preview");
             s.Response<ProblemDetails>(StatusCodes.Status400BadRequest,
-                "Invalid body, or the plan cannot be bought: unknown, Free, inactive, not priced in Stripe, or the caller has two active roles and the plan has no add-on price (PLAN_NOT_PURCHASABLE)");
+                "Invalid body, or the plan cannot be bought: unknown, Free, inactive, no open price for the interval, not priced in Stripe, or the caller has two active roles and the plan has no add-on price (PLAN_NOT_PURCHASABLE)");
             s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
             s.Response(StatusCodes.Status403Forbidden, "The caller is not a trainer or nutritionist, or the coach role was removed");
             s.Response(StatusCodes.Status409Conflict,
-                "No live paid subscription (BILLING_NO_SUBSCRIPTION), an admin gift is in force (BILLING_GIFT_IN_FORCE), or the plan is the current one (BILLING_PLAN_UNCHANGED)");
+                "No live paid subscription (BILLING_NO_SUBSCRIPTION), an admin gift is in force (BILLING_GIFT_IN_FORCE), or the plan is the current one at the current interval (BILLING_PLAN_UNCHANGED)");
             s.Response(StatusCodes.Status502BadGateway, "Stripe failed (BILLING_PROVIDER_ERROR)");
             s.Response(StatusCodes.Status503ServiceUnavailable, "Stripe is not configured on this server (BILLING_NOT_CONFIGURED)");
         });
@@ -68,7 +69,7 @@ internal sealed class PreviewPlanChangeEndpoint(
             return;
         }
 
-        var target = await this.LoadPlanChangeTargetOrRespondAsync(db, req.PlanCode, ct);
+        var target = await this.LoadPlanChangeTargetOrRespondAsync(db, req.PlanCode, req.BillingInterval, ct);
 
         if (target is null)
         {
@@ -82,7 +83,7 @@ internal sealed class PreviewPlanChangeEndpoint(
             return;
         }
 
-        var decision = await this.DecidePlanChangeOrRespondAsync(coachRoleStatus, userId, subscription, target, ct);
+        var decision = await this.DecidePlanChangeOrRespondAsync(db, coachRoleStatus, userId, subscription, target, ct);
 
         if (decision is null)
         {
@@ -111,7 +112,8 @@ internal sealed class PreviewPlanChangeEndpoint(
                     addOnAmount,
                     target.Currency,
                     target.BillingInterval,
-                    ct);
+                    ct,
+                    await PlanChangeEndpointExtensions.ResolveDiscountChangeAsync(db, subscription, target, ct));
             }
             catch (BillingProviderException)
             {
@@ -126,14 +128,31 @@ internal sealed class PreviewPlanChangeEndpoint(
                 PlanCode = target.Code,
                 Timing = decision.IsUpgrade ? PlanChangeTiming.Now : PlanChangeTiming.AtNextRenewal,
                 BillingInterval = target.BillingInterval,
+                CurrentBillingInterval = subscription.SubscriptionPlanPrice.BillingInterval,
                 Currency = target.Currency,
                 TodayAmountMinorUnits = today.TodayAmountMinorUnits,
                 TodayTaxMinorUnits = today.TodayTaxMinorUnits,
                 NextAmountMinorUnits = target.PriceMinorUnits + (addOnAmount ?? 0),
-                NextChargeAt = subscription.CurrentPeriodEndsAt,
+                NextChargeAt = NextChargeAt(subscription, target, decision),
                 CancelsScheduledSwitchToFree = decision.IsUpgrade && subscription.CancelAtPeriodEnd,
                 TaxMode = options.Value.TaxMode,
             },
             ct);
+    }
+
+    /// <summary>
+    /// When the regular bill starts. A change that waits starts at the current period end. An immediate change keeps the period
+    /// end unless it also switches the interval: that restarts the billing period now, so the next charge is one new interval away.
+    /// </summary>
+    private DateTimeOffset? NextChargeAt(CoachSubscription subscription, PlanChangeTarget target, PlanChangeDecision decision)
+    {
+        if (!decision.IsUpgrade || subscription.SubscriptionPlanPrice.BillingInterval == target.BillingInterval)
+        {
+            return subscription.CurrentPeriodEndsAt;
+        }
+
+        var now = timeProvider.GetUtcNow();
+
+        return target.BillingInterval == BillingInterval.Annual ? now.AddYears(1) : now.AddMonths(1);
     }
 }

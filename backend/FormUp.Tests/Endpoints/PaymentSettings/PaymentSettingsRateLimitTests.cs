@@ -41,7 +41,8 @@ public class PaymentSettingsRateLimitTests(RateLimitEnabledFactory factory)
             .Select(p => p.Id)
             .SingleAsync(ct);
         var price = await db.SubscriptionPlanPrices
-            .Where(p => p.SubscriptionPlan.Code == "pro" && p.ValidTo == null)
+            .Where(p => p.SubscriptionPlan.Code == "pro" && p.ValidTo == null
+                        && p.BillingInterval == BillingInterval.Monthly)
             .SingleAsync(ct);
 
         db.CoachSubscriptions.Add(new CoachSubscription

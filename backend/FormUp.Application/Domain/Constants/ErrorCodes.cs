@@ -453,6 +453,12 @@ public static class ErrorCodes
     /// <summary>A plan must either include both roles or carry a positive second-role add-on price, never both or neither.</summary>
     public const string SecondRoleOptionInvalid = "SECOND_ROLE_OPTION_INVALID";
 
+    /// <summary>The annual price is not allowed on this plan (the Free plan is never sold annually).</summary>
+    public const string AnnualPriceInvalid = "ANNUAL_PRICE_INVALID";
+
+    /// <summary>The annual second-role add-on price does not match the plan: allowed and required only when the plan has a paid add-on and an annual price.</summary>
+    public const string AnnualAddOnPriceInvalid = "ANNUAL_ADD_ON_PRICE_INVALID";
+
     /// <summary>Per-client check-in settings require weekly check-ins on the same plan.</summary>
     public const string PerClientCheckInRequiresWeeklyCheckIns = "PER_CLIENT_CHECK_IN_REQUIRES_WEEKLY_CHECK_INS";
 
@@ -810,6 +816,9 @@ public static class ErrorCodes
 
     /// <summary>The coach's current plan is not one of the promotion's plans.</summary>
     public const string PromotionCodePlanNotEligible = "PROMOTION_CODE_PLAN_NOT_ELIGIBLE";
+
+    /// <summary>The promotion does not cover the billing interval (monthly or annual) of the subscription or checkout.</summary>
+    public const string PromotionCodeIntervalNotEligible = "PROMOTION_CODE_INTERVAL_NOT_ELIGIBLE";
 
     /// <summary>Every use of the promotion is taken.</summary>
     public const string PromotionCodeUsedUp = "PROMOTION_CODE_USED_UP";

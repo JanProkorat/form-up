@@ -129,6 +129,49 @@ public static class ApplicationDbContextSeed
         }
 
         await context.SaveChangesAsync();
+        await EnsureAnnualPricesAsync(context);
+    }
+
+    /// <summary>
+    /// Adds the placeholder annual price row to Start/Pro/Studio when the plan has never had one, so databases seeded
+    /// before annual billing get it too. A plan whose annual price an admin closed keeps its closed row and is left alone.
+    /// </summary>
+    private static async Task EnsureAnnualPricesAsync(ApplicationDbContext context)
+    {
+        var annualPlans = new Dictionary<string, (long Price, long? AddOnPrice)>
+        {
+            ["start"] = (299000, 149000),
+            ["pro"] = (599000, 299000),
+            ["studio"] = (999000, null),
+        };
+
+        var codes = annualPlans.Keys.ToList();
+        var plans = await context.SubscriptionPlans
+            .Where(p => codes.Contains(p.Code))
+            .Include(p => p.Prices)
+            .ToListAsync();
+
+        foreach (var plan in plans)
+        {
+            if (plan.Prices.Any(price => price.BillingInterval == BillingInterval.Annual))
+            {
+                continue;
+            }
+
+            var (annualPrice, annualAddOnPrice) = annualPlans[plan.Code];
+
+            plan.Prices.Add(new SubscriptionPlanPrice
+            {
+                SubscriptionPlanId = plan.Id,
+                BillingInterval = BillingInterval.Annual,
+                PriceMinorUnits = annualPrice,
+                SecondRoleAddOnPriceMinorUnits = plan.BothRolesIncluded ? null : annualAddOnPrice,
+                Currency = plan.Currency,
+                ValidFrom = DateTime.UtcNow,
+            });
+        }
+
+        await context.SaveChangesAsync();
     }
 
     private static SubscriptionPlan NewSeedPlan(
@@ -168,7 +211,6 @@ public static class ApplicationDbContextSeed
             PriceMinorUnits = price,
             SecondRoleAddOnPriceMinorUnits = addOnPrice,
             Currency = SupportedCurrencies.Czk,
-            BillingInterval = BillingInterval.Monthly,
             IsActive = true,
         };
 
@@ -176,6 +218,7 @@ public static class ApplicationDbContextSeed
         {
             SubscriptionPlanId = 0,
             SubscriptionPlan = plan,
+            BillingInterval = BillingInterval.Monthly,
             PriceMinorUnits = price,
             SecondRoleAddOnPriceMinorUnits = addOnPrice,
             Currency = SupportedCurrencies.Czk,

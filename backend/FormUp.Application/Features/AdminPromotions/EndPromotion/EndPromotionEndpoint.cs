@@ -14,9 +14,10 @@ using Microsoft.EntityFrameworkCore;
 namespace FormUp.Application.Features.AdminPromotions.EndPromotion;
 
 /// <summary>
-/// Ends a promotion now. A code promotion first has its Stripe promotion code deactivated (a failure saves nothing); an
-/// automatic one has nothing at Stripe to change. The coupon stays, so coaches who already have the discount keep it. The
-/// end is saved with a conditional update, so two admins ending it at once write one audit row.
+/// Ends a promotion now. A promotion made before codes were typed in our app first has its Stripe promotion code
+/// deactivated (a failure saves nothing); every other promotion has nothing at Stripe to change, because our own end date
+/// stops the code and the automatic pick. The coupons stay, so coaches who already have the discount keep it. The end is
+/// saved with a conditional update, so two admins ending it at once write one audit row.
 /// </summary>
 /// <param name="db">Application database context.</param>
 /// <param name="subscriptions">The payment provider seam.</param>
@@ -38,8 +39,9 @@ internal sealed class EndPromotionEndpoint(
         {
             s.Summary = "End a promotion";
             s.Description = "Stops the promotion applying at checkout and claiming, records when it ended and writes an audit row. " +
-                            "A code promotion has its Stripe promotion code deactivated first; an automatic promotion ends without " +
-                            "a Stripe call. Coaches who already have the discount keep it. A Stripe failure saves nothing.";
+                            "A promotion that has a Stripe promotion code (made before codes were typed in Form Up) has it deactivated " +
+                            "first; every other promotion ends without a Stripe call. Coaches who already have the discount keep it. " +
+                            "A Stripe failure saves nothing.";
             s.Response<PromotionDto>(StatusCodes.Status200OK, "The promotion, now Ended");
             s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "The promotion id is empty");
             s.Response(StatusCodes.Status401Unauthorized, "Missing or invalid credentials");
@@ -49,7 +51,7 @@ internal sealed class EndPromotionEndpoint(
             s.Response<ProblemDetails>(StatusCodes.Status502BadGateway,
                 "Stripe failed; nothing was saved (BILLING_PROVIDER_ERROR)");
             s.Response<ProblemDetails>(StatusCodes.Status503ServiceUnavailable,
-                "A code promotion needs Stripe, which is not configured on this server (BILLING_NOT_CONFIGURED)");
+                "A promotion with a Stripe promotion code needs Stripe, which is not configured on this server (BILLING_NOT_CONFIGURED)");
         });
     }
 
@@ -79,7 +81,7 @@ internal sealed class EndPromotionEndpoint(
             return;
         }
 
-        if (promotion.Mode == PromotionMode.Code && !await DeactivateCodeOrRespondAsync(promotion, ct))
+        if (promotion.StripePromotionCodeId is not null && !await DeactivateCodeOrRespondAsync(promotion, ct))
         {
             return;
         }

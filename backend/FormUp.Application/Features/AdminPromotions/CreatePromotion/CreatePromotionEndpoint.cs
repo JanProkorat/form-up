@@ -14,9 +14,10 @@ using Microsoft.EntityFrameworkCore;
 namespace FormUp.Application.Features.AdminPromotions.CreatePromotion;
 
 /// <summary>
-/// Creates a promotion: the Stripe coupon first (and a promotion code in code mode), then our copy, then an audit row. A
-/// Stripe failure saves nothing. Stripe enforces max uses, the claim end, the plan products and "new coaches only" at
-/// Checkout; one use per coach and the claim start are enforced by our own checks.
+/// Creates a promotion: the Stripe coupon (two when it covers both billing periods and is not "forever"), then our copy,
+/// then an audit row. A Stripe failure saves nothing. No Stripe promotion code is created: a code is typed in our own app
+/// and resolved to a coupon there. Stripe enforces max uses, the claim end and the plan products on redemption; one use per
+/// coach, new coaches only and the claim start are enforced by our own checks.
 /// </summary>
 /// <param name="db">Application database context.</param>
 /// <param name="subscriptions">The payment provider seam.</param>
@@ -39,15 +40,20 @@ internal sealed class CreatePromotionEndpoint(
         Summary(s =>
         {
             s.Summary = "Create a promotion";
-            s.Description = "Creates the Stripe coupon (and, in code mode, a promotion code), then saves our copy and writes an audit " +
-                            "row. Max uses, the claim end, the covered plans and new-coaches-only are pushed to Stripe. A covered plan " +
+            s.Description = "Creates the Stripe coupon, then saves our copy and writes an audit row. BillingPeriod (Both when omitted) " +
+                            "says whether it discounts monthly subscriptions, annual ones or both. A promotion for both periods that " +
+                            "lasts one month or several months gets two coupons: the monthly one repeats, the annual one is applied " +
+                            "once, to the first yearly invoice only. A forever promotion keeps one coupon. A fixed amount comes off " +
+                            "each invoice, monthly or yearly. No Stripe promotion code is created; the code is entered in Form Up. " +
+                            "Max uses, the claim end and the covered plans are pushed to Stripe on every coupon, so Stripe's own " +
+                            "ceiling can be up to twice the max uses; Form Up's redemption count is the real limit. A covered plan " +
                             "is discounted together with its second-role add-on, because the add-on price lives on the plan's own " +
                             "Stripe product. When every purchasable plan (active, paid, priced in Stripe) is covered the coupon has " +
                             "no product restriction. " +
-                            "One use per coach and the claim start are enforced by Form Up only. A Stripe failure saves nothing.";
+                            "One use per coach, new-coaches-only and the claim start are enforced by Form Up only. A Stripe failure saves nothing.";
             s.Response<PromotionDto>(StatusCodes.Status201Created, "The promotion that was created");
             s.Response<ProblemDetails>(StatusCodes.Status400BadRequest,
-                "Invalid request: name, value, code, month count, claim window, plans or max uses " +
+                "Invalid request: name, value, code, month count, claim window, plans, billing period or max uses " +
                 "(PROMOTION_VALUE_INVALID, PROMOTION_CODE_INVALID, PROMOTION_MODE_INVALID, PROMOTION_MONTHS_INVALID, " +
                 "PROMOTION_WINDOW_INVALID, PROMOTION_PLANS_INVALID, PROMOTION_MAX_USES_INVALID)");
             s.Response(StatusCodes.Status401Unauthorized, "Missing or invalid credentials");
@@ -78,7 +84,7 @@ internal sealed class CreatePromotionEndpoint(
         }
 
         var now = timeProvider.GetUtcNow();
-        var plans = await LoadPaidPlansAsync(req.PlanCodes, ct);
+        var plans = await LoadPaidPlansAsync(req.PlanCodes, req.BillingPeriod, ct);
 
         if (plans is null)
         {
@@ -95,7 +101,7 @@ internal sealed class CreatePromotionEndpoint(
         }
 
         var publicId = Guid.NewGuid();
-        var ids = await CreateInStripeAsync(req, plans, publicId, normalizedCode, ct);
+        var ids = await CreateInStripeAsync(req, plans, publicId, ct);
 
         if (ids is null)
         {
@@ -116,12 +122,13 @@ internal sealed class CreatePromotionEndpoint(
             DurationMonths = req.Duration == PromotionDuration.Months ? req.DurationMonths : null,
             ClaimFrom = req.ClaimFrom,
             ClaimUntil = req.ClaimUntil,
+            BillingPeriod = req.BillingPeriod,
             PlanCodes = plans.Selected.Select(plan => plan.Code).ToList(),
             MaxUses = req.MaxUses,
             NewCoachesOnly = req.NewCoachesOnly,
             OneUsePerCoach = req.OneUsePerCoach,
             StripeCouponId = ids.CouponId,
-            StripePromotionCodeId = ids.PromotionCodeId,
+            StripeAnnualCouponId = ids.AnnualCouponId,
         };
 
         db.Promotions.Add(promotion);
@@ -141,6 +148,7 @@ internal sealed class CreatePromotionEndpoint(
                     ["value"] = promotion.Value,
                     ["mode"] = promotion.Mode.ToString(),
                     ["duration"] = promotion.Duration.ToString(),
+                    ["billingPeriod"] = promotion.BillingPeriod.ToString(),
                     ["claimFrom"] = promotion.ClaimFrom.ToString("O"),
                     ["planCount"] = promotion.PlanCodes.Count,
                 },
@@ -151,15 +159,19 @@ internal sealed class CreatePromotionEndpoint(
     }
 
     /// <summary>
-    /// Loads the active paid plans and resolves the selection (<see cref="PromotionPlanScope"/>). Answers 400
-    /// <see cref="ErrorCodes.PromotionPlansInvalid"/> and returns null when a code is not an active paid plan or a plan
-    /// has no Stripe price to restrict the coupon to.
+    /// Loads the active paid plans and resolves the selection (<see cref="PromotionPlanScope"/>). The open prices read are
+    /// the annual ones for an annual-only promotion and the monthly ones otherwise, so an annual-only promotion cannot cover
+    /// a plan with no open annual price. Answers 400 <see cref="ErrorCodes.PromotionPlansInvalid"/> and returns null when a
+    /// code is not an active paid plan or a plan has no Stripe price to restrict the coupon to.
     /// </summary>
-    private async Task<SelectedPlans?> LoadPaidPlansAsync(List<string> requestedCodes, CancellationToken ct)
+    private async Task<SelectedPlans?> LoadPaidPlansAsync(
+        List<string> requestedCodes, PromotionBillingPeriod billingPeriod, CancellationToken ct)
     {
+        var interval = billingPeriod == PromotionBillingPeriod.Annual ? BillingInterval.Annual : BillingInterval.Monthly;
         var paid = await db.SubscriptionPlanPrices
             .AsNoTracking()
             .Where(price => price.ValidTo == null
+                            && price.BillingInterval == interval
                             && price.SubscriptionPlan.IsActive
                             && price.SubscriptionPlan.Code != SubscriptionPlanCodes.Free
                             && price.PriceMinorUnits > 0)
@@ -203,29 +215,20 @@ internal sealed class CreatePromotionEndpoint(
     }
 
     /// <summary>
-    /// Creates the coupon and, in code mode, the promotion code. When the code fails the new coupon is deleted so no
-    /// orphan is left behind. Answers 502 and returns null on a Stripe failure.
+    /// Creates the coupon, and a second annual one when the promotion covers both billing periods and is not "forever".
+    /// When the second coupon fails the first is deleted so no orphan is left behind. Answers 502 and returns null on a
+    /// Stripe failure.
     /// </summary>
     private async Task<StripeIds?> CreateInStripeAsync(
-        CreatePromotionRequest req, SelectedPlans plans, Guid publicId, string? normalizedCode, CancellationToken ct)
+        CreatePromotionRequest req, SelectedPlans plans, Guid publicId, CancellationToken ct)
     {
+        // The single coupon is monthly-shaped, except for an annual-only promotion where it is the annual one.
+        var firstInterval = req.BillingPeriod == PromotionBillingPeriod.Annual ? BillingInterval.Annual : BillingInterval.Monthly;
         string couponId;
 
         try
         {
-            couponId = await subscriptions.CreateCouponAsync(
-                new CouponSpec(
-                    req.Name.Trim(),
-                    req.Kind,
-                    req.Value,
-                    req.Kind == PromotionKind.FixedAmount ? CreatePromotionValidator.FixedAmountCurrency : null,
-                    req.Duration,
-                    req.Duration == PromotionDuration.Months ? req.DurationMonths : null,
-                    req.MaxUses,
-                    req.ClaimUntil,
-                    plans.CoversEveryPurchasablePlan ? null : plans.Selected.Select(plan => plan.StripePriceId!).ToList(),
-                    $"formup-coupon-{publicId}"),
-                ct);
+            couponId = await subscriptions.CreateCouponAsync(CouponSpecFor(req, plans, firstInterval, $"formup-coupon-{publicId}"), ct);
         }
         catch (BillingProviderException)
         {
@@ -233,17 +236,17 @@ internal sealed class CreatePromotionEndpoint(
             return null;
         }
 
-        if (normalizedCode is null)
+        if (!PromotionRules.NeedsAnnualCoupon(req.BillingPeriod, req.Duration))
         {
             return new StripeIds(couponId, null);
         }
 
         try
         {
-            var promotionCodeId = await subscriptions.CreatePromotionCodeAsync(
-                couponId, normalizedCode, req.ClaimUntil, req.NewCoachesOnly, ct);
+            var annualCouponId = await subscriptions.CreateCouponAsync(
+                CouponSpecFor(req, plans, BillingInterval.Annual, $"formup-coupon-{publicId}-annual"), ct);
 
-            return new StripeIds(couponId, promotionCodeId);
+            return new StripeIds(couponId, annualCouponId);
         }
         catch (BillingProviderException)
         {
@@ -252,6 +255,21 @@ internal sealed class CreatePromotionEndpoint(
             return null;
         }
     }
+
+    private static CouponSpec CouponSpecFor(
+        CreatePromotionRequest req, SelectedPlans plans, BillingInterval interval, string idempotencyKey) =>
+        new(
+            req.Name.Trim(),
+            req.Kind,
+            req.Value,
+            req.Kind == PromotionKind.FixedAmount ? CreatePromotionValidator.FixedAmountCurrency : null,
+            req.Duration,
+            req.Duration == PromotionDuration.Months ? req.DurationMonths : null,
+            req.MaxUses,
+            req.ClaimUntil,
+            plans.CoversEveryPurchasablePlan ? null : plans.Selected.Select(plan => plan.StripePriceId!).ToList(),
+            idempotencyKey,
+            interval);
 
     private Task RespondProviderFailedAsync(CancellationToken ct) =>
         this.SendProblemAsync(
@@ -268,11 +286,11 @@ internal sealed class CreatePromotionEndpoint(
         }
         catch (BillingProviderException ex)
         {
-            logger.LogWarning(ex, "Coupon {CouponId} could not be deleted after its promotion code failed", couponId);
+            logger.LogWarning(ex, "Coupon {CouponId} could not be deleted after the annual coupon failed", couponId);
         }
     }
 
     private sealed record SelectedPlans(IReadOnlyList<PromotionPlanOption> Selected, bool CoversEveryPurchasablePlan);
 
-    private sealed record StripeIds(string CouponId, string? PromotionCodeId);
+    private sealed record StripeIds(string CouponId, string? AnnualCouponId);
 }

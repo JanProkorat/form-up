@@ -1,6 +1,7 @@
 using FastEndpoints;
 using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Entities;
+using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Extensions;
 using FormUp.Application.Domain.Interfaces;
 using FormUp.Application.Features.SubscriptionPlans.Shared;
@@ -87,48 +88,65 @@ internal sealed class CreateSubscriptionPlanEndpoint(
             PriceMinorUnits = req.PriceMinorUnits,
             SecondRoleAddOnPriceMinorUnits = req.SecondRoleAddOnPriceMinorUnits,
             Currency = req.Currency,
-            BillingInterval = req.BillingInterval,
             IsActive = req.IsActive,
         };
 
         string? externalPriceId = null;
+        string? annualExternalPriceId = null;
 
         // Stripe first, so a failure leaves nothing saved. A zero price (the Free plan) never gets a Stripe price.
-        if (req.PriceMinorUnits > 0)
+        try
         {
-            if (!subscriptionService.IsConfigured)
+            if (req.PriceMinorUnits > 0)
             {
-                logger.LogWarning("Stripe is not configured; plan {PlanCode} is saved without a Stripe price", req.Code);
+                externalPriceId = await TryCreateStripePriceAsync(req.Code, req.PriceMinorUnits, req.Currency, BillingInterval.Monthly, ct);
             }
-            else
+
+            if (req.AnnualPriceMinorUnits is > 0)
             {
-                try
-                {
-                    externalPriceId = await subscriptionService.CreatePriceAsync(
-                        req.Code, req.PriceMinorUnits, req.Currency, req.BillingInterval, ct);
-                }
-                catch (BillingProviderException)
-                {
-                    await this.SendProblemAsync(
-                        StatusCodes.Status502BadGateway,
-                        ErrorCodes.BillingProviderError,
-                        "The payment provider failed; nothing was saved.",
-                        ct);
-                    return;
-                }
+                annualExternalPriceId = await TryCreateStripePriceAsync(
+                    req.Code, req.AnnualPriceMinorUnits.Value, req.Currency, BillingInterval.Annual, ct);
             }
+        }
+        catch (BillingProviderException)
+        {
+            await this.SendProblemAsync(
+                StatusCodes.Status502BadGateway,
+                ErrorCodes.BillingProviderError,
+                "The payment provider failed; nothing was saved.",
+                ct);
+            return;
         }
 
         plan.Prices.Add(new SubscriptionPlanPrice
         {
             SubscriptionPlan = plan,
             SubscriptionPlanId = 0,
+            BillingInterval = BillingInterval.Monthly,
             PriceMinorUnits = req.PriceMinorUnits,
             SecondRoleAddOnPriceMinorUnits = req.SecondRoleAddOnPriceMinorUnits,
             Currency = req.Currency,
             ExternalPriceId = externalPriceId,
             ValidFrom = DateTime.UtcNow,
         });
+
+        SubscriptionPlanPrice? annualRow = null;
+
+        if (req.AnnualPriceMinorUnits is not null)
+        {
+            annualRow = new SubscriptionPlanPrice
+            {
+                SubscriptionPlan = plan,
+                SubscriptionPlanId = 0,
+                BillingInterval = BillingInterval.Annual,
+                PriceMinorUnits = req.AnnualPriceMinorUnits.Value,
+                SecondRoleAddOnPriceMinorUnits = req.AnnualSecondRoleAddOnPriceMinorUnits,
+                Currency = req.Currency,
+                ExternalPriceId = annualExternalPriceId,
+                ValidFrom = DateTime.UtcNow,
+            };
+            plan.Prices.Add(annualRow);
+        }
 
         db.SubscriptionPlans.Add(plan);
 
@@ -150,7 +168,26 @@ internal sealed class CreateSubscriptionPlanEndpoint(
             return;
         }
 
-        await Send.ResponseAsync(SubscriptionPlanDto.FromEntity(plan, externalPriceId, 0), StatusCodes.Status201Created, ct);
+        var annualSnapshot = annualRow is null
+            ? null
+            : new AnnualPriceSnapshot(annualRow.PriceMinorUnits, annualRow.SecondRoleAddOnPriceMinorUnits, annualRow.ExternalPriceId);
+
+        await Send.ResponseAsync(
+            SubscriptionPlanDto.FromEntity(plan, externalPriceId, 0, annualSnapshot), StatusCodes.Status201Created, ct);
+    }
+
+    /// <summary>Creates a Stripe price; returns null when Stripe is not configured. Throws <see cref="BillingProviderException"/> on failure.</summary>
+    private async Task<string?> TryCreateStripePriceAsync(
+        string planCode, long amountMinorUnits, string currency, BillingInterval interval, CancellationToken ct)
+    {
+        if (!subscriptionService.IsConfigured)
+        {
+            logger.LogWarning("Stripe is not configured; plan {PlanCode} is saved without a Stripe price", planCode);
+
+            return null;
+        }
+
+        return await subscriptionService.CreatePriceAsync(planCode, amountMinorUnits, currency, interval, ct);
     }
 
     private static bool IsUniqueViolation(DbUpdateException ex) =>
