@@ -34,6 +34,31 @@ public static class StripeWebhookMapper
     /// <param name="invoice">The Stripe invoice.</param>
     public static string? SubscriptionIdOf(Invoice invoice) => invoice.Parent?.SubscriptionDetails?.SubscriptionId;
 
+    /// <summary>
+    /// The service period an invoice pays for: the span of its non-proration subscription lines, else of all subscription
+    /// lines, else the invoice-level period (which is the billing run, not the service period).
+    /// </summary>
+    /// <param name="invoice">The Stripe invoice.</param>
+    public static (DateTimeOffset Start, DateTimeOffset End) BillingPeriodOf(Invoice invoice)
+    {
+        // UNVERIFIED: the webhook payload carries every invoice line, with no paging — https://docs.stripe.com/api/invoices/object
+        var lines = invoice.Lines?.Data ?? [];
+        var subscriptionLines = lines.Where(line => line.Parent?.Type == "subscription_item_details").ToList();
+        var regularLines = subscriptionLines.Where(line => line.Parent?.SubscriptionItemDetails?.Proration == false).ToList();
+        var chosen = regularLines.Count > 0 ? regularLines : subscriptionLines;
+
+        if (chosen.Count == 0)
+        {
+            return (ToUtc(invoice.PeriodStart), ToUtc(invoice.PeriodEnd));
+        }
+
+        return (ToUtc(chosen.Min(line => line.Period.Start)), ToUtc(chosen.Max(line => line.Period.End)));
+    }
+
+    /// <summary>The total discount of an invoice in minor units, summed over its discount entries; 0 when none.</summary>
+    /// <param name="invoice">The Stripe invoice.</param>
+    public static long TotalDiscountOf(Invoice invoice) => invoice.TotalDiscountAmounts?.Sum(discount => discount.Amount) ?? 0;
+
     /// <summary>Reads a Stripe timestamp as UTC.</summary>
     /// <param name="value">The Stripe timestamp.</param>
     public static DateTimeOffset ToUtc(DateTime value) => new(DateTime.SpecifyKind(value, DateTimeKind.Utc));
