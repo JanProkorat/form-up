@@ -22,4 +22,11 @@ public sealed record CoachRevenueSummary(
     int GivenFreeCount,
     IReadOnlyList<CoachRevenuePlanCount> PayingByPlan,
     IReadOnlyList<CoachRevenueCurrencyTotal> FullMonthlyRevenue,
-    IReadOnlyList<CoachRevenueCurrencyTotal> DiscountedMonthlyRevenue);
+    IReadOnlyList<CoachRevenueCurrencyTotal> DiscountedMonthlyRevenue)
+{
+    /// <summary>
+    /// Per currency: coaches billed, plan-line revenue per plan and add-on count and revenue, all after promotions.
+    /// Empty when no coach brings revenue.
+    /// </summary>
+    public IReadOnlyList<CoachRevenueCurrencyDetail> ByCurrency { get; init; } = [];
+}

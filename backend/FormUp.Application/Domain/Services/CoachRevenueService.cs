@@ -28,9 +28,7 @@ public sealed class CoachRevenueService(IApplicationDbContext db) : ICoachRevenu
         }
 
         var full = lines.PlanMinorUnits + lines.AddOnMinorUnits;
-        var promotionRuns = promotion is not null && (promotionEndsAt is not { } endsAt || endsAt > now);
-
-        var discounted = promotionRuns
+        var discounted = PromotionRuns(promotion, promotionEndsAt, now)
             ? PromotionPricing.ForSubscription(
                 promotion!,
                 lines.PlanCode,
@@ -101,15 +99,17 @@ public sealed class CoachRevenueService(IApplicationDbContext db) : ICoachRevenu
             .Where(cs => payingProfileIds.Contains(cs.ProfessionalProfileId))
             .ToListAsync(ct);
 
-        var amounts = subscriptions
-            .Select(cs => MonthlyAmount(
-                cs,
-                now,
-                CoachRevenueLines.Of(cs.SubscriptionPlan, cs.SubscriptionPlanPrice, cs.PaysSecondRoleAddOn),
-                cs.CurrentPromotion,
-                cs.CurrentPromotionEndsAt))
-            .Where(amount => amount.Currency.Length > 0)
+        var priced = subscriptions
+            .Select(cs =>
+            {
+                var lines = CoachRevenueLines.Of(cs.SubscriptionPlan, cs.SubscriptionPlanPrice, cs.PaysSecondRoleAddOn);
+                var amount = MonthlyAmount(cs, now, lines, cs.CurrentPromotion, cs.CurrentPromotionEndsAt);
+
+                return (Subscription: cs, Lines: lines, Amount: amount);
+            })
+            .Where(row => row.Amount.Currency.Length > 0)
             .ToList();
+        var amounts = priced.Select(row => row.Amount).ToList();
 
         int Count(AdminCoachStatus status) => counts.GetValueOrDefault(status);
 
@@ -126,7 +126,81 @@ public sealed class CoachRevenueService(IApplicationDbContext db) : ICoachRevenu
                 .Select(row => new CoachRevenuePlanCount(row.Code, row.NameCs, row.NameEn, row.NameDe, row.Count))
                 .ToList(),
             SumPerCurrency(amounts, amount => amount.FullPeriodMinorUnits),
-            SumPerCurrency(amounts, amount => amount.DiscountedPeriodMinorUnits));
+            SumPerCurrency(amounts, amount => amount.DiscountedPeriodMinorUnits))
+        {
+            ByCurrency = BuildCurrencyDetails(priced, now),
+        };
+    }
+
+    private static bool PromotionRuns(Promotion? promotion, DateTimeOffset? promotionEndsAt, DateTimeOffset now) =>
+        promotion is not null && (promotionEndsAt is not { } endsAt || endsAt > now);
+
+    /// <summary>
+    /// Splits each billed subscription's discounted period amount into its plan line and add-on line with the same
+    /// <see cref="PromotionPricing.Apply"/> split <see cref="PromotionPricing.ForSubscription"/> uses, then sums per
+    /// currency and plan.
+    /// </summary>
+    private static List<CoachRevenueCurrencyDetail> BuildCurrencyDetails(
+        List<(CoachSubscription Subscription, CoachRevenueLines Lines, CoachRevenueAmount Amount)> priced,
+        DateTimeOffset now)
+    {
+        var split = priced
+            .Select(row =>
+            {
+                var (plan, addOn) = DiscountedLines(row.Subscription, row.Lines, now);
+
+                return (row.Lines, row.Amount, DiscountedPlan: plan, DiscountedAddOn: addOn);
+            })
+            .ToList();
+
+        return split
+            .GroupBy(row => row.Amount.Currency)
+            .Select(currency =>
+            {
+                var withAddOn = currency.Where(row => row.Lines.AddOnMinorUnits > 0).ToList();
+
+                return new CoachRevenueCurrencyDetail(
+                    currency.Key,
+                    currency.Count(),
+                    withAddOn.Count,
+                    SumMonthly(withAddOn.Select(row => (row.Amount.Interval, row.DiscountedAddOn))),
+                    currency
+                        .GroupBy(row => row.Lines.PlanCode)
+                        .Select(plan => new CoachRevenuePlanAmount(
+                            plan.Key, SumMonthly(plan.Select(row => (row.Amount.Interval, row.DiscountedPlan)))))
+                        .OrderBy(plan => plan.PlanCode, StringComparer.Ordinal)
+                        .ToList());
+            })
+            .OrderBy(detail => detail.Currency, StringComparer.Ordinal)
+            .ToList();
+    }
+
+    private static (long Plan, long AddOn) DiscountedLines(CoachSubscription subscription, CoachRevenueLines lines, DateTimeOffset now)
+    {
+        if (subscription.CurrentPromotion is { } promotion
+            && PromotionRuns(promotion, subscription.CurrentPromotionEndsAt, now)
+            && PromotionPricing.Applies(promotion, lines.PlanCode, lines.Currency, lines.Interval))
+        {
+            var (plan, addOn) = PromotionPricing.Apply(
+                promotion, lines.PlanMinorUnits, lines.AddOnMinorUnits > 0 ? lines.AddOnMinorUnits : null);
+
+            return (plan, addOn ?? 0);
+        }
+
+        return (lines.PlanMinorUnits, lines.AddOnMinorUnits);
+    }
+
+    /// <summary>
+    /// Sums period amounts to a monthly figure, dividing the annual part by twelve once (like <see cref="SumPerCurrency"/>).
+    /// </summary>
+    private static long SumMonthly(IEnumerable<(BillingInterval Interval, long Period)> rows)
+    {
+        var list = rows.ToList();
+
+        return CoachRevenueAmount.ToMonthly(
+                   list.Where(row => row.Interval == BillingInterval.Monthly).Sum(row => row.Period), BillingInterval.Monthly)
+               + CoachRevenueAmount.ToMonthly(
+                   list.Where(row => row.Interval == BillingInterval.Annual).Sum(row => row.Period), BillingInterval.Annual);
     }
 
     /// <summary>
