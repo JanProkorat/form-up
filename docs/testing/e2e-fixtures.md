@@ -61,6 +61,9 @@ docker ps --format '{{.Names}}'
 | Client "QA Duo" | `qa.client.both@formup.test` | `44444444-4444-4444-4444-444444444444` |
 | Lapsed coach (trainer) | `qa.coach.lapsed@formup.test` | prefix `20202020` — see [lapsed and gift coaches](#seeded-lapsed-and-gift-ended-coaches-2051) |
 | Gift-ended coach (trainer) | `qa.coach.gift@formup.test` | prefix `30303030` — see [lapsed and gift coaches](#seeded-lapsed-and-gift-ended-coaches-2051) |
+| Admin | `walk.admin@formup.test` | `40404040-4040-4040-4040-404040404040` |
+
+The admin uses the same email as the walk admin on the dev stack, but the harness copy has the shared `QA_SEED_PASSWORD`, not the walk password. It opens the admin screens (plans, plan editor, promotions) on the harness and is seeded for every seed kind.
 
 The second pair (`Client 2` / `Trainer 2`) is dedicated to the multi-section shared-exercise fixture (#474). Client 3 is linked to the QA trainer only — see [the inbox fixture](#seeded-inbox-conversation--weekly-check-ins-1095) — and has no conversation and no active plan. The former client has an **ended** link to the QA trainer and one conversation — see [the ended-link fixture](#ended-link-conversation-1101). They share the same password as the other accounts (`QA_SEED_PASSWORD` from `.env.test`).
 
