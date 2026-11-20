@@ -187,8 +187,7 @@ public class AdminReportAddOnDto
 
 /// <summary>
 /// The sign-up funnel of the coaches who signed up in the period. Deleted coaches drop out of the later steps, because
-/// their events lose the coach link. Until sign-up records the Free choice, a coach who stays on Free writes no
-/// "chose a plan" event, so <see cref="ChosePlan"/> undercounts.
+/// their events lose the coach link.
 /// </summary>
 public class AdminReportFunnelDto
 {

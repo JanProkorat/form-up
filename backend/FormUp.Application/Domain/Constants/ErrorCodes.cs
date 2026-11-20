@@ -642,6 +642,9 @@ public static class ErrorCodes
     /// <summary>The coach has no ended free plan waiting for a choice, so there is nothing to choose.</summary>
     public const string PlanChoiceNotRequired = "PLAN_CHOICE_NOT_REQUIRED";
 
+    /// <summary>The coach is on a paid plan or a running given plan, so keeping the Free plan at sign-up does not apply.</summary>
+    public const string NotOnFreePlan = "NOT_ON_FREE_PLAN";
+
     /// <summary>The coach has no paying subscription whose renewal could be cancelled (no row, Free plan, a gift, or a plan that no longer applies).</summary>
     public const string NoRenewingSubscription = "NO_RENEWING_SUBSCRIPTION";
 
