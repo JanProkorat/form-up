@@ -196,6 +196,7 @@
     "adminPlans": "Pläne",
     "adminPromotions": "Aktionen",
     "adminCoaches": "Trainer",
+    "adminReports": "Berichte",
     "automations": "Automatisierungen",
     "dashboard": "Dashboard",
     "profile": "Profil",
@@ -7144,6 +7145,99 @@
       "annualAddOnInvalid": "Geben Sie einen Jahrespreis für die zweite Rolle über 0 ein.",
       "clientsInvalid": "Geben Sie eine Klientenzahl ab 1 ein oder wählen Sie Unbegrenzt.",
       "perClientNeedsWeekly": "Check-in-Einstellungen pro Klient setzen wöchentliche Check-ins voraus."
+    }
+  },
+  "adminReports": {
+    "title": "Berichte",
+    "subtitle": "Summen über alle Trainer, einmal täglich aktualisiert. Die Daten ihrer Klienten bleiben privat.",
+    "stripeDashboard": "Stripe-Dashboard",
+    "loadError": "Die Berichte konnten nicht geladen werden.",
+    "retry": "Erneut versuchen",
+    "footnote": "Die Einnahmen stammen aus bezahlten Stripe-Rechnungen, die wir laufend speichern. Gebühren, Rückerstattungen und Auszahlungen bleiben im Stripe-Dashboard.",
+    "period": {
+      "label": "Zeitraum",
+      "Days30": "30 Tage",
+      "Days90": "90 Tage",
+      "Months12": "12 Monate",
+      "ago": {
+        "Days30": "vor 30 Tagen",
+        "Days90": "vor 90 Tagen",
+        "Months12": "vor 12 Monaten"
+      },
+      "window": {
+        "Days30": "den letzten 30 Tagen",
+        "Days90": "den letzten 90 Tagen",
+        "Months12": "den letzten 12 Monaten"
+      }
+    },
+    "money": {
+      "title": "Geld",
+      "subtitle": "Stand vom {{day}} · Änderung gegenüber dem Stand {{against}}",
+      "againstDate": "vom {{date}}",
+      "noSnapshot": "Noch kein täglicher Snapshot",
+      "revenue": "Monatliche Einnahmen",
+      "revenueNote": "Nach Rabatten · Vollpreis {{full}}",
+      "revenueNoteShort": "Nach Rabatten",
+      "collected": "Diesen Monat eingenommen",
+      "collectedNote": "Bezahlte Stripe-Rechnungen in diesem Monat",
+      "lost": "Durch Kündigungen verloren",
+      "lostNote": "Kündigungen: {{count}}",
+      "lostNoteChurn": "Kündigungen: {{count}} · Abwanderung {{churn}} %",
+      "average": "Durchschnitt pro zahlendem Trainer",
+      "averageNote": "Monatliche Einnahmen ÷ zahlende Trainer ({{count}})"
+    },
+    "mrr": {
+      "title": "Monatlich wiederkehrende Einnahmen",
+      "subtitle": "Was zahlenden Trainern jeden Monat berechnet wird · tägliche Snapshots",
+      "afterPromotions": "Nach Rabatten",
+      "fullPrice": "Vollpreis",
+      "empty": "In diesem Zeitraum gibt es noch keine Snapshots.",
+      "chartLabel": "Monatlich wiederkehrende Einnahmen nach Rabatten, von {{from}} bis {{to}}"
+    },
+    "plans": {
+      "title": "Zahlende Trainer nach Tarif",
+      "subtitle": "Zahlende Trainer: {{count}} · nach Rabatten abgerechnet",
+      "barLabel": "Zahlende Trainer nach Tarif: {{summary}}",
+      "perMonth": "{{amount}} / Monat",
+      "addOn": "Zusatz für die zweite Rolle"
+    },
+    "coaches": {
+      "title": "Trainer",
+      "subtitle": "Registrierungen, Konversion und Tarifwechsel"
+    },
+    "funnel": {
+      "title": "Trichter neuer Trainer",
+      "subtitle": "Trainer, die sich in {{window}} registriert haben",
+      "signedUp": "Registriert",
+      "emailVerified": "E-Mail bestätigt",
+      "chosePlan": "Tarif gewählt",
+      "startedPaidPlan": "Bezahlter Tarif",
+      "note": "Die Prozentwerte vergleichen jeden Schritt mit dem darüber."
+    },
+    "changes": {
+      "title": "Tarifwechsel",
+      "subtitle": "Auswirkung auf die monatlichen Einnahmen in {{window}}",
+      "upgraded": "Upgrades",
+      "downgraded": "Downgrades",
+      "cancelled": "Kündigungen",
+      "paymentFailed": "Zahlung fehlgeschlagen",
+      "paymentFailedNote": "Stripe versucht es erneut",
+      "promotionCodes": "Verwendete Rabattcodes"
+    },
+    "usage": {
+      "title": "Nutzung",
+      "subtitle": "Wird das Produkt genutzt",
+      "empty": "Es gibt noch keinen täglichen Snapshot, daher keine Nutzungszahlen. Sie erscheinen nach dem ersten Snapshot.",
+      "activeCoaches": "Aktive Trainer",
+      "activeCoachesNote": "In den letzten 30 Tagen angemeldet, von allen Trainern",
+      "clientsPerCoach": "Klienten pro Trainer",
+      "clientsPerCoachNote": "Median über alle Trainer",
+      "atCap": "Kostenlose Trainer am Limit",
+      "atCapNote": "Am Klientenlimit des kostenlosen Tarifs",
+      "activeClients": "Aktive Klienten in der App",
+      "activeClientsNote": "App in den letzten 7 Tagen geöffnet",
+      "planWeeks": "Veröffentlichte Planwochen",
+      "planWeeksNote": "Training und Ernährung, letzte 7 Tage"
     }
   },
   "adminPromotions": {

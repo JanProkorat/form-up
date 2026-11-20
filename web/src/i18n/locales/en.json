@@ -196,6 +196,7 @@
     "adminPlans": "Plans",
     "adminPromotions": "Promotions",
     "adminCoaches": "Coaches",
+    "adminReports": "Reports",
     "automations": "Automations",
     "dashboard": "Dashboard",
     "profile": "Profile",
@@ -7139,6 +7140,99 @@
       "annualAddOnInvalid": "Enter a second-role price per year above 0.",
       "clientsInvalid": "Enter a number of clients from 1, or tick Unlimited.",
       "perClientNeedsWeekly": "Per-client check-in settings need weekly check-ins."
+    }
+  },
+  "adminReports": {
+    "title": "Reports",
+    "subtitle": "Totals over every coach, updated once a day. Their clients' data stays private.",
+    "stripeDashboard": "Stripe dashboard",
+    "loadError": "Could not load the reports.",
+    "retry": "Try again",
+    "footnote": "Revenue comes from paid Stripe invoices we store as they arrive. Fees, refunds and payouts stay in the Stripe dashboard.",
+    "period": {
+      "label": "Period",
+      "Days30": "30 days",
+      "Days90": "90 days",
+      "Months12": "12 months",
+      "ago": {
+        "Days30": "30 days ago",
+        "Days90": "90 days ago",
+        "Months12": "12 months ago"
+      },
+      "window": {
+        "Days30": "the last 30 days",
+        "Days90": "the last 90 days",
+        "Months12": "the last 12 months"
+      }
+    },
+    "money": {
+      "title": "Money",
+      "subtitle": "Snapshot of {{day}} · change against {{against}}",
+      "againstDate": "{{date}}",
+      "noSnapshot": "No daily snapshot yet",
+      "revenue": "Monthly revenue",
+      "revenueNote": "After promotions · full price {{full}}",
+      "revenueNoteShort": "After promotions",
+      "collected": "Collected this month",
+      "collectedNote": "Paid Stripe invoices this month",
+      "lost": "Lost to cancellations",
+      "lostNote": "Cancellations: {{count}}",
+      "lostNoteChurn": "Cancellations: {{count}} · churn {{churn}} %",
+      "average": "Average per paying coach",
+      "averageNote": "Monthly revenue ÷ paying coaches ({{count}})"
+    },
+    "mrr": {
+      "title": "Monthly recurring revenue",
+      "subtitle": "What paying coaches are billed each month · daily snapshots",
+      "afterPromotions": "After promotions",
+      "fullPrice": "Full price",
+      "empty": "No snapshots in this period yet.",
+      "chartLabel": "Monthly recurring revenue after promotions, from {{from}} to {{to}}"
+    },
+    "plans": {
+      "title": "Paying coaches by plan",
+      "subtitle": "Paying coaches: {{count}} · billed after promotions",
+      "barLabel": "Paying coaches by plan: {{summary}}",
+      "perMonth": "{{amount}} / mo",
+      "addOn": "Second-role add-on"
+    },
+    "coaches": {
+      "title": "Coaches",
+      "subtitle": "Sign-ups, conversion and plan changes"
+    },
+    "funnel": {
+      "title": "New coach funnel",
+      "subtitle": "Coaches who signed up in {{window}}",
+      "signedUp": "Signed up",
+      "emailVerified": "Verified email",
+      "chosePlan": "Chose a plan",
+      "startedPaidPlan": "Paid plan",
+      "note": "Percentages compare each step with the one above."
+    },
+    "changes": {
+      "title": "Plan changes",
+      "subtitle": "Effect on monthly revenue in {{window}}",
+      "upgraded": "Upgrades",
+      "downgraded": "Downgrades",
+      "cancelled": "Cancellations",
+      "paymentFailed": "Payment failed",
+      "paymentFailedNote": "Stripe is retrying",
+      "promotionCodes": "Promotion codes used"
+    },
+    "usage": {
+      "title": "Usage",
+      "subtitle": "Is the product being used",
+      "empty": "No daily snapshot exists yet, so there are no usage figures. They appear after the first snapshot.",
+      "activeCoaches": "Active coaches",
+      "activeCoachesNote": "Signed in during the last 30 days, of all coaches",
+      "clientsPerCoach": "Clients per coach",
+      "clientsPerCoachNote": "Median over all coaches",
+      "atCap": "Free coaches at the cap",
+      "atCapNote": "At the Free plan's client limit",
+      "activeClients": "Active clients in the app",
+      "activeClientsNote": "Opened the app in the last 7 days",
+      "planWeeks": "Plan weeks published",
+      "planWeeksNote": "Training and nutrition, last 7 days"
     }
   },
   "adminPromotions": {
