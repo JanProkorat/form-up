@@ -1432,6 +1432,14 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory)
         duo.Should().NotBeNull();
         duo!.Id.Should().Be(QaSeedRunner.ClientDuoUserId);
         (await userManager.GetRolesAsync(duo)).Should().BeEquivalentTo(new[] { UserRole.Client.ToString() });
+
+        // The always-seeded admin account exists exactly once and holds only the Admin role.
+        (await db.Users.CountAsync(u => u.Email == QaSeedRunner.AdminEmail, TestContext.Current.CancellationToken))
+            .Should().Be(1);
+        var admin = await userManager.FindByEmailAsync(QaSeedRunner.AdminEmail);
+        admin.Should().NotBeNull();
+        admin!.Id.Should().Be(QaSeedRunner.AdminUserId);
+        (await userManager.GetRolesAsync(admin)).Should().BeEquivalentTo(new[] { UserRole.Admin.ToString() });
     }
 
     /// <summary>

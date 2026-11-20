@@ -475,6 +475,8 @@ public static class QaSeedRunner
     public const string ClientEmail   = "qa.client@formup.test";
     public const string TrainerEmail  = "qa.trainer@formup.test";
     public const string NutriEmail    = "qa.nutri@formup.test";
+    public const string AdminEmail    = "walk.admin@formup.test";
+    public static readonly Guid AdminUserId = new("40404040-4040-4040-4040-404040404040");
     // #474 second pair — separate accounts so multi-section fixture is independently exercisable.
 
     // Sourced from QA_SEED_PASSWORD via .env.test (gitignored). The harness
@@ -538,6 +540,7 @@ public static class QaSeedRunner
         await EnsureUserAsync(userManager, ClientUserId,  ClientEmail,  "QA",  "Client",   UserRole.Client,       logger);
         await EnsureUserAsync(userManager, TrainerUserId, TrainerEmail, "QA",  "Trainer",  UserRole.Trainer,      logger);
         await EnsureUserAsync(userManager, NutriUserId,   NutriEmail,   "QA",  "Nutri",    UserRole.Nutritionist, logger);
+        await EnsureUserAsync(userManager, AdminUserId,   AdminEmail,   "QA",  "Admin",    UserRole.Admin,        logger);
 
         // #474 — second pair for the multi-section fixture.
         await EnsureUserAsync(userManager, Client2UserId,  Client2Email,  "QA",  "Client2",  UserRole.Client,  logger);
@@ -702,8 +705,8 @@ public static class QaSeedRunner
         }
 
         logger.LogInformation(
-            "QA seed complete (kind={Kind}) — client={Client} trainer={Trainer} nutri={Nutri} client2={Client2} trainer2={Trainer2}",
-            kind, ClientEmail, TrainerEmail, NutriEmail, Client2Email, Trainer2Email);
+            "QA seed complete (kind={Kind}) — client={Client} trainer={Trainer} nutri={Nutri} client2={Client2} trainer2={Trainer2} admin={Admin}",
+            kind, ClientEmail, TrainerEmail, NutriEmail, Client2Email, Trainer2Email, AdminEmail);
     }
 
     private static Task EnsureUserAsync(
