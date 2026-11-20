@@ -7,6 +7,7 @@ using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Features.AdminCoaches.GetAdminCoach;
+using FormUp.Application.Features.AdminCoaches.Shared;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Tests.Builders;
 using FormUp.Tests.Infrastructure;
@@ -282,9 +283,129 @@ public class GetAdminCoachEndpointTests(FitnessApiFactory factory)
             AdminCoachHistoryKind.PaidPlanUpgraded,
             AdminCoachHistoryKind.PaidPlanStarted);
         detail.History.Where(entry => entry.Kind != AdminCoachHistoryKind.Joined)
-            .Should().OnlyContain(entry => entry.ByCoach && entry.ActorName == null);
+            .Should().OnlyContain(entry => entry.ActorName == null);
+        detail.History.Where(entry => entry.Kind != AdminCoachHistoryKind.Joined && entry.Kind != AdminCoachHistoryKind.PaidPlanEnded)
+            .Should().OnlyContain(entry => entry.ByCoach);
+        detail.History.Single(entry => entry.Kind == AdminCoachHistoryKind.PaidPlanEnded).ByCoach.Should().BeFalse();
         detail.History.Single(entry => entry.Kind == AdminCoachHistoryKind.PaidPlanUpgraded).PlanCode.Should().Be("max");
         detail.History.Single(entry => entry.Kind == AdminCoachHistoryKind.ChoseFreePlan).PlanCode.Should().Be("free");
+    }
+
+    private async Task SeedAdminAuditAndCancelEventsAsync(
+        Actor admin, Actor coach, string action, bool providerCancelled, params TimeSpan[] eventOffsets)
+    {
+        var auditAt = DateTime.UtcNow.AddMinutes(-30);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var audit = new AuditLog
+        {
+            UserId = admin.UserId,
+            Action = action,
+            EntityType = nameof(ApplicationUser),
+            EntityId = coach.UserId,
+            NewValues = $"{{\"planCode\":\"pro\",\"providerSubscriptionCancelled\":{(providerCancelled ? "true" : "false")}}}",
+        };
+        db.AuditLogs.Add(audit);
+        await db.SaveChangesAsync(Ct);
+
+        // DateCreated is stamped on insert, so move the row to the instant the test needs.
+        var auditId = audit.Id;
+        await db.AuditLogs.Where(log => log.Id == auditId)
+            .ExecuteUpdateAsync(s => s.SetProperty(log => log.DateCreated, auditAt), Ct);
+
+        db.CoachEvents.AddRange(eventOffsets.Select(offset => new CoachEvent
+        {
+            CoachUserId = coach.UserId,
+            EventType = CoachEventType.Cancelled,
+            OccurredAt = new DateTimeOffset(auditAt, TimeSpan.Zero) + offset,
+            IdempotencyKey = $"test:{Guid.NewGuid():N}",
+        }));
+        await db.SaveChangesAsync(Ct);
+    }
+
+    [Theory]
+    [InlineData(AdminCoachAuditActions.EndPlan, 5, AdminCoachHistoryKind.PlanEnded)]
+    [InlineData(AdminCoachAuditActions.EndPlan, -5, AdminCoachHistoryKind.PlanEnded)]
+    [InlineData(AdminCoachAuditActions.GivePlanFree, 5, AdminCoachHistoryKind.GivenFree)]
+    public async Task Get_AdminCancelAtStripeAndCancelledEventWithinTheWindow_ShowsOnlyTheAuditRow(
+        string action, int eventOffsetSeconds, AdminCoachHistoryKind auditKind)
+    {
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        await SeedAdminAuditAndCancelEventsAsync(admin, coach, action, true, TimeSpan.FromSeconds(eventOffsetSeconds));
+
+        var detail = await GetAsync(admin, coach.UserId);
+
+        detail.History.Select(entry => entry.Kind).Should().NotContain(AdminCoachHistoryKind.PaidPlanEnded);
+        detail.History.Should().ContainSingle(entry => entry.Kind == auditKind);
+    }
+
+    [Theory]
+    [InlineData(600, true)]
+    [InlineData(5, false)]
+    public async Task Get_CancelledEventOutsideTheWindowOrWithoutAProviderCancel_ShowsBothRows(
+        int eventOffsetSeconds, bool providerCancelled)
+    {
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        await SeedAdminAuditAndCancelEventsAsync(
+            admin, coach, AdminCoachAuditActions.EndPlan, providerCancelled, TimeSpan.FromSeconds(eventOffsetSeconds));
+
+        var detail = await GetAsync(admin, coach.UserId);
+
+        detail.History.Should().ContainSingle(entry => entry.Kind == AdminCoachHistoryKind.PlanEnded);
+        detail.History.Should().ContainSingle(entry => entry.Kind == AdminCoachHistoryKind.PaidPlanEnded);
+    }
+
+    [Fact]
+    public async Task Get_OneAdminCancelAndTwoCancelledEventsInTheWindow_HidesExactlyOneEvent()
+    {
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        await SeedAdminAuditAndCancelEventsAsync(
+            admin, coach, AdminCoachAuditActions.EndPlan, true, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(30));
+
+        var detail = await GetAsync(admin, coach.UserId);
+
+        detail.History.Should().ContainSingle(entry => entry.Kind == AdminCoachHistoryKind.PlanEnded);
+        detail.History.Should().ContainSingle(entry => entry.Kind == AdminCoachHistoryKind.PaidPlanEnded);
+    }
+
+    [Fact]
+    public async Task Get_LoneCancelledEvent_IsNotAttributedToTheCoach_WhileAStartedEventIs()
+    {
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            db.CoachEvents.AddRange(
+                new CoachEvent
+                {
+                    CoachUserId = coach.UserId,
+                    EventType = CoachEventType.StartedPaidPlan,
+                    OccurredAt = DateTimeOffset.UtcNow.AddDays(-2),
+                    IdempotencyKey = $"test:{Guid.NewGuid():N}",
+                    PlanCode = "pro",
+                },
+                new CoachEvent
+                {
+                    CoachUserId = coach.UserId,
+                    EventType = CoachEventType.Cancelled,
+                    OccurredAt = DateTimeOffset.UtcNow.AddDays(-1),
+                    IdempotencyKey = $"test:{Guid.NewGuid():N}",
+                });
+            await db.SaveChangesAsync(Ct);
+        }
+
+        var detail = await GetAsync(admin, coach.UserId);
+
+        var ended = detail.History.Single(entry => entry.Kind == AdminCoachHistoryKind.PaidPlanEnded);
+        ended.ByCoach.Should().BeFalse();
+        ended.ActorName.Should().BeNull();
+        detail.History.Single(entry => entry.Kind == AdminCoachHistoryKind.PaidPlanStarted).ByCoach.Should().BeTrue();
     }
 
     [Fact]

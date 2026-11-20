@@ -25,6 +25,9 @@ internal sealed class GetAdminCoachEndpoint(
 {
     private const int MaxHistoryEntries = 100;
 
+    /// <summary>An admin audit row hides a Cancelled event this close to it, on either side (the Stripe webhook race).</summary>
+    private static readonly TimeSpan AdminCancelEventWindow = TimeSpan.FromMinutes(2);
+
     /// <summary>Audit actions that make up a coach's history. Rows are matched by the coach's user id as entity id.</summary>
     private static readonly string[] HistoryActions =
     [
@@ -156,6 +159,7 @@ internal sealed class GetAdminCoachEndpoint(
             .ToDictionaryAsync(user => user.Id, user => $"{user.FirstName} {user.LastName}".Trim(), ct);
 
         var history = new List<AdminCoachHistoryEntryDto>();
+        var adminCancelTimes = new List<DateTimeOffset>();
 
         foreach (var row in rows)
         {
@@ -168,6 +172,12 @@ internal sealed class GetAdminCoachEndpoint(
 
             var byCoach = row.UserId == coach.CoachId;
             var values = ParseValues(row.Id, row.NewValues);
+
+            if (row.Action is AdminCoachAuditActions.EndPlan or AdminCoachAuditActions.GivePlanFree
+                && values.Bool("providerSubscriptionCancelled") == true)
+            {
+                adminCancelTimes.Add(new DateTimeOffset(DateTime.SpecifyKind(row.DateCreated, DateTimeKind.Utc)));
+            }
 
             history.Add(new AdminCoachHistoryEntryDto
             {
@@ -186,17 +196,35 @@ internal sealed class GetAdminCoachEndpoint(
             .AsNoTracking()
             .Where(coachEvent => coachEvent.CoachUserId == coach.CoachId && PlanEventTypes.Contains(coachEvent.EventType))
             .OrderByDescending(coachEvent => coachEvent.OccurredAt)
-            .Take(MaxHistoryEntries)
+            .Take(MaxHistoryEntries + adminCancelTimes.Count)
             .Select(coachEvent => new { coachEvent.EventType, coachEvent.OccurredAt, coachEvent.PlanCode })
             .ToListAsync(ct);
 
-        foreach (var planEvent in planEvents)
+        // The cap is applied after suppression, so hidden duplicates never push a real event out of the list.
+        var hiddenEvents = HiddenAdminCancelEvents(
+            adminCancelTimes, planEvents.Select(planEvent => (planEvent.EventType, planEvent.OccurredAt)).ToList());
+
+        var visibleEvents = 0;
+
+        for (var index = 0; index < planEvents.Count && visibleEvents < MaxHistoryEntries; index++)
         {
+            if (hiddenEvents.Contains(index))
+            {
+                continue;
+            }
+
+            var planEvent = planEvents[index];
+            visibleEvents++;
+
+            // Only the coach's own paid-plan actions are theirs; a Cancelled event is whoever ended it, often Stripe.
+            var byCoach = planEvent.EventType != CoachEventType.Cancelled;
+
             history.Add(new AdminCoachHistoryEntryDto
             {
                 OccurredAt = planEvent.OccurredAt.UtcDateTime,
                 Kind = KindOf(planEvent.EventType),
-                ByCoach = true,
+                ByCoach = byCoach,
+                ActorName = null,
                 PlanCode = planEvent.PlanCode,
             });
         }
@@ -204,6 +232,45 @@ internal sealed class GetAdminCoachEndpoint(
         history.Add(new AdminCoachHistoryEntryDto { OccurredAt = coach.JoinedAt, Kind = AdminCoachHistoryKind.Joined });
 
         return history.OrderByDescending(entry => entry.OccurredAt).ToList();
+    }
+
+    /// <summary>
+    /// Indexes of Cancelled events that duplicate an admin audit row: each audit time hides at most one event,
+    /// the nearest unhidden one inside <see cref="AdminCancelEventWindow"/>.
+    /// </summary>
+    private static HashSet<int> HiddenAdminCancelEvents(
+        List<DateTimeOffset> adminCancelTimes, List<(CoachEventType EventType, DateTimeOffset OccurredAt)> events)
+    {
+        var hidden = new HashSet<int>();
+
+        foreach (var auditTime in adminCancelTimes)
+        {
+            var nearest = -1;
+            var nearestGap = TimeSpan.MaxValue;
+
+            for (var index = 0; index < events.Count; index++)
+            {
+                if (events[index].EventType != CoachEventType.Cancelled || hidden.Contains(index))
+                {
+                    continue;
+                }
+
+                var gap = (events[index].OccurredAt - auditTime).Duration();
+
+                if (gap <= AdminCancelEventWindow && gap < nearestGap)
+                {
+                    nearest = index;
+                    nearestGap = gap;
+                }
+            }
+
+            if (nearest >= 0)
+            {
+                hidden.Add(nearest);
+            }
+        }
+
+        return hidden;
     }
 
     private static AdminCoachHistoryKind KindOf(CoachEventType eventType) => eventType switch
@@ -254,6 +321,13 @@ internal sealed class GetAdminCoachEndpoint(
             && root.TryGetProperty(name, out var value)
             && value.ValueKind == JsonValueKind.String
                 ? value.GetString()
+                : null;
+
+        public bool? Bool(string name) =>
+            Root is { ValueKind: JsonValueKind.Object } root
+            && root.TryGetProperty(name, out var value)
+            && value.ValueKind is JsonValueKind.True or JsonValueKind.False
+                ? value.GetBoolean()
                 : null;
 
         public DateTimeOffset? Date(string name) =>
