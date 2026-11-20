@@ -9,6 +9,7 @@ import UsageSection from '@/components/admin-reports/UsageSection';
 import { useAdminReports } from '@/components/admin-reports/useAdminReportsQuery';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { getStripeDashboardUrl } from '@/lib/config';
 
 const PERIODS: readonly AdminReportPeriod[] = [AdminReportPeriod.Days30, AdminReportPeriod.Days90, AdminReportPeriod.Months12];
 const PERIOD_PARAM = 'period';
@@ -37,7 +38,7 @@ export default function AdminReportsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const period = periodFromParam(searchParams.get(PERIOD_PARAM));
   const reportsQuery = useAdminReports(period);
-  const stripeUrl = stripeDashboardUrl(import.meta.env.VITE_STRIPE_DASHBOARD_URL);
+  const stripeUrl = stripeDashboardUrl(getStripeDashboardUrl());
   const report = reportsQuery.data;
 
   const changePeriod = (next: AdminReportPeriod) => {
