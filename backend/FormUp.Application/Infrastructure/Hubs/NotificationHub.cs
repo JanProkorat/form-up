@@ -28,7 +28,6 @@ public class NotificationHub(
                 await Groups.AddToGroupAsync(Context.ConnectionId, AdminGroup);
             }
 
-
             presence.UserConnected(userId);
             await BroadcastPresenceAsync(userId, true);
         }
