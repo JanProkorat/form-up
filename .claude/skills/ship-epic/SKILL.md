@@ -32,6 +32,32 @@ consolidated PR against `develop` and pause for explicit same-turn
 user authorization (rule 8b). This is what the user means by "I don't
 want a half-shipped epic on develop".
 
+## Session layout (maintainer decision 2026-11-20)
+
+The session that runs this skill is the **epic coordinator** only. Every
+task runs in its **own child session**, started with
+`mcp__ccd_session__start_session` (`initiation: "user_asked"`,
+`context: "fresh"`, `use_worktree: true`, `wake_when_done: true`,
+`name: "task-<N>-<short>"`). Children nest under the coordinator in the
+sidebar on their own; rename the coordinator `Epic #<N> - <short name>`
+(`set_session_title`, `"self"`).
+
+| Coordinator (this session) | Task session (one per child) |
+|---|---|
+| Phase 0, 0a, 0b; epic branch; state file; test-guide page | Phase 1a–1d for its one task: branch, design review, dev agent, PR, merge on green CI |
+| Starts each child as soon as its `depends_on` children are merged | Its guide section (`in-progress` → `ready` + steps) and its time clock |
+| Tells in-flight siblings (`SendMessage`) when the epic branch moves | Merges the epic tip into its own branch before its own merge |
+| Phase 2, 2b, 3 — epic QA, guide walk, epic PR, review, merge, docs | Never edits the state file; never runs `qa-tester`, `pr-reviewer`, `notion-docs` |
+
+Start every child whose dependencies are met **in the same message**, so
+they run in parallel, same package included. Each brief is self-contained
+(the child has none of this conversation) and names any file a parallel
+sibling also changes, with the conflict plan — e.g. two EF migrations:
+the one that merges second merges the epic tip and regenerates its
+migration. Briefs also tell the child to check `pgrep -fl "dotnet test"`
+before a full local Testcontainers run and to rely on CI's full suite
+when another run is going.
+
 ## When to invoke
 
 - "Ship epic #N" / "implement epic <URL>" / "drive epic #N to green"
@@ -92,9 +118,10 @@ session and surfaces it back as context.
 **Write the state file at every transition:**
 
 - After Phase 0 step 4 (epic branch created + pushed): `phase: "creating"`.
-- Just before each child dispatch in Phase 1: append/update that
-  child's entry with `status: "in-progress"`, current `branch`,
-  current `pr` (null until opened).
+- When starting each child's task session in Phase 1: append/update
+  that child's entry with `status: "in-progress"`, the `branch` it will
+  create, its `session` id (`local_…`), and `pr` (null until opened).
+  Only the coordinator writes this file.
 - After each child merge: bump that entry to `status: "merged"`.
 - When opening the epic PR (Phase 2): `phase: "epic-pr"` and capture
   the epic PR number on a new top-level field if useful.
@@ -105,8 +132,8 @@ session and surfaces it back as context.
 — validated by `reinject-state.sh` on every SessionStart. Required
 fields: `epic_number`, `epic_branch`, `phase` (`creating |
 design-reviewing | dispatching | merging-children | epic-pr | done`),
-`children` array (each `{ issue, status, branch?, pr?, depends_on?,
-estimated_complexity?, blocked_reason? }`), `started_at`, `updated_at`
+`children` array (each `{ issue, status, branch?, pr?, session?,
+depends_on?, estimated_complexity?, blocked_reason? }`), `started_at`, `updated_at`
 (ISO-8601). Optional `fast_path: bool` and `epic_pr: int` once those
 phases are reached. Every state-file write must include the literal
 `"$schema": ".claude/schemas/ship-epic-state.v1.json"` field — that's
@@ -143,13 +170,10 @@ Actions (orchestrator):
 ```
 
 4. Decide **parallel vs sequential** per dependency:
-   - Children with no dependencies that live in **different packages**
-     can run in parallel (different dev sub-agents).
-   - Two children in the **same package** always run sequentially —
-     one worktree, one agent, one PR at a time. Parallel `backend`
-     dispatches are allowed only when each backend child has its own
-     worktree AND the user explicitly opted in (they're noisier and
-     share Testcontainers resources).
+   - Children with no unmet dependencies run in parallel, each in its
+     own task session and worktree — same package included (standing
+     opt-in, 2026-11-20). Name shared files and the conflict plan in
+     each brief (see "Session layout").
    - A child that `Depends on` another waits for that PR to **merge
      into the epic branch** first (no longer "into `develop`" — under
      the epic-branch model, dependent siblings observe each other on
@@ -176,6 +200,18 @@ git checkout -b "$EPIC_BRANCH" develop
 git push -u origin "$EPIC_BRANCH"
 git checkout develop                    # leave the main checkout on develop
 ```
+
+If the push is rejected because the epic branch already exists (e.g. an
+earlier session exported the design boards onto it), check it out in a
+worktree and **merge** `origin/develop` into it instead. If it was cut
+from another epic's branch that has since squash-merged into `develop`
+(check `git merge-base --is-ancestor <its base> <that PR's head>`), the
+merge may conflict everywhere. Only in a clean, dedicated worktree on
+the epic branch (`read-tree --reset` discards uncommitted changes, like
+a hard reset), take `develop`'s tree
+(`git merge --no-commit -s ours origin/develop`,
+`git read-tree -u --reset origin/develop`, commit) and cherry-pick the
+branch's own epic commits back on top. Never force-push.
 
 The epic branch is empty at this point — no commits beyond
 `develop`'s tip. Sub-issue worktrees will branch off it. Record
@@ -298,9 +334,9 @@ Include in the question body:
 - A note that any individual child can later self-eject from the
   fast-path if its design-review actually returns NEEDS-REVISION.
 
-On approval, dispatch ALL children's design-review + dev pipelines
-**concurrently** (each in its own worktree per
-[`rules/branch-and-pr.md#parallel-sub-agents-one-branch-each`](../../rules/branch-and-pr.md#parallel-sub-agents-one-branch-each)).
+On approval, start ALL children's task sessions **concurrently**, in
+one message (see "Session layout"); each runs its own design-review +
+dev pipeline in its own worktree.
 
 ### Fall-back
 
@@ -320,44 +356,44 @@ This is the safe default — never auto-promote ambiguous epics.
 
 ## Phase 1 — Per-child execution loop (sub-issue → epic branch)
 
-For each child issue the plan says to run next, execute this sub-loop.
-If the plan allows parallel children, the **`Agent` calls for their
-respective dev sub-agents go in a single message** so they truly run
-concurrently. Each dev sub-agent is started inside its own worktree
-(see "Worktree setup" below). **Every sub-issue branch is rooted off
-`origin/$EPIC_BRANCH`, never `origin/develop`.**
+**The coordinator does not run 1a–1d itself.** For each child whose
+dependencies are merged, it starts a task session (see "Session
+layout") whose brief carries steps 1a–1d below, with the epic number,
+`$EPIC_BRANCH`, the branch name to create, the guide URL, the facts the
+dev agent needs, shared-file warnings and the done condition. All
+ready children start in one message. **Every sub-issue branch is
+rooted off `origin/$EPIC_BRANCH`, never `origin/develop`** — the app
+cuts the session's worktree from another base, so the brief tells the
+child to create its task branch from `origin/$EPIC_BRANCH` first.
 
-### 1a. Worktree setup (parallel dispatches only)
+When a child session reports back (the app wakes the coordinator):
+check the PR really merged (`gh pr view <n> --json state,mergeCommit`),
+set its state entry to `merged`, `SendMessage` any in-flight sibling to
+merge the new epic tip, and start every child whose dependencies are
+now all merged. When none are left, go to Phase 2.
 
-Before dispatching the dev sub-agent, create the worktree off the epic
-branch. **Prefer the `git-worktree` MCP** (registered in `.mcp.json`)
-over raw shell — it returns structured paths/branch names, surfaces
-errors as MCP responses instead of stderr the orchestrator has to
-parse, and avoids path-escaping bugs on slugged titles. Call its
-worktree-create tool with:
+A child session that stops without reporting a merge (failed, stopped,
+or idle on a question) is not done: check its branch and PR, answer or
+surface its question, and send it a follow-up or finish the step here.
+Its dependents stay unstarted until it really merges.
 
-- `path`: `.worktrees/<N>-<short>` (relative to repo root)
-- `branch`: `<type>/<N>-<short-kebab>` (new branch — the child's)
-- `commit` / `base`: `origin/$EPIC_BRANCH`
+Steps 1a–1d, as run **inside the task session**:
 
-Where `<N>` is the child issue number, `<short>` is ≤20 chars of the
-title slugged, and `<type>` is the branch prefix for the child's kind label
-(`Task` → `feature`, `Bug` → `fix`, `Chore` → `chore`).
+### 1a. Task branch
 
-If the MCP isn't reachable in the current session (e.g. running
-ship-epic from an environment without the `git-worktree` server), fall
-back to:
+The app already gave the task session its own worktree. Create no
+second one (no `.worktrees/<N>-<short>`, no work in the main checkout).
+In the session's worktree, create the task branch off the epic branch:
 
 ```bash
 git fetch origin "$EPIC_BRANCH"
-git worktree add .worktrees/<N>-<short> \
-    -b <type>/<N>-<short-kebab> "origin/$EPIC_BRANCH"
+git switch -c <type>/<N>-<short-kebab> "origin/$EPIC_BRANCH"
 ```
 
-For serial dispatches on a freshly-merged epic branch, skip the
-worktree entirely and let the dev sub-agent branch off the main
-checkout — but make sure the main checkout is on `$EPIC_BRANCH` first
-(`git checkout $EPIC_BRANCH && git pull --ff-only`).
+Where `<N>` is the child issue number, `<short-kebab>` is a short slug
+of the title, and `<type>` is the branch prefix for the child's kind
+label (`Task` → `feature`, `Bug` → `fix`, `Chore` → `chore`). The dev
+sub-agent works in this same worktree, on this branch.
 
 ### 1b. Run design-review (Rule 5.5)
 
@@ -369,8 +405,9 @@ result at `.claude/state/handoff-design-<N>.json`:
 - **APPROVE** → proceed to 1c. Pass `approved_scope` forward — the
   dev sub-agent reads it as its first action.
 - **NEEDS-REVISION** → tighten the brief per the findings, re-submit.
-  Loop up to 3 rounds total. Round 4 → escalate to user, mark this
-  child as blocked in `state/ship-epic.json`, continue with siblings.
+  Loop up to 3 rounds total. Round 4 → escalate to user and report the
+  block to the coordinator (it marks the child `blocked` in the state
+  file; siblings continue).
 - **BLOCK** → surface `blocked_reason` to user. Common: AC ambiguity
   → route to `github-issues` to clarify; missing parent epic branch
   → can't happen here since you created it in Phase 0.
@@ -387,7 +424,7 @@ scope→agent map in `.claude/CLAUDE.md`:
 - `BE` → `backend-dotnet`
 - `Web` → `web-react`
 - `Mobile` → `mobile-expo`
-- `Chore` with no package label → orchestrator handles it directly
+- `Chore` with no package label → the task session does it itself
 
 The prompt must include:
 
@@ -397,7 +434,7 @@ The prompt must include:
   epic #`$EPIC_N` and that the PR will target the epic branch, NOT
   `develop`. Without this nudge an agent that hasn't read the latest
   CLAUDE.md will default to `develop`.
-- The absolute worktree path if one was created (so the agent `cd`s
+- The task session's absolute worktree path (so the agent `cd`s
   there first).
 - A pointer to the epic so the agent has context.
 - An explicit reminder to run `regen-api` at the end if the child
@@ -426,37 +463,33 @@ sub-agent's own verify skill plus CI.
    This holds even when the diff touches migrations or Mongo data
    scripts — Mongo data scripts are caught at the epic PR, which the
    user merges.
-5. Fast-forward the local epic branch (`git pull --ff-only`), set the
-   child's state entry to `status: "merged"`, and tear down the
-   task's worktree and harness. **Prefer the `git-worktree` MCP's
-   worktree-remove tool** with `path: .worktrees/<N>-<short>`.
-   Fallback when the MCP isn't reachable:
-   ```bash
-   git worktree remove .worktrees/<N>-<short>
-   ```
+5. Report the merge to the coordinator (it sets the state entry to `merged`),
+   and stop any compose harness it started. The app owns the
+   session's worktree; the session does not remove it.
    Leave the task issue **open** — it closes when the epic PR merges.
 - **Bring the new epic-branch tip into any in-flight sibling sub-issue
   branches — by merge, never rebase.** A rebase rewrites the pushed
   branch and needs a force-push, which is banned outright (global
   CLAUDE.md, `rules/git-workflow.md#never`). The sibling PR is
   squash-merged later, so the merge commit never reaches the epic
-  history. If a sibling is mid-task in a worktree, don't merge under
-  its dev sub-agent — wait until it hands back, then merge before you
-  push. If a sibling already has an open PR but hasn't been
-  re-reviewed yet, run:
+  history. Each task session does this for its own branch: when the
+  coordinator says the epic branch moved, and always right before its
+  own merge, it waits until its dev sub-agent has handed back, then
+  runs:
   ```bash
-  git -C .worktrees/<sibling>/ fetch origin "$EPIC_BRANCH"
-  git -C .worktrees/<sibling>/ merge --no-edit "origin/$EPIC_BRANCH"
-  git -C .worktrees/<sibling>/ push
+  git fetch origin "$EPIC_BRANCH"
+  git merge --no-edit "origin/$EPIC_BRANCH"
+  git push
   ```
-  then wait for the sibling's CI to go green again before its own
-  merge. On a conflict, stop and resolve it as you would any merge;
-  never `--force`.
+  then waits for its CI to go green again before merging. On a
+  conflict it resolves it as it would any merge (an EF model-snapshot
+  conflict → regenerate its own migration on top); never `--force`.
 - **Do NOT dispatch `notion-docs`** for task merges. That fires
   exactly once, in Phase 3, after the epic merges to `develop`, run by
   the main thread.
 
-Move on to the next child issue.
+The task session reports back to the coordinator (PR, merge SHA,
+anything noticed but not touched) and ends.
 
 ## Phase 2 — Open and review the epic PR (epic branch → develop)
 
@@ -598,7 +631,8 @@ manually for an excluded epic):
       so the develop history shows one commit per epic.
 - [ ] If the epic PR hit the merge exclusion list (Mongo data-mutation
       scripts, one-shot data commands), the user merged it, not the skill.
-- [ ] All `.worktrees/<N>-<short>/` directories removed.
+- [ ] Every task session reported its merge; any extra worktree the
+      coordinator made (e.g. for the epic branch itself) is removed.
 - [ ] Local `develop` is synced and clean. Local epic branch deleted.
 - [ ] A `notion-docs` update ran once, on the main thread, after the
       epic merged to `develop` (none per task).
