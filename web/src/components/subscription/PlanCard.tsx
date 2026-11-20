@@ -96,7 +96,9 @@ export default function PlanCard({
     <article
       aria-label={name}
       onClick={selectFromCard}
-      className={`@container flex flex-col gap-4 rounded-2xl bg-card p-5 shadow-panel ${heavy ? 'border-2 border-ink' : 'border border-line'} ${selection ? 'cursor-pointer' : ''}`}
+      // Seven rows shared with the sibling cards (CSS subgrid), so every slot is as tall as its tallest sibling and the buttons line up without reserved space.
+      // No @container here: its layout containment turns subgrid off; the price block below is the container instead.
+      className={`row-span-7 grid grid-rows-subgrid gap-4 rounded-2xl bg-card p-5 shadow-panel ${heavy ? 'border-2 border-ink' : 'border border-line'} ${selection ? 'cursor-pointer' : ''}`}
     >
       <div className="flex items-center gap-2">
         <h2 className="text-card-title font-semibold text-ink">{name}</h2>
@@ -106,14 +108,13 @@ export default function PlanCard({
       </div>
 
       {/* With priceText the price row and note slot stay as an invisible spacer in the same grid cell, so the block keeps its height. */}
-      <div className="grid">
+      <div className="@container grid">
         <div
           className={`col-start-1 row-start-1 flex flex-col gap-1 ${priceText ? 'invisible' : ''}`}
           aria-hidden={priceText ? true : undefined}
         >
           {/* One line: each part keeps its width, the gap is tight, price and struck price drop a type step on a narrow card, and the row wraps only as a last resort. */}
-          {/* text-stat sets this row's own line height, so two of its lines are reserved and the buttons line up whether or not the row wraps. */}
-          <div className={`flex min-h-[2lh] ${interval === 'year' ? 'flex-nowrap' : 'flex-wrap'} items-baseline gap-x-1.5 text-stat`}>
+          <div className={`flex ${interval === 'year' ? 'flex-nowrap' : 'flex-wrap'} items-baseline gap-x-1.5 text-stat`}>
             <span className="text-stat font-semibold whitespace-nowrap text-ink @max-[15rem]:text-auth-title">{price}</span>
             {originalPrice && !priceText && (
               <s className="text-copy whitespace-nowrap text-muted-foreground @max-[15rem]:text-body">
@@ -125,16 +126,14 @@ export default function PlanCard({
               {t(`subscription.planChoice.card.per.${interval}`)}
             </span>
           </div>
-          {/* Two lines are reserved for the note so the buttons line up across the cards. */}
-          <span className="min-h-9 text-meta text-muted-foreground">{priceNote}</span>
+          {priceNote && <span className="text-meta text-muted-foreground">{priceNote}</span>}
         </div>
         {priceText && (
           <span className="col-start-1 row-start-1 self-start text-subhead font-semibold text-ink">{priceText}</span>
         )}
       </div>
 
-      {/* Two lines are reserved for the price note so the buttons line up across the cards. */}
-      <div className="min-h-18">
+      <div>
         {secondRole && (
           <div className="flex items-center gap-2 rounded-lg bg-sunken px-3 py-2.5 text-body text-ink-2">
             <Users className="size-4 shrink-0" aria-hidden="true" />
