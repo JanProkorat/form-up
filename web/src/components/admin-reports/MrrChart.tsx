@@ -1,12 +1,17 @@
+import { useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AdminReportPeriod, type AdminReportCurrencyAmountDto, type AdminReportMrrPointDto } from '@/api/generated';
 import { ReportPanel } from '@/components/admin-reports/ReportCard';
 import { formatAxisDay, formatAxisValue, niceAxisMax, reportMoney } from '@/components/admin-reports/reportFormat';
 
-const WIDTH = 640;
+/** Width used before the container is measured (and in jsdom, which has no layout). */
+const FALLBACK_WIDTH = 640;
 const HEIGHT = 220;
 const LEFT = 52;
-const RIGHT = 630;
+/** Room kept right of the plot so the last point and its end-anchored label stay inside the SVG. */
+const RIGHT_PAD = 10;
+/** Minimum horizontal room per x-axis label, so labels never touch at narrow widths. */
+const LABEL_SLOT = 56;
 const TOP = 10;
 const BOTTOM = 190;
 const GRID_LINES = 3;
@@ -57,14 +62,32 @@ function Chart({ currency, points, monthOnly, showCurrency }: ChartProps) {
   const { t, i18n } = useTranslation();
   const language = i18n.language;
 
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [measured, setMeasured] = useState(0);
+  useLayoutEffect(() => {
+    const node = wrapRef.current;
+    if (!node) {
+      return;
+    }
+    const update = () => setMeasured(Math.round(node.clientWidth));
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  const width = measured > 0 ? measured : FALLBACK_WIDTH;
+  const right = Math.max(width - RIGHT_PAD, LEFT + 1);
+  const maxLabels = Math.max(2, Math.min(MAX_X_LABELS, Math.floor((right - LEFT) / LABEL_SLOT)));
+
   const maxMajor = Math.max(...points.map((point) => point.full), ...points.map((point) => point.after)) / 100;
   const { step, top } = niceAxisMax(maxMajor);
-  const x = (index: number) => (points.length === 1 ? RIGHT : LEFT + (index * (RIGHT - LEFT)) / (points.length - 1));
+  const x = (index: number) => (points.length === 1 ? right : LEFT + (index * (right - LEFT)) / (points.length - 1));
   const y = (minor: number) => BOTTOM - (Math.min(minor / 100, top) / top) * (BOTTOM - TOP);
   const polyline = (pick: (point: Point) => number) =>
     points.map((point, index) => `${x(index).toFixed(1)},${y(pick(point)).toFixed(1)}`).join(' ');
 
-  const labelEvery = Math.ceil(points.length / MAX_X_LABELS);
+  const labelEvery = Math.ceil(points.length / maxLabels);
   const last = points[points.length - 1];
   const first = points[0];
   const ariaLabel = t('adminReports.mrr.chartLabel', {
@@ -73,20 +96,21 @@ function Chart({ currency, points, monthOnly, showCurrency }: ChartProps) {
   });
 
   return (
-    <div className="flex flex-col gap-1">
+    <div ref={wrapRef} className="flex flex-col gap-1">
       {showCurrency && <span className="text-meta font-semibold text-ink-2">{currency}</span>}
       <svg
-        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+        width={width}
+        height={HEIGHT}
         role="img"
         aria-label={ariaLabel}
-        className="block h-auto w-full font-sans"
+        className="block max-w-full font-sans"
       >
         {Array.from({ length: GRID_LINES + 1 }, (_, index) => {
           const value = index * step;
           const gridY = BOTTOM - (index / GRID_LINES) * (BOTTOM - TOP);
           return (
             <g key={value}>
-              <line x1={LEFT} y1={gridY} x2={RIGHT} y2={gridY} strokeWidth={1} className="stroke-line" />
+              <line x1={LEFT} y1={gridY} x2={right} y2={gridY} strokeWidth={1} className="stroke-line" />
               <text x={LEFT - 10} y={gridY + 4} textAnchor="end" className="fill-muted-foreground text-caption">
                 {formatAxisValue(value, language)}
               </text>
@@ -95,7 +119,13 @@ function Chart({ currency, points, monthOnly, showCurrency }: ChartProps) {
         })}
         {points.map((point, index) =>
           index % labelEvery === 0 ? (
-            <text key={point.day} x={x(index)} y={212} textAnchor="middle" className="fill-muted-foreground text-caption">
+            <text
+              key={point.day}
+              x={x(index)}
+              y={212}
+              textAnchor={index === points.length - 1 ? 'end' : 'middle'}
+              className="fill-muted-foreground text-caption"
+            >
               {formatAxisDay(point.day, monthOnly, language)}
             </text>
           ) : null,
