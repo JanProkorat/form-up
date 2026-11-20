@@ -20,9 +20,16 @@ namespace FormUp.Application.Features.CoachSubscriptions.ChooseFreePlan;
 /// <param name="timeProvider">Clock used to tell that the given plan ended.</param>
 /// <param name="audit">Audit logging service.</param>
 /// <param name="coachEvents">Records the plan choice in the same save as the plan change.</param>
+/// <param name="notifier">Realtime notifier; tells connected admins the coach's plan changed.</param>
+/// <param name="logger">Logger for a failed admin notification.</param>
 [RemovedCoachRole(RemovedCoachRoleMode.Refuse)]
 internal sealed class ChooseFreePlanEndpoint(
-    IApplicationDbContext db, TimeProvider timeProvider, IAuditService audit, ICoachEventRecorder coachEvents)
+    IApplicationDbContext db,
+    TimeProvider timeProvider,
+    IAuditService audit,
+    ICoachEventRecorder coachEvents,
+    IRealtimeNotifier notifier,
+    ILogger<ChooseFreePlanEndpoint> logger)
     : Endpoint<ChooseFreePlanRequest>
 {
     /// <summary>Audit action of choosing the Free plan.</summary>
@@ -171,6 +178,23 @@ internal sealed class ChooseFreePlanEndpoint(
                 reason: null),
             ct: ct);
 
+        await TryNotifyAdminsAsync(userId, ct);
+
         await Send.NoContentAsync(ct);
+    }
+
+    /// <summary>
+    /// Tells every connected admin the coach's plan changed. A failure is logged and swallowed: the change is saved.
+    /// </summary>
+    private async Task TryNotifyAdminsAsync(Guid coachUserId, CancellationToken ct)
+    {
+        try
+        {
+            await notifier.NotifyAdminsAsync("admincoachsubscriptionchanged", new { coachId = coachUserId }, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogWarning(ex, "Admin plan change notification failed for coach {CoachId}", coachUserId);
+        }
     }
 }

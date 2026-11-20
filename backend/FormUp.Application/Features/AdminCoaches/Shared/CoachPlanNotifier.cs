@@ -122,5 +122,23 @@ internal static class CoachPlanNotifier
         {
             logger.LogWarning(ex, "Plan change notification failed for coach {CoachId} ({Action})", coachUserId, action);
         }
+
+        await TryNotifyAdminsAsync(notifier, logger, coachUserId, action, ct);
+    }
+
+    /// <summary>
+    /// Tells every connected admin that the coach's subscription changed. A failure is logged and swallowed.
+    /// </summary>
+    private static async Task TryNotifyAdminsAsync(
+        IRealtimeNotifier notifier, ILogger logger, Guid coachUserId, CoachPlanChangeAction action, CancellationToken ct)
+    {
+        try
+        {
+            await notifier.NotifyAdminsAsync("admincoachsubscriptionchanged", new { coachId = coachUserId }, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogWarning(ex, "Admin plan change notification failed for coach {CoachId} ({Action})", coachUserId, action);
+        }
     }
 }

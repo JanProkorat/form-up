@@ -13,8 +13,8 @@ namespace FormUp.Application.Features.AdminCoaches.GetAdminCoach;
 
 /// <summary>
 /// Returns one coach for the admin drawer: plan card, client count against the cap, and the history of admin and
-/// coach actions on the subscription and account. Failure detail and payment history are empty until a payment
-/// provider exists.
+/// coach actions on the subscription and account, including the coach's paid-plan events. The Stripe customer id is
+/// included for the dashboard link. Failure detail is always null and payments are not in the history.
 /// </summary>
 /// <param name="db">Application database context.</param>
 /// <param name="timeProvider">Clock.</param>
@@ -37,6 +37,16 @@ internal sealed class GetAdminCoachEndpoint(
         AdminCoachAuditActions.KeepAccount,
         AdminCoachAuditActions.AddRole,
         AdminCoachAuditActions.RemoveRole,
+        AdminCoachAuditActions.ChooseFreePlan,
+    ];
+
+    /// <summary>Coach events that belong in the history. A Cancelled event may come from Stripe ending the plan.</summary>
+    private static readonly CoachEventType[] PlanEventTypes =
+    [
+        CoachEventType.StartedPaidPlan,
+        CoachEventType.Upgraded,
+        CoachEventType.Downgraded,
+        CoachEventType.Cancelled,
     ];
 
     /// <inheritdoc />
@@ -47,9 +57,10 @@ internal sealed class GetAdminCoachEndpoint(
         Summary(s =>
         {
             s.Summary = "Get a coach";
-            s.Description = "Returns the coach's plan card (plan, status, price, clients against the cap) and history. The failure " +
-                            "detail is always null and payments are not in the history until a payment provider exists. Only counts " +
-                            "are shown for clients: no client name, email or data, and no IP address or raw audit values.";
+            s.Description = "Returns the coach's plan card (plan, status, price, clients against the cap) and history. The history " +
+                            "holds admin and coach actions, including the coach's paid-plan start, upgrade, downgrade and end; payments are " +
+                            "not in it and the failure detail is always null. stripeCustomerId is null without a Stripe customer. Only " +
+                            "counts are shown for clients: no client name, email or data, and no IP address or raw audit values.";
             s.Response<GetAdminCoachResponse>(StatusCodes.Status200OK, "The coach");
             s.Response(StatusCodes.Status401Unauthorized, "Missing or invalid credentials");
             s.Response(StatusCodes.Status403Forbidden, "Caller is not an Admin");
@@ -111,6 +122,7 @@ internal sealed class GetAdminCoachEndpoint(
             CanEndPlanNow = paying || givenFree,
             HasCancellableSubscription = coach.HasCancellableSubscription,
             FreePlanMaxActiveClients = free is null ? 0 : free.MaxActiveClients,
+            StripeCustomerId = coach.StripeCustomerId,
             History = await LoadHistoryAsync(coach, ct),
         }, ct);
     }
@@ -170,13 +182,41 @@ internal sealed class GetAdminCoachEndpoint(
             });
         }
 
+        var planEvents = await db.CoachEvents
+            .AsNoTracking()
+            .Where(coachEvent => coachEvent.CoachUserId == coach.CoachId && PlanEventTypes.Contains(coachEvent.EventType))
+            .OrderByDescending(coachEvent => coachEvent.OccurredAt)
+            .Take(MaxHistoryEntries)
+            .Select(coachEvent => new { coachEvent.EventType, coachEvent.OccurredAt, coachEvent.PlanCode })
+            .ToListAsync(ct);
+
+        foreach (var planEvent in planEvents)
+        {
+            history.Add(new AdminCoachHistoryEntryDto
+            {
+                OccurredAt = planEvent.OccurredAt.UtcDateTime,
+                Kind = KindOf(planEvent.EventType),
+                ByCoach = true,
+                PlanCode = planEvent.PlanCode,
+            });
+        }
+
         history.Add(new AdminCoachHistoryEntryDto { OccurredAt = coach.JoinedAt, Kind = AdminCoachHistoryKind.Joined });
 
         return history.OrderByDescending(entry => entry.OccurredAt).ToList();
     }
 
+    private static AdminCoachHistoryKind KindOf(CoachEventType eventType) => eventType switch
+    {
+        CoachEventType.StartedPaidPlan => AdminCoachHistoryKind.PaidPlanStarted,
+        CoachEventType.Upgraded => AdminCoachHistoryKind.PaidPlanUpgraded,
+        CoachEventType.Downgraded => AdminCoachHistoryKind.PaidPlanDowngraded,
+        _ => AdminCoachHistoryKind.PaidPlanEnded,
+    };
+
     private static AdminCoachHistoryKind? KindOf(string action) => action switch
     {
+        AdminCoachAuditActions.ChooseFreePlan => AdminCoachHistoryKind.ChoseFreePlan,
         AdminCoachAuditActions.GivePlanFree => AdminCoachHistoryKind.GivenFree,
         AdminCoachAuditActions.AssignSubscription => AdminCoachHistoryKind.PlanAssigned,
         AdminCoachAuditActions.CancelRenewal => AdminCoachHistoryKind.RenewalCancelled,
