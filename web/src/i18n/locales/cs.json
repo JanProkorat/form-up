@@ -7147,7 +7147,8 @@
       "clientsUnlimited": "{{used}}, neomezeně",
       "actions": "Akce",
       "privacy": "Jména a data klientů administrátoři nevidí. Jen počty.",
-      "openInStripe": "Otevřít ve Stripe"
+      "openInStripe": "Otevřít ve Stripe",
+      "noStripeCustomer": "Tento trenér zatím nemá zákazníka ve Stripe."
     },
     "actions": {
       "reason": "Důvod",
@@ -7223,6 +7224,11 @@
         "givenFree_plain": "Změněno na {{plan}}, bez data konce",
         "planAssigned": "Plán změněn na {{plan}}",
         "planEnded": "Plán ukončen: {{plan}}",
+        "choseFreePlan": "Zvolil plán Free",
+        "paidPlanStarted": "Zahájen placený plán: {{plan}}",
+        "paidPlanUpgraded": "Placený plán navýšen: {{plan}}",
+        "paidPlanDowngraded": "Placený plán snížen: {{plan}}",
+        "paidPlanEnded": "Placený plán skončil",
         "renewalCancelled_until": "Obnova zrušena, plán končí {{date}}",
         "renewalCancelled_plain": "Obnova zrušena",
         "accountDisabled_until": "Účet deaktivován, aktivní do {{date}}",

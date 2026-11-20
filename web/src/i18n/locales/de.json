@@ -6892,7 +6892,8 @@
       "clientsUnlimited": "{{used}}, unbegrenzt",
       "actions": "Aktionen",
       "privacy": "Namen und Daten der Kunden sehen Administratoren nicht. Nur Zahlen.",
-      "openInStripe": "In Stripe öffnen"
+      "openInStripe": "In Stripe öffnen",
+      "noStripeCustomer": "Dieser Trainer hat noch keinen Stripe-Kunden."
     },
     "actions": {
       "reason": "Grund",
@@ -6966,6 +6967,11 @@
         "givenFree_plain": "Auf Plan {{plan}} geändert, ohne Enddatum",
         "planAssigned": "Plan geändert auf {{plan}}",
         "planEnded": "Plan beendet: {{plan}}",
+        "choseFreePlan": "Free-Plan gewählt",
+        "paidPlanStarted": "Kostenpflichtiger Plan gestartet: {{plan}}",
+        "paidPlanUpgraded": "Kostenpflichtiger Plan erhöht: {{plan}}",
+        "paidPlanDowngraded": "Kostenpflichtiger Plan reduziert: {{plan}}",
+        "paidPlanEnded": "Kostenpflichtiger Plan beendet",
         "renewalCancelled_until": "Verlängerung gekündigt, Plan endet am {{date}}",
         "renewalCancelled_plain": "Verlängerung gekündigt",
         "accountDisabled_until": "Konto deaktiviert, aktiv bis {{date}}",
