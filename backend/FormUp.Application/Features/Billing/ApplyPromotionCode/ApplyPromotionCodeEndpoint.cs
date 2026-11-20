@@ -124,7 +124,7 @@ internal sealed class ApplyPromotionCodeEndpoint(
         }
 
         await coachEvents.RecordPromotionAppliedAsync(subscription, promotion, ct);
-        await db.SaveChangesAsync(ct);
+        await CoachEventSaves.SaveIgnoringDuplicateAsync(db, ct);
 
         await Send.NoContentAsync(ct);
     }

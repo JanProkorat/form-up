@@ -51,7 +51,8 @@ public class StripeWebhookCoachEventsTests(FitnessApiFactory factory)
             },
             new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower });
 
-    private static string SubscriptionEvent(string eventId, string type, string subscriptionId, string priceId, string status)
+    private static string SubscriptionEvent(
+        string eventId, string type, string subscriptionId, string priceId, string status, string customerId = "cus_unused")
     {
         var periodEnd = DateTimeOffset.UtcNow.AddDays(20).ToUnixTimeSeconds();
         var periodStart = DateTimeOffset.UtcNow.AddDays(-10).ToUnixTimeSeconds();
@@ -60,7 +61,7 @@ public class StripeWebhookCoachEventsTests(FitnessApiFactory factory)
         {
             Id = subscriptionId,
             Object = "subscription",
-            Customer = "cus_unused",
+            Customer = customerId,
             Status = status,
             Created = periodStart,
             CancelAtPeriodEnd = false,
@@ -211,6 +212,53 @@ public class StripeWebhookCoachEventsTests(FitnessApiFactory factory)
         cancelled.PlanCode.Should().BeNull();
         cancelled.FullMonthlyRevenueEffectMinorUnits.Should().Be(-29900);
         cancelled.DiscountedMonthlyRevenueEffectMinorUnits.Should().Be(-29900);
+    }
+
+    [Fact]
+    public async Task Webhook_CoachEventCollidingWithAConcurrentlyStoredKey_StillCommitsTheSubscriptionChange_AndTheProcessedEvent()
+    {
+        await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (_, priceId) = await BillingTestData.StripePlanAsync(factory, 29900);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, "free");
+        // The webhook finds the coach's row by customer id, so it must be unique to this test.
+        var customerId = $"cus_{Guid.NewGuid():N}";
+        await BillingTestData.UpdateRowAsync(factory, coach.ProfileId, row => row.ExternalCustomerId = customerId);
+        var subscriptionId = $"sub_{Guid.NewGuid():N}";
+        var eventId = NewEventId();
+        var payload = SubscriptionEvent(eventId, "customer.subscription.created", subscriptionId, priceId, "active", customerId);
+        var hooks = factory.Services.GetRequiredService<CoachEventRecorderHooks>();
+
+        // A concurrent request stores the same key right after this webhook added its event and passed the key check.
+        hooks.AfterSubscriptionChange = async (stripeEventId, _, ct) =>
+        {
+            using var racer = factory.Services.CreateScope();
+            var racerDb = racer.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            racerDb.CoachEvents.Add(new CoachEvent
+            {
+                CoachUserId = coach.UserId,
+                EventType = CoachEventType.StartedPaidPlan,
+                OccurredAt = DateTimeOffset.UtcNow,
+                IdempotencyKey = $"{stripeEventId}:{CoachEventType.StartedPaidPlan}",
+            });
+            await racerDb.SaveChangesAsync(ct);
+        };
+
+        try
+        {
+            await PostAsync(payload);
+        }
+        finally
+        {
+            hooks.AfterSubscriptionChange = null;
+        }
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var row = await db.CoachSubscriptions.AsNoTracking().FirstAsync(cs => cs.ProfessionalProfileId == coach.ProfileId, Ct);
+        row.ExternalSubscriptionId.Should().Be(subscriptionId, "the duplicate coach event must not cost the webhook its subscription change");
+        (await db.ProcessedWebhookEvents.CountAsync(e => e.EventId == eventId, Ct)).Should().Be(1);
+        (await EventsOfAsync(coach)).Should().ContainSingle(e => e.EventType == CoachEventType.StartedPaidPlan);
     }
 
     [Fact]

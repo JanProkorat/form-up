@@ -1704,6 +1704,71 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
         row.CurrentPromotionEndsAt.Should().BeNull();
     }
 
+    private async Task<List<CoachEvent>> PromotionEventsAsync(Actor coach)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        return await db.CoachEvents
+            .AsNoTracking()
+            .Where(e => e.CoachUserId == coach.UserId && e.EventType == CoachEventType.PromotionCodeApplied)
+            .ToListAsync(Ct);
+    }
+
+    [Fact]
+    public async Task Webhook_CodePromotionLandingOnTheSubscription_RecordsOnePromotionCodeApplied_AndALaterEventAddsNone()
+    {
+        var (scenario, promotion, _) = await ArrangeDiscountAsync();
+
+        await PostAsync(SubscriptionEvent(NewEventId(), "customer.subscription.created", scenario, "active", discountIds: ["di_1"]));
+        await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.updated", scenario, "active", discountIds: ["di_1"], created: DateTimeOffset.UtcNow.AddMinutes(1).ToUnixTimeSeconds()));
+
+        var recorded = (await PromotionEventsAsync(scenario.Coach)).Should().ContainSingle().Subject;
+        recorded.IdempotencyKey.Should().Be($"promo:{scenario.Coach.ProfileId}:{promotion.Id}");
+        recorded.PlanCode.Should().Be(scenario.PlanCode);
+        recorded.DiscountedMonthlyRevenueEffectMinorUnits.Should().BeLessThan(recorded.FullMonthlyRevenueEffectMinorUnits);
+    }
+
+    [Fact]
+    public async Task Webhook_CodePromotion_WhenTheApplyEndpointKeyAlreadyExists_AddsNoSecondEvent()
+    {
+        var (scenario, promotion, _) = await ArrangeDiscountAsync();
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            db.CoachEvents.Add(new CoachEvent
+            {
+                CoachUserId = scenario.Coach.UserId,
+                EventType = CoachEventType.PromotionCodeApplied,
+                OccurredAt = DateTimeOffset.UtcNow,
+                IdempotencyKey = $"promo:{scenario.Coach.ProfileId}:{promotion.Id}",
+            });
+            await db.SaveChangesAsync(Ct);
+        }
+
+        var response = await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.created", scenario, "active", discountIds: ["di_1"]));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await PromotionEventsAsync(scenario.Coach)).Should().ContainSingle();
+        (await ReadRowAsync(scenario.Coach.ProfileId)).CurrentPromotionId.Should().Be(promotion.Id);
+    }
+
+    [Fact]
+    public async Task Webhook_AutomaticPromotionLanding_RecordsNoPromotionCodeApplied()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var scenario = await ArrangeOnFreePlanAsync();
+        var promotion = await PromotionBuilder.CreateAsync(factory, [scenario.PlanCode], PromotionMode.Automatic);
+        fake.SubscriptionDiscounts[scenario.SubscriptionId] = new SubscriptionDiscount(promotion.StripeCouponId, null, null);
+
+        await PostAsync(SubscriptionEvent(NewEventId(), "customer.subscription.created", scenario, "active", discountIds: ["di_1"]));
+
+        (await ReadRowAsync(scenario.Coach.ProfileId)).CurrentPromotionId.Should().Be(promotion.Id);
+        (await PromotionEventsAsync(scenario.Coach)).Should().BeEmpty();
+    }
+
     [Fact]
     public async Task Webhook_ADiscountThatIsNotOurPromotion_SetsNoPromotionAndRecordsNothing()
     {

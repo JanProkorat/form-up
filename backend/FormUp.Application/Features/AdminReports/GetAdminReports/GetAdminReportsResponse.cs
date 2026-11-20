@@ -15,7 +15,7 @@ public class GetAdminReportsResponse
 
     /// <summary>
     /// UTC day of the snapshot the baseline comes from: the one on the period start day, else the earliest one inside
-    /// the period. Null when no snapshot lies inside the period.
+    /// the period. Today's own snapshot is never the baseline. Null when the period holds no snapshot earlier than today.
     /// </summary>
     public DateOnly? ComparedFrom { get; set; }
 
@@ -186,8 +186,8 @@ public class AdminReportAddOnDto
 }
 
 /// <summary>
-/// The sign-up funnel of the coaches who signed up in the period. Deleted coaches drop out of the later steps, because
-/// their events lose the coach link.
+/// The sign-up funnel of the coaches who signed up in the period. Deleted coaches stay in every step: their events keep
+/// an anonymous per-coach key instead of the coach link.
 /// </summary>
 public class AdminReportFunnelDto
 {

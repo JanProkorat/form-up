@@ -106,7 +106,7 @@ internal sealed class StripeWebhookEndpoint(
                 });
 
                 // One save: the event id and the subscription change commit together or not at all.
-                await db.SaveChangesAsync(ct);
+                await SaveKeepingChangesOnDuplicateCoachEventAsync(ct);
 
                 await TryClearRememberedRoleAsync(ct);
 
@@ -156,10 +156,48 @@ internal sealed class StripeWebhookEndpoint(
         }
     }
 
+    /// <summary>
+    /// Saves the event's changes. When a pending coach event collides with an already stored idempotency key (a concurrent
+    /// request recorded it), the colliding events are detached and the save runs once more, so the subscription change and
+    /// the processed-event row still commit. Any other failure propagates as before.
+    /// </summary>
+    private async Task SaveKeepingChangesOnDuplicateCoachEventAsync(CancellationToken ct)
+    {
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException ex) when (CoachEventSaves.IsDuplicateKey(ex))
+        {
+            var pending = db.CoachEvents.Local.Where(e => e.Id == 0).ToList();
+            var pendingKeys = pending.Select(e => e.IdempotencyKey).ToList();
+            var stored = await db.CoachEvents
+                .AsNoTracking()
+                .Where(e => pendingKeys.Contains(e.IdempotencyKey))
+                .Select(e => e.IdempotencyKey)
+                .ToListAsync(ct);
+
+            if (stored.Count == 0)
+            {
+                throw;
+            }
+
+            logger.LogInformation("Dropping {Count} coach event(s) a concurrent request already recorded", stored.Count);
+
+            foreach (var duplicate in pending.Where(e => stored.Contains(e.IdempotencyKey)))
+            {
+                db.CoachEvents.Local.Remove(duplicate);
+            }
+
+            await db.SaveChangesAsync(ct);
+        }
+    }
+
     private Task AcknowledgeAsync(CancellationToken ct) => Send.OkAsync(new { Received = true }, ct);
 
     private static bool IsDuplicateEvent(DbUpdateException ex) =>
-        ex.InnerException is PostgresException { SqlState: "23505", TableName: "processed_webhook_events" or "coach_events" };
+        ex.InnerException is PostgresException { SqlState: "23505", TableName: "processed_webhook_events" }
+        || CoachEventSaves.IsDuplicateKey(ex);
 
     private static bool IsDuplicateInvoice(DbUpdateException ex) =>
         ex.InnerException is PostgresException { SqlState: "23505", TableName: "paid_invoices" };
@@ -411,6 +449,14 @@ internal sealed class StripeWebhookEndpoint(
         {
             ClearPromotion(row);
             return;
+        }
+
+        // A discount lands through a typed code only for a Code promotion; automatic ones are not "codes used". Recorded
+        // before the row mirrors it, so the revenue effect is measured from the row without this promotion. The shared
+        // promo key keeps this and the apply-code endpoint from counting one code twice.
+        if (promotion.Mode == PromotionMode.Code)
+        {
+            await coachEvents.RecordPromotionAppliedAsync(row, promotion, ct);
         }
 
         row.CurrentPromotionId = promotion.Id;
