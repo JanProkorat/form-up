@@ -35552,6 +35552,8 @@ export interface AdminReportMrrPointDto {
 
 /** Usage figures from the latest daily snapshot. */
 export interface AdminReportUsageDto {
+    /** All coaches in the latest snapshot, the denominator for active coaches. */
+    totalCoaches?: number;
     /** Coaches with a refresh token issued in the last 30 days. */
     activeCoachesLast30Days?: number;
     /** Clients with a refresh token issued in the last 7 days. Previous comes from the baseline snapshot. */
