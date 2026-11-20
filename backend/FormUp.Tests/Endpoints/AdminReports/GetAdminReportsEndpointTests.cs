@@ -224,6 +224,30 @@ public class GetAdminReportsEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task Get_OnlyTodaysSnapshotInPeriod_HasNoBaselineButKeepsTodayInTheSeries()
+    {
+        await ResetReportingTablesAsync();
+        var currency = NewCurrency();
+        var plan = await PaidPlanBuilder.CreateAsync(factory, currency, priceMinorUnits: 10000);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, await TestActors.Trainer(factory).CreateAsync(Ct), plan);
+        await SeedAsync(
+            Snapshot(Day(Now), currency, 9000, payingCoaches: 4, activeClients: 9),
+            Event(CoachEventType.Cancelled, Now.AddDays(-2), await CoachIdAsync(), currency, -500));
+
+        var report = await GetReportAsync();
+
+        report.ComparedFrom.Should().BeNull("a snapshot taken today is not an earlier one to compare with");
+        report.SnapshotDay.Should().Be(Day(Now));
+        For(report.Money.MonthlyRevenueFull, currency).Previous.Should().BeNull();
+        For(report.Money.MonthlyRevenueAfterPromotions, currency).Previous.Should().BeNull();
+        report.Money.AveragePerPayingCoach.Single(row => row.Currency == currency).Previous.Should().BeNull();
+        report.Money.ChurnPercent.Should().BeNull();
+        report.Usage!.ActiveClientsLast7Days.Value.Should().Be(9);
+        report.Usage.ActiveClientsLast7Days.Previous.Should().BeNull();
+        report.MrrSeries.Select(point => point.Day).Should().Equal(Day(Now));
+    }
+
+    [Fact]
     public async Task Get_NoSnapshotAtAll_ReturnsNullSnapshotDayNullUsageAndEmptySeries()
     {
         await ResetReportingTablesAsync();
