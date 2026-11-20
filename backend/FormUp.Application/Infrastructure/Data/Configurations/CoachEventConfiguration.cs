@@ -33,6 +33,8 @@ public class CoachEventConfiguration : IEntityTypeConfiguration<CoachEvent>
 
         builder.HasIndex(e => e.CoachUserId);
 
+        builder.HasIndex(e => e.AnonymousCoachKey);
+
         // Deleting a coach account keeps the event for the funnel totals and drops the link (GDPR).
         builder.HasOne<ApplicationUser>()
             .WithMany()

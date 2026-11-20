@@ -316,6 +316,97 @@ public class GetAdminReportsEndpointTests(FitnessApiFactory factory)
         report.PlanChanges.PromotionCodesApplied.Should().Be(2);
     }
 
+    /// <summary>
+    /// Seeds one coach's events, then deletes the account through the real endpoint. Returns the deleted coach's user id.
+    /// </summary>
+    private async Task<Guid> SeedAndDeleteCoachAsync(params (CoachEventType Type, DateTimeOffset At)[] events)
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        await SeedAsync(events.Select(item => (object)Event(item.Type, item.At, coach.UserId)).ToArray());
+
+        var response = await coach.Http.DeleteAsync("/users/me", Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent, await response.Content.ReadAsStringAsync(Ct));
+
+        return coach.UserId;
+    }
+
+    private async Task<List<CoachEvent>> LoadEventsAsync(CoachEventType type)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        return await db.CoachEvents.AsNoTracking().Where(e => e.EventType == type).ToListAsync(Ct);
+    }
+
+    [Fact]
+    public async Task Get_CoachDeletesAccountAfterPaying_StaysInEveryFunnelStepUnderOneAnonymousKey()
+    {
+        await ResetReportingTablesAsync();
+        var signUpAt = Now.AddDays(-10);
+
+        await SeedAndDeleteCoachAsync(
+            (CoachEventType.SignedUp, signUpAt),
+            (CoachEventType.EmailVerified, signUpAt.AddHours(1)),
+            (CoachEventType.ChosePlan, signUpAt.AddHours(2)),
+            (CoachEventType.StartedPaidPlan, signUpAt.AddDays(1)));
+
+        var report = await GetReportAsync();
+
+        report.Funnel.Should().BeEquivalentTo(new AdminReportFunnelDto
+        {
+            SignedUp = 1,
+            EmailVerified = 1,
+            ChosePlan = 1,
+            StartedPaidPlan = 1,
+        });
+
+        using var scope = factory.Services.CreateScope();
+        var events = await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>()
+            .CoachEvents.AsNoTracking().ToListAsync(Ct);
+
+        events.Should().HaveCount(4).And.OnlyContain(e => e.CoachUserId == null && e.AnonymousCoachKey != null);
+        events.Select(e => e.AnonymousCoachKey).Distinct().Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task Get_TwoDeletedCoaches_GetDifferentAnonymousKeysAndCountAsTwoCoaches()
+    {
+        await ResetReportingTablesAsync();
+        var signUpAt = Now.AddDays(-10);
+
+        var first = await SeedAndDeleteCoachAsync(
+            (CoachEventType.SignedUp, signUpAt), (CoachEventType.EmailVerified, signUpAt.AddHours(1)));
+        var second = await SeedAndDeleteCoachAsync(
+            (CoachEventType.SignedUp, signUpAt), (CoachEventType.EmailVerified, signUpAt.AddHours(1)));
+
+        var keys = (await LoadEventsAsync(CoachEventType.SignedUp)).Select(e => e.AnonymousCoachKey).ToList();
+
+        keys.Should().OnlyContain(key => key != null).And.OnlyHaveUniqueItems().And.HaveCount(2);
+        keys.Should().NotContain(first).And.NotContain(second);
+
+        var report = await GetReportAsync();
+
+        report.Funnel.SignedUp.Should().Be(2);
+        report.Funnel.EmailVerified.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Get_DeletedCoachWithTwoEventsOfOneType_CountsOnceInDistinctCoachFigures()
+    {
+        await ResetReportingTablesAsync();
+
+        await SeedAndDeleteCoachAsync(
+            (CoachEventType.PaymentFailed, Now.AddDays(-5)),
+            (CoachEventType.PaymentFailed, Now.AddDays(-4)));
+        await SeedAsync(Event(CoachEventType.PaymentFailed, Now.AddDays(-3), null));
+
+        var report = await GetReportAsync();
+
+        // One deleted coach with two events, plus one legacy row with no key at all (counts as its own coach).
+        report.PlanChanges.PaymentFailedCoaches.Should().Be(2);
+    }
+
     [Fact]
     public async Task Get_PlanChanges_SumCountAndRevenueEffectPerCurrencyAndComparePreviousWindowForCancellations()
     {
