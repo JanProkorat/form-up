@@ -330,6 +330,25 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task Webhook_AppliedChange_NotifiesAdminsWithTheCoachIdOnly()
+    {
+        var scenario = await ArrangeOnFreePlanAsync();
+        var notifier = factory.Services.GetRequiredService<FakeRealtimeNotifier>();
+        var before = notifier.AdminCalls.Count;
+
+        var response = await PostAsync(SubscriptionEvent(NewEventId(), "customer.subscription.created", scenario, "active"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var adminCall = notifier.AdminCalls.Skip(before)
+            .Where(call => call.EventType == "admincoachsubscriptionchanged"
+                           && System.Text.Json.JsonSerializer.Serialize(call.Payload).Contains(scenario.Coach.UserId.ToString()))
+            .Should().ContainSingle().Subject;
+        System.Text.Json.JsonSerializer.Serialize(adminCall.Payload)
+            .Should().Be($"{{\"coachId\":\"{scenario.Coach.UserId}\"}}");
+        notifier.AdminCalls.Should().NotContain(call => call.EventType == "subscriptionchanged");
+    }
+
+    [Fact]
     public async Task Webhook_SkippedEvents_SendNothingMore()
     {
         var scenario = await ArrangeOnPaidPlanAsync();
@@ -357,6 +376,21 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         (await ReadRowAsync(scenario.Coach.ProfileId)).Status.Should().Be(SubscriptionStatus.Active);
         (await ProcessedCountAsync(eventId)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Webhook_WhenTheAdminSendFails_StillAnswers200_AndKeepsTheChange()
+    {
+        var scenario = await ArrangeOnFreePlanAsync();
+        var eventId = NewEventId();
+        factory.Services.GetRequiredService<FakeRealtimeNotifier>().SimulateThrowOnNextAdminCall();
+
+        var response = await PostAsync(SubscriptionEvent(eventId, "customer.subscription.created", scenario, "active"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await ReadRowAsync(scenario.Coach.ProfileId)).Status.Should().Be(SubscriptionStatus.Active);
+        (await ProcessedCountAsync(eventId)).Should().Be(1);
+        CallsTo(scenario.Coach).Should().ContainSingle(call => call.EventType == "subscriptionchanged");
     }
 
     [Fact]

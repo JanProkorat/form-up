@@ -12,6 +12,7 @@ public class FakeRealtimeNotifier : IRealtimeNotifier
     private readonly List<AdminNotifyCall> _adminCalls = [];
     private readonly Lock _lock = new();
     private bool _throwOnNextCall;
+    private bool _throwOnNextAdminCall;
 
     /// <summary>
     /// Returns a snapshot of all recorded <c>NotifyAsync</c> invocations.
@@ -57,9 +58,9 @@ public class FakeRealtimeNotifier : IRealtimeNotifier
     {
         lock (_lock)
         {
-            if (_throwOnNextCall)
+            if (_throwOnNextAdminCall)
             {
-                _throwOnNextCall = false;
+                _throwOnNextAdminCall = false;
                 throw new InvalidOperationException("hub unavailable (simulated)");
             }
 
@@ -79,6 +80,7 @@ public class FakeRealtimeNotifier : IRealtimeNotifier
             _calls.Clear();
             _adminCalls.Clear();
             _throwOnNextCall = false;
+            _throwOnNextAdminCall = false;
         }
     }
 
@@ -90,6 +92,14 @@ public class FakeRealtimeNotifier : IRealtimeNotifier
     public void SimulateThrowOnNextCall()
     {
         lock (_lock) _throwOnNextCall = true;
+    }
+
+    /// <summary>
+    /// Configures the notifier to throw on the next <c>NotifyAdminsAsync</c> call only.
+    /// </summary>
+    public void SimulateThrowOnNextAdminCall()
+    {
+        lock (_lock) _throwOnNextAdminCall = true;
     }
 
     /// <summary>

@@ -207,6 +207,26 @@ public class NotificationHubTests
         Received(proxies, scenario.TrainerId, "userPresence").Should().BeTrue();
     }
 
+    [Theory]
+    [InlineData(AppRoles.Admin, true)]
+    [InlineData(AppRoles.Trainer, false)]
+    public async Task Connect_JoinsTheAdminsGroupOnlyForAdmins_AndLeavesItOnDisconnect(string role, bool isAdmin)
+    {
+        var scenario = BuildScenario(Relation.LiveLink);
+        var (hub, _) = CreateHubFor(scenario.TrainerId, role, scenario.ScopeFactory);
+
+        await hub.OnConnectedAsync();
+        await hub.OnDisconnectedAsync(null);
+
+        var joined = hub.Groups.ReceivedCalls().Count(call =>
+            call.GetMethodInfo().Name == nameof(IGroupManager.AddToGroupAsync) && (string)call.GetArguments()[1]! == "admins");
+        var left = hub.Groups.ReceivedCalls().Count(call =>
+            call.GetMethodInfo().Name == nameof(IGroupManager.RemoveFromGroupAsync) && (string)call.GetArguments()[1]! == "admins");
+
+        joined.Should().Be(isAdmin ? 1 : 0);
+        left.Should().Be(isAdmin ? 1 : 0);
+    }
+
     [Fact]
     public async Task Connect_ProfessionalInInviteOnlyThread_PresenceStillReachesInvitee()
     {
