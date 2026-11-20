@@ -14,7 +14,7 @@ interface ImportMetaEnv {
   readonly VITE_APP_STORE_URL?: string;
   /** Google Play listing URL; unset or empty renders the store button disabled. */
   readonly VITE_GOOGLE_PLAY_URL?: string;
-  /** Stripe dashboard URL (https only) for the admin Reports page; unset or empty hides the link. */
+  /** Stripe dashboard URL (https only) for the admin Reports page; unset or empty falls back to the test dashboard (`lib/config.ts`). */
   readonly VITE_STRIPE_DASHBOARD_URL?: string;
 }
 

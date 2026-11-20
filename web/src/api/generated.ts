@@ -35389,7 +35389,7 @@ export interface GetAdminReportsResponse {
     /** UTC day of the latest daily snapshot, null when none exists yet. */
     snapshotDay?: string | undefined;
     /** UTC day of the snapshot the baseline comes from: the one on the period start day, else the earliest one inside
-the period. Null when no snapshot lies inside the period. */
+the period. Today's own snapshot is never the baseline. Null when the period holds no snapshot earlier than today. */
     comparedFrom?: string | undefined;
     /** Revenue, collections and churn. */
     money?: AdminReportMoneyDto;
@@ -35506,7 +35506,7 @@ export interface AdminReportAddOnDto {
     revenueMinorUnits?: number;
 }
 
-/** The sign-up funnel of the coaches who signed up in the period. Deleted coaches drop out of the later steps, because their events lose the coach link. */
+/** The sign-up funnel of the coaches who signed up in the period. Deleted coaches stay in every step: their events keep an anonymous per-coach key instead of the coach link. */
 export interface AdminReportFunnelDto {
     /** Sign-ups in the period. */
     signedUp?: number;
