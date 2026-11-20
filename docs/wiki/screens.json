@@ -1427,6 +1427,7 @@
       "endpoints": [
         "GET /users/me/subscription",
         "GET /users/me/subscription/plans",
+        "POST /users/me/subscription/keep-free",
         "POST /billing/checkout-session",
         "POST /billing/change-plan",
         "GET /users/me"

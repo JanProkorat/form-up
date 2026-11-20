@@ -39,6 +39,11 @@ export async function chooseFreePlan(keepClientIds: string[]): Promise<void> {
   return apiClient.chooseFreePlanEndpoint({ keepClientIds });
 }
 
+/** POST /users/me/subscription/keep-free — records that the coach kept Free at sign-up (204); changes no subscription state. */
+export async function keepFreePlanAtSignUp(): Promise<void> {
+  return apiClient.keepFreePlanAtSignUpEndpoint();
+}
+
 /**
  * POST /billing/change-plan — moves a live paid subscription to another paid plan (upgrade now, downgrade at renewal).
  * The attempt id keys the immediate charge: repeating it never bills twice. The interval defaults to monthly on the server.

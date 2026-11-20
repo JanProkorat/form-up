@@ -10,6 +10,7 @@ import {
   getKeepClients,
   getMySubscription,
   getPublicSubscriptionPlans,
+  keepFreePlanAtSignUp,
   previewPlanChange,
   previewSecondRole,
   pricingKeys,
@@ -158,6 +159,11 @@ export function useChooseFreePlan() {
       ]);
     },
   });
+}
+
+/** Records that the coach kept Free at sign-up. Changes no subscription state, so nothing is invalidated. */
+export function useKeepFreePlanAtSignUp() {
+  return useMutation({ mutationFn: keepFreePlanAtSignUp });
 }
 
 /** Applies a promotion code to the coach's subscription, then refreshes the subscription. */
