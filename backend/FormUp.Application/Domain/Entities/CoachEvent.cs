@@ -34,7 +34,9 @@ public class CoachEvent : TimestampableEntity
     /// <summary>
     /// Dedupe key, unique: <c>signup:&lt;userId&gt;</c>, <c>verify:&lt;userId&gt;</c>, <c>change:&lt;attemptId&gt;</c>,
     /// <c>checkout:&lt;profileId&gt;:&lt;plan&gt;:&lt;interval&gt;:&lt;day&gt;</c>, <c>free:&lt;profileId&gt;:&lt;day&gt;</c>,
-    /// <c>promo:&lt;profileId&gt;:&lt;promotionId&gt;</c> or <c>&lt;stripeEventId&gt;:&lt;eventType&gt;</c> for webhook events.
+    /// <c>signup-free:&lt;userId&gt;</c> (Free plan kept at sign-up), <c>promo:&lt;profileId&gt;:&lt;promotionId&gt;</c>
+    /// (a promotion code, shared by the apply-code endpoint and the webhook) or <c>&lt;stripeEventId&gt;:&lt;eventType&gt;</c>
+    /// for webhook events.
     /// </summary>
     public required string IdempotencyKey { get; set; }
 

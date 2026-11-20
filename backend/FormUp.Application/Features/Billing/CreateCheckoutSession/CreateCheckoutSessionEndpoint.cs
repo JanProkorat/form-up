@@ -176,7 +176,7 @@ internal sealed class CreateCheckoutSessionEndpoint(
                 $"checkout:{coach.ProfileId}:{price.Code}:{price.BillingInterval}:{timeProvider.GetUtcNow():yyyyMMdd}",
                 ct,
                 planCode: price.Code);
-            await db.SaveChangesAsync(ct);
+            await CoachEventSaves.SaveIgnoringDuplicateAsync(db, ct);
 
             await Send.OkAsync(new CreateCheckoutSessionResponse { Url = url }, ct);
         }

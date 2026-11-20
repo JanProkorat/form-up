@@ -159,7 +159,8 @@ internal sealed class StripeWebhookEndpoint(
     private Task AcknowledgeAsync(CancellationToken ct) => Send.OkAsync(new { Received = true }, ct);
 
     private static bool IsDuplicateEvent(DbUpdateException ex) =>
-        ex.InnerException is PostgresException { SqlState: "23505", TableName: "processed_webhook_events" or "coach_events" };
+        ex.InnerException is PostgresException { SqlState: "23505", TableName: "processed_webhook_events" }
+        || CoachEventSaves.IsDuplicateKey(ex);
 
     private static bool IsDuplicateInvoice(DbUpdateException ex) =>
         ex.InnerException is PostgresException { SqlState: "23505", TableName: "paid_invoices" };
@@ -411,6 +412,14 @@ internal sealed class StripeWebhookEndpoint(
         {
             ClearPromotion(row);
             return;
+        }
+
+        // A discount lands through a typed code only for a Code promotion; automatic ones are not "codes used". Recorded
+        // before the row mirrors it, so the revenue effect is measured from the row without this promotion. The shared
+        // promo key keeps this and the apply-code endpoint from counting one code twice.
+        if (promotion.Mode == PromotionMode.Code)
+        {
+            await coachEvents.RecordPromotionAppliedAsync(row, promotion, ct);
         }
 
         row.CurrentPromotionId = promotion.Id;

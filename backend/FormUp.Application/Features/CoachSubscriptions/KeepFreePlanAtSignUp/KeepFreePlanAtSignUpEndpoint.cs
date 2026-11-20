@@ -72,7 +72,7 @@ internal sealed class KeepFreePlanAtSignUpEndpoint(IApplicationDbContext db, Tim
 
         await coachEvents.RecordAsync(
             CoachEventType.ChosePlan, userId, $"signup-free:{userId}", ct, planCode: SubscriptionPlanCodes.Free);
-        await db.SaveChangesAsync(ct);
+        await CoachEventSaves.SaveIgnoringDuplicateAsync(db, ct);
 
         await Send.NoContentAsync(ct);
     }
