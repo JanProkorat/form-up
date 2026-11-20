@@ -111,6 +111,7 @@ internal sealed class GetAdminReportsEndpoint(IApplicationDbContext db, TimeProv
                 ? null
                 : new AdminReportUsageDto
                 {
+                    TotalCoaches = latest.TotalCoachCount,
                     ActiveCoachesLast30Days = latest.ActiveCoachesLast30Days,
                     ActiveClientsLast7Days = new AdminReportCountDto
                     {
