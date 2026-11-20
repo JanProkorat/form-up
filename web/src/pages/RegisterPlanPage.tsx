@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { CreditCard } from 'lucide-react';
@@ -27,7 +27,7 @@ import { usePlanSelection } from '@/components/subscription/usePlanSelection';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useActiveRoles } from '@/hooks/useActiveRoles';
-import { useCoachPlans, useSubscription } from '@/hooks/useSubscriptionQueries';
+import { useCoachPlans, useKeepFreePlanAtSignUp, useSubscription } from '@/hooks/useSubscriptionQueries';
 import { useAuthStore } from '@/stores/auth';
 
 /**
@@ -57,7 +57,20 @@ export default function RegisterPlanPage() {
   // The typed code lives in the browser only: not in the URL, a query key or storage. The checkout request checks it.
   const [appliedCode, setAppliedCode] = useState<string | null>(null);
 
-  const startFree = () => navigate('/profile', { replace: true });
+  const keepFree = useKeepFreePlanAtSignUp();
+  // Recording the Free choice is best-effort: the coach goes on to profile setup whether or not it was stored.
+  // A ref, not isPending: a second click can land before React re-renders with the pending state.
+  const startingFree = useRef(false);
+  const startFree = async () => {
+    if (startingFree.current) return;
+    startingFree.current = true;
+    try {
+      await keepFree.mutateAsync();
+    } catch {
+      // Ignored on purpose: a failed record must never block sign-up.
+    }
+    navigate('/profile', { replace: true });
+  };
 
   const cards = plans.map((plan) => {
     const free = plan.code === FREE_PLAN_CODE;
