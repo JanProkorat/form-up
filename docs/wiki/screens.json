@@ -1280,6 +1280,29 @@
       "notionPageId": null
     },
     {
+      "id": "web.admin.reports",
+      "app": "web",
+      "area": "Admin",
+      "title": "Reports",
+      "route": "/admin/business-reports",
+      "roles": ["Admin"],
+      "files": [
+        "web/src/pages/AdminReportsPage.tsx",
+        "web/src/components/admin-reports/*",
+        "web/src/components/admin-coaches/coachFormat.ts",
+        "web/src/lib/money.ts",
+        "web/src/lib/config.ts"
+      ],
+      "endpoints": [
+        "GET /admin/reports"
+      ],
+      "board": "PageAdminReports",
+      "shots": [
+        { "name": "default" }
+      ],
+      "notionPageId": null
+    },
+    {
       "id": "web.plan.choose",
       "app": "web",
       "area": "Account",
