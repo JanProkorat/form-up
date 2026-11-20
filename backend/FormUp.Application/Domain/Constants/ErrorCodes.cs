@@ -453,6 +453,12 @@ public static class ErrorCodes
     /// <summary>A plan must either include both roles or carry a positive second-role add-on price, never both or neither.</summary>
     public const string SecondRoleOptionInvalid = "SECOND_ROLE_OPTION_INVALID";
 
+    /// <summary>The annual price is not allowed on this plan (the Free plan is never sold annually).</summary>
+    public const string AnnualPriceInvalid = "ANNUAL_PRICE_INVALID";
+
+    /// <summary>The annual second-role add-on price does not match the plan: allowed and required only when the plan has a paid add-on and an annual price.</summary>
+    public const string AnnualAddOnPriceInvalid = "ANNUAL_ADD_ON_PRICE_INVALID";
+
     /// <summary>Per-client check-in settings require weekly check-ins on the same plan.</summary>
     public const string PerClientCheckInRequiresWeeklyCheckIns = "PER_CLIENT_CHECK_IN_REQUIRES_WEEKLY_CHECK_INS";
 
@@ -760,6 +766,9 @@ public static class ErrorCodes
     /// <summary>The payment provider refused or failed a call; nothing was saved.</summary>
     public const string BillingProviderError = "BILLING_PROVIDER_ERROR";
 
+    /// <summary>A second coach role cannot be added or restored: the plan scheduled for the next renewal offers no second role.</summary>
+    public const string SecondRoleNotOnScheduledPlan = "SECOND_ROLE_NOT_ON_SCHEDULED_PLAN";
+
     /// <summary>The plan cannot be bought: it is the Free plan, inactive, or has no open paid price.</summary>
     public const string PlanNotPurchasable = "PLAN_NOT_PURCHASABLE";
 
@@ -784,6 +793,15 @@ public static class ErrorCodes
     /// <summary>A plan change is already scheduled for the next renewal, so the subscription cannot be extended first.</summary>
     public const string BillingPlanChangePending = "BILLING_PLAN_CHANGE_PENDING";
 
+    /// <summary>Nothing is scheduled for the next renewal, so there is nothing to cancel.</summary>
+    public const string BillingNothingScheduled = "BILLING_NOTHING_SCHEDULED";
+
+    /// <summary>The coach account is being disabled; the coach keeps the account instead of undoing a plan change.</summary>
+    public const string BillingAccountDisabling = "BILLING_ACCOUNT_DISABLING";
+
+    /// <summary>An admin cancelled the renewal, and the coach cannot undo that.</summary>
+    public const string BillingRenewalCancelledByAdmin = "BILLING_RENEWAL_CANCELLED_BY_ADMIN";
+
     /// <summary>The promotion code is empty, too long or has characters a code never contains.</summary>
     public const string PromotionCodeInvalid = "PROMOTION_CODE_INVALID";
 
@@ -798,6 +816,9 @@ public static class ErrorCodes
 
     /// <summary>The coach's current plan is not one of the promotion's plans.</summary>
     public const string PromotionCodePlanNotEligible = "PROMOTION_CODE_PLAN_NOT_ELIGIBLE";
+
+    /// <summary>The promotion does not cover the billing interval (monthly or annual) of the subscription or checkout.</summary>
+    public const string PromotionCodeIntervalNotEligible = "PROMOTION_CODE_INTERVAL_NOT_ELIGIBLE";
 
     /// <summary>Every use of the promotion is taken.</summary>
     public const string PromotionCodeUsedUp = "PROMOTION_CODE_USED_UP";
@@ -837,9 +858,6 @@ public static class ErrorCodes
 
     /// <summary>The card was declined; nothing was charged or applied.</summary>
     public const string BillingPaymentDeclined = "BILLING_PAYMENT_DECLINED";
-
-    /// <summary>The card needs authentication that an immediate charge cannot do; nothing was charged or applied.</summary>
-    public const string BillingPaymentAuthenticationRequired = "BILLING_PAYMENT_AUTHENTICATION_REQUIRED";
 
     // ── Onboarding form choice ──────────────────────────────────────────
     /// <summary>The request skips the onboarding form and also names a questionnaire.</summary>

@@ -18,6 +18,7 @@ import LoginForm from '@/components/entry/LoginForm';
 import ForgotPasswordForm from '@/components/entry/ForgotPasswordForm';
 import ResetPasswordForm from '@/components/entry/ResetPasswordForm';
 import RegisterPage from '@/pages/RegisterPage';
+import PricingPage from '@/pages/PricingPage';
 import VerifyEmailPage from '@/pages/VerifyEmailPage';
 import InviteAcceptPage from '@/pages/InviteAcceptPage';
 import BankAccountUndoPage from '@/pages/BankAccountUndoPage';
@@ -95,6 +96,8 @@ const router = createBrowserRouter(
         <Route path="/forgot-password" element={<ForgotPasswordForm />} />
         <Route path="/auth/reset-password" element={<ResetPasswordForm />} />
       </Route>
+      {/* Outside EntryPage on purpose: that layout redirects signed-in visitors, and /pricing is for everyone. */}
+      <Route path="/pricing" element={<PricingPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/verify-email" element={<VerifyEmailPage />} />
       <Route path="/invite/accept" element={<InviteAcceptPage />} />
@@ -138,7 +141,7 @@ const router = createBrowserRouter(
             <Route path="/admin/plans" element={<AdminPlansPage />} />
             <Route path="/admin/plans/new" element={<AdminPlanEditorPage />} />
             <Route path="/admin/plans/:planId" element={<AdminPlanEditorPage />} />
-            <Route path="/admin/promotions" element={<AdminPromotionsPage />} />
+            <Route path="/admin/promotion-offers" element={<AdminPromotionsPage />} />
             <Route path="/admin/coach-accounts" element={<AdminCoachesPage />} />
             <Route path="/admin/coach-accounts/:coachId" element={<AdminCoachProfilePage />} />
           </Route>

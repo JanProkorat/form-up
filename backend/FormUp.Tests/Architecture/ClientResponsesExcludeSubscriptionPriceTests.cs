@@ -38,6 +38,7 @@ public class ClientResponsesExcludeSubscriptionPriceTests(FitnessApiFactory fact
             .Where(e => e.Metadata.GetMetadata<IHttpMethodMetadata>() is not null)
             .Where(e => e.RoutePattern.RawText != "_test_url_cache_")
             .Where(IsReachableByNonAdminCaller)
+            .Where(e => !IsPublicPricingPage(e))
             .ToList();
 
         routes.Should().NotBeEmpty();
@@ -65,6 +66,14 @@ public class ClientResponsesExcludeSubscriptionPriceTests(FitnessApiFactory fact
         violations.Should().BeEmpty(
             "subscription prices must not reach the client app; only Admin-only routes may expose them");
     }
+
+    /// <summary>
+    /// The one named exception: GET /subscription-plans is the anonymous, web-only public pricing page. The mobile
+    /// app never calls it. No other route may expose a price to a client, anonymous or login-only caller.
+    /// </summary>
+    private static bool IsPublicPricingPage(RouteEndpoint endpoint) =>
+        endpoint.RoutePattern.RawText == "/subscription-plans"
+        && endpoint.Metadata.GetMetadata<IHttpMethodMetadata>()!.HttpMethods.Contains(HttpMethods.Get);
 
     private static bool IsReachableByNonAdminCaller(RouteEndpoint endpoint)
     {

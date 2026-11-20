@@ -63,6 +63,12 @@ public class GetAdminCoachResponse
     /// <summary>True when an admin can end the plan now: the coach pays, or has a gift in force.</summary>
     public bool CanEndPlanNow { get; set; }
 
+    /// <summary>
+    /// True when the coach has a Stripe subscription that giving a plan or ending the plan cancels (Active, Trialing, PastDue
+    /// or Incomplete), so the unused days are refunded to the card.
+    /// </summary>
+    public bool HasCancellableSubscription { get; set; }
+
     /// <summary>The Free plan's client limit, to show what ending the plan leaves; null means unlimited.</summary>
     public int? FreePlanMaxActiveClients { get; set; }
 

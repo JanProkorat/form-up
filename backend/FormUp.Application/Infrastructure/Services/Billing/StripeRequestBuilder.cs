@@ -15,14 +15,18 @@ public static class StripeRequestBuilder
     /// <summary>The invoice note shown when the seller is not a VAT payer.</summary>
     public const string NotVatPayerFooter = "Nejsem plátce DPH";
 
-    /// <summary>Id of the reusable forever 100 % coupon behind "given free".</summary>
-    public const string GiftCouponId = "formup-gift-100";
-
     /// <summary>Prefix of the lookup key that identifies a second-role add-on price.</summary>
     public const string AddOnLookupPrefix = "formup-addon-";
 
     /// <summary>Prefix of the id of a plan's stable Stripe product.</summary>
     public const string PlanProductPrefix = "formup-plan-";
+
+    /// <summary>Subscription metadata key that remembers the coach role bought by a second-role add-on awaiting payment.</summary>
+    public const string PendingSecondRoleKey = "formup_pending_second_role";
+
+    private const string RestorePricesKey = "formup_restore_prices";
+
+    private const string RestoreCancelKey = "formup_restore_cancel";
 
     private const string DefaultLocale = "cs";
 
@@ -48,6 +52,57 @@ public static class StripeRequestBuilder
         options.TaxMode == BillingTaxMode.Vat21 && !string.IsNullOrWhiteSpace(options.VatTaxRateId)
             ? [options.VatTaxRateId]
             : null;
+
+    /// <summary>
+    /// Sets the tax rates on a Checkout line only when there are some. Stripe.net sends an explicitly assigned null as an
+    /// empty <c>tax_rates=</c>, which Stripe rejects; an unassigned property is not sent at all.
+    /// </summary>
+    /// <param name="item">The line.</param>
+    /// <param name="taxRates">Tax rate ids, or null when the seller charges no VAT.</param>
+    public static SessionLineItemOptions WithTaxRates(SessionLineItemOptions item, List<string>? taxRates)
+    {
+        if (taxRates is not null)
+        {
+            item.TaxRates = taxRates;
+        }
+
+        return item;
+    }
+
+    /// <inheritdoc cref="WithTaxRates(SessionLineItemOptions, List{string})"/>
+    public static InvoiceSubscriptionDetailsItemOptions WithTaxRates(
+        InvoiceSubscriptionDetailsItemOptions item, List<string>? taxRates)
+    {
+        if (taxRates is not null)
+        {
+            item.TaxRates = taxRates;
+        }
+
+        return item;
+    }
+
+    /// <inheritdoc cref="WithTaxRates(SessionLineItemOptions, List{string})"/>
+    public static SubscriptionItemOptions WithTaxRates(SubscriptionItemOptions item, List<string>? taxRates)
+    {
+        if (taxRates is not null)
+        {
+            item.TaxRates = taxRates;
+        }
+
+        return item;
+    }
+
+    /// <inheritdoc cref="WithTaxRates(SessionLineItemOptions, List{string})"/>
+    public static SubscriptionSchedulePhaseItemOptions WithTaxRates(
+        SubscriptionSchedulePhaseItemOptions item, List<string>? taxRates)
+    {
+        if (taxRates is not null)
+        {
+            item.TaxRates = taxRates;
+        }
+
+        return item;
+    }
 
     /// <summary>
     /// The lookup key of a plan's second-role add-on price at one amount, on one product. The product is part of the key, so
@@ -83,15 +138,15 @@ public static class StripeRequestBuilder
 
     /// <summary>
     /// A subscription Checkout session: no trial, billing address, company name and tax id collection, the coach's
-    /// subscription tagged with their user and the plan. Promotion codes are allowed unless an automatic coupon is
-    /// applied, because Stripe refuses both together.
+    /// subscription tagged with their user and the plan. Stripe's own promotion-code field is never sent: a code is typed in
+    /// our app, resolved there, and arrives here as the one coupon id to attach.
     /// </summary>
     /// <param name="customerId">The provider customer id.</param>
     /// <param name="userId">The coach's user id, kept as metadata.</param>
     /// <param name="planCode">The plan code, kept as metadata.</param>
     /// <param name="planPriceId">The provider price id of the plan.</param>
     /// <param name="addOnPriceId">The provider price id of the add-on line, or null.</param>
-    /// <param name="couponId">Automatic promotion coupon id, or null.</param>
+    /// <param name="couponId">The coupon to attach, or null for no discount.</param>
     /// <param name="locale">The Stripe locale.</param>
     /// <param name="flow">Where the coach started; appended to both return URLs as <c>flow</c>.</param>
     /// <param name="options">Billing settings.</param>
@@ -109,12 +164,12 @@ public static class StripeRequestBuilder
         var taxRates = TaxRates(options);
         var lineItems = new List<SessionLineItemOptions>
         {
-            new() { Price = planPriceId, Quantity = 1, TaxRates = taxRates },
+            WithTaxRates(new SessionLineItemOptions { Price = planPriceId, Quantity = 1 }, taxRates),
         };
 
         if (addOnPriceId is not null)
         {
-            lineItems.Add(new SessionLineItemOptions { Price = addOnPriceId, Quantity = 1, TaxRates = taxRates });
+            lineItems.Add(WithTaxRates(new SessionLineItemOptions { Price = addOnPriceId, Quantity = 1 }, taxRates));
         }
 
         var metadata = new Dictionary<string, string>
@@ -129,7 +184,6 @@ public static class StripeRequestBuilder
             Customer = customerId,
             ClientReferenceId = userId.ToString(),
             LineItems = lineItems,
-            AllowPromotionCodes = couponId is null ? true : null,
             Discounts = couponId is null ? null : [new SessionDiscountOptions { Coupon = couponId }],
             BillingAddressCollection = "required",
             NameCollection = new SessionNameCollectionOptions
@@ -176,7 +230,7 @@ public static class StripeRequestBuilder
         {
             Items =
             [
-                new InvoiceSubscriptionDetailsItemOptions { Price = addOnPriceId, Quantity = 1, TaxRates = TaxRates(options) },
+                WithTaxRates(new InvoiceSubscriptionDetailsItemOptions { Price = addOnPriceId, Quantity = 1 }, TaxRates(options)),
             ],
             ProrationBehavior = "always_invoice",
         },
@@ -190,10 +244,227 @@ public static class StripeRequestBuilder
     /// <param name="options">Billing settings.</param>
     public static SubscriptionUpdateOptions SecondRoleCharge(string addOnPriceId, BillingOptions options) => new()
     {
-        Items = [new SubscriptionItemOptions { Price = addOnPriceId, Quantity = 1, TaxRates = TaxRates(options) }],
+        Items = [WithTaxRates(new SubscriptionItemOptions { Price = addOnPriceId, Quantity = 1 }, TaxRates(options))],
         ProrationBehavior = "always_invoice",
         PaymentBehavior = "error_if_incomplete",
     };
+
+    /// <summary>
+    /// The same add-on charge as <see cref="SecondRoleCharge"/>, held as a pending update: when the card needs authentication
+    /// Stripe keeps the subscription as it was and leaves the invoice open for the coach to pay on its hosted page. The latest
+    /// invoice is expanded to read that page's URL.
+    /// </summary>
+    /// <param name="addOnPriceId">The provider price id of the add-on line.</param>
+    /// <param name="options">Billing settings.</param>
+    public static SubscriptionUpdateOptions SecondRoleChargePending(string addOnPriceId, BillingOptions options)
+    {
+        // UNVERIFIED: pending_if_incomplete accepts a new add-on item with tax_rates and always_invoice, and exposes latest_invoice.hosted_invoice_url — https://docs.stripe.com/billing/subscriptions/pending-updates
+        var update = SecondRoleCharge(addOnPriceId, options);
+        update.PaymentBehavior = "pending_if_incomplete";
+        update.Expand = ["latest_invoice"];
+
+        return update;
+    }
+
+    /// <summary>
+    /// An immediate upgrade: swaps the plan line (and adds, replaces or removes the second-role add-on line), invoices the
+    /// proration now, clears a scheduled cancellation, and fails instead of leaving the subscription half-changed when the
+    /// payment does not go through.
+    /// </summary>
+    /// <param name="planItemId">The provider id of the subscription's plan line.</param>
+    /// <param name="planPriceId">The provider price id of the target plan.</param>
+    /// <param name="addOnItemId">The provider id of the subscription's add-on line, or null when it has none.</param>
+    /// <param name="currentAddOnPriceId">The provider price id on the add-on line now, or null.</param>
+    /// <param name="addOnPriceId">The provider price id the add-on line must have after the change, or null for no add-on.</param>
+    /// <param name="options">Billing settings.</param>
+    /// <param name="discount">What the same update does to the discount, or null to leave it.</param>
+    public static SubscriptionUpdateOptions PlanUpgrade(
+        string planItemId,
+        string planPriceId,
+        string? addOnItemId,
+        string? currentAddOnPriceId,
+        string? addOnPriceId,
+        BillingOptions options,
+        SubscriptionDiscountChange? discount = null) =>
+        PlanUpgradeWith("error_if_incomplete", planItemId, planPriceId, addOnItemId, currentAddOnPriceId, addOnPriceId, options, discount);
+
+    /// <summary>
+    /// The same upgrade as <see cref="PlanUpgrade"/>, held as a pending update: the proration is invoiced now, and when the
+    /// card needs authentication Stripe keeps the old plan and leaves the invoice open for the coach to pay on its hosted page.
+    /// The latest invoice is expanded to read that page's URL.
+    /// </summary>
+    /// <param name="planItemId">The provider id of the subscription's plan line.</param>
+    /// <param name="planPriceId">The provider price id of the target plan.</param>
+    /// <param name="addOnItemId">The provider id of the subscription's add-on line, or null when it has none.</param>
+    /// <param name="currentAddOnPriceId">The provider price id on the add-on line now, or null.</param>
+    /// <param name="addOnPriceId">The provider price id the add-on line must have after the change, or null for no add-on.</param>
+    /// <param name="options">Billing settings.</param>
+    /// <param name="discount">What the same update does to the discount, or null to leave it.</param>
+    public static SubscriptionUpdateOptions PlanUpgradePending(
+        string planItemId,
+        string planPriceId,
+        string? addOnItemId,
+        string? currentAddOnPriceId,
+        string? addOnPriceId,
+        BillingOptions options,
+        SubscriptionDiscountChange? discount = null)
+    {
+        // UNVERIFIED: pending_if_incomplete accepts item tax_rates, a deleted add-on line and cancel_at_period_end=false together — https://docs.stripe.com/billing/subscriptions/pending-updates
+        // UNVERIFIED: pending_if_incomplete accepts a price change that also changes the billing interval — https://docs.stripe.com/billing/subscriptions/pending-updates
+        // UNVERIFIED: pending_if_incomplete accepts a top-level discounts change (the page lists discounts among the supported attributes, in a German-language read) — https://docs.stripe.com/billing/subscriptions/pending-updates
+        var update = PlanUpgradeWith("pending_if_incomplete", planItemId, planPriceId, addOnItemId, currentAddOnPriceId, addOnPriceId, options, discount);
+        update.Expand = ["latest_invoice"];
+
+        return update;
+    }
+
+    /// <summary>
+    /// The metadata that snapshots a released schedule before a pending upgrade, so an upgrade that expires unpaid can put it
+    /// back. A key with nothing to keep is sent empty, which removes a snapshot left by an earlier attempt.
+    /// </summary>
+    /// <param name="intent">What the released schedule promised.</param>
+    public static Dictionary<string, string> RestoreSnapshot(ScheduleIntent intent) => new()
+    {
+        [RestorePricesKey] = intent.PendingPriceIds is { Count: > 0 } prices ? string.Join(',', prices) : string.Empty,
+        [RestoreCancelKey] = intent.CancelRenewal ? "true" : string.Empty,
+    };
+
+    /// <summary>The metadata that remembers the role a pending second-role add-on buys.</summary>
+    /// <param name="role">Trainer or Nutritionist.</param>
+    public static Dictionary<string, string> PendingSecondRole(string role) => new() { [PendingSecondRoleKey] = role };
+
+    /// <summary>The metadata that removes the remembered role (an empty value deletes the key at Stripe).</summary>
+    public static Dictionary<string, string> ClearedPendingSecondRole() => new() { [PendingSecondRoleKey] = string.Empty };
+
+    /// <summary>The metadata that removes a restore snapshot.</summary>
+    public static Dictionary<string, string> ClearedRestoreSnapshot() => new()
+    {
+        [RestorePricesKey] = string.Empty,
+        [RestoreCancelKey] = string.Empty,
+    };
+
+    /// <summary>True when the subscription's metadata holds any key of a restore snapshot.</summary>
+    /// <param name="metadata">The subscription's metadata.</param>
+    public static bool HasRestoreSnapshot(IReadOnlyDictionary<string, string>? metadata) =>
+        metadata is not null
+        && (metadata.ContainsKey(RestorePricesKey) || metadata.ContainsKey(RestoreCancelKey));
+
+    /// <summary>Reads a snapshot written by <see cref="RestoreSnapshot"/>; null when the subscription holds none.</summary>
+    /// <param name="metadata">The subscription's metadata.</param>
+    public static ScheduleIntent? ReadRestoreSnapshot(IReadOnlyDictionary<string, string>? metadata)
+    {
+        if (metadata is null || !HasRestoreSnapshot(metadata))
+        {
+            return null;
+        }
+
+        var prices = metadata.GetValueOrDefault(RestorePricesKey, string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        return new ScheduleIntent(
+            prices.Length > 0 ? prices : null,
+            metadata.GetValueOrDefault(RestoreCancelKey) == "true");
+    }
+
+    private static SubscriptionUpdateOptions PlanUpgradeWith(
+        string paymentBehavior,
+        string planItemId,
+        string planPriceId,
+        string? addOnItemId,
+        string? currentAddOnPriceId,
+        string? addOnPriceId,
+        BillingOptions options,
+        SubscriptionDiscountChange? discount)
+    {
+        var taxRates = TaxRates(options);
+
+        // Both lines move to the target interval in this one update, so the subscription never holds a plan and an add-on of different intervals.
+        // UNVERIFIED: an interval change restarts the billing period now and always_invoice credits the unused time of the old price on the same invoice — https://docs.stripe.com/billing/subscriptions/prorations
+        // UNVERIFIED: a subscription with a plan line and an add-on line needs one shared interval, so both prices change together — https://docs.stripe.com/billing/subscriptions/multiple-products
+        var update = new SubscriptionUpdateOptions
+        {
+            Items = PlanChangeLines(
+                planItemId,
+                planPriceId,
+                addOnItemId,
+                currentAddOnPriceId,
+                addOnPriceId,
+                (itemId, priceId, deleted) => deleted
+                    ? new SubscriptionItemOptions { Id = itemId, Deleted = true }
+                    : WithTaxRates(new SubscriptionItemOptions { Id = itemId, Price = priceId, Quantity = 1 }, taxRates)),
+            ProrationBehavior = "always_invoice",
+            PaymentBehavior = paymentBehavior,
+            CancelAtPeriodEnd = false,
+        };
+
+        // UNVERIFIED: a populated discounts list overwrites the subscription's discounts and the proration of the same update uses the new discount; an empty string clears them (an empty array leaves them unchanged) — https://docs.stripe.com/api/subscriptions/update
+        if (discount?.CouponId is { } couponId)
+        {
+            update.Discounts = [new SubscriptionDiscountOptions { Coupon = couponId }];
+        }
+        else if (discount is not null)
+        {
+            update.ExtraParams = new Dictionary<string, object> { ["discounts"] = string.Empty };
+        }
+
+        return update;
+    }
+
+    /// <summary>
+    /// An invoice preview of the same change <see cref="PlanUpgrade"/> sends, with the proration that would be invoiced now.
+    /// </summary>
+    /// <param name="customerId">The provider customer id.</param>
+    /// <param name="subscriptionId">The provider subscription id.</param>
+    /// <param name="planItemId">The provider id of the subscription's plan line.</param>
+    /// <param name="planPriceId">The provider price id of the target plan.</param>
+    /// <param name="addOnItemId">The provider id of the subscription's add-on line, or null when it has none.</param>
+    /// <param name="currentAddOnPriceId">The provider price id on the add-on line now, or null.</param>
+    /// <param name="addOnPriceId">The provider price id the add-on line must have after the change, or null for no add-on.</param>
+    /// <param name="options">Billing settings.</param>
+    /// <param name="discount">What the real change does to the discount, or null to leave it (the preview then inherits it).</param>
+    public static InvoiceCreatePreviewOptions PlanUpgradePreview(
+        string customerId,
+        string subscriptionId,
+        string planItemId,
+        string planPriceId,
+        string? addOnItemId,
+        string? currentAddOnPriceId,
+        string? addOnPriceId,
+        BillingOptions options,
+        SubscriptionDiscountChange? discount = null)
+    {
+        var taxRates = TaxRates(options);
+
+        var preview = new InvoiceCreatePreviewOptions
+        {
+            Customer = customerId,
+            Subscription = subscriptionId,
+            SubscriptionDetails = new InvoiceSubscriptionDetailsOptions
+            {
+                Items = PlanChangeLines(
+                    planItemId,
+                    planPriceId,
+                    addOnItemId,
+                    currentAddOnPriceId,
+                    addOnPriceId,
+                    (itemId, priceId, deleted) => deleted
+                        ? new InvoiceSubscriptionDetailsItemOptions { Id = itemId, Deleted = true }
+                        : WithTaxRates(new InvoiceSubscriptionDetailsItemOptions { Id = itemId, Price = priceId, Quantity = 1 }, taxRates)),
+                ProrationBehavior = "always_invoice",
+            },
+        };
+
+        // UNVERIFIED: a populated discounts list replaces the inherited discount in the preview and an empty string avoids inheriting any; the page does not say a specified list replaces rather than adds — https://docs.stripe.com/api/invoices/create_preview
+        if (discount?.CouponId is { } couponId)
+        {
+            preview.Discounts = [new InvoiceDiscountOptions { Coupon = couponId }];
+        }
+        else if (discount is not null)
+        {
+            preview.ExtraParams = new Dictionary<string, object> { ["discounts"] = string.Empty };
+        }
+
+        return preview;
+    }
 
     /// <summary>A Customer Portal session that returns to the configured URL.</summary>
     /// <param name="customerId">The provider customer id.</param>
@@ -276,33 +547,28 @@ public static class StripeRequestBuilder
         };
     }
 
-    /// <summary>The reusable forever 100 % coupon.</summary>
-    public static CouponCreateOptions GiftCoupon() => new()
-    {
-        Id = GiftCouponId,
-        PercentOff = 100,
-        Duration = "forever",
-        Name = "Form Up given plan",
-    };
-
     /// <summary>
-    /// A coupon for a promotion. The first month is Stripe's "once" (the first invoice), several months is "repeating".
-    /// Max uses and the claim end are enforced by Stripe at Checkout; a product list restricts the discount to those lines.
+    /// A coupon for a promotion. Monthly: the first month is Stripe's "once" (the first invoice), several months is
+    /// "repeating". Annual: the first month and several months are both "once", because the first yearly invoice is the only
+    /// one inside that time; forever stays "forever". Max uses and the claim end are enforced by Stripe on redemption; a
+    /// product list restricts the discount to those lines.
     /// </summary>
     /// <param name="spec">The promotion's coupon terms.</param>
     /// <param name="productIds">Provider product ids the discount is limited to, or null for no restriction.</param>
     public static CouponCreateOptions Coupon(CouponSpec spec, List<string>? productIds)
     {
+        var yearly = spec.Interval == BillingInterval.Annual;
+        var repeating = spec.Duration == PromotionDuration.Months && !yearly;
         var options = new CouponCreateOptions
         {
             Name = spec.Name,
             Duration = spec.Duration switch
             {
                 PromotionDuration.FirstMonth => "once",
-                PromotionDuration.Months => "repeating",
+                PromotionDuration.Months => yearly ? "once" : "repeating",
                 _ => "forever",
             },
-            DurationInMonths = spec.Duration == PromotionDuration.Months ? spec.DurationMonths : null,
+            DurationInMonths = repeating ? spec.DurationMonths : null,
             MaxRedemptions = spec.MaxUses,
             RedeemBy = spec.ClaimUntil?.UtcDateTime,
             AppliesTo = productIds is null ? null : new CouponAppliesToOptions { Products = productIds },
@@ -339,14 +605,14 @@ public static class StripeRequestBuilder
 
     /// <summary>
     /// Converts planned schedule phases to Stripe phases. Only the first phase carries a start (Stripe keeps the current
-    /// phase's own); the open last phase runs one billing interval and then the schedule releases. A phase without a coupon
-    /// sends an empty discount list so a previous gift cannot carry over.
+    /// phase's own); the open last phase runs one billing interval of its own prices and then the schedule releases, so it
+    /// must carry its interval. A phase with a coupon sends it as its only discount; every other phase sends an empty
+    /// discount list.
     /// </summary>
     /// <param name="phases">The planned phases.</param>
-    /// <param name="interval">Billing cadence of the subscription.</param>
     /// <param name="taxRates">Tax rate ids for every item, or null.</param>
     public static List<SubscriptionSchedulePhaseOptions> SchedulePhases(
-        IReadOnlyList<SchedulePhasePlan> phases, BillingInterval interval, List<string>? taxRates)
+        IReadOnlyList<SchedulePhasePlan> phases, List<string>? taxRates)
     {
         var result = new List<SubscriptionSchedulePhaseOptions>();
 
@@ -356,11 +622,12 @@ public static class StripeRequestBuilder
             var options = new SubscriptionSchedulePhaseOptions
             {
                 Items = phase.PriceIds
-                    .Select(priceId => new SubscriptionSchedulePhaseItemOptions { Price = priceId, Quantity = 1, TaxRates = taxRates })
+                    .Select(priceId => WithTaxRates(new SubscriptionSchedulePhaseItemOptions { Price = priceId, Quantity = 1 }, taxRates))
                     .ToList(),
-                Discounts = phase.CouponId is null
-                    ? []
-                    : [new SubscriptionSchedulePhaseDiscountOptions { Coupon = phase.CouponId }],
+                // UNVERIFIED: phases[].discounts takes a coupon and an empty list means no discount in the phase — https://docs.stripe.com/api/subscription_schedules/update
+                Discounts = phase.CouponId is { } couponId
+                    ? [new SubscriptionSchedulePhaseDiscountOptions { Coupon = couponId }]
+                    : [],
                 ProrationBehavior = "none",
             };
 
@@ -377,7 +644,8 @@ public static class StripeRequestBuilder
             {
                 options.Duration = new SubscriptionSchedulePhaseDurationOptions
                 {
-                    Interval = IntervalName(interval),
+                    Interval = IntervalName(
+                        phase.Interval ?? throw new InvalidOperationException("The open schedule phase has no billing interval.")),
                     IntervalCount = 1,
                 };
             }
@@ -386,5 +654,31 @@ public static class StripeRequestBuilder
         }
 
         return result;
+    }
+
+    private static List<T> PlanChangeLines<T>(
+        string planItemId,
+        string planPriceId,
+        string? addOnItemId,
+        string? currentAddOnPriceId,
+        string? addOnPriceId,
+        Func<string?, string?, bool, T> make)
+    {
+        var lines = new List<T> { make(planItemId, planPriceId, false) };
+
+        if (addOnPriceId is not null && addOnItemId is null)
+        {
+            lines.Add(make(null, addOnPriceId, false));
+        }
+        else if (addOnPriceId is not null && currentAddOnPriceId != addOnPriceId)
+        {
+            lines.Add(make(addOnItemId, addOnPriceId, false));
+        }
+        else if (addOnPriceId is null && addOnItemId is not null)
+        {
+            lines.Add(make(addOnItemId, null, true));
+        }
+
+        return lines;
     }
 }

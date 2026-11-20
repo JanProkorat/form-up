@@ -222,9 +222,65 @@ no longer exists), not missing ones — that is this item's job.
 
 ---
 
+## 14. Bar-lowering moves
+
+**Citation:** [`rules/testing.md#time-budget`](../../../rules/testing.md#time-budget), root `CLAUDE.md` → Working Principles
+
+A change can make the gate pass by lowering the gate. Look for four moves:
+
+1. **Threshold moved** — a budget, timeout, retry count or warning limit raised.
+2. **Test made easier** — an assertion deleted or loosened, or an expected value changed to match the new output.
+3. **Checker silenced** — a skip, suppression or disable added.
+4. **Stub left in** — a placeholder body shipped as if done.
+
+Each move is a finding only when neither the PR body nor the issue gives a reason for it.
+
+```bash
+git diff origin/<base>...HEAD -- .github 'backend/**/*.csproj' 'web/playwright.config.*' 'web/vitest.config.*' 'web/src/test/setup.ts' | grep -iE '^\+([^+].*)?(BUDGET|timeout|retries|NoWarn|TreatWarningsAsErrors|continue-on-error)'
+git diff origin/<base>...HEAD -- '*Tests*' '*.spec.ts' '*.test.ts' '*.test.tsx' | grep -E '^-([^-].*)?(Assert\.|Should|expect\()'
+git diff origin/<base>...HEAD | grep -E '^\+([^+].*)?(#pragma warning disable|SuppressMessage|Skip ?=|\.skip\(|eslint-disable|--no-verify)'
+git diff origin/<base>...HEAD | grep -E '^\+([^+].*)?(NotImplementedException|TODO|FIXME)'
+```
+
+Read each hit; a hit is a finding only if it lowers the bar. Legitimate
+changes (behaviour changed on purpose, test moved) need a sentence in the
+PR body. Threshold raised with no reason → **BLOCKING**, per the
+time-budget rule. Any other move with no reason → **MAJOR**.
+
+A test moved from E2E to Vitest shows up in the second command as deleted
+`expect(` lines. It is not a finding when the PR adds a test of the same name
+under `web/src/` that asserts the same outcome (item 15 checks that).
+
+---
+
+## 15. Web test layer and double coverage
+
+**Citation:** [`rules/web-testing.md#which-layer-proves-what`](../../../rules/web-testing.md#which-layer-proves-what), [`#no-double-coverage`](../../../rules/web-testing.md#no-double-coverage)
+
+```bash
+git diff --name-status origin/<base>...HEAD -- 'web/tests/e2e/**/*.spec.ts' 'web/src/**/*.test.ts' 'web/src/**/*.test.tsx'
+git diff origin/<base>...HEAD -- 'web/tests/e2e/**/*.spec.ts' | grep -E '^\+\s*test\('
+git diff origin/<base>...HEAD -- 'web/src/**/*.test.ts' 'web/src/**/*.test.tsx' | grep -E '^\+\s*it(\.each\(.*\))?\('
+```
+
+For each **new Playwright test** (second command), check it against the E2E
+list in the rule. A test whose point is a UI state, validation, copy, a
+request body or URL state, with nothing a real browser or the real backend
+adds → **MAJOR**, fix: write it as a Vitest component test.
+
+For each **new Vitest test** (third command) that repeats a Playwright test
+still in the tree (same title or the same assertions) → **MAJOR**, fix:
+delete the E2E copy in this PR. A moved test whose assertion is narrower
+than the E2E original, with no sentence in the PR body → **MAJOR**.
+
+Two tests in the diff, or a new one and an existing one, proving the same
+behaviour at the same layer → **MINOR**, fix: merge them or delete one.
+
+---
+
 ## Done when
 
-- All 13 items walked.
+- All 15 items walked.
 - Findings emitted in the strict 4-line shape.
 - `passes_complete` recorded as `self-only` after first pass; updated
   to `both` after fresh-eyes sub-reviewer agrees.

@@ -1,3 +1,5 @@
+using FormUp.Application.Domain.Enums;
+
 namespace FormUp.Application.Features.Billing.ChangePlan;
 
 /// <summary>
@@ -7,4 +9,13 @@ public class ChangePlanRequest
 {
     /// <summary>Code of the paid plan to move to. Never the Free plan.</summary>
     public string PlanCode { get; set; } = string.Empty;
+
+    /// <summary>How often the target plan bills. Monthly when omitted, so clients that predate annual billing keep working.</summary>
+    public BillingInterval BillingInterval { get; set; } = BillingInterval.Monthly;
+
+    /// <summary>
+    /// Client-generated id of this attempt. It keys the charge, so a double click does not bill twice; the client sends a
+    /// fresh one after a declined card.
+    /// </summary>
+    public Guid AttemptId { get; set; }
 }

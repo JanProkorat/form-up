@@ -10,12 +10,20 @@ public static class CoachAccountActiveUntilResolver
 {
     /// <summary>
     /// Returns the paid period end (trial end for a trialing row), or <paramref name="now"/> when there is
-    /// no subscription, no end date, or the end already passed.
+    /// no subscription, no end date, or the end already passed. A row given free by an admin returns its free-until
+    /// date (or now when it has none or it passed), because a given plan and a paid subscription never run together.
     /// </summary>
     /// <param name="subscription">The professional's subscription, or null when none exists.</param>
     /// <param name="now">Current UTC time.</param>
     public static DateTime Resolve(CoachSubscription? subscription, DateTime now)
     {
+        if (subscription?.GivenFreeAt is not null)
+        {
+            var giftEnd = subscription.FreeUntil?.UtcDateTime ?? now;
+
+            return giftEnd > now ? giftEnd : now;
+        }
+
         var periodEnd = subscription?.Status == SubscriptionStatus.Trialing
             ? subscription.TrialEndsAt
             : subscription?.CurrentPeriodEndsAt;

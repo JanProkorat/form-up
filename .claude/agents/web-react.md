@@ -38,6 +38,7 @@ it to run design-review first (Rule 5.5).
 - [`rules/code-style.md#no-hardcoded-api-base-urls`](../rules/code-style.md#no-hardcoded-api-base-urls) — env / config base URLs.
 - [`rules/code-style.md#no-any-in-typescript`](../rules/code-style.md#no-any-in-typescript) — strict-mode TS.
 - [`rules/code-style.md#generated-files-are-write-locked-if-the-repo-has-one`](../rules/code-style.md#generated-files-are-write-locked-if-the-repo-has-one) — `web/src/api/generated.ts` is write-locked; use `regen-api`.
+- [`rules/web-testing.md#which-layer-proves-what`](../rules/web-testing.md#which-layer-proves-what) — write the Vitest component test first; Playwright only for real-browser behaviour and one real-backend journey per feature. A test you move leaves E2E in the same change.
 - Supported locales (`cs`/`en`/`de` — see this repo's `.claude/CLAUDE.md`) in
   the same PR; the react pack's i18n rule covers the mechanism generically.
 - Verify via the **`react-verify`** skill (build+lint+test) / `react-build`
@@ -206,12 +207,18 @@ orchestrator, not to you, so your turn ends parked and your work is stranded.
 If you know you are stopping mid-task, write `status: "incomplete"` with
 `incomplete_reason: "<what remains, at which step>"`.
 
+**Noticed, not touched.** A problem outside your scope (a bug, a stale
+comment, a missing test) goes into the optional `noticed` array as
+`"<file:line> — <what>"`. Do not fix it.
+
 ## Never
 - Edit anything outside `/web`.
 - Edit `src/api/generated.ts`.
 - Use `any`, `as any`, or `@ts-ignore` without a comment explaining why.
 - Hardcode colors, font sizes, or spacing — use tokens.
 - Add dependencies without asking the orchestrator first.
+- Add a Playwright test for something a Vitest component test can prove
+  (see `rules/web-testing.md#which-layer-proves-what`).
 - Add `page.waitForTimeout` to a Playwright spec. Wait on a locator state,
   `expect.poll` or `waitForResponse`; a fixed sleep needs a one-line comment
   saying what it waits for.

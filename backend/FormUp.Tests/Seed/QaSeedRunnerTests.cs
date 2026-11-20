@@ -258,26 +258,23 @@ public class SeedTestsCollection : ICollectionFixture<QaSeedRunnerFactory>;
 /// fully seeded stack must converge without throwing on duplicate keys.
 /// </summary>
 /// <remarks>
-/// Read-only shape facts share one default-kind seed (<see cref="QaSeedRunnerFactory.EnsureDefaultSeedAsync"/>).
-/// Facts that need a pristine database — run-twice, minimal kind, unknown kind, Duo — wipe it first with
-/// <see cref="QaSeedRunnerFactory.ResetAsync"/>, which also invalidates the shared seed.
+/// Read-only shape facts, Duo included, share one default-kind seed (<see cref="QaSeedRunnerFactory.EnsureDefaultSeedAsync"/>).
+/// Facts that need a pristine database — run-twice, minimal kind, unknown kind — wipe it first with
+/// <see cref="QaSeedRunnerFactory.ResetAsync"/>, which also invalidates the shared seed; they carry the
+/// wiping trait and run last, so the shared seed is built once.
 /// </remarks>
 [Collection("SeedTests")]
+[TestCaseOrderer(typeof(WipingTestsLastOrderer))]
 public class QaSeedRunnerTests(QaSeedRunnerFactory factory)
 {
     private readonly QaSeedRunnerFactory _factory = factory;
-
-    private async Task ResetAndSeedAsync()
-    {
-        await _factory.ResetAsync();
-        await QaSeedRunner.SeedAsync(_factory.Services);
-    }
 
     /// <summary>
     /// Running SeedAsync twice must be idempotent: every fixture stays at its first-run count,
     /// ids and links stay stable, and blob upload is not repeated after the first run.
     /// </summary>
     [Fact]
+    [Trait(WipingTestsLastOrderer.TraitName, WipingTestsLastOrderer.TraitValue)]
     public async Task SeedAsync_RunTwice_IsIdempotent()
     {
         var ct = TestContext.Current.CancellationToken;
@@ -536,11 +533,12 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory)
 
     /// <summary>
     /// QA_SEED_KIND=minimal must seed users + profiles + trainer↔client link only.
-    /// All "rich" fixtures (training plan, foods, recipes, nutrition plan, blobs)
-    /// must be absent.
+    /// All "rich" fixtures (training plan, foods, recipes, nutrition plan, blobs) and the
+    /// Overview and both-roles fixtures must be absent.
     /// </summary>
     [Fact]
-    public async Task SeedAsync_MinimalKind_SkipsRichFixtures()
+    [Trait(WipingTestsLastOrderer.TraitName, WipingTestsLastOrderer.TraitValue)]
+    public async Task SeedAsync_MinimalKind_SkipsRichAndOverviewFixtures()
     {
         var ct = TestContext.Current.CancellationToken;
 
@@ -618,6 +616,16 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory)
 
         // No blob uploads in minimal mode.
         _factory.BlobStorage.UploadCalls.Should().BeEmpty("minimal seed skips both image blobs");
+
+        // #1303 — none of the Overview fixtures, and the both-roles fixture, are seeded either.
+        var profile = await db.ClientProfiles.FirstAsync(p => p.UserId == QaSeedRunner.ClientUserId, ct);
+        profile.DateOfBirth.Should().BeNull();
+        (await db.BodyMeasurements.CountAsync(ct)).Should().Be(0);
+        (await db.ClientOnboardingData.CountAsync(ct)).Should().Be(0);
+        (await mongo.MealLogs.CountDocumentsAsync(Builders<MealLog>.Filter.Empty, cancellationToken: ct)).Should().Be(0);
+        (await mongo.PersonalRecords.CountDocumentsAsync(Builders<PersonalRecord>.Filter.Empty, cancellationToken: ct)).Should().Be(0);
+        (await db.Users.CountAsync(u => u.Email == QaSeedRunner.CoachEmail || u.Email == QaSeedRunner.ClientDuoEmail, ct))
+            .Should().Be(0, "the both-roles fixture is Rich-only");
     }
 
     /// <summary>
@@ -626,6 +634,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory)
     /// `--kind=ritch` doesn't leave behind a half-seeded fixture.
     /// </summary>
     [Fact]
+    [Trait(WipingTestsLastOrderer.TraitName, WipingTestsLastOrderer.TraitValue)]
     public async Task SeedAsync_UnknownKind_ThrowsInvalidOperation()
     {
         var ct = TestContext.Current.CancellationToken;
@@ -1396,47 +1405,12 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory)
     }
 
     /// <summary>
-    /// #1303 — the minimal kind seeds none of the Overview fixtures.
-    /// </summary>
-    [Fact]
-    public async Task SeedAsync_MinimalKind_SkipsOverviewFixtures()
-    {
-        var ct = TestContext.Current.CancellationToken;
-
-        await _factory.ResetAsync();
-        Environment.SetEnvironmentVariable("QA_SEED_KIND", "minimal");
-        try
-        {
-            await QaSeedRunner.SeedAsync(_factory.Services);
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable("QA_SEED_KIND", null);
-        }
-
-        using var scope = _factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
-
-        var profile = await db.ClientProfiles.FirstAsync(p => p.UserId == QaSeedRunner.ClientUserId, ct);
-        profile.DateOfBirth.Should().BeNull();
-        (await db.BodyMeasurements.CountAsync(ct)).Should().Be(0);
-        (await db.ClientOnboardingData.CountAsync(ct)).Should().Be(0);
-        (await db.QuestionnaireResponses.CountAsync(r => r.Kind == QuestionnaireResponseKind.CheckIn, ct)).Should().Be(0);
-        (await mongo.MealLogs.CountDocumentsAsync(Builders<MealLog>.Filter.Empty, cancellationToken: ct)).Should().Be(0);
-        (await mongo.PersonalRecords.CountDocumentsAsync(Builders<PersonalRecord>.Filter.Empty, cancellationToken: ct)).Should().Be(0);
-        (await mongo.SessionExecutions.CountDocumentsAsync(Builders<SessionExecution>.Filter.Empty, cancellationToken: ct)).Should().Be(0);
-        (await db.Users.CountAsync(u => u.Email == QaSeedRunner.CoachEmail || u.Email == QaSeedRunner.ClientDuoEmail, ct))
-            .Should().Be(0, "the both-roles fixture is Rich-only");
-    }
-
-    /// <summary>
     /// #1311 — qa.coach holds both professional roles and no Client role.
     /// </summary>
     [Fact]
     public async Task SeedAsync_Duo_CoachHoldsTrainerAndNutritionistRoles()
     {
-        await ResetAndSeedAsync();
+        await _factory.EnsureDefaultSeedAsync();
 
         using var scope = _factory.Services.CreateScope();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<FormUp.Application.Domain.Entities.ApplicationUser>>();
@@ -1458,6 +1432,14 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory)
         duo.Should().NotBeNull();
         duo!.Id.Should().Be(QaSeedRunner.ClientDuoUserId);
         (await userManager.GetRolesAsync(duo)).Should().BeEquivalentTo(new[] { UserRole.Client.ToString() });
+
+        // The always-seeded admin account exists exactly once and holds only the Admin role.
+        (await db.Users.CountAsync(u => u.Email == QaSeedRunner.AdminEmail, TestContext.Current.CancellationToken))
+            .Should().Be(1);
+        var admin = await userManager.FindByEmailAsync(QaSeedRunner.AdminEmail);
+        admin.Should().NotBeNull();
+        admin!.Id.Should().Be(QaSeedRunner.AdminUserId);
+        (await userManager.GetRolesAsync(admin)).Should().BeEquivalentTo(new[] { UserRole.Admin.ToString() });
     }
 
     /// <summary>
@@ -1469,7 +1451,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory)
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await ResetAndSeedAsync();
+        await _factory.EnsureDefaultSeedAsync();
 
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -1513,7 +1495,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory)
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await ResetAndSeedAsync();
+        await _factory.EnsureDefaultSeedAsync();
 
         using var scope = _factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
@@ -1557,7 +1539,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory)
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await ResetAndSeedAsync();
+        await _factory.EnsureDefaultSeedAsync();
 
         using var scope = _factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
@@ -1606,7 +1588,7 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory)
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await ResetAndSeedAsync();
+        await _factory.EnsureDefaultSeedAsync();
 
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();

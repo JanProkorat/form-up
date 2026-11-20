@@ -13,6 +13,8 @@ import {
   REGISTER_PLAN_PATH,
 } from '@/components/subscription/planLinks';
 import { useCheckoutReturn } from '@/hooks/useSubscriptionQueries';
+import { useAuthStore } from '@/stores/auth';
+import { useCheckoutActivationStore } from '@/stores/checkoutActivation';
 import { useToastStore } from '@/stores/toast';
 
 /** The query value Stripe's return URL carries; the backend appends it from the checkout request's flow. */
@@ -31,6 +33,8 @@ function CheckoutSuccess({ signUp }: { signUp: boolean }) {
   useEffect(() => {
     if (timedOut && !settled) {
       useToastStore.getState().addToast(t('subscription.billing.returning.pending'), 'success');
+      const userId = useAuthStore.getState().user?.publicId;
+      if (userId) useCheckoutActivationStore.getState().start(userId);
     }
   }, [timedOut, settled, t]);
 

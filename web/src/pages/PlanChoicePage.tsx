@@ -9,6 +9,7 @@ import PlanCard from '@/components/subscription/PlanCard';
 import { coachPlanName } from '@/components/subscription/planNames';
 import { planDisplayPrice, secondRoleAddOnOf } from '@/components/subscription/planPricing';
 import TaxNote from '@/components/subscription/TaxNote';
+import UpgradePaymentNotice from '@/components/subscription/UpgradePaymentNotice';
 import { usePlanSelection } from '@/components/subscription/usePlanSelection';
 import { useActiveRoles } from '@/hooks/useActiveRoles';
 import { Button } from '@/components/ui/button';
@@ -51,6 +52,8 @@ export default function PlanChoicePage() {
   const [step, setStep] = useState<'plans' | 'keep'>('plans');
   // null = untouched: the selection is whatever Free keeps by default.
   const [choice, setChoice] = useState<ReadonlySet<string> | null>(null);
+  // The card whose button started the running request: only that one shows the spinner.
+  const [clickedCode, setClickedCode] = useState<string | null>(null);
 
   const clients = keepQuery.data?.clients ?? [];
   const cap = keepQuery.data?.cap ?? null;
@@ -149,7 +152,7 @@ export default function PlanChoicePage() {
         label: t('subscription.planChoice.card.switchFree'),
         primary: false,
         current: false,
-        onClick: selection.switchToFree,
+        onClick: () => selection.switchToFree(name),
       };
     }
     return {
@@ -238,6 +241,16 @@ export default function PlanChoicePage() {
               <p className="text-copy text-muted-foreground">{subtitle}</p>
             </div>
 
+            {selection.awaitingPayment && (
+              <UpgradePaymentNotice
+                plan={selection.awaitingPayment.planName}
+                current={currentName}
+                paymentUrl={selection.awaitingPayment.paymentUrl}
+                onOpen={selection.startPaymentWatch}
+                onDismiss={selection.dismissAwaitingPayment}
+              />
+            )}
+
             {plansQuery.isError ? (
               <div role="alert" className="flex flex-col items-start gap-3">
                 <p className="text-copy text-error">{t('subscription.planChoice.loadError')}</p>
@@ -268,7 +281,11 @@ export default function PlanChoicePage() {
                         actionDisabled={false}
                         busy={saving || selection.busy || (action.current && keepQuery.isPending)}
                         priceMinorUnits={planDisplayPrice(item, bothRoles)}
-                        onAction={action.onClick}
+                        pending={clickedCode === item.code && (saving || selection.busy)}
+                        onAction={() => {
+                          setClickedCode(item.code ?? null);
+                          action.onClick();
+                        }}
                       />
                     );
                   })}

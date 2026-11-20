@@ -61,6 +61,9 @@ docker ps --format '{{.Names}}'
 | Client "QA Duo" | `qa.client.both@formup.test` | `44444444-4444-4444-4444-444444444444` |
 | Lapsed coach (trainer) | `qa.coach.lapsed@formup.test` | prefix `20202020` — see [lapsed and gift coaches](#seeded-lapsed-and-gift-ended-coaches-2051) |
 | Gift-ended coach (trainer) | `qa.coach.gift@formup.test` | prefix `30303030` — see [lapsed and gift coaches](#seeded-lapsed-and-gift-ended-coaches-2051) |
+| Admin | `walk.admin@formup.test` | `40404040-4040-4040-4040-404040404040` |
+
+The admin uses the same email as the walk admin on the dev stack, but the harness copy has the shared `QA_SEED_PASSWORD`, not the walk password. It opens the admin screens (plans, plan editor, promotions) on the harness and is seeded for every seed kind.
 
 The second pair (`Client 2` / `Trainer 2`) is dedicated to the multi-section shared-exercise fixture (#474). Client 3 is linked to the QA trainer only — see [the inbox fixture](#seeded-inbox-conversation--weekly-check-ins-1095) — and has no conversation and no active plan. The former client has an **ended** link to the QA trainer and one conversation — see [the ended-link fixture](#ended-link-conversation-1101). They share the same password as the other accounts (`QA_SEED_PASSWORD` from `.env.test`).
 
@@ -736,6 +739,23 @@ after the last week), the gift coach's week is the current one.
 picking Free writes link states and the subscription row. Re-running the seed
 leaves those changes in place on purpose; only `/test/reset` restores both
 coaches to the states above.
+
+---
+
+## Walk accounts on the dev stack (#2228)
+
+Not part of the compose harness: the harness has no Stripe keys. For Claude's
+browser walk of a test guide, `dotnet run -- --walk-seed` (in
+`backend/FormUp.Application`, with the dev launch profile) creates or resets six
+signed-in accounts on the **dev** database and the Stripe sandbox: `admin`,
+`free`, `pro`, `pro3ds`, `given` and `manyclients`. It refuses unless the
+environment is `Development` or `Local` and the Stripe key is a `sk_test_` key.
+
+It writes the gitignored `.claude/private/walk-accounts.json` (generated
+passwords) and one Playwright session file per account in
+`.qa-artifacts/walk-sessions/<key>.json`, so the walk never logs in through the
+form. Sessions hold a refresh token that rotates on use; if one stops working,
+re-run the command. Full procedure: `.claude/docs/guide-walk.md` §2.
 
 ---
 

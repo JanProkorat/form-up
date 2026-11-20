@@ -1,17 +1,50 @@
+import { useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { CheckoutFlow, PlanChangeTiming, type ChangePlanResponse, type CoachPlanDto } from '@/api/generated';
+import {
+  BillingInterval,
+  CheckoutFlow,
+  PlanChangeTiming,
+  type CancelScheduledPlanChangeResponse,
+  type ChangePlanResponse,
+  type CoachPlanDto,
+  type ScheduleSwitchToFreeResponse,
+} from '@/api/generated';
 import { profileKeys } from '@/api/profile';
-import { changePlan, createCheckoutSession, subscriptionKeys, switchToFree } from '@/api/subscription';
-import { billingErrorCode, showBillingError } from '@/components/subscription/billingErrors';
+import { cancelScheduledChange, changePlan, createCheckoutSession, subscriptionKeys, switchToFree } from '@/api/subscription';
+import {
+  PROMOTION_CODE_INTERVAL_NOT_ELIGIBLE,
+  billingErrorCode,
+  billingErrorCodes,
+  isPromotionCodeError,
+  promotionCodeErrorMessage,
+  showBillingError,
+} from '@/components/subscription/billingErrors';
 import { coachPlanName } from '@/components/subscription/planNames';
 import { hasLivePaidSubscription } from '@/components/subscription/planPricing';
 import { useSubscription } from '@/hooks/useSubscriptionQueries';
+import { useAuthStore } from '@/stores/auth';
+import { useCheckoutActivationStore } from '@/stores/checkoutActivation';
 import { useToastStore } from '@/stores/toast';
+
+/** An upgrade whose card needs confirming on Stripe's page; the plan has not changed yet. */
+interface AwaitingPayment {
+  planCode: string;
+  planName: string;
+  paymentUrl: string;
+}
 
 type PlanOutcome = { kind: 'checkout'; url: string } | { kind: 'changed'; response: ChangePlanResponse };
 
-interface PaidPlanRequest {
+/** How a paid plan is taken; both parts are optional so callers that know nothing of annual billing stay monthly. */
+export interface PaidPlanOptions {
+  /** Billing interval to buy; omitted means the server default (monthly). */
+  billingInterval?: BillingInterval;
+  /** Promotion code typed by the coach; sent with a checkout only, never with an in-place plan change. */
+  code?: string;
+}
+
+interface PaidPlanRequest extends PaidPlanOptions {
   plan: CoachPlanDto;
   includeSecondRoleAddOn: boolean;
 }
@@ -21,16 +54,17 @@ interface PaidPlanRequest {
  * Checkout. Each path falls back to the other once when the server says it is the wrong one.
  */
 async function selectPaidPlan(
-  { plan, includeSecondRoleAddOn }: PaidPlanRequest,
+  { plan, includeSecondRoleAddOn, billingInterval, code }: PaidPlanRequest,
   flow: CheckoutFlow,
   live: boolean,
+  attemptId: string,
 ): Promise<PlanOutcome> {
   const planCode = plan.code ?? '';
   const checkout = async (): Promise<PlanOutcome> => ({
     kind: 'checkout',
-    url: await createCheckoutSession({ planCode, includeSecondRoleAddOn, flow }),
+    url: await createCheckoutSession({ planCode, billingInterval, includeSecondRoleAddOn, flow, code }),
   });
-  const change = async (): Promise<PlanOutcome> => ({ kind: 'changed', response: await changePlan(planCode) });
+  const change = async (): Promise<PlanOutcome> => ({ kind: 'changed', response: await changePlan(planCode, attemptId, billingInterval) });
 
   if (live) {
     try {
@@ -49,6 +83,37 @@ async function selectPaidPlan(
 }
 
 /**
+ * Cancels the scheduled plan change (a downgrade or the switch to Free): the coach stays on the current plan.
+ * Shared by Settings and the plan picker. The variable is the current plan's localized name, shown in the toast.
+ */
+export function useCancelScheduledChange() {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const refresh = () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: subscriptionKeys.mine }),
+      queryClient.invalidateQueries({ queryKey: subscriptionKeys.plans }),
+      queryClient.invalidateQueries({ queryKey: profileKeys.me }),
+    ]);
+
+  return useMutation<CancelScheduledPlanChangeResponse, unknown, string>({
+    mutationFn: () => cancelScheduledChange(),
+    onSuccess: (_response, plan) => {
+      useToastStore.getState().addToast(t('subscription.billing.cancelChange.toast', { plan }), 'success');
+      void refresh();
+    },
+    onError: (error) => {
+      // Nothing left to cancel (double submit or a stale tab) is the outcome the coach wanted: just re-read.
+      if (billingErrorCode(error) !== 'BILLING_NOTHING_SCHEDULED') {
+        showBillingError(error, 'subscription.billing.errors.cancelChange');
+      }
+      // A stale tab may still show the action: re-read the subscription so it goes away when it is no longer valid.
+      void refresh();
+    },
+  });
+}
+
+/**
  * The plan actions behind the plan picker and the plan decision screen: take a paid plan (checkout or
  * in-place change) and switch a paying coach to Free at the end of the period.
  */
@@ -57,6 +122,12 @@ export function usePlanSelection(flow: CheckoutFlow) {
   const queryClient = useQueryClient();
   const subscription = useSubscription();
   const live = hasLivePaidSubscription(subscription.data);
+  // One id per change attempt: it keys the immediate upgrade charge, so a repeated click reuses it and never bills
+  // twice. A settled attempt (paid or declined) is final for its id, so the next one gets a fresh id.
+  const attemptId = useRef(crypto.randomUUID());
+  const [awaiting, setAwaiting] = useState<AwaitingPayment | null>(null);
+  // Translated refusal of the promotion code a checkout carried; shown next to the code field, not as a toast.
+  const [codeError, setCodeError] = useState<string | null>(null);
 
   const dateFormat = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' });
   const toast = (message: string) => useToastStore.getState().addToast(message, 'success');
@@ -68,14 +139,31 @@ export function usePlanSelection(flow: CheckoutFlow) {
     ]);
 
   const paidPlan = useMutation({
-    mutationFn: (request: PaidPlanRequest) => selectPaidPlan(request, flow, live),
+    mutationFn: (request: PaidPlanRequest) => selectPaidPlan(request, flow, live, attemptId.current),
+    onMutate: () => {
+      setAwaiting(null);
+      setCodeError(null);
+    },
+    onSettled: () => {
+      attemptId.current = crypto.randomUUID();
+    },
     onSuccess: (outcome, { plan }) => {
       if (outcome.kind === 'checkout') {
         window.location.assign(outcome.url);
         return;
       }
       const name = coachPlanName(plan, i18n.language);
-      const { timing, effectiveAt } = outcome.response;
+      const { timing, effectiveAt, paymentUrl } = outcome.response;
+      if (timing === PlanChangeTiming.AwaitingPayment) {
+        // The plan has not changed: the coach confirms the card on Stripe's page, and the notice offers the link.
+        if (paymentUrl) {
+          setAwaiting({ planCode: plan.code ?? '', planName: name, paymentUrl });
+        } else {
+          showBillingError(null, 'subscription.billing.errors.changePlan');
+        }
+        void queryClient.invalidateQueries({ queryKey: subscriptionKeys.mine });
+        return;
+      }
       if (timing === PlanChangeTiming.AtNextRenewal) {
         toast(
           effectiveAt
@@ -87,20 +175,34 @@ export function usePlanSelection(flow: CheckoutFlow) {
       }
       void refresh();
     },
-    onError: (error) => {
-      showBillingError(error, 'subscription.billing.errors.changePlan');
+    onError: (error, { code, billingInterval }) => {
+      if (isPromotionCodeError(error, code !== undefined)) {
+        // A code for the other billing period gets a message that names the period the code is for.
+        setCodeError(
+          billingErrorCodes(error).includes(PROMOTION_CODE_INTERVAL_NOT_ELIGIBLE)
+            ? t(
+                billingInterval === BillingInterval.Annual
+                  ? 'subscription.billing.promoCode.monthlyOnly'
+                  : 'subscription.billing.promoCode.annualOnly',
+              )
+            : promotionCodeErrorMessage(error),
+        );
+      } else {
+        showBillingError(error, 'subscription.billing.errors.changePlan');
+      }
       // The subscription may have changed under us (for example a cancellation already pending): re-read it.
       void queryClient.invalidateQueries({ queryKey: subscriptionKeys.mine });
     },
   });
 
-  const freePlan = useMutation({
-    mutationFn: switchToFree,
-    onSuccess: ({ endsAt }) => {
+  // The variable is the Free plan's localized name, shown in the confirmation toast.
+  const freePlan = useMutation<ScheduleSwitchToFreeResponse, unknown, string>({
+    mutationFn: () => switchToFree(),
+    onSuccess: ({ endsAt }, free) => {
       toast(
         endsAt
-          ? t('subscription.billing.switchFree.scheduled', { date: dateFormat.format(new Date(endsAt)) })
-          : t('subscription.billing.switchFree.scheduledNoDate'),
+          ? t('subscription.billing.switchFree.scheduled', { free, date: dateFormat.format(new Date(endsAt)) })
+          : t('subscription.billing.switchFree.scheduledNoDate', { free }),
       );
       void refresh();
     },
@@ -110,17 +212,39 @@ export function usePlanSelection(flow: CheckoutFlow) {
     },
   });
 
+  const keepPlan = useCancelScheduledChange();
+
+  // The notice goes away once the plan has landed; until then it is the only way back to the payment page.
+  const pendingPayment = awaiting && subscription.data?.planCode !== awaiting.planCode ? awaiting : null;
+
   return {
     live,
-    /** Takes a paid plan: in place for a live subscription, through Stripe Checkout otherwise. */
-    choosePaid: (plan: CoachPlanDto, includeSecondRoleAddOn: boolean) => paidPlan.mutate({ plan, includeSecondRoleAddOn }),
-    /** Ends the paid plan at the end of the period. */
-    switchToFree: () => freePlan.mutate(),
+    /** The upgrade waiting for payment on Stripe's page, or null. */
+    awaitingPayment: pendingPayment,
+    /** The coach opened the payment page: watch for the plan to change. */
+    startPaymentWatch: () => {
+      const userId = useAuthStore.getState().user?.publicId;
+      if (userId && pendingPayment) useCheckoutActivationStore.getState().start(userId, pendingPayment.planCode);
+    },
+    dismissAwaitingPayment: () => setAwaiting(null),
+    /**
+     * Takes a paid plan: in place for a live subscription, through Stripe Checkout otherwise. The options carry the
+     * billing interval and, for a checkout, the promotion code.
+     */
+    choosePaid: (plan: CoachPlanDto, includeSecondRoleAddOn: boolean, options: PaidPlanOptions = {}) =>
+      paidPlan.mutate({ plan, includeSecondRoleAddOn, ...options }),
+    /** Translated refusal of the promotion code from the last checkout, or null; clears on the next attempt. */
+    codeError,
+    clearCodeError: () => setCodeError(null),
+    /** Ends the paid plan at the end of the period; takes the Free plan's localized name for the toast. */
+    switchToFree: (freeName: string) => freePlan.mutate(freeName),
     /** Code of the paid plan being taken right now. */
     pendingPlanCode: paidPlan.isPending ? (paidPlan.variables?.plan.code ?? null) : null,
     /** True while a Stripe redirect is under way: the page is about to be replaced, so keep the buttons off. */
     redirecting: paidPlan.isSuccess && paidPlan.data.kind === 'checkout',
     switchingToFree: freePlan.isPending,
-    busy: paidPlan.isPending || freePlan.isPending || (paidPlan.isSuccess && paidPlan.data.kind === 'checkout'),
+    /** Cancels the scheduled change and stays on the current plan; takes the current plan's localized name for the toast. */
+    keepCurrent: (currentName: string) => keepPlan.mutate(currentName),
+    busy: paidPlan.isPending || freePlan.isPending || keepPlan.isPending || (paidPlan.isSuccess && paidPlan.data.kind === 'checkout'),
   };
 }

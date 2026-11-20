@@ -30,17 +30,22 @@ internal static class BillingTestData
         return fake;
     }
 
-    /// <summary>Gives the plan's open price row a Stripe price id and returns it.</summary>
+    /// <summary>
+    /// Gives the plan's open price row of one interval a Stripe price id and returns it. Only that row gets the id: a plan with
+    /// a Monthly and an Annual row must never share one provider id, or the webhook's price lookup is ambiguous.
+    /// </summary>
     /// <param name="factory">The test host.</param>
     /// <param name="planCode">Code of the plan.</param>
-    public static async Task<string> SetStripePriceAsync(FitnessApiFactory factory, string planCode)
+    /// <param name="interval">Which of the plan's open rows to price.</param>
+    public static async Task<string> SetStripePriceAsync(
+        FitnessApiFactory factory, string planCode, BillingInterval interval = BillingInterval.Monthly)
     {
         var priceId = $"price_{Guid.NewGuid():N}";
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
         await db.SubscriptionPlanPrices
-            .Where(p => p.SubscriptionPlan.Code == planCode && p.ValidTo == null)
+            .Where(p => p.SubscriptionPlan.Code == planCode && p.ValidTo == null && p.BillingInterval == interval)
             .ExecuteUpdateAsync(setters => setters.SetProperty(p => p.ExternalPriceId, priceId), TestContext.Current.CancellationToken);
 
         return priceId;
@@ -61,6 +66,33 @@ internal static class BillingTestData
     }
 
     /// <summary>
+    /// A paid plan sold monthly and annually, both rows priced in Stripe; returns its code and the two Stripe price ids.
+    /// </summary>
+    /// <param name="factory">The test host.</param>
+    /// <param name="monthlyPrice">Monthly plan price.</param>
+    /// <param name="annualPrice">Annual plan price per year.</param>
+    /// <param name="monthlyAddOn">Monthly second-role add-on price, or null.</param>
+    /// <param name="annualAddOn">Annual second-role add-on price per year, or null.</param>
+    /// <param name="bothRolesIncluded">True when the plan covers both roles at no extra charge.</param>
+    public static async Task<(string Code, string MonthlyPriceId, string AnnualPriceId)> StripePlanWithAnnualAsync(
+        FitnessApiFactory factory,
+        long monthlyPrice = 29900,
+        long annualPrice = 299000,
+        long? monthlyAddOn = null,
+        long? annualAddOn = null,
+        bool bothRolesIncluded = true)
+    {
+        var code = await PaidPlanBuilder.CreateAsync(
+            factory, priceMinorUnits: monthlyPrice, addOnMinorUnits: monthlyAddOn, bothRolesIncluded: bothRolesIncluded);
+        await SubscriptionPlanPriceBuilder.AddOpenAnnualPriceAsync(factory, code, annualPrice, annualAddOn);
+
+        return (
+            code,
+            await SetStripePriceAsync(factory, code, BillingInterval.Monthly),
+            await SetStripePriceAsync(factory, code, BillingInterval.Annual));
+    }
+
+    /// <summary>
     /// Subscribes the coach to the plan as a live Stripe subscription (provider ids set) and returns the provider
     /// subscription id.
     /// </summary>
@@ -72,6 +104,7 @@ internal static class BillingTestData
     /// <param name="freeUntil">End of the gift, or null.</param>
     /// <param name="cancelAtPeriodEnd">True when a cancellation is already pending.</param>
     /// <param name="currentPeriodEndsAt">When the current paid period ends.</param>
+    /// <param name="interval">Which of the plan's open price rows the coach is on; the Monthly row when null.</param>
     public static async Task<string> SubscribeLiveAsync(
         FitnessApiFactory factory,
         Actor coach,
@@ -80,7 +113,8 @@ internal static class BillingTestData
         DateTimeOffset? givenFreeAt = null,
         DateTimeOffset? freeUntil = null,
         bool cancelAtPeriodEnd = false,
-        DateTimeOffset? currentPeriodEndsAt = null)
+        DateTimeOffset? currentPeriodEndsAt = null,
+        BillingInterval? interval = null)
     {
         await CoachSubscriptionBuilder.SubscribeToPlanAsync(
             factory,
@@ -90,7 +124,8 @@ internal static class BillingTestData
             givenFreeAt: givenFreeAt,
             freeUntil: freeUntil,
             cancelAtPeriodEnd: cancelAtPeriodEnd,
-            currentPeriodEndsAt: currentPeriodEndsAt ?? DateTimeOffset.UtcNow.AddDays(10));
+            currentPeriodEndsAt: currentPeriodEndsAt ?? DateTimeOffset.UtcNow.AddDays(10),
+            interval: interval);
 
         var subscriptionId = $"sub_{Guid.NewGuid():N}";
         using var scope = factory.Services.CreateScope();
@@ -107,22 +142,53 @@ internal static class BillingTestData
         return subscriptionId;
     }
 
-    /// <summary>Marks the plan's open price row as the coach's scheduled change for the next renewal.</summary>
+    /// <summary>Marks the plan's open price row of one interval as the coach's scheduled change for the next renewal.</summary>
     /// <param name="factory">The test host.</param>
     /// <param name="profileId">The coach's profile id.</param>
     /// <param name="planCode">Code of the plan the coach moves to at renewal.</param>
-    public static async Task SetPendingPlanAsync(FitnessApiFactory factory, long profileId, string planCode)
+    /// <param name="interval">Which of the plan's open rows the coach moves to.</param>
+    public static async Task SetPendingPlanAsync(
+        FitnessApiFactory factory, long profileId, string planCode, BillingInterval interval = BillingInterval.Monthly)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var priceId = await db.SubscriptionPlanPrices
-            .Where(p => p.SubscriptionPlan.Code == planCode && p.ValidTo == null)
+            .Where(p => p.SubscriptionPlan.Code == planCode && p.ValidTo == null && p.BillingInterval == interval)
             .Select(p => p.Id)
             .SingleAsync(TestContext.Current.CancellationToken);
 
         await db.CoachSubscriptions
             .Where(cs => cs.ProfessionalProfileId == profileId)
             .ExecuteUpdateAsync(setters => setters.SetProperty(cs => cs.PendingSubscriptionPlanPriceId, priceId), TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>Changes fields of the coach's subscription row the seeding helpers do not expose.</summary>
+    /// <param name="factory">The test host.</param>
+    /// <param name="profileId">The coach's profile id.</param>
+    /// <param name="change">The edit to apply to the tracked row.</param>
+    public static async Task UpdateRowAsync(FitnessApiFactory factory, long profileId, Action<CoachSubscription> change)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var row = await db.CoachSubscriptions.SingleAsync(cs => cs.ProfessionalProfileId == profileId, TestContext.Current.CancellationToken);
+
+        change(row);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>Marks the coach account as being disabled, ending in the future.</summary>
+    /// <param name="factory">The test host.</param>
+    /// <param name="profileId">The coach's profile id.</param>
+    public static async Task SetDisablingAsync(FitnessApiFactory factory, long profileId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        await db.ProfessionalProfiles
+            .Where(p => p.Id == profileId)
+            .ExecuteUpdateAsync(
+                setters => setters.SetProperty(p => p.CoachAccountActiveUntil, DateTime.UtcNow.AddDays(5)),
+                TestContext.Current.CancellationToken);
     }
 
     /// <summary>Marks a plan inactive.</summary>

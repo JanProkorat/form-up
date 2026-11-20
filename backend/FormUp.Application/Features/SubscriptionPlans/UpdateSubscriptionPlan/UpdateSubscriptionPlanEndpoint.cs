@@ -1,6 +1,7 @@
 using FastEndpoints;
 using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Entities;
+using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Extensions;
 using FormUp.Application.Domain.Interfaces;
 using FormUp.Application.Features.SubscriptionPlans.Shared;
@@ -32,7 +33,7 @@ internal sealed class UpdateSubscriptionPlanEndpoint(
         Summary(s =>
         {
             s.Summary = "Update subscription plan";
-            s.Description = "Updates a subscription tier's fields. Code is immutable — reactivation/deactivation happens via the IsActive field here, not a separate endpoint. A change to the price, the second-role add-on price or the currency closes the open price row and opens a new one; coaches stay on their old row unless MoveExistingCoachesAtNextRenewal is set. The Free plan must stay at price 0 and active. A new paid price row gets its Stripe price created here (the request's ExternalPriceId is ignored), and with MoveExistingCoachesAtNextRenewal the renewal of every coach with a Stripe subscription is scheduled at the new price. Without Stripe keys the change is saved locally without Stripe calls; a Stripe failure saves nothing.";
+            s.Description = "Updates a subscription tier's fields. Code is immutable — reactivation/deactivation happens via the IsActive field here, not a separate endpoint. PriceMinorUnits and SecondRoleAddOnPriceMinorUnits are the monthly price; AnnualPriceMinorUnits and AnnualSecondRoleAddOnPriceMinorUnits the annual one. A change to the price, the add-on price or the currency closes that interval's open price row and opens a new one; coaches stay on their old row unless MoveExistingCoachesAtNextRenewal is set, which moves only coaches on the changed interval. Omitting the annual price closes the open annual row (the plan is no longer sold annually; coaches on it keep it). The Free plan must stay at price 0 and active. A new paid price row gets its Stripe price created here (the request's ExternalPriceId is ignored), and with MoveExistingCoachesAtNextRenewal the renewal of every coach with a Stripe subscription is scheduled at the new price. Without Stripe keys the change is saved locally without Stripe calls; a Stripe failure saves nothing.";
             s.Response<SubscriptionPlanDto>(StatusCodes.Status200OK, "Subscription plan updated");
             s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Invalid request body");
             s.Response(StatusCodes.Status401Unauthorized, "Missing or invalid credentials");
@@ -71,52 +72,101 @@ internal sealed class UpdateSubscriptionPlanEndpoint(
             return;
         }
 
-        var openPrice = plan.Prices.FirstOrDefault();
-        var opensNewRow = openPrice is null
-                          || openPrice.PriceMinorUnits != req.PriceMinorUnits
-                          || openPrice.SecondRoleAddOnPriceMinorUnits != req.SecondRoleAddOnPriceMinorUnits
-                          || openPrice.Currency != req.Currency;
+        var monthlyOpen = plan.Prices.FirstOrDefault(price => price.BillingInterval == BillingInterval.Monthly);
+        var annualOpen = plan.Prices.FirstOrDefault(price => price.BillingInterval == BillingInterval.Annual);
+
+        var opensNewMonthly = monthlyOpen is null
+                              || monthlyOpen.PriceMinorUnits != req.PriceMinorUnits
+                              || monthlyOpen.SecondRoleAddOnPriceMinorUnits != req.SecondRoleAddOnPriceMinorUnits
+                              || monthlyOpen.Currency != req.Currency;
+        var opensNewAnnual = req.AnnualPriceMinorUnits is not null
+                             && (annualOpen is null
+                                 || annualOpen.PriceMinorUnits != req.AnnualPriceMinorUnits
+                                 || annualOpen.SecondRoleAddOnPriceMinorUnits != req.AnnualSecondRoleAddOnPriceMinorUnits
+                                 || annualOpen.Currency != req.Currency);
 
         // Stripe first, so a failure leaves nothing saved. A zero price (the Free plan) never gets a Stripe price; an open
         // row that has none yet (saved while Stripe was unconfigured) gets one on the next update.
-        string? externalPriceId = opensNewRow ? null : openPrice!.ExternalPriceId;
+        var monthlyExternalPriceId = opensNewMonthly ? null : monthlyOpen!.ExternalPriceId;
+        var annualExternalPriceId = opensNewAnnual ? null : annualOpen?.ExternalPriceId;
 
-        if (req.PriceMinorUnits > 0 && externalPriceId is null)
+        try
         {
-            var (createdPriceId, priceFailed) = await TryCreateStripePriceAsync(plan.Code, req, ct);
-
-            externalPriceId = createdPriceId;
-
-            if (priceFailed)
+            if (req.PriceMinorUnits > 0 && monthlyExternalPriceId is null)
             {
-                await this.SendProblemAsync(
-                    StatusCodes.Status502BadGateway,
-                    ErrorCodes.BillingProviderError,
-                    "The payment provider failed; nothing was saved.",
-                    ct);
-                return;
+                monthlyExternalPriceId = await TryCreateStripePriceAsync(
+                    plan.Code, req.PriceMinorUnits, req.Currency, BillingInterval.Monthly, ct);
+            }
+
+            if (req.AnnualPriceMinorUnits is > 0 && annualExternalPriceId is null)
+            {
+                annualExternalPriceId = await TryCreateStripePriceAsync(
+                    plan.Code, req.AnnualPriceMinorUnits.Value, req.Currency, BillingInterval.Annual, ct);
             }
         }
-
-        if (opensNewRow)
+        catch (BillingProviderException)
         {
-            if (openPrice is not null)
+            await this.SendProblemAsync(
+                StatusCodes.Status502BadGateway,
+                ErrorCodes.BillingProviderError,
+                "The payment provider failed; nothing was saved.",
+                ct);
+            return;
+        }
+
+        if (opensNewMonthly)
+        {
+            if (monthlyOpen is not null)
             {
-                openPrice.ValidTo = DateTime.UtcNow;
+                monthlyOpen.ValidTo = DateTime.UtcNow;
             }
 
-            openPrice = new SubscriptionPlanPrice
+            monthlyOpen = new SubscriptionPlanPrice
             {
                 SubscriptionPlanId = plan.Id,
+                BillingInterval = BillingInterval.Monthly,
                 PriceMinorUnits = req.PriceMinorUnits,
                 SecondRoleAddOnPriceMinorUnits = req.SecondRoleAddOnPriceMinorUnits,
                 Currency = req.Currency,
                 ValidFrom = DateTime.UtcNow,
             };
-            plan.Prices.Add(openPrice);
+            plan.Prices.Add(monthlyOpen);
         }
 
-        openPrice!.ExternalPriceId = externalPriceId;
+        monthlyOpen!.ExternalPriceId = monthlyExternalPriceId;
+
+        if (req.AnnualPriceMinorUnits is null)
+        {
+            // A PUT is a full update: no annual price means the plan is no longer sold annually. Coaches on the row keep it.
+            if (annualOpen is not null)
+            {
+                annualOpen.ValidTo = DateTime.UtcNow;
+                annualOpen = null;
+            }
+        }
+        else
+        {
+            if (opensNewAnnual)
+            {
+                if (annualOpen is not null)
+                {
+                    annualOpen.ValidTo = DateTime.UtcNow;
+                }
+
+                annualOpen = new SubscriptionPlanPrice
+                {
+                    SubscriptionPlanId = plan.Id,
+                    BillingInterval = BillingInterval.Annual,
+                    PriceMinorUnits = req.AnnualPriceMinorUnits.Value,
+                    SecondRoleAddOnPriceMinorUnits = req.AnnualSecondRoleAddOnPriceMinorUnits,
+                    Currency = req.Currency,
+                    ValidFrom = DateTime.UtcNow,
+                };
+                plan.Prices.Add(annualOpen);
+            }
+
+            annualOpen!.ExternalPriceId = annualExternalPriceId;
+        }
 
         plan.NameCs = req.NameCs;
         plan.NameEn = req.NameEn;
@@ -139,54 +189,53 @@ internal sealed class UpdateSubscriptionPlanEndpoint(
         plan.PriceMinorUnits = req.PriceMinorUnits;
         plan.SecondRoleAddOnPriceMinorUnits = req.SecondRoleAddOnPriceMinorUnits;
         plan.Currency = req.Currency;
-        plan.BillingInterval = req.BillingInterval;
         plan.IsActive = req.IsActive!.Value;
 
         if (req.MoveExistingCoachesAtNextRenewal)
         {
-            var moved = await MarkCoachesToMoveAsync(plan, openPrice, ct);
+            var openRows = new[] { monthlyOpen, annualOpen }.OfType<SubscriptionPlanPrice>();
 
-            if (!await TryScheduleRenewalPriceAsync(plan, openPrice, moved, ct))
+            foreach (var openRow in openRows)
             {
-                await this.SendProblemAsync(
-                    StatusCodes.Status502BadGateway,
-                    ErrorCodes.BillingProviderError,
-                    "The payment provider failed; nothing was saved.",
-                    ct);
-                return;
+                var moved = await MarkCoachesToMoveAsync(plan, openRow, ct);
+
+                if (!await TryScheduleRenewalPriceAsync(plan, openRow, moved, ct))
+                {
+                    await this.SendProblemAsync(
+                        StatusCodes.Status502BadGateway,
+                        ErrorCodes.BillingProviderError,
+                        "The payment provider failed; nothing was saved.",
+                        ct);
+                    return;
+                }
             }
         }
 
-        // The plan's current-price fields and the open price row change in this one save.
+        // The plan's current-price fields and the open price rows change in this one save.
         await db.SaveChangesAsync(ct);
 
         var coachCount = await db.CoachSubscriptions
             .AsNoTracking()
             .CountAsync(cs => cs.SubscriptionPlanId == plan.Id && LiveSubscriptionStatuses.All.Contains(cs.Status), ct);
+        var annualSnapshot = annualOpen is null
+            ? null
+            : new AnnualPriceSnapshot(annualOpen.PriceMinorUnits, annualOpen.SecondRoleAddOnPriceMinorUnits, annualOpen.ExternalPriceId);
 
-        await Send.OkAsync(SubscriptionPlanDto.FromEntity(plan, openPrice.ExternalPriceId, coachCount), ct);
+        await Send.OkAsync(SubscriptionPlanDto.FromEntity(plan, monthlyOpen.ExternalPriceId, coachCount, annualSnapshot), ct);
     }
 
-    /// <summary>Creates the Stripe price for a new price row; a failure is reported instead of thrown.</summary>
-    private async Task<(string? PriceId, bool Failed)> TryCreateStripePriceAsync(
-        string planCode, UpdateSubscriptionPlanRequest req, CancellationToken ct)
+    /// <summary>Creates a Stripe price for a new price row; returns null when Stripe is not configured. Throws on a provider failure.</summary>
+    private async Task<string?> TryCreateStripePriceAsync(
+        string planCode, long amountMinorUnits, string currency, BillingInterval interval, CancellationToken ct)
     {
         if (!subscriptionService.IsConfigured)
         {
             logger.LogWarning("Stripe is not configured; plan {PlanCode} is saved without a Stripe price", planCode);
 
-            return (null, false);
+            return null;
         }
 
-        try
-        {
-            return (await subscriptionService.CreatePriceAsync(
-                planCode, req.PriceMinorUnits, req.Currency, req.BillingInterval, ct), false);
-        }
-        catch (BillingProviderException)
-        {
-            return (null, true);
-        }
+        return await subscriptionService.CreatePriceAsync(planCode, amountMinorUnits, currency, interval, ct);
     }
 
     /// <summary>
@@ -223,7 +272,7 @@ internal sealed class UpdateSubscriptionPlanEndpoint(
                     openPrice.ExternalPriceId,
                     coach.PaysSecondRoleAddOn ? openPrice.SecondRoleAddOnPriceMinorUnits : null,
                     openPrice.Currency,
-                    plan.BillingInterval,
+                    openPrice.BillingInterval,
                     atNextRenewal: true,
                     ct);
             }
@@ -239,8 +288,11 @@ internal sealed class UpdateSubscriptionPlanEndpoint(
     private async Task<List<CoachSubscription>> MarkCoachesToMoveAsync(
         SubscriptionPlan plan, SubscriptionPlanPrice openPrice, CancellationToken ct)
     {
+        // Only coaches on a row of the same interval move; a monthly coach never lands on the annual row or the reverse.
         var coaches = await db.CoachSubscriptions
-            .Where(cs => cs.SubscriptionPlanId == plan.Id && LiveSubscriptionStatuses.All.Contains(cs.Status))
+            .Where(cs => cs.SubscriptionPlanId == plan.Id
+                         && LiveSubscriptionStatuses.All.Contains(cs.Status)
+                         && cs.SubscriptionPlanPrice.BillingInterval == openPrice.BillingInterval)
             .ToListAsync(ct);
         var moved = new List<CoachSubscription>();
 

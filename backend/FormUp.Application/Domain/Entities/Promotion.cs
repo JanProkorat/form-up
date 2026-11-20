@@ -57,10 +57,26 @@ public class Promotion : PublicTimestampableEntity
     /// <summary>True when a coach may claim it once.</summary>
     public bool OneUsePerCoach { get; set; }
 
-    /// <summary>The Stripe coupon id.</summary>
+    /// <summary>Which billing cadences the promotion discounts.</summary>
+    public PromotionBillingPeriod BillingPeriod { get; set; }
+
+    /// <summary>
+    /// The Stripe coupon id: the monthly coupon, or the annual one when <see cref="BillingPeriod"/> is
+    /// <see cref="PromotionBillingPeriod.Annual"/>, or the only coupon of a "forever" promotion.
+    /// </summary>
     public required string StripeCouponId { get; set; }
 
-    /// <summary>The Stripe promotion code id; null unless <see cref="Mode"/> is <see cref="PromotionMode.Code"/>.</summary>
+    /// <summary>
+    /// The annual Stripe coupon id; set only for a <see cref="PromotionBillingPeriod.Both"/> promotion whose discount is
+    /// <see cref="PromotionDuration.FirstMonth"/> or <see cref="PromotionDuration.Months"/>, because the annual coupon is
+    /// "once" while the monthly one repeats.
+    /// </summary>
+    public string? StripeAnnualCouponId { get; set; }
+
+    /// <summary>
+    /// The Stripe promotion code id; only promotions made before codes were entered in our own app have one, and the app
+    /// no longer sends it to Stripe.
+    /// </summary>
     public string? StripePromotionCodeId { get; set; }
 
     /// <summary>The coaches who claimed it.</summary>

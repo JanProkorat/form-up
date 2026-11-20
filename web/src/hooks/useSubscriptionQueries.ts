@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import {
@@ -9,12 +9,15 @@ import {
   getCoachPlans,
   getKeepClients,
   getMySubscription,
+  getPublicSubscriptionPlans,
+  previewPlanChange,
   previewSecondRole,
+  pricingKeys,
   setKeepClients,
   subscriptionKeys,
 } from '@/api/subscription';
 import { getMyProfile, profileKeys } from '@/api/profile';
-import type { GetMySubscriptionResponse, SubscriptionFeaturesDto } from '@/api/generated';
+import type { BillingInterval, GetMySubscriptionResponse, SubscriptionFeaturesDto } from '@/api/generated';
 import { isCheckoutSettled } from '@/components/subscription/planPricing';
 import { useAuthStore } from '@/stores/auth';
 
@@ -134,6 +137,15 @@ export function useCoachPlans(enabled: boolean) {
   });
 }
 
+/** The offered plans for the public pricing page. No retry: a 429 must surface as the error state, not hammer the endpoint. */
+export function usePublicPlans() {
+  return useQuery({
+    queryKey: pricingKeys.plans,
+    queryFn: getPublicSubscriptionPlans,
+    retry: false,
+  });
+}
+
 /** Takes the Free plan after a given plan ended, then refreshes the subscription and the keep-clients list. */
 export function useChooseFreePlan() {
   const queryClient = useQueryClient();
@@ -157,12 +169,54 @@ export function useApplyPromotionCode() {
   });
 }
 
-/** Opens the Stripe Customer Portal in this tab (card, invoices, address, cancelling). */
+/**
+ * Opens the Stripe Customer Portal in a new tab. `open` must run synchronously in the click handler so the
+ * browser treats the tab as user-initiated: a blank tab is opened first, then pointed at the portal URL once
+ * the session is created, and closed again when that fails. A blocked pop-up falls back to this tab. After the
+ * portal was opened, coming back to this tab re-reads the subscription and profile, because the portal can
+ * change the plan and the global stale time would otherwise skip the focus refetch.
+ */
 export function useOpenBillingPortal() {
-  return useMutation({
-    mutationFn: createPortalSession,
-    onSuccess: (url) => window.location.assign(url),
-  });
+  const queryClient = useQueryClient();
+  const mutation = useMutation({ mutationFn: createPortalSession });
+  const { mutateAsync } = mutation;
+  const opened = useRef(false);
+
+  useEffect(() => {
+    const refresh = () => {
+      if (!opened.current) return;
+      void queryClient.invalidateQueries({ queryKey: subscriptionKeys.mine });
+      void queryClient.invalidateQueries({ queryKey: profileKeys.me });
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') refresh();
+    };
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [queryClient]);
+
+  const open = async (onError: (error: unknown) => void) => {
+    const tab = window.open('', '_blank');
+    if (tab) tab.opener = null;
+    try {
+      const url = await mutateAsync();
+      opened.current = true;
+      if (!tab) {
+        window.location.assign(url);
+      } else if (!tab.closed) {
+        tab.location.replace(url);
+      }
+    } catch (error) {
+      tab?.close();
+      onError(error);
+    }
+  };
+
+  return { open, isPending: mutation.isPending };
 }
 
 /** What adding the second-role add-on would cost; read once per opened dialog, never cached. */
@@ -171,6 +225,22 @@ export function useSecondRolePreview(enabled: boolean) {
     queryKey: subscriptionKeys.secondRolePreview,
     queryFn: previewSecondRole,
     enabled,
+    retry: false,
+    gcTime: 0,
+    staleTime: 0,
+    refetchOnWindowFocus: false,
+  });
+}
+
+/**
+ * What moving the live subscription to a paid plan on the given billing interval would charge and when; read per
+ * selection, never cached. The interval is part of the key, so switching Monthly | Annual reads again.
+ */
+export function usePlanChangePreview(planCode: string | null, billingInterval: BillingInterval, enabled: boolean) {
+  return useQuery({
+    queryKey: subscriptionKeys.planChangePreview(planCode ?? '', billingInterval),
+    queryFn: () => previewPlanChange(planCode ?? '', billingInterval),
+    enabled: enabled && planCode !== null,
     retry: false,
     gcTime: 0,
     staleTime: 0,

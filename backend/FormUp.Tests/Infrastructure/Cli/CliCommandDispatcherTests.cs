@@ -46,6 +46,14 @@ public class CliCommandDispatcherTests
     }
 
     [Fact]
+    public void ParseCommand_WalkSeedFlag_ReturnsWalkSeed()
+    {
+        var result = CliCommandDispatcher.ParseCommand(["--walk-seed"]);
+
+        result.Should().Be(CliCommand.WalkSeed);
+    }
+
+    [Fact]
     public void ParseCommand_BackfillPhotoDescriptionsFlag_ReturnsBackfillPhotoDescriptions()
     {
         var result = CliCommandDispatcher.ParseCommand(["--backfill-photo-descriptions"]);

@@ -7,6 +7,7 @@ using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Interfaces;
 using FormUp.Application.Domain.Services;
 using FormUp.Application.Infrastructure.Data;
+using FormUp.Application.Infrastructure.Services.Billing;
 using FormUp.Tests.Builders;
 using FormUp.Tests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -44,8 +45,22 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
         IEnumerable<string>? extraPriceIds = null,
         bool cancelAtPeriodEnd = false,
         string? userId = null,
-        string[]? discountIds = null)
+        string[]? discountIds = null,
+        long? subscriptionCreated = null,
+        string? pendingRole = null)
     {
+        var metadata = new Dictionary<string, string>();
+
+        if (userId is not null)
+        {
+            metadata["userId"] = userId;
+        }
+
+        if (pendingRole is not null)
+        {
+            metadata["formup_pending_second_role"] = pendingRole;
+        }
+
         var periodEnd = DateTimeOffset.UtcNow.AddDays(20).ToUnixTimeSeconds();
         var periodStart = DateTimeOffset.UtcNow.AddDays(-10).ToUnixTimeSeconds();
         var items = new[] { scenario.PriceId }.Concat(extraPriceIds ?? []).Select((priceId, index) => new
@@ -64,8 +79,9 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
             Object = "subscription",
             Customer = scenario.CustomerId,
             Status = status,
+            Created = subscriptionCreated ?? periodStart,
             CancelAtPeriodEnd = cancelAtPeriodEnd,
-            Metadata = userId is null ? new Dictionary<string, string>() : new Dictionary<string, string> { ["userId"] = userId },
+            Metadata = metadata,
             Items = new { Object = "list", Data = items, HasMore = false, Url = "/v1/subscription_items" },
             Discounts = discountIds ?? [],
         });
@@ -253,6 +269,54 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
         (await MaxClientsAsync(scenario.Coach.ProfileId)).Should().Be(30, "the paid plan's limit applies");
     }
 
+    private List<FakeRealtimeNotifier.NotifyCall> CallsTo(Actor coach) =>
+        factory.Services.GetRequiredService<FakeRealtimeNotifier>().Calls.Where(call => call.UserId == coach.UserId).ToList();
+
+    [Fact]
+    public async Task Webhook_AppliedChange_SendsOneSyncedEventToTheCoachOnly()
+    {
+        var scenario = await ArrangeOnFreePlanAsync();
+
+        var response = await PostAsync(SubscriptionEvent(NewEventId(), "customer.subscription.created", scenario, "active"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var calls = CallsTo(scenario.Coach);
+        calls.Should().ContainSingle(call => call.EventType == "subscriptionchanged");
+        System.Text.Json.JsonSerializer.Serialize(calls.Single(call => call.EventType == "subscriptionchanged").Payload)
+            .Should().Be("{\"action\":\"synced\"}");
+        calls.Should().NotContain(call => call.EventType == "newnotification");
+    }
+
+    [Fact]
+    public async Task Webhook_SkippedEvents_SendNothingMore()
+    {
+        var scenario = await ArrangeOnPaidPlanAsync();
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var payload = SubscriptionEvent(NewEventId(), "customer.subscription.updated", scenario, "active", created: now);
+
+        await PostAsync(payload);
+        await PostAsync(payload);
+        await PostAsync(InvoiceEvent(NewEventId(), "invoice.payment_failed", scenario, created: now - 600));
+        await PostAsync(InvoiceEvent(NewEventId(), "invoice.finalized", scenario));
+
+        CallsTo(scenario.Coach).Count(call => call.EventType == "subscriptionchanged")
+            .Should().Be(1, "only the first delivery changed the row; a repeat, a stale and an unhandled event send nothing");
+    }
+
+    [Fact]
+    public async Task Webhook_WhenTheRealtimeSendFails_StillAnswers200_AndKeepsTheChange()
+    {
+        var scenario = await ArrangeOnFreePlanAsync();
+        var eventId = NewEventId();
+        factory.Services.GetRequiredService<FakeRealtimeNotifier>().SimulateThrowOnNextCall();
+
+        var response = await PostAsync(SubscriptionEvent(eventId, "customer.subscription.created", scenario, "active"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await ReadRowAsync(scenario.Coach.ProfileId)).Status.Should().Be(SubscriptionStatus.Active);
+        (await ProcessedCountAsync(eventId)).Should().Be(1);
+    }
+
     [Fact]
     public async Task Webhook_SubscriptionCreatedForAnUnknownCustomer_MatchesTheCoachByTheCheckoutMetadata()
     {
@@ -334,6 +398,39 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task Webhook_SubscriptionItemWithTheAnnualRowsPriceId_PutsTheCoachOnTheAnnualRow()
+    {
+        var scenario = await ArrangeOnPaidPlanAsync();
+        var annualPriceId = $"price_{Guid.NewGuid():N}";
+        long annualRowId;
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var planId = await db.SubscriptionPlans.Where(p => p.Code == scenario.PlanCode).Select(p => p.Id).SingleAsync(Ct);
+            var annualRow = new SubscriptionPlanPrice
+            {
+                SubscriptionPlanId = planId,
+                BillingInterval = BillingInterval.Annual,
+                PriceMinorUnits = 299000,
+                Currency = "CZK",
+                ExternalPriceId = annualPriceId,
+                ValidFrom = DateTime.UtcNow,
+            };
+            db.SubscriptionPlanPrices.Add(annualRow);
+            await db.SaveChangesAsync(Ct);
+            annualRowId = annualRow.Id;
+        }
+
+        var response = await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.updated", scenario with { PriceId = annualPriceId }, "active"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var after = await ReadRowAsync(scenario.Coach.ProfileId);
+        after.SubscriptionPlanPriceId.Should().Be(annualRowId);
+    }
+
+    [Fact]
     public async Task Webhook_RenewalToAOneRolePlanWithAnAddOnLine_SetsTheAddOnFlag_AndClearsThePendingId()
     {
         var scenario = await ArrangeOnPaidPlanAsync();
@@ -351,6 +448,164 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
         after.SubscriptionPlan.Code.Should().Be(oneRolePlan);
         after.PaysSecondRoleAddOn.Should().BeTrue();
         after.PendingSubscriptionPlanPriceId.Should().BeNull();
+    }
+
+    /// <summary>A coach on a one-role plan who pays the add-on and has already removed the second role (its end is scheduled).</summary>
+    private async Task<Scenario> ArrangeScheduledAddOnEndAsync()
+    {
+        await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var plan = await PaidPlanBuilder.CreateAsync(factory, addOnMinorUnits: 9900, bothRolesIncluded: false);
+        var priceId = await SetStripePriceAsync(plan);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, plan, paysSecondRoleAddOn: true);
+
+        var scenario = new Scenario(coach, plan, priceId, $"cus_{Guid.NewGuid():N}", $"sub_{Guid.NewGuid():N}");
+        await UpdateRowAsync(coach.ProfileId, row =>
+        {
+            row.ExternalCustomerId = scenario.CustomerId;
+            row.ExternalSubscriptionId = scenario.SubscriptionId;
+            row.SecondRoleAddOnEndsAt = DateTimeOffset.UtcNow.AddDays(10);
+        });
+
+        return scenario;
+    }
+
+    [Fact]
+    public async Task Webhook_RenewalWithoutTheAddOnLine_StopsBillingTheAddOn_AndClearsTheScheduledEnd()
+    {
+        var scenario = await ArrangeScheduledAddOnEndAsync();
+
+        var response = await PostAsync(SubscriptionEvent(NewEventId(), "customer.subscription.updated", scenario, "active"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var after = await ReadRowAsync(scenario.Coach.ProfileId);
+        after.PaysSecondRoleAddOn.Should().BeFalse();
+        after.SecondRoleAddOnEndsAt.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Webhook_UpdateRightAfterSchedulingTheEnd_KeepsTheAddOnAndTheScheduledEnd()
+    {
+        var scenario = await ArrangeScheduledAddOnEndAsync();
+
+        var response = await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.updated", scenario, "active", extraPriceIds: ["price_addon_unknown_to_plans"]));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var after = await ReadRowAsync(scenario.Coach.ProfileId);
+        after.PaysSecondRoleAddOn.Should().BeTrue("the add-on item is still on the subscription until the renewal");
+        after.SecondRoleAddOnEndsAt.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task Webhook_SubscriptionDeletedWithAScheduledEnd_ClearsIt()
+    {
+        var scenario = await ArrangeScheduledAddOnEndAsync();
+
+        var response = await PostAsync(SubscriptionEvent(NewEventId(), "customer.subscription.deleted", scenario, "canceled"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await ReadRowAsync(scenario.Coach.ProfileId)).SecondRoleAddOnEndsAt.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, true)]
+    public async Task Webhook_SubscriptionUpdated_KeepsTheAdminMarkerOnlyWhileTheProviderStillCancels(bool providerCancels, bool markerKept)
+    {
+        var scenario = await ArrangeOnPaidPlanAsync();
+        await UpdateRowAsync(scenario.Coach.ProfileId, row =>
+        {
+            row.CancelAtPeriodEnd = true;
+            row.RenewalCancelledByAdminAt = DateTimeOffset.UtcNow;
+        });
+
+        var response = await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.updated", scenario, "active", cancelAtPeriodEnd: providerCancels));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var row = await ReadRowAsync(scenario.Coach.ProfileId);
+        row.CancelAtPeriodEnd.Should().Be(providerCancels);
+        (row.RenewalCancelledByAdminAt is not null).Should().Be(markerKept);
+    }
+
+    [Fact]
+    public async Task Webhook_SubscriptionDeleted_ClearsTheAdminMarker()
+    {
+        var scenario = await ArrangeOnPaidPlanAsync();
+        await UpdateRowAsync(scenario.Coach.ProfileId, row =>
+        {
+            row.CancelAtPeriodEnd = true;
+            row.RenewalCancelledByAdminAt = DateTimeOffset.UtcNow;
+        });
+
+        var response = await PostAsync(SubscriptionEvent(NewEventId(), "customer.subscription.deleted", scenario, "canceled"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await ReadRowAsync(scenario.Coach.ProfileId)).RenewalCancelledByAdminAt.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Webhook_SubscriptionDeletedDuringAGift_KeepsTheGiftAndClearsThePaidFields()
+    {
+        var scenario = await ArrangeOnPaidPlanAsync();
+        var giftedAt = DateTimeOffset.UtcNow.AddDays(-1);
+        var freeUntil = DateTimeOffset.UtcNow.AddDays(30);
+        await UpdateRowAsync(scenario.Coach.ProfileId, row =>
+        {
+            row.GivenFreeAt = giftedAt;
+            row.FreeUntil = freeUntil;
+            row.CurrentPeriodEndsAt = DateTimeOffset.UtcNow.AddDays(15);
+            row.CancelAtPeriodEnd = true;
+            row.RenewalCancelledByAdminAt = DateTimeOffset.UtcNow;
+            row.SecondRoleAddOnEndsAt = DateTimeOffset.UtcNow.AddDays(10);
+            row.PaysSecondRoleAddOn = true;
+        });
+        var before = await ReadRowAsync(scenario.Coach.ProfileId);
+
+        var response = await PostAsync(SubscriptionEvent(NewEventId(), "customer.subscription.deleted", scenario, "canceled"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var after = await ReadRowAsync(scenario.Coach.ProfileId);
+        after.ExternalSubscriptionId.Should().BeNull();
+        after.Status.Should().Be(before.Status, "the gift's own status stays");
+        after.SubscriptionPlanId.Should().Be(before.SubscriptionPlanId);
+        after.SubscriptionPlanPriceId.Should().Be(before.SubscriptionPlanPriceId);
+        after.GivenFreeAt.Should().Be(before.GivenFreeAt);
+        after.FreeUntil.Should().Be(before.FreeUntil);
+        after.CurrentPeriodEndsAt.Should().BeNull("nothing renews once the subscription is gone");
+        after.CancelAtPeriodEnd.Should().BeFalse();
+        after.RenewalCancelledByAdminAt.Should().BeNull();
+        after.PendingSubscriptionPlanPriceId.Should().BeNull();
+        after.SecondRoleAddOnEndsAt.Should().BeNull();
+        after.PaysSecondRoleAddOn.Should().BeFalse();
+        (await MaxClientsAsync(scenario.Coach.ProfileId)).Should().Be(30, "the gifted plan keeps running");
+    }
+
+    [Fact]
+    public async Task Webhook_SubscriptionDeletedAfterAGivePlanCancelledIt_KeepsTheGivenPlanActive()
+    {
+        var scenario = await ArrangeOnPaidPlanAsync();
+        var now = DateTimeOffset.UtcNow;
+
+        // The row as Give-plan leaves it: the subscription id is gone and the event time is the cancel's second.
+        await UpdateRowAsync(scenario.Coach.ProfileId, row =>
+        {
+            row.GivenFreeAt = now;
+            row.FreeUntil = null;
+            row.ExternalSubscriptionId = null;
+            row.CurrentPeriodEndsAt = null;
+            row.LastExternalEventAt = new DateTimeOffset(now.Ticks - (now.Ticks % TimeSpan.TicksPerSecond), now.Offset);
+        });
+
+        var response = await PostAsync(SubscriptionEvent(NewEventId(), "customer.subscription.deleted", scenario, "canceled"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var after = await ReadRowAsync(scenario.Coach.ProfileId);
+        after.Status.Should().Be(SubscriptionStatus.Active, "the cancel's own deleted event must not end the given plan");
+        after.GivenFreeAt.Should().NotBeNull();
+        after.ExternalSubscriptionId.Should().BeNull();
+        (await MaxClientsAsync(scenario.Coach.ProfileId)).Should().Be(30, "the given plan keeps running");
     }
 
     [Fact]
@@ -413,6 +668,8 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
     public async Task Webhook_SubscriptionDeleted_FallsBackToFree_WithoutALock()
     {
         var scenario = await ArrangeOnPaidPlanAsync();
+        var periodEnd = DateTimeOffset.UtcNow.AddDays(12);
+        await UpdateRowAsync(scenario.Coach.ProfileId, row => row.CurrentPeriodEndsAt = periodEnd);
 
         var response = await PostAsync(SubscriptionEvent(NewEventId(), "customer.subscription.deleted", scenario, "canceled"));
 
@@ -420,6 +677,7 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
         var row = await ReadRowAsync(scenario.Coach.ProfileId);
         row.Status.Should().Be(SubscriptionStatus.Canceled);
         row.ExternalSubscriptionId.Should().BeNull();
+        row.CurrentPeriodEndsAt.Should().BeCloseTo(periodEnd, TimeSpan.FromSeconds(1), "the lapse ended-on date keeps the paid period end");
         var maxClients = await MaxClientsAsync(scenario.Coach.ProfileId);
         maxClients.Should().Be(await FreePlanMaxClientsAsync(), "a canceled subscription resolves to the Free plan, not to a lock");
         maxClients.Should().NotBe(0);
@@ -513,6 +771,37 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task Webhook_AfterAnAdminEndedThePlan_SkipsTheOlderUpdate_AndTheDeletedEventKeepsTheEndedState()
+    {
+        var scenario = await ArrangeOnPaidPlanAsync();
+        var endedAt = DateTimeOffset.FromUnixTimeSeconds(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+        await UpdateRowAsync(scenario.Coach.ProfileId, row =>
+        {
+            row.Status = SubscriptionStatus.Canceled;
+            row.ExternalSubscriptionId = null;
+            row.CurrentPeriodEndsAt = endedAt;
+            row.LastExternalEventAt = endedAt;
+        });
+
+        var staleId = NewEventId();
+        var stale = await PostAsync(SubscriptionEvent(
+            staleId, "customer.subscription.updated", scenario, "active", created: endedAt.ToUnixTimeSeconds() - 30));
+        var deletedId = NewEventId();
+        var deleted = await PostAsync(SubscriptionEvent(
+            deletedId, "customer.subscription.deleted", scenario, "canceled", created: endedAt.ToUnixTimeSeconds()));
+
+        stale.StatusCode.Should().Be(HttpStatusCode.OK);
+        deleted.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await ProcessedCountAsync(staleId)).Should().Be(0, "the update was created before the end");
+        (await ProcessedCountAsync(deletedId)).Should().Be(1, "the deleted event is not older than the end");
+        var row = await ReadRowAsync(scenario.Coach.ProfileId);
+        row.Status.Should().Be(SubscriptionStatus.Canceled);
+        row.ExternalSubscriptionId.Should().BeNull();
+        row.CurrentPeriodEndsAt.Should().Be(endedAt);
+        row.PaysSecondRoleAddOn.Should().BeFalse();
+    }
+
+    [Fact]
     public async Task Webhook_SubscriptionUpdatedForACoachWithAnActiveGift_LeavesPlanPriceAndStatusUnchanged()
     {
         var scenario = await ArrangeOnPaidPlanAsync();
@@ -536,6 +825,399 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
         after.GivenFreeAt.Should().NotBeNull();
     }
 
+    /// <summary>A coach on a plan set by Form Up (free plan, gift given a day ago, no Stripe subscription yet).</summary>
+    private async Task<Scenario> ArrangeOnGiftWithoutSubscriptionAsync()
+    {
+        var scenario = await ArrangeOnFreePlanAsync();
+        await UpdateRowAsync(scenario.Coach.ProfileId, row => row.GivenFreeAt = DateTimeOffset.UtcNow.AddDays(-1));
+
+        return scenario;
+    }
+
+    private static long Now => DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+    private async Task AssertBoughtPlanReplacedGiftAsync(Scenario scenario)
+    {
+        var row = await ReadRowAsync(scenario.Coach.ProfileId);
+
+        row.SubscriptionPlan.Code.Should().Be(scenario.PlanCode);
+        row.Status.Should().Be(SubscriptionStatus.Active);
+        row.ExternalSubscriptionId.Should().Be(scenario.SubscriptionId);
+        row.GivenFreeAt.Should().BeNull();
+        row.FreeUntil.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Webhook_NewSubscriptionForACoachWithAGivenPlan_EndsTheGiftAndAppliesThePurchase()
+    {
+        var scenario = await ArrangeOnGiftWithoutSubscriptionAsync();
+
+        var response = await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.created", scenario, "active", created: Now, subscriptionCreated: Now));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        await AssertBoughtPlanReplacedGiftAsync(scenario);
+    }
+
+    [Fact]
+    public async Task Webhook_SubscriptionOlderThanTheGift_KeepsTheGiftedPlan()
+    {
+        var scenario = await ArrangeOnGiftWithoutSubscriptionAsync();
+
+        var response = await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.created", scenario, "active", subscriptionCreated: Now - 5 * 86400));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var row = await ReadRowAsync(scenario.Coach.ProfileId);
+        row.SubscriptionPlan.Code.Should().Be("free");
+        row.GivenFreeAt.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task Webhook_InvoicePaidBeforeSubscriptionCreated_DoesNotMakeTheSubscriptionEventStale()
+    {
+        var scenario = await ArrangeOnGiftWithoutSubscriptionAsync();
+        var invoiceEventId = NewEventId();
+
+        await PostAsync(InvoiceEvent(invoiceEventId, "invoice.paid", scenario, created: Now + 5));
+        var response = await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.created", scenario, "active", created: Now, subscriptionCreated: Now));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await ProcessedCountAsync(invoiceEventId)).Should().Be(0, "the invoice names a subscription the coach does not have yet");
+        await AssertBoughtPlanReplacedGiftAsync(scenario);
+    }
+
+    [Fact]
+    public async Task Webhook_InvoicePaidAfterSubscriptionCreated_KeepsThePurchase()
+    {
+        var scenario = await ArrangeOnGiftWithoutSubscriptionAsync();
+        var invoiceEventId = NewEventId();
+
+        await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.created", scenario, "active", created: Now, subscriptionCreated: Now));
+        await PostAsync(InvoiceEvent(invoiceEventId, "invoice.paid", scenario, created: Now + 5));
+
+        (await ProcessedCountAsync(invoiceEventId)).Should().Be(1);
+        await AssertBoughtPlanReplacedGiftAsync(scenario);
+    }
+
+    [Fact]
+    public async Task Webhook_SameSubscriptionCreatedEventTwice_IsAppliedOnce()
+    {
+        var scenario = await ArrangeOnGiftWithoutSubscriptionAsync();
+        var eventId = NewEventId();
+        var payload = SubscriptionEvent(eventId, "customer.subscription.created", scenario, "active", created: Now, subscriptionCreated: Now);
+
+        await PostAsync(payload);
+        var second = await PostAsync(payload);
+
+        second.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await ProcessedCountAsync(eventId)).Should().Be(1);
+        await AssertBoughtPlanReplacedGiftAsync(scenario);
+    }
+
+    [Fact]
+    public async Task Webhook_NewEventForARowBrokenByThePurchase_RepairsIt()
+    {
+        var scenario = await ArrangeOnGiftWithoutSubscriptionAsync();
+        await UpdateRowAsync(scenario.Coach.ProfileId, row => row.ExternalSubscriptionId = scenario.SubscriptionId);
+
+        var response = await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.updated", scenario, "active", created: Now, subscriptionCreated: Now));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        await AssertBoughtPlanReplacedGiftAsync(scenario);
+    }
+
+    /// <summary>A paid coach with a scheduled downgrade pending, and a dearer plan priced in Stripe to upgrade to.</summary>
+    private async Task<(Scenario Current, Scenario Upgraded, long PendingPriceRowId)> ArrangeUpgradeWithScheduledDowngradeAsync()
+    {
+        var current = await ArrangeOnPaidPlanAsync();
+        var target = await PaidPlanBuilder.CreateAsync(factory);
+        var targetPriceId = await SetStripePriceAsync(target);
+        var downgrade = await PaidPlanBuilder.CreateAsync(factory);
+        await SetStripePriceAsync(downgrade);
+        await BillingTestData.SetPendingPlanAsync(factory, current.Coach.ProfileId, downgrade);
+        var pending = (await ReadRowAsync(current.Coach.ProfileId)).PendingSubscriptionPlanPriceId!.Value;
+
+        return (current, current with { PlanCode = target, PriceId = targetPriceId }, pending);
+    }
+
+    [Fact]
+    public async Task Webhook_PendingUpdateApplied_SwitchesThePlan_AndClearsTheScheduledChangeMarker()
+    {
+        var (current, upgraded, _) = await ArrangeUpgradeWithScheduledDowngradeAsync();
+
+        var response = await PostAsync(SubscriptionEvent(NewEventId(), "customer.subscription.pending_update_applied", upgraded, "active"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var after = await ReadRowAsync(current.Coach.ProfileId);
+        after.SubscriptionPlan.Code.Should().Be(upgraded.PlanCode);
+        after.PendingSubscriptionPlanPriceId.Should().BeNull("the upgrade replaced the scheduled downgrade");
+    }
+
+    [Fact]
+    public async Task Webhook_PendingUpdateAppliedAfterTheUpdatedEventOfTheSameChange_StillClearsTheMarker()
+    {
+        var (current, upgraded, pendingRowId) = await ArrangeUpgradeWithScheduledDowngradeAsync();
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        await PostAsync(SubscriptionEvent(NewEventId(), "customer.subscription.updated", upgraded, "active", created: now));
+        (await ReadRowAsync(current.Coach.ProfileId)).PendingSubscriptionPlanPriceId.Should().Be(pendingRowId, "the updated event does not know the marker");
+        var appliedId = NewEventId();
+
+        var response = await PostAsync(SubscriptionEvent(appliedId, "customer.subscription.pending_update_applied", upgraded, "active", created: now - 5));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await ReadRowAsync(current.Coach.ProfileId)).PendingSubscriptionPlanPriceId.Should().BeNull("an older event order must not lose the clear");
+        (await ProcessedCountAsync(appliedId)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Webhook_PendingUpdateApplied_ForAnOlderEventWhoseChangeWasNotApplied_ChangesNothing()
+    {
+        var (current, upgraded, pendingRowId) = await ArrangeUpgradeWithScheduledDowngradeAsync();
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        await PostAsync(SubscriptionEvent(NewEventId(), "customer.subscription.updated", current, "active", created: now));
+
+        await PostAsync(SubscriptionEvent(NewEventId(), "customer.subscription.pending_update_applied", upgraded, "active", created: now - 5));
+
+        var after = await ReadRowAsync(current.Coach.ProfileId);
+        after.SubscriptionPlan.Code.Should().Be(current.PlanCode);
+        after.PendingSubscriptionPlanPriceId.Should().Be(pendingRowId);
+    }
+
+    [Fact]
+    public async Task Webhook_PendingUpdateApplied_RepeatedEventId_IsANoOp()
+    {
+        var (current, upgraded, _) = await ArrangeUpgradeWithScheduledDowngradeAsync();
+        var eventId = NewEventId();
+
+        await PostAsync(SubscriptionEvent(eventId, "customer.subscription.pending_update_applied", upgraded, "active"));
+        await PostAsync(SubscriptionEvent(eventId, "customer.subscription.pending_update_applied", upgraded, "active"));
+
+        (await ProcessedCountAsync(eventId)).Should().Be(1);
+        (await ReadRowAsync(current.Coach.ProfileId)).SubscriptionPlan.Code.Should().Be(upgraded.PlanCode);
+    }
+
+    /// <summary>A coach on a one-role plan who does not pay the add-on yet, so a pending add-on update can be applied or expire.</summary>
+    private async Task<Scenario> ArrangeOneRolePlanWithoutAddOnAsync()
+    {
+        await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var plan = await PaidPlanBuilder.CreateAsync(factory, addOnMinorUnits: 9900, bothRolesIncluded: false);
+        var priceId = await SetStripePriceAsync(plan);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, plan);
+
+        var scenario = new Scenario(coach, plan, priceId, $"cus_{Guid.NewGuid():N}", $"sub_{Guid.NewGuid():N}");
+        await UpdateRowAsync(coach.ProfileId, row =>
+        {
+            row.ExternalCustomerId = scenario.CustomerId;
+            row.ExternalSubscriptionId = scenario.SubscriptionId;
+        });
+
+        return scenario;
+    }
+
+    [Fact]
+    public async Task Webhook_PendingUpdateAppliedWithTheAddOnLine_MarksTheAddOnPaid_AndKeepsThePlan()
+    {
+        var scenario = await ArrangeOneRolePlanWithoutAddOnAsync();
+        (await ReadRowAsync(scenario.Coach.ProfileId)).PaysSecondRoleAddOn.Should().BeFalse();
+
+        var response = await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.pending_update_applied", scenario, "active", extraPriceIds: ["price_addon_unknown_to_plans"]));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var after = await ReadRowAsync(scenario.Coach.ProfileId);
+        after.PaysSecondRoleAddOn.Should().BeTrue();
+        after.SubscriptionPlan.Code.Should().Be(scenario.PlanCode);
+    }
+
+    [Fact]
+    public async Task Webhook_PendingUpdateAppliedWithTheAddOnLine_RepeatedEventId_IsANoOp()
+    {
+        var scenario = await ArrangeOneRolePlanWithoutAddOnAsync();
+        var eventId = NewEventId();
+
+        await PostAsync(SubscriptionEvent(eventId, "customer.subscription.pending_update_applied", scenario, "active", extraPriceIds: ["price_addon_unknown_to_plans"]));
+        await PostAsync(SubscriptionEvent(eventId, "customer.subscription.pending_update_applied", scenario, "active", extraPriceIds: ["price_addon_unknown_to_plans"]));
+
+        (await ProcessedCountAsync(eventId)).Should().Be(1);
+        (await ReadRowAsync(scenario.Coach.ProfileId)).PaysSecondRoleAddOn.Should().BeTrue();
+    }
+
+    private async Task<List<string>> RoleNamesAsync(Guid userId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        return await db.UserRoles
+            .Where(userRole => userRole.UserId == userId)
+            .Join(db.Roles, userRole => userRole.RoleId, role => role.Id, (_, role) => role.Name!)
+            .ToListAsync(Ct);
+    }
+
+    private const string AddOnPrice = "price_addon_unknown_to_plans";
+
+    [Fact]
+    public async Task Webhook_PendingUpdateAppliedWithTheAddOnAndARememberedRole_AddsTheRoleOnce_AndClearsTheMarker()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var scenario = await ArrangeOneRolePlanWithoutAddOnAsync();
+        var appliedId = NewEventId();
+
+        var first = await PostAsync(SubscriptionEvent(
+            appliedId, "customer.subscription.pending_update_applied", scenario, "active", extraPriceIds: [AddOnPrice], pendingRole: "Nutritionist"));
+        var again = await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.pending_update_applied", scenario, "active", extraPriceIds: [AddOnPrice], pendingRole: "Nutritionist"));
+
+        first.StatusCode.Should().Be(HttpStatusCode.OK);
+        again.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await RoleNamesAsync(scenario.Coach.UserId)).Should().BeEquivalentTo(["Trainer", "Nutritionist"], "a second applied event adds no duplicate");
+        (await ReadRowAsync(scenario.Coach.ProfileId)).PaysSecondRoleAddOn.Should().BeTrue();
+        fake.ClearedPendingSecondRoles.Should().Contain(scenario.SubscriptionId);
+        (await ProcessedCountAsync(appliedId)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Webhook_PendingUpdateAppliedWithTheAddOnAndARememberedRole_RestoresARemovedRole()
+    {
+        BillingTestData.ResetProvider(factory);
+        await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
+        var coach = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Nutritionist)
+            .WithRemovedCoachRoles(UserRole.Nutritionist).CreateAsync(Ct);
+        var plan = await PaidPlanBuilder.CreateAsync(factory, addOnMinorUnits: 9900, bothRolesIncluded: false);
+        var priceId = await SetStripePriceAsync(plan);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, plan);
+        var scenario = new Scenario(coach, plan, priceId, $"cus_{Guid.NewGuid():N}", $"sub_{Guid.NewGuid():N}");
+        await UpdateRowAsync(coach.ProfileId, row =>
+        {
+            row.ExternalCustomerId = scenario.CustomerId;
+            row.ExternalSubscriptionId = scenario.SubscriptionId;
+        });
+
+        await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.pending_update_applied", scenario, "active", extraPriceIds: [AddOnPrice], pendingRole: "Nutritionist"));
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var profile = await db.ProfessionalProfiles.AsNoTracking().SingleAsync(p => p.Id == coach.ProfileId, Ct);
+        profile.NutritionistRoleRemovedAt.Should().BeNull();
+        (await RoleNamesAsync(coach.UserId)).Should().BeEquivalentTo(["Trainer", "Nutritionist"]);
+    }
+
+    [Fact]
+    public async Task Webhook_PendingUpdateAppliedAfterTheUpdatedEvent_StillAddsTheRememberedRole()
+    {
+        BillingTestData.ResetProvider(factory);
+        var scenario = await ArrangeOneRolePlanWithoutAddOnAsync();
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        await PostAsync(SubscriptionEvent(NewEventId(), "customer.subscription.updated", scenario, "active", created: now, extraPriceIds: [AddOnPrice]));
+
+        await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.pending_update_applied", scenario, "active", created: now - 5, extraPriceIds: [AddOnPrice], pendingRole: "Nutritionist"));
+
+        (await RoleNamesAsync(scenario.Coach.UserId)).Should().Contain("Nutritionist");
+    }
+
+    [Fact]
+    public async Task Webhook_PendingUpdateAppliedWithoutTheAddOnLine_AddsNoRole_ButClearsALeftoverMarker()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var scenario = await ArrangeOneRolePlanWithoutAddOnAsync();
+
+        await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.pending_update_applied", scenario, "active", pendingRole: "Nutritionist"));
+
+        (await RoleNamesAsync(scenario.Coach.UserId)).Should().BeEquivalentTo(["Trainer"], "a plan upgrade must not buy a role");
+        fake.ClearedPendingSecondRoles.Should().Contain(scenario.SubscriptionId);
+    }
+
+    [Fact]
+    public async Task Webhook_PendingUpdateExpiredWithARememberedRole_AddsNoRole_AndClearsTheMarker()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var scenario = await ArrangeOneRolePlanWithoutAddOnAsync();
+
+        var response = await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.pending_update_expired", scenario, "active", pendingRole: "Nutritionist"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await RoleNamesAsync(scenario.Coach.UserId)).Should().BeEquivalentTo(["Trainer"]);
+        fake.ClearedPendingSecondRoles.Should().ContainSingle().Which.Should().Be(scenario.SubscriptionId);
+    }
+
+    [Fact]
+    public async Task Webhook_PendingUpdateExpiredForAnAddOn_LeavesTheAddOnUnpaid_AndRestoresNothing()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var scenario = await ArrangeOneRolePlanWithoutAddOnAsync();
+        var eventId = NewEventId();
+
+        var response = await PostAsync(SubscriptionEvent(eventId, "customer.subscription.pending_update_expired", scenario, "active"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.ExpiredUpgradeRestores.Should().ContainSingle().Which.Should().Be(
+            new FakeSubscriptionService.RestoreCall(scenario.SubscriptionId, false), "no scheduled change is kept, so nothing is rebuilt");
+        var after = await ReadRowAsync(scenario.Coach.ProfileId);
+        after.PaysSecondRoleAddOn.Should().BeFalse();
+        after.SubscriptionPlan.Code.Should().Be(scenario.PlanCode);
+        after.PendingSubscriptionPlanPriceId.Should().BeNull();
+        (await ProcessedCountAsync(eventId)).Should().Be(1);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Webhook_PendingUpdateExpired_KeepsThePlan_AndAsksTheProviderToRestoreTheScheduledChange(bool rowHasScheduledChange)
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var (current, _, pendingRowId) = await ArrangeUpgradeWithScheduledDowngradeAsync();
+
+        if (!rowHasScheduledChange)
+        {
+            await UpdateRowAsync(current.Coach.ProfileId, row => row.PendingSubscriptionPlanPriceId = null);
+        }
+
+        var eventId = NewEventId();
+        var response = await PostAsync(SubscriptionEvent(eventId, "customer.subscription.pending_update_expired", current, "active"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.ExpiredUpgradeRestores.Should().ContainSingle().Which.Should().Be(
+            new FakeSubscriptionService.RestoreCall(current.SubscriptionId, rowHasScheduledChange));
+        var after = await ReadRowAsync(current.Coach.ProfileId);
+        after.SubscriptionPlan.Code.Should().Be(current.PlanCode);
+        after.PendingSubscriptionPlanPriceId.Should().Be(rowHasScheduledChange ? pendingRowId : null);
+        (await ProcessedCountAsync(eventId)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Webhook_PendingUpdateExpired_WhenTheProviderFails_Returns500_AndStoresNoEventId_SoStripeRetries()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        fake.FailExpiredUpgradeRestore = true;
+        var (current, _, _) = await ArrangeUpgradeWithScheduledDowngradeAsync();
+        var eventId = NewEventId();
+
+        var response = await PostAsync(SubscriptionEvent(eventId, "customer.subscription.pending_update_expired", current, "active"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+        (await ProcessedCountAsync(eventId)).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Webhook_PendingUpdateExpired_ForAnUnknownSubscription_Returns200_AndCallsNothing()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var unknown = new Scenario(await TestActors.Trainer(factory).CreateAsync(Ct), "none", "price_unknown", "cus_unknown", "sub_unknown");
+
+        var response = await PostAsync(SubscriptionEvent(NewEventId(), "customer.subscription.pending_update_expired", unknown, "active"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.ExpiredUpgradeRestores.Should().BeEmpty();
+    }
+
     [Fact]
     public async Task Webhook_WhenProcessingThrows_Returns500_AndStoresNoEventId()
     {
@@ -549,6 +1231,185 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
         response.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
         (await ProcessedCountAsync(eventId)).Should().Be(0, "a retry from Stripe must be able to reprocess the event");
         (await ReadRowAsync(scenario.Coach.ProfileId)).Status.Should().Be(SubscriptionStatus.Active, "the staged change rolls back with the event id");
+    }
+
+    /// <summary>A coach whose row tracks live subscription A, and a second subscription B of the same customer and price.</summary>
+    private async Task<(Scenario Tracked, Scenario Duplicate, FakeSubscriptionService Fake)> ArrangeTrackedAndDuplicateAsync()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var tracked = await ArrangeOnPaidPlanAsync();
+
+        return (tracked, tracked with { SubscriptionId = $"sub_{Guid.NewGuid():N}" }, fake);
+    }
+
+    private async Task AssertStillTracksAsync(Scenario tracked)
+    {
+        var row = await ReadRowAsync(tracked.Coach.ProfileId);
+
+        row.ExternalSubscriptionId.Should().Be(tracked.SubscriptionId);
+        row.Status.Should().Be(SubscriptionStatus.Active);
+        row.LastExternalEventAt.Should().BeNull("the duplicate must not move the stale-event clock");
+    }
+
+    [Fact]
+    public async Task Webhook_SecondSubscriptionCreatedActive_KeepsTheTrackedOne_AndCancelsTheDuplicate()
+    {
+        var (tracked, duplicate, fake) = await ArrangeTrackedAndDuplicateAsync();
+        var notifiedBefore = CallsTo(tracked.Coach).Count;
+
+        var response = await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.created", duplicate, "active", created: Now, subscriptionCreated: Now));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        await AssertStillTracksAsync(tracked);
+        fake.CancelledNow.Should().Equal(duplicate.SubscriptionId);
+        CallsTo(tracked.Coach).Count.Should().Be(notifiedBefore, "the row did not change");
+    }
+
+    [Fact]
+    public async Task Webhook_SecondSubscriptionCreatedIncomplete_IsIgnored_ThenCancelledOnceItBecomesActive()
+    {
+        var (tracked, duplicate, fake) = await ArrangeTrackedAndDuplicateAsync();
+
+        var created = await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.created", duplicate, "incomplete", created: Now, subscriptionCreated: Now));
+
+        created.StatusCode.Should().Be(HttpStatusCode.OK);
+        await AssertStillTracksAsync(tracked);
+        fake.CancelledNow.Should().BeEmpty("an unpaid subscription is not cancelled yet");
+
+        var activated = await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.updated", duplicate, "active", created: Now + 1, subscriptionCreated: Now));
+
+        activated.StatusCode.Should().Be(HttpStatusCode.OK);
+        await AssertStillTracksAsync(tracked);
+        fake.CancelledNow.Should().Equal(duplicate.SubscriptionId);
+    }
+
+    [Fact]
+    public async Task Webhook_SecondSubscriptionUpdatedCanceled_ChangesNothing_AndCancelsNothing()
+    {
+        var (tracked, duplicate, fake) = await ArrangeTrackedAndDuplicateAsync();
+
+        var response = await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.updated", duplicate, "canceled", created: Now, subscriptionCreated: Now));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        await AssertStillTracksAsync(tracked);
+        fake.CancelledNow.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Webhook_SecondSubscriptionDeleted_LeavesTheTrackedOneActive()
+    {
+        var (tracked, duplicate, fake) = await ArrangeTrackedAndDuplicateAsync();
+
+        var response = await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.deleted", duplicate, "canceled", created: Now, subscriptionCreated: Now));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        await AssertStillTracksAsync(tracked);
+        (await ReadRowAsync(tracked.Coach.ProfileId)).SubscriptionPlan.Code.Should().Be(tracked.PlanCode);
+        fake.CancelledNow.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Webhook_SecondSubscriptionActiveEventReplayed_CancelsOnce_AndLeavesTheRowAlone()
+    {
+        // Chosen path: the duplicate's event id is recorded (the event counts as handled) without marking the row changed,
+        // so a Stripe replay is answered from the processed-events table and never reaches the provider again.
+        var (tracked, duplicate, fake) = await ArrangeTrackedAndDuplicateAsync();
+        var eventId = NewEventId();
+        var payload = SubscriptionEvent(eventId, "customer.subscription.created", duplicate, "active", created: Now, subscriptionCreated: Now);
+
+        await PostAsync(payload);
+        var replay = await PostAsync(payload);
+
+        replay.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await ProcessedCountAsync(eventId)).Should().Be(1);
+        fake.CancelledNow.Should().Equal(duplicate.SubscriptionId);
+        await AssertStillTracksAsync(tracked);
+    }
+
+    [Fact]
+    public async Task Webhook_SecondSubscriptionAfterAGiftWithAStaleId_IsAppliedAsAPurchase_WithoutCancelling()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var stale = await ArrangeOnPaidPlanAsync();
+        await UpdateRowAsync(stale.Coach.ProfileId, row => row.GivenFreeAt = DateTimeOffset.UtcNow.AddDays(-1));
+        var bought = stale with { SubscriptionId = $"sub_{Guid.NewGuid():N}" };
+
+        var response = await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.created", bought, "active", created: Now, subscriptionCreated: Now));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        await AssertBoughtPlanReplacedGiftAsync(bought);
+        fake.CancelledNow.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Webhook_NewSubscriptionAfterTheTrackedOneEnded_IsApplied_WithoutCancelling()
+    {
+        var (tracked, replacement, fake) = await ArrangeTrackedAndDuplicateAsync();
+
+        await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.deleted", tracked, "canceled", created: Now - 10, subscriptionCreated: Now - 100));
+        var response = await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.created", replacement, "active", created: Now, subscriptionCreated: Now));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        await AssertBoughtPlanReplacedGiftAsync(replacement);
+        fake.CancelledNow.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Webhook_UpdateOfTheTrackedSubscription_StillApplies_WhenAnotherOneExists()
+    {
+        var (tracked, _, fake) = await ArrangeTrackedAndDuplicateAsync();
+
+        var response = await PostAsync(SubscriptionEvent(
+            NewEventId(), "customer.subscription.updated", tracked, "past_due", created: Now, subscriptionCreated: Now - 100));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await ReadRowAsync(tracked.Coach.ProfileId)).Status.Should().Be(SubscriptionStatus.PastDue);
+        fake.CancelledNow.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Webhook_PendingUpdateExpiredForASecondSubscription_TouchesNeitherTheTrackedOneNorItsMarkers()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var (tracked, _, pendingRowId) = await ArrangeUpgradeWithScheduledDowngradeAsync();
+        var duplicate = tracked with { SubscriptionId = $"sub_{Guid.NewGuid():N}" };
+        var eventId = NewEventId();
+
+        var response = await PostAsync(SubscriptionEvent(
+            eventId, "customer.subscription.pending_update_expired", duplicate, "incomplete_expired", pendingRole: "Nutritionist"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.ExpiredUpgradeRestores.Should().BeEmpty();
+        fake.ClearedPendingSecondRoles.Should().BeEmpty();
+        fake.CancelledNow.Should().BeEmpty();
+        var row = await ReadRowAsync(tracked.Coach.ProfileId);
+        row.ExternalSubscriptionId.Should().Be(tracked.SubscriptionId);
+        row.Status.Should().Be(SubscriptionStatus.Active);
+        row.PendingSubscriptionPlanPriceId.Should().Be(pendingRowId);
+        (await ProcessedCountAsync(eventId)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Webhook_WhenCancellingTheDuplicateFails_Returns500_AndStoresNoEventId_SoStripeRetries()
+    {
+        var (tracked, duplicate, fake) = await ArrangeTrackedAndDuplicateAsync();
+        fake.CancelNowHook = _ => throw new BillingProviderException("Fake cancel failure.");
+        var eventId = NewEventId();
+
+        var response = await PostAsync(SubscriptionEvent(
+            eventId, "customer.subscription.created", duplicate, "active", created: Now, subscriptionCreated: Now));
+
+        response.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+        (await ProcessedCountAsync(eventId)).Should().Be(0);
+        await AssertStillTracksAsync(tracked);
     }
 
     private async Task<int> RedemptionCountAsync(long promotionId)
@@ -614,6 +1475,27 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
     public async Task Webhook_AnAutomaticCouponWithoutAPromotionCode_IsMappedByItsCouponId()
     {
         var (scenario, promotion, _) = await ArrangeDiscountAsync(reportedAsCode: false);
+
+        await PostAsync(SubscriptionEvent(NewEventId(), "customer.subscription.created", scenario, "active", discountIds: ["di_1"]));
+
+        (await ReadRowAsync(scenario.Coach.ProfileId)).CurrentPromotionId.Should().Be(promotion.Id);
+        (await RedemptionCountAsync(promotion.Id)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Webhook_ADiscountOfTheAnnualCoupon_ResolvesThePromotion_AndWritesTheRedemption()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var scenario = await ArrangeOnFreePlanAsync();
+        var promotion = await PromotionBuilder.CreateAsync(
+            factory, [scenario.PlanCode], PromotionMode.Automatic, p =>
+            {
+                p.Duration = PromotionDuration.Months;
+                p.DurationMonths = 3;
+                p.StripePromotionCodeId = null;
+                p.StripeAnnualCouponId = $"coupon_annual_{Guid.NewGuid():N}";
+            });
+        fake.SubscriptionDiscounts[scenario.SubscriptionId] = new SubscriptionDiscount(promotion.StripeAnnualCouponId, null, null);
 
         await PostAsync(SubscriptionEvent(NewEventId(), "customer.subscription.created", scenario, "active", discountIds: ["di_1"]));
 

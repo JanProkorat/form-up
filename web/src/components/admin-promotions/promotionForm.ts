@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import {
+  PromotionBillingPeriod,
   PromotionDuration,
   PromotionKind,
   PromotionMode,
@@ -29,6 +30,7 @@ const promotionShape = z.object({
   code: z.string(),
   duration: z.enum(['first', 'months', 'forever']),
   durationMonths: z.string(),
+  billingPeriod: z.enum(['monthly', 'annual', 'both']),
   claimFrom: z.string(),
   claimUntil: z.string(),
   planCodes: z.array(z.string()),
@@ -63,6 +65,7 @@ export function defaultPromotionValues(now: Date = new Date()): PromotionFormVal
     code: '',
     duration: 'first',
     durationMonths: '',
+    billingPeriod: 'both',
     claimFrom: toDateInput(now),
     claimUntil: '',
     planCodes: [...PROMOTION_PLAN_CODES],
@@ -145,6 +148,12 @@ const DURATION_BY_OPTION: Record<PromotionFormValues['duration'], PromotionDurat
   forever: PromotionDuration.Forever,
 };
 
+const BILLING_PERIOD_BY_OPTION: Record<PromotionFormValues['billingPeriod'], PromotionBillingPeriod> = {
+  monthly: PromotionBillingPeriod.Monthly,
+  annual: PromotionBillingPeriod.Annual,
+  both: PromotionBillingPeriod.Both,
+};
+
 /** Builds the create body: percent as typed, a fixed amount in minor units (crowns x 100), code only in code mode. */
 export function formValuesToCreateRequest(values: PromotionFormValues): CreatePromotionRequest {
   const percent = values.kind === 'percent';
@@ -160,6 +169,7 @@ export function formValuesToCreateRequest(values: PromotionFormValues): CreatePr
     code: values.mode === 'code' ? values.code.trim() : undefined,
     duration: DURATION_BY_OPTION[values.duration],
     durationMonths: values.duration === 'months' ? Number(values.durationMonths.trim()) : undefined,
+    billingPeriod: BILLING_PERIOD_BY_OPTION[values.billingPeriod],
     claimFrom: claimFrom.toISOString(),
     claimUntil: claimUntil ? claimUntil.toISOString() : undefined,
     planCodes: PROMOTION_PLAN_CODES.filter((code) => values.planCodes.includes(code)),

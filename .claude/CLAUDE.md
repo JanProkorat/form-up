@@ -62,6 +62,7 @@ package label per package whose code it changes:
 | i18n mechanism (generic) — locale list is in root `CLAUDE.md` | [`rules/i18n.md`](rules/i18n.md) |
 | Verification surfaces per scope | [`rules/verification-contract.md`](rules/verification-contract.md) |
 | Backend test layers, builders, isolation, CI time budget | [`rules/testing.md`](rules/testing.md) |
+| Web test layers (Vitest component vs Playwright E2E), double coverage | [`rules/web-testing.md`](rules/web-testing.md) |
 
 Scope → stack map: [`rules/scope-boundaries.md#scope-to-stack-mapping`](rules/scope-boundaries.md#scope-to-stack-mapping).
 Locales: root `CLAUDE.md` → Shared Conventions.
@@ -162,6 +163,8 @@ canvas (`HFzM8WqykBxJvkLdiqU85h`) is frozen; do not use it.
    Sequence:
    a. Dev sub-agent(s) finish their slice and report back via the dev-handoff
       JSON (see [`schemas/dev-handoff.v1.json`](schemas/dev-handoff.v1.json)).
+      List its `noticed` entries to the user; each becomes an issue only if
+      the user says so.
    b. Orchestrator dispatches `qa-tester` with the issue number.
    c. ❌ FAIL → route the fix list to the owning dev sub-agent, then re-run
       `qa-tester` on the delta (`since: <sha of its last verdict>`, see
@@ -177,8 +180,11 @@ canvas (`HFzM8WqykBxJvkLdiqU85h`) is frozen; do not use it.
       gap (e.g. extend `QaSeedRunner` via `backend-dotnet`) or accept the
       gap with a follow-up issue; user decides. PARTIAL with a documented
       gap may proceed to code-review on user authorization.
-   d. PASS → orchestrator tells the user the task is done and (if applicable)
-      suggests closing via `github-issues` with `Fixes #<N>`.
+   d. PASS → orchestrator runs the browser walk of the test guide
+      ([`docs/guide-walk.md`](docs/guide-walk.md)) on the main thread and fixes
+      what it finds. Only then tell the user the task is done, pointing at the
+      guide's **Needs you** list, and (if applicable) suggest closing via
+      `github-issues` with `Fixes #<N>`.
    Skip only if the task did not originate from a GitHub issue. Never skip to
    save a round trip — the AC is the contract.
 
@@ -253,6 +259,7 @@ canvas (`HFzM8WqykBxJvkLdiqU85h`) is frozen; do not use it.
 | `ui-tradeoff`     | Enforces Working Principles §4 (two-attempt stop rule).                                                                       |
 | `root-cause-swarm`| Enforces Working Principles §1 (no speculative patches) for multi-layer bugs.                                                 |
 | `ship-epic`       | Full epic-to-PR lifecycle. Orchestrator-only. See [`rules/epic-branch.md`](rules/epic-branch.md).                            |
+| `test-guide`      | Living test-guide page (claude.ai artifact) per implementation request: steps per issue, Works/Broken marks, the maintainer's notes + screenshots, open decisions. Orchestrator-only; use on every implementation request and on "check the guide". |
 
 ## Chainable plugin skills (external)
 

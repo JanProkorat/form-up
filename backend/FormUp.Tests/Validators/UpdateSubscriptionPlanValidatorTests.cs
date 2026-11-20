@@ -36,7 +36,6 @@ public class UpdateSubscriptionPlanValidatorTests
         CanUsePackages = true,
         Currency = "CZK",
         PriceMinorUnits = 29900,
-        BillingInterval = BillingInterval.Monthly,
         MaxActiveClients = new OptionalField<int?>(10),
         IsActive = true,
     };
@@ -257,6 +256,81 @@ public class UpdateSubscriptionPlanValidatorTests
 
         var result = _validator.TestValidate(req);
         result.ShouldHaveValidationErrorFor(x => x.IsActive).WithErrorCode(ErrorCodes.Required);
+    }
+
+    [Fact]
+    public void AnnualPrice_PaidAddOnWithAnnualAddOn_PassesValidation()
+    {
+        var req = ValidRequest();
+        req.BothRolesIncluded = false;
+        req.SecondRoleAddOnPriceMinorUnits = 14900;
+        req.AnnualPriceMinorUnits = 299000;
+        req.AnnualSecondRoleAddOnPriceMinorUnits = 149000;
+
+        _validator.TestValidate(req).IsValid.Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData(0L)]
+    [InlineData(-1L)]
+    public void AnnualPrice_ZeroOrNegative_FailsWithOutOfRangeCode(long annualPrice)
+    {
+        var req = ValidRequest();
+        req.AnnualPriceMinorUnits = annualPrice;
+
+        var result = _validator.TestValidate(req);
+
+        result.ShouldHaveValidationErrorFor(x => x.AnnualPriceMinorUnits).WithErrorCode(ErrorCodes.OutOfRange);
+    }
+
+    [Fact]
+    public void AnnualPrice_OnFreePlan_FailsWithAnnualPriceInvalidCode()
+    {
+        var req = ValidRequest();
+        req.Code = SubscriptionPlanCodes.Free;
+        req.AnnualPriceMinorUnits = 299000;
+
+        var result = _validator.TestValidate(req);
+
+        result.Errors.Should().Contain(e => e.ErrorCode == ErrorCodes.AnnualPriceInvalid);
+    }
+
+    [Fact]
+    public void AnnualAddOn_BothRolesIncluded_FailsWithAnnualAddOnPriceInvalidCode()
+    {
+        var req = ValidRequest();
+        req.AnnualPriceMinorUnits = 299000;
+        req.AnnualSecondRoleAddOnPriceMinorUnits = 149000;
+
+        var result = _validator.TestValidate(req);
+
+        result.Errors.Should().Contain(e => e.ErrorCode == ErrorCodes.AnnualAddOnPriceInvalid);
+    }
+
+    [Fact]
+    public void AnnualAddOn_WithoutAnnualPrice_FailsWithAnnualAddOnPriceInvalidCode()
+    {
+        var req = ValidRequest();
+        req.BothRolesIncluded = false;
+        req.SecondRoleAddOnPriceMinorUnits = 14900;
+        req.AnnualSecondRoleAddOnPriceMinorUnits = 149000;
+
+        var result = _validator.TestValidate(req);
+
+        result.Errors.Should().Contain(e => e.ErrorCode == ErrorCodes.AnnualAddOnPriceInvalid);
+    }
+
+    [Fact]
+    public void AnnualPrice_PaidAddOnPlanWithoutAnnualAddOn_FailsWithAnnualAddOnPriceInvalidCode()
+    {
+        var req = ValidRequest();
+        req.BothRolesIncluded = false;
+        req.SecondRoleAddOnPriceMinorUnits = 14900;
+        req.AnnualPriceMinorUnits = 299000;
+
+        var result = _validator.TestValidate(req);
+
+        result.Errors.Should().Contain(e => e.ErrorCode == ErrorCodes.AnnualAddOnPriceInvalid);
     }
 
     [Fact]

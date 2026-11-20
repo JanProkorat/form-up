@@ -31,8 +31,8 @@ internal sealed class ScheduleSwitchToFreeEndpoint(
         Summary(s =>
         {
             s.Summary = "Switch my paid subscription to Free at period end";
-            s.Description = "Cancels the caller's own live paid subscription at the end of the current period. There is no undo " +
-                            "here; the coach resumes through the billing portal.";
+            s.Description = "Cancels the caller's own live paid subscription at the end of the current period. The coach can undo " +
+                            "it with POST /billing/scheduled-change/cancel until the period ends.";
             s.Response<ScheduleSwitchToFreeResponse>(StatusCodes.Status200OK, "The cancellation is scheduled");
             s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
             s.Response(StatusCodes.Status403Forbidden, "The caller is not a trainer or nutritionist, or the coach role was removed");
@@ -87,6 +87,7 @@ internal sealed class ScheduleSwitchToFreeEndpoint(
         // The plan stays until the deleted webhook; a scheduled downgrade is moot because the coach is leaving.
         subscription.CancelAtPeriodEnd = true;
         subscription.PendingSubscriptionPlanPriceId = null;
+        subscription.SecondRoleAddOnEndsAt = null;
         await db.SaveChangesAsync(ct);
 
         await Send.OkAsync(new ScheduleSwitchToFreeResponse { EndsAt = subscription.CurrentPeriodEndsAt }, ct);

@@ -421,6 +421,10 @@ If you know you are stopping mid-task, write `status: "incomplete"` with
 `incomplete_reason: "<what remains, at which step>"` so the orchestrator can
 decide to resume vs split.
 
+**Noticed, not touched.** A problem outside your scope (a bug, a stale
+comment, a missing test) goes into the optional `noticed` array as
+`"<file:line> — <what>"`. Do not fix it.
+
 ## Never
 - Edit anything outside `/backend`.
 - Change `Domain/Entities/*` without also adding/updating a migration.

@@ -47,6 +47,31 @@ public class CreatePromotionValidatorTests
     }
 
     [Theory]
+    [InlineData(PromotionBillingPeriod.Both)]
+    [InlineData(PromotionBillingPeriod.Monthly)]
+    [InlineData(PromotionBillingPeriod.Annual)]
+    public void Validate_EveryDefinedBillingPeriod_Passes(PromotionBillingPeriod period)
+    {
+        var request = Valid();
+        request.BillingPeriod = period;
+
+        Validate(request).IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Validate_ABillingPeriodThatIsNotDefined_Fails()
+    {
+        var request = Valid();
+        request.BillingPeriod = (PromotionBillingPeriod)7;
+
+        Validate(request).IsValid.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Validate_WithoutABillingPeriod_DefaultsToBoth() =>
+        new CreatePromotionRequest().BillingPeriod.Should().Be(PromotionBillingPeriod.Both);
+
+    [Theory]
     [InlineData("")]
     [InlineData("   ")]
     public void Validate_EmptyName_Fails(string name)

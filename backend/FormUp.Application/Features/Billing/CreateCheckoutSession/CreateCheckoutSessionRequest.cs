@@ -10,9 +10,18 @@ public class CreateCheckoutSessionRequest
     /// <summary>Code of the paid plan to buy. Never the Free plan.</summary>
     public string PlanCode { get; set; } = string.Empty;
 
-    /// <summary>True to add the second-role add-on line. Refused on a plan that already includes both roles.</summary>
+    /// <summary>How often the plan bills. Monthly when omitted, so clients that predate annual billing keep working.</summary>
+    public BillingInterval BillingInterval { get; set; } = BillingInterval.Monthly;
+
+    /// <summary>Ignored: the server bills the second-role add-on from the coach's active roles. Kept so existing clients still bind.</summary>
     public bool IncludeSecondRoleAddOn { get; set; }
 
     /// <summary>Where the coach started, so the return URL lands on the right page. Never a URL.</summary>
     public CheckoutFlow Flow { get; set; } = CheckoutFlow.Settings;
+
+    /// <summary>
+    /// Optional promotion code typed in our app. It is checked against our promotion before anything is sent to Stripe and
+    /// replaces the automatic promotion. Never logged or echoed back.
+    /// </summary>
+    public string? Code { get; set; }
 }

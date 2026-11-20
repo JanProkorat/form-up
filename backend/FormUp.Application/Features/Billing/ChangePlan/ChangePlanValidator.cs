@@ -16,5 +16,11 @@ internal sealed class ChangePlanValidator : Validator<ChangePlanRequest>
         RuleFor(x => x.PlanCode)
             .NotEmpty()
             .MaximumLength(100);
+
+        RuleFor(x => x.BillingInterval)
+            .IsInEnum();
+
+        RuleFor(x => x.AttemptId)
+            .NotEmpty();
     }
 }

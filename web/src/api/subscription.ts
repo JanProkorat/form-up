@@ -1,11 +1,15 @@
 import { apiClient } from '@/api/client';
 import type {
+  BillingInterval,
+  CancelScheduledPlanChangeResponse,
   ChangePlanResponse,
   ConfirmSecondRoleAddOnResponse,
   CreateCheckoutSessionRequest,
   GetCoachPlansResponse,
   GetKeepClientsResponse,
   GetMySubscriptionResponse,
+  GetPublicSubscriptionPlansResponse,
+  PreviewPlanChangeResponse,
   PreviewSecondRoleAddOnResponse,
   ScheduleSwitchToFreeResponse,
 } from '@/api/generated';
@@ -35,14 +39,37 @@ export async function chooseFreePlan(keepClientIds: string[]): Promise<void> {
   return apiClient.chooseFreePlanEndpoint({ keepClientIds });
 }
 
-/** POST /billing/change-plan — moves a live paid subscription to another paid plan (upgrade now, downgrade at renewal). */
-export async function changePlan(planCode: string): Promise<ChangePlanResponse> {
-  return apiClient.changePlanEndpoint({ planCode });
+/**
+ * POST /billing/change-plan — moves a live paid subscription to another paid plan (upgrade now, downgrade at renewal).
+ * The attempt id keys the immediate charge: repeating it never bills twice. The interval defaults to monthly on the server.
+ */
+export async function changePlan(
+  planCode: string,
+  attemptId: string,
+  billingInterval?: BillingInterval,
+): Promise<ChangePlanResponse> {
+  return apiClient.changePlanEndpoint({ planCode, attemptId, billingInterval });
+}
+
+/**
+ * POST /billing/change-plan/preview — when a move to a paid plan applies, what is charged today and the regular bill after.
+ * The interval is the one the coach would buy; without it the server previews monthly.
+ */
+export async function previewPlanChange(
+  planCode: string,
+  billingInterval?: BillingInterval,
+): Promise<PreviewPlanChangeResponse> {
+  return apiClient.previewPlanChangeEndpoint({ planCode, billingInterval });
 }
 
 /** POST /billing/switch-to-free — ends the paid plan at the end of the paid period. */
 export async function switchToFree(): Promise<ScheduleSwitchToFreeResponse> {
   return apiClient.scheduleSwitchToFreeEndpoint();
+}
+
+/** POST /billing/scheduled-change/cancel — drops the scheduled downgrade or switch to Free; the coach stays on the current plan. */
+export async function cancelScheduledChange(): Promise<CancelScheduledPlanChangeResponse> {
+  return apiClient.cancelScheduledPlanChangeEndpoint();
 }
 
 /** POST /billing/promotion-code — applies a code to the caller's subscription (204). */
@@ -74,9 +101,20 @@ export async function createPortalSession(): Promise<string> {
   return result.url;
 }
 
+/** GET /subscription-plans — the offered plans for the public pricing page; anonymous, cheapest first. */
+export async function getPublicSubscriptionPlans(): Promise<GetPublicSubscriptionPlansResponse> {
+  return apiClient.getPublicSubscriptionPlansEndpoint();
+}
+
+export const pricingKeys = {
+  plans: ['pricing', 'plans'] as const,
+};
+
 export const subscriptionKeys = {
   mine: ['subscription', 'me'] as const,
   keepClients: ['subscription', 'keep-clients'] as const,
   plans: ['subscription', 'plans'] as const,
   secondRolePreview: ['subscription', 'second-role-preview'] as const,
+  planChangePreview: (planCode: string, billingInterval: BillingInterval) =>
+    ['subscription', 'plan-change-preview', planCode, billingInterval] as const,
 };

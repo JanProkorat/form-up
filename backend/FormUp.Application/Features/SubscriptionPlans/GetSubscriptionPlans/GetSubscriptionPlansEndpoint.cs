@@ -1,5 +1,6 @@
 using FastEndpoints;
 using FormUp.Application.Domain.Constants;
+using FormUp.Application.Domain.Enums;
 using FormUp.Application.Features.SubscriptionPlans.Shared;
 using FormUp.Application.Infrastructure.Data;
 using Microsoft.AspNetCore.Http;
@@ -39,8 +40,13 @@ internal sealed class GetSubscriptionPlansEndpoint(IApplicationDbContext db)
             {
                 Plan = p,
                 ExternalPriceId = p.Prices
-                    .Where(price => price.ValidTo == null)
+                    .Where(price => price.ValidTo == null && price.BillingInterval == BillingInterval.Monthly)
                     .Select(price => price.ExternalPriceId)
+                    .FirstOrDefault(),
+                AnnualPrice = p.Prices
+                    .Where(price => price.ValidTo == null && price.BillingInterval == BillingInterval.Annual)
+                    .Select(price => new AnnualPriceSnapshot(
+                        price.PriceMinorUnits, price.SecondRoleAddOnPriceMinorUnits, price.ExternalPriceId))
                     .FirstOrDefault(),
                 CoachCount = db.CoachSubscriptions.Count(cs =>
                     cs.SubscriptionPlanId == p.Id && LiveSubscriptionStatuses.All.Contains(cs.Status)),
@@ -49,7 +55,7 @@ internal sealed class GetSubscriptionPlansEndpoint(IApplicationDbContext db)
 
         await Send.OkAsync(new GetSubscriptionPlansResponse
         {
-            Plans = rows.Select(r => SubscriptionPlanDto.FromEntity(r.Plan, r.ExternalPriceId, r.CoachCount)).ToList(),
+            Plans = rows.Select(r => SubscriptionPlanDto.FromEntity(r.Plan, r.ExternalPriceId, r.CoachCount, r.AnnualPrice)).ToList(),
         }, ct);
     }
 }

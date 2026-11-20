@@ -2186,6 +2186,14 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("professional_profile_id");
 
+                    b.Property<DateTimeOffset?>("RenewalCancelledByAdminAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("renewal_cancelled_by_admin_at");
+
+                    b.Property<DateTimeOffset?>("SecondRoleAddOnEndsAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("second_role_add_on_ends_at");
+
                     b.Property<int>("Status")
                         .HasColumnType("integer")
                         .HasColumnName("status");
@@ -3126,6 +3134,10 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<int>("BillingPeriod")
+                        .HasColumnType("integer")
+                        .HasColumnName("billing_period");
+
                     b.Property<DateTimeOffset>("ClaimFrom")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("claim_from");
@@ -3204,6 +3216,11 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("public_id");
 
+                    b.Property<string>("StripeAnnualCouponId")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("stripe_annual_coupon_id");
+
                     b.Property<string>("StripeCouponId")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -3228,6 +3245,9 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                     b.HasIndex("PublicId")
                         .IsUnique()
                         .HasDatabaseName("ix_promotions_public_id");
+
+                    b.HasIndex("StripeAnnualCouponId")
+                        .HasDatabaseName("ix_promotions_stripe_annual_coupon_id");
 
                     b.HasIndex("StripeCouponId")
                         .HasDatabaseName("ix_promotions_stripe_coupon_id");
@@ -3668,10 +3688,6 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
-                    b.Property<int>("BillingInterval")
-                        .HasColumnType("integer")
-                        .HasColumnName("billing_interval");
-
                     b.Property<bool>("BothRolesIncluded")
                         .HasColumnType("boolean")
                         .HasColumnName("both_roles_included");
@@ -3796,6 +3812,10 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<int>("BillingInterval")
+                        .HasColumnType("integer")
+                        .HasColumnName("billing_interval");
+
                     b.Property<string>("Currency")
                         .IsRequired()
                         .HasMaxLength(3)
@@ -3838,9 +3858,9 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                     b.HasKey("Id")
                         .HasName("pk_subscription_plan_prices");
 
-                    b.HasIndex("SubscriptionPlanId")
+                    b.HasIndex("SubscriptionPlanId", "BillingInterval")
                         .IsUnique()
-                        .HasDatabaseName("ix_subscription_plan_prices_subscription_plan_id")
+                        .HasDatabaseName("ix_subscription_plan_prices_subscription_plan_id_billing_inter")
                         .HasFilter("valid_to IS NULL");
 
                     b.ToTable("subscription_plan_prices", (string)null);

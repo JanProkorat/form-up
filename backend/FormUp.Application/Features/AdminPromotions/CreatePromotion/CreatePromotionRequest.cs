@@ -37,6 +37,12 @@ public class CreatePromotionRequest
     /// <summary>When the promotion stops being claimable; null for no end. Must be after <see cref="ClaimFrom"/>.</summary>
     public DateTimeOffset? ClaimUntil { get; set; }
 
+    /// <summary>
+    /// Which billing cadences the promotion discounts; both when omitted. An annual-only promotion needs every selected plan
+    /// to have an open annual price.
+    /// </summary>
+    public PromotionBillingPeriod BillingPeriod { get; set; } = PromotionBillingPeriod.Both;
+
     /// <summary>Codes of the paid plans the promotion covers; at least one.</summary>
     public List<string> PlanCodes { get; set; } = [];
 

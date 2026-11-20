@@ -161,6 +161,7 @@
   --gf-text-auth-title: 22px; /* login panel heading */
   --gf-text-stat: 26px; /* stat figures, empty-state heading */
   --gf-text-display: 30px; /* large page heading on the Page*C boards */
+  --gf-text-price: 40px; /* plan price on the pricing page (PagePricing*) */
 
   /* Home page (PageHome*) type roles. */
   --gf-text-home-hero: clamp(38px, 3.9vw, 56px); /* hero H1: 56px from 1440px wide */
@@ -877,6 +878,8 @@
   --text-stat--line-height: 1.2;
   --text-display: var(--gf-text-display);
   --text-display--line-height: 1.2;
+  --text-price: var(--gf-text-price);
+  --text-price--line-height: 1.1;
   --text-panel-title: var(--gf-text-panel-title);
   --text-panel-title--line-height: 1.2;
   --text-auth-title: var(--gf-text-auth-title);

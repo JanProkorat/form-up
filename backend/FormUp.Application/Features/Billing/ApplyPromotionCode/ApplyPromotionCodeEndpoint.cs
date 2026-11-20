@@ -15,9 +15,10 @@ using Microsoft.EntityFrameworkCore;
 namespace FormUp.Application.Features.Billing.ApplyPromotionCode;
 
 /// <summary>
-/// Applies a promotion code to the caller's own live subscription after checking it against our promotion: claim window,
-/// plan, max uses, new coaches only and one use per coach. A valid code replaces the current discount. The code is never
-/// logged or echoed back, and the route is rate limited per account.
+/// Applies a promotion code to the caller's own live subscription after checking it against our promotion
+/// (<see cref="PromotionEligibility"/>): claim window, plan, billing interval, max uses, new coaches only and one use per
+/// coach. A valid code attaches the coupon of the subscription's interval and replaces the current discount. The code is
+/// never logged or echoed back, and the route is rate limited per account.
 /// </summary>
 /// <param name="db">Application database context.</param>
 /// <param name="subscriptions">The payment provider seam.</param>
@@ -46,7 +47,7 @@ internal sealed class ApplyPromotionCodeEndpoint(IApplicationDbContext db, ISubs
             s.Response(StatusCodes.Status404NotFound, "No promotion has this code, its claim window has closed, or an admin ended it (PROMOTION_CODE_NOT_FOUND)");
             s.Response(StatusCodes.Status409Conflict,
                 "No live paid subscription (BILLING_NO_SUBSCRIPTION), an admin gift is in force (BILLING_GIFT_IN_FORCE), or the " +
-                "code fails a rule: PROMOTION_CODE_NOT_STARTED, PROMOTION_CODE_PLAN_NOT_ELIGIBLE, PROMOTION_CODE_USED_UP, " +
+                "code fails a rule: PROMOTION_CODE_NOT_STARTED, PROMOTION_CODE_PLAN_NOT_ELIGIBLE, PROMOTION_CODE_INTERVAL_NOT_ELIGIBLE, PROMOTION_CODE_USED_UP, " +
                 "PROMOTION_CODE_NEW_COACHES_ONLY, PROMOTION_CODE_ALREADY_USED");
             s.Response(StatusCodes.Status429TooManyRequests, "The per-account rate limit was exceeded");
             s.Response(StatusCodes.Status502BadGateway, "Stripe failed (BILLING_PROVIDER_ERROR)");
@@ -76,7 +77,7 @@ internal sealed class ApplyPromotionCodeEndpoint(IApplicationDbContext db, ISubs
             return;
         }
 
-        var promotion = await FindPromotionAsync(req.Code, now, ct);
+        var promotion = await PromotionEligibility.FindByCodeAsync(db, req.Code, now, ct);
 
         if (promotion is null)
         {
@@ -91,14 +92,28 @@ internal sealed class ApplyPromotionCodeEndpoint(IApplicationDbContext db, ISubs
             return;
         }
 
-        if (!await IsEligibleOrRespondAsync(promotion, subscription, now, ct))
+        var refusal = await PromotionEligibility.CheckAsync(
+            db,
+            promotion,
+            subscription.SubscriptionPlan.Code,
+            subscription.SubscriptionPlanPrice.BillingInterval,
+            subscription.ProfessionalProfileId,
+            subscription.FirstPaidAt,
+            now,
+            ct);
+
+        if (refusal is not null)
         {
+            await this.SendProblemAsync(StatusCodes.Status409Conflict, refusal.ErrorCode, refusal.Detail, ct);
             return;
         }
 
         try
         {
-            await subscriptions.ApplyPromotionCodeAsync(subscription.ExternalSubscriptionId!, promotion.StripePromotionCodeId!, ct);
+            await subscriptions.ApplyCouponAsync(
+                subscription.ExternalSubscriptionId!,
+                PromotionRules.CouponIdFor(promotion, subscription.SubscriptionPlanPrice.BillingInterval)!,
+                ct);
         }
         catch (BillingProviderException)
         {
@@ -109,70 +124,4 @@ internal sealed class ApplyPromotionCodeEndpoint(IApplicationDbContext db, ISubs
         await Send.NoContentAsync(ct);
     }
 
-    /// <summary>
-    /// The code-mode promotion with this code that no admin ended and whose claim window has not closed; the latest claim-from when several
-    /// promotions once shared the code. Null when there is none.
-    /// </summary>
-    private async Task<Promotion?> FindPromotionAsync(string code, DateTimeOffset now, CancellationToken ct)
-    {
-        var normalized = code.ToUpperInvariant();
-        var sameCode = await db.Promotions
-            .AsNoTracking()
-            .Where(p => p.Mode == PromotionMode.Code && p.CodeNormalized == normalized && p.StripePromotionCodeId != null
-                        && p.EndedAt == null)
-            .ToListAsync(ct);
-
-        return sameCode
-            .Where(p => !PromotionRules.HasClaimWindowClosed(p, now))
-            .OrderByDescending(p => p.ClaimFrom)
-            .ThenBy(p => p.Id)
-            .FirstOrDefault();
-    }
-
-    /// <summary>
-    /// Runs the coach-specific rules in a fixed order. Answers 409 with the code of the first rule the promotion fails and
-    /// returns false; returns true when the coach qualifies.
-    /// </summary>
-    private async Task<bool> IsEligibleOrRespondAsync(
-        Promotion promotion, CoachSubscription subscription, DateTimeOffset now, CancellationToken ct)
-    {
-        if (now < promotion.ClaimFrom)
-        {
-            await Conflict(ErrorCodes.PromotionCodeNotStarted, "The promotion has not started yet.", ct);
-            return false;
-        }
-
-        if (!PromotionRules.CoversPlan(promotion, subscription.SubscriptionPlan.Code))
-        {
-            await Conflict(ErrorCodes.PromotionCodePlanNotEligible, "The promotion does not cover your plan.", ct);
-            return false;
-        }
-
-        var usedCount = await db.PromotionRedemptions.CountAsync(r => r.PromotionId == promotion.Id, ct);
-
-        if (PromotionRules.IsUsedUp(promotion, usedCount))
-        {
-            await Conflict(ErrorCodes.PromotionCodeUsedUp, "Every use of the promotion is taken.", ct);
-            return false;
-        }
-
-        if (promotion.NewCoachesOnly && subscription.FirstPaidAt is not null)
-        {
-            await Conflict(ErrorCodes.PromotionCodeNewCoachesOnly, "The promotion is for new coaches only.", ct);
-            return false;
-        }
-
-        if (promotion.OneUsePerCoach
-            && await db.PromotionRedemptions.AnyAsync(
-                r => r.PromotionId == promotion.Id && r.ProfessionalProfileId == subscription.ProfessionalProfileId, ct))
-        {
-            await Conflict(ErrorCodes.PromotionCodeAlreadyUsed, "You already used this promotion.", ct);
-            return false;
-        }
-
-        return true;
-    }
-
-    private Task Conflict(string errorCode, string detail, CancellationToken ct) =>
-        this.SendProblemAsync(StatusCodes.Status409Conflict, errorCode, detail, ct);
 }

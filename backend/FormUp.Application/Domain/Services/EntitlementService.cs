@@ -15,8 +15,9 @@ namespace FormUp.Application.Domain.Services;
 /// <see cref="Entities.CoachSubscription.FreeUntil"/>, or while the status is Trialing, Active or PastDue,
 /// the assigned plan's own flags apply; Canceled and Incomplete fall back to the Free plan. A plan given for
 /// free (<see cref="Entities.CoachSubscription.GivenFreeAt"/> set) applies only until its end, whatever the
-/// status. After its end the coach must choose a plan; until they do, reads keep resolving to the ended plan's
-/// own flags and nobody is over the cap. When the
+/// status, and counts as including both roles whatever plan was given. After its end the coach must choose a
+/// plan; until they do, reads keep resolving to the ended plan's own flags (and its own second-role rule) and
+/// nobody is over the cap. When the
 /// Free plan row itself is missing the service logs an error and resolves to
 /// <see cref="CoachEntitlements.Locked"/> (fail closed).
 /// </remarks>
@@ -333,12 +334,42 @@ public class EntitlementService
     {
         if (row is not null && UsesAssignedPlan(row))
         {
-            return new Resolution(row.Plan.ToEntitlements(), row.Plan.BothRolesIncluded, row.PaysSecondRoleAddOn);
+            return new Resolution(
+                row.Plan.ToEntitlements(),
+                row.Plan.BothRolesIncluded || IsGiftInForce(row),
+                row.PaysSecondRoleAddOn,
+                CanBuySecondRoleAddOn(row));
         }
 
         return free is null
-            ? new Resolution(CoachEntitlements.Locked, false, false)
-            : new Resolution(free.ToEntitlements(), free.BothRolesIncluded, false);
+            ? new Resolution(CoachEntitlements.Locked, false, false, false)
+            : new Resolution(free.ToEntitlements(), free.BothRolesIncluded, false, false);
+    }
+
+    /// <summary>
+    /// A plan given by Form Up that has not ended. Unlike <see cref="UsesAssignedPlan"/>, this is false once the gift
+    /// ended while the coach has yet to choose a plan.
+    /// </summary>
+    private bool IsGiftInForce(SubscriptionRow row) => row.GivenFreeAt is not null && PlanApplies(row);
+
+    /// <summary>
+    /// Mirrors what the paid add-on flow accepts: a live provider subscription with no gift, a plan without both
+    /// roles and an add-on price, no add-on paid yet, and no plan change scheduled.
+    /// </summary>
+    private bool CanBuySecondRoleAddOn(SubscriptionRow row)
+    {
+        var now = timeProvider.GetUtcNow();
+
+        return row.ExternalCustomerId is not null
+               && row.ExternalSubscriptionId is not null
+               && row.Status is SubscriptionStatus.Active or SubscriptionStatus.Trialing or SubscriptionStatus.PastDue
+               && row.GivenFreeAt is null
+               && !CoachSubscriptionStatusClassifier.IsPlanChoiceRequired(row.GivenFreeAt, row.FreeUntil, now)
+               && !row.Plan.BothRolesIncluded
+               && !row.PaysSecondRoleAddOn
+               && row.SecondRoleAddOnPriceMinorUnits is > 0
+               && row.PendingSubscriptionPlanPriceId is null
+               && !row.CancelAtPeriodEnd;
     }
 
     private bool PlanApplies(SubscriptionRow row) =>
@@ -388,7 +419,12 @@ public class EntitlementService
             return SecondRoleState.Included;
         }
 
-        return resolution.PaysSecondRoleAddOn ? SecondRoleState.PaidAddOn : SecondRoleState.NotAvailable;
+        if (resolution.PaysSecondRoleAddOn)
+        {
+            return SecondRoleState.PaidAddOn;
+        }
+
+        return resolution.CanBuySecondRoleAddOn ? SecondRoleState.Purchasable : SecondRoleState.NotAvailable;
     }
 
     private static System.Linq.Expressions.Expression<Func<Entities.CoachSubscription, SubscriptionRow>> ProjectRow() =>
@@ -398,6 +434,11 @@ public class EntitlementService
             cs.FreeUntil,
             cs.GivenFreeAt,
             cs.PaysSecondRoleAddOn,
+            cs.ExternalCustomerId,
+            cs.ExternalSubscriptionId,
+            cs.CancelAtPeriodEnd,
+            cs.PendingSubscriptionPlanPriceId,
+            cs.SubscriptionPlanPrice != null ? cs.SubscriptionPlanPrice.SecondRoleAddOnPriceMinorUnits : null,
             new PlanFlags(
                 cs.SubscriptionPlan.CanCreatePlans,
                 cs.SubscriptionPlan.CanMessage,
@@ -455,10 +496,16 @@ public class EntitlementService
         DateTimeOffset? FreeUntil,
         DateTimeOffset? GivenFreeAt,
         bool PaysSecondRoleAddOn,
+        string? ExternalCustomerId,
+        string? ExternalSubscriptionId,
+        bool CancelAtPeriodEnd,
+        long? PendingSubscriptionPlanPriceId,
+        long? SecondRoleAddOnPriceMinorUnits,
         PlanFlags Plan);
 
     private readonly record struct Resolution(
         CoachEntitlements Entitlements,
         bool BothRolesIncluded,
-        bool PaysSecondRoleAddOn);
+        bool PaysSecondRoleAddOn,
+        bool CanBuySecondRoleAddOn);
 }

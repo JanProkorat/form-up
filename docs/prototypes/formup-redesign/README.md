@@ -46,6 +46,32 @@ were re-exported, light and dark. `GlassRecipeDetail` is now 1280 px tall; the m
 and "2 End promotion") added from web portal 1794676722-091e, source files only: no static
 export, no PNGs, and the merged `canvas.json` does not list it yet.
 
+**Partial update, 2026-11-19 (#2156, code field):** `PageRegisterPlanCode` (sign-up confirm bar with a "Have a code?"
+field, wrong-period code refused) and `PagePlanPickerAnnualCode` (/plan confirm bar, code applied with a remove button)
+added (C and D) from web portal 1795097417-de32 (canvas v68). Source files only: no static export, no PNGs, merged
+`canvas.json` not updated.
+
+**Partial update, 2026-11-19 (#2156):** annual billing boards added (C and D): `PagePricingAnnual`,
+`PageRegisterPlanAnnual`, `PagePlanPickerAnnualSelected`, `PageSettingsPlanAnnual`, `PageAdminPlanEditorAnnual`,
+`PageAdminPromotionDrawerAnnual`, from web portal 1795086551-384f (canvas v66). Source files only: no static
+export, no PNGs, merged `canvas.json` not updated. Prices on them are placeholders (annual = 10 × monthly).
+
+**Partial update, 2026-11-16 (#2154):** `PageSettingsPlanScheduled` updated ("Cancel change" beside the scheduled
+line) and `PagePlanPickerKeep` added (C and D, keep the current plan while a switch to Free is scheduled) from web
+portal 1794833339-d392 (canvas v58), source files only: no static export, no PNGs, merged `canvas.json` not updated.
+
+**Partial update, 2026-11-16 (#2144):** `PagePlanPickerSelected` updated (back button beside the title, upgrade
+"pay now" hint), `PagePlanPickerDowngrade` and `PageSettingsPlanScheduled` added (C and D) from web portal
+1794821595-7b47 (canvas v56), source files only: no static export, no PNGs, merged `canvas.json` not updated.
+
+**Partial update, 2026-11-15 (#2142):** `PageRegisterPlanSelected` and `PagePlanPickerSelected` (C and D,
+select a plan then confirm in a sticky bottom bar, Pro selected) added from web portal 1794776115-811e (canvas v54),
+source files only: no static export, no PNGs, and the merged `canvas.json` does not list them yet.
+
+**Partial update, 2026-11-15 (#2139):** `PageRegisterPlanBothRoles` (C and D, the sign-up plan
+step for a coach who picked both roles) added from web portal 1794760905-f0cb (canvas v53), source
+files only: no static export, no PNGs, and the merged `canvas.json` does not list it yet.
+
 **Partial update, 2026-11-14 (#2107):** `PageAdminPlanDrawer` was replaced by
 `PageAdminPlanEditor` and `PageAdminPlanEditorNew` (web portal 1794650599-2dcb), light
 and dark. The admin coach boards moved one column right (`39-06`…`39-08`, `40-06`…`40-08`).
@@ -53,16 +79,19 @@ The editor boards are 1360 px tall; the merged `canvas.json` keeps the old row
 positions, so they overlap the dark admin row there only. Links to the old drawer
 open the editor (`MERGED` in `export_interactive.py`).
 
-**Partial update, 2026-11-15 (#2130):** `PageAdminReports` (C and D) added from web portal
-1794736264-9e39, with static export, clickable prototype and PNGs (`39-09`, `40-09`). In the
-merged `canvas.json` it sits right of the coach dialogs; `PageAdminPromotionEnd` is still unlisted.
+**Partial update, 2026-11-14 (#2119):** `PagePricing` (the public `/pricing` page) added
+from web portal 1794683917-97bf (canvas v51), light and dark (`web/51-01`, `web/52-01`), and
+`PageHome` gained a "Pricing" link in its header. In the canvas Pricing is its own page;
+the merged `canvas.json` stacks it below the last web board. The launch-offer banner and
+crossed-out prices on the board belong to #1599, not #2119. The interactive prototype was
+not re-exported.
 
 | Path | Contents |
 |---|---|
 | `index.html` | Gallery of every board, grouped by app and module |
 | `interactive/` | Clickable web-portal prototype, light and dark (open `interactive/index.html`) |
 | `interactive-client/`, `interactive-coach/` | Clickable client-app and coach-app prototypes, light and dark, shown in a phone frame |
-| `web/` | Web portal: entry page, registration, clients (incl. Payment and Automations tabs), inbox, recipes, ingredients, plan templates, forms, automations, packages and discounts, coach profile, settings (incl. payments, plan and billing) and account menu, password reset, coach plans (plan picker, sign-up plan step, paywalls, plan ended), Form Up admin (plans, promotions, coaches, reports) — light and dark |
+| `web/` | Web portal: entry page, registration, clients (incl. Payment and Automations tabs), inbox, recipes, ingredients, plan templates, forms, automations, packages and discounts, coach profile, settings (incl. payments, plan and billing) and account menu, password reset, coach plans (plan picker, sign-up plan step, paywalls, plan ended), Form Up admin (plans, promotions, coaches) — light and dark |
 | `mobile-light/`, `mobile-dark/` | Client mobile app (Liquid Glass) |
 | `coach-light/`, `coach-dark/` | Coach mobile app |
 | `email/` | Account, notification and payment emails — light (`C`) and dark (`D`) |

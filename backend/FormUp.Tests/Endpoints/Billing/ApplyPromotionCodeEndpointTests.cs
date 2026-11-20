@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using FluentAssertions;
 using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Entities;
+using FormUp.Application.Domain.Enums;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Tests.Builders;
 using FormUp.Tests.Infrastructure;
@@ -52,7 +53,7 @@ public class ApplyPromotionCodeEndpointTests(FitnessApiFactory factory) : IDispo
     }
 
     [Fact]
-    public async Task ApplyCode_OnTheCallersOwnLiveSubscription_Returns204_AndPassesThePromotionCodeId()
+    public async Task ApplyCode_OnTheCallersOwnLiveSubscription_Returns204_AndAttachesTheCouponNotAPromotionCode()
     {
         var fake = BillingTestData.ResetProvider(factory);
         var (coach, subscriptionId, promotion) = await ArrangeAsync();
@@ -61,7 +62,7 @@ public class ApplyPromotionCodeEndpointTests(FitnessApiFactory factory) : IDispo
 
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
         fake.PromotionCodeSubscriptions.Should().ContainSingle().Which.Should().Be(subscriptionId);
-        fake.AppliedPromotionCodeIds.Should().ContainSingle().Which.Should().Be(promotion.StripePromotionCodeId);
+        fake.AppliedCouponIds.Should().ContainSingle().Which.Should().Be(promotion.StripeCouponId);
     }
 
     [Fact]
@@ -73,7 +74,7 @@ public class ApplyPromotionCodeEndpointTests(FitnessApiFactory factory) : IDispo
         var response = await coach.Http.PostAsJsonAsync(Route, Body(promotion.Code!.ToLowerInvariant()), Ct);
 
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
-        fake.AppliedPromotionCodeIds.Should().ContainSingle();
+        fake.AppliedCouponIds.Should().ContainSingle();
     }
 
     [Fact]
@@ -86,7 +87,7 @@ public class ApplyPromotionCodeEndpointTests(FitnessApiFactory factory) : IDispo
 
         await AssertErrorAsync(response, HttpStatusCode.NotFound, "PROMOTION_CODE_NOT_FOUND");
         (await response.Content.ReadAsStringAsync(Ct)).Should().NotContain("SECRETCODE");
-        fake.AppliedPromotionCodeIds.Should().BeEmpty();
+        fake.AppliedCouponIds.Should().BeEmpty();
     }
 
     [Fact]
@@ -101,7 +102,7 @@ public class ApplyPromotionCodeEndpointTests(FitnessApiFactory factory) : IDispo
 
         await AssertErrorAsync(
             await coach.Http.PostAsJsonAsync(Route, Body(promotion.Code!), Ct), HttpStatusCode.NotFound, "PROMOTION_CODE_NOT_FOUND");
-        fake.AppliedPromotionCodeIds.Should().BeEmpty();
+        fake.AppliedCouponIds.Should().BeEmpty();
     }
 
     [Fact]
@@ -112,7 +113,7 @@ public class ApplyPromotionCodeEndpointTests(FitnessApiFactory factory) : IDispo
 
         await AssertErrorAsync(
             await coach.Http.PostAsJsonAsync(Route, Body(promotion.Code!), Ct), HttpStatusCode.NotFound, "PROMOTION_CODE_NOT_FOUND");
-        fake.AppliedPromotionCodeIds.Should().BeEmpty();
+        fake.AppliedCouponIds.Should().BeEmpty();
     }
 
     [Fact]
@@ -123,7 +124,7 @@ public class ApplyPromotionCodeEndpointTests(FitnessApiFactory factory) : IDispo
 
         await AssertErrorAsync(
             await coach.Http.PostAsJsonAsync(Route, Body(promotion.Code!), Ct), HttpStatusCode.Conflict, "PROMOTION_CODE_NOT_STARTED");
-        fake.AppliedPromotionCodeIds.Should().BeEmpty();
+        fake.AppliedCouponIds.Should().BeEmpty();
     }
 
     [Fact]
@@ -134,7 +135,7 @@ public class ApplyPromotionCodeEndpointTests(FitnessApiFactory factory) : IDispo
 
         await AssertErrorAsync(
             await coach.Http.PostAsJsonAsync(Route, Body(promotion.Code!), Ct), HttpStatusCode.Conflict, "PROMOTION_CODE_PLAN_NOT_ELIGIBLE");
-        fake.AppliedPromotionCodeIds.Should().BeEmpty();
+        fake.AppliedCouponIds.Should().BeEmpty();
     }
 
     [Fact]
@@ -147,7 +148,7 @@ public class ApplyPromotionCodeEndpointTests(FitnessApiFactory factory) : IDispo
 
         await AssertErrorAsync(
             await coach.Http.PostAsJsonAsync(Route, Body(promotion.Code!), Ct), HttpStatusCode.Conflict, "PROMOTION_CODE_USED_UP");
-        fake.AppliedPromotionCodeIds.Should().BeEmpty();
+        fake.AppliedCouponIds.Should().BeEmpty();
     }
 
     [Fact]
@@ -159,7 +160,7 @@ public class ApplyPromotionCodeEndpointTests(FitnessApiFactory factory) : IDispo
 
         await AssertErrorAsync(
             await coach.Http.PostAsJsonAsync(Route, Body(promotion.Code!), Ct), HttpStatusCode.Conflict, "PROMOTION_CODE_NEW_COACHES_ONLY");
-        fake.AppliedPromotionCodeIds.Should().BeEmpty();
+        fake.AppliedCouponIds.Should().BeEmpty();
     }
 
     [Fact]
@@ -171,7 +172,70 @@ public class ApplyPromotionCodeEndpointTests(FitnessApiFactory factory) : IDispo
 
         await AssertErrorAsync(
             await coach.Http.PostAsJsonAsync(Route, Body(promotion.Code!), Ct), HttpStatusCode.Conflict, "PROMOTION_CODE_ALREADY_USED");
-        fake.AppliedPromotionCodeIds.Should().BeEmpty();
+        fake.AppliedCouponIds.Should().BeEmpty();
+    }
+
+    /// <summary>A coach on the annual price of a plan that is also sold monthly, and a code promotion covering the plan.</summary>
+    private async Task<(Actor Coach, string SubscriptionId, Promotion Promotion)> ArrangeAnnualAsync(
+        BillingInterval interval, Action<Promotion>? configure = null)
+    {
+        await PromotionBuilder.ClearAsync(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (plan, _, _) = await BillingTestData.StripePlanWithAnnualAsync(factory);
+        var subscriptionId = await BillingTestData.SubscribeLiveAsync(factory, coach, plan, interval: interval);
+        var promotion = await PromotionBuilder.CreateAsync(factory, [plan], configure: configure);
+
+        return (coach, subscriptionId, promotion);
+    }
+
+    [Theory]
+    [InlineData(PromotionBillingPeriod.Monthly, BillingInterval.Annual)]
+    [InlineData(PromotionBillingPeriod.Annual, BillingInterval.Monthly)]
+    public async Task ApplyCode_ThatDoesNotCoverTheSubscriptionsInterval_Returns409_WithoutCallingStripe(
+        PromotionBillingPeriod period, BillingInterval interval)
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var (coach, _, promotion) = await ArrangeAnnualAsync(interval, p => p.BillingPeriod = period);
+
+        await AssertErrorAsync(
+            await coach.Http.PostAsJsonAsync(Route, Body(promotion.Code!), Ct),
+            HttpStatusCode.Conflict,
+            "PROMOTION_CODE_INTERVAL_NOT_ELIGIBLE");
+        fake.AppliedCouponIds.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(BillingInterval.Annual, true)]
+    [InlineData(BillingInterval.Monthly, false)]
+    public async Task ApplyCode_OfABothPeriodsPromotion_AttachesTheCouponOfTheSubscriptionsInterval(
+        BillingInterval interval, bool expectsAnnualCoupon)
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var (coach, _, promotion) = await ArrangeAnnualAsync(
+            interval, p =>
+            {
+                p.Duration = PromotionDuration.Months;
+                p.DurationMonths = 3;
+                p.StripeAnnualCouponId = $"coupon_annual_{Guid.NewGuid():N}";
+            });
+
+        var response = await coach.Http.PostAsJsonAsync(Route, Body(promotion.Code!), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        fake.AppliedCouponIds.Should().ContainSingle().Which.Should().Be(
+            expectsAnnualCoupon ? promotion.StripeAnnualCouponId : promotion.StripeCouponId);
+    }
+
+    [Fact]
+    public async Task ApplyCode_OfACodePromotionWithoutAStripePromotionCode_StillWorks()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var (coach, _, promotion) = await ArrangeAsync(p => p.StripePromotionCodeId = null);
+
+        var response = await coach.Http.PostAsJsonAsync(Route, Body(promotion.Code!), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        fake.AppliedCouponIds.Should().ContainSingle().Which.Should().Be(promotion.StripeCouponId);
     }
 
     [Fact]
@@ -194,7 +258,7 @@ public class ApplyPromotionCodeEndpointTests(FitnessApiFactory factory) : IDispo
 
         first.StatusCode.Should().Be(HttpStatusCode.NoContent);
         second.StatusCode.Should().Be(HttpStatusCode.NoContent);
-        fake.AppliedPromotionCodeIds.Should().BeEmpty("the discount is already on the subscription");
+        fake.AppliedCouponIds.Should().BeEmpty("the discount is already on the subscription");
     }
 
     [Fact]

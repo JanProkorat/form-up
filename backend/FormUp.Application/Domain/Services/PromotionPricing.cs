@@ -42,16 +42,20 @@ public static class PromotionPricing
     /// <param name="promotion">The coach's current promotion.</param>
     /// <param name="planCode">The coach's plan code.</param>
     /// <param name="currency">ISO 4217 currency of the price lines.</param>
+    /// <param name="interval">Billing interval of the price lines.</param>
     /// <param name="planPriceMinorUnits">The plan line.</param>
     /// <param name="addOnPriceMinorUnits">The second-role add-on line when the coach pays it, otherwise null.</param>
     public static (long Discount, long DiscountedTotal) ForSubscription(
-        Promotion promotion, string planCode, string currency, long planPriceMinorUnits, long? addOnPriceMinorUnits)
+        Promotion promotion,
+        string planCode,
+        string currency,
+        BillingInterval interval,
+        long planPriceMinorUnits,
+        long? addOnPriceMinorUnits)
     {
         var total = planPriceMinorUnits + (addOnPriceMinorUnits ?? 0);
-        var currencyFits = promotion.Kind == PromotionKind.Percent
-                           || string.Equals(promotion.Currency, currency, StringComparison.OrdinalIgnoreCase);
 
-        if (!currencyFits || !PromotionRules.CoversPlan(promotion, planCode))
+        if (!Applies(promotion, planCode, currency, interval))
         {
             return (0, total);
         }
@@ -61,6 +65,20 @@ public static class PromotionPricing
 
         return (total - discountedTotal, discountedTotal);
     }
+
+    /// <summary>
+    /// Whether the promotion discounts a plan billed in the given currency and interval: it covers the plan and the
+    /// interval, and a fixed amount is in the same currency (a percentage has no currency).
+    /// </summary>
+    /// <param name="promotion">The promotion to test.</param>
+    /// <param name="planCode">The plan code.</param>
+    /// <param name="currency">ISO 4217 currency of the plan price.</param>
+    /// <param name="interval">Billing interval of the plan price.</param>
+    public static bool Applies(Promotion promotion, string planCode, string currency, BillingInterval interval) =>
+        (promotion.Kind == PromotionKind.Percent
+         || string.Equals(promotion.Currency, currency, StringComparison.OrdinalIgnoreCase))
+        && PromotionRules.CoversPlan(promotion, planCode)
+        && PromotionRules.CoversInterval(promotion, interval);
 
     private static long Reduce(long price, long percent) =>
         price - (long)Math.Round(price * percent / 100m, MidpointRounding.AwayFromZero);

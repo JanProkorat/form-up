@@ -4288,21 +4288,21 @@
       "x": 6080,
       "y": 68332
     },
-    "PageAdminReportsC.dc.html": {
-      "x": 13128,
-      "y": 66972,
-      "w": 1440,
-      "h": 1360,
+    "PagePricingC.dc.html": {
+      "h": 2120,
       "page": "web",
-      "title": "C · Admin · Reports"
+      "title": "C · Pricing · public",
+      "w": 1440,
+      "x": 0,
+      "y": 84692
     },
-    "PageAdminReportsD.dc.html": {
-      "x": 13128,
-      "y": 68332,
-      "w": 1440,
-      "h": 1360,
+    "PagePricingD.dc.html": {
+      "h": 2120,
       "page": "web",
-      "title": "D · Admin · Reports"
+      "title": "D · Pricing · public",
+      "w": 1440,
+      "x": 0,
+      "y": 87072
     }
   },
   "notes": {
@@ -5325,7 +5325,7 @@
     "CoachProfilePlanDark.dc.html",
     "PageAdminCoachDialogsC.dc.html",
     "PageAdminCoachDialogsD.dc.html",
-    "PageAdminReportsC.dc.html",
-    "PageAdminReportsD.dc.html"
+    "PagePricingC.dc.html",
+    "PagePricingD.dc.html"
   ]
 }

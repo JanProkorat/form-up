@@ -12,5 +12,8 @@ public enum SecondRoleState
     PaidAddOn,
 
     /// <summary>The plan does not cover both roles and the add-on is not paid; a second role is not available.</summary>
-    NotAvailable
+    NotAvailable,
+
+    /// <summary>The plan does not cover both roles, the add-on is not paid yet and the coach can buy it on their live paid subscription.</summary>
+    Purchasable
 }

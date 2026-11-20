@@ -2,9 +2,12 @@ using FormUp.Application.Domain.Constants;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Application.Infrastructure.Data.MongoDb;
 using FormUp.Application.Infrastructure.Services;
+using FormUp.Application.Infrastructure.Services.Billing;
 using FormUp.Application.Seed;
+using FormUp.Application.Seed.WalkSeed;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
@@ -44,6 +47,11 @@ internal static class CliCommandDispatcher
             return CliCommand.QaSeed;
         }
 
+        if (args.Contains("--walk-seed"))
+        {
+            return CliCommand.WalkSeed;
+        }
+
         if (args.Contains("--backfill-photo-descriptions"))
         {
             return CliCommand.BackfillPhotoDescriptions;
@@ -78,6 +86,10 @@ internal static class CliCommandDispatcher
 
             case CliCommand.QaSeed:
                 await RunQaSeedAsync(app);
+                return true;
+
+            case CliCommand.WalkSeed:
+                await RunWalkSeedAsync(app);
                 return true;
 
             case CliCommand.BackfillPhotoDescriptions:
@@ -219,6 +231,65 @@ internal static class CliCommandDispatcher
         await ApplicationDbContextSeed.SeedAsync(app.Services);
         await QaSeedRunner.SeedAsync(app.Services);
         await MongoSeeder.SeedAsync(app.Services);
+    }
+
+    private static async Task RunWalkSeedAsync(WebApplication app)
+    {
+        // Dev-only: prepares the guide-walk accounts (six walk users, real Stripe sandbox for the paid ones) and writes
+        // the accounts file plus Playwright session files. Usage: dotnet run -- --walk-seed
+        //
+        // The environment and key guard runs BEFORE the baseline seed below, so a refusal changes nothing in either
+        // database. The runner repeats the guard, then checks the Pro price, before it writes any walk data. The baseline
+        // (indexes, roles, plans) is idempotent and is what every normal boot needs anyway.
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        var stripeSecretKey = app.Services.GetRequiredService<IOptions<BillingOptions>>().Value.SecretKey;
+        var environmentName = app.Environment.EnvironmentName;
+
+        var refusal = WalkSeedGuard.Check(environmentName, stripeSecretKey);
+        var options = WalkSeedOptions.FromEnvironment(app.Environment.ContentRootPath);
+
+        if (refusal is null && options is null)
+        {
+            refusal = "Refusing to run: the repo root was not found (no .git above the content root). Set WALK_SEED_OUT.";
+        }
+
+        if (refusal is not null)
+        {
+            Console.Error.WriteLine(refusal);
+            Environment.ExitCode = 1;
+            return;
+        }
+
+        using (var indexScope = app.Services.CreateScope())
+        {
+            var indexInitializer = indexScope.ServiceProvider.GetRequiredService<MongoIndexInitializer>();
+            await indexInitializer.StartAsync(CancellationToken.None);
+        }
+
+        await ApplicationDbContextSeed.SeedAsync(app.Services);
+
+        var runner = new WalkSeedRunner(
+            app.Services,
+            () => new WalkStripeGateway(stripeSecretKey!),
+            environmentName,
+            stripeSecretKey,
+            options!,
+            TimeProvider.System);
+        var result = await runner.RunAsync(CancellationToken.None);
+
+        if (!result.Succeeded)
+        {
+            Console.Error.WriteLine(result.RefusalReason);
+            Environment.ExitCode = 1;
+            return;
+        }
+
+        foreach (var line in result.AccountLines)
+        {
+            Console.WriteLine(line);
+        }
+
+        Console.WriteLine($"Walk seed done in {stopwatch.Elapsed.TotalSeconds:0.0} s.");
     }
 
     private static async Task RunBackfillPhotoDescriptionsAsync(WebApplication app)

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ChevronRight, Dumbbell, Info, Leaf } from 'lucide-react';
+import { ChevronRight, Dumbbell, ExternalLink, Info, Leaf, Loader2 } from 'lucide-react';
 import { BillingInterval } from '@/api/generated';
 import type { CoachRoleKey } from '@/components/settings/RemoveRoleDialog';
 import { billingErrorCode, billingErrorMessage } from '@/components/subscription/billingErrors';
@@ -17,14 +17,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Skeleton } from '@/components/ui/skeleton';
 import {
   useCoachPlans,
   useConfirmSecondRole,
   useSecondRolePreview,
   useSubscription,
 } from '@/hooks/useSubscriptionQueries';
+import UpgradePaymentNotice, { PaymentNoticeReveal } from '@/components/subscription/UpgradePaymentNotice';
 import { getErrorStatus } from '@/lib/api-errors';
+import { useAuthStore } from '@/stores/auth';
+import { useCheckoutActivationStore } from '@/stores/checkoutActivation';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -54,6 +56,9 @@ export default function AddRoleDialog({ role, onClose, onPaid, adding }: Props) 
   const [attemptId, setAttemptId] = useState(() => crypto.randomUUID());
   const [openedFor, setOpenedFor] = useState<CoachRoleKey | null>(role);
   const [confirmError, setConfirmError] = useState<string | null>(null);
+  // Stripe's hosted payment page when the bank must confirm the add-on: only ever an href, never shown or logged.
+  const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
+  const userId = useAuthStore((s) => s.user?.publicId ?? null);
 
   // Adjusted during render (own state only): opening the dialog starts a fresh attempt and clears the last error.
   if (role !== openedFor) {
@@ -61,6 +66,7 @@ export default function AddRoleDialog({ role, onClose, onPaid, adding }: Props) 
     if (role !== null) {
       setAttemptId(crypto.randomUUID());
       setConfirmError(null);
+      setPaymentUrl(null);
     }
   }
 
@@ -81,20 +87,44 @@ export default function AddRoleDialog({ role, onClose, onPaid, adding }: Props) 
       ? Math.max(1, Math.ceil((new Date(preview.periodEndsAt).getTime() - previewQuery.dataUpdatedAt) / DAY_MS))
       : null;
   const tax = preview?.todayTaxMinorUnits ?? 0;
+  // The discounted amounts come together: all null when no promotion covers the plan. A forever promotion has no end date.
+  const hasDiscount =
+    preview?.discountedPlanAmountMinorUnits != null &&
+    preview.discountedAddOnAmountMinorUnits != null &&
+    preview.discountedNewTotalMinorUnits != null;
+  const discountedPlan = hasDiscount ? preview.discountedPlanAmountMinorUnits : undefined;
+  const discountedAddOn = hasDiscount ? preview.discountedAddOnAmountMinorUnits : undefined;
+  const discountedTotal = hasDiscount ? preview.discountedNewTotalMinorUnits : undefined;
+  const discountEndsAt = hasDiscount && preview.promotionEndsAt ? new Date(preview.promotionEndsAt) : null;
   const studio = (plansQuery.data?.plans ?? [])
     .filter((plan) => plan.bothRolesIncluded && (plan.priceMinorUnits ?? 0) > 0)
     .sort((a, b) => (a.priceMinorUnits ?? 0) - (b.priceMinorUnits ?? 0))[0];
+  // The Studio line follows the subscription's interval; a Studio not sold yearly falls back to its monthly price.
+  const studioAnnual =
+    preview?.billingInterval === BillingInterval.Annual && (studio?.annualPriceMinorUnits ?? 0) > 0;
+  const studioPrice = studioAnnual ? (studio?.annualPriceMinorUnits ?? 0) : (studio?.priceMinorUnits ?? 0);
+  const studioPer = t(`subscription.planChoice.card.per.${studioAnnual ? 'year' : 'month'}`);
 
   const pay = () => {
     setConfirmError(null);
     confirm.mutate(attemptId, {
-      onSuccess: onPaid,
+      onSuccess: (result) => {
+        // Awaiting the bank: nothing is paid and the role is not added until Stripe confirms the payment.
+        if (result.paymentUrl && !result.paysSecondRoleAddOn) setPaymentUrl(result.paymentUrl);
+        else onPaid();
+      },
       onError: (error) => {
         setConfirmError(billingErrorMessage(error, 'subscription.billing.errors.addRole'));
         // Any 402 is final for this attempt id; the next try needs its own.
         if (getErrorStatus(error) === 402) setAttemptId(crypto.randomUUID());
       },
     });
+  };
+
+  // Starts watching for the add-on to be paid, then closes once the click has opened the tab.
+  const openPayment = () => {
+    if (userId) useCheckoutActivationStore.getState().startSecondRoleAddOn(userId);
+    setTimeout(onClose, 0);
   };
 
   const busy = confirm.isPending || adding;
@@ -114,7 +144,9 @@ export default function AddRoleDialog({ role, onClose, onPaid, adding }: Props) 
         </DialogHeader>
 
         {previewQuery.isPending && open ? (
-          <Skeleton className="h-40 w-full rounded-xl" />
+          <div role="status" aria-label={t('common.loading')} className="flex h-40 w-full items-center justify-center">
+            <Loader2 className="size-6 animate-spin text-muted-foreground" aria-hidden="true" />
+          </div>
         ) : loadFailed ? (
           <p role="alert" className="text-body text-error">
             {billingErrorMessage(previewQuery.error, 'subscription.billing.errors.preview')}
@@ -129,18 +161,31 @@ export default function AddRoleDialog({ role, onClose, onPaid, adding }: Props) 
             <div className="flex flex-col gap-2.5 rounded-xl bg-sunken p-4">
               <div className="flex items-baseline gap-3 text-copy text-ink-2">
                 <span>{t('subscription.billing.addRole.planLine', { plan: subscription.planName })}</span>
-                <span className="ml-auto font-semibold whitespace-nowrap">{money(preview.planAmountMinorUnits)}</span>
+                <span className="ml-auto font-semibold whitespace-nowrap">
+                  {money(discountedPlan ?? preview.planAmountMinorUnits)}
+                </span>
               </div>
               <div className="flex items-baseline gap-3 text-copy text-ink-2">
                 <span>{t('subscription.billing.addRole.addOnLine', { role: roleLabel })}</span>
-                <span className="ml-auto font-semibold whitespace-nowrap">+{money(preview.addOnAmountMinorUnits)}</span>
+                <span className="ml-auto font-semibold whitespace-nowrap">
+                  +{money(discountedAddOn ?? preview.addOnAmountMinorUnits)}
+                </span>
               </div>
               <div className="flex items-baseline gap-3 border-t border-border pt-2.5 text-subhead font-semibold text-ink">
                 <span>{t('subscription.billing.addRole.total')}</span>
                 <span className="ml-auto whitespace-nowrap">
-                  {money(preview.newTotalMinorUnits)} {per}
+                  {money(discountedTotal ?? preview.newTotalMinorUnits)} {per}
                 </span>
               </div>
+              {discountEndsAt && (
+                <span className="text-meta text-muted-foreground">
+                  {t('subscription.billing.addRole.discountEnds', {
+                    date: new Intl.DateTimeFormat(language, { dateStyle: 'medium' }).format(discountEndsAt),
+                    amount: money(preview.newTotalMinorUnits),
+                    per,
+                  })}
+                </span>
+              )}
             </div>
 
             <div className="flex gap-2.5 rounded-xl bg-sunken px-3.5 py-3 text-ink-2">
@@ -162,7 +207,8 @@ export default function AddRoleDialog({ role, onClose, onPaid, adding }: Props) 
                 <span>
                   {t('subscription.billing.addRole.studio', {
                     plan: coachPlanName(studio, language),
-                    price: formatMoney(studio.priceMinorUnits ?? 0, studio.currency ?? currency, language),
+                    price: formatMoney(studioPrice, studio.currency ?? currency, language),
+                    per: studioPer,
                   })}
                 </span>
                 <Link
@@ -176,6 +222,17 @@ export default function AddRoleDialog({ role, onClose, onPaid, adding }: Props) 
             )}
           </>
         ) : null}
+
+        <PaymentNoticeReveal open={paymentUrl !== null}>
+          {paymentUrl && (
+            <UpgradePaymentNotice
+              message={t('subscription.billing.addRole.paymentNotice')}
+              paymentUrl={paymentUrl}
+              onOpen={openPayment}
+              hideAction
+            />
+          )}
+        </PaymentNoticeReveal>
 
         {confirmError && (
           <p role="alert" className="text-body text-error">
@@ -191,8 +248,16 @@ export default function AddRoleDialog({ role, onClose, onPaid, adding }: Props) 
             <Button type="button" size="lg" disabled={busy} onClick={onPaid}>
               {t('settings.roles.add')}
             </Button>
+          ) : paymentUrl ? (
+            <Button asChild size="lg" className="gap-2">
+              <a href={paymentUrl} target="_blank" rel="noopener noreferrer" onClick={openPayment}>
+                {t('subscription.billing.upgradePayment.open')}
+                <ExternalLink className="size-4" aria-hidden="true" />
+              </a>
+            </Button>
           ) : (
             <Button type="button" size="lg" disabled={busy || !preview || loadFailed} onClick={pay}>
+              {busy && <Loader2 className="animate-spin" aria-hidden="true" />}
               {preview
                 ? t('subscription.billing.addRole.confirm', { amount: money(preview.todayAmountMinorUnits) })
                 : t('settings.roles.add')}
