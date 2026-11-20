@@ -66,7 +66,8 @@ export default function PricingPlanCard({ plan, promotion, interval: chosen = Bi
   return (
     <article
       aria-label={name}
-      className={`flex flex-col gap-4 rounded-2xl bg-card p-5 shadow-panel ${popular ? 'border-2 border-ink' : 'border border-line'}`}
+      // Seven rows shared with the sibling cards (CSS subgrid), so the buttons line up without reserved space.
+      className={`row-span-7 grid grid-rows-subgrid gap-4 rounded-2xl bg-card p-5 shadow-panel ${popular ? 'border-2 border-ink' : 'border border-line'}`}
     >
       <div className="flex items-center gap-2">
         <h2 className="text-card-title font-semibold text-ink">{name}</h2>
@@ -79,8 +80,7 @@ export default function PricingPlanCard({ plan, promotion, interval: chosen = Bi
 
       {promotion ? (
         <div className="@container flex flex-col gap-1">
-          {/* Two lines are reserved for the price row and for the note so the buttons line up across the cards. */}
-          <div className={`flex min-h-[2lh] ${annual ? 'flex-nowrap' : 'flex-wrap'} items-baseline gap-x-1.5 text-stat`}>
+          <div className={`flex ${annual ? 'flex-nowrap' : 'flex-wrap'} items-baseline gap-x-1.5 text-stat`}>
             <span className="text-stat font-semibold whitespace-nowrap text-ink @max-[15rem]:text-auth-title">
               {formatMoney(offer && discounted !== null ? discounted : shownMinor, currency, i18n.language)}
             </span>
@@ -92,7 +92,7 @@ export default function PricingPlanCard({ plan, promotion, interval: chosen = Bi
             )}
             <span className="text-body whitespace-nowrap text-muted-foreground">{t(`pricing.card.per.${per}`)}</span>
           </div>
-          <span className="min-h-9 text-meta text-muted-foreground">{offerNote}</span>
+          {offerNote && <span className="text-meta text-muted-foreground">{offerNote}</span>}
         </div>
       ) : (
         <div className="flex items-baseline gap-2">
@@ -101,8 +101,7 @@ export default function PricingPlanCard({ plan, promotion, interval: chosen = Bi
         </div>
       )}
 
-      {/* One line is reserved for the chip so the buttons line up across the cards. */}
-      <div className="min-h-10">
+      <div>
         {chip && (
           <div className="flex items-center gap-2 rounded-lg bg-sunken px-3 py-2.5 text-body text-ink-2">
             <Users className="size-4 shrink-0" aria-hidden="true" />

@@ -151,7 +151,9 @@ export default function RegisterPlanPage() {
         )}
 
         {showSwitch && !plansQuery.isError && (
-          <div className="flex flex-wrap items-center justify-center gap-3.5">
+          // Three columns keep the switch centred whether or not the annual note shows beside it; below lg the note stacks under it.
+          <div className="flex flex-col items-center gap-3.5 lg:grid lg:grid-cols-[1fr_auto_1fr]">
+            <span aria-hidden="true" className="hidden lg:block" />
             <BillingIntervalSwitch
               value={pageInterval}
               savingPercent={maxAnnualSavingPercent(plans)}
@@ -162,7 +164,9 @@ export default function RegisterPlanPage() {
               }}
             />
             {pageInterval === BillingInterval.Annual && (
-              <span className="text-body text-muted-foreground">{t('subscription.billing.register.annualNote')}</span>
+              <span className="text-center text-body text-muted-foreground lg:text-left">
+                {t('subscription.billing.register.annualNote')}
+              </span>
             )}
           </div>
         )}

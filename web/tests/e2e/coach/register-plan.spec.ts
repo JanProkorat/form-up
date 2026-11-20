@@ -62,9 +62,11 @@ interface MockOptions {
   rolesGate?: Promise<void>;
   /** Fails the roles lookup. */
   rolesFail?: boolean;
+  /** Gives every paid plan an annual price (10 × monthly), which shows the Monthly | Annual switch. */
+  annual?: boolean;
 }
 
-async function mockReads(page: Page, { roles, promotion = false, rolesGate, rolesFail = false }: MockOptions) {
+async function mockReads(page: Page, { roles, promotion = false, rolesGate, rolesFail = false, annual = false }: MockOptions) {
   await page.route(/\/users\/me\/subscription$/, (route) =>
     json(route, {
       planCode: 'free',
@@ -121,6 +123,9 @@ async function mockReads(page: Page, { roles, promotion = false, rolesGate, role
           canUseWeeklyCheckIns: plan.canSendQuestionnaires,
           canUsePerClientCheckInConfig: plan.code === 'studio',
           canUsePayments: false,
+          ...(annual && plan.code !== 'free'
+            ? { annualPriceMinorUnits: plan.priceMinorUnits * 10, annualSavingPercent: 17 }
+            : {}),
           ...(discounted
             ? {
                 discountedPriceMinorUnits: discounted.price,
@@ -190,6 +195,35 @@ trainerTest.describe('register plan step', () => {
     await expect(start.getByText(/Second role included/)).toHaveCount(0);
     await expect(page.getByText(/You signed up as/)).toHaveCount(0);
     await expect(page.getByRole('article', { name: 'Free' }).getByText('Add a second role any time, free')).toBeVisible();
+  });
+
+  // Real-browser layout: the switch must not slide when the annual note appears, and the shared card rows
+  // (CSS subgrid) must keep every card's button on one line without reserved empty space.
+  trainerTest('the switch stays put when Annual adds its note, and the card buttons line up', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await mockReads(page, { roles: ['Trainer'], annual: true });
+    await page.goto('/register/plan');
+
+    const switchGroup = page.getByRole('group', { name: 'Billing period' });
+    const monthly = switchGroup.getByRole('button', { name: 'Monthly' });
+    const buttonTops = async () =>
+      Promise.all(
+        ['Free', 'Start', 'Pro', 'Studio'].map(async (name) => {
+          const box = await page.getByRole('article', { name }).getByRole('button').first().boundingBox();
+          return Math.round(box!.y);
+        }),
+      );
+
+    await expect(page.getByRole('article')).toHaveCount(4);
+    const before = await monthly.boundingBox();
+    expect(new Set(await buttonTops()).size).toBe(1);
+
+    await switchGroup.getByRole('button', { name: /^Annual/ }).click();
+    await expect(page.getByRole('article', { name: 'Start' }).getByText(/2.990/).first()).toBeVisible();
+
+    const after = await monthly.boundingBox();
+    expect(Math.round(after!.x)).toBe(Math.round(before!.x));
+    expect(new Set(await buttonTops()).size).toBe(1);
   });
 
   trainerTest('the cards wait for the roles, so a two-role coach never sees one-role prices', async ({ page }) => {
