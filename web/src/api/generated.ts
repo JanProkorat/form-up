@@ -15235,6 +15235,70 @@ export class ApiClient {
     }
 
     /**
+     * Record that the Free plan was kept at sign-up
+     * @return The choice is recorded
+     */
+    keepFreePlanAtSignUpEndpoint(signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/users/me/subscription/keep-free";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processKeepFreePlanAtSignUpEndpoint(_response);
+        });
+    }
+
+    protected processKeepFreePlanAtSignUpEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The caller is not a trainer or nutritionist, the coach role was removed, or a plan choice is required first", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("The caller has no professional profile", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("The coach is on a paid plan or a running given plan (NOT_ON_FREE_PLAN)", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * List the plans a coach can choose
      * @return The active plans, cheapest monthly price first
      */
@@ -24178,6 +24242,78 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<AcceptInvitationResponse>(null as any);
+    }
+
+    /**
+     * Admin reports
+     * @param period Look-back window: Days30, Days90 or Months12. Defaults to Days30.
+     * @return The report totals
+     */
+    getAdminReportsEndpoint(period: AdminReportPeriod, signal?: AbortSignal): Promise<GetAdminReportsResponse> {
+        let url_ = this.baseUrl + "/admin/reports?";
+        if (period === undefined || period === null)
+            throw new globalThis.Error("The parameter 'period' must be defined and cannot be null.");
+        else
+            url_ += "period=" + encodeURIComponent("" + period) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetAdminReportsEndpoint(_response);
+        });
+    }
+
+    protected processGetAdminReportsEndpoint(response: AxiosResponse): Promise<GetAdminReportsResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetAdminReportsResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid period", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Caller is not an Admin", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetAdminReportsResponse>(null as any);
     }
 
     /**
@@ -35244,6 +35380,192 @@ export interface AcceptInvitationResponse {
 export interface AcceptInvitationRequest {
     /** The one-time invitation token received from the trainer. */
     token: string;
+}
+
+/** Totals for the admin Reports page. Holds counts and amounts only, never a per-client or per-coach row. Money is in minor units per currency, with no VAT, Stripe fees, refunds or payouts. Every previous is the raw baseline value (null when there is no baseline); the client computes percentages. */
+export interface GetAdminReportsResponse {
+    /** The window the figures were read for. */
+    period?: AdminReportPeriod;
+    /** UTC day of the latest daily snapshot, null when none exists yet. */
+    snapshotDay?: string | undefined;
+    /** UTC day of the snapshot the baseline comes from: the one on the period start day, else the earliest one inside
+the period. Null when no snapshot lies inside the period. */
+    comparedFrom?: string | undefined;
+    /** Revenue, collections and churn. */
+    money?: AdminReportMoneyDto;
+    /** Sign-up funnel of the coaches who signed up in the period. */
+    funnel?: AdminReportFunnelDto;
+    /** Plan changes in the period. */
+    planChanges?: AdminReportPlanChangesDto;
+    /** One point per snapshot day inside the period, oldest first. Days without a snapshot are omitted. */
+    mrrSeries?: AdminReportMrrPointDto[];
+    /** Usage figures from the latest snapshot, null when no snapshot exists. */
+    usage?: AdminReportUsageDto | undefined;
+}
+
+/** The look-back window of the admin Reports page. */
+export enum AdminReportPeriod {
+    Days30 = "Days30",
+    Days90 = "Days90",
+    Months12 = "Months12",
+}
+
+/** Revenue, collections and churn. */
+export interface AdminReportMoneyDto {
+    /** Monthly revenue at full price per currency. Previous comes from the baseline snapshot. */
+    monthlyRevenueFull?: AdminReportCurrencyValueDto[];
+    /** Monthly revenue after promotions per currency. Previous comes from the baseline snapshot. */
+    monthlyRevenueAfterPromotions?: AdminReportCurrencyValueDto[];
+    /** Revenue after promotions divided by the coaches billed in that currency. Previous divides the baseline snapshot's
+revenue by its total paying coach count, so it is approximate when there is more than one currency. */
+    averagePerPayingCoach?: AdminReportAverageDto[];
+    /** Invoices paid since the start of the current UTC month. Previous is the previous calendar month up to the same
+moment of the month. */
+    collectedThisMonth?: AdminReportCurrencyValueDto[];
+    /** Subscriptions cancelled in the period and the monthly revenue (after promotions) they took away. Previous is the
+previous window of the same length. */
+    lostToCancellations?: AdminReportLostDto;
+    /** Distinct coaches who cancelled in the period divided by the baseline snapshot's paying coach count, in percent.
+Null when there is no baseline or it had no paying coach. */
+    churnPercent?: number | undefined;
+    /** Paying coaches and plan-line revenue after promotions per plan. */
+    plans?: AdminReportPlanRevenueDto[];
+    /** Second-role add-ons per currency. */
+    addOns?: AdminReportAddOnDto[];
+}
+
+/** An amount in one currency with its baseline. */
+export interface AdminReportCurrencyValueDto {
+    /** ISO 4217 currency, upper case. */
+    currency?: string;
+    /** Current amount in minor units. */
+    value?: number;
+    /** Baseline amount in minor units, null when there is no baseline. */
+    previous?: number | undefined;
+}
+
+/** Average revenue per paying coach in one currency. */
+export interface AdminReportAverageDto {
+    /** ISO 4217 currency, upper case. */
+    currency?: string;
+    /** Current average in minor units. */
+    value?: number;
+    /** Baseline average in minor units, null when there is no baseline. */
+    previous?: number | undefined;
+    /** Coaches billed in this currency now. */
+    coachesBilled?: number;
+}
+
+/** Subscriptions lost to cancellations. */
+export interface AdminReportLostDto {
+    /** Cancellation events in the window. A coach who cancels twice counts twice. */
+    count?: AdminReportCountDto;
+    /** Monthly revenue after promotions the cancellations took away, per currency, as positive amounts. */
+    amounts?: AdminReportCurrencyValueDto[];
+}
+
+/** A count with its baseline. */
+export interface AdminReportCountDto {
+    /** Current count. */
+    value?: number;
+    /** Baseline count, null when there is no baseline. */
+    previous?: number | undefined;
+}
+
+/** One plan's paying coaches and revenue. */
+export interface AdminReportPlanRevenueDto {
+    /** Plan code. */
+    planCode?: string;
+    /** Czech plan name. */
+    nameCs?: string;
+    /** English plan name. */
+    nameEn?: string;
+    /** German plan name. */
+    nameDe?: string;
+    /** Paying coaches on the plan. */
+    payingCoaches?: number;
+    /** Monthly plan-line revenue after promotions per currency, add-ons excluded. */
+    revenue?: AdminReportCurrencyAmountDto[];
+}
+
+/** An amount in one currency. */
+export interface AdminReportCurrencyAmountDto {
+    /** ISO 4217 currency, upper case. */
+    currency?: string;
+    /** Amount in minor units. */
+    amountMinorUnits?: number;
+}
+
+/** Second-role add-ons in one currency. */
+export interface AdminReportAddOnDto {
+    /** ISO 4217 currency, upper case. */
+    currency?: string;
+    /** Billed coaches who pay the add-on. */
+    count?: number;
+    /** Monthly add-on revenue after promotions in minor units. */
+    revenueMinorUnits?: number;
+}
+
+/** The sign-up funnel of the coaches who signed up in the period. Deleted coaches drop out of the later steps, because their events lose the coach link. */
+export interface AdminReportFunnelDto {
+    /** Sign-ups in the period. */
+    signedUp?: number;
+    /** Distinct sign-ups who verified their email, on or after sign-up. */
+    emailVerified?: number;
+    /** Distinct sign-ups who chose a plan, on or after sign-up. */
+    chosePlan?: number;
+    /** Distinct sign-ups whose paid plan went live, on or after sign-up. */
+    startedPaidPlan?: number;
+}
+
+/** Plan changes in the period. */
+export interface AdminReportPlanChangesDto {
+    /** Upgrades. */
+    upgraded?: AdminReportPlanChangeDto;
+    /** Downgrades. */
+    downgraded?: AdminReportPlanChangeDto;
+    /** Cancellations. */
+    cancelled?: AdminReportPlanChangeDto;
+    /** Distinct coaches with a failed payment. */
+    paymentFailedCoaches?: number;
+    /** Promotion codes applied. A count only; the names are not returned. */
+    promotionCodesApplied?: number;
+}
+
+/** One kind of plan change. */
+export interface AdminReportPlanChangeDto {
+    /** Events in the period. */
+    count?: number;
+    /** Summed change of monthly revenue after promotions per currency (negative for a cancellation). */
+    revenueEffect?: AdminReportCurrencyAmountDto[];
+}
+
+/** Monthly recurring revenue of one snapshot day. */
+export interface AdminReportMrrPointDto {
+    /** The UTC day. */
+    day?: string;
+    /** Monthly revenue at full price per currency. */
+    full?: AdminReportCurrencyAmountDto[];
+    /** Monthly revenue after promotions per currency. */
+    afterPromotions?: AdminReportCurrencyAmountDto[];
+}
+
+/** Usage figures from the latest daily snapshot. */
+export interface AdminReportUsageDto {
+    /** Coaches with a refresh token issued in the last 30 days. */
+    activeCoachesLast30Days?: number;
+    /** Clients with a refresh token issued in the last 7 days. Previous comes from the baseline snapshot. */
+    activeClientsLast7Days?: AdminReportCountDto;
+    /** Plan weeks published in the last 7 days. */
+    planWeeksPublishedLast7Days?: number;
+    /** Free coaches at the Free plan's client limit. */
+    freeCoachesAtClientCap?: number;
+    /** Median live clients per coach over all coach profiles, including those with none. */
+    medianClientsPerCoach?: number;
+}
+
+/** Query for the admin Reports page. */
+export interface GetAdminReportsRequest {
 }
 
 /** The promotions of one admin list tab. */
