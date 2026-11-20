@@ -4,7 +4,8 @@ import { ReportPanel } from '@/components/admin-reports/ReportCard';
 import { formatNumber, reportMoney, reportPlanName } from '@/components/admin-reports/reportFormat';
 
 /** Segment colours, lightest to darkest like the board; further plans reuse the last ones. */
-const PLAN_COLORS = ['bg-mark-ring', 'bg-mark-row2', 'bg-mark-row1', 'bg-ink-2', 'bg-faint'] as const;
+// The boards keep one plan ramp in both themes, so use the fixed (theme-independent) mark tokens.
+const PLAN_COLORS = ['bg-mark-ring-dark', 'bg-mark-row1-dark', 'bg-mark-row2-dark', 'bg-ink-2', 'bg-faint'] as const;
 
 interface RowProps {
   swatch: string;
