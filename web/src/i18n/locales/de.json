@@ -7159,11 +7159,6 @@
       "Days30": "30 Tage",
       "Days90": "90 Tage",
       "Months12": "12 Monate",
-      "ago": {
-        "Days30": "vor 30 Tagen",
-        "Days90": "vor 90 Tagen",
-        "Months12": "vor 12 Monaten"
-      },
       "window": {
         "Days30": "den letzten 30 Tagen",
         "Days90": "den letzten 90 Tagen",
@@ -7172,8 +7167,8 @@
     },
     "money": {
       "title": "Geld",
-      "subtitle": "Stand vom {{day}} · Änderung gegenüber dem Stand {{against}}",
-      "againstDate": "vom {{date}}",
+      "subtitle": "Stand vom {{day}} · Änderung gegenüber dem Stand vom {{against}}",
+      "subtitleNoBaseline": "Stand vom {{day}} · noch kein früherer Stand zum Vergleich",
       "noSnapshot": "Noch kein täglicher Snapshot",
       "revenue": "Monatliche Einnahmen",
       "revenueNote": "Nach Rabatten · Vollpreis {{full}}",

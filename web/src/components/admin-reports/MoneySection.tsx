@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import {
-  AdminReportPeriod,
+  type AdminReportPeriod,
   type AdminReportCurrencyValueDto,
   type AdminReportMoneyDto,
   type GetAdminReportsResponse,
@@ -77,12 +77,6 @@ function averageLines(money: AdminReportMoneyDto, language: string): FigureLine[
   });
 }
 
-const PERIOD_AGO: Record<AdminReportPeriod, string> = {
-  [AdminReportPeriod.Days30]: 'adminReports.period.ago.Days30',
-  [AdminReportPeriod.Days90]: 'adminReports.period.ago.Days90',
-  [AdminReportPeriod.Months12]: 'adminReports.period.ago.Months12',
-};
-
 interface Props {
   report: GetAdminReportsResponse;
   period: AdminReportPeriod;
@@ -96,9 +90,12 @@ export default function MoneySection({ report, period }: Props) {
 
   const snapshot = formatReportDay(report.snapshotDay, language);
   const compared = formatReportDay(report.comparedFrom, language);
-  // A named baseline date is more honest than "30 days ago" when the baseline snapshot sits elsewhere.
-  const against = compared ? t('adminReports.money.againstDate', { date: compared }) : t(PERIOD_AGO[period]);
-  const subtitle = snapshot ? t('adminReports.money.subtitle', { day: snapshot, against }) : t('adminReports.money.noSnapshot');
+  // comparedFrom is the earliest snapshot in the period (null = no baseline), so name its date rather than "30 days ago".
+  const subtitle = !snapshot
+    ? t('adminReports.money.noSnapshot')
+    : compared
+      ? t('adminReports.money.subtitle', { day: snapshot, against: compared })
+      : t('adminReports.money.subtitleNoBaseline', { day: snapshot });
 
   const fullPrice = (money.monthlyRevenueFull ?? [])
     .map((item) => reportMoney(item.value ?? 0, item.currency, language))

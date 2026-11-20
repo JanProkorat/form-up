@@ -7154,11 +7154,6 @@
       "Days30": "30 days",
       "Days90": "90 days",
       "Months12": "12 months",
-      "ago": {
-        "Days30": "30 days ago",
-        "Days90": "90 days ago",
-        "Months12": "12 months ago"
-      },
       "window": {
         "Days30": "the last 30 days",
         "Days90": "the last 90 days",
@@ -7168,7 +7163,7 @@
     "money": {
       "title": "Money",
       "subtitle": "Snapshot of {{day}} · change against {{against}}",
-      "againstDate": "{{date}}",
+      "subtitleNoBaseline": "Snapshot of {{day}} · no earlier snapshot to compare",
       "noSnapshot": "No daily snapshot yet",
       "revenue": "Monthly revenue",
       "revenueNote": "After promotions · full price {{full}}",

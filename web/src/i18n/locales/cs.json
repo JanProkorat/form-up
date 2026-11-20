@@ -7424,11 +7424,6 @@
       "Days30": "30 dní",
       "Days90": "90 dní",
       "Months12": "12 měsíců",
-      "ago": {
-        "Days30": "před 30 dny",
-        "Days90": "před 90 dny",
-        "Months12": "před 12 měsíci"
-      },
       "window": {
         "Days30": "posledních 30 dní",
         "Days90": "posledních 90 dní",
@@ -7437,8 +7432,8 @@
     },
     "money": {
       "title": "Peníze",
-      "subtitle": "Stav k {{day}} · změna oproti stavu {{against}}",
-      "againstDate": "k {{date}}",
+      "subtitle": "Stav k {{day}} · změna oproti stavu k {{against}}",
+      "subtitleNoBaseline": "Stav k {{day}} · zatím není s čím porovnat",
       "noSnapshot": "Zatím žádný denní snímek",
       "revenue": "Měsíční tržby",
       "revenueNote": "Po slevách · plná cena {{full}}",

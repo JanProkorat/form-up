@@ -13,7 +13,7 @@ export function adminReportsPayload(overrides: Partial<GetAdminReportsResponse> 
   return {
     period: AdminReportPeriod.Days30,
     snapshotDay: '2026-11-15',
-    comparedFrom: undefined,
+    comparedFrom: '2026-10-16',
     money: {
       monthlyRevenueFull: [{ currency: 'CZK', value: 2648000, previous: 2400000 }],
       monthlyRevenueAfterPromotions: [

@@ -34,7 +34,7 @@ describe('AdminReportsPage', () => {
 
     expect(await screen.findByRole('heading', { name: 'Money', level: 2 })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Reports', level: 1 })).toBeInTheDocument();
-    expect(screen.getByText(byText('Snapshot of Nov 15, 2026 · change against 30 days ago'))).toBeInTheDocument();
+    expect(screen.getByText(byText('Snapshot of Nov 15, 2026 · change against Oct 16, 2026'))).toBeInTheDocument();
 
     // Each currency has its own line; the EUR line has no baseline, so no chip.
     const revenue = block('Monthly revenue');
@@ -114,6 +114,7 @@ describe('AdminReportsPage', () => {
   it('shows the payload of the period picked in the switch', async () => {
     const ninety = adminReportsPayload({
       period: AdminReportPeriod.Days90,
+      comparedFrom: '2026-08-17',
       funnel: { signedUp: 200, emailVerified: 150, chosePlan: 100, startedPaidPlan: 50 },
     });
     serveAdminReports({ [AdminReportPeriod.Days30]: adminReportsPayload(), [AdminReportPeriod.Days90]: ninety });
@@ -130,14 +131,14 @@ describe('AdminReportsPage', () => {
     const funnel90 = block('New coach funnel');
     expect(within(funnel90).getByText('200')).toBeInTheDocument();
     expect(funnel90).toHaveTextContent('Coaches who signed up in the last 90 days');
-    expect(screen.getByText(byText('Snapshot of Nov 15, 2026 · change against 90 days ago'))).toBeInTheDocument();
+    expect(screen.getByText(byText('Snapshot of Nov 15, 2026 · change against Aug 17, 2026'))).toBeInTheDocument();
   });
 
-  it('names the baseline date when the baseline snapshot is known', async () => {
-    serveAdminReports({ [AdminReportPeriod.Days30]: adminReportsPayload({ comparedFrom: '2026-10-20' }) });
+  it('says there is nothing to compare with when the period has no baseline snapshot', async () => {
+    serveAdminReports({ [AdminReportPeriod.Days30]: adminReportsPayload({ comparedFrom: undefined }) });
     renderAdminReports();
 
-    expect(await screen.findByText(byText('Snapshot of Nov 15, 2026 · change against Oct 20, 2026'))).toBeInTheDocument();
+    expect(await screen.findByText(byText('Snapshot of Nov 15, 2026 · no earlier snapshot to compare'))).toBeInTheDocument();
   });
 
   it('shows an empty Usage state and no change chips when there is no snapshot yet', async () => {
