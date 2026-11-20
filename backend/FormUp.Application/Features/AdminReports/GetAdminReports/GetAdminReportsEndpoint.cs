@@ -50,7 +50,9 @@ internal sealed class GetAdminReportsEndpoint(IApplicationDbContext db, TimeProv
 
         var inPeriod = db.DailyReportSnapshots.AsNoTracking().Where(s => s.Day >= startDay && s.Day <= today);
         var snapshots = await inPeriod.OrderBy(s => s.Day).ToListAsync(ct);
-        var baseline = snapshots.FirstOrDefault();
+
+        // Today's own snapshot is never a baseline: with nothing earlier in the period there is nothing to compare with.
+        var baseline = snapshots.FirstOrDefault(s => s.Day < today);
         var latest = await db.DailyReportSnapshots.AsNoTracking()
             .Where(s => s.Day <= today)
             .OrderByDescending(s => s.Day)
