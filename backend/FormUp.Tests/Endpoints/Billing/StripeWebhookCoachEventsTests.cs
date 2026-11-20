@@ -6,6 +6,8 @@ using System.Text.Json;
 using FluentAssertions;
 using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
+using FormUp.Application.Domain.Interfaces;
+using FormUp.Application.Domain.Services;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Tests.Builders;
 using FormUp.Tests.Infrastructure;
@@ -211,6 +213,87 @@ public class StripeWebhookCoachEventsTests(FitnessApiFactory factory)
         cancelled.PlanCode.Should().BeNull();
         cancelled.FullMonthlyRevenueEffectMinorUnits.Should().Be(-29900);
         cancelled.DiscountedMonthlyRevenueEffectMinorUnits.Should().Be(-29900);
+    }
+
+    /// <summary>
+    /// Real recorder, except that right after the webhook's subscription-change event is added it stores the same key
+    /// through another context, as a concurrent request that passed the key check at the same time would.
+    /// </summary>
+    private sealed class RacingRecorder(ICoachEventRecorder inner, IServiceProvider rootServices) : ICoachEventRecorder
+    {
+        public Task<bool> RecordAsync(
+            CoachEventType type, Guid coachUserId, string idempotencyKey, CancellationToken ct, string? planCode = null,
+            string? previousPlanCode = null, CoachRevenueAmount? before = null, CoachRevenueAmount? after = null) =>
+            inner.RecordAsync(type, coachUserId, idempotencyKey, ct, planCode, previousPlanCode, before, after);
+
+        public async Task RecordSubscriptionChangeAsync(
+            string stripeEventId, CoachRevenueState before, CoachSubscription row, CancellationToken ct)
+        {
+            await inner.RecordSubscriptionChangeAsync(stripeEventId, before, row, ct);
+
+            using var scope = rootServices.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var coachUserId = await db.ProfessionalProfiles
+                .Where(p => p.Id == row.ProfessionalProfileId).Select(p => p.UserId).FirstAsync(ct);
+            db.CoachEvents.Add(new CoachEvent
+            {
+                CoachUserId = coachUserId,
+                EventType = CoachEventType.StartedPaidPlan,
+                OccurredAt = DateTimeOffset.UtcNow,
+                IdempotencyKey = $"{stripeEventId}:{CoachEventType.StartedPaidPlan}",
+            });
+            await db.SaveChangesAsync(ct);
+        }
+
+        public Task RecordCancellationAsync(string stripeEventId, CoachRevenueState before, CoachSubscription row, CancellationToken ct) =>
+            inner.RecordCancellationAsync(stripeEventId, before, row, ct);
+
+        public Task RecordPaymentFailedAsync(string stripeEventId, CoachSubscription row, CancellationToken ct) =>
+            inner.RecordPaymentFailedAsync(stripeEventId, row, ct);
+
+        public Task RecordPromotionAppliedAsync(CoachSubscription row, Promotion promotion, CancellationToken ct) =>
+            inner.RecordPromotionAppliedAsync(row, promotion, ct);
+
+        public Task<CoachRevenueState> CaptureAsync(CoachSubscription row, CancellationToken ct) => inner.CaptureAsync(row, ct);
+    }
+
+    [Fact]
+    public async Task Webhook_CoachEventCollidingWithAConcurrentlyStoredKey_StillCommitsTheSubscriptionChange_AndTheProcessedEvent()
+    {
+        await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (_, priceId) = await BillingTestData.StripePlanAsync(factory, 29900);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, "free");
+        await BillingTestData.UpdateRowAsync(factory, coach.ProfileId, row => row.ExternalCustomerId = "cus_unused");
+        var subscriptionId = $"sub_{Guid.NewGuid():N}";
+        var eventId = NewEventId();
+        var payload = SubscriptionEvent(eventId, "customer.subscription.created", subscriptionId, priceId, "active");
+        // Not disposed: a derived factory shares the collection's host, and disposing it breaks the other tests.
+        var racing = factory.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
+        {
+            foreach (var descriptor in services.Where(d => d.ServiceType == typeof(ICoachEventRecorder)).ToList())
+            {
+                services.Remove(descriptor);
+            }
+
+            services.AddScoped<ICoachEventRecorder>(sp => new RacingRecorder(
+                ActivatorUtilities.CreateInstance<CoachEventRecorder>(sp), factory.Services));
+        }));
+        using var request = new HttpRequestMessage(HttpMethod.Post, Route)
+        {
+            Content = new StringContent(payload, Encoding.UTF8, "application/json"),
+        };
+        request.Headers.Add("Stripe-Signature", Sign(payload));
+
+        var response = await racing.CreateClient().SendAsync(request, Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var row = await db.CoachSubscriptions.AsNoTracking().FirstAsync(cs => cs.ProfessionalProfileId == coach.ProfileId, Ct);
+        row.ExternalSubscriptionId.Should().Be(subscriptionId, "the duplicate coach event must not cost the webhook its subscription change");
+        (await db.ProcessedWebhookEvents.CountAsync(e => e.EventId == eventId, Ct)).Should().Be(1);
+        (await EventsOfAsync(coach)).Should().ContainSingle(e => e.EventType == CoachEventType.StartedPaidPlan);
     }
 
     [Fact]
