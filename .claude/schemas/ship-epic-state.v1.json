@@ -65,6 +65,12 @@
             "type": ["integer", "null"],
             "minimum": 1
           },
+          "session": {
+            "type": "string",
+            "pattern": "^local_[0-9a-f-]{36}$",
+            "maxLength": 42,
+            "description": "Id of the task session running this child (coordinator + one session per task)."
+          },
           "depends_on": {
             "type": "array",
             "items": { "type": "integer", "minimum": 1 },
