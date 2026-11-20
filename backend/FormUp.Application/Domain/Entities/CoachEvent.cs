@@ -10,9 +10,16 @@ namespace FormUp.Application.Domain.Entities;
 public class CoachEvent : TimestampableEntity
 {
     /// <summary>
-    /// The coach the event is about. Null once the coach account is deleted, so the funnel totals survive without the link.
+    /// The coach the event is about. Null once the coach account is deleted; <see cref="AnonymousCoachKey"/> then keeps
+    /// the coach's events together without pointing at the person.
     /// </summary>
     public Guid? CoachUserId { get; set; }
+
+    /// <summary>
+    /// Random per-coach key set on all of a coach's events when the account is deleted, never derived from the user id.
+    /// Null while the account exists, and on events that were orphaned before the key existed.
+    /// </summary>
+    public Guid? AnonymousCoachKey { get; set; }
 
     /// <summary>
     /// What happened.

@@ -1886,6 +1886,10 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<Guid?>("AnonymousCoachKey")
+                        .HasColumnType("uuid")
+                        .HasColumnName("anonymous_coach_key");
+
                     b.Property<Guid?>("CoachUserId")
                         .HasColumnType("uuid")
                         .HasColumnName("coach_user_id");
@@ -1937,6 +1941,9 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_coach_events");
+
+                    b.HasIndex("AnonymousCoachKey")
+                        .HasDatabaseName("ix_coach_events_anonymous_coach_key");
 
                     b.HasIndex("CoachUserId")
                         .HasDatabaseName("ix_coach_events_coach_user_id");

@@ -110,6 +110,22 @@ public class DeleteAccountEndpoint(
             .ToListAsync(ct);
         db.RefreshTokens.RemoveRange(refreshTokens);
 
+        // Coach events keep the Reports funnel whole: the FK nulls the user id, so give all of this coach's events one
+        // random key (not derived from the user id) in the same save as the rest of the deletion.
+        var coachEvents = await db.CoachEvents
+            .Where(coachEvent => coachEvent.CoachUserId == userId)
+            .ToListAsync(ct);
+
+        if (coachEvents.Count > 0)
+        {
+            var anonymousCoachKey = Guid.NewGuid();
+
+            foreach (var coachEvent in coachEvents)
+            {
+                coachEvent.AnonymousCoachKey = anonymousCoachKey;
+            }
+        }
+
         await db.SaveChangesAsync(ct);
 
         // Delete the Identity user (cascades to user_roles, user_claims, user_logins, user_tokens)

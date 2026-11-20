@@ -288,21 +288,26 @@ internal sealed class GetAdminReportsEndpoint(IApplicationDbContext db, TimeProv
         totals.Where(row => row.Currency is not null).Select(row => (row.Currency!, -row.Effect)).ToList();
 
     /// <summary>
-    /// Distinct coaches with an event of the type in the window. Events of deleted coaches have no coach link, so each
-    /// counts as one.
+    /// Distinct coaches with an event of the type in the window. A coach is the user id, or the anonymous key once the
+    /// account is deleted. Events with neither (orphaned before the key existed) each count as one.
     /// </summary>
     private async Task<int> CountDistinctCoachesAsync(
         CoachEventType type, DateTimeOffset from, DateTimeOffset to, CancellationToken ct)
     {
         var events = db.CoachEvents.AsNoTracking().Where(e => e.EventType == type && e.OccurredAt >= from && e.OccurredAt <= to);
 
-        return await events.Where(e => e.CoachUserId != null).Select(e => e.CoachUserId).Distinct().CountAsync(ct)
-               + await events.CountAsync(e => e.CoachUserId == null, ct);
+        return await events
+                   .Where(e => e.CoachUserId != null || e.AnonymousCoachKey != null)
+                   .Select(e => e.CoachUserId ?? e.AnonymousCoachKey)
+                   .Distinct()
+                   .CountAsync(ct)
+               + await events.CountAsync(e => e.CoachUserId == null && e.AnonymousCoachKey == null, ct);
     }
 
     /// <summary>
     /// Step one counts the sign-ups of the period. Each later step counts distinct sign-up coaches with such an event on
-    /// or after their sign-up. Deleted coaches drop out of the later steps, because their events lose the coach link.
+    /// or after their sign-up. A coach is the user id, or the anonymous key once the account is deleted, so a deleted
+    /// coach stays in every step. Rows with neither only count at step one.
     /// </summary>
     private async Task<AdminReportFunnelDto> BuildFunnelAsync(DateTimeOffset from, DateTimeOffset to, CancellationToken ct)
     {
@@ -312,12 +317,14 @@ internal sealed class GetAdminReportsEndpoint(IApplicationDbContext db, TimeProv
 
         var later = await (
                 from e in db.CoachEvents.AsNoTracking()
-                join signUp in signUps on e.CoachUserId equals signUp.CoachUserId
-                where e.OccurredAt >= signUp.OccurredAt
+                join signUp in signUps
+                    on (e.CoachUserId ?? e.AnonymousCoachKey) equals (signUp.CoachUserId ?? signUp.AnonymousCoachKey)
+                where (e.CoachUserId != null || e.AnonymousCoachKey != null)
+                      && e.OccurredAt >= signUp.OccurredAt
                       && (e.EventType == CoachEventType.EmailVerified
                           || e.EventType == CoachEventType.ChosePlan
                           || e.EventType == CoachEventType.StartedPaidPlan)
-                group e.CoachUserId by e.EventType into byType
+                group (e.CoachUserId ?? e.AnonymousCoachKey) by e.EventType into byType
                 select new { EventType = byType.Key, Coaches = byType.Distinct().Count() })
             .ToDictionaryAsync(row => row.EventType, row => row.Coaches, ct);
 
