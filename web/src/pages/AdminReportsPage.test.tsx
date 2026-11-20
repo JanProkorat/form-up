@@ -189,12 +189,13 @@ describe('AdminReportsPage', () => {
     expect(screen.queryByText('Could not load the reports.')).not.toBeInTheDocument();
   });
 
-  it('hides the Stripe dashboard link when no URL is configured', async () => {
+  it('falls back to the Stripe test dashboard when no URL is configured', async () => {
+    vi.stubEnv('VITE_STRIPE_DASHBOARD_URL', '');
     serveAdminReports({ [AdminReportPeriod.Days30]: adminReportsPayload() });
     renderAdminReports();
 
-    await screen.findByRole('heading', { name: 'Money', level: 2 });
-    expect(screen.queryByRole('link', { name: /Stripe dashboard/ })).not.toBeInTheDocument();
+    const link = await screen.findByRole('link', { name: /Stripe dashboard/ });
+    expect(link).toHaveAttribute('href', 'https://dashboard.stripe.com/test');
   });
 
   it('opens the configured https Stripe dashboard in a new tab and ignores a non-https URL', async () => {
