@@ -20,9 +20,14 @@ namespace FormUp.Application.Features.Billing.ChangePlan;
 /// <param name="subscriptions">The payment provider seam.</param>
 /// <param name="timeProvider">Clock.</param>
 /// <param name="coachRoleStatus">Resolves the coach roles that are not removed.</param>
+/// <param name="coachEvents">Records an upgrade that applies now in the same save as the row change.</param>
 [RemovedCoachRole(RemovedCoachRoleMode.Refuse)]
 internal sealed class ChangePlanEndpoint(
-    IApplicationDbContext db, ISubscriptionService subscriptions, TimeProvider timeProvider, ICoachRoleStatus coachRoleStatus)
+    IApplicationDbContext db,
+    ISubscriptionService subscriptions,
+    TimeProvider timeProvider,
+    ICoachRoleStatus coachRoleStatus,
+    ICoachEventRecorder coachEvents)
     : Endpoint<ChangePlanRequest, ChangePlanResponse>
 {
     /// <inheritdoc />
@@ -138,6 +143,8 @@ internal sealed class ChangePlanEndpoint(
         // Our own row is written now; LastExternalEventAt stays, so the webhook that follows still applies.
         if (decision.IsUpgrade)
         {
+            var before = await coachEvents.CaptureAsync(subscription, ct);
+
             subscription.SubscriptionPlanId = target.PlanId;
             subscription.SubscriptionPlanPriceId = target.PriceId;
             subscription.PendingSubscriptionPlanPriceId = null;
@@ -150,6 +157,18 @@ internal sealed class ChangePlanEndpoint(
             {
                 subscription.SecondRoleAddOnEndsAt = null;
             }
+
+            // Only an upgrade that applies now is an event here; the webhook that follows finds the row already updated.
+            var after = await coachEvents.CaptureAsync(subscription, ct);
+            await coachEvents.RecordAsync(
+                CoachEventType.Upgraded,
+                userId,
+                $"change:{req.AttemptId:N}",
+                ct,
+                after.PlanCode,
+                before.PlanCode,
+                before.Amount,
+                after.Amount);
         }
         else
         {

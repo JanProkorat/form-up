@@ -18,12 +18,14 @@ namespace FormUp.Application.Features.Auth.Register;
 /// <param name="audit">Audit logging service.</param>
 /// <param name="tokenService">Shared email-verification token issuance service (see #679).</param>
 /// <param name="logger">Logger for non-fatal send failures.</param>
+/// <param name="coachEvents">Records the coach's sign-up event in the same save as the profile.</param>
 public class RegisterEndpoint(
     UserManager<ApplicationUser> userManager,
     IApplicationDbContext dbContext,
     IAuditService audit,
     IEmailVerificationTokenService tokenService,
-    ILogger<RegisterEndpoint> logger) : Endpoint<RegisterRequest, RegisterResponse>
+    ILogger<RegisterEndpoint> logger,
+    ICoachEventRecorder coachEvents) : Endpoint<RegisterRequest, RegisterResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -82,6 +84,7 @@ public class RegisterEndpoint(
         if (isCoach)
         {
             dbContext.ProfessionalProfiles.Add(new ProfessionalProfile { UserId = user.Id });
+            await coachEvents.RecordAsync(CoachEventType.SignedUp, user.Id, $"signup:{user.Id}", ct);
         }
 
         if (roles.Contains(UserRole.Client))

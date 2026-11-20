@@ -185,6 +185,16 @@ public interface IApplicationDbContext
     DbSet<ProcessedWebhookEvent> ProcessedWebhookEvents { get; set; }
 
     /// <summary>
+    /// The coach sign-up and billing event history behind the admin Reports funnel.
+    /// </summary>
+    DbSet<CoachEvent> CoachEvents { get; set; }
+
+    /// <summary>
+    /// One row of totals per UTC day for the admin Reports trends.
+    /// </summary>
+    DbSet<DailyReportSnapshot> DailyReportSnapshots { get; set; }
+
+    /// <summary>
     /// Our copy of the Stripe coupons that discount coach plans.
     /// </summary>
     DbSet<Promotion> Promotions { get; set; }

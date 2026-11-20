@@ -24,13 +24,15 @@ namespace FormUp.Application.Features.Billing.StripeWebhook;
 /// <param name="timeProvider">Clock.</param>
 /// <param name="notifier">Realtime notifier; tells the coach's open app that the subscription changed.</param>
 /// <param name="logger">Logger; receives event ids and types only, never the payload.</param>
+/// <param name="coachEvents">Adds coach events to the same save as the processed-event row.</param>
 internal sealed class StripeWebhookEndpoint(
     IApplicationDbContext db,
     IOptions<BillingOptions> options,
     ISubscriptionService subscriptions,
     TimeProvider timeProvider,
     IRealtimeNotifier notifier,
-    ILogger<StripeWebhookEndpoint> logger) : EndpointWithoutRequest
+    ILogger<StripeWebhookEndpoint> logger,
+    ICoachEventRecorder coachEvents) : EndpointWithoutRequest
 {
     private const string SignatureHeader = "Stripe-Signature";
 
@@ -152,7 +154,7 @@ internal sealed class StripeWebhookEndpoint(
     private Task AcknowledgeAsync(CancellationToken ct) => Send.OkAsync(new { Received = true }, ct);
 
     private static bool IsDuplicateEvent(DbUpdateException ex) =>
-        ex.InnerException is PostgresException { SqlState: "23505", TableName: "processed_webhook_events" };
+        ex.InnerException is PostgresException { SqlState: "23505", TableName: "processed_webhook_events" or "coach_events" };
 
     private async Task<bool> ApplyAsync(Event stripeEvent, CancellationToken ct)
     {
@@ -238,6 +240,7 @@ internal sealed class StripeWebhookEndpoint(
             return true;
         }
 
+        var before = await coachEvents.CaptureAsync(row, ct);
         row.ExternalSubscriptionId = subscription.Id;
         row.SubscriptionPlanId = planPrice.SubscriptionPlanId;
         row.SubscriptionPlanPriceId = planPrice.Id;
@@ -279,6 +282,8 @@ internal sealed class StripeWebhookEndpoint(
         {
             await GrantPaidRoleAsync(subscription, planPrice, row, ct);
         }
+
+        await coachEvents.RecordSubscriptionChangeAsync(stripeEvent.Id, before, row, ct);
 
         return true;
     }
@@ -501,6 +506,7 @@ internal sealed class StripeWebhookEndpoint(
 
         row.LastExternalEventAt = StripeWebhookMapper.ToUtc(stripeEvent.Created);
         _changedRow = row;
+        var before = await coachEvents.CaptureAsync(row, ct);
         row.ExternalSubscriptionId = null;
         row.NextPaymentAttemptAt = null;
 
@@ -524,6 +530,8 @@ internal sealed class StripeWebhookEndpoint(
         row.RenewalCancelledByAdminAt = null;
         row.PendingSubscriptionPlanPriceId = null;
         row.SecondRoleAddOnEndsAt = null;
+
+        await coachEvents.RecordCancellationAsync(stripeEvent.Id, before, row, ct);
 
         return true;
     }
@@ -568,6 +576,7 @@ internal sealed class StripeWebhookEndpoint(
         {
             // Past due keeps the paid plan's features while Stripe retries; an Incomplete first payment stays Incomplete.
             row.Status = SubscriptionStatus.PastDue;
+            await coachEvents.RecordPaymentFailedAsync(stripeEvent.Id, row, ct);
         }
         else if (!paymentFailed && row.Status is SubscriptionStatus.PastDue or SubscriptionStatus.Incomplete)
         {
