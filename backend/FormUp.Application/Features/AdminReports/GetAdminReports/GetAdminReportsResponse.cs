@@ -257,6 +257,9 @@ public class AdminReportMrrPointDto
 /// </summary>
 public class AdminReportUsageDto
 {
+    /// <summary>All coaches in the latest snapshot, the denominator for active coaches.</summary>
+    public int TotalCoaches { get; set; }
+
     /// <summary>Coaches with a refresh token issued in the last 30 days.</summary>
     public int ActiveCoachesLast30Days { get; set; }
 

@@ -98,10 +98,11 @@ public class GetAdminReportsEndpointTests(FitnessApiFactory factory)
     }
 
     private static DailyReportSnapshot Snapshot(
-        DateOnly day, string currency, long revenue, int payingCoaches = 1, int activeClients = 0) =>
+        DateOnly day, string currency, long revenue, int payingCoaches = 1, int activeClients = 0, int totalCoaches = 0) =>
         new()
         {
             Day = day,
+            TotalCoachCount = totalCoaches,
             PayingCoachCount = payingCoaches,
             ActiveClientsLast7Days = activeClients,
             MonthlyRevenueFull = [new ReportCurrencyAmount { Currency = currency, AmountMinorUnits = revenue + 1000 }],
@@ -151,7 +152,7 @@ public class GetAdminReportsEndpointTests(FitnessApiFactory factory)
             Snapshot(startDay.AddDays(-1), currency, 1, payingCoaches: 99),
             Snapshot(startDay, currency, 7000, payingCoaches: 2, activeClients: 5),
             Snapshot(startDay.AddDays(2), currency, 8000, payingCoaches: 3),
-            Snapshot(Day(Now), currency, 9000, payingCoaches: 4, activeClients: 9),
+            Snapshot(Day(Now), currency, 9000, payingCoaches: 4, activeClients: 9, totalCoaches: 87),
             Event(CoachEventType.Cancelled, PeriodStart(period).AddHours(1), await CoachIdAsync(), currency, -500),
             Event(CoachEventType.Cancelled, PeriodStart(period).AddHours(2), await CoachIdAsync(), currency, -300));
 
@@ -167,6 +168,7 @@ public class GetAdminReportsEndpointTests(FitnessApiFactory factory)
         report.Money.AveragePerPayingCoach.Single(row => row.Currency == currency)
             .Should().BeEquivalentTo(new AdminReportAverageDto { Currency = currency, Value = 10000, Previous = 3500, CoachesBilled = 1 });
         report.Usage!.ActiveClientsLast7Days.Should().BeEquivalentTo(new AdminReportCountDto { Value = 9, Previous = 5 });
+        report.Usage.TotalCoaches.Should().Be(87, "the denominator comes from the latest snapshot");
         report.Money.ChurnPercent.Should().Be(100m, "two coaches cancelled against two paying coaches at the baseline");
         report.Money.LostToCancellations.Count.Value.Should().Be(2);
         var lost = For(report.Money.LostToCancellations.Amounts, currency);
