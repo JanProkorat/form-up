@@ -2578,6 +2578,73 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                     b.ToTable("notification_preferences", (string)null);
                 });
 
+            modelBuilder.Entity("FormUp.Application.Domain.Entities.PaidInvoice", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("AmountPaid")
+                        .HasColumnType("bigint")
+                        .HasColumnName("amount_paid");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("currency");
+
+                    b.Property<DateTime>("DateCreated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_created");
+
+                    b.Property<DateTime?>("DateUpdated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_updated");
+
+                    b.Property<long>("DiscountAmount")
+                        .HasColumnType("bigint")
+                        .HasColumnName("discount_amount");
+
+                    b.Property<string>("ExternalInvoiceId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("external_invoice_id");
+
+                    b.Property<DateTimeOffset>("PaidAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("paid_at");
+
+                    b.Property<DateTimeOffset>("PeriodEnd")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("period_end");
+
+                    b.Property<DateTimeOffset>("PeriodStart")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("period_start");
+
+                    b.Property<long?>("ProfessionalProfileId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("professional_profile_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_paid_invoices");
+
+                    b.HasIndex("ExternalInvoiceId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_paid_invoices_external_invoice_id");
+
+                    b.HasIndex("PaidAt")
+                        .HasDatabaseName("ix_paid_invoices_paid_at");
+
+                    b.HasIndex("ProfessionalProfileId")
+                        .HasDatabaseName("ix_paid_invoices_professional_profile_id");
+
+                    b.ToTable("paid_invoices", (string)null);
+                });
+
             modelBuilder.Entity("FormUp.Application.Domain.Entities.PendingInvite", b =>
                 {
                     b.Property<long>("Id")
@@ -4628,6 +4695,17 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                         .HasConstraintName("fk_notification_preferences_users_user_id");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("FormUp.Application.Domain.Entities.PaidInvoice", b =>
+                {
+                    b.HasOne("FormUp.Application.Domain.Entities.ProfessionalProfile", "ProfessionalProfile")
+                        .WithMany()
+                        .HasForeignKey("ProfessionalProfileId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_paid_invoices_professional_profiles_professional_profile_id");
+
+                    b.Navigation("ProfessionalProfile");
                 });
 
             modelBuilder.Entity("FormUp.Application.Domain.Entities.PendingInvite", b =>

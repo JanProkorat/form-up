@@ -87,20 +87,62 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
         });
     }
 
+    private sealed record LineSpec(long Start, long End, bool Proration = false, string ParentType = "subscription_item_details");
+
     private static string InvoiceEvent(
-        string eventId, string type, Scenario scenario, long? created = null, long? nextPaymentAttempt = null) =>
+        string eventId,
+        string type,
+        Scenario scenario,
+        long? created = null,
+        long? nextPaymentAttempt = null,
+        string? invoiceId = null,
+        long amountPaid = 0,
+        long[]? discounts = null,
+        LineSpec[]? lines = null,
+        long? paidAt = null) =>
         Envelope(eventId, type, created, new
         {
-            Id = $"in_{Guid.NewGuid():N}",
+            Id = invoiceId ?? $"in_{Guid.NewGuid():N}",
             Object = "invoice",
             Customer = scenario.CustomerId,
             NextPaymentAttempt = nextPaymentAttempt,
+            Currency = "czk",
+            AmountPaid = amountPaid,
+            PeriodStart = DateTimeOffset.UtcNow.AddDays(-1).ToUnixTimeSeconds(),
+            PeriodEnd = DateTimeOffset.UtcNow.AddDays(-1).ToUnixTimeSeconds(),
+            TotalDiscountAmounts = (discounts ?? []).Select((amount, index) => new { Amount = amount, Discount = $"di_{index}" }).ToList(),
+            StatusTransitions = new { PaidAt = paidAt },
+            Lines = new
+            {
+                Object = "list",
+                HasMore = false,
+                Url = "/v1/invoices/lines",
+                Data = (lines ?? []).Select((line, index) => new
+                {
+                    Id = $"il_{index}",
+                    Object = "line_item",
+                    Period = new { line.Start, line.End },
+                    Parent = new
+                    {
+                        Type = line.ParentType,
+                        SubscriptionItemDetails = new { line.Proration, Subscription = scenario.SubscriptionId, SubscriptionItem = $"si_{index}" },
+                    },
+                }).ToList(),
+            },
             Parent = new
             {
                 Type = "subscription_details",
                 SubscriptionDetails = new { Subscription = scenario.SubscriptionId },
             },
         });
+
+    private async Task<List<PaidInvoice>> ReadInvoicesAsync(string invoiceId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        return await db.PaidInvoices.AsNoTracking().Where(i => i.ExternalInvoiceId == invoiceId).ToListAsync(Ct);
+    }
 
     private static string Envelope(string eventId, string type, long? created, object payload) =>
         System.Text.Json.JsonSerializer.Serialize(
@@ -878,14 +920,143 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
     {
         var scenario = await ArrangeOnGiftWithoutSubscriptionAsync();
         var invoiceEventId = NewEventId();
+        var invoiceId = $"in_{Guid.NewGuid():N}";
 
-        await PostAsync(InvoiceEvent(invoiceEventId, "invoice.paid", scenario, created: Now + 5));
+        await PostAsync(InvoiceEvent(invoiceEventId, "invoice.paid", scenario, created: Now + 5, invoiceId: invoiceId));
         var response = await PostAsync(SubscriptionEvent(
             NewEventId(), "customer.subscription.created", scenario, "active", created: Now, subscriptionCreated: Now));
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        (await ProcessedCountAsync(invoiceEventId)).Should().Be(0, "the invoice names a subscription the coach does not have yet");
+        (await ProcessedCountAsync(invoiceEventId)).Should().Be(1, "the first payment is stored even before the subscription is recorded");
+        (await ReadInvoicesAsync(invoiceId)).Should().ContainSingle();
         await AssertBoughtPlanReplacedGiftAsync(scenario);
+    }
+
+    [Fact]
+    public async Task Webhook_InvoicePaid_StoresOneRowWithTheServicePeriodAndSummedDiscounts()
+    {
+        var scenario = await ArrangeOnPaidPlanAsync();
+        var invoiceId = $"in_{Guid.NewGuid():N}";
+        var paidAt = Now - 30;
+        var periodStart = Now - 20 * 86400;
+        var periodEnd = Now + 10 * 86400;
+
+        var response = await PostAsync(InvoiceEvent(
+            NewEventId(), "invoice.paid", scenario, invoiceId: invoiceId, amountPaid: 49900, discounts: [1000, 2500], paidAt: paidAt,
+            lines:
+            [
+                new LineSpec(Now - 5 * 86400, Now + 5 * 86400, Proration: true),
+                new LineSpec(periodStart, periodEnd),
+                new LineSpec(periodStart + 3600, periodEnd - 3600),
+                new LineSpec(Now - 99 * 86400, Now + 99 * 86400, ParentType: "invoice_item_details"),
+            ]));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var invoice = (await ReadInvoicesAsync(invoiceId)).Should().ContainSingle().Subject;
+        invoice.ProfessionalProfileId.Should().Be(scenario.Coach.ProfileId);
+        invoice.AmountPaid.Should().Be(49900);
+        invoice.DiscountAmount.Should().Be(3500);
+        invoice.Currency.Should().Be("czk");
+        invoice.PeriodStart.Should().Be(DateTimeOffset.FromUnixTimeSeconds(periodStart));
+        invoice.PeriodEnd.Should().Be(DateTimeOffset.FromUnixTimeSeconds(periodEnd));
+        invoice.PaidAt.Should().Be(DateTimeOffset.FromUnixTimeSeconds(paidAt));
+    }
+
+    [Fact]
+    public async Task Webhook_InvoicePaidWithoutPaidAtOrLines_FallsBackToEventTimeAndInvoicePeriod()
+    {
+        var scenario = await ArrangeOnPaidPlanAsync();
+        var invoiceId = $"in_{Guid.NewGuid():N}";
+        var created = Now - 60;
+
+        await PostAsync(InvoiceEvent(NewEventId(), "invoice.paid", scenario, created: created, invoiceId: invoiceId));
+
+        var invoice = (await ReadInvoicesAsync(invoiceId)).Should().ContainSingle().Subject;
+        invoice.AmountPaid.Should().Be(0, "a zero-amount paid invoice is stored too");
+        invoice.DiscountAmount.Should().Be(0);
+        invoice.PaidAt.Should().Be(DateTimeOffset.FromUnixTimeSeconds(created));
+    }
+
+    [Fact]
+    public async Task Webhook_InvoicePaymentFailed_StoresNoInvoice()
+    {
+        var scenario = await ArrangeOnPaidPlanAsync();
+        var invoiceId = $"in_{Guid.NewGuid():N}";
+
+        await PostAsync(InvoiceEvent(NewEventId(), "invoice.payment_failed", scenario, invoiceId: invoiceId));
+
+        (await ReadInvoicesAsync(invoiceId)).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Webhook_InvoicePaidRedelivered_KeepsOneRow_AlsoUnderANewEventId()
+    {
+        var scenario = await ArrangeOnPaidPlanAsync();
+        var invoiceId = $"in_{Guid.NewGuid():N}";
+        var payload = InvoiceEvent(NewEventId(), "invoice.paid", scenario, invoiceId: invoiceId, amountPaid: 100);
+
+        await PostAsync(payload);
+        var second = await PostAsync(payload);
+        var otherEvent = await PostAsync(InvoiceEvent(NewEventId(), "invoice.paid", scenario, invoiceId: invoiceId, amountPaid: 100));
+
+        second.StatusCode.Should().Be(HttpStatusCode.OK);
+        otherEvent.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await ReadInvoicesAsync(invoiceId)).Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task Webhook_InvoicePaidForUnknownCoach_Returns200_AndStoresNothing()
+    {
+        var scenario = await ArrangeOnPaidPlanAsync();
+        var stranger = scenario with { CustomerId = "cus_unknown", SubscriptionId = "sub_unknown" };
+        var invoiceId = $"in_{Guid.NewGuid():N}";
+        var eventId = NewEventId();
+
+        var response = await PostAsync(InvoiceEvent(eventId, "invoice.paid", stranger, invoiceId: invoiceId));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await ReadInvoicesAsync(invoiceId)).Should().BeEmpty();
+        (await ProcessedCountAsync(eventId)).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Webhook_StaleInvoicePaid_StoresTheInvoice_AndLeavesTheSubscriptionAlone()
+    {
+        var scenario = await ArrangeOnPaidPlanAsync();
+        await UpdateRowAsync(scenario.Coach.ProfileId, row =>
+        {
+            row.Status = SubscriptionStatus.PastDue;
+            row.LastExternalEventAt = DateTimeOffset.FromUnixTimeSeconds(Now);
+        });
+        var invoiceId = $"in_{Guid.NewGuid():N}";
+        var eventId = NewEventId();
+
+        await PostAsync(InvoiceEvent(eventId, "invoice.paid", scenario, created: Now - 600, invoiceId: invoiceId));
+
+        (await ReadInvoicesAsync(invoiceId)).Should().ContainSingle();
+        (await ProcessedCountAsync(eventId)).Should().Be(1);
+        var row = await ReadRowAsync(scenario.Coach.ProfileId);
+        row.Status.Should().Be(SubscriptionStatus.PastDue);
+        row.LastExternalEventAt.Should().Be(DateTimeOffset.FromUnixTimeSeconds(Now));
+    }
+
+    [Fact]
+    public async Task Webhook_CoachProfileDeleted_KeepsTheInvoiceWithoutACoach()
+    {
+        var scenario = await ArrangeOnPaidPlanAsync();
+        var invoiceId = $"in_{Guid.NewGuid():N}";
+        await PostAsync(InvoiceEvent(NewEventId(), "invoice.paid", scenario, invoiceId: invoiceId, amountPaid: 100));
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            await db.CoachSubscriptions.Where(cs => cs.ProfessionalProfileId == scenario.Coach.ProfileId).ExecuteDeleteAsync(Ct);
+            await db.ProfessionalProfiles.Where(p => p.Id == scenario.Coach.ProfileId).ExecuteDeleteAsync(Ct);
+        }
+
+        var invoice = (await ReadInvoicesAsync(invoiceId)).Should().ContainSingle().Subject;
+        invoice.ProfessionalProfileId.Should().BeNull();
+        invoice.AmountPaid.Should().Be(100);
     }
 
     [Fact]

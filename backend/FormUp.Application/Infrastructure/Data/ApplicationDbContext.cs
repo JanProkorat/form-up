@@ -166,6 +166,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public virtual DbSet<ProcessedWebhookEvent> ProcessedWebhookEvents { get; set; } = null!;
 
     /// <summary>
+    /// Paid Stripe invoices of coach subscriptions, for revenue reporting.
+    /// </summary>
+    public virtual DbSet<PaidInvoice> PaidInvoices { get; set; } = null!;
+
+    /// <summary>
     /// Our copy of the Stripe coupons that discount coach plans.
     /// </summary>
     public virtual DbSet<Promotion> Promotions { get; set; } = null!;
