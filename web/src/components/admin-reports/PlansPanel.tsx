@@ -17,9 +17,9 @@ interface RowProps {
 function Row({ swatch, name, revenue, count }: RowProps) {
   const { t } = useTranslation();
   return (
-    <div className="flex items-center gap-2.5 border-b border-line py-2.5 text-body last:border-b-0">
-      <span className={`size-2.5 shrink-0 rounded-xs ${swatch}`} aria-hidden="true" />
-      <span className="min-w-0 truncate font-semibold text-ink">{name}</span>
+    <div className="flex items-start gap-2.5 border-b border-line py-2.5 text-body last:border-b-0">
+      <span className={`mt-0.5 size-2.5 shrink-0 rounded-xs ${swatch}`} aria-hidden="true" />
+      <span className="min-w-0 break-words font-semibold text-ink">{name}</span>
       <span className="ml-auto flex flex-col items-end text-muted-foreground">
         {revenue.length === 0 ? (
           <span>—</span>
