@@ -120,6 +120,11 @@ internal sealed class StripeWebhookEndpoint(
         {
             logger.LogInformation("Stripe event {EventId} was processed concurrently", stripeEvent.Id);
         }
+        catch (DbUpdateException ex) when (IsDuplicateInvoice(ex))
+        {
+            // This event's save is rolled back, which is fine: the concurrent event already stored the invoice.
+            logger.LogInformation("Stripe event {EventId} named an invoice stored concurrently", stripeEvent.Id);
+        }
 
         await AcknowledgeAsync(ct);
     }
@@ -155,6 +160,9 @@ internal sealed class StripeWebhookEndpoint(
 
     private static bool IsDuplicateEvent(DbUpdateException ex) =>
         ex.InnerException is PostgresException { SqlState: "23505", TableName: "processed_webhook_events" or "coach_events" };
+
+    private static bool IsDuplicateInvoice(DbUpdateException ex) =>
+        ex.InnerException is PostgresException { SqlState: "23505", TableName: "paid_invoices" };
 
     private async Task<bool> ApplyAsync(Event stripeEvent, CancellationToken ct)
     {
@@ -549,6 +557,8 @@ internal sealed class StripeWebhookEndpoint(
             return false;
         }
 
+        // Before the checks below: invoice.paid can beat customer.subscription.created, and that payment must not be lost.
+        var invoiceStored = !paymentFailed && await TryStorePaidInvoiceAsync(stripeEvent, invoice, row, ct);
         var invoiceSubscriptionId = StripeWebhookMapper.SubscriptionIdOf(invoice);
 
         if (!string.IsNullOrEmpty(invoiceSubscriptionId) && invoiceSubscriptionId != row.ExternalSubscriptionId)
@@ -556,12 +566,12 @@ internal sealed class StripeWebhookEndpoint(
             logger.LogInformation(
                 "Stripe event {EventId} ({EventType}) belongs to a subscription not yet recorded on the coach; ignored",
                 stripeEvent.Id, stripeEvent.Type);
-            return false;
+            return invoiceStored;
         }
 
         if (IsStale(stripeEvent, row))
         {
-            return false;
+            return invoiceStored;
         }
 
         row.LastExternalEventAt = StripeWebhookMapper.ToUtc(stripeEvent.Created);
@@ -586,6 +596,34 @@ internal sealed class StripeWebhookEndpoint(
         row.NextPaymentAttemptAt = paymentFailed && invoice.NextPaymentAttempt is { } nextAttempt
             ? StripeWebhookMapper.ToUtc(nextAttempt)
             : null;
+
+        return true;
+    }
+
+    /// <summary>
+    /// Adds the paid invoice for reporting, saved with the event. Returns false when the invoice is already stored.
+    /// </summary>
+    private async Task<bool> TryStorePaidInvoiceAsync(Event stripeEvent, Invoice invoice, CoachSubscription row, CancellationToken ct)
+    {
+        if (await db.PaidInvoices.AnyAsync(stored => stored.ExternalInvoiceId == invoice.Id, ct))
+        {
+            logger.LogInformation("Stripe invoice {InvoiceId} already stored", invoice.Id);
+            return false;
+        }
+
+        var period = StripeWebhookMapper.BillingPeriodOf(invoice);
+
+        db.PaidInvoices.Add(new PaidInvoice
+        {
+            ExternalInvoiceId = invoice.Id,
+            ProfessionalProfileId = row.ProfessionalProfileId,
+            AmountPaid = invoice.AmountPaid,
+            DiscountAmount = StripeWebhookMapper.TotalDiscountOf(invoice),
+            Currency = invoice.Currency ?? string.Empty,
+            PeriodStart = period.Start,
+            PeriodEnd = period.End,
+            PaidAt = StripeWebhookMapper.ToUtc(invoice.StatusTransitions?.PaidAt ?? stripeEvent.Created),
+        });
 
         return true;
     }

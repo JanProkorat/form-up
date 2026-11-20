@@ -195,6 +195,11 @@ public interface IApplicationDbContext
     DbSet<DailyReportSnapshot> DailyReportSnapshots { get; set; }
 
     /// <summary>
+    /// Paid Stripe invoices of coach subscriptions, for revenue reporting.
+    /// </summary>
+    DbSet<PaidInvoice> PaidInvoices { get; set; }
+
+    /// <summary>
     /// Our copy of the Stripe coupons that discount coach plans.
     /// </summary>
     DbSet<Promotion> Promotions { get; set; }
