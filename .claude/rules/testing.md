@@ -29,22 +29,52 @@ saves nothing; only cheaper tests do.
 
 | Chunk | Namespaces | Tests | CI time |
 |---|---|---|---|
-| 1 Endpoints | `Endpoints*` | 3130 | 110-140 s |
-| 2 Services, Validators, Infrastructure | `Services*`, `Validators*`, `Infrastructure*` | 1029 | 31-36 s |
-| 3 Remaining | everything else (complement of 1 and 2) | 487 | 51-63 s |
+| 1 Endpoints | `Endpoints*` | 4360 | 115 s |
+| 2 Services, Validators, Infrastructure | `Services*`, `Validators*`, `Infrastructure*` | 1952 | 24 s |
+| 3 Remaining | everything else (complement of 1 and 2) | 725 | 35 s |
 
-Measured on `develop` after #1768 (runs 40552071229, 40648936167 and
-40763264376): 192 s, 224 s and 239 s against the 300 s budget, while the
-suite grew from 4479 to 4646 tests. Runner variance is about ±30 s, almost
-all of it in chunk 1. **Headroom is thin:** each feature epic adds tests to
-chunks 1 and 3. The next lever is running independent collections in
-parallel (#1805).
+Measured on PR #2327 (#1805, run 44936814443): 174 s against the 300 s
+budget. Before #1805, collections ran one at a time and the same 7037 tests
+took 224 s, 243 s and 262 s on `develop` (runs 44831547640, 44917018413,
+44800842430). Runner variance has been ±30 s or more, almost all of it in
+chunk 1. Since #1805 collections run in parallel (#parallel-collections);
+the longest single collection now sets the floor of chunk 1.
 
 Where the time goes (local full run, #1563): chunk 1 has no slow class; its
 1489 shared-database tests (`[Collection(TestCollection.Name)]`) take a
 median of ~43 ms each. The big wins so far were whole-database work repeated
 per test: `QaSeedRunnerTests` re-seeding (#1741) and `AutomationSchedulerTests`
 sweeping every earlier test's rules (#1768). Look for that pattern first.
+
+## Parallel collections
+
+Since #1805, xUnit runs up to four collections at once
+(`TestAssemblyConfig.cs` attribute, mirrored in `xunit.runner.json`). Tests
+inside one collection still run one after another.
+
+| Collection | Runs | Why |
+|---|---|---|
+| `TestCollection.Name`, `Shard2`, `Shard3`, `Shard4` (`Infrastructure/TestCollection.cs`) | in parallel | each shard has its own `FitnessApiFactory`, so its own host, Postgres database and Mongo database |
+| the other named collections | in parallel | each fixture creates its own databases inside the shared containers |
+| classes with no `[Collection]` (validators, `Factory.Create` unit tests) | in parallel, one collection per class | no database; `Factory.Create` keeps each test's `HttpContext` in an `AsyncLocal` and disposes nothing (FastEndpoints 8.0.1) |
+| `SeedTests`, `ResetTests` | alone (`DisableParallelization = true`) | they set process-wide environment variables (`QA_SEED_*`) that `QaSeedRunner` reads |
+
+Rules that keep this safe:
+
+- **A new integration class uses `[Collection(TestCollection.Name)]`.** The
+  shards were balanced once by test count; don't move classes between them
+  without a reason.
+- **Classes that share a static host derived from a factory stay in one
+  shard.** `MealPhotoTestHost` caches the host built from the first factory
+  that asks; a class in another shard would call a host bound to a different
+  database (the four users all sit in `TestCollection.Name`).
+- **A test that changes process-wide state** — environment variables,
+  `Console.Out`, static fields — gets its own
+  `[CollectionDefinition(..., DisableParallelization = true)]`.
+  `CultureInfo.CurrentCulture` is per async flow and does not count.
+- **A new `WebApplicationFactory<Program>` skips `base.DisposeAsync()`**, like
+  `FitnessApiFactory` (#296). Disposing it can dispose the provider behind
+  FastEndpoints' global `ServiceResolver` while other collections still use it.
 
 ## What each layer is for
 
@@ -100,7 +130,8 @@ Rule-by-rule coverage lives in the validator's own tests. The endpoint gets
 - There is one Postgres and one Mongo container per run
   (`Infrastructure/SharedTestContainers.cs`, an assembly fixture). A fixture
   gets its own database inside them (`CreatePostgresDatabaseAsync`,
-  `CreateMongoDatabaseName`).
+  `CreateMongoDatabaseName`). Collections run in parallel, so this is what
+  keeps them apart (#parallel-collections).
 - Isolate with unique data (fresh GUIDs, unique emails and names). A test that
   asserts an exact count or "contains a single" over a shared collection must
   clear that collection first (or `Infrastructure/DatabaseResetFixtureExtensions.cs`
