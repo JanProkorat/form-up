@@ -319,11 +319,16 @@ public class WalkSeedRunnerTests(WalkSeedFixture fixture)
         var checkIns = await db.CoachSubscriptions
             .Include(cs => cs.SubscriptionPlan)
             .SingleAsync(cs => cs.ProfessionalProfile.User.Email == "walk.checkins@formup.test", TestContext.Current.CancellationToken);
-        checkIns.SubscriptionPlan.Code.Should().Be("pro");
+        checkIns.SubscriptionPlan.Code.Should().Be("walk-checkins-full");
+        checkIns.SubscriptionPlan.NameEn.Should().Be("Walk check-ins full");
+        checkIns.SubscriptionPlan.IsActive.Should().BeFalse();
         checkIns.GivenFreeAt.Should().NotBeNull();
         checkIns.ExternalSubscriptionId.Should().BeNull();
         checkIns.SubscriptionPlan.CanUseWeeklyCheckIns.Should().BeTrue();
+        checkIns.SubscriptionPlan.CanUsePerClientCheckInConfig.Should().BeTrue();
         checkIns.SubscriptionPlan.CanSendQuestionnaires.Should().BeTrue();
+        checkIns.SubscriptionPlan.CanUseAutomations.Should().BeTrue();
+        checkIns.SubscriptionPlan.MaxActiveClients.Should().BeNull();
 
         var checkInsOnly = await db.CoachSubscriptions
             .Include(cs => cs.SubscriptionPlan)
@@ -336,8 +341,9 @@ public class WalkSeedRunnerTests(WalkSeedFixture fixture)
         checkInsOnly.SubscriptionPlan.CanSendQuestionnaires.Should().BeFalse();
         checkInsOnly.SubscriptionPlan.CanUsePerClientCheckInConfig.Should().BeFalse();
 
-        (await db.SubscriptionPlans.CountAsync(p => p.Code == "walk-checkins-only", TestContext.Current.CancellationToken))
-            .Should().Be(1);
+        (await db.SubscriptionPlans.CountAsync(
+            p => p.Code == "walk-checkins-only" || p.Code == "walk-checkins-full", TestContext.Current.CancellationToken))
+            .Should().Be(2);
     }
 
     [Fact]

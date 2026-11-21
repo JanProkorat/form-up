@@ -23,7 +23,7 @@ internal enum WalkAccountKind
     /// <summary>Paying coach with more linked clients than the Free plan allows.</summary>
     ManyClients,
 
-    /// <summary>Coach on a Pro plan given by Form Up, with forms, a check-in rule, clients and check-in history.</summary>
+    /// <summary>Coach on the seed-owned check-ins full plan given by Form Up, with forms, a check-in rule, clients and check-in history.</summary>
     CheckIns,
 
     /// <summary>Coach on a seed-owned plan with weekly check-ins but no forms and no per-client check-in settings.</summary>

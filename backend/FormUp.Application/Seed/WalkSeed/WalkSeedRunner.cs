@@ -35,6 +35,8 @@ internal sealed class WalkSeedRunner(
     private const string UserNamePrefix = "Walk";
     private const string CheckInsOnlyPlanCode = "walk-checkins-only";
     private const string CheckInsOnlyPlanName = "Walk check-ins only";
+    private const string CheckInsFullPlanCode = "walk-checkins-full";
+    private const string CheckInsFullPlanName = "Walk check-ins full";
 
     /// <summary>
     /// Runs the seed. Refuses, with nothing written, when a guard fails.
@@ -63,10 +65,13 @@ internal sealed class WalkSeedRunner(
                 "Refusing to run: the Pro plan has no open price with a Stripe price id (or the Free plan is missing). Price Pro in admin first.");
         }
 
-        var checkInsOnlyPrice = await EnsureCheckInsOnlyPlanAsync(db, ct);
+        var checkInsOnlyPrice = await EnsureSeedPlanAsync(
+            db, CheckInsOnlyPlanCode, CheckInsOnlyPlanName, questionnaires: false, perClientCheckIns: false, ct);
+        var checkInsFullPrice = await EnsureSeedPlanAsync(
+            db, CheckInsFullPlanCode, CheckInsFullPlanName, questionnaires: true, perClientCheckIns: true, ct);
 
         var gateway = gatewayFactory();
-        var prices = new PlanPrices(freePrice.Value, proPrice.Value, checkInsOnlyPrice);
+        var prices = new PlanPrices(freePrice.Value, proPrice.Value, checkInsOnlyPrice, checkInsFullPrice);
         var credentials = new List<WalkAccountCredentials>();
         var clientCredentials = new List<WalkClientCredentials>();
         var lines = new List<string>();
@@ -240,6 +245,7 @@ internal sealed class WalkSeedRunner(
         {
             WalkAccountKind.Free => prices.Free,
             WalkAccountKind.CheckInsOnly => prices.CheckInsOnly,
+            WalkAccountKind.CheckIns => prices.CheckInsFull,
             _ => prices.Pro,
         };
 
@@ -396,25 +402,26 @@ internal sealed class WalkSeedRunner(
     }
 
     /// <summary>
-    /// Creates or resets the seed-owned plan of the check-ins-only coach: weekly check-ins on, forms and per-client
-    /// check-in settings off. It is inactive, so it never shows up as a plan to buy, and has no Stripe price.
+    /// Creates or resets a seed-owned plan of a check-in walk coach: weekly check-ins and automations on, forms and
+    /// per-client check-in settings as asked. It is inactive, so it never shows up as a plan to buy, and has no Stripe price.
     /// </summary>
-    private async Task<PlanPrice> EnsureCheckInsOnlyPlanAsync(ApplicationDbContext db, CancellationToken ct)
+    private async Task<PlanPrice> EnsureSeedPlanAsync(
+        ApplicationDbContext db, string code, string name, bool questionnaires, bool perClientCheckIns, CancellationToken ct)
     {
         var now = timeProvider.GetUtcNow().UtcDateTime;
 
         var plan = await db.SubscriptionPlans
             .Include(p => p.Prices)
-            .FirstOrDefaultAsync(p => p.Code == CheckInsOnlyPlanCode, ct);
+            .FirstOrDefaultAsync(p => p.Code == code, ct);
 
         if (plan is null)
         {
             plan = new SubscriptionPlan
             {
-                Code = CheckInsOnlyPlanCode,
-                NameCs = CheckInsOnlyPlanName,
-                NameEn = CheckInsOnlyPlanName,
-                NameDe = CheckInsOnlyPlanName,
+                Code = code,
+                NameCs = name,
+                NameEn = name,
+                NameDe = name,
                 Currency = SupportedCurrencies.Czk,
             };
             db.SubscriptionPlans.Add(plan);
@@ -423,9 +430,9 @@ internal sealed class WalkSeedRunner(
         plan.BothRolesIncluded = true;
         plan.CanCreatePlans = true;
         plan.CanMessage = true;
-        plan.CanSendQuestionnaires = false;
+        plan.CanSendQuestionnaires = questionnaires;
         plan.CanUseWeeklyCheckIns = true;
-        plan.CanUsePerClientCheckInConfig = false;
+        plan.CanUsePerClientCheckInConfig = perClientCheckIns;
         plan.CanUsePayments = false;
         plan.CanUsePlanTemplates = true;
         plan.CanUseRecipes = true;
@@ -435,6 +442,9 @@ internal sealed class WalkSeedRunner(
         plan.CanUseAutomations = true;
         plan.CanUsePackages = false;
         plan.MaxActiveClients = null;
+        plan.NameCs = name;
+        plan.NameEn = name;
+        plan.NameDe = name;
         plan.PriceMinorUnits = 0;
         plan.SecondRoleAddOnPriceMinorUnits = null;
         plan.IsActive = false;
@@ -575,5 +585,5 @@ internal sealed class WalkSeedRunner(
             new(value.PlanId, value.PriceId, value.ExternalPriceId);
     }
 
-    private readonly record struct PlanPrices(PlanPrice Free, PlanPrice Pro, PlanPrice CheckInsOnly);
+    private readonly record struct PlanPrices(PlanPrice Free, PlanPrice Pro, PlanPrice CheckInsOnly, PlanPrice CheckInsFull);
 }

@@ -20,7 +20,7 @@ internal static class WalkAccountCatalog
         Create("pro3ds", WalkAccountKind.ProThreeDSecure, "Pro, Stripe sandbox, card that needs 3D Secure on every later payment"),
         Create("given", WalkAccountKind.Given, "Pro plan given by Form Up, no Stripe subscription"),
         Create("manyclients", WalkAccountKind.ManyClients, "Pro, Stripe sandbox, 3 linked clients (Free allows 2)"),
-        Create("checkins", WalkAccountKind.CheckIns, "Pro given by Form Up, 2 check-in forms, weekly rule, 4 clients with check-in history"),
+        Create("checkins", WalkAccountKind.CheckIns, "Check-ins full plan given by Form Up, 2 check-in forms, weekly rule, 4 clients with check-in history"),
         Create("checkinsonly", WalkAccountKind.CheckInsOnly, "Check-ins plan without forms or per-client settings, 1 client with a check-in"),
     ];
 
