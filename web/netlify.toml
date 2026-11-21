@@ -12,7 +12,14 @@
 
 [build.environment]
   NODE_VERSION = "20"
-  # Dev site is backed by Stripe test mode; the production site's config sets the live URL https://dashboard.stripe.com
+  # This file configures the dev site only; it is backed by Stripe test mode.
+  # No production site exists yet. It needs its own netlify.toml (its redirects must point at the
+  # production backend anyway) setting VITE_STRIPE_DASHBOARD_URL = "https://dashboard.stripe.com".
+  # A Netlify UI variable does not override a value set in a netlify.toml, so setting it in the UI
+  # only works for a site that does not read this file.
+  # UNVERIFIED: file value beats UI value — https://docs.netlify.com/configure-builds/file-based-configuration/
+  # Do not add [context.production] here: if this site's production branch is develop, that would
+  # switch the dev site to live mode.
   VITE_STRIPE_DASHBOARD_URL = "https://dashboard.stripe.com/test"
 
 # ── Backend API proxy (mirrors vite.config.ts dev proxy paths) ────────────
