@@ -7701,14 +7701,14 @@
   },
   "checkIns": {
     "title": "Check-iny",
-    "subtitle": "Týdenní check-iny od všech vašich klientů. Odpověď zůstává nová, dokud ji neoznačíte jako zkontrolovanou.",
+    "subtitle": "Týdenní check-iny od všech vašich klientů. Odpověď zůstává nová, dokud ji neoznačíte jako posouzenou.",
     "retry": "Zkusit znovu",
     "loadError": "Check-iny se nepodařilo načíst.",
     "empty": "Pro tento týden zatím nejsou žádné check-iny. Objeví se tu, jakmile se klientům odešlou.",
     "emptyFilter": "Tomuto filtru neodpovídá žádný check-in.",
     "timeZoneNote": "Časy se řídí časovým pásmem každého klienta",
     "footer": "Zobrazeno {{shown}} z {{total}} · Otevřít odpovědi zobrazí check-in na záložce Formuláře u klienta",
-    "markReviewedError": "Check-in se nepodařilo označit jako zkontrolovaný.",
+    "markReviewedError": "Check-in se nepodařilo označit jako posouzený.",
     "week": {
       "group": "Týden",
       "previous": "Předchozí týden",
@@ -7728,10 +7728,10 @@
       "all": "Vše"
     },
     "status": {
-      "notReviewed": "Nezkontrolováno",
+      "notReviewed": "Neposouzeno",
       "missed": "Zmeškáno",
       "waiting": "Čeká se",
-      "reviewed": "Zkontrolováno"
+      "reviewed": "Posouzeno"
     },
     "table": {
       "client": "Klient",
@@ -7744,12 +7744,12 @@
     "row": {
       "canAnswerUntil": "Může odpovědět do {{date}}",
       "windowEnded": "Čas na odpověď skončil {{date}}",
-      "reviewedOn": "Zkontrolováno {{date}}",
+      "reviewedOn": "Posouzeno {{date}}",
       "noAnswer": "—"
     },
     "actions": {
       "openAnswers": "Otevřít odpovědi",
-      "markReviewed": "Označit jako zkontrolované",
+      "markReviewed": "Označit jako posouzené",
       "writeTo": "Napsat: {{name}}"
     }
   }
