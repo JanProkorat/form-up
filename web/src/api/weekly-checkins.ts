@@ -1,6 +1,12 @@
 import api from '@/lib/api';
 import { apiClient } from '@/api/client';
-import type { GetClientCheckInHistoryResponse } from '@/api/generated';
+import type {
+  GetClientCheckInHistoryResponse,
+  GetTrainerCheckInsResponse,
+  TrainerCheckInDto,
+} from '@/api/generated';
+
+export type { GetTrainerCheckInsResponse, TrainerCheckInDto };
 
 /**
  * Profession values as serialized by the backend (JsonStringEnumConverter not applied
@@ -36,41 +42,6 @@ export type CheckInFlag =
   | 'LessTimeAvailable';
 
 /* ─────────────────────── GET /trainer/weekly-check-ins?weekStartDate=... ────────── */
-
-/**
- * One check-in row as returned for the trainer's Today card.
- * Mirrors TrainerCheckInDto in GetTrainerCheckInsResponse.cs.
- */
-export interface TrainerCheckInDto {
-  id: string; // Guid
-  clientUserId: string; // Guid
-  /**
-   * Client's ClientProfile.PublicId — the id every client-detail link in
-   * the app uses (e.g. /clients/{clientPublicId}). Added in #753 so the
-   * dashboard card CTA can navigate without 404ing on the user id.
-   */
-  clientPublicId: string; // Guid
-  clientName: string;
-  /** "Training" | "Nutrition" */
-  profession: Profession;
-  /** ISO date string — the Monday of the planned week */
-  weekStartDate: string;
-  flags: CheckInFlag[];
-  note: string | null;
-  sentAt: string; // ISO datetime
-  respondedAt: string | null;
-  dismissedByClientAt: string | null;
-  reviewedByTrainerAt: string | null;
-  /** Added in #331 — lifecycle status derived from the Status column. */
-  status: WeeklyCheckInStatus;
-  /** Added in #331 — UTC datetime at which the check-in expires. Null when no deadline configured. */
-  dueAt: string | null;
-}
-
-/** Response wrapper for GET /trainer/weekly-check-ins. */
-export interface GetTrainerCheckInsResponse {
-  checkIns: TrainerCheckInDto[];
-}
 
 /**
  * GET /trainer/weekly-check-ins?weekStartDate=YYYY-MM-DD

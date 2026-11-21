@@ -198,6 +198,7 @@
     "adminCoaches": "Trenéři",
     "adminReports": "Přehledy",
     "automations": "Automatizace",
+    "checkIns": "Check-iny",
     "dashboard": "Dashboard",
     "profile": "Profil",
     "clients": "Klienti",
@@ -7682,6 +7683,60 @@
       "automations": { "label": "Automatizace", "hint": "Připomínky a zprávy, které se odesílají samy" },
       "packages": { "label": "Balíčky", "hint": "Nabízejte placené balíčky služeb" },
       "payments": { "label": "Platby klientů", "hint": "Platební žádosti s QR kódem" }
+    }
+  },
+  "checkIns": {
+    "title": "Check-iny",
+    "subtitle": "Týdenní check-iny od všech vašich klientů. Odpověď zůstává nová, dokud ji neoznačíte jako zkontrolovanou.",
+    "retry": "Zkusit znovu",
+    "loadError": "Check-iny se nepodařilo načíst.",
+    "empty": "Pro tento týden zatím nejsou žádné check-iny. Objeví se tu, jakmile se klientům odešlou.",
+    "emptyFilter": "Tomuto filtru neodpovídá žádný check-in.",
+    "timeZoneNote": "Časy se řídí časovým pásmem každého klienta",
+    "footer": "Zobrazeno {{shown}} z {{total}} · Otevřít odpovědi zobrazí check-in na záložce Formuláře u klienta",
+    "markReviewedError": "Check-in se nepodařilo označit jako zkontrolovaný.",
+    "week": {
+      "group": "Týden",
+      "previous": "Předchozí týden",
+      "next": "Další týden",
+      "label": "Týden {{week}} · {{range}}"
+    },
+    "totals": {
+      "answered": "Zodpovězeno",
+      "answeredValue": "{{answered}} z {{total}}",
+      "answeredSubline": "{{percent}} % odeslaných check-inů",
+      "notReviewedSubline": "Odpovědi čekající na vás",
+      "missedSubline": "Čas na odpověď vypršel",
+      "waitingSubline": "Klienti ještě mohou odpovědět"
+    },
+    "filters": {
+      "label": "Filtrovat check-iny",
+      "all": "Vše"
+    },
+    "status": {
+      "notReviewed": "Nezkontrolováno",
+      "missed": "Zmeškáno",
+      "waiting": "Čeká se",
+      "reviewed": "Zkontrolováno"
+    },
+    "table": {
+      "client": "Klient",
+      "form": "Formulář",
+      "sent": "Odesláno",
+      "answered": "Zodpovězeno",
+      "status": "Stav",
+      "actions": "Akce"
+    },
+    "row": {
+      "canAnswerUntil": "Může odpovědět do {{date}}",
+      "windowEnded": "Čas na odpověď skončil {{date}}",
+      "reviewedOn": "Zkontrolováno {{date}}",
+      "noAnswer": "—"
+    },
+    "actions": {
+      "openAnswers": "Otevřít odpovědi",
+      "markReviewed": "Označit jako zkontrolované",
+      "writeTo": "Napsat: {{name}}"
     }
   }
 }
