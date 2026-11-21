@@ -237,7 +237,8 @@ public sealed class AutomationOccurrenceSender(
     }
 
     private static bool IsCheckInRule(AutomationEvaluation evaluation) =>
-        evaluation.Rule is { ActionType: AutomationActionType.SendForm, Questionnaire: { } questionnaire }
+        evaluation.Rule.ActionType == AutomationActionType.SendForm
+        && evaluation.EffectiveQuestionnaire is { } questionnaire
         && AutomationQuestionnaireUsability.IsCheckInForm(questionnaire.Type);
 
     private static bool IsActionUsable(AutomationEvaluation evaluation)
@@ -247,7 +248,7 @@ public sealed class AutomationOccurrenceSender(
             return true;
         }
 
-        var questionnaire = evaluation.Rule.Questionnaire;
+        var questionnaire = evaluation.EffectiveQuestionnaire;
 
         if (questionnaire is null
             || !AutomationQuestionnaireUsability.IsUsable(questionnaire.IsActive)
@@ -316,7 +317,7 @@ public sealed class AutomationOccurrenceSender(
 
     private async Task<Guid> DeliverFormAsync(AutomationEvaluation evaluation, DateTime nowUtc, CancellationToken ct)
     {
-        var questionnaire = evaluation.Rule.Questionnaire!;
+        var questionnaire = evaluation.EffectiveQuestionnaire!;
         var clientUserId = evaluation.Client.ClientUserId;
         var isCheckIn = IsCheckInRule(evaluation);
 

@@ -283,6 +283,10 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("automation_rule_id");
 
+                    b.Property<long?>("CheckInQuestionnaireId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("check_in_questionnaire_id");
+
                     b.Property<long>("ClientProfileId")
                         .HasColumnType("bigint")
                         .HasColumnName("client_profile_id");
@@ -379,6 +383,9 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_automation_client_overrides");
+
+                    b.HasIndex("CheckInQuestionnaireId")
+                        .HasDatabaseName("ix_automation_client_overrides_check_in_questionnaire_id");
 
                     b.HasIndex("ClientProfileId")
                         .HasDatabaseName("ix_automation_client_overrides_client_profile_id");
@@ -4263,6 +4270,12 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_automation_client_overrides_automation_rules_automation_rul");
 
+                    b.HasOne("FormUp.Application.Domain.Entities.Questionnaire", "CheckInQuestionnaire")
+                        .WithMany()
+                        .HasForeignKey("CheckInQuestionnaireId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_automation_client_overrides_questionnaires_check_in_questio");
+
                     b.HasOne("FormUp.Application.Domain.Entities.ClientProfile", "ClientProfile")
                         .WithMany()
                         .HasForeignKey("ClientProfileId")
@@ -4271,6 +4284,8 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                         .HasConstraintName("fk_automation_client_overrides_client_profiles_client_profile_");
 
                     b.Navigation("AutomationRule");
+
+                    b.Navigation("CheckInQuestionnaire");
 
                     b.Navigation("ClientProfile");
                 });

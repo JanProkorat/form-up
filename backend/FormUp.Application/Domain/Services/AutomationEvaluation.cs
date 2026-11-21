@@ -20,6 +20,15 @@ public sealed class AutomationEvaluation
     /// <summary>The rule as this client experiences it: override and pause applied.</summary>
     public required AutomationEffectiveRule Effective { get; init; }
 
+    /// <summary>
+    /// The check-in form the client's applicable, customised override picks instead of the rule's own; null
+    /// when the client follows the rule's form. It may be inactive, which makes the send fail.
+    /// </summary>
+    public Questionnaire? OverrideQuestionnaire { get; init; }
+
+    /// <summary>The form this client is sent: the override's when it picks one, otherwise the rule's.</summary>
+    public Questionnaire? EffectiveQuestionnaire => OverrideQuestionnaire ?? Rule.Questionnaire;
+
     /// <summary>The client's time zone.</summary>
     public required TimeZoneInfo Zone { get; init; }
 
