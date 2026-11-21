@@ -14,7 +14,7 @@ namespace FormUp.Tests.Domain.Services;
 /// Testcontainers coverage for <see cref="EntitlementService"/> — resolves a coach's effective
 /// feature entitlements and client-count limit from their <see cref="CoachSubscription"/> (#593).
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class EntitlementServiceTests(FitnessApiFactory factory)
 {
     private static string UniqueEmail(string tag) => $"{Guid.NewGuid():N}@entitlement-service-{tag}.com";

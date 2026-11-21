@@ -18,7 +18,7 @@ namespace FormUp.Tests.Endpoints.AdminCoaches;
 /// <summary>
 /// Integration tests for <c>POST /admin/coaches/{CoachId}/cancel-renewal</c> (<c>CancelCoachRenewalEndpoint</c>).
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class CancelCoachRenewalEndpointTests(FitnessApiFactory factory) : IDisposable
 {
     /// <summary>Leaves the shared fake provider in its defaults for the next test class.</summary>

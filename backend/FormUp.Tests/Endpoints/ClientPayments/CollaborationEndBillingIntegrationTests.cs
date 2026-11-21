@@ -18,7 +18,7 @@ namespace FormUp.Tests.Endpoints.ClientPayments;
 /// Ending a collaboration ends the client's package and payments; a new or reactivated link bills only from a
 /// package chosen in the invite, or one the coach sets later. The old terms never resume.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class CollaborationEndBillingIntegrationTests(FitnessApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

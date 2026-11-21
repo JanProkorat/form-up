@@ -17,7 +17,7 @@ namespace FormUp.Tests.Endpoints.Messaging;
 /// <c>ClientRosterFilterClassifier</c> pipeline <c>GetConversationsEndpoint</c>'s <c>filter</c>
 /// param uses.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class GetConversationFilterCountsEndpointTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };

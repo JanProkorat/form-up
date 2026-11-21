@@ -17,7 +17,7 @@ namespace FormUp.Tests.Endpoints.Trainers;
 /// test against a mocked DbContext cannot observe either half; only a real read of the invited
 /// user's own inbox shows what actually landed there.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class CreatePendingInviteAbuseGuardsIntegrationTests(FitnessApiFactory factory)
 {
     private static string UniqueEmail(string prefix) => $"{prefix}-{Guid.NewGuid():N}@test.com";

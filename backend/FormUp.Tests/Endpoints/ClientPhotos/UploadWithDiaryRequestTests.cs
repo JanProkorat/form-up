@@ -16,7 +16,7 @@ namespace FormUp.Tests.Endpoints.ClientPhotos;
 /// Integration tests for the diary-request linking feature of POST /client/plans/{planId}/photos.
 /// Covers ownership enforcement, status-gate rules, and the Accepted → InProgress transition.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class UploadWithDiaryRequestTests(FitnessApiFactory factory)
 {
     private static string UniqueEmail(string tag = "upload") =>

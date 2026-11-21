@@ -9,7 +9,7 @@ namespace FormUp.Tests.Endpoints.ClientPhotos;
 /// <summary>
 /// Integration tests for POST /client/photos/upload-url.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class GenerateUnlinkedPhotoUploadUrlEndpointTests(FitnessApiFactory factory)
 {
     private sealed record UploadUrlBody(string UploadUrl, string BlobUrl);

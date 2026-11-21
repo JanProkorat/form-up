@@ -13,7 +13,7 @@ namespace FormUp.Tests.Endpoints.ClientPayments;
 /// Link, ownership and removed-role checks shared by every coach-facing client payment endpoint, each proven
 /// across all of them in one arrange. The entitlement gate is in <c>PaymentsEntitlementTests</c>.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class ClientPaymentAccessTests(FitnessApiFactory factory)
 {
     private static readonly string[] PaymentActions = ["mark-paid", "waive", "request"];

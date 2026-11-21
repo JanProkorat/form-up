@@ -21,7 +21,7 @@ namespace FormUp.Tests.Endpoints.Trainers;
 /// counted, 409 on repeat, deletable) but creates no token, notification or conversation, and the
 /// coach-role invitee can neither see nor act on it.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class SilentInviteIntegrationTests(FitnessApiFactory factory)
 {
     private static readonly CancellationToken Ct = TestContext.Current.CancellationToken;

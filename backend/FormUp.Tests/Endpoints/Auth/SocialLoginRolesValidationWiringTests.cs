@@ -10,7 +10,7 @@ namespace FormUp.Tests.Endpoints.Auth;
 /// Proves the social-login validators run in the real pipeline: Admin is rejected with 400 before
 /// the handler (and so before any token verification) is reached.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class SocialLoginRolesValidationWiringTests(FitnessApiFactory factory)
 {
     private static readonly CancellationToken Ct = TestContext.Current.CancellationToken;

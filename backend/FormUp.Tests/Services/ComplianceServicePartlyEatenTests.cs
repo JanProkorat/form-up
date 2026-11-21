@@ -13,7 +13,7 @@ namespace FormUp.Tests.Services;
 /// Compliance scores a partly eaten meal by its eaten share. Runs against real Mongo because the
 /// bug was in the row filter: a mock would return the row whatever the filter says.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class ComplianceServicePartlyEatenTests(FitnessApiFactory factory)
 {
     private async Task<ComplianceResult> ComplianceAsync(Guid clientUserId)

@@ -11,7 +11,7 @@ namespace FormUp.Tests.Endpoints.Users;
 /// <summary>
 /// Integration tests for <c>GET /users/me/roles</c>.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class GetMyCoachRolesIntegrationTests(FitnessApiFactory factory)
 {
     private record RoleSummary(string Role, int ClientCount, int SharedWithOtherRoleCount);

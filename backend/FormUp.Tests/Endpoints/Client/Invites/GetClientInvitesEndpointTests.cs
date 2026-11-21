@@ -16,7 +16,7 @@ namespace FormUp.Tests.Endpoints.Client.Invites;
 /// <summary>
 /// Integration tests for <c>GET /client/invites</c>.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class GetClientInvitesEndpointTests(FitnessApiFactory factory)
 {
     private record InvitesResult(List<InviteItem> Items);

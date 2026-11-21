@@ -19,7 +19,7 @@ namespace FormUp.Tests.Endpoints.Automations;
 /// Integration tests for the rule summary, the linked check-in entries and the plan-event next send.
 /// Plan dates run against the real Mongo container because the mock ignores filters.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class AutomationSummaryEndpointTests(FitnessApiFactory factory)
 {
     private static readonly CancellationToken Ct = TestContext.Current.CancellationToken;

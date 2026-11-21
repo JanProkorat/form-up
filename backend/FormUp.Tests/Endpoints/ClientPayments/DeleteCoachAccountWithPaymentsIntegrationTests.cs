@@ -11,7 +11,7 @@ namespace FormUp.Tests.Endpoints.ClientPayments;
 /// <summary>
 /// Deleting a coach's account while a client still uses one of their packages and discounts.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class DeleteCoachAccountWithPaymentsIntegrationTests(FitnessApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

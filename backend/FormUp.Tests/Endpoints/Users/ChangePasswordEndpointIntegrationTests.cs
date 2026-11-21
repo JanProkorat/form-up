@@ -15,7 +15,7 @@ namespace FormUp.Tests.Endpoints.Users;
 /// <summary>
 /// Integration tests for <c>POST /users/me/password</c> against a real PostgreSQL instance.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class ChangePasswordEndpointIntegrationTests(FitnessApiFactory factory)
 {
     private const string OldPassword = "OldPass123!";

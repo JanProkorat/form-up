@@ -20,7 +20,7 @@ namespace FormUp.Tests.Endpoints.AdminReports;
 /// Snapshots, coach events and paid invoices are cleared before each test that reads them; money assertions use a
 /// currency unique to the test because the live revenue summary covers the whole shared database.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class GetAdminReportsEndpointTests(FitnessApiFactory factory)
 {
     private static readonly DateTimeOffset Now = new(2026, 6, 15, 12, 0, 0, TimeSpan.Zero);
@@ -35,7 +35,7 @@ public class GetAdminReportsEndpointTests(FitnessApiFactory factory)
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
-    private WebApplicationFactory<Program> PinnedFactory => pinnedFactory ??= factory.WithWebHostBuilder(builder =>
+    private WebApplicationFactory<Program> PinnedFactory => pinnedFactory ??= FastEndpointsBootGate.Booted(factory.WithWebHostBuilder(builder =>
         builder.ConfigureServices(services =>
         {
             foreach (var descriptor in services.Where(d => d.ServiceType == typeof(TimeProvider)).ToList())
@@ -44,7 +44,7 @@ public class GetAdminReportsEndpointTests(FitnessApiFactory factory)
             }
 
             services.AddSingleton<TimeProvider>(new FixedTimeProvider(Now));
-        }));
+        })));
 
     private static string NewCurrency() => Guid.NewGuid().ToString("N")[..3].ToUpperInvariant();
 

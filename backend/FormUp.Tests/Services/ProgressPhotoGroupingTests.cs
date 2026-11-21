@@ -20,7 +20,7 @@ namespace FormUp.Tests.Services;
 /// per coach, sent by <see cref="NotificationEmailGroupingScheduler"/>. Photos are inserted directly with explicit
 /// upload times and the burst is opened by <see cref="ProgressPhotoBurst"/>, so nothing waits for the hosted loop.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class ProgressPhotoGroupingTests(FitnessApiFactory factory) : IAsyncLifetime
 {
     private static readonly CancellationToken Ct = TestContext.Current.CancellationToken;

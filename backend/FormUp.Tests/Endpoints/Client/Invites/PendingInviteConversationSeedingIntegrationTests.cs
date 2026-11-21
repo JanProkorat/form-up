@@ -23,7 +23,7 @@ namespace FormUp.Tests.Endpoints.Client.Invites;
 /// earliest VERIFIED seam (email verification), called from VerifyEmailEndpoint /
 /// GoogleSocialLoginEndpoint / AppleSocialLoginEndpoint.
 /// </remarks>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class PendingInviteConversationSeedingIntegrationTests(FitnessApiFactory factory)
 {
     // Per-host singleton (#726 refinement) — resolved from this factory's own DI

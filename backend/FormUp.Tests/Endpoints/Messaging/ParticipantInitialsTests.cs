@@ -10,7 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace FormUp.Tests.Endpoints.Messaging;
 
 /// <summary>Initials fallback for participants with empty names (e.g. Apple Sign-In users).</summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class ParticipantInitialsTests(FitnessApiFactory factory)
 {
     [Theory]

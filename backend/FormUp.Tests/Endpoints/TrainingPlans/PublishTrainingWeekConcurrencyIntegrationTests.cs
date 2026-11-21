@@ -21,7 +21,7 @@ namespace FormUp.Tests.Endpoints.TrainingPlans;
 /// arrayFilters/$set semantics (see <see cref="PublishTrainingWeekEndpointTests"/> for the
 /// endpoint-logic unit tests) — this file is the load-bearing proof against a real Mongo instance.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class PublishTrainingWeekConcurrencyIntegrationTests(FitnessApiFactory factory)
 {
     private static string UniqueEmail() => $"{Guid.NewGuid():N}@publish-training-week-test.com";

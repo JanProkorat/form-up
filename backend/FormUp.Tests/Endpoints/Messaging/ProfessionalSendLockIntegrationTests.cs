@@ -18,7 +18,7 @@ namespace FormUp.Tests.Endpoints.Messaging;
 /// request; only a thread with no link ever (an invite-only thread) is locked. Only a live
 /// link un-archives the thread for the client.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class ProfessionalSendLockIntegrationTests(FitnessApiFactory factory)
 {
     private static readonly CancellationToken Ct = TestContext.Current.CancellationToken;

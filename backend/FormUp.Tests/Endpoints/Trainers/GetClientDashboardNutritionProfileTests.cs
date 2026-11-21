@@ -13,7 +13,7 @@ namespace FormUp.Tests.Endpoints.Trainers;
 /// Integration tests for the nutrition-profile fields (dislikes, habits, fibre) on
 /// GET /trainer/clients/{clientId}, which are gated on the nutrition link capability.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class GetClientDashboardNutritionProfileTests(FitnessApiFactory factory)
 {
     private async Task SeedProfileAsync(Actor client)

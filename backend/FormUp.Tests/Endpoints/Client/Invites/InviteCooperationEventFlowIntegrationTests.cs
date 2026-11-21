@@ -30,7 +30,7 @@ namespace FormUp.Tests.Endpoints.Client.Invites;
 /// catch-and-untrack in <c>ConversationSeedService.AppendCooperationEventAsync</c> ever leaves
 /// the change tracker in a state a later, unrelated <c>SaveChangesAsync</c> chokes on.
 /// </remarks>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class InviteCooperationEventFlowIntegrationTests(FitnessApiFactory factory)
 {
     private FakeEmailService EmailService => factory.Services.GetRequiredService<FakeEmailService>();

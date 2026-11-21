@@ -14,7 +14,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace FormUp.Tests.Endpoints.Questionnaires;
 
 /// <summary>Integration tests for POST /client/questionnaire/response/{id}/submit.</summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class SubmitResponseEndpointTests(FitnessApiFactory factory)
 {
     private static readonly SeedQuestion[] Form =

@@ -115,6 +115,8 @@ public class WorkoutLogUniquenessFactory(SharedTestContainers sharedContainers)
         _postgresConnectionString = await sharedContainers.CreatePostgresDatabaseAsync("workoutlog_uniqueness");
         _mongoDatabaseName = SharedTestContainers.CreateMongoDatabaseName("workoutlog_uniqueness");
 
+        FastEndpointsBootGate.Start(this);
+
         await Application.Infrastructure.Data.ApplicationDbContextSeed.SeedAsync(Services);
 
         using var scope = Services.CreateScope();

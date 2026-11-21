@@ -11,7 +11,7 @@ namespace FormUp.Tests.Endpoints.WeeklyCheckIns;
 /// Integration tests for GET /client/weekly-check-ins/history.
 /// Uses Testcontainers PostgreSQL (Docker required).
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class GetMyCheckInHistoryEndpointTests(FitnessApiFactory factory)
 {
     private const string Route = "/client/weekly-check-ins/history";

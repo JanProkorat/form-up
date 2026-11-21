@@ -27,7 +27,7 @@ namespace FormUp.Tests.Endpoints.ClientTraining;
 /// unit tests in <see cref="MarkExerciseCompleteEndpointTests"/> prove the C# branching; only a
 /// real Mongo instance can prove what is actually persisted.
 /// </remarks>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class MarkExerciseCompleteInstanceIdIntegrationTests(FitnessApiFactory factory)
 {
     private static string UniqueEmail() => $"{Guid.NewGuid():N}@mark-exercise-instance-test.com";

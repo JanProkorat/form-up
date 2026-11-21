@@ -16,7 +16,7 @@ namespace FormUp.Tests.Infrastructure.Services;
 /// Integration tests for <see cref="PhotoDiaryReminderScheduler"/> using a virtual clock.
 /// Uses Testcontainers PostgreSQL + MongoDB (Docker required).
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class PhotoDiaryReminderSchedulerTests(FitnessApiFactory factory)
 {
     // ── Pinned dates: one in summer time, one in winter time ───────────────────

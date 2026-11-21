@@ -14,7 +14,7 @@ namespace FormUp.Tests.Endpoints.Professionals;
 /// <summary>
 /// Integration tests for the packages and contact details GET /professionals/{publicId} adds for a client.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class GetPublicProfilePackagesTests(FitnessApiFactory factory)
 {
     private record ProfilePackage(

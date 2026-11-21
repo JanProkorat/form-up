@@ -12,7 +12,7 @@ namespace FormUp.Tests.Auth;
 /// Integration tests for the complete authentication flow:
 /// register, login, refresh token, logout, password reset.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class AuthFlowTests(FitnessApiFactory factory)
 {
     // Per-host singleton (#726 refinement) — resolved from this factory's own DI

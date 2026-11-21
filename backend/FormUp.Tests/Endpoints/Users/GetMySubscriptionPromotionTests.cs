@@ -16,7 +16,7 @@ namespace FormUp.Tests.Endpoints.Users;
 /// <summary>
 /// Integration tests for the current promotion on <c>GET /users/me/subscription</c>.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class GetMySubscriptionPromotionTests(FitnessApiFactory factory) : IDisposable
 {
     private static readonly JsonSerializerOptions JsonOptions = new()

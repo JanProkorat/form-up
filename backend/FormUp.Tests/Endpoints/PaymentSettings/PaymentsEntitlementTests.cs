@@ -12,7 +12,7 @@ namespace FormUp.Tests.Endpoints.PaymentSettings;
 /// packages, discounts and client payments. Which subscription states lock the flag is
 /// <c>EntitlementServiceTests</c>' job; this proves each endpoint consults it.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class PaymentsEntitlementTests(FitnessApiFactory factory)
 {
     [Fact]

@@ -23,7 +23,7 @@ namespace FormUp.Tests.Endpoints.ClientNutrition;
 /// <c>POST /client/nutrition/log/meals/{MealId}/eaten</c>, the coach notification it raises, and
 /// the <c>PlanVersion</c> the client plan reads expose.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class OfflineSyncConflictIntegrationTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)

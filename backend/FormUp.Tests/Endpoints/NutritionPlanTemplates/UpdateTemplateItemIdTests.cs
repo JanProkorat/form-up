@@ -14,7 +14,7 @@ namespace FormUp.Tests.Endpoints.NutritionPlanTemplates;
 /// <summary>
 /// Item ids of a template meal survive a full-state update, with and without the id being sent.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class UpdateTemplateItemIdTests(FitnessApiFactory factory)
 {
     private record Seeded(NutritionPlanTemplate Template, Guid MealId, Guid FoodItemId, Guid RecipeItemId, Guid FoodRef, Guid RecipeRef);

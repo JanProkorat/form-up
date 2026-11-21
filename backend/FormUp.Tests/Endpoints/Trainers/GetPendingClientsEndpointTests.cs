@@ -14,7 +14,7 @@ namespace FormUp.Tests.Endpoints.Trainers;
 /// <summary>
 /// Integration tests for <c>GET /trainer/clients/pending</c>.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class GetPendingClientsEndpointTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };

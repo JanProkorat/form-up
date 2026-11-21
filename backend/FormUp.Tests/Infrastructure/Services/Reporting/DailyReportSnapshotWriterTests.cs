@@ -16,7 +16,7 @@ namespace FormUp.Tests.Infrastructure.Services.Reporting;
 /// <see cref="DailyReportSnapshotWriter"/> against the real databases. The totals are global over the whole database, so
 /// the exact-totals test empties it first; the shared collection runs one class at a time.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class DailyReportSnapshotWriterTests(FitnessApiFactory factory)
 {
     /// <summary>A currency no other test uses, so the revenue of the fixture can be asserted exactly.</summary>

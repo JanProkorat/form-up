@@ -18,7 +18,7 @@ namespace FormUp.Tests.Endpoints.Questionnaires;
 /// lookup runs, then a second supplemental query resolves the link's database Id for the FK the
 /// service does not expose.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class CreateResponseEndpointTests(FitnessApiFactory factory)
 {
     private static string UniqueEmail(string tag) => $"{Guid.NewGuid():N}@{tag}-cr.com";

@@ -16,7 +16,7 @@ namespace FormUp.Tests.Endpoints.Billing;
 /// Integration tests for <c>POST /billing/checkout-session</c> (<c>CreateCheckoutSessionEndpoint</c>) against the fake
 /// payment provider.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class CreateCheckoutSessionEndpointTests(FitnessApiFactory factory) : IDisposable
 {
     /// <summary>Leaves the shared fake provider and the promotions table in their defaults for the next test class.</summary>

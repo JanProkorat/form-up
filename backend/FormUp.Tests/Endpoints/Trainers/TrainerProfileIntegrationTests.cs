@@ -12,7 +12,7 @@ namespace FormUp.Tests.Endpoints.Trainers;
 /// <summary>
 /// Integration tests for GET and PUT /trainer/profile against a real PostgreSQL instance.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class TrainerProfileIntegrationTests(FitnessApiFactory factory)
 {
     private const string ObjectCertificates =

@@ -13,7 +13,7 @@ namespace FormUp.Tests.Domain.Services;
 /// Testcontainers coverage for <see cref="IClientLinkAuthorizationService"/> — the single entry
 /// point every call site resolves link authorization through (#958).
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class ClientLinkAuthorizationServiceTests(FitnessApiFactory factory)
 {
     private static string UniqueEmail(string tag) => $"{Guid.NewGuid():N}@link-auth-service-{tag}.com";

@@ -18,7 +18,7 @@ namespace FormUp.Tests.Endpoints.ClientPhotos;
 /// GET /trainer/clients/{clientId}/photos. Client scoping and batching live in the Mongo filter,
 /// which the mock Mongo ignores.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class GetTrainerClientPhotosPlanNameTests(FitnessApiFactory factory)
 {
     private sealed record PhotoBody(Guid Id, Guid? PlanId, string? PlanName);

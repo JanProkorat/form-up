@@ -29,7 +29,7 @@ namespace FormUp.Tests.Endpoints.Authorization;
 /// capability flags, then assert what each endpoint returns.
 /// </para>
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class CrossDomainPlanAccessTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions JsonOptions = new()

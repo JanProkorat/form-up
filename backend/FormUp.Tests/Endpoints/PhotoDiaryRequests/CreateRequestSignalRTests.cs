@@ -24,7 +24,7 @@ namespace FormUp.Tests.Endpoints.PhotoDiaryRequests;
 /// <c>Send.CreatedAtAsync</c> (which requires a real <c>LinkGenerator</c>) works
 /// without any stub wiring.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class CreateRequestSignalRTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions JsonOptions = new()

@@ -15,7 +15,7 @@ namespace FormUp.Tests.Endpoints.NutritionPlans;
 /// Integration tests for the meal id scoping of the full-state plan update: meal ids key the
 /// client's diary photo folder, so an id that lives in another plan may never be stored here.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class UpdatePlanMealIdIntegrationTests(FitnessApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

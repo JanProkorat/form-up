@@ -20,7 +20,7 @@ namespace FormUp.Tests.Endpoints.NutritionPlans;
 /// the client's version, and <c>GET /nutrition/plans/{PlanId}</c> shows it to the coach as a locked meal
 /// with a conflict marker, also when the meal has since left the plan.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class GetPlanMealLockConflictTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)

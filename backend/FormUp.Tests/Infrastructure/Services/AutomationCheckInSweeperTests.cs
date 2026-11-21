@@ -15,7 +15,7 @@ namespace FormUp.Tests.Infrastructure.Services;
 /// Integration tests for how a check-in rule delivers its form and for <see cref="AutomationCheckInSweeper"/>.
 /// Each test works on its own coach's rule; the sweeper is limited to that coach, so no other test's data is touched.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class AutomationCheckInSweeperTests(FitnessApiFactory factory)
 {
     private static readonly CancellationToken Ct = TestContext.Current.CancellationToken;

@@ -18,7 +18,7 @@ namespace FormUp.Tests.Endpoints.ClientPayments;
 /// Regression tests for #1767 (payment rows after a client reconnects to the same coach): same-day restart cleanup,
 /// pricing under the new terms, and the earlier-collaboration marker.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class Issue1767ReconnectPaymentsReproTests(FitnessApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

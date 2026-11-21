@@ -28,7 +28,7 @@ namespace FormUp.Tests.Endpoints.Authorization;
 /// evaluates a filter. A unit test for a filter-scoping fix would therefore pass identically before
 /// and after the change — it would assert nothing.
 /// </remarks>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class CrossPlanExecutionScopeTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions JsonOptions = new()

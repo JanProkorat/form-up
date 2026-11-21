@@ -13,7 +13,7 @@ namespace FormUp.Tests.Endpoints.Trainers;
 /// <summary>
 /// Integration tests for PUT /trainer/clients/{ClientId}/nutrition-profile.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class UpdateClientNutritionProfileEndpointTests(FitnessApiFactory factory)
 {
     private async Task SeedOnboardingAsync(Actor client, bool withTargets, decimal? fibreGrams = null)

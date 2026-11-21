@@ -17,7 +17,7 @@ namespace FormUp.Tests.Endpoints.ClientNutrition;
 /// Testcontainers integration tests for unticking a single meal item: the all-eaten to partly eaten
 /// step, row deletion versus keeping photos, the whole-meal unmark cascade, and the 404 shape.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class UnlogMealItemEatenIntegrationTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions JsonOptions = new()

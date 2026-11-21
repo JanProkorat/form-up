@@ -14,7 +14,7 @@ namespace FormUp.Tests.Endpoints.ClientNutrition;
 /// <summary>
 /// Integration tests (real MongoDB, which unit mocks cannot prove) for GET /client/nutrition/plans/{PlanId}.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class GetClientNutritionPlanIntegrationTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)

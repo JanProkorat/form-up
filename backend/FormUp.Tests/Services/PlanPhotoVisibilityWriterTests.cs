@@ -15,7 +15,7 @@ namespace FormUp.Tests.Services;
 /// Real-database tests for <see cref="PlanPhotoVisibilityWriter"/>, including the no-plan branch
 /// that no upload endpoint exposes.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class PlanPhotoVisibilityWriterTests(FitnessApiFactory factory)
 {
     private async Task<List<Guid>> WriteAsync(

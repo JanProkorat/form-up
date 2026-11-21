@@ -11,7 +11,7 @@ namespace FormUp.Tests.Trainers;
 /// Integration tests for the full invitation flow:
 /// trainer invites client, client accepts, trainer sees client in list and dashboard.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class InvitationFlowTests(FitnessApiFactory factory)
 {
     private static string UniqueEmail() => $"{Guid.NewGuid():N}@test.com";

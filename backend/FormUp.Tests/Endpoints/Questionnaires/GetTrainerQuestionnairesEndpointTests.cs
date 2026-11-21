@@ -17,7 +17,7 @@ namespace FormUp.Tests.Endpoints.Questionnaires;
 /// <summary>
 /// GET /trainer/questionnaires: type filter, title search, question count, used-for count and edited-at.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class GetTrainerQuestionnairesEndpointTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions JsonOptions = new()

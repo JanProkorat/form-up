@@ -13,7 +13,7 @@ namespace FormUp.Tests.Endpoints.ClientNutrition;
 /// Testcontainers integration tests for ticking a single meal item: partly eaten rows, the all-items
 /// cascade, the not-found shapes, offline replay, and the totals of a partly eaten meal.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class LogMealItemEatenIntegrationTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions JsonOptions = new()

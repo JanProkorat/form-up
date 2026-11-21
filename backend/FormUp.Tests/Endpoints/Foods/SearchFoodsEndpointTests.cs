@@ -211,7 +211,7 @@ public class SearchFoodsEndpointTests : IAsyncLifetime
 /// binds into <see cref="SearchFoodsRequest.Categories"/> as a one-item list. Real HTTP through
 /// <see cref="FitnessApiFactory"/> is required.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class SearchFoodsCategoryQueryBindingTests(FitnessApiFactory factory)
 {
     [Fact]
@@ -283,7 +283,7 @@ public class SearchFoodsCategoryQueryBindingTests(FitnessApiFactory factory)
 /// <see cref="FitnessApiFactory"/> is required — mirrors
 /// <see cref="SearchFoodsCategoryQueryBindingTests"/>.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class SearchFoodsOwnerAndSortQueryBindingTests(FitnessApiFactory factory)
 {
     [Fact]

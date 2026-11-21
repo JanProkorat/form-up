@@ -17,7 +17,7 @@ namespace FormUp.Tests.Services;
 /// <see cref="NotificationEmailSender"/>: the email switch (saved row, then default), the queue hand-off
 /// and the rule that a failed email never throws.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class NotificationEmailSenderTests(FitnessApiFactory factory)
 {
     private static readonly IReadOnlyDictionary<string, string> Values = new Dictionary<string, string>

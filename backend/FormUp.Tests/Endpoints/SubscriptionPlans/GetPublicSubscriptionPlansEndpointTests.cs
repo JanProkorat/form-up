@@ -13,7 +13,7 @@ namespace FormUp.Tests.Endpoints.SubscriptionPlans;
 /// <summary>
 /// Integration tests for <c>GET /subscription-plans</c>.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class GetPublicSubscriptionPlansEndpointTests(FitnessApiFactory factory) : IDisposable
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

@@ -11,7 +11,7 @@ namespace FormUp.Tests.Seed;
 /// <summary>
 /// Tests for the subscription plan part of <see cref="ApplicationDbContextSeed.SeedAsync"/>.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class SubscriptionPlanSeedTests(FitnessApiFactory factory)
 {
     [Fact]

@@ -155,6 +155,8 @@ public class RateLimitEnabledFactory(SharedTestContainers sharedContainers)
         _postgresConnectionString = await sharedContainers.CreatePostgresDatabaseAsync("ratelimit");
         _mongoDatabaseName = SharedTestContainers.CreateMongoDatabaseName("ratelimit");
 
+        FastEndpointsBootGate.Start(this);
+
         await ApplicationDbContextSeed.SeedAsync(Services);
     }
 

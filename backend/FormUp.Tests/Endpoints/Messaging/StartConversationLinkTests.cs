@@ -19,7 +19,7 @@ namespace FormUp.Tests.Endpoints.Messaging;
 /// Client caller with no live link may still start a conversation if they have a Pending
 /// <see cref="ClientRequest"/> to that professional (mobile's join-then-message flow).
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class StartConversationLinkTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };

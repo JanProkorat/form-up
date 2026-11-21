@@ -23,7 +23,7 @@ namespace FormUp.Tests.Endpoints.Trainers;
 /// source data now lives across two tables joined via <c>Include().ThenInclude()</c> — a
 /// mock-based test would not exercise the real join.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class ClientNutritionTargetsSplitIntegrationTests(FitnessApiFactory factory)
 {
     // The API serializes enums as strings (JsonStringEnumConverter globally), so use matching

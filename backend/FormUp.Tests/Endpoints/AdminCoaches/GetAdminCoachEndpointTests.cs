@@ -19,7 +19,7 @@ namespace FormUp.Tests.Endpoints.AdminCoaches;
 /// <summary>
 /// Integration tests for <c>GET /admin/coaches/{CoachId}</c> (<c>GetAdminCoachEndpoint</c>).
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class GetAdminCoachEndpointTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions JsonOptions = new()

@@ -16,7 +16,7 @@ namespace FormUp.Tests.Endpoints.Users;
 /// <summary>
 /// Integration tests for <c>POST /users/me/coach-account/disable</c> and the date fields it feeds.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class DisableCoachAccountIntegrationTests(FitnessApiFactory factory) : IDisposable
 {
     /// <summary>Leaves the shared fake provider in its defaults for the next test class.</summary>

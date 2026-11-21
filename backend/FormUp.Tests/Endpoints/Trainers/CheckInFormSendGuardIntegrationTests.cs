@@ -15,7 +15,7 @@ namespace FormUp.Tests.Endpoints.Trainers;
 /// A Check-in form can never be sent through the onboarding paths: assign, replace, pending invite
 /// and accepting a client request all refuse it with CHECKIN_FORM_NOT_SENDABLE before any write.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class CheckInFormSendGuardIntegrationTests(FitnessApiFactory factory)
 {
     private const string ErrorCode = "CHECKIN_FORM_NOT_SENDABLE";

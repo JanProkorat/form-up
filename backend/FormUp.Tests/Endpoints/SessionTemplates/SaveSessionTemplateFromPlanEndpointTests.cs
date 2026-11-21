@@ -25,7 +25,7 @@ namespace FormUp.Tests.Endpoints.SessionTemplates;
 /// lightweight <c>Factory.Create&lt;T&gt;()</c> host used by <see cref="SessionTemplateEndpointTests"/>).
 /// Same precedent as <c>SaveMealTemplateFromPlanEndpointTests</c>.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class SaveSessionTemplateFromPlanEndpointTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions JsonOptions = new()

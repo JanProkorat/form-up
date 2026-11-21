@@ -28,7 +28,7 @@ public static class MealPhotoTestHost
     /// </remarks>
     public static HttpClient CreateClientFor(FitnessApiFactory factory, Actor actor)
     {
-        _host ??= factory.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
+        _host ??= FastEndpointsBootGate.Booted(factory.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
         {
             foreach (var descriptor in services.Where(d => d.ServiceType == typeof(IBlobStorageService)).ToList())
             {
@@ -36,7 +36,7 @@ public static class MealPhotoTestHost
             }
 
             services.AddSingleton<IBlobStorageService, PrefixedBlobStorage>();
-        }));
+        })));
 
         var client = _host.CreateClient();
         client.DefaultRequestHeaders.Authorization = actor.Http.DefaultRequestHeaders.Authorization;

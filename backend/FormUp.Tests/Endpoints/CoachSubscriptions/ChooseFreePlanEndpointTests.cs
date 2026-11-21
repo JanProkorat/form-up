@@ -19,7 +19,7 @@ namespace FormUp.Tests.Endpoints.CoachSubscriptions;
 /// <summary>
 /// Integration tests for <c>POST /users/me/subscription/choose-free</c>.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class ChooseFreePlanEndpointTests(FitnessApiFactory factory)
 {
     private const string Route = "/users/me/subscription/choose-free";

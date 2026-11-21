@@ -19,7 +19,7 @@ namespace FormUp.Tests.Endpoints.Questionnaires;
 /// <summary>
 /// POST /trainer/clients/{ClientPublicId}/forms/{ResponsePublicId}/seen: the coach opens a submitted form.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class MarkClientFormSeenEndpointTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
