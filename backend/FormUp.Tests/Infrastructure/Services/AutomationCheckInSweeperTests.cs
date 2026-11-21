@@ -71,12 +71,43 @@ public class AutomationCheckInSweeperTests(FitnessApiFactory factory)
             .SweepAsync(nowUtc, Ct, fixture.Coach.ProfileId);
     }
 
-    private async Task<QuestionnaireResponse> AddOpenCheckInAsync(Fixture fixture, DateTime dueAt) =>
+    private async Task AddFormOverrideAsync(Fixture fixture, Actor client, long formId, bool isCustomized = true) =>
+        await WithDbAsync(async db =>
+        {
+            db.AutomationClientOverrides.Add(new AutomationClientOverride
+            {
+                AutomationRuleId = fixture.Rule.Id,
+                ClientProfileId = client.ProfileId,
+                IsCustomized = isCustomized,
+                TriggerKind = AutomationTriggerKind.Schedule,
+                ScheduleInterval = 1,
+                ScheduleUnit = AutomationScheduleUnit.Weeks,
+                LocalTime = new TimeOnly(18, 0),
+                ScheduleWeekday = DayOfWeek.Thursday,
+                AnswerWindowHours = 48,
+                ReminderAfterHours = 24,
+                NotifyCoachOnMissedWeek = true,
+                SkipWhilePreviousUnanswered = false,
+                Enabled = true,
+                CheckInQuestionnaireId = formId,
+            });
+            await db.SaveChangesAsync(Ct);
+
+            return 0;
+        });
+
+    private async Task<List<long>> SentFormIdsAsync(Actor client) =>
+        await WithDbAsync(db => db.QuestionnaireResponses.AsNoTracking()
+            .Where(r => r.ClientId == client.UserId)
+            .Select(r => r.QuestionnaireId)
+            .ToListAsync(Ct));
+
+    private async Task<QuestionnaireResponse> AddOpenCheckInAsync(Fixture fixture, DateTime dueAt, long? formId = null) =>
         await WithDbAsync(async db =>
         {
             var response = new QuestionnaireResponse
             {
-                QuestionnaireId = fixture.Form.Id,
+                QuestionnaireId = formId ?? fixture.Form.Id,
                 ClientId = fixture.Client.UserId,
                 ProfessionalId = fixture.Coach.UserId,
                 LinkId = fixture.LinkId,
@@ -165,6 +196,59 @@ public class AutomationCheckInSweeperTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task Send_ClientWithAnOverrideForm_GetsThatFormAndOtherClientsKeepTheRuleForm()
+    {
+        var fixture = await ArrangeAsync();
+        var otherForm = await AutomationTestData.InsertQuestionnaireAsync(factory, fixture.Coach, QuestionnaireType.CheckIn);
+        var secondClient = await TestActors.Client(factory).CreateAsync(Ct);
+        await TestActors.Link(factory, fixture.Coach, secondClient).CreateAsync(Ct);
+        await AddFormOverrideAsync(fixture, fixture.Client, otherForm.Id);
+
+        (await SendAsync(fixture, "first", SentAt)).Should().Be(AutomationSendOutcome.Sent);
+        using (var scope = factory.Services.CreateScope())
+        {
+            (await scope.ServiceProvider.GetRequiredService<AutomationOccurrenceSender>()
+                    .SendAsync(fixture.Rule.Id, secondClient.ProfileId, "first", null, SentAt, Ct))
+                .Should().Be(AutomationSendOutcome.Sent);
+        }
+
+        (await SentFormIdsAsync(fixture.Client)).Should().Equal(otherForm.Id);
+        (await SentFormIdsAsync(secondClient)).Should().Equal(fixture.Form.Id);
+        var stored = await WithDbAsync(db => db.QuestionnaireResponses.AsNoTracking()
+            .SingleAsync(r => r.ClientId == fixture.Client.UserId, Ct));
+        stored.Kind.Should().Be(QuestionnaireResponseKind.CheckIn);
+        stored.CheckInDueAtUtc.Should().Be(SentAt.AddHours(48));
+    }
+
+    [Fact]
+    public async Task Send_OverrideThatIsNotCustomised_KeepsTheRuleForm()
+    {
+        var fixture = await ArrangeAsync();
+        var otherForm = await AutomationTestData.InsertQuestionnaireAsync(factory, fixture.Coach, QuestionnaireType.CheckIn);
+        await AddFormOverrideAsync(fixture, fixture.Client, otherForm.Id, isCustomized: false);
+
+        (await SendAsync(fixture, "first", SentAt)).Should().Be(AutomationSendOutcome.Sent);
+
+        (await SentFormIdsAsync(fixture.Client)).Should().Equal(fixture.Form.Id);
+    }
+
+    [Fact]
+    public async Task Send_InactiveOverrideForm_FailsInsteadOfSendingTheRuleForm()
+    {
+        var fixture = await ArrangeAsync();
+        var otherForm = await AutomationTestData.InsertQuestionnaireAsync(
+            factory, fixture.Coach, QuestionnaireType.CheckIn, isActive: false);
+        await AddFormOverrideAsync(fixture, fixture.Client, otherForm.Id);
+
+        (await SendAsync(fixture, "first", SentAt)).Should().Be(AutomationSendOutcome.Failed);
+
+        (await SentFormIdsAsync(fixture.Client)).Should().BeEmpty("the rule's form is not sent in its place");
+        (await WithDbAsync(db => db.AutomationRuns.AsNoTracking()
+            .SingleAsync(r => r.AutomationRuleId == fixture.Rule.Id && r.ClientProfileId == fixture.Client.ProfileId, Ct)))
+            .Status.Should().Be(AutomationRunStatus.Failed);
+    }
+
+    [Fact]
     public async Task Send_CheckInRuleOfACoachWithoutTheCheckInFeature_SendsNothing()
     {
         var fixture = await ArrangeAsync();
@@ -215,6 +299,23 @@ public class AutomationCheckInSweeperTests(FitnessApiFactory factory)
         (await NotificationCountAsync(fixture.Client.UserId, NotificationType.ClientCheckInReminder)).Should().Be(1);
         var stored = await WithDbAsync(db => db.QuestionnaireResponses.AsNoTracking().SingleAsync(r => r.Id == response.Id, Ct));
         stored.CheckInReminderSentAtUtc.Should().Be(SentAt.AddHours(25));
+    }
+
+    [Fact]
+    public async Task Sweep_ClientOnAnOverrideForm_IsRemindedAndTheMissedWeekIsNoticed()
+    {
+        var fixture = await ArrangeAsync();
+        var otherForm = await AutomationTestData.InsertQuestionnaireAsync(factory, fixture.Coach, QuestionnaireType.CheckIn);
+        await AddFormOverrideAsync(fixture, fixture.Client, otherForm.Id);
+        var response = await AddOpenCheckInAsync(fixture, SentAt.AddHours(48), otherForm.Id);
+
+        await SweepAsync(fixture, SentAt.AddHours(25));
+        (await NotificationCountAsync(fixture.Client.UserId, NotificationType.ClientCheckInReminder)).Should().Be(1);
+
+        await SweepAsync(fixture, SentAt.AddHours(49));
+        (await NotificationCountAsync(fixture.Coach.UserId, NotificationType.CoachCheckInMissed)).Should().Be(1);
+        var stored = await WithDbAsync(db => db.QuestionnaireResponses.AsNoTracking().SingleAsync(r => r.Id == response.Id, Ct));
+        stored.CheckInMissedNotifiedAtUtc.Should().Be(SentAt.AddHours(49));
     }
 
     [Fact]
