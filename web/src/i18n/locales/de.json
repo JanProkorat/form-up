@@ -198,6 +198,7 @@
     "adminCoaches": "Trainer",
     "adminReports": "Berichte",
     "automations": "Automatisierungen",
+    "checkIns": "Check-ins",
     "dashboard": "Dashboard",
     "profile": "Profil",
     "clients": "Klienten",
@@ -7411,6 +7412,60 @@
       "automations": { "label": "Automatisierungen", "hint": "Erinnerungen und Nachrichten, die sich selbst versenden" },
       "packages": { "label": "Pakete", "hint": "Bezahlte Coaching-Pakete anbieten" },
       "payments": { "label": "Klientenzahlungen", "hint": "Zahlungsanfragen mit QR-Code" }
+    }
+  },
+  "checkIns": {
+    "title": "Check-ins",
+    "subtitle": "Wöchentliche Check-ins aller Ihrer Klienten. Eine Antwort bleibt neu, bis Sie sie als geprüft markieren.",
+    "retry": "Erneut versuchen",
+    "loadError": "Die Check-ins konnten nicht geladen werden.",
+    "empty": "Für diese Woche gibt es noch keine Check-ins. Sie erscheinen hier, sobald sie an Ihre Klienten gesendet wurden.",
+    "emptyFilter": "Kein Check-in entspricht diesem Filter.",
+    "timeZoneNote": "Die Zeiten folgen der Zeitzone des jeweiligen Klienten",
+    "footer": "{{shown}} von {{total}} angezeigt · „Antworten öffnen“ zeigt den Check-in im Tab Formulare des Klienten",
+    "markReviewedError": "Der Check-in konnte nicht als geprüft markiert werden.",
+    "week": {
+      "group": "Woche",
+      "previous": "Vorherige Woche",
+      "next": "Nächste Woche",
+      "label": "Woche {{week}} · {{range}}"
+    },
+    "totals": {
+      "answered": "Beantwortet",
+      "answeredValue": "{{answered}} von {{total}}",
+      "answeredSubline": "{{percent}} % der gesendeten Check-ins",
+      "notReviewedSubline": "Antworten, die auf Sie warten",
+      "missedSubline": "Antwortfrist abgelaufen",
+      "waitingSubline": "Klienten können noch antworten"
+    },
+    "filters": {
+      "label": "Check-ins filtern",
+      "all": "Alle"
+    },
+    "status": {
+      "notReviewed": "Nicht geprüft",
+      "missed": "Verpasst",
+      "waiting": "Ausstehend",
+      "reviewed": "Geprüft"
+    },
+    "table": {
+      "client": "Klient",
+      "form": "Formular",
+      "sent": "Gesendet",
+      "answered": "Beantwortet",
+      "status": "Status",
+      "actions": "Aktionen"
+    },
+    "row": {
+      "canAnswerUntil": "Kann bis {{date}} antworten",
+      "windowEnded": "Antwortfrist endete {{date}}",
+      "reviewedOn": "Geprüft {{date}}",
+      "noAnswer": "—"
+    },
+    "actions": {
+      "openAnswers": "Antworten öffnen",
+      "markReviewed": "Als geprüft markieren",
+      "writeTo": "{{name}} schreiben"
     }
   }
 }

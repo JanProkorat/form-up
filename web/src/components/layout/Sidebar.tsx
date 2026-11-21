@@ -7,6 +7,7 @@ import {
   ChevronDown,
   ChevronsLeft,
   ChevronsRight,
+  ClipboardCheck,
   Columns,
   FileText,
   HelpCircle,
@@ -81,6 +82,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
     items: [
       { to: '/forms', labelKey: 'sidebar.forms', Icon: FileText },
       { to: '/automations', labelKey: 'sidebar.automations', Icon: Zap },
+      { to: '/check-ins', labelKey: 'sidebar.checkIns', Icon: ClipboardCheck },
     ],
   },
   {
@@ -166,6 +168,7 @@ export default function Sidebar({ onNavigate, collapsed = false, onToggleCollaps
     (to === '/ingredients' && !isEntitled('canUseIngredients')) ||
     (to === '/plan-templates' && !isEntitled('canUsePlanTemplates')) ||
     (to === '/automations' && !isEntitled('canUseAutomations')) ||
+    (to === '/check-ins' && !isEntitled('canUseWeeklyCheckIns')) ||
     (to === '/inbox' && !isEntitled('canMessage'));
   // The rail shows no text, so its accessible name carries the locked state.
   const navLabel = (labelKey: string, to: string) =>
