@@ -14,7 +14,7 @@ namespace FormUp.Tests.Endpoints.Questionnaires;
 /// Create and update of questionnaires: form type can be changed on update, only Onboarding forms can be default,
 /// legacy question configs keep working, and an update moves the list's edited-at.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class UpdateQuestionnaireEndpointTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions JsonOptions = new()

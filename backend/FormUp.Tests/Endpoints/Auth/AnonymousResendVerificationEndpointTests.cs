@@ -22,7 +22,7 @@ namespace FormUp.Tests.Endpoints.Auth;
 /// in <see cref="AnonymousResendVerificationRateLimitTests"/> below, backed by
 /// <see cref="RateLimitEnabledFactory"/> instead.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class AnonymousResendVerificationEndpointTests(FitnessApiFactory factory)
 {
     // Per-host singleton (#726 refinement) — resolved from this factory's own DI

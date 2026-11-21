@@ -20,7 +20,7 @@ namespace FormUp.Tests.Endpoints.Trainers;
 /// onboarding answers are visible to the addressed coach only, and never after the request is answered;
 /// the attached package and the shared-history counts ride along on request rows.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class GetIncomingRequestsOnboardingTests(FitnessApiFactory factory)
 {
     private record ListResult(List<RequestItem> Requests);

@@ -12,7 +12,7 @@ namespace FormUp.Tests.Endpoints.Automations;
 /// <summary>
 /// Integration tests for the check-in rule: a "Send form" rule whose form is a check-in form.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class CheckInAutomationRuleEndpointTests(FitnessApiFactory factory)
 {
     private static readonly CancellationToken Ct = TestContext.Current.CancellationToken;

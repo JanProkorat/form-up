@@ -20,7 +20,7 @@ namespace FormUp.Tests.Endpoints.Trainers;
 /// <summary>
 /// Tests for <c>GET /trainer/clients/{ClientId}/offline-sync-conflicts</c>.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class GetClientOfflineSyncConflictsEndpointTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)

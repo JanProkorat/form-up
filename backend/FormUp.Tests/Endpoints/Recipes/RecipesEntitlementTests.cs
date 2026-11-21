@@ -10,7 +10,7 @@ namespace FormUp.Tests.Endpoints.Recipes;
 /// <summary>
 /// A coach whose plan lacks recipes cannot write their own recipe library; searching and reading recipes stays open.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class RecipesEntitlementTests(FitnessApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

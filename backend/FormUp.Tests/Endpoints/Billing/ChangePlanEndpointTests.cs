@@ -18,7 +18,7 @@ namespace FormUp.Tests.Endpoints.Billing;
 /// <summary>
 /// Integration tests for <c>POST /billing/change-plan</c> (<c>ChangePlanEndpoint</c>) against the fake payment provider.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class ChangePlanEndpointTests(FitnessApiFactory factory) : IDisposable
 {
     /// <summary>Leaves the shared fake provider in its defaults for the next test class.</summary>

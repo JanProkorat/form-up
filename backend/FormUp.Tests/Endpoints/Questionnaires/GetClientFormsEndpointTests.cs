@@ -17,7 +17,7 @@ namespace FormUp.Tests.Endpoints.Questionnaires;
 /// <summary>
 /// GET /trainer/clients/{clientPublicId}/forms: the coach's forms for a linked client, split by collaboration.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class GetClientFormsEndpointTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions JsonOptions = new()

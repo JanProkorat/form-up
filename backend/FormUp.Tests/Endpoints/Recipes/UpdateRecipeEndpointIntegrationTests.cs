@@ -27,7 +27,7 @@ namespace FormUp.Tests.Endpoints.Recipes;
 /// that the lightweight <c>Factory.Create&lt;TEndpoint&gt;()</c> host lacks — <c>FitnessApiFactory</c>
 /// is used anyway here specifically to exercise the real Mongo driver's CAS filter behavior.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class UpdateRecipeEndpointIntegrationTests(FitnessApiFactory factory)
 {
     /// <summary>

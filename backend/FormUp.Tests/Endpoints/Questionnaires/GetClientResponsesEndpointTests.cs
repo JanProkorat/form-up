@@ -16,7 +16,7 @@ namespace FormUp.Tests.Endpoints.Questionnaires;
 /// (issue #657: an ex-trainer with a deactivated link must no longer read a
 /// former client's questionnaire response history).
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class GetClientResponsesEndpointTests(FitnessApiFactory factory)
 {
     private static string UniqueEmail(string tag) => $"{Guid.NewGuid():N}@{tag}-gcrs.com";

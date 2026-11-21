@@ -14,7 +14,7 @@ namespace FormUp.Tests.Services;
 /// The save the checkout, keep-free and apply-code endpoints share: a second identical request that loses the race on the
 /// unique idempotency key must be answered normally, not with a 500.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class CoachEventSavesTests(FitnessApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

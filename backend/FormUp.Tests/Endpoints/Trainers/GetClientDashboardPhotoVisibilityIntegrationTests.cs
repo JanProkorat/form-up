@@ -14,7 +14,7 @@ namespace FormUp.Tests.Endpoints.Trainers;
 /// Integration tests (real PostgreSQL) for the Body photo count on the trainer's client dashboard:
 /// it counts only photos the calling coach holds a viewer row for.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class GetClientDashboardPhotoVisibilityIntegrationTests(FitnessApiFactory factory)
 {
     private sealed record DashboardBody(int TotalProgressPhotos);

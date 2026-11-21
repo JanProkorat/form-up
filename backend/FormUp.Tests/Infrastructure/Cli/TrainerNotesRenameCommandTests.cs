@@ -20,7 +20,7 @@ namespace FormUp.Tests.Infrastructure.Cli;
 /// unfalsifiable. <see cref="FitnessApiFactory"/>'s database is shared per test class, so each
 /// case drops both collection names as its own arrange step.
 /// </remarks>
-[Collection(TestCollection.Name)]
+[Collection("ConsoleCapture")]
 public class TrainerNotesRenameCommandTests(FitnessApiFactory factory)
 {
     private const string LegacyName = "trainer_notes";

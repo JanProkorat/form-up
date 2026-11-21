@@ -30,7 +30,7 @@ namespace FormUp.Tests.Endpoints.Trainers;
 /// found when ClientId == UserId — not when it equals the now-stale PublicId. A mock-based
 /// test cannot catch this class of bug because mocks ignore the filter value.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class ListClientPlansIntegrationTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions JsonOptions = new()

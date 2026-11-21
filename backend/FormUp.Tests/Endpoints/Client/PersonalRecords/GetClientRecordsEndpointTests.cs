@@ -18,7 +18,7 @@ namespace FormUp.Tests.Endpoints.Client.PersonalRecords;
 /// All tests use real MongoDB via Testcontainers so that filter semantics and
 /// sort ordering are validated against actual driver behavior.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class GetClientRecordsEndpointTests(FitnessApiFactory factory)
 {
     private static string UniqueEmail() => $"{Guid.NewGuid():N}@pr-records-test.com";

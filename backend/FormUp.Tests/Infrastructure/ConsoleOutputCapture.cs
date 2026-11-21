@@ -13,9 +13,9 @@ namespace FormUp.Tests.Infrastructure;
 /// is silently never invoked. Capturing the actual Console sink text is the only test-only
 /// (non-production-code) way to observe log level/content in this codebase.
 /// <para>
-/// Safe to use because the test assembly runs with <c>DisableTestParallelization = true</c> /
-/// <c>MaxParallelThreads = 1</c> (see <c>TestAssemblyConfig.cs</c>) — no other test writes to
-/// <see cref="Console.Out"/> concurrently while this capture is active.
+/// <see cref="Console.SetOut"/> is process-wide, so a test using this must sit in a collection with
+/// <c>DisableParallelization = true</c>: the <c>ConsoleCapture</c> collection
+/// (<see cref="ConsoleCaptureCollection"/>).
 /// </para>
 /// </remarks>
 public sealed class ConsoleOutputCapture : IDisposable

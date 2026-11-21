@@ -12,7 +12,7 @@ namespace FormUp.Tests.Endpoints.ClientTags;
 /// <summary>
 /// Integration tests for <c>PUT /trainer/client-tags/{TagId}</c>.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class UpdateClientTagEndpointTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };

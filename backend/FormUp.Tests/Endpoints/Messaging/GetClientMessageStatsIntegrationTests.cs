@@ -19,7 +19,7 @@ namespace FormUp.Tests.Endpoints.Messaging;
 /// combined with a fixed, deliberately far-in-the-past seeded message timestamp — the endpoint has
 /// no injectable fake clock, so these tests anchor on "now" rather than pinning it.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class GetClientMessageStatsIntegrationTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };

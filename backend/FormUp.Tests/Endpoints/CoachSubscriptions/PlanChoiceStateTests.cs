@@ -22,7 +22,7 @@ namespace FormUp.Tests.Endpoints.CoachSubscriptions;
 /// How a coach's standing resolves through the real pipeline: an ended given plan is a plan choice (never a lapse), a gift
 /// in force or without an end is neither, and a Canceled, Incomplete or PastDue paid plan keeps its own behaviour.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class PlanChoiceStateTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions JsonOptions = new()

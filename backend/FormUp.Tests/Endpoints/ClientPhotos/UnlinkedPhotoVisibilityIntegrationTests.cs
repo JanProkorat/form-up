@@ -9,7 +9,7 @@ namespace FormUp.Tests.Endpoints.ClientPhotos;
 /// <summary>
 /// End-to-end tests (upload-url, finalize, list) for who sees a plan-less progress photo.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class UnlinkedPhotoVisibilityIntegrationTests(FitnessApiFactory factory)
 {
     private sealed record UploadUrlBody(string UploadUrl, string BlobUrl);

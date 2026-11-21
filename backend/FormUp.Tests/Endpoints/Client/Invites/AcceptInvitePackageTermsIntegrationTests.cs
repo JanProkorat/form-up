@@ -18,7 +18,7 @@ namespace FormUp.Tests.Endpoints.Client.Invites;
 /// Integration tests for the package an invite carries being given to the client when they accept, through the
 /// in-app accept and the emailed-token accept.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class AcceptInvitePackageTermsIntegrationTests(FitnessApiFactory factory)
 {
     private record CreatedInvite(Guid PublicId);

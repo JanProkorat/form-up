@@ -23,7 +23,7 @@ namespace FormUp.Tests.Endpoints.Messaging;
 /// bucketing needs real Postgres timestamps, and the composite auth path (client lookup, then
 /// link capabilities) needs the real link tables.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class GetClientMessageStatsEndpointTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };

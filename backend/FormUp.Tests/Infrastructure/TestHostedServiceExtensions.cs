@@ -19,12 +19,11 @@ namespace FormUp.Tests.Infrastructure;
 /// (<see cref="PhotoDiaryReminderScheduler"/>,
 /// <see cref="SocialLoginNonceReaperService"/>), is left running for the
 /// remaining lifetime of the test process — only their Testcontainers are
-/// disposed at collection teardown. Because
-/// <c>[assembly: CollectionBehavior(MaxParallelThreads = 1)]</c>
-/// (see <c>TestAssemblyConfig.cs</c>) serializes collections rather than running
-/// them concurrently, a long CI run gives these zombie timers enough elapsed
-/// wall-clock time to fire a tick *after* their own collection's containers are
-/// gone, throwing from a background thread
+/// disposed at collection teardown. Collections finish at different times
+/// (they ran serially before #1805 and run in parallel since, see
+/// <c>TestAssemblyConfig.cs</c>), so a long CI run gives these zombie timers
+/// enough elapsed wall-clock time to fire a tick *after* their own collection's
+/// containers are gone, throwing from a background thread
 /// (<c>InvalidOperationException: Could not find resource 'PostgreSqlContainer'</c>).
 /// With the default <c>BackgroundServiceExceptionBehavior=StopHost</c>, that
 /// unhandled exception tears down the host that raised it, cascading failures

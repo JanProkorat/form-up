@@ -26,7 +26,7 @@ namespace FormUp.Tests.Endpoints.ClientNutrition;
 /// pass every mocked test (NSubstitute ignores the <c>Projection</c> option entirely) and
 /// silently break in production.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class GetTodayPlanProjectionIntegrationTests(FitnessApiFactory factory)
 {
     private static string UniqueEmail() => $"{Guid.NewGuid():N}@today-plan-projection-test.com";
@@ -63,7 +63,7 @@ public class GetTodayPlanProjectionIntegrationTests(FitnessApiFactory factory)
     /// global <c>ServiceResolver.Provider</c> at a disposed provider, producing 51 scattered
     /// <see cref="ObjectDisposedException"/> failures in unrelated tests.
     /// </remarks>
-    private WebApplicationFactory<Program> PinnedFactory => _pinnedFactory ??= factory.WithWebHostBuilder(builder =>
+    private WebApplicationFactory<Program> PinnedFactory => _pinnedFactory ??= FastEndpointsBootGate.Booted(factory.WithWebHostBuilder(builder =>
     {
         builder.ConfigureServices(services =>
         {
@@ -79,7 +79,7 @@ public class GetTodayPlanProjectionIntegrationTests(FitnessApiFactory factory)
 
             services.AddSingleton<TimeProvider>(new FixedTimeProvider(PinnedInstantUtc));
         });
-    });
+    }));
 
     /// <summary>
     /// Builds a published <see cref="PlanWeek"/> with 7 days; only <paramref name="targetDayIndex"/>

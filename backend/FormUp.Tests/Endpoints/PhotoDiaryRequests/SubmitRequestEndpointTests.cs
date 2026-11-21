@@ -16,7 +16,7 @@ namespace FormUp.Tests.Endpoints.PhotoDiaryRequests;
 /// <summary>
 /// Integration tests for POST /client/photo-diary-requests/{id}/submit.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class SubmitRequestEndpointTests(FitnessApiFactory factory)
 {
     private static string UniqueEmail(string tag = "submit") =>

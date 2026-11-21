@@ -14,7 +14,7 @@ namespace FormUp.Tests.Services;
 /// The coach event recorder against the real database: it adds to the caller's context without saving, a repeated key writes
 /// nothing, and a deleted coach's events stay without the link.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class CoachEventRecorderTests(FitnessApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

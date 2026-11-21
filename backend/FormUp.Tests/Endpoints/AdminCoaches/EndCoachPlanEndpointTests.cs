@@ -24,7 +24,7 @@ namespace FormUp.Tests.Endpoints.AdminCoaches;
 /// <summary>
 /// Integration tests for <c>POST /admin/coaches/{CoachId}/end-plan</c> (<c>EndCoachPlanEndpoint</c>).
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class EndCoachPlanEndpointTests(FitnessApiFactory factory) : IDisposable
 {
     /// <summary>Leaves the shared fake payment provider in its default state for the next class.</summary>

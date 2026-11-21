@@ -9,7 +9,7 @@ namespace FormUp.Tests.Endpoints.ClientTags;
 /// <summary>
 /// Integration tests for <c>GET /trainer/client-tags</c>.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class GetClientTagsEndpointTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };

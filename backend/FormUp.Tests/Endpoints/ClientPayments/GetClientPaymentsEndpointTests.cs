@@ -18,7 +18,7 @@ namespace FormUp.Tests.Endpoints.ClientPayments;
 /// <summary>
 /// Integration tests for the client's own payment endpoints: GET /client/payments and GET /client/payments/{PaymentId}.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class GetClientPaymentsEndpointTests(FitnessApiFactory factory)
 {
     private async Task<GetClientPaymentsResponse> GetOwnAsync(Actor client)

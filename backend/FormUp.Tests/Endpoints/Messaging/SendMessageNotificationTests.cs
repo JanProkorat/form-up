@@ -15,7 +15,7 @@ namespace FormUp.Tests.Endpoints.Messaging;
 /// The coach-side effects of POST /conversations/{id}/messages: the in-app notice and the grouped-email burst. Only
 /// a client's message to the coach creates either, and a failing burst upsert never fails the send.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class SendMessageNotificationTests(FitnessApiFactory factory)
 {
     private async Task<(Actor Coach, Actor Client, Guid ConversationId)> SeedConversationAsync()

@@ -17,7 +17,7 @@ namespace FormUp.Tests.Endpoints.Client.Profile;
 /// Integration tests for <c>GET /client/profile/summary</c>. Real PostgreSQL and MongoDB, because
 /// the typed Guid filters and the visibility predicates cannot be proven against mocks.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class GetClientProfileSummaryIntegrationTests(FitnessApiFactory factory)
 {
     private sealed record SummaryBody(

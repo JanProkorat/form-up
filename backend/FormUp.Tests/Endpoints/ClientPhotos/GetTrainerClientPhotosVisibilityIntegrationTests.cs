@@ -16,7 +16,7 @@ namespace FormUp.Tests.Endpoints.ClientPhotos;
 /// Integration tests (real PostgreSQL) for who sees a plan photo in the trainer photo list. Rows
 /// are written by <see cref="PlanPhotoVisibilityWriter"/> at upload, never recomputed afterwards.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class GetTrainerClientPhotosVisibilityIntegrationTests(FitnessApiFactory factory)
 {
     private sealed record PhotoBody(Guid Id, string Category);

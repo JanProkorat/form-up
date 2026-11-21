@@ -202,6 +202,8 @@ public class QaSeedRunnerFactory(SharedTestContainers sharedContainers) : WebApp
         _postgresConnectionString = await sharedContainers.CreatePostgresDatabaseAsync("qa_seed_runner");
         _mongoDatabaseName = SharedTestContainers.CreateMongoDatabaseName("qa_seed_runner");
 
+        FastEndpointsBootGate.Start(this);
+
         // Apply migrations + seed roles.
         await ApplicationDbContextSeed.SeedAsync(Services);
     }
@@ -249,7 +251,8 @@ public class QaSeedRunnerFactory(SharedTestContainers sharedContainers) : WebApp
 /// <see cref="Infrastructure.TestCollection"/>) rather than per test — see
 /// <see cref="QaSeedRunnerFactory.EnsureDefaultSeedAsync"/> for how facts share one seed (#1104).
 /// </summary>
-[CollectionDefinition("SeedTests")]
+// Process-wide env vars (QA_SEED_KIND / QA_SEED_PASSWORD) are read by QaSeedRunner; run alone.
+[CollectionDefinition("SeedTests", DisableParallelization = true)]
 public class SeedTestsCollection : ICollectionFixture<QaSeedRunnerFactory>;
 
 /// <summary>

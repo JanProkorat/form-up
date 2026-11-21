@@ -14,7 +14,7 @@ namespace FormUp.Tests.Endpoints.ClientPhotos;
 /// <summary>
 /// Integration tests for POST /client/photos.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class FinalizeUnlinkedPhotoEndpointTests(FitnessApiFactory factory)
 {
     private sealed record PhotoBody(Guid Id, string BlobUrl, string DisplayUrl, string Category, Guid? PlanId);

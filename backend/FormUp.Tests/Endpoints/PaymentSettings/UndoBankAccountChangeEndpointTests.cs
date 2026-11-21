@@ -14,7 +14,7 @@ namespace FormUp.Tests.Endpoints.PaymentSettings;
 /// <summary>
 /// Integration tests for <c>POST /payments/bank-account/undo</c>.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class UndoBankAccountChangeEndpointTests(FitnessApiFactory factory)
 {
     private FakeEmailService Emails => factory.Services.GetRequiredService<FakeEmailService>();

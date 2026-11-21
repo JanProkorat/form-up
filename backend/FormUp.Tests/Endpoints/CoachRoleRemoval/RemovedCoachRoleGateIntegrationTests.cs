@@ -18,7 +18,7 @@ namespace FormUp.Tests.Endpoints.CoachRoleRemoval;
 /// Real-pipeline tests for the read-only gate after a coach role is removed: real database, real
 /// Mongo (mock Mongo ignores filters), role removed through the real <c>DELETE /users/me/roles/{Role}</c>.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class RemovedCoachRoleGateIntegrationTests(FitnessApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

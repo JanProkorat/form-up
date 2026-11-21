@@ -19,7 +19,7 @@ namespace FormUp.Tests.Endpoints.Professionals.Avatar;
 /// - Client (non-professional) — blocked by role policy
 /// - Foreign/attacker-supplied blobUrl — rejected before persist (#658)
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class ProfessionalAvatarIntegrationTests(FitnessApiFactory factory)
 {
     private static string UniqueEmail() => $"{Guid.NewGuid():N}@prof-avatar-test.com";

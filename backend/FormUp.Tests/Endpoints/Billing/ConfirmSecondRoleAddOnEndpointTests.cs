@@ -14,7 +14,7 @@ namespace FormUp.Tests.Endpoints.Billing;
 /// Integration tests for <c>POST /billing/second-role/confirm</c> (<c>ConfirmSecondRoleAddOnEndpoint</c>) against the
 /// fake payment provider.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class ConfirmSecondRoleAddOnEndpointTests(FitnessApiFactory factory) : IDisposable
 {
     /// <summary>Leaves the shared fake provider in its defaults for the next test class.</summary>

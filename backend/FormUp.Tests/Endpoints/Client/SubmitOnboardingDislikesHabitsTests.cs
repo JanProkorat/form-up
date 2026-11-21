@@ -14,7 +14,7 @@ namespace FormUp.Tests.Endpoints.Client;
 /// <summary>
 /// Dislikes and habits on POST /client/onboarding: integration persistence plus validator boundaries.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class SubmitOnboardingDislikesHabitsTests(FitnessApiFactory factory)
 {
     private static object Body(string[] dislikes, string[] habits) => new

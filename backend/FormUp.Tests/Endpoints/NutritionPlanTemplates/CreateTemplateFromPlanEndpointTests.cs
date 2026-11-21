@@ -18,7 +18,7 @@ namespace FormUp.Tests.Endpoints.NutritionPlanTemplates;
 /// caller doesn't own (identical for missing vs. unowned, since <c>NutritionPlan</c> is not an
 /// <see cref="Application.Domain.Documents.ILibraryDocument"/>).
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class CreateTemplateFromPlanEndpointTests(FitnessApiFactory factory)
 {
     private static string UniqueEmail(string tag) => $"{Guid.NewGuid():N}@from-plan-{tag}.com";

@@ -16,7 +16,7 @@ namespace FormUp.Tests.Endpoints.NutritionPlans;
 /// source-plan gate, the target-client link gate (always 404, never 403), the overlap check,
 /// and the independence of the copy from its source.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class CopyNutritionPlanEndpointTests(FitnessApiFactory factory)
 {
     private static DateTime NextMonday()

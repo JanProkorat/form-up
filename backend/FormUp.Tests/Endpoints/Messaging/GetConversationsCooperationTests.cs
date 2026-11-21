@@ -120,7 +120,7 @@ internal static class ConversationListSeed
 /// <c>GET /conversations</c> carries the newest invite or request of each conversation as
 /// <c>cooperation</c>, for both the client and the coach caller.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class GetConversationsCooperationTests(FitnessApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

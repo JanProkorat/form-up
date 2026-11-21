@@ -164,6 +164,8 @@ public class FitnessApiFactory(SharedTestContainers sharedContainers) : WebAppli
         _postgresConnectionString = await sharedContainers.CreatePostgresDatabaseAsync("fitness_api");
         _mongoDatabaseName = SharedTestContainers.CreateMongoDatabaseName("fitness_api");
 
+        FastEndpointsBootGate.Start(this);
+
         // Apply migrations and seed
         await ApplicationDbContextSeed.SeedAsync(Services);
     }

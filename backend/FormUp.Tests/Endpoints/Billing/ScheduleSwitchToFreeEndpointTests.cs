@@ -12,7 +12,7 @@ namespace FormUp.Tests.Endpoints.Billing;
 /// Integration tests for <c>POST /billing/switch-to-free</c> (<c>ScheduleSwitchToFreeEndpoint</c>) against the fake
 /// payment provider.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class ScheduleSwitchToFreeEndpointTests(FitnessApiFactory factory) : IDisposable
 {
     /// <summary>Leaves the shared fake provider in its defaults for the next test class.</summary>

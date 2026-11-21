@@ -19,7 +19,7 @@ namespace FormUp.Tests.Endpoints.AdminCoaches;
 /// <summary>
 /// Integration tests for <c>POST /admin/coaches/{CoachId}/give-free</c> (<c>GiveCoachPlanFreeEndpoint</c>).
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class GiveCoachPlanFreeEndpointTests(FitnessApiFactory factory) : IDisposable
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

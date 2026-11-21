@@ -19,7 +19,7 @@ namespace FormUp.Tests.Endpoints.SubscriptionPlans;
 /// Uses <see cref="FitnessApiFactory"/> since the role gate (Admin-only, and Admin is not
 /// publicly registerable) can only be proven through the real ASP.NET Core pipeline.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class GetSubscriptionPlansEndpointTests(FitnessApiFactory factory)
 {
     // The API serializes enums as strings (JsonStringEnumConverter globally), so use matching

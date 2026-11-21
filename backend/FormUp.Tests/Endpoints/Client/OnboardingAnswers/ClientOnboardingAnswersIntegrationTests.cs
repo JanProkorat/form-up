@@ -16,7 +16,7 @@ namespace FormUp.Tests.Endpoints.Client.OnboardingAnswers;
 /// <summary>
 /// Integration tests for <c>GET</c> and <c>PATCH /client/onboarding/answers</c>.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class ClientOnboardingAnswersIntegrationTests(FitnessApiFactory factory)
 {
     private const string Route = "/client/onboarding/answers";

@@ -8,7 +8,7 @@ namespace FormUp.Tests.Endpoints.Recipes;
 /// <summary>
 /// Integration tests for the recipe gallery picture flow: unique upload keys, remove and promote.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class RecipeGalleryIntegrationTests(FitnessApiFactory factory)
 {
     private static async Task<string> SeedNutritionistAsync(HttpClient client, string tag)

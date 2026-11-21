@@ -21,7 +21,7 @@ namespace FormUp.Tests.Endpoints.Messaging;
 /// host — never the mock-Mongo harness, which ignores <c>FilterDefinition</c> and would make the
 /// EndingSoon assertions unfalsifiable.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class GetConversationsFilterTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };

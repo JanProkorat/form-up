@@ -19,7 +19,7 @@ namespace FormUp.Tests.Endpoints.PhotoDiaryRequests;
 /// <summary>
 /// Integration tests for POST /trainer/photo-diary-requests.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class CreateRequestEndpointTests(FitnessApiFactory factory)
 {
     private static string UniqueEmail(string tag = "trainer") =>

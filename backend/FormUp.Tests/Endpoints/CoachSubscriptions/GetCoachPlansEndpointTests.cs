@@ -21,7 +21,7 @@ namespace FormUp.Tests.Endpoints.CoachSubscriptions;
 /// <summary>
 /// Integration tests for <c>GET /users/me/subscription/plans</c>.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class GetCoachPlansEndpointTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions JsonOptions = new()

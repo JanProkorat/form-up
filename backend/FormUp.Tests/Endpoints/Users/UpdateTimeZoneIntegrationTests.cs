@@ -9,7 +9,7 @@ namespace FormUp.Tests.Endpoints.Users;
 /// Integration tests for <c>PUT /users/me/timezone</c> and the timezone field
 /// on <c>GET /users/me</c> using a real PostgreSQL instance (Testcontainers).
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class UpdateTimeZoneIntegrationTests(FitnessApiFactory factory)
 {
     private static string UniqueEmail() => $"{Guid.NewGuid():N}@timezone-test.com";

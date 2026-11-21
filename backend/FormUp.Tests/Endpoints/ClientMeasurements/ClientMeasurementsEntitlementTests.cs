@@ -11,7 +11,7 @@ namespace FormUp.Tests.Endpoints.ClientMeasurements;
 /// A coach whose plan lacks weight and measurements cannot read or add a client's measurements; the client's own
 /// measurement endpoints are not touched by the coach's plan.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class ClientMeasurementsEntitlementTests(FitnessApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

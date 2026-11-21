@@ -18,7 +18,7 @@ namespace FormUp.Tests.Endpoints.ClientTraining;
 /// The compliance and streak in the <c>trainingprogressupdated</c> event come only from plans the
 /// receiving trainer wrote. Real Mongo, because the mock harness ignores filters.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class TrainingProgressBroadcasterAuthorFilterIntegrationTests(FitnessApiFactory factory)
 {
     private static readonly CancellationToken Ct = TestContext.Current.CancellationToken;

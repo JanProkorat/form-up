@@ -18,7 +18,7 @@ namespace FormUp.Tests.Endpoints.CoachPackages;
 /// <summary>
 /// Integration tests for the coach package endpoints under /payments/packages.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class CoachPackageEndpointTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions WireOptions = new(JsonSerializerDefaults.Web)

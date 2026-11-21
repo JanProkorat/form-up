@@ -18,7 +18,7 @@ namespace FormUp.Tests.Endpoints.ClientRequests;
 /// A client declines a coach's package proposal (POST /client/requests/{id}/decline-proposal). The request ends,
 /// the conversation stays open.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class DeclineClientRequestProposalTests(FitnessApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

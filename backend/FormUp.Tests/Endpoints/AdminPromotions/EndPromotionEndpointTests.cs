@@ -17,7 +17,7 @@ namespace FormUp.Tests.Endpoints.AdminPromotions;
 /// Integration tests for <c>POST /admin/promotions/{PromotionId}/end</c> (<c>EndPromotionEndpoint</c>) against the fake
 /// payment provider.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class EndPromotionEndpointTests(FitnessApiFactory factory) : IDisposable
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

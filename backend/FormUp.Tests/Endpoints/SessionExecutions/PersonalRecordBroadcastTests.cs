@@ -21,7 +21,7 @@ namespace FormUp.Tests.Endpoints.SessionExecutions;
 /// via Testcontainers. The <see cref="IRealtimeNotifier"/> is replaced with
 /// <see cref="FakeRealtimeNotifier"/> in <see cref="FitnessApiFactory"/>.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class PersonalRecordBroadcastTests(FitnessApiFactory factory)
 {
     private static string UniqueEmail() => $"{Guid.NewGuid():N}@pr-broadcast-test.com";

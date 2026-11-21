@@ -17,7 +17,7 @@ namespace FormUp.Tests.Endpoints.Trainers;
 /// instead of the client hitting a 400 days later on a link they were never able to form.
 /// These tests therefore pin *when* the rejection happens, not just that it happens.
 /// </remarks>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class CreatePendingInviteProfessionSlotTests(FitnessApiFactory factory)
 {
     private static string UniqueEmail(string prefix) => $"{prefix}-{Guid.NewGuid():N}@test.com";

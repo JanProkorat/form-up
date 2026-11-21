@@ -19,7 +19,7 @@ namespace FormUp.Tests.Endpoints.Trainers;
 /// whose window covers that date. Real Mongo, because the mock harness ignores filters. The older
 /// plan is always inserted first, which is the order an arbitrary first-match lookup would pick.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class ComplianceCurrentPlanIntegrationTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions JsonOptions = new()

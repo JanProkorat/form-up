@@ -9,7 +9,7 @@ namespace FormUp.Tests.Endpoints.Client.Collaborations;
 /// <summary>
 /// Integration tests for <c>GET /client/collaborations</c>.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class GetCollaborationsEndpointTests(FitnessApiFactory factory)
 {
     private record CollaborationsResult(List<CollaborationItem> Collaborations);

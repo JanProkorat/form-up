@@ -16,7 +16,7 @@ namespace FormUp.Tests.Endpoints.Billing;
 /// Integration tests for <c>POST /billing/promotion-code</c> (<c>ApplyPromotionCodeEndpoint</c>) against the fake
 /// payment provider and our own promotions.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class ApplyPromotionCodeEndpointTests(FitnessApiFactory factory) : IDisposable
 {
     /// <summary>Leaves the shared fake provider and the promotions table in their defaults for the next test class.</summary>

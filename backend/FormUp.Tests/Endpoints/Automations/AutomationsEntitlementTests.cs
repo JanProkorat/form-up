@@ -11,7 +11,7 @@ namespace FormUp.Tests.Endpoints.Automations;
 /// A coach whose plan lacks automations is refused on every coach automation endpoint, reads included; the rules they
 /// already have stay stored.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class AutomationsEntitlementTests(FitnessApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

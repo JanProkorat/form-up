@@ -18,7 +18,7 @@ namespace FormUp.Tests.Endpoints.ClientPayments;
 /// <summary>
 /// Integration tests for POST /payments/clients/{ClientId}/payments/{PaymentId}/request.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class RequestClientPaymentEndpointTests(FitnessApiFactory factory)
 {
     private static readonly byte[] PngSignature = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];

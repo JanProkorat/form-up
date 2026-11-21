@@ -15,7 +15,7 @@ namespace FormUp.Tests.Endpoints.PaymentSettings;
 /// <summary>
 /// Integration tests for <c>GET /client/coaches/{CoachId}/bank-account</c>.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class GetCoachBankDetailsEndpointTests(FitnessApiFactory factory)
 {
     private sealed record BankDetails(string Iban, string AccountHolder, int PaymentDueDays);
