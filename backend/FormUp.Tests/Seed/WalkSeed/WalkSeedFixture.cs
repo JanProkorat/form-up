@@ -235,5 +235,20 @@ public sealed class WalkSeedFixture(SharedTestContainers sharedContainers) : IAs
         });
 
         await db.SaveChangesAsync();
+
+        // A walk also answers a missed check-in and adds a form of its own; the next run must undo both.
+        var checkInsCoach = await userManager.FindByEmailAsync("walk.checkins@formup.test");
+        var missedClient = await userManager.FindByEmailAsync("walk.checkins-c@formup.test");
+        var missedResponse = await db.QuestionnaireResponses.SingleAsync(
+            r => r.ProfessionalId == checkInsCoach!.Id && r.ClientId == missedClient!.Id);
+        missedResponse.Status = QuestionnaireResponseStatus.Submitted;
+        missedResponse.SubmittedAt = now.UtcDateTime;
+        db.Questionnaires.Add(new Questionnaire
+        {
+            ProfessionalId = checkInsCoach!.Id,
+            Title = "Walk extra form",
+            Type = QuestionnaireType.CheckIn,
+        });
+        await db.SaveChangesAsync();
     }
 }

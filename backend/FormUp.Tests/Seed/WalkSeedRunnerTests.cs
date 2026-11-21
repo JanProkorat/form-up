@@ -2,6 +2,7 @@ using System.Text.Json;
 using FluentAssertions;
 using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
+using FormUp.Application.Domain.Services;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Application.Seed.WalkSeed;
 using FormUp.Tests.Seed.WalkSeed;
@@ -66,7 +67,8 @@ public class WalkSeedRunnerTests(WalkSeedFixture fixture)
     public async Task RunAsync_FirstRun_PreparesTheDatabaseOnlyAccounts()
     {
         fixture.FirstResult.Succeeded.Should().BeTrue();
-        fixture.FirstResult.AccountLines.Should().HaveCount(WalkAccountCatalog.All.Count);
+        fixture.FirstResult.AccountLines.Should().HaveCount(
+            WalkAccountCatalog.All.Count + WalkAccountCatalog.CheckInClients.Count);
 
         using var scope = fixture.Provider.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -285,7 +287,20 @@ public class WalkSeedRunnerTests(WalkSeedFixture fixture)
 
         var coaches = root.GetProperty("coaches").EnumerateArray().ToList();
         coaches.Select(coach => coach.GetProperty("key").GetString())
-            .Should().Equal("free", "pro", "pro3ds", "given", "manyclients");
+            .Should().Equal("free", "pro", "pro3ds", "given", "manyclients", "checkins", "checkinsonly");
+
+        var clients = root.GetProperty("clients").EnumerateArray().ToList();
+        clients.Select(client => client.GetProperty("key").GetString())
+            .Should().Equal("checkins-a", "checkins-b", "checkins-c", "checkins-d", "checkinsonly-a");
+        clients.Select(client => client.GetProperty("coach").GetString())
+            .Should().Equal("checkins", "checkins", "checkins", "checkins", "checkinsonly");
+
+        foreach (var client in clients)
+        {
+            client.GetProperty("email").GetString().Should().EndWith("@formup.test");
+            client.GetProperty("password").GetString().Should().NotBeNullOrEmpty();
+            client.GetProperty("note").GetString().Should().NotBeNullOrEmpty();
+        }
 
         foreach (var coach in coaches)
         {
@@ -293,6 +308,148 @@ public class WalkSeedRunnerTests(WalkSeedFixture fixture)
             coach.GetProperty("password").GetString().Should().NotBeNullOrEmpty();
             coach.GetProperty("note").GetString().Should().NotBeNullOrEmpty();
         }
+    }
+
+    [Fact]
+    public async Task RunAsync_SecondRun_PutsTheCheckInCoachesOnTheirPlansGivenByFormUp()
+    {
+        using var scope = fixture.Provider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var checkIns = await db.CoachSubscriptions
+            .Include(cs => cs.SubscriptionPlan)
+            .SingleAsync(cs => cs.ProfessionalProfile.User.Email == "walk.checkins@formup.test", TestContext.Current.CancellationToken);
+        checkIns.SubscriptionPlan.Code.Should().Be("walk-checkins-full");
+        checkIns.SubscriptionPlan.NameEn.Should().Be("Walk check-ins full");
+        checkIns.SubscriptionPlan.IsActive.Should().BeFalse();
+        checkIns.GivenFreeAt.Should().NotBeNull();
+        checkIns.ExternalSubscriptionId.Should().BeNull();
+        checkIns.SubscriptionPlan.CanUseWeeklyCheckIns.Should().BeTrue();
+        checkIns.SubscriptionPlan.CanUsePerClientCheckInConfig.Should().BeTrue();
+        checkIns.SubscriptionPlan.CanSendQuestionnaires.Should().BeTrue();
+        checkIns.SubscriptionPlan.CanUseAutomations.Should().BeTrue();
+        checkIns.SubscriptionPlan.MaxActiveClients.Should().BeNull();
+
+        var checkInsOnly = await db.CoachSubscriptions
+            .Include(cs => cs.SubscriptionPlan)
+            .SingleAsync(cs => cs.ProfessionalProfile.User.Email == "walk.checkinsonly@formup.test", TestContext.Current.CancellationToken);
+        checkInsOnly.SubscriptionPlan.Code.Should().Be("walk-checkins-only");
+        checkInsOnly.SubscriptionPlan.NameEn.Should().Be("Walk check-ins only");
+        checkInsOnly.GivenFreeAt.Should().NotBeNull();
+        checkInsOnly.ExternalSubscriptionId.Should().BeNull();
+        checkInsOnly.SubscriptionPlan.CanUseWeeklyCheckIns.Should().BeTrue();
+        checkInsOnly.SubscriptionPlan.CanSendQuestionnaires.Should().BeFalse();
+        checkInsOnly.SubscriptionPlan.CanUsePerClientCheckInConfig.Should().BeFalse();
+
+        (await db.SubscriptionPlans.CountAsync(
+            p => p.Code == "walk-checkins-only" || p.Code == "walk-checkins-full", TestContext.Current.CancellationToken))
+            .Should().Be(2);
+    }
+
+    [Fact]
+    public async Task RunAsync_SecondRun_ResetsTheCheckInCoachFormsRuleAndClients()
+    {
+        using var scope = fixture.Provider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        var coachId = await db.Users.Where(u => u.Email == "walk.checkins@formup.test").Select(u => u.Id).SingleAsync(cancellationToken);
+
+        var forms = await db.Questionnaires
+            .Where(q => q.ProfessionalId == coachId)
+            .Select(q => new { q.Title, q.Type, q.IsActive, QuestionCount = q.Questions.Count })
+            .ToListAsync(cancellationToken);
+        forms.Select(form => (form.Title, form.Type)).Should().BeEquivalentTo(
+            [
+                ("Weekly check-in", QuestionnaireType.CheckIn),
+                ("Knee rehab check-in", QuestionnaireType.CheckIn),
+                ("Onboarding form", QuestionnaireType.Onboarding),
+            ]);
+        forms.Should().OnlyContain(form => form.IsActive && form.QuestionCount >= 2);
+
+        var rule = await db.AutomationRules
+            .Include(r => r.Questionnaire)
+            .SingleAsync(r => r.OwnerProfessionalProfile.UserId == coachId, cancellationToken);
+        rule.ActionType.Should().Be(AutomationActionType.SendForm);
+        rule.Questionnaire!.Title.Should().Be("Weekly check-in");
+        rule.ScheduleWeekday.Should().Be(DayOfWeek.Thursday);
+        rule.LocalTime.Should().Be(new TimeOnly(18, 0));
+        rule.AnswerWindowHours.Should().Be(48);
+        rule.Audience.Should().Be(AutomationAudience.All);
+        rule.Enabled.Should().BeTrue();
+        rule.EnabledAtUtc.Should().BeBefore(DateTime.UtcNow.AddDays(-21));
+
+        var clients = await db.ClientProfessionalLinks
+            .Where(l => l.ProfessionalProfile.UserId == coachId && l.ConnectionState == ConnectionState.Connected)
+            .Select(l => new { l.ClientProfile.User.Email, l.ClientProfile.User.TimeZone, l.ClientProfile.User.EmailConfirmed })
+            .ToListAsync(cancellationToken);
+        clients.Select(client => client.Email).Should().BeEquivalentTo(
+            ["walk.checkins-a@formup.test", "walk.checkins-b@formup.test", "walk.checkins-c@formup.test", "walk.checkins-d@formup.test"]);
+        clients.Should().OnlyContain(client => client.TimeZone == "Europe/Prague" && client.EmailConfirmed);
+    }
+
+    [Fact]
+    public async Task RunAsync_SecondRun_LeavesTheCheckInHistoryInTheListedStatuses()
+    {
+        using var scope = fixture.Provider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var nowUtc = DateTime.UtcNow;
+
+        var zone = ClientLocalDateResolver.ResolveTimeZone("Europe/Prague");
+        var thisMonday = AutomationScheduleCalculator.MondayOf(ClientLocalDateResolver.ResolveLocalDate(nowUtc, zone));
+
+        var rows = await db.QuestionnaireResponses
+            .Where(r => r.Kind == QuestionnaireResponseKind.CheckIn && r.Questionnaire.Title == "Weekly check-in")
+            .Where(r => r.Link.ProfessionalProfile.User.Email == "walk.checkins@formup.test"
+                        || r.Link.ProfessionalProfile.User.Email == "walk.checkinsonly@formup.test")
+            .Select(r => new
+            {
+                Client = r.Link.ClientProfile.User.LastName,
+                r.CheckInWeekStart,
+                r.CheckInDueAtUtc,
+                r.Status,
+                r.ReviewedByCoachAtUtc,
+                AnswerCount = r.Answers.Count,
+            })
+            .ToListAsync(cancellationToken);
+
+        var statuses = rows
+            .Select(row => (
+                row.Client,
+                WeeksBack: (thisMonday.DayNumber - row.CheckInWeekStart!.Value.DayNumber) / 7,
+                Status: CheckInResponses.ResolveStatus(row.Status, row.ReviewedByCoachAtUtc, row.CheckInDueAtUtc, nowUtc)))
+            .ToList();
+
+        statuses.Should().BeEquivalentTo(
+            [
+                ("checkins-a", 0, WeeklyCheckInStatus.Pending),
+                ("checkins-a", 1, WeeklyCheckInStatus.Responded),
+                ("checkins-a", 2, WeeklyCheckInStatus.Reviewed),
+                ("checkins-b", 1, WeeklyCheckInStatus.Reviewed),
+                ("checkins-b", 2, WeeklyCheckInStatus.Reviewed),
+                ("checkins-c", 1, WeeklyCheckInStatus.Expired),
+                ("checkins-d", 1, WeeklyCheckInStatus.Responded),
+                ("checkinsonly-a", 1, WeeklyCheckInStatus.Responded),
+            ]);
+
+        rows.Where(row => row.Status == QuestionnaireResponseStatus.Submitted).Should().OnlyContain(row => row.AnswerCount > 0);
+        rows.Where(row => row.Status == QuestionnaireResponseStatus.Pending).Should().OnlyContain(row => row.AnswerCount == 0);
+    }
+
+    [Fact]
+    public async Task RunAsync_SecondRun_LeavesOneNewQuestionnaireAnswerForTheFirstClientOfEachCheckInCoach()
+    {
+        using var scope = fixture.Provider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var answered = await db.QuestionnaireResponses
+            .Where(r => r.Kind == QuestionnaireResponseKind.Questionnaire && r.Questionnaire.Title == "Onboarding form")
+            .Select(r => new { Client = r.Link.ClientProfile.User.LastName, r.Status, r.ReviewedByCoachAtUtc })
+            .ToListAsync(TestContext.Current.CancellationToken);
+
+        answered.Select(row => row.Client).Should().BeEquivalentTo(["checkins-a", "checkinsonly-a"]);
+        answered.Should().OnlyContain(row => row.Status == QuestionnaireResponseStatus.Submitted && row.ReviewedByCoachAtUtc == null);
     }
 
     [Fact]

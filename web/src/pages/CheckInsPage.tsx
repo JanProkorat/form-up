@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import CheckInsTable from '@/components/check-ins/CheckInsTable';
@@ -22,9 +23,26 @@ import { cn } from '@/lib/utils';
 
 const FILTERS: readonly CheckInFilter[] = ['all', 'notReviewed', 'missed', 'waiting', 'reviewed'];
 
+/** The Monday of the week the `week` param points at; a missing or malformed value means the current week. */
+function parseWeekParam(value: string | null): Date {
+  const match = value ? /^(\d{4})-(\d{2})-(\d{2})$/.exec(value) : null;
+  if (match) {
+    const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
+    const date = new Date(year, month - 1, day, 12, 0, 0, 0);
+    if (date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day) {
+      return mondayOf(date);
+    }
+  }
+  return mondayOf(new Date());
+}
+
+function parseFilterParam(value: string | null): CheckInFilter {
+  return FILTERS.find((candidate) => candidate === value) ?? 'all';
+}
+
 function TotalCard({ label, value, subline, accent = false }: { label: string; value: string; subline: string; accent?: boolean }) {
   return (
-    <div className="flex min-w-0 flex-1 flex-col gap-1 rounded-2xl border border-line bg-card px-4.5 py-4">
+    <div className="flex min-w-0 flex-col gap-1 rounded-2xl border border-line bg-card px-4.5 py-4">
       <span className="text-meta font-semibold text-muted-foreground">{label}</span>
       <span className={cn('font-display text-stat font-semibold', accent ? 'text-error' : 'text-ink')}>{value}</span>
       <span className="text-meta text-muted-foreground">{subline}</span>
@@ -38,9 +56,25 @@ export default function CheckInsPage() {
   const { isEntitled } = useSubscription();
   const locked = !isEntitled('canUseWeeklyCheckIns');
 
-  const [monday, setMonday] = useState(() => mondayOf(new Date()));
-  const [filter, setFilter] = useState<CheckInFilter>('all');
+  // Week and status live in the URL so Back from "Open answers" returns to the same view.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const weekParam = searchParams.get('week');
+  const monday = useMemo(() => parseWeekParam(weekParam), [weekParam]);
+  const filter = parseFilterParam(searchParams.get('status'));
   const [markingId, setMarkingId] = useState<string | null>(null);
+
+  const updateView = (nextMonday: Date, nextFilter: CheckInFilter) => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('week');
+    next.delete('status');
+    if (toDateKey(nextMonday) !== toDateKey(mondayOf(new Date()))) {
+      next.set('week', toDateKey(nextMonday));
+    }
+    if (nextFilter !== 'all') {
+      next.set('status', nextFilter);
+    }
+    setSearchParams(next, { replace: true });
+  };
 
   const weekStartDate = toDateKey(monday);
   const query = useTrainerWeeklyCheckIns(weekStartDate);
@@ -68,7 +102,7 @@ export default function CheckInsPage() {
   });
 
   return (
-    <div className="flex h-full flex-col gap-4">
+    <div className="flex h-full min-w-0 flex-col gap-4">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-col gap-1.5">
           <h1 className="text-display font-semibold text-ink">{t('checkIns.title')}</h1>
@@ -81,7 +115,7 @@ export default function CheckInsPage() {
               variant="outline"
               size="icon-lg"
               aria-label={t('checkIns.week.previous')}
-              onClick={() => setMonday((current) => shiftWeek(current, -1))}
+              onClick={() => updateView(shiftWeek(monday, -1), filter)}
             >
               <ChevronLeft aria-hidden="true" />
             </Button>
@@ -91,7 +125,7 @@ export default function CheckInsPage() {
               variant="outline"
               size="icon-lg"
               aria-label={t('checkIns.week.next')}
-              onClick={() => setMonday((current) => shiftWeek(current, 1))}
+              onClick={() => updateView(shiftWeek(monday, 1), filter)}
             >
               <ChevronRight aria-hidden="true" />
             </Button>
@@ -105,7 +139,7 @@ export default function CheckInsPage() {
         </div>
       ) : (
         <>
-          <div className="flex flex-wrap gap-3">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <TotalCard
               label={t('checkIns.totals.answered')}
               value={t('checkIns.totals.answeredValue', { answered, total: counts.all })}
@@ -136,7 +170,7 @@ export default function CheckInsPage() {
                   key={value}
                   type="button"
                   aria-pressed={filter === value}
-                  onClick={() => setFilter(value)}
+                  onClick={() => updateView(monday, value)}
                   className={cn(
                     'h-8 rounded-full border px-3 text-body font-medium outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50',
                     filter === value
@@ -152,8 +186,9 @@ export default function CheckInsPage() {
             <span className="text-meta text-muted-foreground">{t('checkIns.timeZoneNote')}</span>
           </div>
 
-          <div className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-line bg-card shadow-panel">
-            <div className="min-h-0 overflow-y-auto [&_[data-slot=table-container]]:overflow-visible">
+          <div className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-line bg-card shadow-panel">
+            {/* One scroll container for both axes keeps the sticky header working and the card's border rounded. */}
+            <div className="min-h-0 min-w-0 overflow-auto [&_[data-slot=table-container]]:overflow-visible">
               <CheckInsTable
                 rows={visibleRows}
                 emptyText={t(rows.length === 0 ? 'checkIns.empty' : 'checkIns.emptyFilter')}
