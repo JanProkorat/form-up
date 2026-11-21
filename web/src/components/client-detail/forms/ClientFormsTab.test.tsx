@@ -133,6 +133,25 @@ describe('Forms tab lock icon', () => {
   });
 });
 
+describe('Forms tab dot in check-ins-only mode', () => {
+  const NEW_QUESTIONNAIRE: ClientFormItem = { ...QUESTIONNAIRE, isNew: true };
+
+  it('does not light for a new questionnaire answer alone', async () => {
+    serve(NO_FORMS_FEATURE, [NEW_QUESTIONNAIRE, { ...CHECK_IN, isNew: false }]);
+    renderFormsTab();
+
+    await screen.findByTestId('forms-checkins-only-hint');
+    expect(screen.queryByTestId('forms-tab-dot')).not.toBeInTheDocument();
+  });
+
+  it('lights for a new check-in answer', async () => {
+    serve(NO_FORMS_FEATURE, [NEW_QUESTIONNAIRE, CHECK_IN]);
+    renderFormsTab();
+
+    expect(await screen.findByTestId('forms-tab-dot')).toBeInTheDocument();
+  });
+});
+
 describe('Forms tab in check-ins-only mode: review and errors', () => {
   it('Mark reviewed still sends its request; opening the check-in sends none', async () => {
     serve(NO_FORMS_FEATURE, [CHECK_IN]);
