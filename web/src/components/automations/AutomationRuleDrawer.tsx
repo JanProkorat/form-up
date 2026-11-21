@@ -6,14 +6,15 @@ import { Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { AutomationTriggerKind, type AutomationRuleDto } from '@/api/automations';
+import { AutomationTriggerKind, type AutomationRuleDto, type ClientAutomationItem } from '@/api/automations';
+import { useTrainerQuestionnaires } from '@/hooks/useQuestionnaireQueries';
 import { FIELD_CLASS, FieldError } from '@/components/automations/automationFormParts';
 import AutomationOptionsSection from '@/components/automations/AutomationOptionsSection';
 import AutomationPauseSection from '@/components/automations/AutomationPauseSection';
 import AutomationWhatSection from '@/components/automations/AutomationWhatSection';
 import AutomationWhenSection from '@/components/automations/AutomationWhenSection';
 import AutomationWhoSection from '@/components/automations/AutomationWhoSection';
-import { summaryFooter } from '@/components/automations/automationFormat';
+import { formatNextSend, summaryFooter } from '@/components/automations/automationFormat';
 import {
   automationRuleSchema,
   defaultRuleValues,
@@ -34,6 +35,8 @@ interface Props {
   rule?: AutomationRuleDto;
   /** Override variant: the row's current pause, prefilled into the pause section. */
   pause?: PauseState;
+  /** Override variant: the client's row, for its own check-in form and its next send. */
+  override?: ClientAutomationItem;
   /** Client variants: the client's first name, for the title and description. */
   clientName?: string;
   /** Saves the form. Resolves when the save is done and never rejects; the caller reports errors. */
@@ -56,11 +59,18 @@ interface BodyProps extends Omit<Props, 'open' | 'onOpenChange'> {
   onClose: () => void;
 }
 
-function DrawerBody({ variant = 'global', rule, pause, clientName = '', onSubmit, isSaving, onClose }: BodyProps) {
+function DrawerBody({ variant = 'global', rule, pause, override, clientName = '', onSubmit, isSaving, onClose }: BodyProps) {
   const { t, i18n } = useTranslation();
   const [initial] = useState<AutomationRuleFormValues>(() =>
-    rule ? { ...ruleToFormValues(rule), ...pauseToFormValues(pause) } : defaultRuleValues(),
+    rule
+      ? {
+          ...ruleToFormValues(rule),
+          ...pauseToFormValues(pause),
+          checkInQuestionnaireId: override?.checkInQuestionnaireId ?? '',
+        }
+      : defaultRuleValues(),
   );
+  const formsQuery = useTrainerQuestionnaires();
   const [initialSnapshot] = useState(() => summarySensitiveSnapshot(initial));
 
   const methods = useForm<AutomationRuleFormValues>({
@@ -74,7 +84,24 @@ function DrawerBody({ variant = 'global', rule, pause, clientName = '', onSubmit
   const isNew = rule === undefined;
   const sensitiveChanged =
     summarySensitiveSnapshot({ ...initial, ...values } as AutomationRuleFormValues) !== initialSnapshot;
-  const footer = isNew || sensitiveChanged ? null : summaryFooter(rule?.summary, t, i18n.language);
+  // A client's check-in override: the footer names the next send and the form the client gets (the pick, or the rule's).
+  const isCheckInOverride = variant === 'override' && initial.checkIn;
+  const effectiveFormId = values.checkInQuestionnaireId || initial.questionnaireId;
+  const effectiveFormTitle = (formsQuery.data ?? []).find((form) => form.publicId === effectiveFormId)?.title;
+  const overrideFooter =
+    isCheckInOverride && override?.nextSendAt && !sensitiveChanged
+      ? t(
+          effectiveFormTitle
+            ? 'clientDetail.automations.drawer.overrideFooter'
+            : 'clientDetail.automations.drawer.overrideFooterNoForm',
+          { client: clientName, date: formatNextSend(override.nextSendAt, i18n.language), form: effectiveFormTitle },
+        )
+      : null;
+  const footer = isCheckInOverride
+    ? overrideFooter
+    : isNew || sensitiveChanged
+      ? null
+      : summaryFooter(rule?.summary, t, i18n.language);
 
   const ruleName = rule?.name ?? '';
   const clientCopy = (key: string) => t(`clientDetail.automations.drawer.${key}`, { name: ruleName, client: clientName });
@@ -116,6 +143,7 @@ function DrawerBody({ variant = 'global', rule, pause, clientName = '', onSubmit
           <AutomationWhenSection />
           <AutomationWhatSection
             actionLocked={variant === 'override'}
+            overrideCheckInForm={isCheckInOverride}
             actionReadOnly={!isNew}
             checkInFormsAllowed={variant === 'global'}
             editingRuleId={rule?.ruleId}
@@ -133,7 +161,11 @@ function DrawerBody({ variant = 'global', rule, pause, clientName = '', onSubmit
         </Button>
         <Button type="submit" size="lg" disabled={isSaving}>
           <Check aria-hidden="true" />
-          {isSaving ? t('automations.drawer.saving') :t('automations.drawer.save')}
+          {isSaving
+            ? t('automations.drawer.saving')
+            : isCheckInOverride
+              ? t('clientDetail.automations.drawer.overrideSave', { client: clientName })
+              : t('automations.drawer.save')}
         </Button>
       </SheetFooter>
     </form>

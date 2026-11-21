@@ -57,11 +57,16 @@ export function rowSubtitle(
   if (item.source === AutomationRuleSource.Paused) {
     return pauseSubtitle(item, t, language);
   }
+  // A check-in client may have their own form; the row names the one they actually get.
+  const effectiveFormTitle = item.checkInQuestionnaireName ?? formTitle;
   if (item.source === AutomationRuleSource.Custom && parent) {
     if (parent.scheduleWeekday != null) {
-      return t('clientDetail.automations.row.changedFromWeekday', { day: weekdayEvery(parent.scheduleWeekday, t) });
+      const day = weekdayEvery(parent.scheduleWeekday, t);
+      return effectiveFormTitle
+        ? t('clientDetail.automations.row.changedFromWeekdayForm', { day, form: effectiveFormTitle })
+        : t('clientDetail.automations.row.changedFromWeekday', { day });
     }
     return t('clientDetail.automations.row.changedFrom', { when: whenLabel(parent, t) });
   }
-  return subtitleFor(clientItemToRule(item), formTitle, t);
+  return subtitleFor(clientItemToRule(item), effectiveFormTitle, t);
 }
