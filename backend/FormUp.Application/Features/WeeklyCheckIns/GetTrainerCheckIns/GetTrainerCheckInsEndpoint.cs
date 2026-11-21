@@ -13,7 +13,9 @@ namespace FormUp.Application.Features.WeeklyCheckIns.GetTrainerCheckIns;
 /// </summary>
 /// <param name="db">Relational database context.</param>
 /// <param name="timeProvider">Clock, used to tell an expired check-in from a pending one.</param>
-public class GetTrainerCheckInsEndpoint(IApplicationDbContext db, TimeProvider timeProvider)
+/// <param name="entitlementService">Resolves which live clients are over the cap of the plan in force.</param>
+public class GetTrainerCheckInsEndpoint(
+    IApplicationDbContext db, TimeProvider timeProvider, EntitlementService entitlementService)
     : Endpoint<GetTrainerCheckInsRequest, GetTrainerCheckInsResponse>
 {
     /// <inheritdoc />
@@ -72,8 +74,14 @@ public class GetTrainerCheckInsEndpoint(IApplicationDbContext db, TimeProvider t
                 r.SubmittedAt,
                 r.CheckInDueAtUtc,
                 r.ReviewedByCoachAtUtc,
+                r.Link.ClientProfileId,
+                ClientTimeZone = r.Link.ClientProfile.User.TimeZone,
+                FormId = r.Questionnaire.PublicId,
+                FormName = r.Questionnaire.Title,
             })
             .ToListAsync(ct);
+
+        var overCapClientProfileIds = await LoadOverCapClientProfileIdsAsync(professionalUserId, ct);
 
         var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
 
@@ -93,8 +101,34 @@ public class GetTrainerCheckInsEndpoint(IApplicationDbContext db, TimeProvider t
             ReviewedByTrainerAt = r.ReviewedByCoachAtUtc,
             Status = CheckInResponses.ResolveStatus(r.Status, r.ReviewedByCoachAtUtc, r.CheckInDueAtUtc, nowUtc).ToString(),
             DueAt = r.CheckInDueAtUtc,
+            FormId = r.FormId,
+            FormName = r.FormName,
+            ClientTimeZone = r.ClientTimeZone,
+            ClientIsOutsidePlan = overCapClientProfileIds.Contains(r.ClientProfileId),
         }).ToList();
 
         await Send.OkAsync(new GetTrainerCheckInsResponse { CheckIns = checkIns }, ct);
+    }
+
+    /// <summary>
+    /// Client profile ids over the cap of the caller's plan, the same source as the clients list.
+    /// Empty when the caller has no professional profile.
+    /// </summary>
+    private async Task<HashSet<long>> LoadOverCapClientProfileIdsAsync(Guid professionalUserId, CancellationToken ct)
+    {
+        var professionalProfileId = await db.ProfessionalProfiles
+            .AsNoTracking()
+            .Where(p => p.UserId == professionalUserId)
+            .Select(p => (long?)p.Id)
+            .FirstOrDefaultAsync(ct);
+
+        if (professionalProfileId is null)
+        {
+            return [];
+        }
+
+        var state = await entitlementService.GetKeepClientsStateAsync(professionalProfileId.Value, ct);
+
+        return state.OverCapClientProfileIds.ToHashSet();
     }
 }
