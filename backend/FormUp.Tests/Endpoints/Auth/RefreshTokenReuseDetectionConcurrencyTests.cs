@@ -117,6 +117,8 @@ public class RefreshTokenConcurrencyFactory(SharedTestContainers sharedContainer
         _postgresConnectionString = await sharedContainers.CreatePostgresDatabaseAsync("refresh_concurrency");
         _mongoDatabaseName = SharedTestContainers.CreateMongoDatabaseName("refresh_concurrency");
 
+        FastEndpointsBootGate.Start(this);
+
         await ApplicationDbContextSeed.SeedAsync(Services);
     }
 

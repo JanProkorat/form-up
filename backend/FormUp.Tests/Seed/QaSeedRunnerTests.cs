@@ -202,6 +202,8 @@ public class QaSeedRunnerFactory(SharedTestContainers sharedContainers) : WebApp
         _postgresConnectionString = await sharedContainers.CreatePostgresDatabaseAsync("qa_seed_runner");
         _mongoDatabaseName = SharedTestContainers.CreateMongoDatabaseName("qa_seed_runner");
 
+        FastEndpointsBootGate.Start(this);
+
         // Apply migrations + seed roles.
         await ApplicationDbContextSeed.SeedAsync(Services);
     }

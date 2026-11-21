@@ -891,7 +891,7 @@ public class GetClientsEndpointTests(FitnessApiFactory factory)
     /// memoized in a static field and never disposed (the same pattern as
     /// <c>GetTodayPlanProjectionIntegrationTests</c>).
     /// </summary>
-    private WebApplicationFactory<Program> PinnedFactory => _pinnedFactory ??= factory.WithWebHostBuilder(builder =>
+    private WebApplicationFactory<Program> PinnedFactory => _pinnedFactory ??= FastEndpointsBootGate.Booted(factory.WithWebHostBuilder(builder =>
     {
         builder.ConfigureServices(services =>
         {
@@ -902,7 +902,7 @@ public class GetClientsEndpointTests(FitnessApiFactory factory)
 
             services.AddSingleton<TimeProvider, SettableTimeProvider>();
         });
-    });
+    }));
 
     // ── fixtures ─────────────────────────────────────────────────────────────
 

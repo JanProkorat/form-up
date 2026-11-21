@@ -21,6 +21,14 @@
 //   RateLimitEnabledFactory, RefreshTokenReuse and WorkoutLogCompletion factories) skips
 //   base.DisposeAsync() for exactly that reason. A new factory must do the same.
 //
+// Second hazard, host boot vs traffic:
+//   FastEndpoints keeps its serializer options in a process-wide static (Config.SerOpts). Each host boot
+//   assigns a fresh instance, then mutates it; a request served by another collection in between locks
+//   it and the boot throws "JsonSerializerOptions instance is read-only" (seen on CI, #1805). Every host
+//   boot therefore goes through FastEndpointsBootGate (one boot at a time, bounded retry): factories call
+//   FastEndpointsBootGate.Start(this) first in InitializeAsync, and a WithWebHostBuilder host is wrapped in
+//   FastEndpointsBootGate.Booted(...). A new factory or derived host must do the same.
+//
 // Isolation: each collection fixture creates its own Postgres database and Mongo database inside the
 // shared containers (SharedTestContainers), so collections never share rows.
 //

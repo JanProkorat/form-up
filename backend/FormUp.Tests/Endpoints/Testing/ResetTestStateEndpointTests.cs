@@ -143,6 +143,8 @@ public abstract class ResetEndpointFactoryBase(SharedTestContainers sharedContai
         _postgresConnectionString = await sharedContainers.CreatePostgresDatabaseAsync(GetType().Name);
         _mongoDatabaseName = SharedTestContainers.CreateMongoDatabaseName(GetType().Name);
 
+        FastEndpointsBootGate.Start(this);
+
         // Apply migrations + seed roles (not QA users — the reset endpoint handles that)
         await ApplicationDbContextSeed.SeedAsync(Services);
     }

@@ -35,7 +35,7 @@ public class GetAdminReportsEndpointTests(FitnessApiFactory factory)
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
-    private WebApplicationFactory<Program> PinnedFactory => pinnedFactory ??= factory.WithWebHostBuilder(builder =>
+    private WebApplicationFactory<Program> PinnedFactory => pinnedFactory ??= FastEndpointsBootGate.Booted(factory.WithWebHostBuilder(builder =>
         builder.ConfigureServices(services =>
         {
             foreach (var descriptor in services.Where(d => d.ServiceType == typeof(TimeProvider)).ToList())
@@ -44,7 +44,7 @@ public class GetAdminReportsEndpointTests(FitnessApiFactory factory)
             }
 
             services.AddSingleton<TimeProvider>(new FixedTimeProvider(Now));
-        }));
+        })));
 
     private static string NewCurrency() => Guid.NewGuid().ToString("N")[..3].ToUpperInvariant();
 

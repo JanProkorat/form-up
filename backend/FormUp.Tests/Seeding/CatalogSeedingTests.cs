@@ -101,6 +101,8 @@ public class CatalogSeedingFactory(SharedTestContainers sharedContainers) : WebA
         _postgresConnectionString = await sharedContainers.CreatePostgresDatabaseAsync("catalog_seeding");
         _mongoDatabaseName = SharedTestContainers.CreateMongoDatabaseName("catalog_seeding");
 
+        FastEndpointsBootGate.Start(this);
+
         // Applies migrations, seeds roles, and — per #809 — the system admin user.
         await ApplicationDbContextSeed.SeedAsync(Services);
     }
