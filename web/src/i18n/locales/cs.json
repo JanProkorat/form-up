@@ -6977,6 +6977,8 @@
         "answerWindowDays_few": "{{count}} dny",
         "answerWindowDays_other": "{{count}} dní",
         "answerWindowHint": "Poté se týden počítá jako zmeškaný",
+        "weekdayRuleHint": "Vaše pravidlo: {{day}}",
+        "answerWindowRuleHint": "Vaše pravidlo: {{window}}. Poté se týden počítá jako zmeškaný",
         "eventLabel": "Událost",
         "timing": "Načasování",
         "daysAfter": "Dní po",

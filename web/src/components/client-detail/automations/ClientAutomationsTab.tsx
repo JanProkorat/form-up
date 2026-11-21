@@ -278,6 +278,7 @@ export default function ClientAutomationsTab({ clientId, dashboard }: Props) {
           rule={drawer.item ? clientItemToRule(drawer.item) : undefined}
           pause={drawer.variant === 'override' ? drawer.item : undefined}
           override={drawer.variant === 'override' ? drawer.item : undefined}
+          parentRule={drawer.variant === 'override' && drawer.item.ruleId ? parentRules.get(drawer.item.ruleId) : undefined}
           clientName={clientName}
           onSubmit={handleSave}
           isSaving={

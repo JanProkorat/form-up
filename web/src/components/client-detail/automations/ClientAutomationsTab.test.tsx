@@ -6,7 +6,12 @@
 import { describe, expect, it } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import { AutomationRuleSource, DayOfWeek } from '@/api/generated';
+import AutomationRuleDrawer from '@/components/automations/AutomationRuleDrawer';
+import { renderWithProviders } from '@/test/render';
+import { HttpResponse, apiUrl, http } from '@/test/msw/handlers';
+import { server } from '@/test/msw/server';
 import {
+  checkInRule,
   OTHER_FORM_ID,
   OTHER_FORM_TITLE,
   RULE_FORM_TITLE,
@@ -153,5 +158,48 @@ describe('Automations tab: the check-in form of one client', () => {
     expect(bodies).toHaveLength(1);
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(within(screen.getByRole('dialog')).getByLabelText('Check-in form')).toHaveValue(OTHER_FORM_ID);
+  });
+});
+
+describe('Automations tab: the rule hints of the check-in override drawer', () => {
+  it('quotes the rule’s weekday and answer window, not the client’s own', async () => {
+    serveClientAutomations(
+      newClientAutomationsState({
+        items: [
+          checkInItem({ source: AutomationRuleSource.Custom, scheduleWeekday: DayOfWeek.Monday, answerWindowHours: 72 }),
+        ],
+      }),
+    );
+    const { user } = renderAutomationsTab();
+
+    const drawer = await openOverrideDrawer(user);
+    expect(within(drawer).getByRole('button', { name: 'Mon' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(drawer).getByText('Your rule: every Thursday')).toBeInTheDocument();
+    expect(within(drawer).getByText('Your rule: 2 days. After that, the week counts as missed')).toBeInTheDocument();
+    expect(within(drawer).queryByText('After that, the week counts as missed')).not.toBeInTheDocument();
+  });
+
+  it('shows no rule hints in the global drawer of the same rule', async () => {
+    serveClientAutomations(newClientAutomationsState());
+    // The global drawer's Who section loads the coach's tags and clients.
+    server.use(
+      http.get(apiUrl('/trainer/client-tags'), () => HttpResponse.json({ tags: [] })),
+      http.get(apiUrl('/trainer/clients'), () => HttpResponse.json({ items: [] })),
+    );
+    renderWithProviders(
+      [
+        {
+          path: '*',
+          element: (
+            <AutomationRuleDrawer open onOpenChange={() => undefined} rule={checkInRule()} onSubmit={async () => undefined} isSaving={false} />
+          ),
+        },
+      ],
+      { auth: { roles: ['Trainer'] } },
+    );
+
+    const drawer = await screen.findByRole('dialog');
+    expect(within(drawer).getByText('After that, the week counts as missed')).toBeInTheDocument();
+    expect(within(drawer).queryByText(/Your rule:/)).not.toBeInTheDocument();
   });
 });

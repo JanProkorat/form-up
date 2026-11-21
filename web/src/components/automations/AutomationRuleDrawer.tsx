@@ -37,6 +37,8 @@ interface Props {
   pause?: PauseState;
   /** Override variant: the client's row, for its own check-in form and its next send. */
   override?: ClientAutomationItem;
+  /** Override variant: the global rule itself, whose weekday and answer window the check-in hints quote. */
+  parentRule?: AutomationRuleDto;
   /** Client variants: the client's first name, for the title and description. */
   clientName?: string;
   /** Saves the form. Resolves when the save is done and never rejects; the caller reports errors. */
@@ -59,7 +61,7 @@ interface BodyProps extends Omit<Props, 'open' | 'onOpenChange'> {
   onClose: () => void;
 }
 
-function DrawerBody({ variant = 'global', rule, pause, override, clientName = '', onSubmit, isSaving, onClose }: BodyProps) {
+function DrawerBody({ variant = 'global', rule, pause, override, parentRule, clientName = '', onSubmit, isSaving, onClose }: BodyProps) {
   const { t, i18n } = useTranslation();
   const [initial] = useState<AutomationRuleFormValues>(() =>
     rule
@@ -140,7 +142,7 @@ function DrawerBody({ variant = 'global', rule, pause, override, clientName = ''
               <FieldError name="name" />
             </label>
           )}
-          <AutomationWhenSection />
+          <AutomationWhenSection parentRule={isCheckInOverride ? parentRule : undefined} />
           <AutomationWhatSection
             actionLocked={variant === 'override'}
             overrideCheckInForm={isCheckInOverride}
