@@ -3222,6 +3222,8 @@
       "noMatch": "Zatím žádné formuláře tohoto druhu.",
       "selectAForm": "Vyberte zodpovězený formulář, který chcete číst.",
       "noLink": "Formuláře klienta {{name}} už nejsou dostupné, protože spolupráce skončila.",
+      "checkInsOnlyHint": "Ostatní formuláře vyžadují funkci formulářů.",
+      "checkInsOnlyEmptyBody": "Jakmile {{name}} odpoví na týdenní check-in, odpovědi se zobrazí tady.",
       "emptyTitle": "Od klienta {{name}} zatím nejsou žádné odpovědi",
       "emptyBody": "Až klient {{name}} formulář odešle zpět, odpovědi se zobrazí tady. Přečíst si je můžete i v editoru plánu při jeho tvorbě.",
       "weekTitle": "{{title}} · týden {{week}}",

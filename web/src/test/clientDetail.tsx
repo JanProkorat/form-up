@@ -17,6 +17,7 @@ import type {
   GetMySubscriptionResponse,
   GetPlanResponse,
   ListClientPlansResponse,
+  SubscriptionFeaturesDto,
 } from '@/api/generated';
 import { Toaster } from '@/components/ui/toast';
 import ClientDetailPage from '@/pages/ClientDetailPage';
@@ -96,14 +97,20 @@ export function addPlan(state: ClientDetailState, item: ClientPlanItem, detail?:
   }
 }
 
-const subscription: GetMySubscriptionResponse = { features: {} };
+/** Entitlements of the coach's subscription; the app treats a feature left out as on the plan, so set `false` to lock one. */
+export type CoachFeatures = SubscriptionFeaturesDto;
+
 const noForms: GetClientFormsResponse = {};
 const noPhotos: GetTrainerClientPhotosResponse = { photos: [] };
 const noCheckIns: GetClientCheckInHistoryResponse = { weeks: [], answeredCount: 0, totalCount: 0 };
 const noVerdict: GetClientVerdictResponse = {};
 
-/** Serves the page's own requests from `state`; everything else is declared by the test. */
-export function serveClientDetail(state: ClientDetailState): void {
+/**
+ * Serves the page's own requests from `state`; everything else is declared by the test.
+ * `features` are the subscription's entitlements; the default `{}` locks nothing.
+ */
+export function serveClientDetail(state: ClientDetailState, features: CoachFeatures = {}): void {
+  const subscription: GetMySubscriptionResponse = { features };
   server.use(
     http.get(apiUrl(`/trainer/clients/${CLIENT_ID}`), () => HttpResponse.json(state.dashboard)),
     http.get(apiUrl(`/trainer/clients/${CLIENT_ID}/plans`), () => {
@@ -146,6 +153,27 @@ export function renderNutritionTab() {
     initialEntries: [`/clients/${CLIENT_ID}/nutrition`],
     auth: { roles: ['Nutritionist'] },
   });
+}
+
+/** Mounts ClientDetailPage on the Forms tab; `search` is the query string, e.g. `?form=<id>`. */
+export function renderFormsTab(search = '') {
+  return renderWithProviders(
+    [
+      {
+        element: (
+          <>
+            <Outlet />
+            <Toaster />
+          </>
+        ),
+        children: [
+          { path: '/clients/:clientId/*', element: <ClientDetailPage /> },
+          { path: '/plan', element: <div data-testid="plan-picker" /> },
+        ],
+      },
+    ],
+    { initialEntries: [`/clients/${CLIENT_ID}/forms${search}`], auth: { roles: ['Trainer'] } },
+  );
 }
 
 /** Mounts ClientDetailPage on the Overview tab, signed in with `roles`. */

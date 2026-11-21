@@ -3093,6 +3093,8 @@
       "noMatch": "Noch keine Formulare dieser Art.",
       "selectAForm": "Wählen Sie ein beantwortetes Formular, um es zu lesen.",
       "noLink": "Die Formulare von {{name}} sind nicht mehr verfügbar, weil die Zusammenarbeit beendet wurde.",
+      "checkInsOnlyHint": "Andere Formulare benötigen die Formulare-Funktion.",
+      "checkInsOnlyEmptyBody": "Sobald {{name}} einen wöchentlichen Check-in beantwortet, erscheinen die Antworten hier.",
       "emptyTitle": "Noch keine Antworten von {{name}}",
       "emptyBody": "Sobald {{name}} ein Formular zurückschickt, erscheinen die Antworten hier. Sie können sie auch im Planeditor lesen, während Sie den Plan erstellen.",
       "weekTitle": "{{title}} · Woche {{week}}",

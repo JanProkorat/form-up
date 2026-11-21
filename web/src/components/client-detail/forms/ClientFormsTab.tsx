@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { ChevronRight, FileText, Send } from 'lucide-react';
 import { QuestionnaireResponseKind, type ClientFormItem } from '@/api/questionnaires';
 import type { GetClientDashboardResponse } from '@/api/generated';
@@ -8,6 +8,7 @@ import FormDetail from '@/components/client-detail/forms/FormDetail';
 import FormListCard from '@/components/client-detail/forms/FormListCard';
 import SendFormDialog from '@/components/client-detail/forms/SendFormDialog';
 import PaywallCard from '@/components/subscription/PaywallCard';
+import { PLAN_PICKER_PATH } from '@/components/subscription/planLinks';
 import { useSubscription } from '@/hooks/useSubscriptionQueries';
 import {
   FORMS_FILTERS,
@@ -15,6 +16,7 @@ import {
   defaultSelection,
   isAnswered,
   matchesFilter,
+  isCheckIn,
   pinOnboarding,
   type FormsFilter,
 } from '@/components/client-detail/forms/clientFormsModel';
@@ -43,7 +45,12 @@ export default function ClientFormsTab({ clientId, dashboard }: Props) {
   const { t, i18n } = useTranslation();
   const [searchParams] = useSearchParams();
   const requestedId = searchParams.get('form');
-  const formsLocked = !useSubscription().isEntitled('canSendQuestionnaires');
+  const subscription = useSubscription();
+  const formsEntitled = subscription.isEntitled('canSendQuestionnaires');
+  const checkInsEntitled = subscription.isEntitled('canUseWeeklyCheckIns');
+  // Reading check-in answers needs only the check-ins feature; sending forms needs the forms feature.
+  const formsLocked = !formsEntitled && !checkInsEntitled;
+  const checkInsOnly = !formsEntitled && checkInsEntitled;
   const forms = useClientForms(clientId);
   const markSeen = useMarkClientFormSeen(clientId);
   const markSeenMutate = markSeen.mutate;
@@ -54,8 +61,8 @@ export default function ClientFormsTab({ clientId, dashboard }: Props) {
   const autoMarked = useRef(new Set<string>());
 
   const clientName = dashboard.firstName?.trim() || t('clientDetail.photos.clientFallback');
-  const current = forms.data?.current ?? [];
-  const previous = forms.data?.previous ?? [];
+  const current = (forms.data?.current ?? []).filter((item) => !checkInsOnly || isCheckIn(item));
+  const previous = (forms.data?.previous ?? []).filter((item) => !checkInsOnly || isCheckIn(item));
   const visibleCurrent = pinOnboarding(current.filter((item) => matchesFilter(item, filter)));
   const visiblePrevious = previous.filter((item) => matchesFilter(item, filter));
 
@@ -147,7 +154,9 @@ export default function ClientFormsTab({ clientId, dashboard }: Props) {
             <h3 className="font-display text-title font-semibold text-ink">
               {t('clientForms.page.emptyTitle', { name: clientName })}
             </h3>
-            <p className="text-copy text-muted-foreground">{t('clientForms.page.emptyBody', { name: clientName })}</p>
+            <p className="text-copy text-muted-foreground">
+              {t(checkInsOnly ? 'clientForms.page.checkInsOnlyEmptyBody' : 'clientForms.page.emptyBody', { name: clientName })}
+            </p>
           </div>
           {current.length > 0 && (
             <ul className="flex w-full max-w-lg flex-col gap-2.5">
@@ -156,12 +165,16 @@ export default function ClientFormsTab({ clientId, dashboard }: Props) {
               ))}
             </ul>
           )}
-          <Button type="button" variant="outline" size="lg" className="gap-1.75 px-3.5 font-semibold" onClick={() => setSendOpen(true)}>
-            <Send aria-hidden="true" />
-            {current.length > 0 ? t('clientForms.page.sendAnother') : t('clientForms.page.send')}
-          </Button>
+          {checkInsOnly ? (
+            <OtherFormsHint />
+          ) : (
+            <Button type="button" variant="outline" size="lg" className="gap-1.75 px-3.5 font-semibold" onClick={() => setSendOpen(true)}>
+              <Send aria-hidden="true" />
+              {current.length > 0 ? t('clientForms.page.sendAnother') : t('clientForms.page.send')}
+            </Button>
+          )}
         </div>
-        {sendDialog}
+        {!checkInsOnly && sendDialog}
       </div>
     );
   }
@@ -169,14 +182,18 @@ export default function ClientFormsTab({ clientId, dashboard }: Props) {
   return (
     <div className="flex flex-col gap-4">
       <FormsHeading counts={counts}>
-        <Button type="button" variant="outline" size="lg" className="gap-1.75 px-3.5 font-semibold" onClick={() => setSendOpen(true)}>
-          <Send aria-hidden="true" />
-          {t('clientForms.page.send')}
-        </Button>
+        {!checkInsOnly && (
+          <Button type="button" variant="outline" size="lg" className="gap-1.75 px-3.5 font-semibold" onClick={() => setSendOpen(true)}>
+            <Send aria-hidden="true" />
+            {t('clientForms.page.send')}
+          </Button>
+        )}
       </FormsHeading>
 
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2.3fr)]">
         <div className="flex min-w-0 flex-col gap-4">
+          {checkInsOnly && <OtherFormsHint />}
+          {!checkInsOnly && (
           <div role="group" aria-label={t('clientForms.page.filterLabel')} className="flex flex-wrap gap-2">
             {FORMS_FILTERS.map((key) => (
               <button
@@ -196,6 +213,7 @@ export default function ClientFormsTab({ clientId, dashboard }: Props) {
               </button>
             ))}
           </div>
+          )}
 
           <section aria-label={t('clientForms.page.thisCollaboration')} className="flex flex-col gap-2.5">
             <h3 className="text-meta font-bold tracking-wide text-muted-foreground uppercase">
@@ -265,8 +283,21 @@ export default function ClientFormsTab({ clientId, dashboard }: Props) {
           </p>
         )}
       </div>
-      {sendDialog}
+      {!checkInsOnly && sendDialog}
     </div>
+  );
+}
+
+/** Shown when only check-ins are on the plan: other forms need the forms feature. */
+function OtherFormsHint() {
+  const { t } = useTranslation();
+  return (
+    <p data-testid="forms-checkins-only-hint" className="text-body text-muted-foreground">
+      {t('clientForms.page.checkInsOnlyHint')}{' '}
+      <Link to={PLAN_PICKER_PATH} className="font-semibold text-ink underline">
+        {t('subscription.seePlans')}
+      </Link>
+    </p>
   );
 }
 

@@ -3094,6 +3094,8 @@
       "noMatch": "No forms of this kind yet.",
       "selectAForm": "Select an answered form to read it.",
       "noLink": "{{name}}'s forms are no longer available because the collaboration has ended.",
+      "checkInsOnlyHint": "Other forms need the forms feature.",
+      "checkInsOnlyEmptyBody": "When {{name}} answers a weekly check-in, the answers show up here.",
       "emptyTitle": "No answers from {{name}} yet",
       "emptyBody": "When {{name}} sends back a form, the answers show up here. You can also read them in the plan editor while you build the plan.",
       "weekTitle": "{{title}} · week {{week}}",
