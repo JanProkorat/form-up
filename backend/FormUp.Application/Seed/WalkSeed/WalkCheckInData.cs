@@ -246,6 +246,9 @@ internal static class WalkCheckInData
             if (run is not null)
             {
                 run.DateCreated = at;
+
+                // The sender records the delivered response on the run; the sweeper finds check-ins through it.
+                run.DeliveredEntityId = response.PublicId;
             }
         }
 

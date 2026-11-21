@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Claims;
 using FastEndpoints;
 using FormUp.Application.Domain.Constants;
@@ -100,7 +101,7 @@ public class GetMyCheckInScheduleEndpoint(
                 ProfessionalName = evaluation.CoachName,
                 Profession = CheckInResponses.ProfessionOf(evaluation.Client.PrimaryLinkRole).ToString(),
                 SendWeekday = weekday,
-                SendTime = localTime.ToString("HH:mm"),
+                SendTime = localTime.ToString("HH:mm", CultureInfo.InvariantCulture),
                 AnswerUntilWeekday = TimeZoneInfo.ConvertTimeFromUtc(nextSendUtc.Value.AddHours(windowHours), evaluation.Zone).DayOfWeek,
             }));
         }

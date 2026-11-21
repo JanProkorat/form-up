@@ -435,6 +435,15 @@ public class WalkSeedRunnerTests(WalkSeedFixture fixture)
 
         rows.Where(row => row.Status == QuestionnaireResponseStatus.Submitted).Should().OnlyContain(row => row.AnswerCount > 0);
         rows.Where(row => row.Status == QuestionnaireResponseStatus.Pending).Should().OnlyContain(row => row.AnswerCount == 0);
+
+        // The check-in sweeper finds a response through the run that delivered it, as the sender records it.
+        var unlinked = await db.QuestionnaireResponses
+            .Where(r => r.Kind == QuestionnaireResponseKind.CheckIn && r.Questionnaire.Title == "Weekly check-in")
+            .Where(r => r.Link.ProfessionalProfile.User.Email == "walk.checkins@formup.test"
+                        || r.Link.ProfessionalProfile.User.Email == "walk.checkinsonly@formup.test")
+            .Where(r => !db.AutomationRuns.Any(run => run.DeliveredEntityId == r.PublicId))
+            .CountAsync(cancellationToken);
+        unlinked.Should().Be(0, "every seeded check-in is linked to its run");
     }
 
     [Fact]

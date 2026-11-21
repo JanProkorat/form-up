@@ -119,6 +119,18 @@ public class AutomationCheckInSweeperTests(FitnessApiFactory factory)
             db.QuestionnaireResponses.Add(response);
             await db.SaveChangesAsync(Ct);
 
+            // Like the sender, link the response to its rule through the run.
+            db.AutomationRuns.Add(new AutomationRun
+            {
+                AutomationRuleId = fixture.Rule.Id,
+                ClientProfileId = fixture.Client.ProfileId,
+                Occurrence = Guid.NewGuid().ToString("N"),
+                Status = AutomationRunStatus.Sent,
+                SentAt = dueAt.AddHours(-48),
+                DeliveredEntityId = response.PublicId,
+            });
+            await db.SaveChangesAsync(Ct);
+
             return response;
         });
 
@@ -316,6 +328,27 @@ public class AutomationCheckInSweeperTests(FitnessApiFactory factory)
         (await NotificationCountAsync(fixture.Coach.UserId, NotificationType.CoachCheckInMissed)).Should().Be(1);
         var stored = await WithDbAsync(db => db.QuestionnaireResponses.AsNoTracking().SingleAsync(r => r.Id == response.Id, Ct));
         stored.CheckInMissedNotifiedAtUtc.Should().Be(SentAt.AddHours(49));
+    }
+
+    [Fact]
+    public async Task Sweep_OverrideFormSwitchedAfterTheSend_StillRemindsAndNoticesTheOpenCheckIn()
+    {
+        var fixture = await ArrangeAsync();
+        var sentForm = await AutomationTestData.InsertQuestionnaireAsync(factory, fixture.Coach, QuestionnaireType.CheckIn);
+        var switchedForm = await AutomationTestData.InsertQuestionnaireAsync(factory, fixture.Coach, QuestionnaireType.CheckIn);
+        await AddFormOverrideAsync(fixture, fixture.Client, sentForm.Id);
+        (await SendAsync(fixture, "first", SentAt)).Should().Be(AutomationSendOutcome.Sent);
+
+        // The coach moves the client to another form while the check-in sent on the old one is still open.
+        await WithDbAsync(db => db.AutomationClientOverrides
+            .Where(o => o.AutomationRuleId == fixture.Rule.Id && o.ClientProfileId == fixture.Client.ProfileId)
+            .ExecuteUpdateAsync(s => s.SetProperty(o => o.CheckInQuestionnaireId, switchedForm.Id), Ct));
+
+        await SweepAsync(fixture, SentAt.AddHours(25));
+        (await NotificationCountAsync(fixture.Client.UserId, NotificationType.ClientCheckInReminder)).Should().Be(1);
+
+        await SweepAsync(fixture, SentAt.AddHours(49));
+        (await NotificationCountAsync(fixture.Coach.UserId, NotificationType.CoachCheckInMissed)).Should().Be(1);
     }
 
     [Fact]

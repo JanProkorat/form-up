@@ -54,20 +54,16 @@ public sealed class AutomationCheckInSweeper(
         var onlyClientUserId = rule.ClientProfile?.UserId;
         var horizonStart = nowUtc - AutomationAnswerSweeper.Horizon;
 
-        // A client on a per-client form answers a different form than the rule's own.
-        var formIds = await db.AutomationClientOverrides
-            .AsNoTracking()
-            .Where(o => o.AutomationRuleId == rule.Id && o.CheckInQuestionnaireId != null)
-            .Select(o => o.CheckInQuestionnaireId)
-            .Distinct()
-            .ToListAsync(ct);
-
-        formIds.Add(rule.QuestionnaireId);
+        // The sender records the pending response it delivered on the run. Selecting through that link keeps a
+        // check-in sent on an earlier form in the sweep after the rule's or a client's form changed.
+        var deliveredResponseIds = db.AutomationRuns
+            .Where(run => run.AutomationRuleId == rule.Id && run.DeliveredEntityId != null)
+            .Select(run => run.DeliveredEntityId!.Value);
 
         var open = await db.QuestionnaireResponses
             .Where(r => r.Kind == QuestionnaireResponseKind.CheckIn
                         && (r.Status == QuestionnaireResponseStatus.Pending || r.Status == QuestionnaireResponseStatus.InProgress)
-                        && formIds.Contains(r.QuestionnaireId)
+                        && deliveredResponseIds.Contains(r.PublicId)
                         && r.ProfessionalId == coachUserId
                         && r.Link.ConnectionState != ConnectionState.Ended
                         && r.CheckInDueAtUtc >= horizonStart
