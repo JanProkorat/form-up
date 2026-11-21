@@ -23,7 +23,7 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<Applicatio
             .UseSnakeCaseNamingConvention();
 
         Console.WriteLine($"[EF] ENV: {environment}");
-        Console.WriteLine($"[EF] DB: {connectionString}");
+        Console.WriteLine($"[EF] DB: {ConnectionStringFactory.DescribePostgres(connectionString)}");
 
         return new ApplicationDbContext(optionsBuilder.Options);
     }
