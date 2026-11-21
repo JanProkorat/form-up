@@ -1158,6 +1158,29 @@
     "openNow": "Čeká na vás",
     "weekOf": "Týden od {{date}}",
     "answerBy": "{{coach}} · termín: {{weekday}}",
+    "schedule": {
+      "label": "Kdy check-iny přicházejí",
+      "title": "{{weekday}}, {{time}}",
+      "caption": "{{coach}} · odpovědět můžete do {{weekday}}",
+      "every": {
+        "monday": "Každé pondělí",
+        "tuesday": "Každé úterý",
+        "wednesday": "Každou středu",
+        "thursday": "Každý čtvrtek",
+        "friday": "Každý pátek",
+        "saturday": "Každou sobotu",
+        "sunday": "Každou neděli"
+      },
+      "until": {
+        "monday": "pondělí",
+        "tuesday": "úterý",
+        "wednesday": "středy",
+        "thursday": "čtvrtka",
+        "friday": "pátku",
+        "saturday": "soboty",
+        "sunday": "neděle"
+      }
+    },
     "status": {
       "sent": "Odesláno",
       "reviewed": "Zhodnoceno",

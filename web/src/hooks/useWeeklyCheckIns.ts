@@ -3,8 +3,6 @@ import {
   getTrainerCheckIns,
   getClientCheckInHistory,
   markCheckInReviewed,
-  type TrainerCheckInDto,
-  type MarkCheckInReviewedResponse,
 } from '@/api/weekly-checkins';
 
 // ── Query key factories ──────────────────────────────────────────────────────
@@ -28,7 +26,7 @@ export const weeklyCheckInKeys = {
 // ── Hooks ────────────────────────────────────────────────────────────────────
 
 /**
- * Returns the trainer's clients' weekly check-ins for the dashboard card.
+ * The trainer's clients' weekly check-ins; `data` is the list of rows.
  *
  * @param weekStartDate - Optional. Omit to get the active set (pending,
  *   responded, and expired check-ins that aren't dismissed by the client or
@@ -36,20 +34,13 @@ export const weeklyCheckInKeys = {
  *   ISO Monday date (YYYY-MM-DD) to preserve the exact-week filter (kept for
  *   a future history view).
  */
-export function useTrainerWeeklyCheckIns(weekStartDate?: string): {
-  data: TrainerCheckInDto[];
-  isLoading: boolean;
-} {
-  const { data, isLoading } = useQuery({
+export function useTrainerWeeklyCheckIns(weekStartDate?: string) {
+  return useQuery({
     queryKey: weeklyCheckInKeys.trainerList(weekStartDate),
     queryFn: () => getTrainerCheckIns(weekStartDate),
     staleTime: 60_000,
+    select: (response) => response.checkIns ?? [],
   });
-
-  return {
-    data: data?.checkIns ?? [],
-    isLoading,
-  };
 }
 
 /**
@@ -73,20 +64,14 @@ export function useClientCheckInHistory(clientUserId: string, weeks: number) {
  * On success, invalidates both the trainer list and client-current queries
  * so banners update without a page reload.
  */
-export function useMarkCheckInReviewed(): {
-  mutate: (id: string) => void;
-  isPending: boolean;
-  data: MarkCheckInReviewedResponse | undefined;
-} {
+export function useMarkCheckInReviewed() {
   const queryClient = useQueryClient();
 
-  const { mutate, isPending, data } = useMutation({
+  return useMutation({
     mutationFn: (id: string) => markCheckInReviewed(id),
     onSuccess: () => {
       // Invalidate all weekly check-in queries (trainer list + all client-currents)
       void queryClient.invalidateQueries({ queryKey: weeklyCheckInKeys.all });
     },
   });
-
-  return { mutate, isPending, data };
 }

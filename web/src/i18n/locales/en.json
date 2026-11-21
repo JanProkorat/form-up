@@ -198,6 +198,7 @@
     "adminCoaches": "Coaches",
     "adminReports": "Reports",
     "automations": "Automations",
+    "checkIns": "Check-ins",
     "dashboard": "Dashboard",
     "profile": "Profile",
     "clients": "Clients",
@@ -7416,6 +7417,60 @@
       "automations": { "label": "Automations", "hint": "Reminders and messages that send themselves" },
       "packages": { "label": "Packages", "hint": "Offer paid coaching packages" },
       "payments": { "label": "Client payments", "hint": "Payment requests with a QR code" }
+    }
+  },
+  "checkIns": {
+    "title": "Check-ins",
+    "subtitle": "Weekly check-ins from all your clients. An answer stays new until you mark it reviewed.",
+    "retry": "Try again",
+    "loadError": "Could not load the check-ins.",
+    "empty": "No check-ins for this week yet. They show up here once they are sent to your clients.",
+    "emptyFilter": "No check-ins match this filter.",
+    "timeZoneNote": "Times follow each client’s time zone",
+    "footer": "Viewing {{shown}} of {{total}} · Open answers shows the check-in on the client’s Forms tab",
+    "markReviewedError": "Could not mark the check-in as reviewed.",
+    "week": {
+      "group": "Week",
+      "previous": "Previous week",
+      "next": "Next week",
+      "label": "Week {{week}} · {{range}}"
+    },
+    "totals": {
+      "answered": "Answered",
+      "answeredValue": "{{answered}} of {{total}}",
+      "answeredSubline": "{{percent}} % of sent check-ins",
+      "notReviewedSubline": "Answers waiting for you",
+      "missedSubline": "Answer window ended",
+      "waitingSubline": "Clients can still answer"
+    },
+    "filters": {
+      "label": "Filter check-ins",
+      "all": "All"
+    },
+    "status": {
+      "notReviewed": "Not reviewed",
+      "missed": "Missed",
+      "waiting": "Waiting",
+      "reviewed": "Reviewed"
+    },
+    "table": {
+      "client": "Client",
+      "form": "Form",
+      "sent": "Sent",
+      "answered": "Answered",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "row": {
+      "canAnswerUntil": "Can answer until {{date}}",
+      "windowEnded": "Answer window ended {{date}}",
+      "reviewedOn": "Reviewed {{date}}",
+      "noAnswer": "—"
+    },
+    "actions": {
+      "openAnswers": "Open answers",
+      "markReviewed": "Mark reviewed",
+      "writeTo": "Write to {{name}}"
     }
   }
 }

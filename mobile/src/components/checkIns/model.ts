@@ -124,6 +124,27 @@ export function dueMoment(language: string, dueAt: string | undefined): string |
   }).format(time);
 }
 
+/** "08:00" as "8:00"; the API time is already in the client time zone and is shown as given. */
+export function scheduleTime(sendTime: string | undefined): string {
+  return (sendTime ?? '').replace(/^0(?=\d:)/, '');
+}
+
+const WEEKDAY_KEYS = [
+  'sunday',
+  'monday',
+  'tuesday',
+  'wednesday',
+  'thursday',
+  'friday',
+  'saturday',
+] as const;
+
+/** i18n key suffix of an API weekday ("Thursday" -> "thursday"); null for a value the app does not know. */
+export function weekdayKey(day: string | undefined): (typeof WEEKDAY_KEYS)[number] | null {
+  const key = day?.toLowerCase();
+  return WEEKDAY_KEYS.find((candidate) => candidate === key) ?? null;
+}
+
 /** Weekday of an instant in the device time zone, e.g. "Saturday"; null when the date is missing. */
 export function dueWeekday(language: string, dueAt: string | undefined): string | null {
   const time = parseInstant(dueAt);

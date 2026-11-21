@@ -135,7 +135,7 @@ function serveCheckIns(stub: CheckInStub) {
     }),
     http.get(apiUrl('/trainer/weekly-check-ins'), ({ request }) => {
       stub.calls.list.push(new URL(request.url).searchParams.get('weekStartDate') ?? '');
-      const row = (id: string, userId: string, profession: TrainerCheckInDto['profession'], respondedAt: string | null): TrainerCheckInDto => ({
+      const row = (id: string, userId: string, profession: TrainerCheckInDto['profession'], respondedAt: string | undefined): TrainerCheckInDto => ({
         id,
         clientUserId: userId,
         clientPublicId: userId,
@@ -143,13 +143,13 @@ function serveCheckIns(stub: CheckInStub) {
         profession,
         weekStartDate: '2026-06-01',
         flags: [],
-        note: null,
+        note: undefined,
         sentAt: atLocalNoon(5),
         respondedAt,
-        dismissedByClientAt: null,
+        dismissedByClientAt: undefined,
         reviewedByTrainerAt: atLocalNoon(9),
         status: respondedAt ? 'Reviewed' : 'Pending',
-        dueAt: null,
+        dueAt: undefined,
       });
       const body: GetTrainerCheckInsResponse = {
         checkIns: [

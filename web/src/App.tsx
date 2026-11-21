@@ -29,6 +29,7 @@ import ClientDetailPage from '@/pages/ClientDetailPage';
 import InboxPage from '@/pages/InboxPage';
 import FormsPage from '@/pages/FormsPage';
 import AutomationsPage from '@/pages/AutomationsPage';
+import CheckInsPage from '@/pages/CheckInsPage';
 import PackagesPage from '@/pages/PackagesPage';
 import AdminPlansPage from '@/pages/AdminPlansPage';
 import AdminPlanEditorPage from '@/pages/AdminPlanEditorPage';
@@ -132,6 +133,7 @@ const router = createBrowserRouter(
           <Route path="/inbox" element={<InboxPage />} />
           <Route path="/forms" element={<FormsPage />} />
           <Route path="/automations" element={<AutomationsPage />} />
+          <Route path="/check-ins" element={<CheckInsPage />} />
           <Route path="/packages" element={<PackagesPage />} />
           <Route element={<RoleGuard allowedRoles={['Nutritionist']} />}>
             <Route path="/ingredients" element={<IngredientsPage />} />
