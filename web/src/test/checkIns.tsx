@@ -23,6 +23,8 @@ export interface CheckInsState {
   listStatus?: number;
   /** Status to answer mark-reviewed with; omitted means success and the row turns Reviewed. */
   markStatus?: number;
+  /** When set, mark-reviewed answers only after this promise resolves, so a test can inspect the in-flight state. */
+  markGate?: Promise<void>;
   /** Plan features; `canUseWeeklyCheckIns: false` locks the page. */
   features: NonNullable<GetMySubscriptionResponse['features']>;
   /** The `weekStartDate` of every list request, in order. */
@@ -71,9 +73,10 @@ export function serveCheckIns(state: CheckInsState): void {
       const body: GetTrainerCheckInsResponse = { checkIns: state.rows };
       return HttpResponse.json(body);
     }),
-    http.post(apiUrl('/trainer/weekly-check-ins/:id/mark-reviewed'), ({ params }) => {
+    http.post(apiUrl('/trainer/weekly-check-ins/:id/mark-reviewed'), async ({ params }) => {
       const id = String(params['id']);
       state.marked.push(id);
+      await state.markGate;
       if (state.markStatus) {
         return problem(state.markStatus, 'CHECK_IN_NOT_FOUND');
       }

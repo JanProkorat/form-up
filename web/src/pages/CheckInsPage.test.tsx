@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import { checkIn, newCheckInsState, renderCheckInsPage, serveCheckIns } from '@/test/checkIns';
 
 // Wednesday of ISO week 43 (19–25 Oct 2026). Only Date is faked so msw and user-event keep real timers.
@@ -150,14 +150,22 @@ describe('CheckInsPage', () => {
 
   it('marks a check-in reviewed once and refreshes the list', async () => {
     const row = checkIn({ clientName: 'Eva Svobodová', status: 'Responded' });
-    const state = newCheckInsState({ rows: [row] });
+    let release: () => void = () => undefined;
+    const markGate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const state = newCheckInsState({ rows: [row], markGate });
     serveCheckIns(state);
     const { user } = renderCheckInsPage();
 
     const button = (await rowOf('Eva Svobodová')).getByRole('button', { name: 'Mark reviewed' });
     await user.click(button);
-    // Disabled while the request is in flight, so a second click cannot post twice.
-    expect(button).toBeDisabled();
+    // Held in flight: the button is disabled, so a second click cannot post twice.
+    await waitFor(() => expect(button).toBeDisabled());
+    await user.click(button);
+    expect(state.marked).toEqual([row.id]);
+
+    release();
 
     const after = await rowOf('Eva Svobodová');
     expect(await after.findByText(/Reviewed Tue 20 Oct/)).toBeInTheDocument();
@@ -178,7 +186,8 @@ describe('CheckInsPage', () => {
     expect(await screen.findByText('Could not mark the check-in as reviewed.')).toBeInTheDocument();
     const after = await rowOf('Eva Svobodová');
     expect(after.getByText('Not reviewed')).toBeInTheDocument();
-    expect(after.getByRole('button', { name: 'Mark reviewed' })).toBeEnabled();
+    // The button re-enables once the failed request settles, which may land after the toast.
+    await waitFor(() => expect(after.getByRole('button', { name: 'Mark reviewed' })).toBeEnabled());
     expect(state.listWeeks).toHaveLength(1);
   });
 
