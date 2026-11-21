@@ -35,6 +35,8 @@ const ACTIONS = [
 interface Props {
   /** Override variant: the action belongs to the parent rule and cannot be changed. */
   actionLocked?: boolean;
+  /** Override of a check-in rule: offers the client's own check-in form instead of the rule's form. */
+  overrideCheckInForm?: boolean;
   /** Editing a saved rule: the action tiles show the chosen action but cannot change it. */
   actionReadOnly?: boolean;
   /** Whether check-in forms can be picked; a rule for one client never offers them. */
@@ -46,6 +48,7 @@ interface Props {
 /** Section 2: the action, its form and the message. The message limit follows the action. */
 export default function AutomationWhatSection({
   actionLocked = false,
+  overrideCheckInForm = false,
   actionReadOnly = false,
   checkInFormsAllowed = true,
   editingRuleId,
@@ -91,6 +94,29 @@ export default function AutomationWhatSection({
       void trigger('questionnaireId');
     }
   }, [loadedForms, actionLocked, actionType, getValues, setValue, trigger]);
+
+  // The client's own check-in form: the coach's active check-in forms except the rule's own, which the empty pick stands for.
+  const checkInPick = useWatch({ control, name: 'checkInQuestionnaireId' });
+  const ruleFormTitle = (formsQuery.data ?? []).find((form) => form.publicId === questionnaireId)?.title;
+  const overrideForms = useMemo(
+    () =>
+      overrideCheckInForm
+        ? (formsQuery.data ?? []).filter(
+            (form) => form.isActive && form.type === QuestionnaireType.CheckIn && form.publicId !== questionnaireId,
+          )
+        : [],
+    [overrideCheckInForm, formsQuery.data, questionnaireId],
+  );
+  const loadedOverrideForms = overrideCheckInForm && formsQuery.isSuccess && !formsQuery.isPlaceholderData ? overrideForms : undefined;
+
+  // A saved pick may point at a form that was switched off or deleted since; fall back to the rule's form.
+  useEffect(() => {
+    if (!loadedOverrideForms) return;
+    const current = getValues('checkInQuestionnaireId');
+    if (current !== '' && !loadedOverrideForms.some((form) => form.publicId === current)) {
+      setValue('checkInQuestionnaireId', '', { shouldDirty: true });
+    }
+  }, [loadedOverrideForms, getValues, setValue]);
 
   /** Picking a check-in form switches the drawer to check-in mode; any other form switches it back. */
   const applyForm = (publicId: string) => {
@@ -179,6 +205,59 @@ export default function AutomationWhatSection({
           )}
           <FieldError name="questionnaireId" />
         </label>
+      )}
+
+      {overrideCheckInForm && (
+        <div className={FIELD_CLASS}>
+          <label htmlFor="override-check-in-form">{t('automations.drawer.what.overrideForm')}</label>
+          <Controller
+            control={control}
+            name="checkInQuestionnaireId"
+            render={({ field }) => (
+              <div className="relative">
+                <select
+                  id="override-check-in-form"
+                  value={field.value}
+                  onChange={(event) => field.onChange(event.target.value)}
+                  onBlur={field.onBlur}
+                  className={SELECT_CLASS}
+                >
+                  <option value="">
+                    {ruleFormTitle
+                      ? t('automations.drawer.what.overrideRuleForm', { title: ruleFormTitle })
+                      : t('automations.drawer.what.overrideRuleFormNoTitle')}
+                  </option>
+                  {overrideForms.map((form) => (
+                    <option key={form.publicId} value={form.publicId}>
+                      {form.title}
+                    </option>
+                  ))}
+                </select>
+                <SelectChevron />
+              </div>
+            )}
+          />
+          {formsQuery.isError && (
+            <span className="text-meta font-normal text-destructive">{t('automations.drawer.what.formsError')}</span>
+          )}
+          <span className="text-meta font-normal text-muted-foreground">
+            {ruleFormTitle
+              ? t('automations.drawer.what.overrideHint', { title: ruleFormTitle })
+              : t('automations.drawer.what.overrideHintNoTitle')}
+            {checkInPick !== '' && (
+              <>
+                {' '}
+                <button
+                  type="button"
+                  className="font-semibold text-ink underline underline-offset-2 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                  onClick={() => setValue('checkInQuestionnaireId', '', { shouldDirty: true })}
+                >
+                  {t('automations.drawer.what.overrideUseRuleForm')}
+                </button>
+              </>
+            )}
+          </span>
+        </div>
       )}
 
       <label className={FIELD_CLASS}>

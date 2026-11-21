@@ -3853,7 +3853,7 @@
     "AUTOMATION_AUDIENCE_CLIENT_NOT_FOUND": "Jeden z vybraných klientů už s vámi není propojený.",
     "AUTOMATION_QUESTIONNAIRE_NOT_FOUND": "Vybraný formulář už neexistuje.",
     "AUTOMATION_ACTION_TYPE_LOCKED": "Akci pravidla nelze změnit. Vytvořte místo toho nové pravidlo.",
-    "AUTOMATION_QUESTIONNAIRE_NOT_USABLE": "Tento formulář nelze odesílat automatizací. Vyberte aktivní formulář, který není check-in.",
+    "AUTOMATION_QUESTIONNAIRE_NOT_USABLE": "Tento formulář tady nelze odeslat. Vyberte aktivní formulář správného typu.",
     "AUTOMATION_SCHEDULE_INVALID": "Zkontrolujte plán: každých 1 až 365 dní nebo týdnů, v platný čas.",
     "AUTOMATION_EVENT_INVALID": "Zkontrolujte událost a její načasování.",
     "AUTOMATION_ONCE_PER_PLAN_NEEDS_PLAN_EVENT": "„Jednou za plán“ funguje jen u události plánu.",
@@ -4965,7 +4965,8 @@
         "changedFrom": "Změněno oproti: {{when}}",
         "paused": "Pozastaveno",
         "pausedUntil": "Pozastaveno do {{date}}",
-        "changedFromWeekday": "Změněno z: {{day}}"
+        "changedFromWeekday": "Změněno z: {{day}}",
+        "changedFromWeekdayForm": "Změněno z: {{day}} · Formulář: {{form}}"
       },
       "result": {
         "notSent": "Zatím neodesláno",
@@ -4995,7 +4996,10 @@
         "overrideDescription": "Změna tady platí jen pro klienta {{client}}. Samotné pravidlo zůstane beze změny.",
         "clientOnlyTitleNew": "Nové pravidlo pro klienta {{client}}",
         "clientOnlyTitleEdit": "Upravit pravidlo · {{name}}",
-        "clientOnlyDescription": "Toto pravidlo platí jen pro klienta {{client}}"
+        "clientOnlyDescription": "Toto pravidlo platí jen pro klienta {{client}}",
+        "overrideSave": "Uložit pro klienta {{client}}",
+        "overrideFooter": "Další odeslání pro klienta {{client}}: {{date}} · {{form}}",
+        "overrideFooterNoForm": "Další odeslání pro klienta {{client}}: {{date}}"
       }
     },
     "photos": {
@@ -6989,6 +6993,12 @@
         "formOption_other": "{{title}} · {{count}} otázek",
         "formOptionCheckIn": "{{title}} · formulář check-inu",
         "formHintCheckIn": "Otázky změníte ve Formulářích › {{title}}",
+        "overrideForm": "Check-in formulář",
+        "overrideRuleForm": "Formulář pravidla · {{title}}",
+        "overrideRuleFormNoTitle": "Formulář pravidla",
+        "overrideHint": "Vaše pravidlo odesílá {{title}}. Nabízíme jen Vaše check-in formuláře.",
+        "overrideHintNoTitle": "Nabízíme jen Vaše check-in formuláře.",
+        "overrideUseRuleForm": "Použít formulář pravidla",
         "formsError": "Formuláře se nepodařilo načíst.",
         "reminder": "Připomenout klientovi po {{hours}} h, pokud neodpoví",
         "missedWeek": "Upozornit mě na zmeškaný týden",

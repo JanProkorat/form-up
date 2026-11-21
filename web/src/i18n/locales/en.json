@@ -3701,7 +3701,7 @@
     "AUTOMATION_AUDIENCE_CLIENT_NOT_FOUND": "One of the chosen clients is no longer linked to you.",
     "AUTOMATION_QUESTIONNAIRE_NOT_FOUND": "The chosen form no longer exists.",
     "AUTOMATION_ACTION_TYPE_LOCKED": "A rule’s action can’t be changed. Create a new rule instead.",
-    "AUTOMATION_QUESTIONNAIRE_NOT_USABLE": "This form can’t be sent by an automation. Choose an active form that isn’t a check-in.",
+    "AUTOMATION_QUESTIONNAIRE_NOT_USABLE": "This form can’t be sent here. Choose an active form of the right type.",
     "AUTOMATION_SCHEDULE_INVALID": "Check the schedule: every 1 to 365 days or weeks, at a valid time.",
     "AUTOMATION_EVENT_INVALID": "Check the event and its timing.",
     "AUTOMATION_ONCE_PER_PLAN_NEEDS_PLAN_EVENT": "“Once per plan” only works with a plan event.",
@@ -4801,7 +4801,8 @@
         "changedFrom": "Changed from: {{when}}",
         "paused": "Paused",
         "pausedUntil": "Paused until {{date}}",
-        "changedFromWeekday": "Changed from {{day}}"
+        "changedFromWeekday": "Changed from {{day}}",
+        "changedFromWeekdayForm": "Changed from {{day}} · Form: {{form}}"
       },
       "result": {
         "notSent": "Not sent yet",
@@ -4831,7 +4832,10 @@
         "overrideDescription": "A change here applies to {{client}} only. The rule itself stays as it is.",
         "clientOnlyTitleNew": "New rule for {{client}}",
         "clientOnlyTitleEdit": "Edit rule · {{name}}",
-        "clientOnlyDescription": "This rule applies to {{client}} only"
+        "clientOnlyDescription": "This rule applies to {{client}} only",
+        "overrideSave": "Save for {{client}}",
+        "overrideFooter": "Next send to {{client}}: {{date}} · {{form}}",
+        "overrideFooterNoForm": "Next send to {{client}}: {{date}}"
       }
     },
     "photos": {
@@ -6731,6 +6735,12 @@
         "formOption_other": "{{title}} · {{count}} questions",
         "formOptionCheckIn": "{{title}} · check-in form",
         "formHintCheckIn": "Change the questions in Forms › {{title}}",
+        "overrideForm": "Check-in form",
+        "overrideRuleForm": "The rule’s form · {{title}}",
+        "overrideRuleFormNoTitle": "The rule’s form",
+        "overrideHint": "Your rule sends {{title}}. Only your check-in forms are listed.",
+        "overrideHintNoTitle": "Only your check-in forms are listed.",
+        "overrideUseRuleForm": "Use the rule’s form",
         "formsError": "Could not load your forms.",
         "reminder": "Remind the client after {{hours}} h if not answered",
         "missedWeek": "Tell me when a week is missed",
