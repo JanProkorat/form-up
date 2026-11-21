@@ -1105,6 +1105,33 @@
       "notionPageId": null
     },
     {
+      "id": "web.forms.check-ins",
+      "app": "web",
+      "area": "Forms",
+      "title": "Check-ins",
+      "route": "/check-ins",
+      "roles": ["Trainer", "Nutritionist"],
+      "files": [
+        "web/src/pages/CheckInsPage.tsx",
+        "web/src/components/check-ins/*",
+        "web/src/hooks/useWeeklyCheckIns.ts",
+        "web/src/api/weekly-checkins.ts",
+        "web/src/lib/client-metrics.ts",
+        "web/src/components/subscription/PaywallCard.tsx",
+        "web/src/hooks/useSubscriptionQueries.ts"
+      ],
+      "endpoints": [
+        "GET /trainer/weekly-check-ins",
+        "POST /trainer/weekly-check-ins/{id}/mark-reviewed",
+        "GET /users/me/subscription"
+      ],
+      "board": "PageCheckIns",
+      "shots": [
+        { "name": "default" }
+      ],
+      "notionPageId": null
+    },
+    {
       "id": "web.business.packages",
       "app": "web",
       "area": "Business",
