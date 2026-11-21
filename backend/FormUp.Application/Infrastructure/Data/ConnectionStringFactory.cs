@@ -1,3 +1,5 @@
+using Npgsql;
+
 namespace FormUp.Application.Infrastructure.Data;
 
 /// <summary>
@@ -21,7 +23,30 @@ public static class ConnectionStringFactory
 
         return conn + $";Password={password}";
     }
-    
+
+    /// <summary>
+    /// Describes a PostgreSQL connection string for logs using an allow-list (host, port, database, user).
+    /// Returns a fixed placeholder when the string cannot be parsed; never echoes the input.
+    /// </summary>
+    /// <param name="connectionString">Full connection string, possibly containing secrets.</param>
+    public static string DescribePostgres(string connectionString)
+    {
+        try
+        {
+            var builder = new NpgsqlConnectionStringBuilder(connectionString);
+
+            return $"Host={builder.Host};Port={builder.Port};Database={builder.Database};Username={builder.Username}";
+        }
+        catch (ArgumentException)
+        {
+            return "<unparseable connection string>";
+        }
+        catch (FormatException)
+        {
+            return "<unparseable connection string>";
+        }
+    }
+
     /// <summary>
     /// Builds a connection string for MongoDB.
     /// </summary>
