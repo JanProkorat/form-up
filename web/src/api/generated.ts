@@ -23001,7 +23001,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Invalid trigger or options, a progress photos message over 500 characters, or check-in fields that do not match the rule\'s form", status, _responseText, _headers, result400);
+            return throwException("Invalid trigger or options, a progress photos message over 500 characters, check-in fields that do not match the rule\'s form, or a check-in form that is inactive, not a check-in form, or sent for a rule that is not a check-in", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -35086,6 +35086,9 @@ export interface PauseClientAutomationRequest {
 
 /** Request for customising a global rule for one client; the body is the customised message, trigger and options. */
 export interface OverrideClientAutomationRequest extends AutomationTriggerBody {
+    /** Public id of the check-in form this client gets instead of the rule's own; null keeps (or returns to) the
+rule's form. Only valid on a check-in rule. */
+    checkInQuestionnaireId?: string | undefined;
 }
 
 /** A client's effective automation rules with a 30-day summary of what was sent. */
@@ -35110,6 +35113,10 @@ export interface ClientAutomationItem {
     actionType?: AutomationActionType | undefined;
     /** Public id of the questionnaire a SendForm rule sends. */
     questionnaireId?: string | undefined;
+    /** Public id of the check-in form this client gets instead of the rule's own; null when they follow the rule's form. */
+    checkInQuestionnaireId?: string | undefined;
+    /** Title of the client's own check-in form; null when they follow the rule's form. */
+    checkInQuestionnaireName?: string | undefined;
     /** Effective message. */
     message?: string | undefined;
     /** Effective trigger kind; null for a linked check-in row. */

@@ -3701,7 +3701,7 @@
     "AUTOMATION_AUDIENCE_CLIENT_NOT_FOUND": "Einer der gewählten Klienten ist nicht mehr mit Ihnen verknüpft.",
     "AUTOMATION_QUESTIONNAIRE_NOT_FOUND": "Das gewählte Formular existiert nicht mehr.",
     "AUTOMATION_ACTION_TYPE_LOCKED": "Die Aktion einer Regel kann nicht geändert werden. Legen Sie stattdessen eine neue Regel an.",
-    "AUTOMATION_QUESTIONNAIRE_NOT_USABLE": "Dieses Formular kann nicht automatisch gesendet werden. Wählen Sie ein aktives Formular, das kein Check-in ist.",
+    "AUTOMATION_QUESTIONNAIRE_NOT_USABLE": "Dieses Formular kann hier nicht gesendet werden. Wählen Sie ein aktives Formular des passenden Typs.",
     "AUTOMATION_SCHEDULE_INVALID": "Prüfen Sie den Zeitplan: alle 1 bis 365 Tage oder Wochen, zu einer gültigen Uhrzeit.",
     "AUTOMATION_EVENT_INVALID": "Prüfen Sie das Ereignis und seinen Zeitpunkt.",
     "AUTOMATION_ONCE_PER_PLAN_NEEDS_PLAN_EVENT": "„Einmal pro Plan“ funktioniert nur mit einem Plan-Ereignis.",
@@ -4801,7 +4801,8 @@
         "changedFrom": "Geändert gegenüber: {{when}}",
         "paused": "Pausiert",
         "pausedUntil": "Pausiert bis {{date}}",
-        "changedFromWeekday": "Geändert von: {{day}}"
+        "changedFromWeekday": "Geändert von: {{day}}",
+        "changedFromWeekdayForm": "Geändert von: {{day}} · Formular: {{form}}"
       },
       "result": {
         "notSent": "Noch nicht gesendet",
@@ -4831,7 +4832,10 @@
         "overrideDescription": "Eine Änderung hier gilt nur für {{client}}. Die Regel selbst bleibt unverändert.",
         "clientOnlyTitleNew": "Neue Regel für {{client}}",
         "clientOnlyTitleEdit": "Regel bearbeiten · {{name}}",
-        "clientOnlyDescription": "Diese Regel gilt nur für {{client}}"
+        "clientOnlyDescription": "Diese Regel gilt nur für {{client}}",
+        "overrideSave": "Für {{client}} speichern",
+        "overrideFooter": "Nächster Versand an {{client}}: {{date}} · {{form}}",
+        "overrideFooterNoForm": "Nächster Versand an {{client}}: {{date}}"
       }
     },
     "photos": {
@@ -6737,6 +6741,12 @@
         "formOption_other": "{{title}} · {{count}} Fragen",
         "formOptionCheckIn": "{{title}} · Check-in-Formular",
         "formHintCheckIn": "Die Fragen ändern Sie unter Formulare › {{title}}",
+        "overrideForm": "Check-in-Formular",
+        "overrideRuleForm": "Formular der Regel · {{title}}",
+        "overrideRuleFormNoTitle": "Formular der Regel",
+        "overrideHint": "Ihre Regel sendet {{title}}. Es werden nur Ihre Check-in-Formulare angezeigt.",
+        "overrideHintNoTitle": "Es werden nur Ihre Check-in-Formulare angezeigt.",
+        "overrideUseRuleForm": "Formular der Regel verwenden",
         "formsError": "Die Formulare konnten nicht geladen werden.",
         "reminder": "Klienten nach {{hours}} h erinnern, wenn nicht geantwortet wurde",
         "missedWeek": "Mich benachrichtigen, wenn eine Woche verpasst wird",
