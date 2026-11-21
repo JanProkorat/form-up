@@ -25,6 +25,10 @@ export function matchesFilter(item: ClientFormItem, filter: FormsFilter): boolea
   return filter === 'all' || item.kind === FILTER_KIND[filter];
 }
 
+export function isCheckIn(item: ClientFormItem): boolean {
+  return item.kind === QuestionnaireResponseKind.CheckIn;
+}
+
 /** Only answered forms open; waiting and missed ones are greyed and not clickable. */
 export function isAnswered(item: ClientFormItem): boolean {
   return item.state === FormResponseState.Answered;

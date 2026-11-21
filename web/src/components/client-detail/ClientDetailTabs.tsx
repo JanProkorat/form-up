@@ -41,7 +41,9 @@ export default function ClientDetailTabs({
 }: Props) {
   const { t } = useTranslation();
   // Same rule as the sidebar: forms off the coach's plan show a lock (stays unlocked while loading).
-  const formsLocked = !useSubscription().isEntitled('canSendQuestionnaires');
+  // The tab stays readable with either forms or check-ins on the plan; it locks only without both.
+  const subscription = useSubscription();
+  const formsLocked = !subscription.isEntitled('canSendQuestionnaires') && !subscription.isEntitled('canUseWeeklyCheckIns');
   const tabKeys = TAB_KEYS.filter((key) => {
     if (key === 'nutrition') {
       return canViewNutritionPlans;
