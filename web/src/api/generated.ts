@@ -500,6 +500,66 @@ export class ApiClient {
     }
 
     /**
+     * Get my check-in schedule (client)
+     * @return Check-in schedule, possibly empty
+     */
+    getMyCheckInScheduleEndpoint(signal?: AbortSignal): Promise<GetMyCheckInScheduleResponse> {
+        let url_ = this.baseUrl + "/client/weekly-check-ins/schedule";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetMyCheckInScheduleEndpoint(_response);
+        });
+    }
+
+    protected processGetMyCheckInScheduleEndpoint(response: AxiosResponse): Promise<GetMyCheckInScheduleResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetMyCheckInScheduleResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetMyCheckInScheduleResponse>(null as any);
+    }
+
+    /**
      * List my check-in history (client)
      * @param page Page number (1-based). Defaults to 1.
      * @param pageSize Number of items per page (1-100). Defaults to 20.
@@ -22941,7 +23001,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Invalid trigger or options, a progress photos message over 500 characters, or check-in fields that do not match the rule\'s form", status, _responseText, _headers, result400);
+            return throwException("Invalid trigger or options, a progress photos message over 500 characters, check-in fields that do not match the rule\'s form, or a check-in form that is inactive, not a check-in form, or sent for a rule that is not a check-in", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -25373,6 +25433,14 @@ ClientProfile row (should not happen in practice, but the join is null-safe). */
     status?: string;
     /** UTC deadline by which the client must respond. Null for rows created before v1 deadline feature. */
     dueAt?: string | undefined;
+    /** Public id of the check-in form this row was answered on. */
+    formId?: string;
+    /** Title of the check-in form this row was answered on. */
+    formName?: string;
+    /** Client's IANA time zone id. */
+    clientTimeZone?: string;
+    /** True when the client is over the cap of the coach's plan, as on the clients list. */
+    clientIsOutsidePlan?: boolean;
 }
 
 /** Flags a client can select when responding to a weekly check-in reminder, indicating events or circumstances that may affect the upcoming week's plan. */
@@ -25387,6 +25455,38 @@ export enum CheckInFlag {
 
 /** Query parameters for GET /trainer/weekly-check-ins. */
 export interface GetTrainerCheckInsRequest {
+}
+
+/** The client's check-in schedule: one entry per coach whose check-in is currently set to arrive. */
+export interface GetMyCheckInScheduleResponse {
+    /** One entry per coach with an active check-in rule; empty when none applies. */
+    items?: MyCheckInScheduleItem[];
+}
+
+/** When one coach's weekly check-in arrives and how long the client can answer, in the client's time zone. */
+export interface MyCheckInScheduleItem {
+    /** Public id of the coach. */
+    professionalPublicId?: string;
+    /** Full name of the coach. */
+    professionalName?: string;
+    /** Profession of the link: Training or Nutrition. */
+    profession?: string;
+    /** Day of the week the check-in is sent, in the client's time zone. */
+    sendWeekday?: DayOfWeek;
+    /** Local time of day the check-in is sent (HH:mm), in the client's time zone. */
+    sendTime?: string;
+    /** Day of the week the answer window ends, in the client's time zone. */
+    answerUntilWeekday?: DayOfWeek;
+}
+
+export enum DayOfWeek {
+    Sunday = "Sunday",
+    Monday = "Monday",
+    Tuesday = "Tuesday",
+    Wednesday = "Wednesday",
+    Thursday = "Thursday",
+    Friday = "Friday",
+    Saturday = "Saturday",
 }
 
 /** One page of the caller's own weekly check-in history, newest first. */
@@ -34610,16 +34710,6 @@ export interface CollaborationCheckInDto {
     dayOfWeek?: DayOfWeek;
 }
 
-export enum DayOfWeek {
-    Sunday = "Sunday",
-    Monday = "Monday",
-    Tuesday = "Tuesday",
-    Wednesday = "Wednesday",
-    Thursday = "Thursday",
-    Friday = "Friday",
-    Saturday = "Saturday",
-}
-
 /** The outcome of scheduling a switch to the Free plan. */
 export interface ScheduleSwitchToFreeResponse {
     /** When the paid plan ends and Free starts (the period end); null when unknown. */
@@ -34996,6 +35086,9 @@ export interface PauseClientAutomationRequest {
 
 /** Request for customising a global rule for one client; the body is the customised message, trigger and options. */
 export interface OverrideClientAutomationRequest extends AutomationTriggerBody {
+    /** Public id of the check-in form this client gets instead of the rule's own; null keeps (or returns to) the
+rule's form. Only valid on a check-in rule. */
+    checkInQuestionnaireId?: string | undefined;
 }
 
 /** A client's effective automation rules with a 30-day summary of what was sent. */
@@ -35020,6 +35113,10 @@ export interface ClientAutomationItem {
     actionType?: AutomationActionType | undefined;
     /** Public id of the questionnaire a SendForm rule sends. */
     questionnaireId?: string | undefined;
+    /** Public id of the check-in form this client gets instead of the rule's own; null when they follow the rule's form. */
+    checkInQuestionnaireId?: string | undefined;
+    /** Title of the client's own check-in form; null when they follow the rule's form. */
+    checkInQuestionnaireName?: string | undefined;
     /** Effective message. */
     message?: string | undefined;
     /** Effective trigger kind; null for a linked check-in row. */

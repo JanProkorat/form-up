@@ -1111,6 +1111,29 @@
     "openNow": "Jetzt offen",
     "weekOf": "Woche vom {{date}}",
     "answerBy": "{{coach}} · antworten bis {{weekday}}",
+    "schedule": {
+      "label": "Wann Check-ins kommen",
+      "title": "{{weekday}}, {{time}} Uhr",
+      "caption": "{{coach}} · Sie können bis {{weekday}} antworten",
+      "every": {
+        "monday": "Jeden Montag",
+        "tuesday": "Jeden Dienstag",
+        "wednesday": "Jeden Mittwoch",
+        "thursday": "Jeden Donnerstag",
+        "friday": "Jeden Freitag",
+        "saturday": "Jeden Samstag",
+        "sunday": "Jeden Sonntag"
+      },
+      "until": {
+        "monday": "Montag",
+        "tuesday": "Dienstag",
+        "wednesday": "Mittwoch",
+        "thursday": "Donnerstag",
+        "friday": "Freitag",
+        "saturday": "Samstag",
+        "sunday": "Sonntag"
+      }
+    },
     "status": {
       "sent": "Gesendet",
       "reviewed": "Geprüft",

@@ -15,5 +15,8 @@ public class OverrideClientAutomationValidator : AutomationTriggerBodyValidator<
     {
         RuleFor(x => x.ClientId).NotEmpty();
         RuleFor(x => x.RuleId).NotEmpty();
+        RuleFor(x => x.CheckInQuestionnaireId)
+            .NotEqual(Guid.Empty)
+            .When(x => x.CheckInQuestionnaireId.HasValue);
     }
 }

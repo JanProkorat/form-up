@@ -18,9 +18,13 @@ internal static class WalkSeedOutputWriter
     /// </summary>
     /// <param name="options">Output locations and web origin.</param>
     /// <param name="credentials">Every prepared account, admin included.</param>
+    /// <param name="clients">Every prepared walk client; they get a login but no session file.</param>
     /// <param name="ct">Cancellation token.</param>
     public static async Task WriteAsync(
-        WalkSeedOptions options, IReadOnlyList<WalkAccountCredentials> credentials, CancellationToken ct)
+        WalkSeedOptions options,
+        IReadOnlyList<WalkAccountCredentials> credentials,
+        IReadOnlyList<WalkClientCredentials> clients,
+        CancellationToken ct)
     {
         var admin = credentials.Single(entry => entry.Account.Kind == WalkAccountKind.Admin);
 
@@ -35,6 +39,16 @@ internal static class WalkSeedOutputWriter
                     email = entry.Account.Email,
                     password = entry.Password,
                     note = entry.Account.Note,
+                })
+                .ToList(),
+            clients = clients
+                .Select(entry => new
+                {
+                    key = entry.Client.Key,
+                    email = entry.Client.Email,
+                    password = entry.Password,
+                    coach = entry.Client.CoachKey,
+                    note = entry.Client.Note,
                 })
                 .ToList(),
         };

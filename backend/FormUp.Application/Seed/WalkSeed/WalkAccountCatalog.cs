@@ -20,6 +20,18 @@ internal static class WalkAccountCatalog
         Create("pro3ds", WalkAccountKind.ProThreeDSecure, "Pro, Stripe sandbox, card that needs 3D Secure on every later payment"),
         Create("given", WalkAccountKind.Given, "Pro plan given by Form Up, no Stripe subscription"),
         Create("manyclients", WalkAccountKind.ManyClients, "Pro, Stripe sandbox, 3 linked clients (Free allows 2)"),
+        Create("checkins", WalkAccountKind.CheckIns, "Check-ins full plan given by Form Up, 2 check-in forms, weekly rule, 4 clients with check-in history"),
+        Create("checkinsonly", WalkAccountKind.CheckInsOnly, "Check-ins plan without forms or per-client settings, 1 client with a check-in"),
+    ];
+
+    /// <summary>The clients of the check-in coaches, with logins for the client app.</summary>
+    public static readonly IReadOnlyList<WalkClientAccount> CheckInClients =
+    [
+        CreateClient("checkins-a", "checkins", "Previous week answered and new, this week waiting, two weeks back reviewed; has a new questionnaire answer"),
+        CreateClient("checkins-b", "checkins", "Previous week answered and reviewed, two weeks back reviewed"),
+        CreateClient("checkins-c", "checkins", "Previous week sent and missed"),
+        CreateClient("checkins-d", "checkins", "Previous week answered and new"),
+        CreateClient("checkinsonly-a", "checkinsonly", "Previous week answered and new; has a new questionnaire answer"),
     ];
 
     /// <summary>Email of the n-th (1-based) client of the many-clients coach.</summary>
@@ -30,7 +42,11 @@ internal static class WalkAccountCatalog
     [
         .. All.Select(account => account.Email),
         .. Enumerable.Range(1, ManyClientsClientCount).Select(ManyClientsClientEmail),
+        .. CheckInClients.Select(client => client.Email),
     ];
+
+    private static WalkClientAccount CreateClient(string key, string coachKey, string note) =>
+        new(key, $"walk.{key}@{EmailDomain}", coachKey, note);
 
     private static WalkAccount Create(string key, WalkAccountKind kind, string note) =>
         new(key, kind, $"walk.{key}@{EmailDomain}", note);

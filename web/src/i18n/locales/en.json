@@ -198,6 +198,7 @@
     "adminCoaches": "Coaches",
     "adminReports": "Reports",
     "automations": "Automations",
+    "checkIns": "Check-ins",
     "dashboard": "Dashboard",
     "profile": "Profile",
     "clients": "Clients",
@@ -3093,6 +3094,8 @@
       "noMatch": "No forms of this kind yet.",
       "selectAForm": "Select an answered form to read it.",
       "noLink": "{{name}}'s forms are no longer available because the collaboration has ended.",
+      "checkInsOnlyHint": "Other forms need the forms feature.",
+      "checkInsOnlyEmptyBody": "When {{name}} answers a weekly check-in, the answers show up here.",
       "emptyTitle": "No answers from {{name}} yet",
       "emptyBody": "When {{name}} sends back a form, the answers show up here. You can also read them in the plan editor while you build the plan.",
       "weekTitle": "{{title}} · week {{week}}",
@@ -3701,7 +3704,7 @@
     "AUTOMATION_AUDIENCE_CLIENT_NOT_FOUND": "One of the chosen clients is no longer linked to you.",
     "AUTOMATION_QUESTIONNAIRE_NOT_FOUND": "The chosen form no longer exists.",
     "AUTOMATION_ACTION_TYPE_LOCKED": "A rule’s action can’t be changed. Create a new rule instead.",
-    "AUTOMATION_QUESTIONNAIRE_NOT_USABLE": "This form can’t be sent by an automation. Choose an active form that isn’t a check-in.",
+    "AUTOMATION_QUESTIONNAIRE_NOT_USABLE": "This form can’t be sent here. Choose an active form of the right type.",
     "AUTOMATION_SCHEDULE_INVALID": "Check the schedule: every 1 to 365 days or weeks, at a valid time.",
     "AUTOMATION_EVENT_INVALID": "Check the event and its timing.",
     "AUTOMATION_ONCE_PER_PLAN_NEEDS_PLAN_EVENT": "“Once per plan” only works with a plan event.",
@@ -4801,7 +4804,8 @@
         "changedFrom": "Changed from: {{when}}",
         "paused": "Paused",
         "pausedUntil": "Paused until {{date}}",
-        "changedFromWeekday": "Changed from {{day}}"
+        "changedFromWeekday": "Changed from {{day}}",
+        "changedFromWeekdayForm": "Changed from {{day}} · Form: {{form}}"
       },
       "result": {
         "notSent": "Not sent yet",
@@ -4831,7 +4835,10 @@
         "overrideDescription": "A change here applies to {{client}} only. The rule itself stays as it is.",
         "clientOnlyTitleNew": "New rule for {{client}}",
         "clientOnlyTitleEdit": "Edit rule · {{name}}",
-        "clientOnlyDescription": "This rule applies to {{client}} only"
+        "clientOnlyDescription": "This rule applies to {{client}} only",
+        "overrideSave": "Save for {{client}}",
+        "overrideFooter": "Next send to {{client}}: {{date}} · {{form}}",
+        "overrideFooterNoForm": "Next send to {{client}}: {{date}}"
       }
     },
     "photos": {
@@ -6714,6 +6721,8 @@
         "answerWindowDays_one": "{{count}} day",
         "answerWindowDays_other": "{{count}} days",
         "answerWindowHint": "After that, the week counts as missed",
+        "weekdayRuleHint": "Your rule: {{day}}",
+        "answerWindowRuleHint": "Your rule: {{window}}. After that, the week counts as missed",
         "eventLabel": "Event",
         "timing": "Timing",
         "daysAfter": "Days after",
@@ -6731,6 +6740,12 @@
         "formOption_other": "{{title}} · {{count}} questions",
         "formOptionCheckIn": "{{title}} · check-in form",
         "formHintCheckIn": "Change the questions in Forms › {{title}}",
+        "overrideForm": "Check-in form",
+        "overrideRuleForm": "The rule’s form · {{title}}",
+        "overrideRuleFormNoTitle": "The rule’s form",
+        "overrideHint": "Your rule sends {{title}}. Only your check-in forms are listed.",
+        "overrideHintNoTitle": "Only your check-in forms are listed.",
+        "overrideUseRuleForm": "Use the rule’s form",
         "formsError": "Could not load your forms.",
         "reminder": "Remind the client after {{hours}} h if not answered",
         "missedWeek": "Tell me when a week is missed",
@@ -7406,6 +7421,60 @@
       "automations": { "label": "Automations", "hint": "Reminders and messages that send themselves" },
       "packages": { "label": "Packages", "hint": "Offer paid coaching packages" },
       "payments": { "label": "Client payments", "hint": "Payment requests with a QR code" }
+    }
+  },
+  "checkIns": {
+    "title": "Check-ins",
+    "subtitle": "Weekly check-ins from all your clients. An answer stays new until you mark it reviewed.",
+    "retry": "Try again",
+    "loadError": "Could not load the check-ins.",
+    "empty": "No check-ins for this week yet. They show up here once they are sent to your clients.",
+    "emptyFilter": "No check-ins match this filter.",
+    "timeZoneNote": "Times follow each client’s time zone",
+    "footer": "Viewing {{shown}} of {{total}} · Open answers shows the check-in on the client’s Forms tab",
+    "markReviewedError": "Could not mark the check-in as reviewed.",
+    "week": {
+      "group": "Week",
+      "previous": "Previous week",
+      "next": "Next week",
+      "label": "Week {{week}} · {{range}}"
+    },
+    "totals": {
+      "answered": "Answered",
+      "answeredValue": "{{answered}} of {{total}}",
+      "answeredSubline": "{{percent}} % of sent check-ins",
+      "notReviewedSubline": "Answers waiting for you",
+      "missedSubline": "Answer window ended",
+      "waitingSubline": "Clients can still answer"
+    },
+    "filters": {
+      "label": "Filter check-ins",
+      "all": "All"
+    },
+    "status": {
+      "notReviewed": "Not reviewed",
+      "missed": "Missed",
+      "waiting": "Waiting",
+      "reviewed": "Reviewed"
+    },
+    "table": {
+      "client": "Client",
+      "form": "Form",
+      "sent": "Sent",
+      "answered": "Answered",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "row": {
+      "canAnswerUntil": "Can answer until {{date}}",
+      "windowEnded": "Answer window ended {{date}}",
+      "reviewedOn": "Reviewed {{date}}",
+      "noAnswer": "—"
+    },
+    "actions": {
+      "openAnswers": "Open answers",
+      "markReviewed": "Mark reviewed",
+      "writeTo": "Write to {{name}}"
     }
   }
 }

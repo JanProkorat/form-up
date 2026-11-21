@@ -3,8 +3,6 @@ import {
   getTrainerCheckIns,
   getClientCheckInHistory,
   markCheckInReviewed,
-  type TrainerCheckInDto,
-  type MarkCheckInReviewedResponse,
 } from '@/api/weekly-checkins';
 
 // ── Query key factories ──────────────────────────────────────────────────────
@@ -13,10 +11,8 @@ export const weeklyCheckInKeys = {
   /** All trainer weekly-check-in queries */
   all: ['weekly-check-ins'] as const,
   /**
-   * List for the dashboard "Weekly check-ins" card.
-   * Omit `weekStartDate` for the active (week-agnostic) set — pending,
-   * responded, and expired check-ins that aren't dismissed/reviewed yet.
-   * Pass an ISO Monday date to keep the exact-week filter (history view).
+   * List for the Forms → Check-ins page (CheckInsPage).
+   * Omit `weekStartDate` for the active (week-agnostic) set; pass an ISO Monday for one week.
    */
   trainerList: (weekStartDate?: string) =>
     ['weekly-check-ins', 'trainer-list', weekStartDate ?? 'active'] as const,
@@ -28,28 +24,19 @@ export const weeklyCheckInKeys = {
 // ── Hooks ────────────────────────────────────────────────────────────────────
 
 /**
- * Returns the trainer's clients' weekly check-ins for the dashboard card.
+ * The trainer's clients' weekly check-ins (CheckInsPage); `data` is the list of rows.
  *
- * @param weekStartDate - Optional. Omit to get the active set (pending,
- *   responded, and expired check-ins that aren't dismissed by the client or
- *   already reviewed by the trainer), regardless of calendar week. Pass an
- *   ISO Monday date (YYYY-MM-DD) to preserve the exact-week filter (kept for
- *   a future history view).
+ * @param weekStartDate - Optional ISO Monday (YYYY-MM-DD); omit for the week-agnostic active set.
+ * @param options.enabled - Set false to skip the request (e.g. behind the paywall). Defaults to true.
  */
-export function useTrainerWeeklyCheckIns(weekStartDate?: string): {
-  data: TrainerCheckInDto[];
-  isLoading: boolean;
-} {
-  const { data, isLoading } = useQuery({
+export function useTrainerWeeklyCheckIns(weekStartDate?: string, options: { enabled?: boolean } = {}) {
+  return useQuery({
+    enabled: options.enabled ?? true,
     queryKey: weeklyCheckInKeys.trainerList(weekStartDate),
     queryFn: () => getTrainerCheckIns(weekStartDate),
     staleTime: 60_000,
+    select: (response) => response.checkIns ?? [],
   });
-
-  return {
-    data: data?.checkIns ?? [],
-    isLoading,
-  };
 }
 
 /**
@@ -73,20 +60,14 @@ export function useClientCheckInHistory(clientUserId: string, weeks: number) {
  * On success, invalidates both the trainer list and client-current queries
  * so banners update without a page reload.
  */
-export function useMarkCheckInReviewed(): {
-  mutate: (id: string) => void;
-  isPending: boolean;
-  data: MarkCheckInReviewedResponse | undefined;
-} {
+export function useMarkCheckInReviewed() {
   const queryClient = useQueryClient();
 
-  const { mutate, isPending, data } = useMutation({
+  return useMutation({
     mutationFn: (id: string) => markCheckInReviewed(id),
     onSuccess: () => {
       // Invalidate all weekly check-in queries (trainer list + all client-currents)
       void queryClient.invalidateQueries({ queryKey: weeklyCheckInKeys.all });
     },
   });
-
-  return { mutate, isPending, data };
 }

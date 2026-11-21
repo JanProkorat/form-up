@@ -198,6 +198,7 @@
     "adminCoaches": "Trenéři",
     "adminReports": "Přehledy",
     "automations": "Automatizace",
+    "checkIns": "Check-iny",
     "dashboard": "Dashboard",
     "profile": "Profil",
     "clients": "Klienti",
@@ -3221,6 +3222,8 @@
       "noMatch": "Zatím žádné formuláře tohoto druhu.",
       "selectAForm": "Vyberte zodpovězený formulář, který chcete číst.",
       "noLink": "Formuláře klienta {{name}} už nejsou dostupné, protože spolupráce skončila.",
+      "checkInsOnlyHint": "Ostatní formuláře vyžadují funkci formulářů.",
+      "checkInsOnlyEmptyBody": "Jakmile {{name}} odpoví na týdenní check-in, odpovědi se zobrazí tady.",
       "emptyTitle": "Od klienta {{name}} zatím nejsou žádné odpovědi",
       "emptyBody": "Až klient {{name}} formulář odešle zpět, odpovědi se zobrazí tady. Přečíst si je můžete i v editoru plánu při jeho tvorbě.",
       "weekTitle": "{{title}} · týden {{week}}",
@@ -3853,7 +3856,7 @@
     "AUTOMATION_AUDIENCE_CLIENT_NOT_FOUND": "Jeden z vybraných klientů už s vámi není propojený.",
     "AUTOMATION_QUESTIONNAIRE_NOT_FOUND": "Vybraný formulář už neexistuje.",
     "AUTOMATION_ACTION_TYPE_LOCKED": "Akci pravidla nelze změnit. Vytvořte místo toho nové pravidlo.",
-    "AUTOMATION_QUESTIONNAIRE_NOT_USABLE": "Tento formulář nelze odesílat automatizací. Vyberte aktivní formulář, který není check-in.",
+    "AUTOMATION_QUESTIONNAIRE_NOT_USABLE": "Tento formulář tady nelze odeslat. Vyberte aktivní formulář správného typu.",
     "AUTOMATION_SCHEDULE_INVALID": "Zkontrolujte plán: každých 1 až 365 dní nebo týdnů, v platný čas.",
     "AUTOMATION_EVENT_INVALID": "Zkontrolujte událost a její načasování.",
     "AUTOMATION_ONCE_PER_PLAN_NEEDS_PLAN_EVENT": "„Jednou za plán“ funguje jen u události plánu.",
@@ -4965,7 +4968,8 @@
         "changedFrom": "Změněno oproti: {{when}}",
         "paused": "Pozastaveno",
         "pausedUntil": "Pozastaveno do {{date}}",
-        "changedFromWeekday": "Změněno z: {{day}}"
+        "changedFromWeekday": "Změněno z: {{day}}",
+        "changedFromWeekdayForm": "Změněno z: {{day}} · Formulář: {{form}}"
       },
       "result": {
         "notSent": "Zatím neodesláno",
@@ -4995,7 +4999,10 @@
         "overrideDescription": "Změna tady platí jen pro klienta {{client}}. Samotné pravidlo zůstane beze změny.",
         "clientOnlyTitleNew": "Nové pravidlo pro klienta {{client}}",
         "clientOnlyTitleEdit": "Upravit pravidlo · {{name}}",
-        "clientOnlyDescription": "Toto pravidlo platí jen pro klienta {{client}}"
+        "clientOnlyDescription": "Toto pravidlo platí jen pro klienta {{client}}",
+        "overrideSave": "Uložit pro klienta {{client}}",
+        "overrideFooter": "Další odeslání pro klienta {{client}}: {{date}} · {{form}}",
+        "overrideFooterNoForm": "Další odeslání pro klienta {{client}}: {{date}}"
       }
     },
     "photos": {
@@ -6970,6 +6977,8 @@
         "answerWindowDays_few": "{{count}} dny",
         "answerWindowDays_other": "{{count}} dní",
         "answerWindowHint": "Poté se týden počítá jako zmeškaný",
+        "weekdayRuleHint": "Vaše pravidlo: {{day}}",
+        "answerWindowRuleHint": "Vaše pravidlo: {{window}}. Poté se týden počítá jako zmeškaný",
         "eventLabel": "Událost",
         "timing": "Načasování",
         "daysAfter": "Dní po",
@@ -6989,6 +6998,12 @@
         "formOption_other": "{{title}} · {{count}} otázek",
         "formOptionCheckIn": "{{title}} · formulář check-inu",
         "formHintCheckIn": "Otázky změníte ve Formulářích › {{title}}",
+        "overrideForm": "Check-in formulář",
+        "overrideRuleForm": "Formulář pravidla · {{title}}",
+        "overrideRuleFormNoTitle": "Formulář pravidla",
+        "overrideHint": "Vaše pravidlo odesílá {{title}}. Nabízíme jen Vaše check-in formuláře.",
+        "overrideHintNoTitle": "Nabízíme jen Vaše check-in formuláře.",
+        "overrideUseRuleForm": "Použít formulář pravidla",
         "formsError": "Formuláře se nepodařilo načíst.",
         "reminder": "Připomenout klientovi po {{hours}} h, pokud neodpoví",
         "missedWeek": "Upozornit mě na zmeškaný týden",
@@ -7682,6 +7697,60 @@
       "automations": { "label": "Automatizace", "hint": "Připomínky a zprávy, které se odesílají samy" },
       "packages": { "label": "Balíčky", "hint": "Nabízejte placené balíčky služeb" },
       "payments": { "label": "Platby klientů", "hint": "Platební žádosti s QR kódem" }
+    }
+  },
+  "checkIns": {
+    "title": "Check-iny",
+    "subtitle": "Týdenní check-iny od všech vašich klientů. Odpověď zůstává nová, dokud ji neoznačíte jako posouzenou.",
+    "retry": "Zkusit znovu",
+    "loadError": "Check-iny se nepodařilo načíst.",
+    "empty": "Pro tento týden zatím nejsou žádné check-iny. Objeví se tu, jakmile se klientům odešlou.",
+    "emptyFilter": "Tomuto filtru neodpovídá žádný check-in.",
+    "timeZoneNote": "Časy se řídí časovým pásmem každého klienta",
+    "footer": "Zobrazeno {{shown}} z {{total}} · Otevřít odpovědi zobrazí check-in na záložce Formuláře u klienta",
+    "markReviewedError": "Check-in se nepodařilo označit jako posouzený.",
+    "week": {
+      "group": "Týden",
+      "previous": "Předchozí týden",
+      "next": "Další týden",
+      "label": "Týden {{week}} · {{range}}"
+    },
+    "totals": {
+      "answered": "Zodpovězeno",
+      "answeredValue": "{{answered}} z {{total}}",
+      "answeredSubline": "{{percent}} % odeslaných check-inů",
+      "notReviewedSubline": "Odpovědi čekající na vás",
+      "missedSubline": "Čas na odpověď vypršel",
+      "waitingSubline": "Klienti ještě mohou odpovědět"
+    },
+    "filters": {
+      "label": "Filtrovat check-iny",
+      "all": "Vše"
+    },
+    "status": {
+      "notReviewed": "Neposouzeno",
+      "missed": "Zmeškáno",
+      "waiting": "Čeká se",
+      "reviewed": "Posouzeno"
+    },
+    "table": {
+      "client": "Klient",
+      "form": "Formulář",
+      "sent": "Odesláno",
+      "answered": "Zodpovězeno",
+      "status": "Stav",
+      "actions": "Akce"
+    },
+    "row": {
+      "canAnswerUntil": "Může odpovědět do {{date}}",
+      "windowEnded": "Čas na odpověď skončil {{date}}",
+      "reviewedOn": "Posouzeno {{date}}",
+      "noAnswer": "—"
+    },
+    "actions": {
+      "openAnswers": "Otevřít odpovědi",
+      "markReviewed": "Označit jako posouzené",
+      "writeTo": "Napsat: {{name}}"
     }
   }
 }

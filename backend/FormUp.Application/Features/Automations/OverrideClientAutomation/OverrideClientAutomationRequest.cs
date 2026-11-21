@@ -12,4 +12,10 @@ public class OverrideClientAutomationRequest : AutomationTriggerBody
 
     /// <summary>Route parameter: public id of the rule.</summary>
     public Guid RuleId { get; set; }
+
+    /// <summary>
+    /// Public id of the check-in form this client gets instead of the rule's own; null keeps (or returns to) the
+    /// rule's form. Only valid on a check-in rule.
+    /// </summary>
+    public Guid? CheckInQuestionnaireId { get; set; }
 }

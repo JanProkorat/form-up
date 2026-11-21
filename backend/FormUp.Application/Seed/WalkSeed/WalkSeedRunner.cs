@@ -33,6 +33,10 @@ internal sealed class WalkSeedRunner(
     private const string FreePlanCode = SubscriptionPlanCodes.Free;
     private const string ProPlanCode = "pro";
     private const string UserNamePrefix = "Walk";
+    private const string CheckInsOnlyPlanCode = "walk-checkins-only";
+    private const string CheckInsOnlyPlanName = "Walk check-ins only";
+    private const string CheckInsFullPlanCode = "walk-checkins-full";
+    private const string CheckInsFullPlanName = "Walk check-ins full";
 
     /// <summary>
     /// Runs the seed. Refuses, with nothing written, when a guard fails.
@@ -61,9 +65,15 @@ internal sealed class WalkSeedRunner(
                 "Refusing to run: the Pro plan has no open price with a Stripe price id (or the Free plan is missing). Price Pro in admin first.");
         }
 
+        var checkInsOnlyPrice = await EnsureSeedPlanAsync(
+            db, CheckInsOnlyPlanCode, CheckInsOnlyPlanName, questionnaires: false, perClientCheckIns: false, ct);
+        var checkInsFullPrice = await EnsureSeedPlanAsync(
+            db, CheckInsFullPlanCode, CheckInsFullPlanName, questionnaires: true, perClientCheckIns: true, ct);
+
         var gateway = gatewayFactory();
-        var prices = new PlanPrices(freePrice.Value, proPrice.Value);
+        var prices = new PlanPrices(freePrice.Value, proPrice.Value, checkInsOnlyPrice, checkInsFullPrice);
         var credentials = new List<WalkAccountCredentials>();
+        var clientCredentials = new List<WalkClientCredentials>();
         var lines = new List<string>();
 
         foreach (var account in WalkAccountCatalog.All)
@@ -81,6 +91,14 @@ internal sealed class WalkSeedRunner(
                 {
                     await PrepareClientsAsync(db, userManager, profile, ct);
                 }
+
+                if (account.HasCheckInData)
+                {
+                    var (clients, passwords) = await PrepareCheckInClientsAsync(db, userManager, account, profile, ct);
+                    await WalkCheckInData.SeedAsync(
+                        db, user.Id, profile, clients, timeProvider.GetUtcNow().UtcDateTime, ct);
+                    clientCredentials.AddRange(passwords);
+                }
             }
 
             var refreshToken = await MintRefreshTokenAsync(db, configuration, user.Id, ct);
@@ -88,7 +106,12 @@ internal sealed class WalkSeedRunner(
             lines.Add($"{account.Key,-12} {account.Email,-40} {account.Note}");
         }
 
-        await WalkSeedOutputWriter.WriteAsync(options, credentials, ct);
+        foreach (var client in clientCredentials)
+        {
+            lines.Add($"{client.Client.Key,-12} {client.Client.Email,-40} client of {client.Client.CoachKey}: {client.Client.Note}");
+        }
+
+        await WalkSeedOutputWriter.WriteAsync(options, credentials, clientCredentials, ct);
 
         return new WalkSeedResult(true, null, lines);
     }
@@ -218,7 +241,13 @@ internal sealed class WalkSeedRunner(
         IWalkStripeGateway gateway,
         CancellationToken ct)
     {
-        var target = account.Kind == WalkAccountKind.Free ? prices.Free : prices.Pro;
+        var target = account.Kind switch
+        {
+            WalkAccountKind.Free => prices.Free,
+            WalkAccountKind.CheckInsOnly => prices.CheckInsOnly,
+            WalkAccountKind.CheckIns => prices.CheckInsFull,
+            _ => prices.Pro,
+        };
 
         var row = await db.CoachSubscriptions.FirstOrDefaultAsync(cs => cs.ProfessionalProfileId == profile.Id, ct);
 
@@ -262,7 +291,7 @@ internal sealed class WalkSeedRunner(
         ResetSubscriptionFields(row, target);
         row.Status = SubscriptionStatus.Active;
 
-        if (account.Kind == WalkAccountKind.Given)
+        if (account.IsGivenByFormUp)
         {
             row.GivenFreeAt = now;
         }
@@ -373,6 +402,147 @@ internal sealed class WalkSeedRunner(
     }
 
     /// <summary>
+    /// Creates or resets a seed-owned plan of a check-in walk coach: weekly check-ins and automations on, forms and
+    /// per-client check-in settings as asked. It is inactive, so it never shows up as a plan to buy, and has no Stripe price.
+    /// </summary>
+    private async Task<PlanPrice> EnsureSeedPlanAsync(
+        ApplicationDbContext db, string code, string name, bool questionnaires, bool perClientCheckIns, CancellationToken ct)
+    {
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+
+        var plan = await db.SubscriptionPlans
+            .Include(p => p.Prices)
+            .FirstOrDefaultAsync(p => p.Code == code, ct);
+
+        if (plan is null)
+        {
+            plan = new SubscriptionPlan
+            {
+                Code = code,
+                NameCs = name,
+                NameEn = name,
+                NameDe = name,
+                Currency = SupportedCurrencies.Czk,
+            };
+            db.SubscriptionPlans.Add(plan);
+        }
+
+        plan.BothRolesIncluded = true;
+        plan.CanCreatePlans = true;
+        plan.CanMessage = true;
+        plan.CanSendQuestionnaires = questionnaires;
+        plan.CanUseWeeklyCheckIns = true;
+        plan.CanUsePerClientCheckInConfig = perClientCheckIns;
+        plan.CanUsePayments = false;
+        plan.CanUsePlanTemplates = true;
+        plan.CanUseRecipes = true;
+        plan.CanUseIngredients = true;
+        plan.CanUseProgressPhotos = true;
+        plan.CanUseWeightAndMeasurements = true;
+        plan.CanUseAutomations = true;
+        plan.CanUsePackages = false;
+        plan.MaxActiveClients = null;
+        plan.NameCs = name;
+        plan.NameEn = name;
+        plan.NameDe = name;
+        plan.PriceMinorUnits = 0;
+        plan.SecondRoleAddOnPriceMinorUnits = null;
+        plan.IsActive = false;
+
+        var price = plan.Prices.FirstOrDefault(p => p.ValidTo == null && p.BillingInterval == BillingInterval.Monthly);
+
+        if (price is null)
+        {
+            price = new SubscriptionPlanPrice
+            {
+                SubscriptionPlanId = plan.Id,
+                SubscriptionPlan = plan,
+                BillingInterval = BillingInterval.Monthly,
+                Currency = SupportedCurrencies.Czk,
+                ValidFrom = now,
+            };
+            plan.Prices.Add(price);
+        }
+
+        price.PriceMinorUnits = 0;
+        price.SecondRoleAddOnPriceMinorUnits = null;
+        price.ExternalPriceId = null;
+
+        await db.SaveChangesAsync(ct);
+
+        return new PlanPrice(plan.Id, price.Id, null);
+    }
+
+    /// <summary>
+    /// Creates or resets the coach's check-in clients: verified, Europe/Prague, a fresh password, linked for training and
+    /// connected since long enough that the whole check-in history belongs to the collaboration.
+    /// </summary>
+    private async Task<(List<WalkCheckInClient> Clients, List<WalkClientCredentials> Passwords)> PrepareCheckInClientsAsync(
+        ApplicationDbContext db,
+        UserManager<ApplicationUser> userManager,
+        WalkAccount coach,
+        ProfessionalProfile coachProfile,
+        CancellationToken ct)
+    {
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var clients = new List<WalkCheckInClient>();
+        var passwords = new List<WalkClientCredentials>();
+
+        foreach (var account in WalkAccountCatalog.CheckInClients.Where(client => client.CoachKey == coach.Key))
+        {
+            var password = WalkSeedPasswordGenerator.Generate();
+            var clientUser = await EnsureUserAsync(userManager, account.Email, account.Key, password);
+            await SetRolesAsync(userManager, clientUser, UserRole.Client);
+
+            clientUser.TimeZone = WalkCheckInData.ZoneId;
+            ThrowIfFailed(await userManager.UpdateAsync(clientUser), $"update walk client {account.Email}");
+
+            var clientProfile = await db.ClientProfiles.FirstOrDefaultAsync(p => p.UserId == clientUser.Id, ct);
+
+            if (clientProfile is null)
+            {
+                clientProfile = new ClientProfile
+                {
+                    UserId = clientUser.Id,
+                    PublicId = Guid.NewGuid(),
+                    DateCreated = now,
+                };
+                db.ClientProfiles.Add(clientProfile);
+            }
+
+            clientProfile.IsOnboardingComplete = true;
+            await db.SaveChangesAsync(ct);
+
+            var link = await db.ClientProfessionalLinks.FirstOrDefaultAsync(
+                l => l.ProfessionalProfileId == coachProfile.Id && l.ClientProfileId == clientProfile.Id, ct);
+
+            if (link is null)
+            {
+                link = new ClientProfessionalLink
+                {
+                    ProfessionalProfileId = coachProfile.Id,
+                    ClientProfileId = clientProfile.Id,
+                    PublicId = Guid.NewGuid(),
+                    DateCreated = now,
+                };
+                db.ClientProfessionalLinks.Add(link);
+            }
+
+            link.ProfessionalRole = UserRole.Trainer;
+            link.ConnectionState = ConnectionState.Connected;
+            link.CanViewTrainingPlans = true;
+            link.CanViewNutritionPlans = false;
+            link.ActivatedAtUtc = now.AddDays(-7 * WalkCheckInData.LinkedWeeks);
+            await db.SaveChangesAsync(ct);
+
+            clients.Add(new WalkCheckInClient(account.Key, clientUser, clientProfile, link));
+            passwords.Add(new WalkClientCredentials(account, password));
+        }
+
+        return (clients, passwords);
+    }
+
+    /// <summary>
     /// Revokes the user's earlier refresh tokens and inserts a fresh one, shaped like the one the login endpoint issues.
     /// </summary>
     private async Task<string> MintRefreshTokenAsync(
@@ -415,5 +585,5 @@ internal sealed class WalkSeedRunner(
             new(value.PlanId, value.PriceId, value.ExternalPriceId);
     }
 
-    private readonly record struct PlanPrices(PlanPrice Free, PlanPrice Pro);
+    private readonly record struct PlanPrices(PlanPrice Free, PlanPrice Pro, PlanPrice CheckInsOnly, PlanPrice CheckInsFull);
 }

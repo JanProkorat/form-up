@@ -90,6 +90,12 @@ not re-exported.
 1794736264-9e39, with static export, clickable prototype and PNGs (`39-09`, `40-09`). In the
 merged `canvas.json` it sits right of the coach dialogs; `PageAdminPromotionEnd` is still unlisted.
 
+**Partial update, 2026-11-21 (#1538):** `PageClientAutomationOverrideCheckIn` (C and D, the check-in
+drawer changed for one client, with a form picker) added on the check-in row, and `PageCheckIns`
+(C and D, the weekly check-in review page) added as a new row at the bottom, from web portal
+1795247449-d5a6. `GlassCheckInHistory` (light and dark, "When check-ins arrive" card) updated from
+client app 1795247417-cb01. Static export and clickable prototype, without PNGs.
+
 | Path | Contents |
 |---|---|
 | `index.html` | Gallery of every board, grouped by app and module |
