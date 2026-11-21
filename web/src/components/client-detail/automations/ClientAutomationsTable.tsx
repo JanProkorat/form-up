@@ -78,6 +78,8 @@ interface Props {
   /** The plan has no per-client check-in settings: a check-in row cannot be customised. */
   checkInOverrideLocked: boolean;
   onOpen: (item: ClientAutomationItem) => void;
+  /** A locked check-in row was clicked: explain the plan limit instead of opening the drawer. */
+  onLockedOpen: () => void;
   onToggle: (item: ClientAutomationItem, on: boolean) => void;
   onReset: (item: ClientAutomationItem) => void;
   onDelete: (item: ClientAutomationItem) => void;
@@ -92,6 +94,7 @@ export default function ClientAutomationsTable({
   busyIds,
   checkInOverrideLocked,
   onOpen,
+  onLockedOpen,
   onToggle,
   onReset,
   onDelete,
@@ -140,9 +143,9 @@ export default function ClientAutomationsTable({
                   <div className="flex min-w-0 max-w-80 flex-col">
                     <button
                       type="button"
-                      disabled={overrideLocked}
-                      className="truncate text-left text-copy font-semibold text-ink outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:no-underline"
-                      onClick={() => onOpen(item)}
+                      aria-haspopup={overrideLocked ? 'dialog' : undefined}
+                      className="truncate text-left text-copy font-semibold text-ink outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+                      onClick={() => (overrideLocked ? onLockedOpen() : onOpen(item))}
                     >
                       {name}
                     </button>

@@ -117,16 +117,21 @@ describe('Automations tab: the check-in form of one client', () => {
     ).toBeInTheDocument();
   });
 
-  it('does not open the drawer of a check-in row the plan cannot customise', async () => {
+  it('opens the paywall, not the drawer, from a check-in row the plan cannot customise', async () => {
     serveClientAutomations(newClientAutomationsState({ features: { canUsePerClientCheckInConfig: false } }));
     const { user } = renderAutomationsTab();
 
     const button = await screen.findByRole('button', { name: RULE_NAME });
-    await waitFor(() => expect(button).toBeDisabled());
-    expect(screen.getByText('Changing this check-in for one client comes with a higher plan.')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByText('Changing this check-in for one client comes with a higher plan.')).toBeInTheDocument(),
+    );
 
     await user.click(button);
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText('Weekly check-ins come with a higher plan')).toBeInTheDocument();
+    // The only dialog is the paywall: no override drawer (it has the form picker) opened.
+    expect(screen.getAllByRole('dialog')).toHaveLength(1);
+    expect(screen.queryByLabelText('Check-in form')).not.toBeInTheDocument();
   });
 
   it('opens the paywall, not a toast, when the server refuses with SUBSCRIPTION_REQUIRED', async () => {

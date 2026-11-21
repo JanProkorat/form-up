@@ -256,6 +256,7 @@ export default function ClientAutomationsTab({ clientId, dashboard }: Props) {
               busyIds={busyIds}
               checkInOverrideLocked={!isEntitled('canUsePerClientCheckInConfig')}
               onOpen={handleOpen}
+              onLockedOpen={() => setPaywallOpen(true)}
               onToggle={handleToggle}
               onReset={handleReset}
               onDelete={setDeleteTarget}
