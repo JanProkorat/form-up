@@ -54,10 +54,20 @@ public sealed class AutomationCheckInSweeper(
         var onlyClientUserId = rule.ClientProfile?.UserId;
         var horizonStart = nowUtc - AutomationAnswerSweeper.Horizon;
 
+        // A client on a per-client form answers a different form than the rule's own.
+        var formIds = await db.AutomationClientOverrides
+            .AsNoTracking()
+            .Where(o => o.AutomationRuleId == rule.Id && o.CheckInQuestionnaireId != null)
+            .Select(o => o.CheckInQuestionnaireId)
+            .Distinct()
+            .ToListAsync(ct);
+
+        formIds.Add(rule.QuestionnaireId);
+
         var open = await db.QuestionnaireResponses
             .Where(r => r.Kind == QuestionnaireResponseKind.CheckIn
                         && (r.Status == QuestionnaireResponseStatus.Pending || r.Status == QuestionnaireResponseStatus.InProgress)
-                        && r.QuestionnaireId == rule.QuestionnaireId
+                        && formIds.Contains(r.QuestionnaireId)
                         && r.ProfessionalId == coachUserId
                         && r.Link.ConnectionState != ConnectionState.Ended
                         && r.CheckInDueAtUtc >= horizonStart
