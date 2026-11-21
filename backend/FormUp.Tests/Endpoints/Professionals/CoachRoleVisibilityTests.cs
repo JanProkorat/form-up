@@ -14,7 +14,7 @@ namespace FormUp.Tests.Endpoints.Professionals;
 /// <summary>
 /// A removed coach role is hidden from marketplace search and the public profile.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class CoachRoleVisibilityTests(FitnessApiFactory factory)
 {
     private record SearchItem(Guid PublicId, List<string> Roles);

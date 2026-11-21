@@ -23,7 +23,7 @@ namespace FormUp.Tests.Endpoints.Trainers;
 /// Uses real PostgreSQL + MongoDB via Testcontainers to validate the full
 /// stack including the trainer-link guard and sort ordering.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class GetClientTimelineEndpointTests(FitnessApiFactory factory)
 {
     private static string UniqueEmail(string tag) => $"{Guid.NewGuid():N}@timeline-{tag}.com";

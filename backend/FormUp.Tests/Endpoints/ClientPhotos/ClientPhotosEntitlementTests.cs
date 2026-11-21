@@ -11,7 +11,7 @@ namespace FormUp.Tests.Endpoints.ClientPhotos;
 /// A coach whose plan lacks progress photos cannot list a client's photos or work with photo requests; the client's
 /// own photo endpoints are not touched by the coach's plan.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class ClientPhotosEntitlementTests(FitnessApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

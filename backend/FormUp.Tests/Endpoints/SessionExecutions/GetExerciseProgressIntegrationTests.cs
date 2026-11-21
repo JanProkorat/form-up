@@ -27,7 +27,7 @@ namespace FormUp.Tests.Endpoints.SessionExecutions;
 /// not when it is keyed on PublicId (the wrong key). A mock-based test cannot
 /// catch this because mocks ignore the filter value.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class GetExerciseProgressIntegrationTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions JsonOptions = new()

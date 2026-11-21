@@ -10,7 +10,7 @@ namespace FormUp.Tests.Architecture;
 /// name exactly, and the reverse. The generated clients substitute by name, so a case mismatch
 /// sends the literal placeholder.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class OpenApiPathParameterNameTests(FitnessApiFactory factory)
 {
     private static readonly string[] HttpMethods = ["get", "put", "post", "delete", "options", "head", "patch", "trace"];

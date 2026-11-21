@@ -19,7 +19,7 @@ namespace FormUp.Tests.Endpoints.Questionnaires;
 /// verifies that both PendingDiaryRequests and Items are correctly populated,
 /// and that ordering (diary first, questionnaire second) is respected.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class GetClientPendingQuestionnairesEndpointTests(FitnessApiFactory factory)
 {
     private static string UniqueEmail(string tag = "pq") =>

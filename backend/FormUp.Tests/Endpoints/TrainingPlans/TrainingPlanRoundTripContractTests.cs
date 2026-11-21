@@ -36,7 +36,7 @@ namespace FormUp.Tests.Endpoints.TrainingPlans;
 /// name-based binding rather than any domain knowledge of which list means what — a hand-picked
 /// field mapping would pass even with the original defect present.
 /// </remarks>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class TrainingPlanRoundTripContractTests(FitnessApiFactory factory)
 {
     private static string UniqueEmail() => $"{Guid.NewGuid():N}@round-trip-contract-test.com";

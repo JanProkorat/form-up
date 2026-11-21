@@ -16,7 +16,7 @@ namespace FormUp.Tests.Architecture;
 /// Guards the App Store rule that the client app never learns what a coach pays for a subscription: no route a
 /// client, an anonymous caller or a login-only caller can reach may expose a subscription plan or its price.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class ClientResponsesExcludeSubscriptionPriceTests(FitnessApiFactory factory)
 {
     private static readonly HashSet<Type> ForbiddenTypes =

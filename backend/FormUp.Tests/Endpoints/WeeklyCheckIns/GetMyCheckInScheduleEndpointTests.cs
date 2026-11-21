@@ -15,7 +15,7 @@ namespace FormUp.Tests.Endpoints.WeeklyCheckIns;
 /// Integration tests for <c>GET /client/weekly-check-ins/schedule</c>: the client's check-in days come from
 /// the coaches' enabled check-in rules (or the client's own override) that still reach the client.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class GetMyCheckInScheduleEndpointTests(FitnessApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

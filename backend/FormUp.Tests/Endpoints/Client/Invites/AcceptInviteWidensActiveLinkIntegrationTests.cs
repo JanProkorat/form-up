@@ -18,7 +18,7 @@ namespace FormUp.Tests.Endpoints.Client.Invites;
 /// Accepting an invite from a coach the client is already linked to widens the active link to the invite's
 /// scope, never narrows it, and still honours the removed-role and one-coach-per-profession guards.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class AcceptInviteWidensActiveLinkIntegrationTests(FitnessApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

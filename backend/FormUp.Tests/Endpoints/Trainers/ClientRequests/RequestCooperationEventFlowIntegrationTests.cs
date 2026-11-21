@@ -29,7 +29,7 @@ namespace FormUp.Tests.Endpoints.Trainers.ClientRequests;
 /// forces exactly that no-op (by writing the Accepted row through the seam directly before the
 /// HTTP accept call) and proves the endpoint still returns 204 and still creates the link.
 /// </remarks>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class RequestCooperationEventFlowIntegrationTests(FitnessApiFactory factory)
 {
     // The API serializes enums as strings (JsonStringEnumConverter globally), so use matching

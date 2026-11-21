@@ -17,7 +17,7 @@ namespace FormUp.Tests.Endpoints.Client.Invites;
 /// invitee who had no account when the invite was sent still gets the in-app notification once
 /// their email is verified.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class PendingInviteNotificationSeedingIntegrationTests(FitnessApiFactory factory)
 {
     private FakeEmailService EmailService => factory.Services.GetRequiredService<FakeEmailService>();

@@ -21,7 +21,7 @@ namespace FormUp.Tests.Endpoints.Trainers;
 /// link flag AND a coach role the caller holds both allow it. A role marked removed is still held, so its
 /// discipline stays readable until the sweeper ends the link (#1265).
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class ClientDisciplineRoleGateIntegrationTests(FitnessApiFactory factory)
 {
     /// <summary>The role shapes a coach caller can have.</summary>

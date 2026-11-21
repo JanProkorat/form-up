@@ -13,7 +13,7 @@ namespace FormUp.Tests.Endpoints.WeeklyCheckIns;
 /// <summary>
 /// GET /trainer/weekly-check-ins: the caller's check-ins read from their form responses.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class GetTrainerCheckInsEndpointTests(FitnessApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

@@ -20,7 +20,7 @@ namespace FormUp.Tests.Endpoints.Client.Training;
 /// exercise muscle-group enrichment, and workout-log completion state are all
 /// verified against a real stack.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
 {
     private static string UniqueEmail() => $"{Guid.NewGuid():N}@integration-test.com";

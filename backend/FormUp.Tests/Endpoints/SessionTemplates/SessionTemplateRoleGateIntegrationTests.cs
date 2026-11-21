@@ -14,7 +14,7 @@ namespace FormUp.Tests.Endpoints.SessionTemplates;
 /// in <c>SessionTemplateEndpointTests</c>, which bypass role middleware entirely), so this is the
 /// only place the role gate is actually proven, not merely assumed from <c>Configure()</c>.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class SessionTemplateRoleGateIntegrationTests(FitnessApiFactory factory)
 {
     private static string UniqueEmail(string tag) => $"{Guid.NewGuid():N}@sessiontemplate-rolegate-{tag}.com";

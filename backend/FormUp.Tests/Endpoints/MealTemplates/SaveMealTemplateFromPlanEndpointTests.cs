@@ -23,7 +23,7 @@ namespace FormUp.Tests.Endpoints.MealTemplates;
 /// lightweight <c>Factory.Create&lt;T&gt;()</c> host used by <see cref="MealTemplateEndpointTests"/>
 /// for the 404 guard-branch cases). Same precedent as <c>SendClientRequestEndpointTests</c>.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class SaveMealTemplateFromPlanEndpointTests(FitnessApiFactory factory)
 {
     // The API serializes enums as strings (JsonStringEnumConverter globally), so use matching

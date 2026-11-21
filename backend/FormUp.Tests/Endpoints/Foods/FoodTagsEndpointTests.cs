@@ -18,7 +18,7 @@ namespace FormUp.Tests.Endpoints.Foods;
 /// <c>POST /trainer/food-tags</c>, <c>GET /trainer/food-tags</c>,
 /// <c>PUT /trainer/food-tags/{TagId}</c>, and <c>DELETE /trainer/food-tags/{TagId}</c>.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class FoodTagsEndpointTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };

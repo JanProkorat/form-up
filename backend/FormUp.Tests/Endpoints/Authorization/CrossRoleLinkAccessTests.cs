@@ -27,7 +27,7 @@ namespace FormUp.Tests.Endpoints.Authorization;
 /// because the pre-existing link's capability flag stayed <see langword="false"/>.
 /// </para>
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class CrossRoleLinkAccessTests(FitnessApiFactory factory)
 {
     private static string UniqueEmail(string tag) => $"{Guid.NewGuid():N}@cross-role-{tag}.com";

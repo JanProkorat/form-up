@@ -16,7 +16,7 @@ namespace FormUp.Tests.Endpoints.PhotoDiaryRequests;
 /// <summary>
 /// Integration tests for POST /client/photo-diary-requests/{id}/accept.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class AcceptRequestEndpointTests(FitnessApiFactory factory)
 {
     private static string UniqueEmail(string tag = "accept") =>

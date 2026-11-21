@@ -10,7 +10,7 @@ namespace FormUp.Tests.Architecture;
 /// codes it can return (FastEndpoints adds 401 and, for role-gated routes, 403 itself). Typed success
 /// responses must keep their schema, and a 400 that sends a body must keep its ProblemDetails schema.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class StatusCodeContractTests(FitnessApiFactory factory)
 {
     private const string Body = "body";

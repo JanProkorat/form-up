@@ -1,44 +1,39 @@
-// Disable cross-collection parallel execution for this test assembly.
+// Run independent test collections in parallel; tests inside one collection stay serial.
 //
-// Root cause (#296): FastEndpoints sets a process-global static ServiceResolver.Provider
-// when any WebApplicationFactory<Program> boots (via app.UseFastEndpoints). When the
-// ResetEndpointFactoryBase factories (in [Collection("ResetTests")]) or FitnessApiFactory
-// (in [Collection("Integration")]) dispose, the global provider becomes invalid. Any
-// Factory.Create<TEndpoint>() call in a concurrently-running standalone (no-collection)
-// test then throws:
-//   ObjectDisposedException: Cannot access a disposed object. Object name: 'IServiceProvider'.
+// Layout: every [Collection(...)] and every class without the attribute (xUnit's default is one
+// collection per class) is its own collection. Collections run concurrently, capped by
+// MaxParallelThreads. A collection that shares mutable state with the rest of the process opts out
+// with [CollectionDefinition(..., DisableParallelization = true)] — such collections run alone,
+// after the parallel ones have finished.
 //
-// The primary fix (#296) is in FitnessApiFactory.DisposeAsync() and
-// ResetEndpointFactoryBase.DisposeAsync(): both skip base.DisposeAsync() so the
-// IServiceProvider remains alive for the entire test-process lifetime. Containers
-// are the only external resource that needs explicit cleanup.
+// Why parallel is safe for the FastEndpoints static resolver:
+//   Factory.Create<TEndpoint>() (FastEndpoints 8.0.1, Src/Library/Testing/Factory.cs) builds the
+//   endpoint over a fresh HttpContext whose RequestServices come from a new ServiceCollection. It
+//   calls AddTestServices, which sets the process-global ServiceResolver.Instance only if no one
+//   has set it yet, and it points that resolver's IHttpContextAccessor at the new context. There is
+//   no per-call WebApplicationFactory and nothing is disposed. ServiceResolver
+//   (Src/Core/ServiceResolver/ServiceResolver.cs) resolves through
+//   ctxAccessor?.HttpContext?.RequestServices ?? provider, and HttpContextAccessor is AsyncLocal
+//   backed, so concurrent tests do not see each other's context.
+//   The one real hazard is a WebApplicationFactory<Program> whose DisposeAsync disposes the root
+//   provider that is currently the global resolver's fallback. Every factory in this assembly
+//   (FitnessApiFactory, ResetEndpointFactoryBase, QaSeedRunnerFactory, CatalogSeedingFactory,
+//   RateLimitEnabledFactory, RefreshTokenReuse and WorkoutLogCompletion factories) skips
+//   base.DisposeAsync() for exactly that reason. A new factory must do the same.
 //
-// This secondary defence — assembly-level serialization — prevents two kinds of failures:
-//   1. Factory.Create<T>() creates its own internal mini-WebApplicationFactory per call.
-//      When that mini-factory disposes (it does not skip base.DisposeAsync()), it clears
-//      the process-global ServiceResolver.Provider. Any concurrently-running Factory.Create
-//      call in another implicit test collection then throws ObjectDisposedException. This
-//      is exactly the failure seen when GetClientDashboardPermissionFlagsTests (added in
-//      #558) ran in parallel with GetCustomFoodsEndpointTests: both collections used
-//      Factory.Create, and the mini-factory dispose from one clobbered the global resolver
-//      for the other. MaxParallelThreads = 1 prevents this by ensuring only one test
-//      collection runs at a time.
-//   2. Docker/Testcontainer port exhaustion from multiple factories starting simultaneously
-//      on CI's 2-core runner.
+// Isolation: each collection fixture creates its own Postgres database and Mongo database inside the
+// shared containers (SharedTestContainers), so collections never share rows.
 //
-// DisableTestParallelization = true: tests within a collection run sequentially (no
-//   parallel tests inside one collection).
-// MaxParallelThreads = 1: only one test collection runs at a time (cross-collection serial).
+// Precedence: the xUnit docs say a runner may override code or configuration
+// (https://xunit.net/docs/running-tests-in-parallel, "Parallelism in Runners"), and
+// xunit.runner.json is read by the runner. To avoid depending on that, xunit.runner.json states the
+// same values as this attribute.
+// UNVERIFIED: which of the attribute and xunit.runner.json wins when they differ in xunit.v3 3.2.2 —
+// https://xunit.net/docs/config-xunit-runner-json
 //
-// Together these give fully deterministic serial execution in the binary-direct run
-// (CI: ./FormUp.Tests/bin/Release/net10.0/FormUp.Tests).
-// xunit.runner.json with parallelizeTestCollections:false covers dotnet-test / VSTest
-// adapter runs via the same semantics.
+// CI runs the test binary directly (./FormUp.Tests/bin/Release/net10.0/FormUp.Tests), which honours
+// this attribute; dotnet test also reads xunit.runner.json.
 //
-// See also: FitnessApiFactory.cs (PhotoDiaryReminderScheduler suppression, #278 precedent).
-//
-// Issue #282 Finding 2 (ObjectDisposedException on FastEndpoints.ServiceResolver under parallel test load)
-// addressed by this configuration + #296 (skip base.DisposeAsync to preserve
-// ServiceResolver.Provider lifetime for full-factory tests).
-// MaxParallelThreads = 1 added in #558 to close the gap for Factory.Create unit tests.
-[assembly: Xunit.CollectionBehavior(DisableTestParallelization = true, MaxParallelThreads = 1)]
+// See also: FitnessApiFactory.cs (skips base.DisposeAsync, #296) and TestHostedServiceExtensions.cs
+// (background schedulers never start in a test host, #726).
+[assembly: Xunit.CollectionBehavior(MaxParallelThreads = 4)]

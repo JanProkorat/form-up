@@ -18,7 +18,7 @@ namespace FormUp.Tests.Endpoints.ClientNutrition;
 /// its photos. The mocked Mongo context ignores filters, so the delete/keep split, the legacy
 /// LogDate backfill and the cross-client isolation can only be proven against a real database.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class UnlogMealEatenIntegrationTests(FitnessApiFactory factory)
 {
     private const string PhotoUrl = "https://minio.local/bucket/photo1.jpg";

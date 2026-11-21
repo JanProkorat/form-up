@@ -17,7 +17,7 @@ namespace FormUp.Tests.Endpoints.ClientRequests;
 /// <summary>
 /// A client accepts a coach's package proposal (POST /client/requests/{id}/accept-proposal).
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class AcceptClientRequestProposalTests(FitnessApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

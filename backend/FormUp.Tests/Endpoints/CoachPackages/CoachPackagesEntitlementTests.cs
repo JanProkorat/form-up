@@ -15,7 +15,7 @@ namespace FormUp.Tests.Endpoints.CoachPackages;
 /// Packages and client payments are two plan features: packages and discounts follow the packages flag, client
 /// payments and payment settings follow the payments flag, and attaching a package to a client needs both.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class CoachPackagesEntitlementTests(FitnessApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

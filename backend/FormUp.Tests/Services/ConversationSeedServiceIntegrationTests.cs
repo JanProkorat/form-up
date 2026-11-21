@@ -19,7 +19,7 @@ namespace FormUp.Tests.Services;
 /// that a rolled-back duplicate leaves the context's change tracker clean enough for the
 /// caller's NEXT unrelated save to succeed.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class ConversationSeedServiceIntegrationTests(FitnessApiFactory factory)
 {
     private static string UniqueEmail(string prefix) => $"{prefix}-{Guid.NewGuid():N}@test.com";

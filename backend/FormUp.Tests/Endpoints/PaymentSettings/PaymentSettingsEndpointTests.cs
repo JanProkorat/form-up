@@ -14,7 +14,7 @@ namespace FormUp.Tests.Endpoints.PaymentSettings;
 /// <summary>
 /// Integration tests for <c>GET</c> and <c>PUT /payments/settings</c>.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class PaymentSettingsEndpointTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions WireOptions = new(JsonSerializerDefaults.Web)

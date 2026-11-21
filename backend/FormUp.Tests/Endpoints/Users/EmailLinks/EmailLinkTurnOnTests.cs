@@ -11,7 +11,7 @@ namespace FormUp.Tests.Endpoints.Users.EmailLinks;
 /// <summary>
 /// Integration tests for <c>POST /users/email-links/turn-on</c>.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class EmailLinkTurnOnTests(FitnessApiFactory factory)
 {
     private const string Route = "/users/email-links/turn-on";

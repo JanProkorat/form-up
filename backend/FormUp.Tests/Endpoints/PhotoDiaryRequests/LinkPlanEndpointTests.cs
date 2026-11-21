@@ -19,7 +19,7 @@ namespace FormUp.Tests.Endpoints.PhotoDiaryRequests;
 /// Integration tests for POST /trainer/photo-diary-requests/{RequestId}/link — retroactively
 /// linking an existing photo diary request to a nutrition or training plan (#778 AC5).
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class LinkPlanEndpointTests(FitnessApiFactory factory)
 {
     private static string UniqueEmail(string tag = "trainer") =>

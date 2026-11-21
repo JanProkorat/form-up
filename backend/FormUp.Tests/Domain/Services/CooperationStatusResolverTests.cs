@@ -13,7 +13,7 @@ namespace FormUp.Tests.Domain.Services;
 /// <see cref="CooperationStatusResolver"/> against a real database: status mapping, expiry at a
 /// pinned clock, and ids that match no row.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class CooperationStatusResolverTests(FitnessApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

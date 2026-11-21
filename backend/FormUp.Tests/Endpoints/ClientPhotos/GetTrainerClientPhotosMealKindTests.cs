@@ -18,7 +18,7 @@ namespace FormUp.Tests.Endpoints.ClientPhotos;
 /// GET /trainer/clients/{clientId}/photos. Filter behaviour (client scoping) cannot be proven
 /// against the mock Mongo, which ignores filters.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class GetTrainerClientPhotosMealKindTests(FitnessApiFactory factory)
 {
     private sealed record PhotoBody(string Category, string? MealLogId, Guid? MealId, string? MealKind);

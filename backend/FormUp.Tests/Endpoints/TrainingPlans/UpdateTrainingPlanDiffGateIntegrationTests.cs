@@ -27,7 +27,7 @@ namespace FormUp.Tests.Endpoints.TrainingPlans;
 /// false-positive on. See the comment above <c>SeedTwoSectionPlanWithCompletedLogAsync</c>
 /// below for the current state of that retirement.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factory)
 {
     private static string UniqueEmail() => $"{Guid.NewGuid():N}@diff-gate-test.com";

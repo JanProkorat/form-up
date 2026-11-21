@@ -16,7 +16,7 @@ namespace FormUp.Tests.Endpoints.CoachSubscriptions;
 /// <summary>
 /// Integration tests for <c>POST /users/me/subscription/keep-free</c>.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class KeepFreePlanAtSignUpEndpointTests(FitnessApiFactory factory)
 {
     private const string Route = "/users/me/subscription/keep-free";

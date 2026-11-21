@@ -15,7 +15,7 @@ namespace FormUp.Tests.Endpoints.NutritionPlans;
 /// Integration tests for <see cref="PlanMeal.ChangedAtPlanVersion"/>: the full-state plan update
 /// stamps it on new, re-composed or moved meals only and carries it over on every other meal.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class UpdatePlanChangedMealMarkerIntegrationTests(FitnessApiFactory factory)
 {
     private const int StoredVersion = 4;

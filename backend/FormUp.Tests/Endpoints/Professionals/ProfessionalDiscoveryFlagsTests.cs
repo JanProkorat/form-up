@@ -15,7 +15,7 @@ namespace FormUp.Tests.Endpoints.Professionals;
 /// Search and public-profile discovery flags: Online, AcceptNewClients, the online filter, and the
 /// invite-gated bypass of a hidden (ShowInSearch=false) profile.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class ProfessionalDiscoveryFlagsTests(FitnessApiFactory factory)
 {
     private record SearchItem(Guid PublicId, bool Online, bool AcceptNewClients);

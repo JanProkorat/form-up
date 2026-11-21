@@ -14,7 +14,7 @@ namespace FormUp.Tests.Endpoints.Client.Collaborations;
 /// <summary>
 /// Integration tests for the first-payment block of <c>GET /client/collaborations</c>.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class GetCollaborationsFirstPaymentIntegrationTests(FitnessApiFactory factory)
 {
     private record CollaborationsResult(List<CollaborationItem> Collaborations);

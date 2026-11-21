@@ -12,7 +12,7 @@ namespace FormUp.Tests.Endpoints.Professionals;
 /// <summary>
 /// Integration tests for how GET /professionals/{publicId} reads the stored certificates JSON.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class GetPublicProfileCertificatesTests(FitnessApiFactory factory)
 {
     private record PublicProfileResponse(List<string> Certificates);

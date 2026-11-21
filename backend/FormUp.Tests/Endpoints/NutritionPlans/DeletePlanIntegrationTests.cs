@@ -19,7 +19,7 @@ namespace FormUp.Tests.Endpoints.NutritionPlans;
 /// Testcontainers integration tests (real MongoDB) for <c>DELETE /nutrition/plans/{PlanId}</c>.
 /// The mock Mongo ignores filters, so the hard delete and the started-week rule are proven here.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class DeletePlanIntegrationTests(FitnessApiFactory factory)
 {
     // Far ahead of UTC so the client's local date differs from the UTC date for part of every day.

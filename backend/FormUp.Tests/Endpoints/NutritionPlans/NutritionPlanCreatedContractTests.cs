@@ -8,7 +8,7 @@ namespace FormUp.Tests.Endpoints.NutritionPlans;
 /// Swagger contract for the nutrition-plan endpoints that send 201: the generated client only accepts
 /// statuses the spec declares, so each must list 201 and not 200.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class NutritionPlanCreatedContractTests(FitnessApiFactory factory)
 {
     [Theory]

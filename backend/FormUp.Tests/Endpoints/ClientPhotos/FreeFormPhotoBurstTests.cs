@@ -23,7 +23,7 @@ namespace FormUp.Tests.Endpoints.ClientPhotos;
 /// <summary>
 /// Both finalize endpoints open or extend the coach's grouped-email burst for free-form progress photos only.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class FreeFormPhotoBurstTests(FitnessApiFactory factory)
 {
     private static readonly CancellationToken Ct = TestContext.Current.CancellationToken;

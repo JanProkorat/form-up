@@ -16,7 +16,7 @@ namespace FormUp.Tests.Endpoints.PhotoDiaryRequests;
 /// POST /trainer/photo-diary-requests. The open-request check and the insert are separate
 /// statements, so without a lock two concurrent creates can both pass the check.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class CreateRequestRaceTests(FitnessApiFactory factory)
 {
     private const int ConcurrentCreates = 8;

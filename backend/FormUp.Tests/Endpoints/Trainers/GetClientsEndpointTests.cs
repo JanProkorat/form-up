@@ -22,7 +22,7 @@ namespace FormUp.Tests.Endpoints.Trainers;
 /// seeded document regardless of <c>FilterDefinition</c> and would make every Active/Paused
 /// assertion below unfalsifiable.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class GetClientsEndpointTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };

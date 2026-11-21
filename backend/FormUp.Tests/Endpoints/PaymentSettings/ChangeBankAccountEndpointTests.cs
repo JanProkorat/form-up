@@ -14,7 +14,7 @@ namespace FormUp.Tests.Endpoints.PaymentSettings;
 /// <summary>
 /// Integration tests for <c>PUT /payments/bank-account</c>.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class ChangeBankAccountEndpointTests(FitnessApiFactory factory)
 {
     private FakeEmailService Emails => factory.Services.GetRequiredService<FakeEmailService>();

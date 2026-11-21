@@ -18,7 +18,7 @@ namespace FormUp.Tests.Endpoints.Messaging;
 /// sharing the same DateCreated millisecond must never be dropped or duplicated
 /// at a page boundary.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class GetMessagesEndpointTests(FitnessApiFactory factory)
 {
     private static string UniqueEmail() => $"{Guid.NewGuid():N}@getmsg-test.com";

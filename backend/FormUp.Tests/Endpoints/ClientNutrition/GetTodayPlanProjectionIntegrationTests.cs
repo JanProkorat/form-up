@@ -26,7 +26,7 @@ namespace FormUp.Tests.Endpoints.ClientNutrition;
 /// pass every mocked test (NSubstitute ignores the <c>Projection</c> option entirely) and
 /// silently break in production.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class GetTodayPlanProjectionIntegrationTests(FitnessApiFactory factory)
 {
     private static string UniqueEmail() => $"{Guid.NewGuid():N}@today-plan-projection-test.com";

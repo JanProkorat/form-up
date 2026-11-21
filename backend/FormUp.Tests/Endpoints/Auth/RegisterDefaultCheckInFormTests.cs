@@ -12,7 +12,7 @@ namespace FormUp.Tests.Endpoints.Auth;
 /// <summary>
 /// A newly registered coach starts with the default "Weekly check-in" form, in their language.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class RegisterDefaultCheckInFormTests(FitnessApiFactory factory)
 {
     private static readonly CancellationToken Ct = TestContext.Current.CancellationToken;

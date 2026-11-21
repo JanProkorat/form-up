@@ -19,7 +19,7 @@ namespace FormUp.Tests.Endpoints.NutritionPlanTemplates;
 /// coach-client-link 404 (never 403), replication of the plan-creation start-date/overlap rules,
 /// and the Goal/DietaryStyle/TargetWeightKg field-mapping contract.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class InstantiateTemplateEndpointTests(FitnessApiFactory factory)
 {
     private static string UniqueEmail(string tag) => $"{Guid.NewGuid():N}@instantiate-{tag}.com";

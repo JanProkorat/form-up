@@ -19,7 +19,7 @@ namespace FormUp.Tests.Endpoints.ClientRequests;
 /// <c>Send.CreatedAtAsync</c>, which requires a real <c>LinkGenerator</c> —
 /// unavailable in a lightweight <c>Factory.Create&lt;T&gt;()</c> unit test.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class SendClientRequestEndpointTests(FitnessApiFactory factory)
 {
     private static string UniqueEmail(string tag) => $"{Guid.NewGuid():N}@{tag}-client-request.com";

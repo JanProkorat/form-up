@@ -8,7 +8,7 @@ namespace FormUp.Tests.Users;
 /// <summary>
 /// Integration tests for user profile endpoints: GET /users/me, PUT /users/me.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class ProfileTests(FitnessApiFactory factory)
 {
     private static string UniqueEmail() => $"{Guid.NewGuid():N}@test.com";

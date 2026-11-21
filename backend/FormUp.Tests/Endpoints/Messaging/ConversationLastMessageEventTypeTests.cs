@@ -17,7 +17,7 @@ namespace FormUp.Tests.Endpoints.Messaging;
 /// plain-conversation query (client caller), its live-roster row builder (professional caller),
 /// and <c>StartConversationEndpoint.BuildResponse</c>.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class ConversationLastMessageEventTypeTests(FitnessApiFactory factory)
 {
     // The API serializes enums as strings (JsonStringEnumConverter globally), so use matching

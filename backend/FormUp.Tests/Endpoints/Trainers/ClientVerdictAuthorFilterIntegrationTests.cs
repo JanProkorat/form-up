@@ -19,7 +19,7 @@ namespace FormUp.Tests.Endpoints.Trainers;
 /// coach's plan neither produces nor alters the caller's signals. Real Mongo, because the mock
 /// harness ignores filters.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class ClientVerdictAuthorFilterIntegrationTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions JsonOptions = new()

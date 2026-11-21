@@ -22,7 +22,7 @@ namespace FormUp.Tests.Endpoints.SessionExecutions;
 /// unique-index enforcement can be validated — NSubstitute mocks cannot prove
 /// that the detection queries actually find the right documents.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class PersonalRecordDetectionTests(FitnessApiFactory factory)
 {
     private static string UniqueEmail() => $"{Guid.NewGuid():N}@pr-test.com";

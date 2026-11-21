@@ -15,7 +15,7 @@ namespace FormUp.Tests.Endpoints.ClientRequests;
 /// <summary>
 /// The coach's join request email from POST /client/requests.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class SendClientRequestNotificationEmailTests(FitnessApiFactory factory)
 {
     private async Task<(Actor Coach, HttpStatusCode Status)> SendAsync(bool? emailEnabled, string message)

@@ -16,7 +16,7 @@ namespace FormUp.Tests.Endpoints.Trainers.ClientRequests;
 /// <summary>
 /// Accepting a request that carries a package gives the client its terms, with the coach's optional discount.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class AcceptClientRequestPackageTermsTests(FitnessApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

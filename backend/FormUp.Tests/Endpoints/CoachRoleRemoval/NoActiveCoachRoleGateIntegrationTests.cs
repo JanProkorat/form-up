@@ -13,7 +13,7 @@ namespace FormUp.Tests.Endpoints.CoachRoleRemoval;
 /// Real-pipeline tests for the read-only gate on endpoints gated to both coach roles: a coach with no active
 /// coach role is refused, a coach with one role left is not.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class NoActiveCoachRoleGateIntegrationTests(FitnessApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

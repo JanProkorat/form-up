@@ -12,7 +12,7 @@ namespace FormUp.Tests.Endpoints.Messaging;
 /// <c>GET /conversations</c> derives the former state and its end date from the pair's links,
 /// since the stored flag is never set by production code.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class GetConversationsFormerEndDateTests(FitnessApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

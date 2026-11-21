@@ -10,7 +10,7 @@ namespace FormUp.Tests.Endpoints.Client.Notifications;
 /// <c>GET /client/notifications</c>: the unread count for clients and coaches, and the
 /// InvitationReceived notification a coach's invite to an existing client persists.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class GetNotificationsUnreadCountTests(FitnessApiFactory factory)
 {
     private record NotificationsResult(List<NotificationItem> Items, int UnreadCount);

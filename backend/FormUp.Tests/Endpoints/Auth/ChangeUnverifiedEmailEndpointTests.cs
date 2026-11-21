@@ -15,7 +15,7 @@ namespace FormUp.Tests.Endpoints.Auth;
 /// <summary>
 /// Integration tests for <see cref="ChangeUnverifiedEmailEndpoint"/>.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class ChangeUnverifiedEmailEndpointTests(FitnessApiFactory factory)
 {
     private const string Route = "/auth/email";

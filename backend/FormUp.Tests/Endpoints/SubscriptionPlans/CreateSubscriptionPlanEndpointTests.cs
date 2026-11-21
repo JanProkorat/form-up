@@ -19,7 +19,7 @@ namespace FormUp.Tests.Endpoints.SubscriptionPlans;
 /// Uses <see cref="FitnessApiFactory"/> since Admin is not publicly self-registerable — the
 /// only way to prove the role gate is the real ASP.NET Core pipeline.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class CreateSubscriptionPlanEndpointTests(FitnessApiFactory factory) : IDisposable
 {
     private static readonly JsonSerializerOptions JsonOptions = new()

@@ -16,7 +16,7 @@ namespace FormUp.Tests.Endpoints.Trainers;
 /// The client dashboard's onboarding status counts only answers from the current collaboration, so a
 /// returning client who has not re-onboarded does not show as submitted.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class GetClientDashboardQuestionnaireStatusIntegrationTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions JsonOptions = new()

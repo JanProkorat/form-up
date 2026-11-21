@@ -17,7 +17,7 @@ namespace FormUp.Tests.Endpoints.CoachRoleRemoval;
 /// A removed coach role may not seed a new client link: invite creation and all three accept paths
 /// refuse a scope covering only the removed discipline, and a missing scope grants active disciplines only.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class RemovedCoachRoleLinkCreationIntegrationTests(FitnessApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

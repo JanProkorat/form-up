@@ -13,7 +13,7 @@ namespace FormUp.Tests.Endpoints.Users;
 /// <summary>
 /// Integration tests for <c>POST /users/me/coach-account/keep</c>.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class KeepCoachAccountIntegrationTests(FitnessApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
