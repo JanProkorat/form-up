@@ -58,6 +58,7 @@ inside one collection still run one after another.
 | the other named collections | in parallel | each fixture creates its own databases inside the shared containers |
 | classes with no `[Collection]` (validators, `Factory.Create` unit tests) | in parallel, one collection per class | no database; `Factory.Create` keeps each test's `HttpContext` in an `AsyncLocal` and disposes nothing (FastEndpoints 8.0.1) |
 | `SeedTests`, `ResetTests` | alone (`DisableParallelization = true`) | they set process-wide environment variables (`QA_SEED_*`) that `QaSeedRunner` reads |
+| `ConsoleCapture` (`Infrastructure/ConsoleCaptureCollection.cs`) | alone (`DisableParallelization = true`) | `ConsoleOutputCapture` swaps the process-wide `Console.Out` |
 
 Rules that keep this safe:
 
