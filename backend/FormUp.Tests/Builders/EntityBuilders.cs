@@ -973,6 +973,29 @@ public static class CheckInFixtures
     }
 
     /// <summary>
+    /// Puts one coach on the Free plan (cap 2) with <paramref name="clientCount"/> linked clients, activated
+    /// 10 days apart, oldest first; each client gets a scenario with its own check-in form.
+    /// </summary>
+    /// <param name="factory">The test host.</param>
+    /// <param name="clientCount">How many clients to link.</param>
+    public static async Task<List<CheckInScenario>> CreateFreePlanCoachScenariosAsync(
+        FitnessApiFactory factory, int clientCount)
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, "free");
+
+        var scenarios = new List<CheckInScenario>();
+
+        for (var i = 0; i < clientCount; i++)
+        {
+            scenarios.Add(await CreateScenarioAsync(
+                factory, coach, activatedAtUtc: DateTime.UtcNow.AddDays(-(100 - i * 10))));
+        }
+
+        return scenarios;
+    }
+
+    /// <summary>
     /// Gives an existing link a check-in form owned by the coach.
     /// </summary>
     /// <param name="factory">The test host.</param>
@@ -1001,6 +1024,32 @@ public static class CheckInFixtures
     }
 
     /// <summary>
+    /// Adds a further check-in form owned by the scenario's coach and returns its ids.
+    /// </summary>
+    /// <param name="factory">The test host.</param>
+    /// <param name="scenario">The scenario whose coach owns the form.</param>
+    /// <param name="title">The form title.</param>
+    public static async Task<(long Id, Guid PublicId)> AddFormAsync(
+        FitnessApiFactory factory, CheckInScenario scenario, string title)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var form = new Questionnaire
+        {
+            PublicId = Guid.NewGuid(),
+            ProfessionalId = scenario.Coach.UserId,
+            Title = title,
+            IsActive = true,
+            Type = QuestionnaireType.CheckIn,
+            DateCreated = DateTime.UtcNow,
+        };
+        db.Questionnaires.Add(form);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        return (form.Id, form.PublicId);
+    }
+
+    /// <summary>
     /// Adds one check-in response and returns its public id.
     /// </summary>
     /// <param name="factory">The test host.</param>
@@ -1010,6 +1059,7 @@ public static class CheckInFixtures
     /// <param name="status">The response status.</param>
     /// <param name="submittedAt">When it was submitted, for a submitted response.</param>
     /// <param name="reviewedAt">When the coach opened it, if they did.</param>
+    /// <param name="questionnaireId">Internal id of the form to answer; the scenario's form when null.</param>
     public static async Task<Guid> AddCheckInAsync(
         FitnessApiFactory factory,
         CheckInScenario scenario,
@@ -1017,10 +1067,11 @@ public static class CheckInFixtures
         DateTime dueAtUtc,
         QuestionnaireResponseStatus status = QuestionnaireResponseStatus.Pending,
         DateTime? submittedAt = null,
-        DateTime? reviewedAt = null)
+        DateTime? reviewedAt = null,
+        long? questionnaireId = null)
     {
         var builder = EntityBuilder.QuestionnaireResponse
-            .ForQuestionnaire(scenario.QuestionnaireId)
+            .ForQuestionnaire(questionnaireId ?? scenario.QuestionnaireId)
             .OnLink(scenario.LinkId)
             .FromClient(scenario.Client.UserId)
             .FromProfessional(scenario.Coach.UserId)
