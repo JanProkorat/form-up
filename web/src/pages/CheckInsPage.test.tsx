@@ -250,6 +250,48 @@ describe('CheckInsPage', () => {
     expect(await screen.findByRole('link', { name: 'Eva Svobodová' })).toBeInTheDocument();
   });
 
+  it('opens the week and status from the URL', async () => {
+    serveCheckIns(newCheckInsState({ rows: [checkIn({ clientName: 'Jakub Horák', status: 'Expired', respondedAt: undefined })] }));
+    renderCheckInsPage('?week=2026-10-12&status=missed');
+
+    expect(await screen.findByText('Week 42 · 12–18 Oct')).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Missed 1' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('writes the week and chip to the URL without adding history entries, omitting defaults', async () => {
+    serveCheckIns(newCheckInsState({ rows: [checkIn({ clientName: 'Eva Svobodová' })] }));
+    const { user, router } = renderCheckInsPage();
+    await screen.findByText('Week 43 · 19–25 Oct');
+    expect(router.state.location.search).toBe('');
+
+    await user.click(screen.getByRole('button', { name: 'Previous week' }));
+    expect(router.state.location.search).toBe('?week=2026-10-12');
+    await user.click(await screen.findByRole('button', { name: /^Waiting/ }));
+    expect(router.state.location.search).toBe('?week=2026-10-12&status=waiting');
+    await user.click(screen.getByRole('button', { name: 'Next week' }));
+    expect(router.state.location.search).toBe('?status=waiting');
+    await user.click(screen.getByRole('button', { name: /^All/ }));
+    expect(router.state.location.search).toBe('');
+    expect(router.state.historyAction).toBe('REPLACE');
+  });
+
+  it('falls back to the Monday of a non-Monday week param', async () => {
+    serveCheckIns(newCheckInsState());
+    renderCheckInsPage('?week=2026-10-15');
+
+    expect(await screen.findByText('Week 42 · 12–18 Oct')).toBeInTheDocument();
+  });
+
+  it('falls back to the current week and all statuses on invalid params', async () => {
+    const state = newCheckInsState({ rows: [checkIn({ clientName: 'Eva Svobodová' })] });
+    serveCheckIns(state);
+    renderCheckInsPage('?week=2026-13-45&status=bogus');
+
+    expect(await screen.findByText('Week 43 · 19–25 Oct')).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /^All 1/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(state.listWeeks).toEqual(['2026-10-19']);
+  });
+
   it('shows the paywall instead of the list when the plan has no check-ins', async () => {
     serveCheckIns(newCheckInsState({ features: { canUseWeeklyCheckIns: false } }));
     renderCheckInsPage();

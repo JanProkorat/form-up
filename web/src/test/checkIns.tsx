@@ -92,7 +92,7 @@ export function serveCheckIns(state: CheckInsState): void {
 }
 
 /** Mounts CheckInsPage on `/check-ins` with the toast outlet the app shell provides. */
-export function renderCheckInsPage() {
+export function renderCheckInsPage(search = '') {
   useToastStore.setState({ toasts: [] });
   const routes: RouteObject[] = [
     {
@@ -111,5 +111,5 @@ export function renderCheckInsPage() {
       ],
     },
   ];
-  return renderWithProviders(routes, { initialEntries: ['/check-ins'], auth: { roles: ['Trainer'] } });
+  return renderWithProviders(routes, { initialEntries: [`/check-ins${search}`], auth: { roles: ['Trainer'] } });
 }
