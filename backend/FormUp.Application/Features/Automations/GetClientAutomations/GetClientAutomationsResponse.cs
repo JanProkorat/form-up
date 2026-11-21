@@ -37,6 +37,12 @@ public class ClientAutomationItem
     /// <summary>Public id of the questionnaire a SendForm rule sends.</summary>
     public Guid? QuestionnaireId { get; set; }
 
+    /// <summary>Public id of the check-in form this client gets instead of the rule's own; null when they follow the rule's form.</summary>
+    public Guid? CheckInQuestionnaireId { get; set; }
+
+    /// <summary>Title of the client's own check-in form; null when they follow the rule's form.</summary>
+    public string? CheckInQuestionnaireName { get; set; }
+
     /// <summary>Effective message.</summary>
     public string? Message { get; set; }
 

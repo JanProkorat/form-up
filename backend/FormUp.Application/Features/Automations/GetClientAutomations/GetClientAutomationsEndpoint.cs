@@ -83,6 +83,7 @@ public class GetClientAutomationsEndpoint(
 
         var overrides = await db.AutomationClientOverrides
             .AsNoTracking()
+            .Include(o => o.CheckInQuestionnaire)
             .Where(o => o.ClientProfileId == context.Client.Id)
             .ToDictionaryAsync(o => o.AutomationRuleId, ct);
 
@@ -128,6 +129,12 @@ public class GetClientAutomationsEndpoint(
         foreach (var (rule, effective) in effectiveRules)
         {
             var item = BuildRuleItem(rule, effective);
+            var overrideForm = overrides.GetValueOrDefault(rule.Id) is { IsCustomized: true } customised
+                ? customised.CheckInQuestionnaire
+                : null;
+
+            item.CheckInQuestionnaireId = overrideForm?.PublicId;
+            item.CheckInQuestionnaireName = overrideForm?.Title;
             var ruleRuns = recentRuns.Where(r => r.RuleId == rule.Id).ToList();
 
             item.Sent30Days = ruleRuns.Count(r => r.Status == AutomationRunStatus.Sent);

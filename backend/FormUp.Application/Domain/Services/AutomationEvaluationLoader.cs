@@ -61,6 +61,7 @@ public static class AutomationEvaluationLoader
 
         var clientOverride = await db.AutomationClientOverrides
             .AsNoTracking()
+            .Include(o => o.CheckInQuestionnaire)
             .FirstOrDefaultAsync(o => o.AutomationRuleId == ruleId && o.ClientProfileId == clientProfileId, ct);
 
         var entitlements = await entitlementService.GetEntitlementsAsync(coach.Id, ct);
@@ -81,6 +82,7 @@ public static class AutomationEvaluationLoader
             Coach = coach,
             Client = client,
             Effective = AutomationEffectiveRule.Resolve(rule, clientOverride, localToday),
+            OverrideQuestionnaire = clientOverride is { IsCustomized: true } ? clientOverride.CheckInQuestionnaire : null,
             Zone = zone,
             StartLocalDate = AutomationNextSendCalculator.ResolveStartLocalDate(client.LinkedSince, zone),
             FirstSendNotBeforeUtc = AutomationNextSendCalculator.ResolveFirstSendNotBefore(

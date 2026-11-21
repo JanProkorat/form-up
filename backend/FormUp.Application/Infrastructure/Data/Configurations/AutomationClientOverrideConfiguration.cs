@@ -26,5 +26,13 @@ public class AutomationClientOverrideConfiguration : IEntityTypeConfiguration<Au
             .WithMany()
             .HasForeignKey(o => o.ClientProfileId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(o => o.CheckInQuestionnaire)
+            .WithMany()
+            .HasForeignKey(o => o.CheckInQuestionnaireId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired(false);
+
+        builder.HasIndex(o => o.CheckInQuestionnaireId);
     }
 }
