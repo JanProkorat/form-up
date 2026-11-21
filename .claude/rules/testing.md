@@ -76,6 +76,15 @@ Rules that keep this safe:
 - **A new `WebApplicationFactory<Program>` skips `base.DisposeAsync()`**, like
   `FitnessApiFactory` (#296). Disposing it can dispose the provider behind
   FastEndpoints' global `ServiceResolver` while other collections still use it.
+- **Every host boot goes through `Infrastructure/FastEndpointsBootGate.cs`.**
+  A factory calls `FastEndpointsBootGate.Start(this)` first in
+  `InitializeAsync`; a `WithWebHostBuilder` host is wrapped in
+  `FastEndpointsBootGate.Booted(...)`. FastEndpoints keeps its serializer
+  options in a process-wide static and replaces them on every boot, so a
+  request served by another collection mid-boot locks them and the boot throws
+  "JsonSerializerOptions instance is read-only" (CI run 44938750732). The gate
+  boots one host at a time and retries that exact failure up to three times.
+  Nothing enforces this for a new host — reviewers check it.
 
 ## What each layer is for
 
