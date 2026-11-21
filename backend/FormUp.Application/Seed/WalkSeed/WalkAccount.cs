@@ -12,6 +12,12 @@ internal sealed record WalkAccount(string Key, WalkAccountKind Kind, string Emai
     /// <summary>True for the accounts that hold a coach profile.</summary>
     public bool IsCoach => Kind != WalkAccountKind.Admin;
 
+    /// <summary>True for the accounts that get forms, a check-in rule, linked clients and check-in history.</summary>
+    public bool HasCheckInData => Kind is WalkAccountKind.CheckIns or WalkAccountKind.CheckInsOnly;
+
+    /// <summary>True for the accounts whose plan is given by Form Up, with no Stripe objects.</summary>
+    public bool IsGivenByFormUp => Kind is WalkAccountKind.Given or WalkAccountKind.CheckIns or WalkAccountKind.CheckInsOnly;
+
     /// <summary>True for the accounts backed by a Stripe sandbox subscription.</summary>
     public bool UsesStripe => Kind is WalkAccountKind.Pro or WalkAccountKind.ProThreeDSecure or WalkAccountKind.ManyClients;
 }
