@@ -42,7 +42,7 @@ function parseFilterParam(value: string | null): CheckInFilter {
 
 function TotalCard({ label, value, subline, accent = false }: { label: string; value: string; subline: string; accent?: boolean }) {
   return (
-    <div className="flex min-w-0 flex-1 flex-col gap-1 rounded-2xl border border-line bg-card px-4.5 py-4">
+    <div className="flex min-w-0 flex-col gap-1 rounded-2xl border border-line bg-card px-4.5 py-4">
       <span className="text-meta font-semibold text-muted-foreground">{label}</span>
       <span className={cn('font-display text-stat font-semibold', accent ? 'text-error' : 'text-ink')}>{value}</span>
       <span className="text-meta text-muted-foreground">{subline}</span>
@@ -102,7 +102,7 @@ export default function CheckInsPage() {
   });
 
   return (
-    <div className="flex h-full flex-col gap-4">
+    <div className="flex h-full min-w-0 flex-col gap-4">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-col gap-1.5">
           <h1 className="text-display font-semibold text-ink">{t('checkIns.title')}</h1>
@@ -139,7 +139,7 @@ export default function CheckInsPage() {
         </div>
       ) : (
         <>
-          <div className="flex flex-wrap gap-3">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <TotalCard
               label={t('checkIns.totals.answered')}
               value={t('checkIns.totals.answeredValue', { answered, total: counts.all })}
@@ -186,8 +186,9 @@ export default function CheckInsPage() {
             <span className="text-meta text-muted-foreground">{t('checkIns.timeZoneNote')}</span>
           </div>
 
-          <div className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-line bg-card shadow-panel">
-            <div className="min-h-0 overflow-y-auto [&_[data-slot=table-container]]:overflow-visible">
+          <div className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-line bg-card shadow-panel">
+            {/* One scroll container for both axes keeps the sticky header working and the card's border rounded. */}
+            <div className="min-h-0 min-w-0 overflow-auto [&_[data-slot=table-container]]:overflow-visible">
               <CheckInsTable
                 rows={visibleRows}
                 emptyText={t(rows.length === 0 ? 'checkIns.empty' : 'checkIns.emptyFilter')}
