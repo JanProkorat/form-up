@@ -1362,6 +1362,12 @@
   "h": 1100
  },
  {
+  "html": "web/49-03-page-client-automation-override-check-in-c.html",
+  "png": "web/49-03-page-client-automation-override-check-in-c.png",
+  "w": 1440,
+  "h": 1100
+ },
+ {
   "html": "web/50-01-page-automation-rule-drawer-check-in-d.html",
   "png": "web/50-01-page-automation-rule-drawer-check-in-d.png",
   "w": 1440,
@@ -1370,6 +1376,12 @@
  {
   "html": "web/50-02-page-client-forms-check-in-d.html",
   "png": "web/50-02-page-client-forms-check-in-d.png",
+  "w": 1440,
+  "h": 1100
+ },
+ {
+  "html": "web/50-03-page-client-automation-override-check-in-d.html",
+  "png": "web/50-03-page-client-automation-override-check-in-d.png",
   "w": 1440,
   "h": 1100
  },
@@ -1384,6 +1396,18 @@
   "png": "web/52-01-page-pricing-d.png",
   "w": 1440,
   "h": 2120
+ },
+ {
+  "html": "web/53-01-page-check-ins-c.html",
+  "png": "web/53-01-page-check-ins-c.png",
+  "w": 1440,
+  "h": 1000
+ },
+ {
+  "html": "web/54-01-page-check-ins-d.html",
+  "png": "web/54-01-page-check-ins-d.png",
+  "w": 1440,
+  "h": 1000
  },
  {
   "html": "mobile-light/01-01-launch-quiet.html",

@@ -4319,6 +4319,38 @@
       "h": 1360,
       "page": "web",
       "title": "D · Admin · Reports"
+    },
+    "PageClientAutomationOverrideCheckInC.dc.html": {
+      "x": 3040,
+      "y": 81332,
+      "w": 1440,
+      "h": 1100,
+      "page": "web",
+      "title": "C · ClientDetail · Automations tab · check-in changed for one client"
+    },
+    "PageClientAutomationOverrideCheckInD.dc.html": {
+      "x": 3040,
+      "y": 82572,
+      "w": 1440,
+      "h": 1100,
+      "page": "web",
+      "title": "D · ClientDetail · Automations tab · check-in changed for one client"
+    },
+    "PageCheckInsC.dc.html": {
+      "x": 0,
+      "y": 89612,
+      "w": 1440,
+      "h": 1000,
+      "page": "web",
+      "title": "C · Check-ins · weekly review"
+    },
+    "PageCheckInsD.dc.html": {
+      "x": 0,
+      "y": 90732,
+      "w": 1440,
+      "h": 1000,
+      "page": "web",
+      "title": "D · Check-ins · weekly review"
     }
   },
   "notes": {
@@ -4576,9 +4608,9 @@
     },
     "webCheckInSending": {
       "kind": "title1",
-      "maxW": 2960,
+      "maxW": 4480,
       "page": "web",
-      "text": "Check-ins — sent by an Automations rule, read and reviewed in the Forms tab  ·  light above, dark below",
+      "text": "Check-ins — sent by an Automations rule, read and reviewed in the Forms tab, changed for one client on their Automations tab  ·  light above, dark below",
       "w": 240,
       "x": 0,
       "y": 81032
@@ -4806,6 +4838,15 @@
       "w": 240,
       "x": 0,
       "y": 9332
+    },
+    "webCheckInReview": {
+      "kind": "title1",
+      "maxW": 1440,
+      "page": "web",
+      "w": 240,
+      "x": 0,
+      "y": 89312,
+      "text": "Check-in review — every client’s check-in for one week  ·  light above, dark below"
     }
   },
   "order": [
@@ -5344,6 +5385,10 @@
     "PagePricingC.dc.html",
     "PagePricingD.dc.html",
     "PageAdminReportsC.dc.html",
-    "PageAdminReportsD.dc.html"
+    "PageAdminReportsD.dc.html",
+    "PageClientAutomationOverrideCheckInC.dc.html",
+    "PageClientAutomationOverrideCheckInD.dc.html",
+    "PageCheckInsC.dc.html",
+    "PageCheckInsD.dc.html"
   ]
 }
