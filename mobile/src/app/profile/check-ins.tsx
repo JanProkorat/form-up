@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/components/Button';
 import { CheckInRow } from '@/components/checkIns/CheckInRow';
+import { CheckInScheduleCard } from '@/components/checkIns/CheckInScheduleCard';
 import { OpenNowCard } from '@/components/checkIns/OpenNowCard';
 import {
   buildHistory,
@@ -21,6 +22,7 @@ import { Screen } from '@/components/Screen';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Text } from '@/components/Text';
 import { useCheckInHistory } from '@/hooks/useCheckInHistory';
+import { useCheckInSchedule } from '@/hooks/useCheckInSchedule';
 import { useCollaborations } from '@/hooks/useCollaborations';
 import { useProfileSummary } from '@/hooks/useProfileSummary';
 import { useTheme } from '@/theme';
@@ -40,6 +42,7 @@ export default function CheckInHistoryScreen() {
   const language = i18n.language;
 
   const history = useCheckInHistory();
+  const schedule = useCheckInSchedule();
   const summary = useProfileSummary().data;
   const collaborations = useCollaborations().data;
   const [coachId, setCoachId] = useState<string>(ALL);
@@ -105,6 +108,7 @@ export default function CheckInHistoryScreen() {
           ))}
         </View>
       ) : null}
+      <CheckInScheduleCard items={schedule.items} />
     </View>
   );
 
