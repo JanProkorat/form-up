@@ -6721,6 +6721,8 @@
         "answerWindowDays_one": "{{count}} day",
         "answerWindowDays_other": "{{count}} days",
         "answerWindowHint": "After that, the week counts as missed",
+        "weekdayRuleHint": "Your rule: {{day}}",
+        "answerWindowRuleHint": "Your rule: {{window}}. After that, the week counts as missed",
         "eventLabel": "Event",
         "timing": "Timing",
         "daysAfter": "Days after",

@@ -6726,6 +6726,8 @@
         "answerWindowDays_one": "{{count}} Tag",
         "answerWindowDays_other": "{{count}} Tage",
         "answerWindowHint": "Danach zählt die Woche als verpasst",
+        "weekdayRuleHint": "Ihre Regel: {{day}}",
+        "answerWindowRuleHint": "Ihre Regel: {{window}}. Danach zählt die Woche als verpasst",
         "eventLabel": "Ereignis",
         "timing": "Zeitpunkt",
         "daysAfter": "Tage danach",
