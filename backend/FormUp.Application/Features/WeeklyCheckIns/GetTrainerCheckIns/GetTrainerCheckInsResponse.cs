@@ -60,4 +60,16 @@ public class TrainerCheckInDto
 
     /// <summary>UTC deadline by which the client must respond. Null for rows created before v1 deadline feature.</summary>
     public DateTime? DueAt { get; set; }
+
+    /// <summary>Public id of the check-in form this row was answered on.</summary>
+    public Guid FormId { get; set; }
+
+    /// <summary>Title of the check-in form this row was answered on.</summary>
+    public string FormName { get; set; } = string.Empty;
+
+    /// <summary>Client's IANA time zone id.</summary>
+    public string ClientTimeZone { get; set; } = string.Empty;
+
+    /// <summary>True when the client is over the cap of the coach's plan, as on the clients list.</summary>
+    public bool ClientIsOutsidePlan { get; set; }
 }
