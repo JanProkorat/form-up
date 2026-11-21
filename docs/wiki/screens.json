@@ -1117,6 +1117,7 @@
         "web/src/hooks/useWeeklyCheckIns.ts",
         "web/src/api/weekly-checkins.ts",
         "web/src/lib/client-metrics.ts",
+        "web/src/lib/api-errors.ts",
         "web/src/components/subscription/PaywallCard.tsx",
         "web/src/hooks/useSubscriptionQueries.ts"
       ],
@@ -3344,6 +3345,7 @@
         "mobile/src/components/ScreenHeader.tsx",
         "mobile/src/components/Text.tsx",
         "mobile/src/components/checkIns/CheckInRow.tsx",
+        "mobile/src/components/checkIns/CheckInScheduleCard.tsx",
         "mobile/src/components/checkIns/OpenNowCard.tsx",
         "mobile/src/components/checkIns/StatusPill.tsx",
         "mobile/src/components/checkIns/model.ts",
@@ -3352,12 +3354,14 @@
         "mobile/src/components/profile/ListCard.tsx",
         "mobile/src/components/profile/SectionHeader.tsx",
         "mobile/src/hooks/useCheckInHistory.ts",
+        "mobile/src/hooks/useCheckInSchedule.ts",
         "mobile/src/hooks/useCollaborations.ts",
         "mobile/src/hooks/useProfileSummary.ts",
         "mobile/src/components/OfflineBanner.tsx"
       ],
       "endpoints": [
         "GET /client/weekly-check-ins/history",
+        "GET /client/weekly-check-ins/schedule",
         "GET /client/collaborations",
         "GET /client/profile/summary"
       ],

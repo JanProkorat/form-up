@@ -119,7 +119,8 @@ describe('CheckInsPage', () => {
     const { user } = renderCheckInsPage();
 
     expect(await screen.findByText('Week 43 · 19–25 Oct')).toBeInTheDocument();
-    expect(state.listWeeks).toEqual(['2026-10-19']);
+    // The list request waits for the plan lookup, so it can land after the header.
+    await waitFor(() => expect(state.listWeeks).toEqual(['2026-10-19']));
 
     await user.click(screen.getByRole('button', { name: 'Previous week' }));
     expect(await screen.findByText('Week 42 · 12–18 Oct')).toBeInTheDocument();
@@ -293,10 +294,13 @@ describe('CheckInsPage', () => {
   });
 
   it('shows the paywall instead of the list when the plan has no check-ins', async () => {
-    serveCheckIns(newCheckInsState({ features: { canUseWeeklyCheckIns: false } }));
+    const state = newCheckInsState({ features: { canUseWeeklyCheckIns: false } });
+    serveCheckIns(state);
     renderCheckInsPage();
 
     expect(await screen.findByRole('region', { name: /check-in/i })).toBeInTheDocument();
+    // The list request must not go out behind the paywall.
+    expect(state.listWeeks).toEqual([]);
     expect(screen.queryByRole('button', { name: 'Previous week' })).not.toBeInTheDocument();
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
   });

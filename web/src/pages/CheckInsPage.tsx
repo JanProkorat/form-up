@@ -53,7 +53,7 @@ function TotalCard({ label, value, subline, accent = false }: { label: string; v
 /** Forms → Check-ins: one week of weekly check-ins across all clients, with review actions. */
 export default function CheckInsPage() {
   const { t, i18n } = useTranslation();
-  const { isEntitled } = useSubscription();
+  const { isEntitled, query: subscriptionQuery } = useSubscription();
   const locked = !isEntitled('canUseWeeklyCheckIns');
 
   // Week and status live in the URL so Back from "Open answers" returns to the same view.
@@ -77,7 +77,10 @@ export default function CheckInsPage() {
   };
 
   const weekStartDate = toDateKey(monday);
-  const query = useTrainerWeeklyCheckIns(weekStartDate);
+  const query = useTrainerWeeklyCheckIns(weekStartDate, {
+    // Unknown entitlement never locks the UI, but wait for a plan in flight so a locked coach sends no list request.
+    enabled: !locked && !subscriptionQuery.isLoading,
+  });
   const markReviewed = useMarkCheckInReviewed();
 
   const rows = useMemo(() => sortCheckIns(query.data ?? []), [query.data]);
