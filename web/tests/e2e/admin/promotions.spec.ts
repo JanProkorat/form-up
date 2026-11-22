@@ -10,6 +10,7 @@
  * Nothing reaches Stripe or the backend's promotion tables.
  */
 import type { Page, Route } from '@playwright/test';
+import type { SubscriptionPlanDto } from '../../../src/api/generated';
 import { trainerTest, expect } from '../fixtures/auth';
 
 interface PromotionMock {
@@ -34,6 +35,13 @@ interface PromotionMock {
 }
 
 const ALL_PLANS = ['start', 'pro', 'studio'];
+
+const PLAN_CATALOG: SubscriptionPlanDto[] = [
+  { code: 'free', nameCs: 'Free', nameEn: 'Free', nameDe: 'Free', priceMinorUnits: 0, isActive: true },
+  { code: 'start', nameCs: 'Start', nameEn: 'Start', nameDe: 'Start', priceMinorUnits: 29900, isActive: true },
+  { code: 'pro', nameCs: 'Pro', nameEn: 'Pro', nameDe: 'Pro', priceMinorUnits: 59900, isActive: true },
+  { code: 'studio', nameCs: 'Studio', nameEn: 'Studio', nameDe: 'Studio', priceMinorUnits: 99900, isActive: true },
+];
 
 const PROMOTIONS: PromotionMock[] = [
   {
@@ -153,6 +161,16 @@ async function mockAdminPromotions(
         })
       : route.fallback(),
   );
+
+  // The promotions page reads the plan catalog (GET /admin/subscription-plans); a trainer token is refused by the
+  // real backend, so the catalog is mocked as well.
+  await page.route(/\/admin\/subscription-plans$/, (route) => {
+    const resourceType = route.request().resourceType();
+    if (route.request().method() !== 'GET' || (resourceType !== 'fetch' && resourceType !== 'xhr')) {
+      return route.fallback();
+    }
+    return json(route, { plans: PLAN_CATALOG });
+  });
 
   await page.route(/\/admin\/promotions\/[0-9a-f-]+\/end$/, async (route) => {
     const request = route.request();
