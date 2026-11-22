@@ -5,6 +5,7 @@ using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Extensions;
 using FormUp.Application.Domain.Interfaces;
+using FormUp.Application.Domain.Services;
 using FormUp.Application.Features.Billing.Shared;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Application.Infrastructure.Services.Billing;
@@ -21,13 +22,15 @@ namespace FormUp.Application.Features.Billing.ChangePlan;
 /// <param name="timeProvider">Clock.</param>
 /// <param name="coachRoleStatus">Resolves the coach roles that are not removed.</param>
 /// <param name="coachEvents">Records an upgrade that applies now in the same save as the row change.</param>
+/// <param name="logger">Logger.</param>
 [RemovedCoachRole(RemovedCoachRoleMode.Refuse)]
 internal sealed class ChangePlanEndpoint(
     IApplicationDbContext db,
     ISubscriptionService subscriptions,
     TimeProvider timeProvider,
     ICoachRoleStatus coachRoleStatus,
-    ICoachEventRecorder coachEvents)
+    ICoachEventRecorder coachEvents,
+    ILogger<ChangePlanEndpoint> logger)
     : Endpoint<ChangePlanRequest, ChangePlanResponse>
 {
     /// <inheritdoc />
@@ -158,24 +161,15 @@ internal sealed class ChangePlanEndpoint(
                 subscription.SecondRoleAddOnEndsAt = null;
             }
 
-            // Only an upgrade that applies now is an event here; the webhook that follows finds the row already updated.
-            var after = await coachEvents.CaptureAsync(subscription, ct);
-            await coachEvents.RecordAsync(
-                CoachEventType.Upgraded,
-                userId,
-                $"change:{req.AttemptId:N}",
-                ct,
-                after.PlanCode,
-                before.PlanCode,
-                before.Amount,
-                after.Amount);
+            // The webhook for the same upgrade builds the same key from the same earlier row, so only one event is stored.
+            await coachEvents.RecordUpgradeAsync(before, subscription, ct);
         }
         else
         {
             subscription.PendingSubscriptionPlanPriceId = target.PriceId;
         }
 
-        await db.SaveChangesAsync(ct);
+        await CoachEventSaves.SaveKeepingChangesOnDuplicateAsync(db, logger, ct);
 
         await Send.OkAsync(
             new ChangePlanResponse

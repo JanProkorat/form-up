@@ -37,13 +37,23 @@ public interface ICoachEventRecorder
     /// <summary>
     /// Compares a subscription row the webhook has just updated with its captured earlier state and adds the event it
     /// amounts to: StartedPaidPlan when the coach was not paying and now is, Upgraded or Downgraded when the price row
-    /// changed. Nothing is added when the plan and price are unchanged.
+    /// changed. Nothing is added when the plan and price are unchanged. An Upgraded event takes the key of
+    /// <see cref="RecordUpgradeAsync"/>; the others use the Stripe event id and type.
     /// </summary>
-    /// <param name="stripeEventId">Id of the webhook event, the first part of the key.</param>
+    /// <param name="stripeEventId">Id of the webhook event, the first part of the key except for Upgraded.</param>
     /// <param name="before">State captured before the row was changed.</param>
     /// <param name="row">The updated row.</param>
     /// <param name="ct">Cancellation token.</param>
     Task RecordSubscriptionChangeAsync(string stripeEventId, CoachRevenueState before, CoachSubscription row, CancellationToken ct);
+
+    /// <summary>
+    /// Adds an Upgraded event under a key built from the row as it was before the upgrade, so the change-plan endpoint and the
+    /// webhook for the same upgrade write it once, whichever comes first.
+    /// </summary>
+    /// <param name="before">State captured before the row was changed.</param>
+    /// <param name="row">The updated row.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task RecordUpgradeAsync(CoachRevenueState before, CoachSubscription row, CancellationToken ct);
 
     /// <summary>
     /// Adds a Cancelled event, with the coach's earlier revenue as a negative effect, when the coach was paying.
