@@ -32,7 +32,7 @@ DETECTION
 SCOPE — deliberately narrow, to avoid false denials
   Only three package roots are guarded: backend/, web/, mobile/. Subagents
   legitimately write elsewhere in the main checkout — most importantly the
-  handoff JSONs under `.claude/state/`, plus `.qa-artifacts/`. Those are
+  handoff JSONs under `.pipeline/state/`, plus `.qa-artifacts/`. Those are
   untouched.
 
   The guard only engages while at least one `.worktrees/*` exists. When no
@@ -151,7 +151,7 @@ def deny(file_path: str, pkg: str, agent_label: str, worktrees: list[str]) -> in
         "`-C <worktree>` or cd there first. If you do not know which worktree "
         "is yours, stop and ask the orchestrator rather than guessing.\n\n"
         "This guard covers backend/, web/ and mobile/ only — writing your "
-        "handoff JSON to .claude/state/ in the main checkout is still fine. "
+        "handoff JSON to .pipeline/state/ (relative path) is still fine. "
         "See rules/branch-and-pr.md#parallel-sub-agents-one-branch-each."
     )
 

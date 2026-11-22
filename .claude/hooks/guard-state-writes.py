@@ -4,14 +4,21 @@ pipeline state. Subagents may only write their own handoff file.
 
 WHEN DOES THIS RUN?
   This is a PreToolUse hook for Write and Edit tool calls.
-  It only acts on files inside the ".claude/state/" directory — all other
-  file writes pass through immediately without inspection.
+  It only acts on files inside a ".pipeline/state/" directory — the main
+  checkout's or a worktree's (`.claude/worktrees/<name>/` or
+  `.worktrees/<issue>-<slug>/`).
+  All other file writes pass through immediately without inspection.
+
+WHY NOT .claude/state/?
+  `.claude/` is a protected path: in auto mode every write there is prompted,
+  even when a hook allows it. And an isolated worktree agent may not write the
+  main checkout at all, so each worktree keeps its own state folder.
 
 WHAT DOES IT DO?
   The pipeline uses a shared state file (pipeline.json) that only the conductor
   (main Claude session) should update. If a subagent could write it freely, it
   could corrupt or hijack the pipeline. This hook enforces:
-    - Main thread: unrestricted writes to .claude/state/
+    - Main thread: unrestricted writes to .pipeline/state/
     - Subagents: ONLY their own handoff file (see ACCEPTED FILENAMES below)
     - Everything else from a subagent: DENY
 
@@ -105,6 +112,29 @@ def allowed_stems(agent_type: str, agent_id: str) -> list[str]:
     return stems
 
 
+STATE_SUBDIR = os.path.join(".pipeline", "state")
+# Worktree roots in use: Claude Code's `.claude/worktrees/<name>` and the pipeline's `.worktrees/<issue>-<slug>`.
+_WORKTREE_STATE = re.compile(r"/(?:\.claude/worktrees|\.worktrees)/[^/]+/\.pipeline/state/")
+_WORKTREE_MARKER = re.compile(r"/(?:\.claude/worktrees|\.worktrees)/")
+
+
+def main_checkout(project_dir: str) -> str:
+    """The main checkout root, also when the session itself runs in a worktree."""
+    real = os.path.realpath(project_dir)
+    return _WORKTREE_MARKER.split(real, 1)[0]
+
+
+def is_state_path(real_path: str, project_dir: str) -> bool:
+    """True for a file under <main>/.pipeline/state/ or a worktree's <wt>/.pipeline/state/."""
+    if not real_path:
+        return False
+    root = main_checkout(project_dir)
+    if real_path.startswith(os.path.join(root, STATE_SUBDIR) + os.sep):
+        return True
+    rest = real_path[len(root):] if real_path.startswith(root + os.sep) else ""
+    return bool(_WORKTREE_STATE.match(rest))
+
+
 def log(msg: str) -> None:
     os.makedirs(LOG_DIR, exist_ok=True)
     log_path = os.path.join(LOG_DIR, f"{date.today().isoformat()}.log")
@@ -129,11 +159,10 @@ def main() -> int:
     # source script's `realpath -m` semantics.
     real_path = os.path.realpath(file_path) if file_path else ""
     project_dir = os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
-    state_dir = os.path.realpath(os.path.join(project_dir, ".claude/state"))
 
-    # --- EARLY EXIT: Only act on writes under the canonical .claude/state/ directory.
+    # --- EARLY EXIT: Only act on writes under a pipeline state directory.
     # Strict PREFIX check against the normalised path, not a substring match.
-    if not real_path.startswith(state_dir + os.sep):
+    if not is_state_path(real_path, project_dir):
         return 0
 
     # --- CHECK: Is this the main thread (conductor)? ---
@@ -165,7 +194,7 @@ def main() -> int:
             "hookEventName": "PreToolUse",
             "permissionDecision": "deny",
             "permissionDecisionReason": (
-                f"Subagents may only write to .claude/state/{expected} "
+                f"Subagents may only write to .pipeline/state/{expected} "
                 "(optionally suffixed with a work-item or issue number, e.g. "
                 f"{expected.removesuffix('.json')}-857.json); "
                 "all other state mutations go through the conductor."
