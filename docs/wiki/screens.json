@@ -133,11 +133,12 @@
         "web/src/components/register/StoreButtons.tsx",
         "web/src/components/register/storeLinks.ts"
       ],
-      "endpoints": ["POST /auth/register"],
+      "endpoints": ["POST /auth/register", "POST /auth/invite/resolve"],
       "board": "PageRegister",
       "shots": [
         { "name": "default", "steps": "click 'Osobní trenér'" },
-        { "name": "client", "steps": "click 'Cvičím pro sebe' (board PageRegisterClient); the health-data consent appears under the terms" }
+        { "name": "client", "steps": "click 'Cvičím pro sebe' (board PageRegisterClient); the health-data consent appears under the terms" },
+        { "name": "invite", "steps": "open the link from a coach's invitation email in MailHog on desktop; the email is filled in and read-only and the role is fixed to 'Cvičím pro sebe'" }
       ],
       "notionPageId": null
     },
@@ -1233,6 +1234,8 @@
         "web/src/pages/AdminPromotionsPage.tsx",
         "web/src/components/admin-promotions/**",
         "web/src/components/admin-plans/planForm.ts",
+        "web/src/components/admin-plans/useAdminPlansQueries.ts",
+        "web/src/api/admin-subscription-plans.ts",
         "web/src/components/admin-coaches/ReasonDialog.tsx",
         "web/src/components/package-catalog/catalogParts.tsx",
         "web/src/components/package-catalog/packageFormParts.tsx",
@@ -1245,6 +1248,7 @@
       ],
       "endpoints": [
         "GET /admin/promotions",
+        "GET /admin/subscription-plans",
         "POST /admin/promotions",
         "POST /admin/promotions/{promotionId}/end"
       ],

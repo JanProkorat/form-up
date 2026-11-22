@@ -296,4 +296,29 @@ public class RegisterValidatorTests
         result.ShouldHaveValidationErrorFor(x => x.GdprConsent)
             .WithErrorMessage("GDPR consent is required to register.");
     }
+
+    [Fact]
+    public void InviteToken_Absent_Passes()
+    {
+        var req = ValidRequest();
+        req.InviteToken = null;
+        _validator.TestValidate(req).ShouldNotHaveValidationErrorFor(x => x.InviteToken);
+    }
+
+    [Fact]
+    public void InviteToken_AtLimit_Passes()
+    {
+        var req = ValidRequest();
+        req.InviteToken = new string('a', 100);
+        _validator.TestValidate(req).ShouldNotHaveValidationErrorFor(x => x.InviteToken);
+    }
+
+    [Fact]
+    public void InviteToken_OverLimit_Fails()
+    {
+        var req = ValidRequest();
+        req.InviteToken = new string('a', 101);
+        _validator.TestValidate(req).ShouldHaveValidationErrorFor(x => x.InviteToken)
+            .WithErrorCode("MaximumLengthValidator");
+    }
 }

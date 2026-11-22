@@ -106,7 +106,7 @@ internal sealed class StripeWebhookEndpoint(
                 });
 
                 // One save: the event id and the subscription change commit together or not at all.
-                await SaveKeepingChangesOnDuplicateCoachEventAsync(ct);
+                await CoachEventSaves.SaveKeepingChangesOnDuplicateAsync(db, logger, ct);
 
                 await TryClearRememberedRoleAsync(ct);
 
@@ -167,43 +167,6 @@ internal sealed class StripeWebhookEndpoint(
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             logger.LogWarning(ex, "Admin subscription change notification failed for Stripe event {EventId} and coach {CoachId}", eventId, adminViewCoachId);
-        }
-    }
-
-    /// <summary>
-    /// Saves the event's changes. When a pending coach event collides with an already stored idempotency key (a concurrent
-    /// request recorded it), the colliding events are detached and the save runs once more, so the subscription change and
-    /// the processed-event row still commit. Any other failure propagates as before.
-    /// </summary>
-    private async Task SaveKeepingChangesOnDuplicateCoachEventAsync(CancellationToken ct)
-    {
-        try
-        {
-            await db.SaveChangesAsync(ct);
-        }
-        catch (DbUpdateException ex) when (CoachEventSaves.IsDuplicateKey(ex))
-        {
-            var pending = db.CoachEvents.Local.Where(e => e.Id == 0).ToList();
-            var pendingKeys = pending.Select(e => e.IdempotencyKey).ToList();
-            var stored = await db.CoachEvents
-                .AsNoTracking()
-                .Where(e => pendingKeys.Contains(e.IdempotencyKey))
-                .Select(e => e.IdempotencyKey)
-                .ToListAsync(ct);
-
-            if (stored.Count == 0)
-            {
-                throw;
-            }
-
-            logger.LogInformation("Dropping {Count} coach event(s) a concurrent request already recorded", stored.Count);
-
-            foreach (var duplicate in pending.Where(e => stored.Contains(e.IdempotencyKey)))
-            {
-                db.CoachEvents.Local.Remove(duplicate);
-            }
-
-            await db.SaveChangesAsync(ct);
         }
     }
 

@@ -1,13 +1,13 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Trans, useTranslation } from 'react-i18next';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { useSearchParams } from 'react-router-dom';
 import { EyeIcon, EyeOffIcon } from 'lucide-react';
-import { register as registerAccount } from '@/api/auth';
+import { register as registerAccount, resolveInviteToken } from '@/api/auth';
 import { getApiErrorMessage, getErrorCode } from '@/lib/api-errors';
 import { passwordMeetsAllRules } from '@/lib/password-rules';
 import { cn } from '@/lib/utils';
@@ -76,6 +76,22 @@ export default function RegisterForm() {
   const { t } = useTranslation();
   const [showPassword, setShowPassword] = useState(false);
   const [searchParams] = useSearchParams();
+  const inviteToken = searchParams.get('invite');
+
+  // A query, not a mutation fired from an effect: StrictMode would double-fire
+  // the effect and burn the endpoint's rate limit.
+  const inviteQuery = useQuery({
+    queryKey: ['invite-resolve', inviteToken],
+    queryFn: () => resolveInviteToken(inviteToken ?? ''),
+    enabled: !!inviteToken,
+    retry: false,
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+  });
+  const invitedEmail = inviteQuery.data?.email || null;
+  const inviteLocked = !!inviteToken && !!invitedEmail;
+  const inviteResolving = !!inviteToken && inviteQuery.isPending;
+  const inviteFailed = !!inviteToken && !inviteResolving && !inviteLocked;
 
   const registerSchema = useMemo(
     () =>
@@ -145,6 +161,14 @@ export default function RegisterForm() {
     },
   });
 
+  useEffect(() => {
+    if (!invitedEmail) {
+      return;
+    }
+    setValue('roles', ['Client'], { shouldValidate: true });
+    setValue('email', invitedEmail, { shouldValidate: true });
+  }, [invitedEmail, setValue]);
+
   const password = useWatch({ control, name: 'password' });
   const roles = useWatch({ control, name: 'roles' });
   const isClient = roles.includes('Client');
@@ -163,6 +187,8 @@ export default function RegisterForm() {
         // an absent JSON field binds to the same null, so the key is only
         // sent for a client.
         ...(values.roles.includes('Client') ? { healthDataConsent: true } : {}),
+        // Only a token that resolved is sent; a failed one is dropped.
+        ...(inviteLocked && inviteToken ? { inviteToken } : {}),
       }),
     onError: (error) => {
       if (axios.isAxiosError(error) && error.response?.status === 400) {
@@ -229,6 +255,11 @@ export default function RegisterForm() {
               {t('entry.register.title')}
             </h1>
             <p className="text-copy text-muted-foreground">{t('entry.register.lede')}</p>
+            {inviteFailed && (
+              <p role="status" className="text-meta text-muted-foreground">
+                {t('entry.register.invite.unavailable')}
+              </p>
+            )}
           </div>
 
           <form
@@ -261,6 +292,7 @@ export default function RegisterForm() {
                   }}
                   onBlur={field.onBlur}
                   error={errors.roles?.message}
+                  locked={inviteLocked}
                 />
               )}
             />
@@ -307,14 +339,29 @@ export default function RegisterForm() {
               <Label htmlFor="entry-register-email">{t('entry.register.emailLabel')}</Label>
               <Input
                 id="entry-register-email"
-                className={inputClass}
+                className={cn(inputClass, inviteLocked && 'bg-sunken')}
                 type="email"
                 autoComplete="email"
                 placeholder={t('entry.register.emailPlaceholder')}
                 aria-invalid={!!errors.email}
-                aria-describedby={errors.email ? 'entry-register-email-error' : undefined}
+                aria-describedby={
+                  errors.email
+                    ? 'entry-register-email-error'
+                    : inviteLocked
+                      ? 'entry-register-email-hint'
+                      : undefined
+                }
+                aria-busy={inviteResolving}
+                readOnly={inviteLocked}
+                aria-readonly={inviteLocked || undefined}
+                disabled={inviteResolving}
                 {...register('email')}
               />
+              {inviteLocked && (
+                <p id="entry-register-email-hint" className="text-caption text-muted-foreground">
+                  {t('entry.register.invite.emailHint')}
+                </p>
+              )}
               {errors.email && (
                 <p id="entry-register-email-error" className="text-meta text-destructive">
                   {errors.email.message}

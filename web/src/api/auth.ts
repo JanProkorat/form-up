@@ -7,6 +7,8 @@ import type {
 } from '@/api/client';
 import type {
   AnonymousResendVerificationResponse,
+  ResolveInviteTokenRequest,
+  ResolveInviteTokenResponse,
   VerifyEmailRequest,
   VerifyEmailResponse,
 } from '@/api/generated';
@@ -107,6 +109,18 @@ export async function appleSocialLogin(payload: {
  */
 export async function register(payload: RegisterRequest): Promise<RegisterResponse> {
   const { data } = await api.post<RegisterResponse>('/auth/register', payload);
+  return data;
+}
+
+/**
+ * POST /auth/invite/resolve
+ * Resolves an invite-link token to the invited email. Any unknown, expired or
+ * used token is a bare 404 (400 for a malformed one, 429 when rate limited);
+ * callers must treat every failure the same and never reveal why it failed.
+ */
+export async function resolveInviteToken(token: string): Promise<ResolveInviteTokenResponse> {
+  const payload: ResolveInviteTokenRequest = { token };
+  const { data } = await api.post<ResolveInviteTokenResponse>('/auth/invite/resolve', payload);
   return data;
 }
 

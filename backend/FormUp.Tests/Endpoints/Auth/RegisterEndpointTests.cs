@@ -39,7 +39,7 @@ public class RegisterEndpointTests
         _userManager.AddToRolesAsync(Arg.Any<ApplicationUser>(), Arg.Any<IEnumerable<string>>())
             .Returns(IdentityResult.Success);
 
-        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _tokenService, _logger, _coachEvents);
+        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _tokenService, _logger, _coachEvents, TimeProvider.System);
 
         var req = new RegisterRequest
         {
@@ -65,7 +65,7 @@ public class RegisterEndpointTests
         _userManager.CreateAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>())
             .Returns(IdentityResult.Failed(new IdentityError { Description = "Email already taken." }));
 
-        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _tokenService, _logger, _coachEvents);
+        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _tokenService, _logger, _coachEvents, TimeProvider.System);
 
         var req = new RegisterRequest
         {
@@ -91,7 +91,7 @@ public class RegisterEndpointTests
         _userManager.AddToRolesAsync(Arg.Any<ApplicationUser>(), Arg.Any<IEnumerable<string>>())
             .Returns(IdentityResult.Success);
 
-        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _tokenService, _logger, _coachEvents);
+        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _tokenService, _logger, _coachEvents, TimeProvider.System);
 
         var req = new RegisterRequest
         {
@@ -122,7 +122,7 @@ public class RegisterEndpointTests
         _userManager.AddToRolesAsync(Arg.Any<ApplicationUser>(), Arg.Any<IEnumerable<string>>())
             .Returns(IdentityResult.Success);
 
-        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _tokenService, _logger, _coachEvents);
+        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _tokenService, _logger, _coachEvents, TimeProvider.System);
 
         await ep.HandleAsync(new RegisterRequest
         {
@@ -151,7 +151,7 @@ public class RegisterEndpointTests
         _userManager.AddToRolesAsync(Arg.Any<ApplicationUser>(), Arg.Any<IEnumerable<string>>())
             .Returns(IdentityResult.Success);
 
-        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _tokenService, _logger, _coachEvents);
+        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _tokenService, _logger, _coachEvents, TimeProvider.System);
 
         await ep.HandleAsync(new RegisterRequest
         {
@@ -175,7 +175,7 @@ public class RegisterEndpointTests
         _userManager.AddToRolesAsync(Arg.Any<ApplicationUser>(), Arg.Any<IEnumerable<string>>())
             .Returns(IdentityResult.Success);
 
-        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _tokenService, _logger, _coachEvents);
+        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _tokenService, _logger, _coachEvents, TimeProvider.System);
 
         await ep.HandleAsync(new RegisterRequest
         {
@@ -200,7 +200,7 @@ public class RegisterEndpointTests
         _userManager.AddToRolesAsync(Arg.Any<ApplicationUser>(), Arg.Any<IEnumerable<string>>())
             .Returns(IdentityResult.Success);
 
-        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _tokenService, _logger, _coachEvents);
+        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _tokenService, _logger, _coachEvents, TimeProvider.System);
 
         var req = new RegisterRequest
         {
@@ -228,7 +228,7 @@ public class RegisterEndpointTests
         _userManager.AddToRolesAsync(Arg.Any<ApplicationUser>(), Arg.Any<IEnumerable<string>>())
             .Returns(IdentityResult.Success);
 
-        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _tokenService, _logger, _coachEvents);
+        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _tokenService, _logger, _coachEvents, TimeProvider.System);
 
         await ep.HandleAsync(new RegisterRequest
         {
@@ -260,7 +260,7 @@ public class RegisterEndpointTests
         _userManager.AddToRolesAsync(Arg.Any<ApplicationUser>(), Arg.Any<IEnumerable<string>>())
             .Returns(IdentityResult.Success);
 
-        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _tokenService, _logger, _coachEvents);
+        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _tokenService, _logger, _coachEvents, TimeProvider.System);
 
         await ep.HandleAsync(new RegisterRequest
         {
@@ -297,7 +297,7 @@ public class RegisterEndpointTests
             .SendEmailVerificationAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns<Task>(_ => throw new InvalidOperationException("smtp down"));
 
-        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _tokenService, _logger, _coachEvents);
+        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _tokenService, _logger, _coachEvents, TimeProvider.System);
 
         var req = new RegisterRequest
         {
