@@ -2,6 +2,7 @@ using FastEndpoints;
 using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
+using FormUp.Application.Domain.Extensions;
 using FormUp.Application.Domain.Interfaces;
 using FormUp.Application.Domain.Services;
 using FormUp.Application.Infrastructure.Data;
@@ -19,13 +20,15 @@ namespace FormUp.Application.Features.Auth.Register;
 /// <param name="tokenService">Shared email-verification token issuance service (see #679).</param>
 /// <param name="logger">Logger for non-fatal send failures.</param>
 /// <param name="coachEvents">Records the coach's sign-up event in the same save as the profile.</param>
+/// <param name="timeProvider">Clock for invite token expiry.</param>
 public class RegisterEndpoint(
     UserManager<ApplicationUser> userManager,
     IApplicationDbContext dbContext,
     IAuditService audit,
     IEmailVerificationTokenService tokenService,
     ILogger<RegisterEndpoint> logger,
-    ICoachEventRecorder coachEvents) : Endpoint<RegisterRequest, RegisterResponse>
+    ICoachEventRecorder coachEvents,
+    TimeProvider timeProvider) : Endpoint<RegisterRequest, RegisterResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -61,6 +64,8 @@ public class RegisterEndpoint(
             HealthDataConsent = isClient ? req.HealthDataConsent : null,
             HealthDataConsentDate = isClient && req.HealthDataConsent == true ? nowUtc : null
         };
+
+        await EnforceInviteBindingAsync(req, ct);
 
         var result = await userManager.CreateAsync(user, req.Password);
 
@@ -138,5 +143,38 @@ public class RegisterEndpoint(
             Email = user.Email!,
             Message = "Registration successful."
         }, StatusCodes.Status201Created, ct);
+    }
+
+    /// <summary>
+    /// When the request carries a still-valid invite token, requires the invited email and the Client role.
+    /// An unknown, expired or used token is ignored and sign-up continues as a normal one.
+    /// </summary>
+    private async Task EnforceInviteBindingAsync(RegisterRequest req, CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(req.InviteToken))
+        {
+            return;
+        }
+
+        var invitedEmail = await InvitationTokenLookup.FindValidEmailAsync(
+            dbContext, req.InviteToken, timeProvider.GetUtcNow().UtcDateTime, ct);
+
+        if (invitedEmail is null)
+        {
+            return;
+        }
+
+        if (!string.Equals(req.Email.Trim(), invitedEmail.Trim(), StringComparison.OrdinalIgnoreCase))
+        {
+            this.ThrowErrorWithCode(ErrorCodes.InviteEmailMismatch, "Email must match the invited address.");
+        }
+
+        var clientOnly = req.Roles.Count > 0
+            && req.Roles.All(r => string.Equals(r, nameof(UserRole.Client), StringComparison.OrdinalIgnoreCase));
+
+        if (!clientOnly)
+        {
+            this.ThrowErrorWithCode(ErrorCodes.InviteRoleMismatch, "An invitation can only be used to sign up as a client.");
+        }
     }
 }

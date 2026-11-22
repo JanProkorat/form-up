@@ -31,6 +31,10 @@ public class RegisterValidator : Validator<RegisterRequest>
             .EmailAddress()
             .MaximumLength(100);
 
+        RuleFor(x => x.InviteToken)
+            .MaximumLength(100)
+            .When(x => x.InviteToken is not null);
+
         RuleFor(x => x.Password)
             .NotEmpty()
             .MinimumLength(8)

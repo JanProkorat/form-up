@@ -254,6 +254,19 @@ builder.Services.AddRateLimiter(options =>
                     QueueLimit = 0
                 }));
 
+    // Anonymous invite token lookup: see AppPolicies.InviteResolveRateLimit for why this is not the auth budget.
+    options.AddPolicy(AppPolicies.InviteResolveRateLimit, context =>
+        rateLimitingDisabled
+            ? RateLimitPartition.GetNoLimiter("disabled")
+            : RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: GetPartitionKey(context),
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 20,
+                    Window = TimeSpan.FromMinutes(15),
+                    QueueLimit = 0
+                }));
+
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
 

@@ -3791,6 +3791,8 @@
     "PLAN_OVERLAP": "Der gewählte Zeitraum überschneidet sich mit einem bestehenden Plan dieses Klienten.",
     "PLAN_ALREADY_STARTED": "Der Plan kann nicht gelöscht werden, weil eine veröffentlichte Woche bereits begonnen hat.",
     "CLIENT_NUTRITION_PROFILE_MISSING": "Dieser Klient hat noch keine Ernährungsziele oder Fragebogenantworten, die sich bearbeiten ließen.",
+    "INVITE_EMAIL_MISMATCH": "Diese E-Mail-Adresse passt nicht zur Einladung.",
+    "INVITE_ROLE_MISMATCH": "Eine Einladung kann nur zur Registrierung als Klient verwendet werden.",
     "INVALID_VERIFICATION_TOKEN": "Ungültiger oder abgelaufener Bestätigungslink.",
     "VERIFICATION_TOKEN_EXPIRED": "Der Bestätigungslink ist abgelaufen. Bitte fordern Sie einen neuen an.",
     "VERIFICATION_RESEND_LIMIT_REACHED": "Zu viele Bestätigungs-E-Mails gesendet. Bitte versuchen Sie es später erneut.",
@@ -6008,6 +6010,10 @@
         "passwordInvalid": "Das Passwort erfüllt nicht alle oben genannten Anforderungen.",
         "consentRequired": "Sie müssen den Nutzungsbedingungen und der Datenschutzerklärung zustimmen, um ein Konto zu erstellen.",
         "healthConsentRequired": "Sie müssen der Verarbeitung Ihrer Gesundheitsdaten zustimmen, um ein Konto zu erstellen."
+      },
+      "invite": {
+        "emailHint": "An diese E-Mail-Adresse wurde Ihre Einladung gesendet.",
+        "unavailable": "Dieser Einladungslink kann nicht mehr verwendet werden. Sie können unten trotzdem ein Konto erstellen."
       },
       "errors": {
         "duplicateEmail": "Diese E-Mail-Adresse ist bereits registriert.",

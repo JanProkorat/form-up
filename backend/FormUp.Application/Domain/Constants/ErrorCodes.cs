@@ -865,4 +865,11 @@ public static class ErrorCodes
     // ── Onboarding form choice ──────────────────────────────────────────
     /// <summary>The request skips the onboarding form and also names a questionnaire.</summary>
     public const string SkipOnboardingFormWithQuestionnaire = "SKIP_ONBOARDING_FORM_WITH_QUESTIONNAIRE";
+
+    // ── Invite sign-up ──────────────────────────────────────────────────
+    /// <summary>Sign-up with a valid invite token used a different email than the one invited.</summary>
+    public const string InviteEmailMismatch = "INVITE_EMAIL_MISMATCH";
+
+    /// <summary>Sign-up with a valid invite token asked for a role other than Client.</summary>
+    public const string InviteRoleMismatch = "INVITE_ROLE_MISMATCH";
 }
