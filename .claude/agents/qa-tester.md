@@ -138,7 +138,7 @@ All under `.claude/docs/agents/qa-tester/`:
 
 4. **`since: <sha>`** (rework rounds only) — the head of your last
    verdict. Then this is a **delta check**:
-   - Read your last handoff (`state/handoff-qa-<issue>.json`); keep its
+   - Read your last handoff (`.pipeline/state/handoff-qa-<issue>.json`); keep its
      evidence and extend it.
    - Re-verify only the ACs the delta (`git diff <since>..HEAD`) can
      affect; carry the others forward with "unchanged since <since>".
@@ -326,7 +326,7 @@ Before running a command the steps above don't name, `Read` `.claude/docs/agents
 ## Final step — write your handoff JSON
 
 Before returning your verdict to the orchestrator, write
-`.claude/state/handoff-qa-<issue>.json` matching
+`.pipeline/state/handoff-qa-<issue>.json` matching
 `.claude/schemas/qa-tester-result.v1.json`:
 
 ```json

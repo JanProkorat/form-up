@@ -15,7 +15,7 @@ replies stay short and point at the page.
 - Template: `.claude/skills/test-guide/template.html`. Copy it, replace `__GUIDE_TITLE__` (2–4 word name, e.g.
   "Billing Epic Tests"), publish with `capabilities: {db: {}, assets: {}}` and `icon: "checklist"`.
   Never put content in the HTML: everything lives in the page's database, written with `ArtifactData`.
-- Registry: `.claude/state/test-guides.json` maps the request (epic number, or issue number for standalone work)
+- Registry: `.pipeline/state/test-guides.json` maps the request (epic number, or issue number for standalone work)
   to its artifact URL. Check it first; reuse the existing page for the same epic, create one only for a new request.
 - Database layout (all documents are plain JSON):
   - `meta/guide`: `{title, intro, setup: [string], updatedAt}` — setup lines are the one-time prerequisites

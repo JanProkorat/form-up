@@ -2,7 +2,7 @@
 # gate-check.sh — SubagentStop hook.
 #
 # Runs after every Agent dispatch returns to the orchestrator. If the
-# subagent wrote a handoff file under .claude/state/handoff-*.json,
+# subagent wrote a handoff file under .pipeline/state/handoff-*.json,
 # validate it against its declared schema before letting control flow
 # back. A schema-violating handoff exits non-zero so the agent sees
 # the error and self-corrects.
@@ -10,7 +10,7 @@
 # How we find the handoff:
 #   The hook receives a JSON payload on stdin carrying agent_id /
 #   agent_type / transcript_path. We look for a handoff file in
-#   .claude/state/ that matches the agent_type prefix AND was written
+#   .pipeline/state/ that matches the agent_type prefix AND was written
 #   during this agent's run. If none exists we exit cleanly — not every
 #   dispatch produces a handoff (ad-hoc Explore queries, or a dispatch
 #   the orchestrator told to reply in prose).
@@ -68,8 +68,18 @@ case "$AGENT_TYPE" in
         ;;
 esac
 
-STATE_DIR="$PROJECT_DIR/.claude/state"
-[ -d "$STATE_DIR" ] || exit 0
+# Handoffs live in .pipeline/state/ of the checkout the agent worked in: the main
+# checkout, or a worktree (.claude/worktrees/<name> or .worktrees/<issue>-<slug>).
+# An isolated worktree agent cannot write the main checkout, so each worktree has
+# its own folder. Look in the agent's own worktree first (payload cwd), and scan
+# the main checkout and every worktree only when that finds nothing.
+WT_PATTERN='/(\.claude/worktrees|\.worktrees)/'
+MAIN_DIR="$(printf '%s' "$PROJECT_DIR" | sed -E "s#${WT_PATTERN}.*##")"
+CWD="$(printf '%s' "$INPUT" | jq -r '.cwd // empty' 2>/dev/null)"
+OWN_STATE=""
+if printf '%s' "$CWD" | grep -qE "$WT_PATTERN"; then
+    OWN_STATE="$(printf '%s' "$CWD" | sed -E "s#(${WT_PATTERN}[^/]+).*#\\1#")/.pipeline/state"
+fi
 
 # mtime of $1 via BSD (macOS) then GNU stat. Empty if neither works.
 file_mtime() {
@@ -95,21 +105,35 @@ LATEST=""
 LATEST_MTIME=0
 SKIPPED_STALE=0
 
+scan_state_dir() { # $1 = a .pipeline/state directory
+    local f mtime
+    [ -d "$1" ] || return 0
+    for f in "$1"/${prefix}*.json; do
+        [ -f "$f" ] || continue
+        mtime="$(file_mtime "$f")"
+        [ -n "$mtime" ] || continue
+        if [ -n "$AGENT_STARTED" ] && [ "$mtime" -lt "$((AGENT_STARTED - 2))" ]; then
+            # Predates this agent — it belongs to some other issue's run.
+            SKIPPED_STALE=$((SKIPPED_STALE + 1))
+            continue
+        fi
+        if [ "$mtime" -gt "$LATEST_MTIME" ]; then
+            LATEST_MTIME="$mtime"
+            LATEST="$f"
+        fi
+    done
+}
+
 shopt -s nullglob
-for f in "$STATE_DIR"/${prefix}*.json; do
-    [ -f "$f" ] || continue
-    mtime="$(file_mtime "$f")"
-    [ -n "$mtime" ] || continue
-    if [ -n "$AGENT_STARTED" ] && [ "$mtime" -lt "$((AGENT_STARTED - 2))" ]; then
-        # Predates this agent — it belongs to some other issue's run.
-        SKIPPED_STALE=$((SKIPPED_STALE + 1))
-        continue
-    fi
-    if [ "$mtime" -gt "$LATEST_MTIME" ]; then
-        LATEST_MTIME="$mtime"
-        LATEST="$f"
-    fi
-done
+[ -n "$OWN_STATE" ] && scan_state_dir "$OWN_STATE"
+if [ -z "$LATEST" ]; then
+    # Fallback when the payload cwd is not the agent's worktree. A parallel agent
+    # of the same type in another worktree could match here; the log names the file.
+    for d in "$MAIN_DIR/.pipeline/state" "$MAIN_DIR"/.claude/worktrees/*/.pipeline/state "$MAIN_DIR"/.worktrees/*/.pipeline/state; do
+        [ "$d" = "$OWN_STATE" ] && continue
+        scan_state_dir "$d"
+    done
+fi
 shopt -u nullglob
 
 if [ -z "$AGENT_STARTED" ]; then

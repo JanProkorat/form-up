@@ -38,9 +38,9 @@ from datetime import date, datetime
 # STATE stays relative, matching the source script's behavior exactly.
 # kit hooks run in many repos — anchor logs to CLAUDE_PROJECT_DIR (falls back to cwd, matching source when unset)
 LOG_DIR = os.path.join(os.environ.get("CLAUDE_PROJECT_DIR", "."), ".claude/hooks/log")
-STATE = ".claude/state/pipeline.json"
+STATE = ".pipeline/state/pipeline.json"
 # Repos without the conductor pipeline track epics via the ship-epic skill instead.
-EPIC_STATE = ".claude/state/ship-epic.json"
+EPIC_STATE = ".pipeline/state/ship-epic.json"
 
 _KEEP_ALNUM_DASH = re.compile(r"[^A-Za-z0-9_-]")
 _KEEP_ALNUM_DASH_SPACE_DOT = re.compile(r"[^A-Za-z0-9_.\- ]")
