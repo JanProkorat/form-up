@@ -19,6 +19,17 @@ public class AcceptInvitationEndpointTests
     private readonly IRealtimeNotifier _notifier = Substitute.For<IRealtimeNotifier>();
     private readonly IConversationSeedService _conversationSeedService = Substitute.For<IConversationSeedService>();
 
+    /// <summary>
+    /// Stubs the caller (<c>_userId</c>) as a client whose email matches the builder's default
+    /// invitation email — the accept flow only honours a token addressed to the caller (#2333).
+    /// </summary>
+    private void StubCaller(Microsoft.AspNetCore.Identity.UserManager<ApplicationUser> userManager)
+    {
+        var caller = EntityBuilder.User.WithId(_userId).WithEmail("client@test.com")
+            .WithFirstName("C").WithLastName("L").Build();
+        userManager.FindByIdAsync(_userId.ToString()).Returns(caller);
+    }
+
     [Fact]
     public async Task HandleAsync_ValidToken_AcceptsInvitation()
     {
@@ -37,6 +48,7 @@ public class AcceptInvitationEndpointTests
             .WithFirstName("T").WithLastName("R").Build();
 
         var userManager = EndpointTestHelpers.CreateFakeUserManager();
+        StubCaller(userManager);
         userManager.FindByIdAsync(_trainerId.ToString()).Returns(trainerUser);
         userManager.GetRolesAsync(trainerUser).Returns(["Trainer"]);
 
@@ -89,6 +101,7 @@ public class AcceptInvitationEndpointTests
             .WithFirstName("T").WithLastName("R").Build();
 
         var userManager = EndpointTestHelpers.CreateFakeUserManager();
+        StubCaller(userManager);
         userManager.FindByIdAsync(_trainerId.ToString()).Returns(trainerUser);
         userManager.GetRolesAsync(trainerUser).Returns(["Trainer", "Nutritionist"]);
 
@@ -131,6 +144,7 @@ public class AcceptInvitationEndpointTests
             .WithFirstName("T").WithLastName("R").Build();
 
         var userManager = EndpointTestHelpers.CreateFakeUserManager();
+        StubCaller(userManager);
         userManager.FindByIdAsync(_trainerId.ToString()).Returns(trainerUser);
         userManager.GetRolesAsync(trainerUser).Returns(["Trainer", "Nutritionist"]);
 
@@ -180,6 +194,7 @@ public class AcceptInvitationEndpointTests
             .WithFirstName("T").WithLastName("R").Build();
 
         var userManager = EndpointTestHelpers.CreateFakeUserManager();
+        StubCaller(userManager);
         userManager.FindByIdAsync(_trainerId.ToString()).Returns(trainerUser);
         userManager.GetRolesAsync(trainerUser).Returns(["Trainer"]);
 
@@ -250,6 +265,7 @@ public class AcceptInvitationEndpointTests
             .WithFirstName("T").WithLastName("R").Build();
 
         var userManager = EndpointTestHelpers.CreateFakeUserManager();
+        StubCaller(userManager);
         userManager.FindByIdAsync(_trainerId.ToString()).Returns(trainerUser);
         userManager.GetRolesAsync(trainerUser).Returns(["Trainer", "Nutritionist"]);
 
@@ -293,6 +309,7 @@ public class AcceptInvitationEndpointTests
             .WithFirstName("T").WithLastName("R").Build();
 
         var userManager = EndpointTestHelpers.CreateFakeUserManager();
+        StubCaller(userManager);
         userManager.FindByIdAsync(_trainerId.ToString()).Returns(trainerUser);
         userManager.GetRolesAsync(trainerUser).Returns(["Trainer"]);
 
@@ -355,6 +372,7 @@ public class AcceptInvitationEndpointTests
             .WithFirstName("N").WithLastName("R").Build();
 
         var userManager = EndpointTestHelpers.CreateFakeUserManager();
+        StubCaller(userManager);
         userManager.FindByIdAsync(_trainerId.ToString()).Returns(invitingUser);
         userManager.GetRolesAsync(invitingUser).Returns(["Nutritionist"]);
 
@@ -406,6 +424,7 @@ public class AcceptInvitationEndpointTests
             .WithFirstName("T").WithLastName("R").Build();
 
         var userManager = EndpointTestHelpers.CreateFakeUserManager();
+        StubCaller(userManager);
         userManager.FindByIdAsync(_trainerId.ToString()).Returns(trainerUser);
         userManager.GetRolesAsync(trainerUser).Returns(["Trainer"]);
 
@@ -437,6 +456,7 @@ public class AcceptInvitationEndpointTests
 
         var db = new MockDbBuilder().With(invitation).Build();
         var userManager = EndpointTestHelpers.CreateFakeUserManager();
+        StubCaller(userManager);
 
         var ep = Factory.Create<AcceptInvitationEndpoint>(
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
@@ -448,6 +468,7 @@ public class AcceptInvitationEndpointTests
         var act = () => ep.HandleAsync(new AcceptInvitationRequest { Token = "expired-token" }, default);
 
         await act.Should().ThrowAsync<ValidationFailureException>();
+        ep.ValidationFailures.Should().ContainSingle(f => f.ErrorCode == ErrorCodes.InvalidInvitation);
     }
 
     [Fact]
@@ -462,6 +483,7 @@ public class AcceptInvitationEndpointTests
 
         var db = new MockDbBuilder().With(invitation).Build();
         var userManager = EndpointTestHelpers.CreateFakeUserManager();
+        StubCaller(userManager);
 
         var ep = Factory.Create<AcceptInvitationEndpoint>(
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
@@ -473,6 +495,7 @@ public class AcceptInvitationEndpointTests
         var act = () => ep.HandleAsync(new AcceptInvitationRequest { Token = "used-token" }, default);
 
         await act.Should().ThrowAsync<ValidationFailureException>();
+        ep.ValidationFailures.Should().ContainSingle(f => f.ErrorCode == ErrorCodes.InvalidInvitation);
     }
 
     [Fact]
@@ -480,6 +503,7 @@ public class AcceptInvitationEndpointTests
     {
         var db = new MockDbBuilder().Build();
         var userManager = EndpointTestHelpers.CreateFakeUserManager();
+        StubCaller(userManager);
 
         var ep = Factory.Create<AcceptInvitationEndpoint>(
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
@@ -491,6 +515,7 @@ public class AcceptInvitationEndpointTests
         var act = () => ep.HandleAsync(new AcceptInvitationRequest { Token = "nonexistent" }, default);
 
         await act.Should().ThrowAsync<ValidationFailureException>();
+        ep.ValidationFailures.Should().ContainSingle(f => f.ErrorCode == ErrorCodes.InvalidInvitation);
     }
 
     [Fact]
@@ -511,6 +536,7 @@ public class AcceptInvitationEndpointTests
             .WithFirstName("T").WithLastName("R").Build();
 
         var userManager = EndpointTestHelpers.CreateFakeUserManager();
+        StubCaller(userManager);
         userManager.FindByIdAsync(_trainerId.ToString()).Returns(trainerUser);
         userManager.GetRolesAsync(trainerUser).Returns(["Trainer"]);
 

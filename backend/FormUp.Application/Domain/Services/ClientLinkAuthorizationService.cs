@@ -93,7 +93,8 @@ public class ClientLinkAuthorizationService(IApplicationDbContext db) : IClientL
             LinkCapabilityScope.TrainingOnly => activeLinks.Where(cpl => cpl.CanViewTrainingPlans),
             LinkCapabilityScope.NutritionOnly => activeLinks.Where(cpl => cpl.CanViewNutritionPlans),
             LinkCapabilityScope.Both => activeLinks.Where(cpl => cpl.CanViewTrainingPlans && cpl.CanViewNutritionPlans),
-            null => activeLinks
+            null => activeLinks,
+            _ => throw new ArgumentOutOfRangeException(nameof(requiredScope), requiredScope, "Unknown link capability scope.")
         };
 
         var rows = await filteredLinks

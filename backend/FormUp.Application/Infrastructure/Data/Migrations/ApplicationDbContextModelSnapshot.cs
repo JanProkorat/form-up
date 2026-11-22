@@ -2266,6 +2266,10 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                         .HasDefaultValue(false)
                         .HasColumnName("pays_second_role_add_on");
 
+                    b.Property<string>("PendingRefundSubscriptionId")
+                        .HasColumnType("text")
+                        .HasColumnName("pending_refund_subscription_id");
+
                     b.Property<long?>("PendingSubscriptionPlanPriceId")
                         .HasColumnType("bigint")
                         .HasColumnName("pending_subscription_plan_price_id");
