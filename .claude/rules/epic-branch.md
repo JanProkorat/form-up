@@ -1,6 +1,6 @@
 ---
 paths:
-  - ".claude/state/**"
+  - ".pipeline/state/**"
 ---
 
 # Rules: Epic-branch model

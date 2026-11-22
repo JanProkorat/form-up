@@ -1,6 +1,6 @@
 ---
 paths:
-  - ".claude/state/**"
+  - ".pipeline/state/**"
 description: PR base branch, remote-agnostic PR tooling, and the review gate before work lands
 ---
 

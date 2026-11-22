@@ -8,7 +8,7 @@ Detailed conventions live in [`rules/*.md`](rules/) — cite anchors, never
 restate. Citation format: `rules/<file>.md#<anchor>`.
 
 Rules are path-scoped (`paths:` frontmatter): backend rules load on `backend/**`,
-client rules on `web/**`/`mobile/**`, pipeline rules on `.claude/state/**`.
+client rules on `web/**`/`mobile/**`, pipeline rules on `.pipeline/state/**`.
 None preload. A citation is a load instruction — `Read` the cited rule file
 before acting on it if it is not already in context.
 
@@ -139,7 +139,7 @@ canvas (`HFzM8WqykBxJvkLdiqU85h`) is frozen; do not use it.
    (target sub-agent, base branch, scope summary, guessed files-in-scope).
    - **APPROVE** → proceed with dispatch. Pass `approved_scope.files_in_scope`,
      `required_reads`, and `error_paths` to the dev agent as its scope contract
-     (it reads `state/handoff-design-<issue>.json` as its first action).
+     (it reads `.pipeline/state/handoff-design-<issue>.json` as its first action).
    - **NEEDS-REVISION** → address the listed findings (usually tighten the
      brief — drop out-of-scope files, add missing test plan), re-submit.
      Loop up to **3 rounds total**. Round 4 NEEDS-REVISION → surface to user.
@@ -294,7 +294,7 @@ testing strategy → the stack `*-verify` skills; anything else → do it inline
   e.g. `qa-tester` is blocked from `git commit`, `backend-dotnet` from `npm`.
 - Sub-agent handoffs are JSON-schema-validated before control returns
   (`gate-check.sh` SubagentStop hook). Schemas under `.claude/schemas/`.
-- Long-running orchestration state persists to `.claude/state/ship-epic.json`;
+- Long-running orchestration state persists to `.pipeline/state/ship-epic.json`;
   `reinject-state.py` re-hydrates context after `/clear` or compact.
 
 ## Task lifecycle reminder

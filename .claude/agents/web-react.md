@@ -17,7 +17,7 @@ requests go back to the orchestrator.
 ## First action — read your design-review approval
 
 Your **first action** on any issue-driven dispatch is to read
-`.claude/state/handoff-design-<issue>.json`. The orchestrator runs
+`.pipeline/state/handoff-design-<issue>.json`. The orchestrator runs
 `design-reviewer` ahead of you. Use:
 
 - `approved_scope.files_in_scope` — your boundary.
@@ -154,8 +154,9 @@ Then, for the rest of the task:
   **denies** subagent writes to `backend/`, `web/` and `mobile/` in the
   main checkout while any worktree exists. If you hit that denial, you are
   in the wrong tree — do not try to route around it, re-target the edit.
-- Writing your handoff JSON to the main `.claude/state/` is still correct
-  and is not blocked.
+- Write your handoff JSON to `.pipeline/state/` by **relative** path, in
+  the checkout you work in. Never the main checkout's absolute path:
+  Claude Code refuses an isolated worktree agent's write there.
 - Never reuse a branch another sub-agent is already working on. If `git
   status` shows commits or uncommitted files that don't belong to your
   issue, stop and return to the orchestrator — it means a dispatch went
@@ -164,7 +165,7 @@ Then, for the rest of the task:
 ## Final step — write your handoff JSON
 
 Before returning control to the orchestrator, write
-`.claude/state/handoff-dev-<issue>.json` matching
+`.pipeline/state/handoff-dev-<issue>.json` matching
 `.claude/schemas/dev-handoff.v1.json`:
 
 ```json

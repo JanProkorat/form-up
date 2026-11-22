@@ -110,7 +110,7 @@ required only once, at the epic merge to `develop` (Phase 2b).
 
 ## State persistence (survives `/clear` and compact)
 
-Every phase boundary writes `.claude/state/ship-epic.json` so the
+Every phase boundary writes `.pipeline/state/ship-epic.json` so the
 orchestration can resume after a context reset. The
 `reinject-state.sh` SessionStart hook reads this file on every fresh
 session and surfaces it back as context.
@@ -261,7 +261,7 @@ After topo-sort + cycle detection passes:
 - Children with **no remaining deps** are eligible for parallel
   dispatch in Phase 1 (and the fast-path check in 0b).
 - Children with deps are held until all their deps reach
-  `status: merged` in `state/ship-epic.json`. The ship-epic loop
+  `status: merged` in `.pipeline/state/ship-epic.json`. The ship-epic loop
   re-checks eligibility after each child merge.
 - Persist `depends_on` to each child entry in the state file so
   re-injected sessions know the dependency graph.
@@ -400,7 +400,7 @@ sub-agent works in this same worktree, on this branch.
 **Before dispatching the dev sub-agent**, invoke `design-reviewer`
 with the child issue + dispatch brief (target sub-agent, base branch
 = `$EPIC_BRANCH`, scope summary, guessed `files_in_scope`). Read the
-result at `.claude/state/handoff-design-<N>.json`:
+result at `.pipeline/state/handoff-design-<N>.json`:
 
 - **APPROVE** → proceed to 1c. Pass `approved_scope` forward — the
   dev sub-agent reads it as its first action.

@@ -1,6 +1,6 @@
 ---
 paths:
-  - ".claude/state/**"
+  - ".pipeline/state/**"
 description: What "verified" means at the common layer — the per-stack `<stack>-verify` seam, the scope→stack map, and the reporting discipline every pack inherits
 ---
 

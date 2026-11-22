@@ -37,7 +37,7 @@ ui-automation, `mcp__plugin_playwright_playwright__*`,
   Run after the interactive drive lands on the target screen.
 
 - **Consolidation** — write the orchestrator's findings as a final
-  section in `state/handoff-qa-<issue>.json` (extend the existing file
+  section in `.pipeline/state/handoff-qa-<issue>.json` (extend the existing file
   in place, do not rewrite the qa-tester sub-agent's portion). Update
   `verdict` from `INTERACTIVE-REQUIRED` to `PASS` if all flagged ACs
   are now verified, `FAIL` if any interactive check shows a defect, or

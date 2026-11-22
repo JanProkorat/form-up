@@ -413,7 +413,7 @@ exclusion list) and 12 (kind-label set) terminate the review with
 ## Final step — write your handoff JSON
 
 Before returning your verdict to the orchestrator, write
-`.claude/state/handoff-review-<pr>.json` matching
+`.pipeline/state/handoff-review-<pr>.json` matching
 `.claude/schemas/pr-reviewer-result.v1.json`:
 
 ```json

@@ -108,7 +108,7 @@ spec / issue body itself likely needs work.
 
 ## Final step — write your handoff JSON
 
-Before returning, write `.claude/state/handoff-design-<issue>.json`
+Before returning, write `.pipeline/state/handoff-design-<issue>.json`
 matching `.claude/schemas/design-reviewer-result.v1.json`:
 
 ```json
@@ -162,7 +162,7 @@ A malformed handoff exits non-zero so you can self-correct.
 
 ## Done when
 
-- `state/handoff-design-<issue>.json` written and schema-valid.
+- `.pipeline/state/handoff-design-<issue>.json` written and schema-valid.
 - `verdict` set per the checklist outcome.
 - All 8 checklist items considered (even if no finding for some).
 - `approved_scope.files_in_scope` populated with explicit paths or

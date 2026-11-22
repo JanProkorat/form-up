@@ -29,8 +29,8 @@ WHY HANDOFF FILES?
 
 ACCEPTED FILENAMES (and why the set is wider than the agent type alone)
   This repo's .claude/CLAUDE.md instructs two workflow agents to write a
-  PER-ISSUE handoff — rule 5.5 names `state/handoff-design-<issue>.json` and
-  rule 6.5 names `state/handoff-qa-<issue>.json`. Those use a SHORT STEM
+  PER-ISSUE handoff — rule 5.5 names `.pipeline/state/handoff-design-<issue>.json`
+  and rule 6.5 names `.pipeline/state/handoff-qa-<issue>.json`. Those use a SHORT STEM
   ("design", "qa") rather than the full agent type ("design-reviewer",
   "qa-tester"), so an agent-type-only match denied every documented write and
   the verdict silently fell back to the generic filename. Two concurrent QA
