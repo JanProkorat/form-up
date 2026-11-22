@@ -48,7 +48,7 @@ public class AcceptInvitationEndpoint(
             s.Summary = "Accept a trainer invitation";
             s.Description = "Accepts a one-time invitation token from a trainer, creating a client-professional relationship.";
             s.Response<AcceptInvitationResponse>(StatusCodes.Status200OK, "Invitation accepted");
-            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Invalid, used or expired token, or the profession slot is already taken (PROFESSION_ALREADY_OCCUPIED)");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Invalid, used, revoked, expired or not-addressed-to-caller token (INVALID_INVITATION), or the profession slot is already taken (PROFESSION_ALREADY_OCCUPIED)");
             s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
             s.Response(StatusCodes.Status403Forbidden,
                 "The coach role was removed, or the coach is at the active-client limit (CLIENT_LIMIT_REACHED)");
@@ -68,26 +68,24 @@ public class AcceptInvitationEndpoint(
 
         var userGuid = Guid.Parse(userId);
 
-        // Find the invitation token (must not be used and not expired)
+        // Find the invitation token (must not be used, expired, or addressed to someone else)
         var invitation = await db.InvitationTokens
             .Include(i => i.ProfessionalProfile)
             .FirstOrDefaultAsync(i => i.Token == req.Token, ct);
 
-        if (invitation is null)
-        {
-            ThrowError("Invalid invitation token.");
-            return;
-        }
+        // Tracked caller; reused below to auto-confirm the email.
+        var caller = await userManager.FindByIdAsync(userGuid.ToString());
 
-        if (invitation.IsUsed)
+        // One guard, one response: an unknown, used, expired or foreign-addressed token is
+        // indistinguishable to the caller, and nothing is written on this path (#2333).
+        if (invitation is null
+            || invitation.IsUsed
+            || invitation.ExpiresAt < timeProvider.GetUtcNow().UtcDateTime
+            || caller is null
+            || string.IsNullOrWhiteSpace(caller.Email)
+            || !string.Equals(invitation.Email.Trim(), caller.Email.Trim(), StringComparison.OrdinalIgnoreCase))
         {
-            ThrowError("This invitation has already been used.");
-            return;
-        }
-
-        if (invitation.ExpiresAt < DateTime.UtcNow)
-        {
-            ThrowError("This invitation has expired.");
+            this.ThrowErrorWithCode(ErrorCodes.InvalidInvitation, "Invalid or expired invitation token.");
             return;
         }
 
@@ -173,10 +171,9 @@ public class AcceptInvitationEndpoint(
         invitation.IsUsed = true;
 
         // Auto-confirm email since user clicked the invitation link
-        var currentUser = await userManager.FindByIdAsync(userGuid.ToString());
-        if (currentUser is not null && !currentUser.EmailConfirmed)
+        if (!caller.EmailConfirmed)
         {
-            currentUser.EmailConfirmed = true;
+            caller.EmailConfirmed = true;
         }
 
         await db.SaveChangesAsync(ct);
@@ -251,9 +248,7 @@ public class AcceptInvitationEndpoint(
         // SignalR emit at all, so the professional's notification bell and web client-list
         // never learned about the new link until an unrelated action refreshed the page.
         // Mirrors the pattern used by AcceptClientInviteEndpoint for the in-app invite flow.
-        var clientName = currentUser is not null
-            ? $"{currentUser.FirstName} {currentUser.LastName}"
-            : "A client";
+        var clientName = $"{caller.FirstName} {caller.LastName}";
 
         await notificationService.CreateAsync(
             invitation.ProfessionalProfile.UserId,

@@ -122,7 +122,6 @@ public class InvitationFlowTests(FitnessApiFactory factory)
         var client = factory.CreateClient();
         var trainerEmail = UniqueEmail();
         var clientEmail1 = UniqueEmail();
-        var clientEmail2 = UniqueEmail();
 
         var trainerToken = await RegisterAndLoginTrainer(client, trainerEmail);
         TestHelpers.SetBearerToken(client, trainerToken);
@@ -142,12 +141,8 @@ public class InvitationFlowTests(FitnessApiFactory factory)
 
         firstAccept.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        // Second client tries to use same token
-        await TestHelpers.RegisterAsync(client, clientEmail2, "TestPass1!", "Used2", "Client", "Client");
-        var (clientToken2, _) = await TestHelpers.LoginAsync(client, clientEmail2, "TestPass1!");
-
-        TestHelpers.SetBearerToken(client, clientToken2);
-
+        // The same (matching) client replays the token: it is rejected because it is used, not
+        // because of an email mismatch (#2333).
         var secondAccept = await client.PostAsJsonAsync("/auth/invite/accept", new
         {
             Token = invitationToken
