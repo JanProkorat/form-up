@@ -54,6 +54,8 @@ interface RoleSelectorProps {
    */
   onBlur?: () => void;
   error?: string;
+  /** Fixes the current selection: the cards stay visible but can no longer be toggled. */
+  locked?: boolean;
 }
 
 /**
@@ -61,7 +63,13 @@ interface RoleSelectorProps {
  * myself" (Client) cards. The coach roles combine; Client excludes them
  * (see `toggleRole`).
  */
-export default function RoleSelector({ value, onChange, onBlur, error }: RoleSelectorProps) {
+export default function RoleSelector({
+  value,
+  onChange,
+  onBlur,
+  error,
+  locked = false,
+}: RoleSelectorProps) {
   const { t } = useTranslation();
 
   return (
@@ -82,11 +90,13 @@ export default function RoleSelector({ value, onChange, onBlur, error }: RoleSel
               key={role}
               type="button"
               aria-pressed={selected}
+              disabled={locked}
               onClick={() => onChange(toggleRole(value, role))}
               onBlur={onBlur}
               className={cn(
                 'flex flex-col gap-2 rounded-2xl border border-border bg-surface p-3.5 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50 short:flex-row short:items-center short:gap-2 short:p-2.5',
-                selected && style.selected
+                selected && style.selected,
+                locked && !selected && 'opacity-50'
               )}
             >
               {/* On short screens the wrapper dissolves so icon, name and radio sit in one row. */}

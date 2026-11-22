@@ -3944,6 +3944,8 @@
     "PLAN_OVERLAP": "Zvolené období se překrývá s existujícím plánem tohoto klienta.",
     "PLAN_ALREADY_STARTED": "Plán nelze smazat, protože publikovaný týden už začal.",
     "CLIENT_NUTRITION_PROFILE_MISSING": "Tento klient zatím nemá výživové cíle ani odpovědi z dotazníku, které by šlo upravit.",
+    "INVITE_EMAIL_MISMATCH": "Tento e-mail neodpovídá pozvánce.",
+    "INVITE_ROLE_MISMATCH": "Pozvánku lze použít pouze k registraci jako klient.",
     "INVALID_VERIFICATION_TOKEN": "Neplatný nebo vypršelý ověřovací odkaz.",
     "VERIFICATION_TOKEN_EXPIRED": "Ověřovací odkaz vypršel. Vyžádejte si nový.",
     "VERIFICATION_RESEND_LIMIT_REACHED": "Příliš mnoho odeslaných ověřovacích e-mailů. Zkuste to později.",
@@ -6233,6 +6235,10 @@
         "passwordInvalid": "Heslo nesplňuje všechny požadavky výše.",
         "consentRequired": "Pro založení účtu musíte souhlasit s Podmínkami použití a Zásadami ochrany osobních údajů.",
         "healthConsentRequired": "Pro založení účtu musíte souhlasit se zpracováním zdravotních údajů."
+      },
+      "invite": {
+        "emailHint": "Na tento e-mail byla odeslána vaše pozvánka.",
+        "unavailable": "Tento odkaz pozvánky už nelze použít. Účet si můžete vytvořit i níže."
       },
       "errors": {
         "duplicateEmail": "Tento e-mail je již zaregistrován.",

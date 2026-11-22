@@ -3792,6 +3792,8 @@
     "PLAN_OVERLAP": "The selected date range overlaps an existing plan for this client.",
     "PLAN_ALREADY_STARTED": "This plan can't be deleted because a published week has already started.",
     "CLIENT_NUTRITION_PROFILE_MISSING": "This client has no nutrition targets or onboarding answers to edit yet.",
+    "INVITE_EMAIL_MISMATCH": "This email does not match the invitation.",
+    "INVITE_ROLE_MISMATCH": "An invitation can only be used to sign up as a client.",
     "INVALID_VERIFICATION_TOKEN": "Invalid or expired verification link.",
     "VERIFICATION_TOKEN_EXPIRED": "Verification link has expired. Please request a new one.",
     "VERIFICATION_RESEND_LIMIT_REACHED": "Too many verification emails sent. Please try again later.",
@@ -6009,6 +6011,10 @@
         "passwordInvalid": "Password does not meet all the requirements above.",
         "consentRequired": "You must agree to the Terms and the Privacy policy to create an account.",
         "healthConsentRequired": "You must agree to the processing of your health data to create an account."
+      },
+      "invite": {
+        "emailHint": "This is the email your invitation was sent to.",
+        "unavailable": "This invitation link can't be used any more. You can still create an account below."
       },
       "errors": {
         "duplicateEmail": "This email is already registered.",

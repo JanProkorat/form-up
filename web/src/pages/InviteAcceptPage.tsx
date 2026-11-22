@@ -1,4 +1,4 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -10,17 +10,25 @@ const APP_SCHEME_URL = 'formup://';
 const PHONE_USER_AGENT = /iPhone|iPad|iPod|Android/i;
 
 /**
- * "/invite/accept" — target of the invite email link. It never reads the
- * token and never accepts the invite: the invite shows up in the mobile app
- * (banner + notification) after sign-in. On a phone it points to the app;
- * anywhere else it hands over to "/register" with the Client role preselected
- * (which itself forwards a signed-in visitor to the portal).
+ * "/invite/accept" — target of the invite email link. It never accepts the
+ * invite: the invite shows up in the mobile app (banner + notification) after
+ * sign-in. On a phone it points to the app; anywhere else it hands over to
+ * "/register" with the Client role preselected and the token forwarded as
+ * `invite` (which itself forwards a signed-in visitor to the portal).
  */
 export default function InviteAcceptPage() {
   const { t } = useTranslation();
 
+  const [searchParams] = useSearchParams();
+
   if (!PHONE_USER_AGENT.test(navigator.userAgent)) {
-    return <Navigate to="/register?role=client" replace />;
+    // URLSearchParams encodes `+`, `/` and `=` of a base64 token; never concatenate it.
+    const target = new URLSearchParams({ role: 'client' });
+    const token = searchParams.get('token');
+    if (token) {
+      target.set('invite', token);
+    }
+    return <Navigate to={`/register?${target.toString()}`} replace />;
   }
 
   return (
