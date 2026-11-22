@@ -8,14 +8,16 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import type { SubscriptionPlanDto } from '@/api/admin-subscription-plans';
+import { planName } from '@/components/admin-plans/planForm';
 import { ChoiceButton, SectionHeading } from '@/components/automations/automationFormParts';
 import { Field, FormError } from '@/components/package-catalog/packageFormParts';
 import {
   PROMOTION_MONTHS_MAX,
   PROMOTION_MONTHS_MIN,
-  PROMOTION_PLAN_CODES,
   createPromotionSchema,
   defaultPromotionValues,
+  offeredPromotionPlans,
   toDateInput,
   type PromotionFormValues,
 } from '@/components/admin-promotions/promotionForm';
@@ -30,16 +32,57 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** Saves the form. Never rejects; the caller reports errors and returns what happened. */
-  onSubmit: (values: PromotionFormValues) => Promise<PromotionSaveOutcome>;
+  onSubmit: (values: PromotionFormValues, offeredCodes: readonly string[]) => Promise<PromotionSaveOutcome>;
   isSaving: boolean;
+  /** The plan catalog; the drawer offers its active paid plans. */
+  plans: SubscriptionPlanDto[] | undefined;
+  isPlansPending: boolean;
+  isPlansError: boolean;
+  onRetryPlans: () => void;
 }
 
 /** Side drawer to create a promotion: value, how coaches get it, how long it lasts, the claim window, plans and limits. */
-export default function PromotionDrawer({ open, onOpenChange, onSubmit, isSaving }: Props) {
+export default function PromotionDrawer({
+  open,
+  onOpenChange,
+  onSubmit,
+  isSaving,
+  plans,
+  isPlansPending,
+  isPlansError,
+  onRetryPlans,
+}: Props) {
+  const { t } = useTranslation();
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="gap-0 sm:w-drawer sm:max-w-none">
-        <DrawerBody onClose={() => onOpenChange(false)} onSubmit={onSubmit} isSaving={isSaving} />
+        {plans && !isPlansPending && !isPlansError ? (
+          <DrawerBody
+            onClose={() => onOpenChange(false)}
+            onSubmit={onSubmit}
+            isSaving={isSaving}
+            plans={plans}
+          />
+        ) : (
+          <>
+            <SheetHeader className="border-b border-border px-6 py-5 pr-14">
+              <SheetTitle className="text-auth-title">{t('adminPromotions.drawer.titleNew')}</SheetTitle>
+              <SheetDescription className="text-body">{t('adminPromotions.drawer.description')}</SheetDescription>
+            </SheetHeader>
+            <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-5 text-center">
+              {isPlansError ? (
+                <>
+                  <p className="text-body text-muted-foreground">{t('adminPromotions.plansLoadError')}</p>
+                  <Button type="button" variant="outline" size="sm" onClick={onRetryPlans}>
+                    {t('adminPromotions.retry')}
+                  </Button>
+                </>
+              ) : (
+                <p className="text-body text-muted-foreground">{t('common.loading')}</p>
+              )}
+            </div>
+          </>
+        )}
       </SheetContent>
     </Sheet>
   );
@@ -49,6 +92,7 @@ interface BodyProps {
   onClose: () => void;
   onSubmit: Props['onSubmit'];
   isSaving: boolean;
+  plans: SubscriptionPlanDto[];
 }
 
 interface CheckRowProps {
@@ -86,9 +130,11 @@ function UnitInput({ unit, children }: { unit: string; children: ReactNode }) {
 
 const UNIT_INPUT_CLASS = 'h-10 pr-12';
 
-function DrawerBody({ onSubmit, isSaving, onClose }: BodyProps) {
-  const { t } = useTranslation();
-  const [initial] = useState<PromotionFormValues>(() => defaultPromotionValues());
+function DrawerBody({ onSubmit, isSaving, onClose, plans }: BodyProps) {
+  const { t, i18n } = useTranslation();
+  const offered = useMemo(() => offeredPromotionPlans(plans), [plans]);
+  const offeredCodes = useMemo(() => offered.map((plan) => plan.code ?? ''), [offered]);
+  const [initial] = useState<PromotionFormValues>(() => defaultPromotionValues(new Date(), offeredCodes));
   const schema = useMemo(() => createPromotionSchema(), []);
   const {
     register,
@@ -107,7 +153,7 @@ function DrawerBody({ onSubmit, isSaving, onClose }: BodyProps) {
   const today = toDateInput(new Date());
 
   const submit = handleSubmit(async (formValues) => {
-    const outcome = await onSubmit(formValues);
+    const outcome = await onSubmit(formValues, offeredCodes);
     if (typeof outcome === 'object') {
       setError(outcome.field, { type: 'server', message: outcome.message });
     }
@@ -331,16 +377,22 @@ function DrawerBody({ onSubmit, isSaving, onClose }: BodyProps) {
               name="planCodes"
               render={({ field }) => (
                 <div role="group" aria-label={t('adminPromotions.drawer.plans')} className="flex flex-wrap gap-x-6 gap-y-2.5">
-                  {PROMOTION_PLAN_CODES.map((code) => (
-                    <CheckRow
-                      key={code}
-                      label={t(`adminPromotions.plans.${code}`)}
-                      checked={field.value.includes(code)}
-                      onCheckedChange={(checked) =>
-                        field.onChange(checked ? [...field.value, code] : field.value.filter((value) => value !== code))
-                      }
-                    />
-                  ))}
+                  {offered.length === 0 && (
+                    <p className="text-body text-muted-foreground">{t('adminPromotions.noPaidPlans')}</p>
+                  )}
+                  {offered.map((plan) => {
+                    const code = plan.code ?? '';
+                    return (
+                      <CheckRow
+                        key={code}
+                        label={planName(plan, i18n.language)}
+                        checked={field.value.includes(code)}
+                        onCheckedChange={(checked) =>
+                          field.onChange(checked ? [...field.value, code] : field.value.filter((value) => value !== code))
+                        }
+                      />
+                    );
+                  })}
                 </div>
               )}
             />

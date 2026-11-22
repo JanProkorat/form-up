@@ -21,6 +21,7 @@ import {
   type PromotionFormValues,
 } from '@/components/admin-promotions/promotionForm';
 import { useAdminPromotions, useCreatePromotion, useEndPromotion } from '@/components/admin-promotions/useAdminPromotionsQueries';
+import { useAdminPlans } from '@/components/admin-plans/useAdminPlansQueries';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const FILTERS: readonly PromotionStatusFilter[] = [
@@ -42,14 +43,18 @@ export default function AdminPromotionsPage() {
   const [status, setStatus] = useState<PromotionStatusFilter>(PromotionStatusFilter.All);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const promotionsQuery = useAdminPromotions(status);
+  const plansQuery = useAdminPlans();
   const createPromotion = useCreatePromotion();
   const endPromotion = useEndPromotion();
   const [endTarget, setEndTarget] = useState<PromotionDto | null>(null);
   const promotions = promotionsQuery.data ?? [];
 
-  const handleSave = async (values: PromotionFormValues): Promise<PromotionSaveOutcome> => {
+  const handleSave = async (
+    values: PromotionFormValues,
+    offeredCodes: readonly string[],
+  ): Promise<PromotionSaveOutcome> => {
     try {
-      await createPromotion.mutateAsync(formValuesToCreateRequest(values));
+      await createPromotion.mutateAsync(formValuesToCreateRequest(values, offeredCodes));
       showSuccess('adminPromotions.saveSuccess');
       setDrawerOpen(false);
       return 'saved';
@@ -126,6 +131,7 @@ export default function AdminPromotionsPage() {
             promotions={promotions}
             isPending={promotionsQuery.isPending}
             isError={promotionsQuery.isError}
+            plans={plansQuery.data}
             onRetry={() => void promotionsQuery.refetch()}
             onEnd={setEndTarget}
           />
@@ -151,6 +157,10 @@ export default function AdminPromotionsPage() {
           onOpenChange={setDrawerOpen}
           onSubmit={handleSave}
           isSaving={createPromotion.isPending}
+          plans={plansQuery.data}
+          isPlansPending={plansQuery.isPending}
+          isPlansError={plansQuery.isError}
+          onRetryPlans={() => void plansQuery.refetch()}
         />
       )}
     </div>
