@@ -132,7 +132,7 @@ public class DeleteAccountTests(FitnessApiFactory factory)
     public async Task DeleteAccount_WhenTheProviderFails_Returns502_AndKeepsEverything()
     {
         var fake = BillingTestData.ResetProvider(factory);
-        var (coach, _) = await PayingCoachAsync();
+        var (coach, subscriptionId) = await PayingCoachAsync();
         fake.Fail = true;
 
         var response = await coach.Http.DeleteAsync("/users/me", Ct);
@@ -140,7 +140,61 @@ public class DeleteAccountTests(FitnessApiFactory factory)
         response.StatusCode.Should().Be(HttpStatusCode.BadGateway);
         (await response.Content.ReadAsStringAsync(Ct)).Should().Contain(ErrorCodes.BillingProviderError);
         (await ExistingRowsAsync(coach)).Should().Be((true, true, true, true));
+        (await PendingRefundMarkerAsync(coach)).Should().Be(subscriptionId);
         BillingTestData.ResetProvider(factory);
+    }
+
+    [Fact]
+    public async Task DeleteAccount_RetryAfterTheWebhookClearedTheSubscription_StillSettlesTheRefundOnce()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var (coach, subscriptionId) = await PayingCoachAsync();
+        fake.Fail = true;
+        (await coach.Http.DeleteAsync("/users/me", Ct)).StatusCode.Should().Be(HttpStatusCode.BadGateway);
+
+        // What the provider's subscription-deleted webhook does after the cancel went through.
+        await BillingTestData.UpdateRowAsync(factory, coach.ProfileId, row =>
+        {
+            row.ExternalSubscriptionId = null;
+            row.Status = SubscriptionStatus.Canceled;
+        });
+        fake.Fail = false;
+
+        var retry = await coach.Http.DeleteAsync("/users/me", Ct);
+
+        retry.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        fake.CancelledNow.Should().Equal(subscriptionId);
+        (await ExistingRowsAsync(coach)).Should().Be((false, false, false, false));
+        BillingTestData.ResetProvider(factory);
+    }
+
+    [Fact]
+    public async Task DeleteAccount_RetryBeforeAnyWebhook_CancelsTheSameSubscriptionOnlyOnce()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var (coach, subscriptionId) = await PayingCoachAsync();
+        fake.Fail = true;
+        (await coach.Http.DeleteAsync("/users/me", Ct)).StatusCode.Should().Be(HttpStatusCode.BadGateway);
+        fake.Fail = false;
+
+        var retry = await coach.Http.DeleteAsync("/users/me", Ct);
+
+        retry.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        fake.CancelledNow.Should().Equal(subscriptionId);
+        (await ExistingRowsAsync(coach)).Should().Be((false, false, false, false));
+        BillingTestData.ResetProvider(factory);
+    }
+
+    private async Task<string?> PendingRefundMarkerAsync(Actor coach)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        return await db.CoachSubscriptions
+            .AsNoTracking()
+            .Where(cs => cs.ProfessionalProfileId == coach.ProfileId)
+            .Select(cs => cs.PendingRefundSubscriptionId)
+            .SingleAsync(Ct);
     }
 
     [Fact]

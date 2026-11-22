@@ -81,16 +81,24 @@ public class DeleteAccountEndpoint(
                 .AsNoTracking()
                 .FirstOrDefaultAsync(cs => cs.ProfessionalProfileId == professionalProfile.Id, ct);
 
-            if (subscription?.HasCancellableProviderSubscription ?? false)
-            {
-                var cancelled = await TryCancelAtProviderAsync(subscription.ExternalSubscriptionId!, ct);
+            var cancellableId = subscription?.HasCancellableProviderSubscription ?? false
+                ? subscription.ExternalSubscriptionId
+                : null;
 
-                if (cancelled is null)
+            // A marker left by an earlier failed attempt still owes a refund, even once the provider's webhook has
+            // cleared the live subscription id.
+            var pendingId = subscription?.PendingRefundSubscriptionId;
+
+            if (subscription is not null && (cancellableId is not null || pendingId is not null))
+            {
+                var settled = await TrySettleAtProviderAsync(subscription.Id, pendingId, cancellableId, ct);
+
+                if (settled is null)
                 {
                     return;
                 }
 
-                cancelRefund = cancelled;
+                cancelRefund = settled;
                 cancelsAtProvider = true;
             }
         }
@@ -164,6 +172,10 @@ public class DeleteAccountEndpoint(
             }
         }
 
+        // The row changes and the Identity delete commit together: a failed delete rolls everything back. Identity's
+        // store and db share one scoped context, so both enlist in this transaction.
+        await using var transaction = await db.BeginTransactionAsync(ct);
+
         await db.SaveChangesAsync(ct);
 
         // Delete the Identity user (cascades to user_roles, user_claims, user_logins, user_tokens)
@@ -174,6 +186,8 @@ public class DeleteAccountEndpoint(
             ThrowError("Account deletion failed.");
             return;
         }
+
+        await transaction.CommitAsync(ct);
 
         // Audit log the deletion (user is gone, record it for compliance)
         await audit.LogAsync(
@@ -198,10 +212,13 @@ public class DeleteAccountEndpoint(
     }
 
     /// <summary>
-    /// Cancels the subscription at the payment provider now and refunds its unused days. Answers 503 or 502 and returns
-    /// null when it could not.
+    /// Settles the pending marker id and the live subscription id at the payment provider, each at most once: cancels
+    /// now and refunds unused days (an already-cancelled subscription is only refunded). The live id is written to the
+    /// marker first, so a retry can still refund after the provider's webhook cleared it. Answers 503 or 502 and
+    /// returns null when it could not.
     /// </summary>
-    private async Task<CancelRefundResult?> TryCancelAtProviderAsync(string externalSubscriptionId, CancellationToken ct)
+    private async Task<CancelRefundResult?> TrySettleAtProviderAsync(
+        long subscriptionRowId, string? pendingId, string? cancellableId, CancellationToken ct)
     {
         if (!subscriptions.IsConfigured)
         {
@@ -210,9 +227,31 @@ public class DeleteAccountEndpoint(
             return null;
         }
 
+        var refundedMinorUnits = 0L;
+        string? currency = null;
+
         try
         {
-            return await subscriptions.CancelNowAsync(externalSubscriptionId, ct);
+            if (pendingId is not null && pendingId != cancellableId)
+            {
+                var earlier = await subscriptions.CancelNowAsync(pendingId, ct);
+                refundedMinorUnits += earlier.RefundedMinorUnits;
+                currency ??= earlier.Currency;
+            }
+
+            if (cancellableId is not null)
+            {
+                if (pendingId != cancellableId)
+                {
+                    await db.CoachSubscriptions
+                        .Where(cs => cs.Id == subscriptionRowId)
+                        .ExecuteUpdateAsync(setters => setters.SetProperty(cs => cs.PendingRefundSubscriptionId, cancellableId), ct);
+                }
+
+                var current = await subscriptions.CancelNowAsync(cancellableId, ct);
+                refundedMinorUnits += current.RefundedMinorUnits;
+                currency ??= current.Currency;
+            }
         }
         catch (BillingProviderException)
         {
@@ -220,5 +259,7 @@ public class DeleteAccountEndpoint(
                 StatusCodes.Status502BadGateway, ErrorCodes.BillingProviderError, "The payment provider failed.", ct);
             return null;
         }
+
+        return new CancelRefundResult(refundedMinorUnits, currency);
     }
 }

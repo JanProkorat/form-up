@@ -6,6 +6,7 @@ using FormUp.Application.Domain.Interfaces;
 using FormUp.Application.Features.Users.DeleteAccount;
 using FormUp.Tests.Builders;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore.Storage;
 using NSubstitute;
 
 namespace FormUp.Tests.Endpoints.Users;
@@ -167,5 +168,54 @@ public class DeleteAccountEndpointTests
 
         ep.HttpContext.Response.StatusCode.Should().Be(204);
         await _subscriptions.DidNotReceive().CancelNowAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleAsync_IdentityDeleteFails_Returns400_AndNeverCommits()
+    {
+        var user = EntityBuilder.User.WithId(_userId).WithEmail("test@test.com").Build();
+        var userManager = EndpointTestHelpers.CreateFakeUserManager();
+        userManager.FindByIdAsync(_userId.ToString()).Returns(user);
+        userManager.DeleteAsync(user).Returns(IdentityResult.Failed(new IdentityError { Code = "X", Description = "boom" }));
+
+        var transaction = Substitute.For<IDbContextTransaction>();
+        var db = new MockDbBuilder().Build();
+        db.BeginTransactionAsync(Arg.Any<CancellationToken>()).Returns(transaction);
+
+        var ep = Factory.Create<DeleteAccountEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
+                new System.Security.Claims.ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_userId))),
+            userManager, db, _audit, _subscriptions);
+
+        var act = () => ep.HandleAsync(TestContext.Current.CancellationToken);
+
+        await act.Should().ThrowAsync<ValidationFailureException>();
+        await transaction.DidNotReceive().CommitAsync(Arg.Any<CancellationToken>());
+        await _audit.DidNotReceiveWithAnyArgs().LogAsync(default, default!, default!, default, default, default, default, default);
+    }
+
+    [Fact]
+    public async Task HandleAsync_IdentityDeleteSucceeds_CommitsOnce()
+    {
+        var user = EntityBuilder.User.WithId(_userId).WithEmail("test@test.com").Build();
+        var userManager = EndpointTestHelpers.CreateFakeUserManager();
+        userManager.FindByIdAsync(_userId.ToString()).Returns(user);
+        userManager.DeleteAsync(user).Returns(IdentityResult.Success);
+
+        var transaction = Substitute.For<IDbContextTransaction>();
+        var db = new MockDbBuilder().Build();
+        db.BeginTransactionAsync(Arg.Any<CancellationToken>()).Returns(transaction);
+
+        var ep = Factory.Create<DeleteAccountEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
+                new System.Security.Claims.ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_userId))),
+            userManager, db, _audit, _subscriptions);
+
+        await ep.HandleAsync(TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(204);
+        await transaction.Received(1).CommitAsync(Arg.Any<CancellationToken>());
     }
 }
