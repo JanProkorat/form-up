@@ -6,7 +6,8 @@
  * new-promotion drawer creates a promotion (the code field shows only with a code) and flags a taken code inline.
  *
  * The e2e fixture has no Admin account and no promotions, so the spec signs in as the QA trainer, lets the roles
- * read report Admin (the guard reads Admin from there too), and mocks the /admin/promotions reads and writes.
+ * read report Admin (the guard reads Admin from there too), and mocks the /admin/promotions reads and writes and
+ * the /admin/subscription-plans catalog read.
  * Nothing reaches Stripe or the backend's promotion tables.
  */
 import type { Page, Route } from '@playwright/test';
