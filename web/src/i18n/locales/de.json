@@ -7310,11 +7310,8 @@
       "range": "{{from}} – {{to}}",
       "noEnd": "Kein Enddatum"
     },
-    "plans": {
-      "start": "Start",
-      "pro": "Pro",
-      "studio": "Studio"
-    },
+    "plansLoadError": "Die Tarife konnten nicht geladen werden. Bitte versuchen Sie es erneut.",
+    "noPaidPlans": "Derzeit wird kein kostenpflichtiger Tarif angeboten, daher kann eine Aktion keinen Tarif abdecken.",
     "end": {
       "action": "{{name}} beenden",
       "tooltip": "Aktion beenden",

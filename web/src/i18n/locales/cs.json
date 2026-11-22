@@ -7577,11 +7577,8 @@
       "range": "{{from}} – {{to}}",
       "noEnd": "Bez konce"
     },
-    "plans": {
-      "start": "Start",
-      "pro": "Pro",
-      "studio": "Studio"
-    },
+    "plansLoadError": "Tarify se nepodařilo načíst. Zkuste to prosím znovu.",
+    "noPaidPlans": "Momentálně není nabízen žádný placený tarif, takže promo akce nemůže žádný tarif pokrývat.",
     "end": {
       "action": "Ukončit {{name}}",
       "tooltip": "Ukončit akci",

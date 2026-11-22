@@ -1234,6 +1234,8 @@
         "web/src/pages/AdminPromotionsPage.tsx",
         "web/src/components/admin-promotions/**",
         "web/src/components/admin-plans/planForm.ts",
+        "web/src/components/admin-plans/useAdminPlansQueries.ts",
+        "web/src/api/admin-subscription-plans.ts",
         "web/src/components/admin-coaches/ReasonDialog.tsx",
         "web/src/components/package-catalog/catalogParts.tsx",
         "web/src/components/package-catalog/packageFormParts.tsx",
@@ -1246,6 +1248,7 @@
       ],
       "endpoints": [
         "GET /admin/promotions",
+        "GET /admin/subscription-plans",
         "POST /admin/promotions",
         "POST /admin/promotions/{promotionId}/end"
       ],
