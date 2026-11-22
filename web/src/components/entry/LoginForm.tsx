@@ -12,6 +12,7 @@ import { getMyProfile } from '@/api/profile';
 import type { GetProfileResponse } from '@/api/generated';
 import { useAuthStore } from '@/stores/auth';
 import { getApiErrorMessage } from '@/lib/api-errors';
+import { resolveReturnTo } from '@/lib/landing';
 import { Button } from '@/components/ui/button';
 import EntryDialogTitle from '@/components/entry/EntryDialogTitle';
 import { Input } from '@/components/ui/input';
@@ -27,30 +28,6 @@ import { Checkbox } from '@/components/ui/checkbox';
  * instead.
  */
 class ProfileLoadError extends Error {}
-
-/** In-app path only: no protocol-relative, backslash, /login, or control/whitespace characters (browsers strip them). */
-function isSafeInAppPath(value: unknown): value is string {
-  if (
-    typeof value !== 'string' ||
-    !value.startsWith('/') ||
-    value.startsWith('//') ||
-    value.startsWith('/\\') ||
-    value.startsWith('/login')
-  ) {
-    return false;
-  }
-  return ![...value].some((ch) => {
-    const code = ch.charCodeAt(0);
-    return code <= 0x20 || (code >= 0x7f && code <= 0x9f) || /\s/.test(ch);
-  });
-}
-
-/** Query-string `returnTo` first (survives reloads and new tabs), then router state, then /clients. */
-function resolveReturnTo(queryValue: string | null, state: unknown): string {
-  if (isSafeInAppPath(queryValue)) return queryValue;
-  const from = (state as { from?: unknown } | null)?.from;
-  return isSafeInAppPath(from) ? from : '/clients';
-}
 
 interface LoginFormValues {
   email: string;
@@ -137,9 +114,10 @@ export default function LoginForm() {
         refreshToken,
         rememberMe
       );
+      return profile.roles ?? [];
     },
-    onSuccess: () => {
-      navigate(resolveReturnTo(searchParams.get('returnTo'), location.state), { replace: true });
+    onSuccess: (roles) => {
+      navigate(resolveReturnTo(searchParams.get('returnTo'), location.state, roles), { replace: true });
     },
   });
 
