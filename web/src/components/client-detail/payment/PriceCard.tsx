@@ -200,39 +200,36 @@ function PriceForm({ clientId, clientName, summary, packages, discounts }: FormP
       ? selectedDiscount?.durationPayments
       : undefined;
 
-  const submit = (values: FormValues) => {
-    setTermsMutation.mutate(
-      {
+  const submit = async (values: FormValues) => {
+    try {
+      // mutateAsync, not mutate callbacks: the refetch can re-key and unmount this form first.
+      await setTermsMutation.mutateAsync({
         packageId: values.packageId,
         discountId: values.customPriceOn || !values.discountId ? undefined : values.discountId,
         customPrice: values.customPriceOn ? (parseAmount(values.customPrice) ?? undefined) : undefined,
         firstPeriodStart: terms ? undefined : values.firstPeriodStart,
-      },
-      {
-        onSuccess: () => {
-          reset(values);
-          showSuccess('payments.client.terms.saved');
-        },
-        onError: (error) => {
-          if (paymentErrorCode(error) === CURRENCY_MISMATCH_CODE) {
-            showError('payments.client.terms.currencyMismatch');
-            return;
+      });
+    } catch (error) {
+      if (paymentErrorCode(error) === CURRENCY_MISMATCH_CODE) {
+        showError('payments.client.terms.currencyMismatch');
+        return;
+      }
+      // A bare 404 is either an ended link or a vanished package; the summary tells which.
+      if (paymentErrorCode(error) === null && getErrorStatus(error) === 404) {
+        void checkCollaborationEnded().then((ended) => {
+          if (ended) {
+            showError('payments.client.terms.collaborationEnded');
+          } else {
+            showApiError(error, 'payments.client.terms.saveError');
           }
-          // A bare 404 is either an ended link or a vanished package; the summary tells which.
-          if (paymentErrorCode(error) === null && getErrorStatus(error) === 404) {
-            void checkCollaborationEnded().then((ended) => {
-              if (ended) {
-                showError('payments.client.terms.collaborationEnded');
-              } else {
-                showApiError(error, 'payments.client.terms.saveError');
-              }
-            });
-            return;
-          }
-          showApiError(error, 'payments.client.terms.saveError');
-        },
-      },
-    );
+        });
+        return;
+      }
+      showApiError(error, 'payments.client.terms.saveError');
+      return;
+    }
+    reset(values);
+    showSuccess('payments.client.terms.saved');
   };
 
   const appliesFrom = terms
