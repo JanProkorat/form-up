@@ -11,6 +11,7 @@ import ResetPasswordForm from '@/components/entry/ResetPasswordForm';
 import EntryPage from '@/pages/EntryPage';
 import RegisterPage from '@/pages/RegisterPage';
 import { renderWithProviders } from '@/test/render';
+import type { GetProfileResponse, LoginResponse } from '@/api/generated';
 import { HttpResponse, apiUrl, http, problem } from '@/test/msw/handlers';
 import { server } from '@/test/msw/server';
 
@@ -197,5 +198,66 @@ describe('entry routes', () => {
     await user.click(within(done).getByRole('button', { name: 'Sign in' }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/login'));
     expect(await screen.findByRole('dialog', { name: 'Welcome back' })).toBeInTheDocument();
+  });
+
+  describe('post-login landing', () => {
+    const landingRoutes: RouteObject[] = [
+      ...routes,
+      { path: '/clients', element: <div data-testid="clients-page" /> },
+      { path: '/admin/plans', element: <div data-testid="admin-plans-page" /> },
+      { path: '/admin/business-reports', element: <div data-testid="admin-reports-page" /> },
+    ];
+
+    async function signInAs(roles: string[], path = '/login') {
+      const login: LoginResponse = { accessToken: 'test-access-token', refreshToken: 'test-refresh-token' };
+      const profile: GetProfileResponse = {
+        userId: '00000000-0000-0000-0000-000000000002',
+        email: 'someone@example.com',
+        firstName: 'Some',
+        lastName: 'One',
+        roles,
+        emailConfirmed: true,
+      };
+      server.use(
+        http.post(apiUrl('/auth/login'), () => HttpResponse.json(login)),
+        http.get(apiUrl('/users/me'), () => HttpResponse.json(profile)),
+      );
+
+      const { user, router } = renderWithProviders(landingRoutes, { initialEntries: [path] });
+      const visited: string[] = [router.state.location.pathname];
+      router.subscribe((state) => visited.push(state.location.pathname));
+
+      await user.type(await screen.findByLabelText('Email'), 'someone@example.com');
+      await user.type(screen.getByLabelText('Password'), 'CorrectHorse9');
+      await user.click(screen.getByRole('button', { name: 'Sign in' }));
+      return { router, visited };
+    }
+
+    it('sends an admin-only user to /admin/plans and never visits /clients', async () => {
+      const { router, visited } = await signInAs(['Admin']);
+
+      await waitFor(() => expect(router.state.location.pathname).toBe('/admin/plans'));
+      expect(await screen.findByTestId('admin-plans-page')).toBeInTheDocument();
+      expect(visited).not.toContain('/clients');
+    });
+
+    it('sends a trainer to /clients', async () => {
+      const { router } = await signInAs(['Trainer']);
+
+      await waitFor(() => expect(router.state.location.pathname).toBe('/clients'));
+    });
+
+    it('sends an admin who is also a trainer to /clients', async () => {
+      const { router } = await signInAs(['Admin', 'Trainer']);
+
+      await waitFor(() => expect(router.state.location.pathname).toBe('/clients'));
+    });
+
+    it('keeps an explicit returnTo for an admin-only user', async () => {
+      const { router, visited } = await signInAs(['Admin'], '/login?returnTo=/admin/business-reports');
+
+      await waitFor(() => expect(router.state.location.pathname).toBe('/admin/business-reports'));
+      expect(visited).not.toContain('/clients');
+    });
   });
 });
