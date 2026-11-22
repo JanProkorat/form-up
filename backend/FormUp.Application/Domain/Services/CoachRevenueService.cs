@@ -61,7 +61,8 @@ public sealed class CoachRevenueService(IApplicationDbContext db) : ICoachRevenu
             subscription.PendingSubscriptionPlanPriceId,
             IsPaying(subscription, lines.PlanCode),
             CoachRevenueAmount.ToMonthly(lines.PlanMinorUnits + lines.AddOnMinorUnits, lines.Interval),
-            MonthlyAmount(subscription, now, lines, promotion, subscription.CurrentPromotionEndsAt));
+            MonthlyAmount(subscription, now, lines, promotion, subscription.CurrentPromotionEndsAt),
+            subscription.CurrentPeriodEndsAt);
     }
 
     /// <inheritdoc />

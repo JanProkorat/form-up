@@ -94,6 +94,9 @@ public sealed class FakeSubscriptionService : ISubscriptionService
     /// <summary>Runs inside <see cref="ISubscriptionService.CancelNowAsync"/> before it returns, to stage what Stripe's webhook does meanwhile. Cleared by <see cref="Reset"/>.</summary>
     public Func<string, Task>? CancelNowHook { get; set; }
 
+    /// <summary>Runs inside <see cref="ISubscriptionService.UpgradePlanNowAsync"/> before it returns, to stage the webhook that arrives during the Stripe call. Cleared by <see cref="Reset"/>.</summary>
+    public Func<string, Task>? UpgradeNowHook { get; set; }
+
     /// <summary>Recorded <see cref="ISubscriptionService.ResumeRenewalAsync"/> calls (subscription ids).</summary>
     public List<string> ResumedRenewals { get; } = [];
 
@@ -212,6 +215,7 @@ public sealed class FakeSubscriptionService : ISubscriptionService
             CancelledNow.Clear();
             CancelNowResult = CancelRefundResult.None;
             CancelNowHook = null;
+            UpgradeNowHook = null;
             ResumedRenewals.Clear();
             FailResumeRenewal = false;
             PreviewResult = new SecondRoleAddOnPreview(12300, 0, "CZK");
@@ -304,7 +308,7 @@ public sealed class FakeSubscriptionService : ISubscriptionService
     }
 
     /// <inheritdoc />
-    public Task<PlanUpgradeOutcome> UpgradePlanNowAsync(
+    public async Task<PlanUpgradeOutcome> UpgradePlanNowAsync(
         string subscriptionId,
         string planCode,
         string planPriceExternalId,
@@ -328,7 +332,12 @@ public sealed class FakeSubscriptionService : ISubscriptionService
                 subscriptionId, planCode, planPriceExternalId, false, addOnAmountMinorUnits, idempotencyKey, interval, discount));
         }
 
-        return Task.FromResult(UpgradeOutcome);
+        if (UpgradeNowHook is { } hook)
+        {
+            await hook(subscriptionId);
+        }
+
+        return UpgradeOutcome;
     }
 
     /// <inheritdoc />

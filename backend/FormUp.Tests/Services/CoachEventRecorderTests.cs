@@ -4,6 +4,7 @@ using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Interfaces;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Tests.Builders;
+using FormUp.Tests.Endpoints.Billing;
 using FormUp.Tests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -72,6 +73,39 @@ public class CoachEventRecorderTests(FitnessApiFactory factory)
         }
 
         (await CountByKeyAsync(key)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task RecordUpgradeAsync_KeyComesFromTheRowBeforeTheUpgrade_SoASecondCallFromTheSameStateWritesNothing()
+    {
+        await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (oldCode, _) = await BillingTestData.StripePlanAsync(factory, 29900);
+        var (newCode, _) = await BillingTestData.StripePlanAsync(factory, 49900);
+        await BillingTestData.SubscribeLiveAsync(factory, coach, oldCode);
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var recorder = scope.ServiceProvider.GetRequiredService<ICoachEventRecorder>();
+        var row = await db.CoachSubscriptions.SingleAsync(cs => cs.ProfessionalProfileId == coach.ProfileId, Ct);
+        var before = await recorder.CaptureAsync(row, Ct);
+        var newPriceId = await db.SubscriptionPlanPrices
+            .Where(p => p.SubscriptionPlan.Code == newCode && p.ValidTo == null)
+            .Select(p => p.Id)
+            .SingleAsync(Ct);
+        row.SubscriptionPlanPriceId = newPriceId;
+
+        await recorder.RecordUpgradeAsync(before, row, Ct);
+        await recorder.RecordUpgradeAsync(before, row, Ct);
+        await db.SaveChangesAsync(Ct);
+
+        var key = $"upgrade:{coach.ProfileId}:{before.PriceId}:{newPriceId}:{before.CurrentPeriodEndsAt!.Value.ToUnixTimeSeconds()}";
+        var stored = await db.CoachEvents.AsNoTracking().Where(e => e.CoachUserId == coach.UserId).ToListAsync(Ct);
+        var upgraded = stored.Should().ContainSingle().Subject;
+        upgraded.IdempotencyKey.Should().Be(key);
+        upgraded.EventType.Should().Be(CoachEventType.Upgraded);
+        upgraded.PreviousPlanCode.Should().Be(oldCode);
+        upgraded.PlanCode.Should().Be(newCode);
+        upgraded.FullMonthlyRevenueEffectMinorUnits.Should().Be(20000);
     }
 
     [Fact]
