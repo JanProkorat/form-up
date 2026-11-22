@@ -36,7 +36,6 @@ interface Props {
   isSaving: boolean;
   /** The plan catalog; the drawer offers its active paid plans. */
   plans: SubscriptionPlanDto[] | undefined;
-  isPlansPending: boolean;
   isPlansError: boolean;
   onRetryPlans: () => void;
 }
@@ -48,7 +47,6 @@ export default function PromotionDrawer({
   onSubmit,
   isSaving,
   plans,
-  isPlansPending,
   isPlansError,
   onRetryPlans,
 }: Props) {
@@ -56,7 +54,8 @@ export default function PromotionDrawer({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="gap-0 sm:w-drawer sm:max-w-none">
-        {plans && !isPlansPending && !isPlansError ? (
+        {/* Data wins over status: a failed background refetch keeps the previous plans, and the form with them. */}
+        {plans ? (
           <DrawerBody
             onClose={() => onOpenChange(false)}
             onSubmit={onSubmit}

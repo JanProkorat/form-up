@@ -158,7 +158,6 @@ export default function AdminPromotionsPage() {
           onSubmit={handleSave}
           isSaving={createPromotion.isPending}
           plans={plansQuery.data}
-          isPlansPending={plansQuery.isPending}
           isPlansError={plansQuery.isError}
           onRetryPlans={() => void plansQuery.refetch()}
         />

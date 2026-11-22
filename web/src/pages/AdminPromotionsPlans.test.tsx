@@ -3,9 +3,12 @@
  * active paid plans by their catalog names, and the table names the plans a promotion covers.
  */
 import { describe, expect, it } from 'vitest';
-import { screen, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import { PromotionDuration, PromotionMode, PromotionStatus } from '@/api/generated';
 import type { PromotionDto } from '@/api/generated';
+import { adminPlansKey } from '@/api/admin-subscription-plans';
+import { HttpResponse, apiUrl, http } from '@/test/msw/handlers';
+import { server } from '@/test/msw/server';
 import { paidPlan } from '@/test/adminPlans';
 import {
   newAdminPromotionsState,
@@ -80,6 +83,29 @@ describe('AdminPromotionsPage plans from the catalog', () => {
     await rendered.user.click(screen.getByRole('button', { name: 'Try again' }));
 
     expect(await within(await plansGroup()).findByRole('checkbox', { name: 'Pro' })).toBeChecked();
+    expect(screen.getByRole('button', { name: 'Save promotion' })).toBeInTheDocument();
+  });
+
+  it('keeps the form and what was typed when a background refetch of the plans fails', async () => {
+    const state = newAdminPromotionsState();
+    const rendered = await openDrawer(state);
+    let plansRequests = 0;
+    server.use(
+      http.get(apiUrl('/admin/subscription-plans'), () => {
+        plansRequests += 1;
+        return state.plansFail ? HttpResponse.json({}, { status: 500 }) : HttpResponse.json({ plans: state.plans });
+      }),
+    );
+    await plansGroup();
+    await rendered.user.type(screen.getByRole('textbox', { name: 'Name' }), 'Launch');
+
+    state.plansFail = true;
+    await act(() => rendered.queryClient.invalidateQueries({ queryKey: adminPlansKey }));
+
+    await waitFor(() => expect(plansRequests).toBe(1));
+    await waitFor(() => expect(rendered.queryClient.getQueryState(adminPlansKey)?.status).toBe('error'));
+    expect(screen.queryByText('Could not load the plans. Please try again.')).not.toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('Launch');
     expect(screen.getByRole('button', { name: 'Save promotion' })).toBeInTheDocument();
   });
 
