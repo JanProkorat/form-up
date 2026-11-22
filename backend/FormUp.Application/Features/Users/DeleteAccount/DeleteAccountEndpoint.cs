@@ -2,8 +2,11 @@ using System.Security.Claims;
 using FastEndpoints;
 using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Entities;
+using FormUp.Application.Domain.Extensions;
 using FormUp.Application.Domain.Interfaces;
+using FormUp.Application.Domain.Services;
 using FormUp.Application.Infrastructure.Data;
+using FormUp.Application.Infrastructure.Services.Billing;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,10 +19,12 @@ namespace FormUp.Application.Features.Users.DeleteAccount;
 /// <param name="userManager">ASP.NET Identity user manager.</param>
 /// <param name="db">Database context.</param>
 /// <param name="audit">Audit logging service.</param>
+/// <param name="subscriptions">Payment provider subscriptions.</param>
 public class DeleteAccountEndpoint(
     UserManager<ApplicationUser> userManager,
     IApplicationDbContext db,
-    IAuditService audit) : EndpointWithoutRequest
+    IAuditService audit,
+    ISubscriptionService subscriptions) : EndpointWithoutRequest
 {
     /// <inheritdoc />
     public override void Configure()
@@ -28,7 +33,15 @@ public class DeleteAccountEndpoint(
         Summary(s =>
         {
             s.Summary = "Delete current user account";
-            s.Description = "Permanently deletes the authenticated user's account and all associated data (GDPR Art. 17).";
+            s.Description = "Permanently deletes the authenticated user's account and all associated data (GDPR Art. 17). " +
+                            "A coach's provider subscription is cancelled at once and its unused days are refunded; " +
+                            "when the payment provider fails, nothing is deleted.";
+            s.Response(StatusCodes.Status204NoContent, "Account deleted");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Account deletion failed");
+            s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
+            s.Response(StatusCodes.Status404NotFound, "User not found");
+            s.Response(StatusCodes.Status502BadGateway, "The payment provider failed; nothing was deleted (BILLING_PROVIDER_ERROR)");
+            s.Response(StatusCodes.Status503ServiceUnavailable, "A provider subscription must be cancelled and Stripe is not configured on this server (BILLING_NOT_CONFIGURED)");
         });
     }
 
@@ -53,6 +66,34 @@ public class DeleteAccountEndpoint(
         }
 
         var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+        var professionalProfile = await db.ProfessionalProfiles
+            .FirstOrDefaultAsync(pp => pp.UserId == userId, ct);
+
+        // Provider first, read untracked: a refusal must leave every row in place. Incomplete counts too, since a later
+        // payment on it would leave a billable subscription nobody owns. The row itself goes with the profile (cascade).
+        var cancelRefund = CancelRefundResult.None;
+        var cancelsAtProvider = false;
+
+        if (professionalProfile is not null)
+        {
+            var subscription = await db.CoachSubscriptions
+                .AsNoTracking()
+                .FirstOrDefaultAsync(cs => cs.ProfessionalProfileId == professionalProfile.Id, ct);
+
+            if (subscription?.HasCancellableProviderSubscription ?? false)
+            {
+                var cancelled = await TryCancelAtProviderAsync(subscription.ExternalSubscriptionId!, ct);
+
+                if (cancelled is null)
+                {
+                    return;
+                }
+
+                cancelRefund = cancelled;
+                cancelsAtProvider = true;
+            }
+        }
 
         // Delete client profile and all related data (measurements, photos, links)
         var clientProfile = await db.ClientProfiles
@@ -79,9 +120,6 @@ public class DeleteAccountEndpoint(
         }
 
         // Delete professional profile and all related data (invitations, links)
-        var professionalProfile = await db.ProfessionalProfiles
-            .FirstOrDefaultAsync(pp => pp.UserId == userId, ct);
-
         if (professionalProfile is not null)
         {
             var invitations = await db.InvitationTokens
@@ -144,8 +182,43 @@ public class DeleteAccountEndpoint(
             nameof(ApplicationUser),
             entityId: userId,
             ipAddress: ipAddress,
+            newValues: cancelsAtProvider
+                ? AuditPayload.WithReason(
+                    new Dictionary<string, object?>
+                    {
+                        ["providerSubscriptionCancelled"] = true,
+                        ["refundedMinorUnits"] = cancelRefund.RefundedMinorUnits,
+                        ["refundCurrency"] = cancelRefund.Currency,
+                    },
+                    null)
+                : null,
             ct: ct);
 
         await Send.NoContentAsync(ct);
+    }
+
+    /// <summary>
+    /// Cancels the subscription at the payment provider now and refunds its unused days. Answers 503 or 502 and returns
+    /// null when it could not.
+    /// </summary>
+    private async Task<CancelRefundResult?> TryCancelAtProviderAsync(string externalSubscriptionId, CancellationToken ct)
+    {
+        if (!subscriptions.IsConfigured)
+        {
+            await this.SendProblemAsync(
+                StatusCodes.Status503ServiceUnavailable, ErrorCodes.BillingNotConfigured, "Billing is not configured.", ct);
+            return null;
+        }
+
+        try
+        {
+            return await subscriptions.CancelNowAsync(externalSubscriptionId, ct);
+        }
+        catch (BillingProviderException)
+        {
+            await this.SendProblemAsync(
+                StatusCodes.Status502BadGateway, ErrorCodes.BillingProviderError, "The payment provider failed.", ct);
+            return null;
+        }
     }
 }

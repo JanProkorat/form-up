@@ -21,7 +21,8 @@ public class StatusCodeContractTests(FitnessApiFactory factory)
 
     [Theory]
     [InlineData("put", "/users/me", "200,400,401,404", false, Body)]
-    [InlineData("put", "/users/me/timezone", "200,400,401,404", false, Body)]
+    [InlineData("delete", "/users/me", "204,400,401,404,502,503", false, Body)]
+    [InlineData("put", "/users/me/timezone","200,400,401,404", false, Body)]
     [InlineData("put", "/trainer/profile", "200,400,401,403,404", false, Body)]
     [InlineData("post", "/auth/password/reset", "200,400,404,429", false, Body)]
     [InlineData("put", "/auth/password/reset", "200,400,429", false, Body)]
