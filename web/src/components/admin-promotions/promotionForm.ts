@@ -6,7 +6,8 @@ import {
   PromotionMode,
   type CreatePromotionRequest,
 } from '@/api/admin-promotions';
-import { inputToMinor } from '@/components/admin-plans/planForm';
+import type { SubscriptionPlanDto } from '@/api/admin-subscription-plans';
+import { inputToMinor, isFreePlan } from '@/components/admin-plans/planForm';
 import { parseAmount } from '@/lib/money';
 
 export const PROMOTION_NAME_MAX = 200;
@@ -15,8 +16,15 @@ export const PROMOTION_MONTHS_MIN = 2;
 export const PROMOTION_MONTHS_MAX = 36;
 const FIXED_AMOUNT_CURRENCY = 'CZK';
 
-/** The paid plans a promotion can cover, in the order the drawer lists them. */
-export const PROMOTION_PLAN_CODES = ['start', 'pro', 'studio'] as const;
+/** The plans a promotion can cover: active, paid, cheapest first (code breaks a tie). */
+export function offeredPromotionPlans(plans: readonly SubscriptionPlanDto[]): SubscriptionPlanDto[] {
+  return plans
+    .filter((plan) => !!plan.code && plan.isActive && !isFreePlan(plan) && (plan.priceMinorUnits ?? 0) > 0)
+    .sort(
+      (a, b) =>
+        (a.priceMinorUnits ?? 0) - (b.priceMinorUnits ?? 0) || (a.code ?? '').localeCompare(b.code ?? ''),
+    );
+}
 
 const CODE_PATTERN = /^[A-Za-z0-9]+$/;
 const INT_PATTERN = /^\d+$/;
@@ -56,7 +64,8 @@ function parseDateInput(raw: string, endOfDay: boolean): Date | null {
   return endOfDay ? new Date(year, month, day, 23, 59, 59, 999) : new Date(year, month, day);
 }
 
-export function defaultPromotionValues(now: Date = new Date()): PromotionFormValues {
+/** Starting values; every offered plan code is selected. */
+export function defaultPromotionValues(now: Date, offeredCodes: readonly string[]): PromotionFormValues {
   return {
     name: '',
     kind: 'percent',
@@ -68,7 +77,7 @@ export function defaultPromotionValues(now: Date = new Date()): PromotionFormVal
     billingPeriod: 'both',
     claimFrom: toDateInput(now),
     claimUntil: '',
-    planCodes: [...PROMOTION_PLAN_CODES],
+    planCodes: [...offeredCodes],
     maxUses: '',
     newCoachesOnly: false,
     oneUsePerCoach: true,
@@ -155,7 +164,10 @@ const BILLING_PERIOD_BY_OPTION: Record<PromotionFormValues['billingPeriod'], Pro
 };
 
 /** Builds the create body: percent as typed, a fixed amount in minor units (crowns x 100), code only in code mode. */
-export function formValuesToCreateRequest(values: PromotionFormValues): CreatePromotionRequest {
+export function formValuesToCreateRequest(
+  values: PromotionFormValues,
+  offeredCodes: readonly string[],
+): CreatePromotionRequest {
   const percent = values.kind === 'percent';
   const claimFrom = parseDateInput(values.claimFrom, false) ?? new Date();
   const claimUntil = values.claimUntil ? parseDateInput(values.claimUntil, true) : null;
@@ -172,7 +184,7 @@ export function formValuesToCreateRequest(values: PromotionFormValues): CreatePr
     billingPeriod: BILLING_PERIOD_BY_OPTION[values.billingPeriod],
     claimFrom: claimFrom.toISOString(),
     claimUntil: claimUntil ? claimUntil.toISOString() : undefined,
-    planCodes: PROMOTION_PLAN_CODES.filter((code) => values.planCodes.includes(code)),
+    planCodes: offeredCodes.filter((code) => values.planCodes.includes(code)),
     maxUses: maxUses ? Number(maxUses) : undefined,
     newCoachesOnly: values.newCoachesOnly,
     oneUsePerCoach: values.oneUsePerCoach,

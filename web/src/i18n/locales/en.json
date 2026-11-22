@@ -7299,11 +7299,8 @@
       "range": "{{from}} – {{to}}",
       "noEnd": "No end date"
     },
-    "plans": {
-      "start": "Start",
-      "pro": "Pro",
-      "studio": "Studio"
-    },
+    "plansLoadError": "Could not load the plans. Please try again.",
+    "noPaidPlans": "No paid plans are offered right now, so a promotion cannot cover any plan.",
     "end": {
       "action": "End {{name}}",
       "tooltip": "End promotion",
