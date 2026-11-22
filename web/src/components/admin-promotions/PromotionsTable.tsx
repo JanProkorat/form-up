@@ -10,7 +10,9 @@ import {
   type PromotionDto,
 } from '@/api/admin-promotions';
 import { CELL_CLASS, CELL_TEXT_CLASS, HEAD_CLASS } from '@/components/package-catalog/catalogParts';
-import { PROMOTION_PLAN_CODES } from '@/components/admin-promotions/promotionForm';
+import type { SubscriptionPlanDto } from '@/api/admin-subscription-plans';
+import { planName } from '@/components/admin-plans/planForm';
+import { offeredPromotionPlans } from '@/components/admin-promotions/promotionForm';
 import { formatNameList, promotionValueText } from '@/components/subscription/promotionText';
 import { cn } from '@/lib/utils';
 
@@ -26,13 +28,15 @@ interface Props {
   promotions: PromotionDto[];
   isPending: boolean;
   isError: boolean;
+  /** The plan catalog; undefined while loading or when it failed. */
+  plans: SubscriptionPlanDto[] | undefined;
   onRetry: () => void;
   /** Opens the confirm dialog to end this promotion. */
   onEnd: (promotion: PromotionDto) => void;
 }
 
 /** The promotions of the chosen tab: name, how coaches get it, value, length, window, plans, uses and status. */
-export default function PromotionsTable({ promotions, isPending, isError, onRetry, onEnd }: Props) {
+export default function PromotionsTable({ promotions, isPending, isError, plans, onRetry, onEnd }: Props) {
   const { t, i18n } = useTranslation();
   const language = i18n.language;
   const dateFormat = new Intl.DateTimeFormat(language, { dateStyle: 'medium' });
@@ -52,13 +56,16 @@ export default function PromotionsTable({ promotions, isPending, isError, onRetr
         })
       : t('adminPromotions.window.noEnd');
 
+  const offeredCodes = offeredPromotionPlans(plans ?? []).map((plan) => plan.code ?? '');
+
   const plansText = (promotion: PromotionDto) => {
     const codes = promotion.planCodes ?? [];
-    if (PROMOTION_PLAN_CODES.every((code) => codes.includes(code))) {
+    if (plans && offeredCodes.length > 0 && offeredCodes.every((code) => codes.includes(code))) {
       return t('adminPromotions.table.allPaidPlans');
     }
+    const nameByCode = new Map((plans ?? []).map((plan) => [plan.code, planName(plan, language)]));
     return formatNameList(
-      PROMOTION_PLAN_CODES.filter((code) => codes.includes(code)).map((code) => t(`adminPromotions.plans.${code}`)),
+      codes.map((code) => nameByCode.get(code) ?? code),
       language,
     );
   };

@@ -68,6 +68,14 @@ public static class AppPolicies
     public const string PublicPricingRateLimit = "public-pricing";
 
     /// <summary>
+    /// Rate limiting policy for the anonymous invite token lookup used by the sign-up page.
+    /// 20 requests per 15 minutes per IP — a real invitee loads the page a few times, while token guessing
+    /// must stay expensive; kept apart from the auth budget so opening an invite link never burns the
+    /// invitee's register/login attempts.
+    /// </summary>
+    public const string InviteResolveRateLimit = "invite-resolve";
+
+    /// <summary>
     /// CORS policy for the web application.
     /// </summary>
     public const string AllowWebApp = nameof(AllowWebApp);

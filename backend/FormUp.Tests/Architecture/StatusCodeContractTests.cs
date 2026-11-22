@@ -32,6 +32,7 @@ public class StatusCodeContractTests(FitnessApiFactory factory)
     [InlineData("post", "/auth/verify-email", "200,400,429", true, Body)]
     [InlineData("post", "/auth/register", "201,400,429", true, Body)]
     [InlineData("post", "/auth/resend-verification/anonymous", "200,400,429", true, Body)]
+    [InlineData("post", "/auth/invite/resolve", "200,400,404,429", true, Body)]
     [InlineData("post", "/auth/login", "200,400,429", true, Body)]
     [InlineData("post", "/auth/refresh", "200,400,429", true, Body)]
     [InlineData("post", "/auth/social/google", "200,400,401,403,409,429", true, Body)]
