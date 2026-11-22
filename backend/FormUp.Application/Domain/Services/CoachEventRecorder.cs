@@ -84,10 +84,31 @@ public sealed class CoachEventRecorder(IApplicationDbContext db, ICoachRevenueSe
         await RecordAsync(
             eventType,
             coachUserId,
-            $"{stripeEventId}:{eventType}",
+            eventType == CoachEventType.Upgraded ? UpgradeKey(row, before, after) : $"{stripeEventId}:{eventType}",
             ct,
             after.PlanCode,
             eventType == CoachEventType.StartedPaidPlan ? null : before.PlanCode,
+            before.Amount,
+            after.Amount);
+    }
+
+    /// <inheritdoc />
+    public async Task RecordUpgradeAsync(CoachRevenueState before, CoachSubscription row, CancellationToken ct)
+    {
+        if (await ResolveCoachUserIdAsync(row, ct) is not { } coachUserId)
+        {
+            return;
+        }
+
+        var after = await CaptureAsync(row, ct);
+
+        await RecordAsync(
+            CoachEventType.Upgraded,
+            coachUserId,
+            UpgradeKey(row, before, after),
+            ct,
+            after.PlanCode,
+            before.PlanCode,
             before.Amount,
             after.Amount);
     }
@@ -157,6 +178,10 @@ public sealed class CoachEventRecorder(IApplicationDbContext db, ICoachRevenueSe
     /// <inheritdoc />
     public Task<CoachRevenueState> CaptureAsync(CoachSubscription row, CancellationToken ct) =>
         revenue.CaptureStateAsync(row, timeProvider.GetUtcNow(), ct);
+
+    /// <summary>Key shared by every writer of one immediate upgrade, built from our row as it was before the change.</summary>
+    private static string UpgradeKey(CoachSubscription row, CoachRevenueState before, CoachRevenueState after) =>
+        $"upgrade:{row.ProfessionalProfileId}:{before.PriceId}:{after.PriceId}:{before.CurrentPeriodEndsAt?.ToUnixTimeSeconds() ?? 0}";
 
     private async Task<Guid?> ResolveCoachUserIdAsync(CoachSubscription row, CancellationToken ct) =>
         await db.ProfessionalProfiles

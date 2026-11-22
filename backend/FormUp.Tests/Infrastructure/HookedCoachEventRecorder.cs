@@ -13,6 +13,9 @@ public sealed class CoachEventRecorderHooks
 {
     /// <summary>Called with the Stripe event id and the coach's row after the event is added; reset it in a finally block.</summary>
     public Func<string, CoachSubscription, CancellationToken, Task>? AfterSubscriptionChange { get; set; }
+
+    /// <summary>Called with the coach's row after an upgrade event is added through the change-plan endpoint; reset it in a finally block.</summary>
+    public Func<CoachSubscription, CancellationToken, Task>? AfterUpgrade { get; set; }
 }
 
 /// <summary>
@@ -42,6 +45,17 @@ public sealed class HookedCoachEventRecorder(ICoachEventRecorder inner, CoachEve
         if (hooks.AfterSubscriptionChange is { } hook)
         {
             await hook(stripeEventId, row, ct);
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task RecordUpgradeAsync(CoachRevenueState before, CoachSubscription row, CancellationToken ct)
+    {
+        await inner.RecordUpgradeAsync(before, row, ct);
+
+        if (hooks.AfterUpgrade is { } hook)
+        {
+            await hook(row, ct);
         }
     }
 

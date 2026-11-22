@@ -7,6 +7,7 @@ using FluentAssertions;
 using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Infrastructure.Data;
+using FormUp.Application.Infrastructure.Services.Billing;
 using FormUp.Tests.Builders;
 using FormUp.Tests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -181,6 +182,122 @@ public class StripeWebhookCoachEventsTests(FitnessApiFactory factory)
 
         (await EventsOfAsync(coach)).Should().ContainSingle(e => e.EventType == CoachEventType.Upgraded);
         BillingTestData.ResetProvider(factory);
+    }
+
+    [Fact]
+    public async Task ChangePlan_WebhookForTheSameUpgradeArrivesDuringTheStripeCall_WritesOneUpgraded()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var (coach, _, _, subscriptionId) = await ArrangeLiveAsync(29900);
+        var (newCode, newPriceId) = await BillingTestData.StripePlanAsync(factory, 59900);
+        fake.UpgradeNowHook = _ => PostAsync(
+            SubscriptionEvent(NewEventId(), "customer.subscription.updated", subscriptionId, newPriceId, "active"));
+
+        try
+        {
+            var response = await coach.Http.PostAsJsonAsync(
+                "/billing/change-plan", new { PlanCode = newCode, AttemptId = Guid.NewGuid() }, Ct);
+
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+        finally
+        {
+            BillingTestData.ResetProvider(factory);
+        }
+
+        (await BillingTestData.ReadRowAsync(factory, coach.ProfileId)).SubscriptionPlan.Code.Should().Be(newCode);
+        (await EventsOfAsync(coach)).Should().ContainSingle(e => e.EventType == CoachEventType.Upgraded);
+    }
+
+    [Fact]
+    public async Task ChangePlan_SameUpgradeKeyCommittedByAnotherContextBeforeTheSave_StillReturns200_WithOneUpgraded()
+    {
+        BillingTestData.ResetProvider(factory);
+        var (coach, _, oldPriceId, _) = await ArrangeLiveAsync(29900);
+        var (newCode, newPriceId) = await BillingTestData.StripePlanAsync(factory, 59900);
+        var before = await BillingTestData.ReadRowAsync(factory, coach.ProfileId);
+        var hooks = factory.Services.GetRequiredService<CoachEventRecorderHooks>();
+
+        hooks.AfterUpgrade = async (_, ct) =>
+        {
+            using var racer = factory.Services.CreateScope();
+            var racerDb = racer.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var oldRowId = await racerDb.SubscriptionPlanPrices.Where(p => p.ExternalPriceId == oldPriceId).Select(p => p.Id).SingleAsync(ct);
+            var newRowId = await racerDb.SubscriptionPlanPrices.Where(p => p.ExternalPriceId == newPriceId).Select(p => p.Id).SingleAsync(ct);
+            racerDb.CoachEvents.Add(new CoachEvent
+            {
+                CoachUserId = coach.UserId,
+                EventType = CoachEventType.Upgraded,
+                OccurredAt = DateTimeOffset.UtcNow,
+                IdempotencyKey = $"upgrade:{coach.ProfileId}:{oldRowId}:{newRowId}:{before.CurrentPeriodEndsAt!.Value.ToUnixTimeSeconds()}",
+            });
+            await racerDb.SaveChangesAsync(ct);
+        };
+
+        try
+        {
+            var response = await coach.Http.PostAsJsonAsync(
+                "/billing/change-plan", new { PlanCode = newCode, AttemptId = Guid.NewGuid() }, Ct);
+
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+        finally
+        {
+            hooks.AfterUpgrade = null;
+            BillingTestData.ResetProvider(factory);
+        }
+
+        (await BillingTestData.ReadRowAsync(factory, coach.ProfileId)).SubscriptionPlan.Code.Should().Be(newCode);
+        (await EventsOfAsync(coach)).Should().ContainSingle(e => e.EventType == CoachEventType.Upgraded);
+    }
+
+    [Fact]
+    public async Task ChangePlan_UpgradeAgainToTheSamePlanAfterARenewalDowngrade_WritesASecondUpgraded()
+    {
+        BillingTestData.ResetProvider(factory);
+        var (coach, oldCode, oldPriceId, subscriptionId) = await ArrangeLiveAsync(29900);
+        var (newCode, _) = await BillingTestData.StripePlanAsync(factory, 59900);
+
+        try
+        {
+            (await coach.Http.PostAsJsonAsync("/billing/change-plan", new { PlanCode = newCode, AttemptId = Guid.NewGuid() }, Ct))
+                .StatusCode.Should().Be(HttpStatusCode.OK);
+            await BillingTestData.SetPendingPlanAsync(factory, coach.ProfileId, oldCode);
+            await PostAsync(SubscriptionEvent(NewEventId(), "customer.subscription.updated", subscriptionId, oldPriceId, "active"));
+            (await coach.Http.PostAsJsonAsync("/billing/change-plan", new { PlanCode = newCode, AttemptId = Guid.NewGuid() }, Ct))
+                .StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+        finally
+        {
+            BillingTestData.ResetProvider(factory);
+        }
+
+        (await EventsOfAsync(coach)).Select(e => e.EventType).Should().Equal(
+            CoachEventType.Upgraded, CoachEventType.Downgraded, CoachEventType.Upgraded);
+    }
+
+    [Fact]
+    public async Task ChangePlan_WhenTheCardNeedsAuthentication_WritesNoEvent_AndTheLaterWebhookWritesOneUpgraded()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var (coach, _, _, subscriptionId) = await ArrangeLiveAsync(29900);
+        var (newCode, newPriceId) = await BillingTestData.StripePlanAsync(factory, 59900);
+        fake.UpgradeOutcome = PlanUpgradeOutcome.AwaitingPayment("https://invoice.stripe.test/i/in_1");
+
+        try
+        {
+            (await coach.Http.PostAsJsonAsync("/billing/change-plan", new { PlanCode = newCode, AttemptId = Guid.NewGuid() }, Ct))
+                .StatusCode.Should().Be(HttpStatusCode.OK);
+            (await EventsOfAsync(coach)).Should().BeEmpty();
+
+            await PostAsync(SubscriptionEvent(NewEventId(), "customer.subscription.updated", subscriptionId, newPriceId, "active"));
+        }
+        finally
+        {
+            BillingTestData.ResetProvider(factory);
+        }
+
+        (await EventsOfAsync(coach)).Should().ContainSingle(e => e.EventType == CoachEventType.Upgraded);
     }
 
     [Fact]
