@@ -9,10 +9,12 @@ namespace FormUp.Application.Domain.Services;
 /// <param name="IsPaying">Whether the coach was in the Paying bucket (paid plan, not a gift, Trialing, Active or PastDue).</param>
 /// <param name="ListMonthlyMinorUnits">The price lines per month at full price, whatever the status; compares two plans.</param>
 /// <param name="Amount">The revenue the subscription brought (zero while trialing or not paying).</param>
+/// <param name="CurrentPeriodEndsAt">End of the paid period on our row, or null; tells two upgrades to the same price apart.</param>
 public sealed record CoachRevenueState(
     string PlanCode,
     long PriceId,
     long? PendingPriceId,
     bool IsPaying,
     long ListMonthlyMinorUnits,
-    CoachRevenueAmount Amount);
+    CoachRevenueAmount Amount,
+    DateTimeOffset? CurrentPeriodEndsAt);
