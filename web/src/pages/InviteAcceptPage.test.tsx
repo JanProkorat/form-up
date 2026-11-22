@@ -12,7 +12,7 @@ describe('InviteAcceptPage (desktop)', () => {
     const { router } = renderWithProviders(
       [
         { path: '/invite/accept', element: <InviteAcceptPage /> },
-        { path: '/register', element: <div>register</div> },
+        { path: '/register', element: <div data-testid="register" /> },
       ],
       { initialEntries: [`/invite/accept?token=${encodeURIComponent(token)}`] },
     );
@@ -27,7 +27,7 @@ describe('InviteAcceptPage (desktop)', () => {
     const { router } = renderWithProviders(
       [
         { path: '/invite/accept', element: <InviteAcceptPage /> },
-        { path: '/register', element: <div>register</div> },
+        { path: '/register', element: <div data-testid="register" /> },
       ],
       { initialEntries: ['/invite/accept'] },
     );
