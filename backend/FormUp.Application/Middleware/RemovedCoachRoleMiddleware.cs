@@ -102,7 +102,7 @@ public sealed class RemovedCoachRoleMiddleware(RequestDelegate next)
         }
 
         if (rule.Mode == RemovedCoachRoleMode.WhilePlanInProgress &&
-            await IsPlanInProgressAsync(http, rule.Role, userId))
+            await IsPlanInProgressAsync(http, rule.Role!, userId))
         {
             http.Items[RoleRemovedItemKey] = true;
             await next(http);
