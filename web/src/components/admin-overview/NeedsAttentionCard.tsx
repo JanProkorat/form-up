@@ -119,7 +119,7 @@ function useAttentionRows(attention: GetAdminAttentionResponse | undefined): Att
 function Row({ row }: { row: AttentionRow }) {
   const { Icon } = row;
   return (
-    <li className="flex items-center gap-3.5 border-t border-line px-4.5 py-3.5">
+    <li className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-3.5 gap-y-3 border-t border-line px-4.5 py-3.5 sm:flex sm:items-center">
       <span className={`flex size-9.5 shrink-0 items-center justify-center rounded-xl ${row.toneClass}`}>
         <Icon className="size-4.5" aria-hidden="true" />
       </span>
@@ -127,7 +127,7 @@ function Row({ row }: { row: AttentionRow }) {
         <span className="text-copy font-semibold text-ink">{row.title}</span>
         {row.detail && <span className="text-body leading-snug text-muted-foreground">{row.detail}</span>}
       </span>
-      <Button asChild variant="outline" className="shrink-0 font-semibold">
+      <Button asChild variant="outline" className="col-start-2 shrink-0 justify-self-start font-semibold">
         <Link to={row.linkTo}>
           {row.linkLabel}
           <ChevronRight aria-hidden="true" />
