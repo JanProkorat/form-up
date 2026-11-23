@@ -2,6 +2,7 @@ using FormUp.Application.Domain.Authorization;
 using FormUp.Application.Domain.Enums;
 using System.Security.Claims;
 using FastEndpoints;
+using FormUp.Application.Domain.Services;
 using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Documents;
 using FormUp.Application.Domain.Extensions;
@@ -21,7 +22,7 @@ public class DeleteFoodEndpoint(IMongoContext mongo) : Endpoint<DeleteFoodReques
     public override void Configure()
     {
         Delete("/foods/{FoodId}");
-        Roles(AppRoles.Nutritionist);
+        Roles(AppRoles.Nutritionist, AppRoles.Admin);
         Summary(s =>
         {
             s.Summary = "Delete custom food";
@@ -44,9 +45,11 @@ public class DeleteFoodEndpoint(IMongoContext mongo) : Endpoint<DeleteFoodReques
             return;
         }
 
-        var nutritionistId = Guid.Parse(userId);
+        var scope = LibraryCallerScope.From(User, Guid.Parse(userId));
+        var nutritionistId = scope.UserId;
 
-        if (await this.RespondIfCoachFeatureNotEntitledAsync(
+        if (!scope.SystemOnly
+            && await this.RespondIfCoachFeatureNotEntitledAsync(
                 nutritionistId, entitlements => entitlements.CanUseIngredients,
                 "The current subscription does not include ingredients.", ct))
         {
@@ -65,7 +68,13 @@ public class DeleteFoodEndpoint(IMongoContext mongo) : Endpoint<DeleteFoodReques
             return;
         }
 
-        if (food.NutritionistId != nutritionistId)
+        if (scope.HidesFood(food.NutritionistId))
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        if (!scope.OwnsFood(food.NutritionistId))
         {
             this.ThrowErrorWithCode(ErrorCodes.FoodNotOwned, "You can only delete your own custom foods.");
             return;

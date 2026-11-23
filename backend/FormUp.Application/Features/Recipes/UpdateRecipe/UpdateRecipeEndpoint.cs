@@ -26,7 +26,7 @@ public class UpdateRecipeEndpoint(IMongoContext mongo)
     public override void Configure()
     {
         Put("/recipes/{RecipeId}");
-        Roles(AppRoles.Nutritionist);
+        Roles(AppRoles.Nutritionist, AppRoles.Admin);
         Summary(s =>
         {
             s.Summary = "Update recipe";
@@ -47,9 +47,11 @@ public class UpdateRecipeEndpoint(IMongoContext mongo)
             return;
         }
 
-        var nutritionistId = Guid.Parse(userId);
+        var scope = LibraryCallerScope.From(User, Guid.Parse(userId));
+        var nutritionistId = scope.RecipeOwnerId;
 
-        if (await this.RespondIfCoachFeatureNotEntitledAsync(
+        if (!scope.SystemOnly
+            && await this.RespondIfCoachFeatureNotEntitledAsync(
                 nutritionistId, entitlements => entitlements.CanUseRecipes,
                 "The current subscription does not include recipes.", ct))
         {
@@ -78,7 +80,7 @@ public class UpdateRecipeEndpoint(IMongoContext mongo)
         }
 
         var foodLookup = await RecipeContent.LoadUsableFoodsAsync(
-            mongo, req.Foods.Select(f => f.FoodExternalId), nutritionistId, ct);
+            mongo, req.Foods.Select(f => f.FoodExternalId), scope, ct);
 
         var mealFoods = new List<MealFood>();
 
@@ -106,7 +108,7 @@ public class UpdateRecipeEndpoint(IMongoContext mongo)
         recipe.Note = req.Note;
         recipe.Foods = mealFoods;
         recipe.TotalNutrients = RecipeContent.CalculateTotals(mealFoods);
-        if (req.Visibility.HasValue)
+        if (req.Visibility.HasValue && !scope.SystemOnly)
         {
             recipe.Visibility = req.Visibility.Value;
         }

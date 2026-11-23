@@ -2,6 +2,7 @@ using FormUp.Application.Domain.Authorization;
 using FormUp.Application.Domain.Enums;
 using System.Security.Claims;
 using FastEndpoints;
+using FormUp.Application.Domain.Services;
 using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Documents;
 using FormUp.Application.Domain.Extensions;
@@ -23,7 +24,7 @@ public class DeleteFoodImageEndpoint(IMongoContext mongo) : Endpoint<DeleteFoodI
     public override void Configure()
     {
         Delete("/foods/{FoodId}/image");
-        Roles(AppRoles.Nutritionist);
+        Roles(AppRoles.Nutritionist, AppRoles.Admin);
         Summary(s =>
         {
             s.Summary = "Remove food image";
@@ -48,9 +49,11 @@ public class DeleteFoodImageEndpoint(IMongoContext mongo) : Endpoint<DeleteFoodI
             return;
         }
 
-        var nutritionistId = Guid.Parse(userId);
+        var scope = LibraryCallerScope.From(User, Guid.Parse(userId));
+        var nutritionistId = scope.UserId;
 
-        if (await this.RespondIfCoachFeatureNotEntitledAsync(
+        if (!scope.SystemOnly
+            && await this.RespondIfCoachFeatureNotEntitledAsync(
                 nutritionistId, entitlements => entitlements.CanUseIngredients,
                 "The current subscription does not include ingredients.", ct))
         {
@@ -69,7 +72,13 @@ public class DeleteFoodImageEndpoint(IMongoContext mongo) : Endpoint<DeleteFoodI
             return;
         }
 
-        if (food.NutritionistId != nutritionistId)
+        if (scope.HidesFood(food.NutritionistId))
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        if (!scope.OwnsFood(food.NutritionistId))
         {
             this.ThrowErrorWithCode(ErrorCodes.FoodNotOwned, "You can only remove the image on your own custom foods.");
             return;

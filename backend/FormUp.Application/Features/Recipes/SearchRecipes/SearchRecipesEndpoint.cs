@@ -31,7 +31,7 @@ public class SearchRecipesEndpoint(IMongoContext mongo)
     public override void Configure()
     {
         Get("/recipes");
-        Roles(AppRoles.Nutritionist);
+        Roles(AppRoles.Nutritionist, AppRoles.Admin);
         Summary(s =>
         {
             s.Summary = "Search recipes";
@@ -55,11 +55,12 @@ public class SearchRecipesEndpoint(IMongoContext mongo)
             return;
         }
 
-        var nutritionistId = Guid.Parse(userId);
+        var scope = LibraryCallerScope.From(User, Guid.Parse(userId));
+        var nutritionistId = scope.RecipeOwnerId;
 
         var filterBuilder = Builders<Recipe>.Filter;
 
-        var filter = RecipeVisibilityFilter.BuildOwnOrPublic(nutritionistId);
+        var filter = RecipeVisibilityFilter.BuildOwnOrPublic(nutritionistId) & scope.RecipeFilter();
 
         if (!string.IsNullOrWhiteSpace(req.Search))
         {

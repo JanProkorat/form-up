@@ -13,11 +13,12 @@ namespace FormUp.Application.Features.Recipes.Shared;
 public static class RecipeContent
 {
     /// <summary>
-    /// Loads the requested foods the caller may use: not deleted, and public or owned by the caller.
-    /// Foods that are missing, deleted or another coach's private food are simply absent from the result.
+    /// Loads the requested foods the caller may use: not deleted, and public or owned by the caller. An admin-only
+    /// caller may use system foods alone. Foods that are missing, deleted or another coach's private food are
+    /// simply absent from the result.
     /// </summary>
     public static async Task<Dictionary<Guid, Food>> LoadUsableFoodsAsync(
-        IMongoContext mongo, IEnumerable<Guid> foodIds, Guid callerId, CancellationToken ct)
+        IMongoContext mongo, IEnumerable<Guid> foodIds, LibraryCallerScope scope, CancellationToken ct)
     {
         var filterBuilder = Builders<Food>.Filter;
 
@@ -25,7 +26,8 @@ public static class RecipeContent
             & filterBuilder.Eq(f => f.IsDeleted, false)
             & filterBuilder.Or(
                 filterBuilder.Eq(f => f.Visibility, FoodVisibility.Public),
-                filterBuilder.Eq(f => f.NutritionistId, callerId));
+                filterBuilder.Eq(f => f.NutritionistId, scope.UserId))
+            & scope.FoodFilter();
 
         using var cursor = await mongo.Foods.FindAsync(filter, cancellationToken: ct);
         var foods = await cursor.ToListAsync(ct);

@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using FastEndpoints;
+using FormUp.Application.Domain.Services;
 using FormUp.Application.Domain.Authorization;
 using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Documents;
@@ -21,7 +22,7 @@ public class RemoveFoodGalleryImageEndpoint(IMongoContext mongo) : Endpoint<Remo
     public override void Configure()
     {
         Delete("/foods/{FoodId}/gallery");
-        Roles(AppRoles.Nutritionist);
+        Roles(AppRoles.Nutritionist, AppRoles.Admin);
         Summary(s =>
         {
             s.Summary = "Remove a food gallery image";
@@ -45,9 +46,11 @@ public class RemoveFoodGalleryImageEndpoint(IMongoContext mongo) : Endpoint<Remo
             return;
         }
 
-        var nutritionistId = Guid.Parse(userId);
+        var scope = LibraryCallerScope.From(User, Guid.Parse(userId));
+        var nutritionistId = scope.UserId;
 
-        if (await this.RespondIfCoachFeatureNotEntitledAsync(
+        if (!scope.SystemOnly
+            && await this.RespondIfCoachFeatureNotEntitledAsync(
                 nutritionistId, entitlements => entitlements.CanUseIngredients,
                 "The current subscription does not include ingredients.", ct))
         {
@@ -66,14 +69,20 @@ public class RemoveFoodGalleryImageEndpoint(IMongoContext mongo) : Endpoint<Remo
             return;
         }
 
-        if (food.NutritionistId != nutritionistId)
+        if (scope.HidesFood(food.NutritionistId))
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        if (!scope.OwnsFood(food.NutritionistId))
         {
             this.ThrowErrorWithCode(ErrorCodes.FoodNotOwned, "You can only remove images on your own custom foods.");
             return;
         }
 
         await mongo.Foods.UpdateOneAsync(
-            activeFood & Builders<Food>.Filter.Eq(f => f.NutritionistId, nutritionistId),
+            activeFood & scope.FoodOwnerFilter(),
             Builders<Food>.Update
                 .Pull(f => f.GalleryImageUrls, req.ImageUrl)
                 .Set(f => f.DateUpdated, DateTime.UtcNow),
