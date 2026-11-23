@@ -292,6 +292,85 @@ public class StripeWebhookEndpointTests(FitnessApiFactory factory)
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
+    /// <summary>A body of unknown length: no Content-Length is computed, so the request goes out chunked.</summary>
+    private sealed class UnknownLengthContent(byte[] bytes) : HttpContent
+    {
+        protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context) =>
+            stream.WriteAsync(bytes, 0, bytes.Length);
+
+        protected override bool TryComputeLength(out long length)
+        {
+            length = 0;
+
+            return false;
+        }
+    }
+
+    /// <summary>A valid-shaped event padded with trailing whitespace to <paramref name="totalBytes"/> bytes.</summary>
+    private static string PaddedEvent(string eventId, int totalBytes)
+    {
+        var payload = Envelope(eventId, "charge.succeeded", null, new { Id = $"ch_{Guid.NewGuid():N}", Object = "charge" });
+
+        return payload + new string(' ', totalBytes - Encoding.UTF8.GetByteCount(payload));
+    }
+
+    private async Task<bool> WasStoredAsync(string eventId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        return await db.ProcessedWebhookEvents.AnyAsync(e => e.EventId == eventId, Ct);
+    }
+
+    private static async Task AssertTooLargeAsync(HttpResponseMessage response)
+    {
+        response.StatusCode.Should().Be(HttpStatusCode.RequestEntityTooLarge);
+        using var problem = System.Text.Json.JsonDocument.Parse(await response.Content.ReadAsStringAsync(Ct));
+        problem.RootElement.GetProperty("errorCode").GetString().Should().Be("WEBHOOK_PAYLOAD_TOO_LARGE");
+    }
+
+    [Fact]
+    public async Task Webhook_WithABodyOverTheCap_Returns413_AndChangesNothing()
+    {
+        var eventId = NewEventId();
+        var payload = PaddedEvent(eventId, 262_144 + 1);
+
+        var response = await PostAsync(payload);
+
+        await AssertTooLargeAsync(response);
+        (await WasStoredAsync(eventId)).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Webhook_WithAChunkedBodyOverTheCap_Returns413()
+    {
+        var eventId = NewEventId();
+        var payload = PaddedEvent(eventId, 262_144 + 1);
+        using var request = new HttpRequestMessage(HttpMethod.Post, Route)
+        {
+            Content = new UnknownLengthContent(Encoding.UTF8.GetBytes(payload)),
+        };
+        request.Content.Headers.ContentType = new("application/json");
+        request.Headers.Add("Stripe-Signature", Sign(payload));
+
+        request.Content.Headers.ContentLength.Should().BeNull();
+
+        var response = await factory.CreateClient().SendAsync(request, Ct);
+
+        await AssertTooLargeAsync(response);
+        (await WasStoredAsync(eventId)).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Webhook_WithABodyExactlyAtTheCap_IsNotRejectedForSize()
+    {
+        var payload = PaddedEvent(NewEventId(), 262_144);
+
+        var response = await PostAsync(payload);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
     [Fact]
     public async Task Webhook_SubscriptionCreated_PutsTheCoachOnThePaidPlanAsActive()
     {

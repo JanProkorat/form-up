@@ -763,6 +763,9 @@ public static class ErrorCodes
     /// <summary>The payment-provider webhook signature is missing or does not match the body.</summary>
     public const string WebhookSignatureInvalid = "WEBHOOK_SIGNATURE_INVALID";
 
+    /// <summary>The payment-provider webhook body is over the size cap and was not read further.</summary>
+    public const string WebhookPayloadTooLarge = "WEBHOOK_PAYLOAD_TOO_LARGE";
+
     /// <summary>Billing is not configured on this server (no payment-provider keys).</summary>
     public const string BillingNotConfigured = "BILLING_NOT_CONFIGURED";
 
