@@ -33,7 +33,7 @@ internal sealed class UpdateSubscriptionPlanEndpoint(
         Summary(s =>
         {
             s.Summary = "Update subscription plan";
-            s.Description = "Updates a subscription tier's fields. Code is immutable — reactivation/deactivation happens via the IsActive field here, not a separate endpoint. PriceMinorUnits and SecondRoleAddOnPriceMinorUnits are the monthly price; AnnualPriceMinorUnits and AnnualSecondRoleAddOnPriceMinorUnits the annual one. A change to the price, the add-on price or the currency closes that interval's open price row and opens a new one; coaches stay on their old row unless MoveExistingCoachesAtNextRenewal is set, which moves only coaches on the changed interval. Omitting the annual price closes the open annual row (the plan is no longer sold annually; coaches on it keep it). The Free plan must stay at price 0 and active. A new paid price row gets its Stripe price created here (the request's ExternalPriceId is ignored), and with MoveExistingCoachesAtNextRenewal the renewal of every coach with a Stripe subscription is scheduled at the new price. Without Stripe keys the change is saved locally without Stripe calls; a Stripe failure saves nothing.";
+            s.Description = "Updates a subscription tier's fields. Code is immutable — reactivation/deactivation happens via the IsActive field here, not a separate endpoint. PriceMinorUnits and SecondRoleAddOnPriceMinorUnits are the monthly price; AnnualPriceMinorUnits and AnnualSecondRoleAddOnPriceMinorUnits the annual one. A change to the price, the add-on price or the currency closes that interval's open price row and opens a new one; coaches stay on their old row unless MoveExistingCoachesAtNextRenewal is set, which moves only coaches on the changed interval. Omitting the annual price closes the open annual row (the plan is no longer sold annually; coaches on it keep it). The Free plan must stay at price 0 and active. A new paid price row gets its Stripe price created here (the request's ExternalPriceId is ignored), and with MoveExistingCoachesAtNextRenewal the renewal of every coach with a Stripe subscription is scheduled at the new price. Without Stripe keys the change is saved locally without Stripe calls; a failure creating a Stripe price saves nothing. The plan change is saved before the coaches are moved, and each coach is saved as its Stripe schedule succeeds; if Stripe fails midway the response is 502 and sending the same request again moves the coaches that are left.";
             s.Response<SubscriptionPlanDto>(StatusCodes.Status200OK, "Subscription plan updated");
             s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Invalid request body");
             s.Response(StatusCodes.Status401Unauthorized, "Missing or invalid credentials");
@@ -41,7 +41,7 @@ internal sealed class UpdateSubscriptionPlanEndpoint(
             s.Response(StatusCodes.Status404NotFound, "No plan with this Code");
             s.Response(StatusCodes.Status409Conflict, "The Free plan cannot be repriced or deactivated");
             s.Response<ProblemDetails>(StatusCodes.Status502BadGateway,
-                "Stripe failed; nothing was saved (BILLING_PROVIDER_ERROR)");
+                "Stripe failed; nothing was saved when the price could not be created, otherwise the plan change is saved and a resend moves the remaining coaches (BILLING_PROVIDER_ERROR)");
         });
     }
 
@@ -191,28 +191,30 @@ internal sealed class UpdateSubscriptionPlanEndpoint(
         plan.Currency = req.Currency;
         plan.IsActive = req.IsActive!.Value;
 
+        // Saved before any coach moves, so a Stripe failure while moving keeps the plan change and a resend finishes the rest.
+        await db.SaveChangesAsync(ct);
+
         if (req.MoveExistingCoachesAtNextRenewal)
         {
             var openRows = new[] { monthlyOpen, annualOpen }.OfType<SubscriptionPlanPrice>();
 
-            foreach (var openRow in openRows)
+            try
             {
-                var moved = await MarkCoachesToMoveAsync(plan, openRow, ct);
-
-                if (!await TryScheduleRenewalPriceAsync(plan, openRow, moved, ct))
+                foreach (var openRow in openRows)
                 {
-                    await this.SendProblemAsync(
-                        StatusCodes.Status502BadGateway,
-                        ErrorCodes.BillingProviderError,
-                        "The payment provider failed; nothing was saved.",
-                        ct);
-                    return;
+                    await MoveCoachesAsync(plan, openRow, ct);
                 }
             }
+            catch (BillingProviderException)
+            {
+                await this.SendProblemAsync(
+                    StatusCodes.Status502BadGateway,
+                    ErrorCodes.BillingProviderError,
+                    "The payment provider failed; the plan change is saved but some coaches were not moved. Send the request again to move the rest.",
+                    ct);
+                return;
+            }
         }
-
-        // The plan's current-price fields and the open price rows change in this one save.
-        await db.SaveChangesAsync(ct);
 
         var coachCount = await db.CoachSubscriptions
             .AsNoTracking()
@@ -239,72 +241,57 @@ internal sealed class UpdateSubscriptionPlanEndpoint(
     }
 
     /// <summary>
-    /// Schedules the renewal of each moved coach that has a Stripe subscription at the new price. Returns false when Stripe
-    /// failed. Skipped with a warning without keys or without a Stripe price on the new row.
+    /// Marks each live coach of the row's interval to move to the open row and saves per coach. A coach with a Stripe
+    /// subscription is scheduled at Stripe first; without keys or a Stripe price it is only marked, with a warning.
+    /// Throws <see cref="BillingProviderException"/> on a Stripe failure; coaches already handled stay saved.
     /// </summary>
-    private async Task<bool> TryScheduleRenewalPriceAsync(
-        SubscriptionPlan plan, SubscriptionPlanPrice openPrice, List<CoachSubscription> moved, CancellationToken ct)
-    {
-        var withStripe = moved.Where(coach => !string.IsNullOrEmpty(coach.ExternalSubscriptionId)).ToList();
-
-        if (withStripe.Count == 0)
-        {
-            return true;
-        }
-
-        if (!subscriptionService.IsConfigured || string.IsNullOrEmpty(openPrice.ExternalPriceId))
-        {
-            logger.LogWarning(
-                "Plan {PlanCode}: {Count} Stripe subscriptions were not scheduled to the new price (Stripe is not configured or the price has no Stripe id)",
-                plan.Code,
-                withStripe.Count);
-
-            return true;
-        }
-
-        try
-        {
-            foreach (var coach in withStripe)
-            {
-                await subscriptionService.ChangePlanAsync(
-                    coach.ExternalSubscriptionId!,
-                    plan.Code,
-                    openPrice.ExternalPriceId,
-                    coach.PaysSecondRoleAddOn ? openPrice.SecondRoleAddOnPriceMinorUnits : null,
-                    openPrice.Currency,
-                    openPrice.BillingInterval,
-                    atNextRenewal: true,
-                    ct);
-            }
-
-            return true;
-        }
-        catch (BillingProviderException)
-        {
-            return false;
-        }
-    }
-
-    private async Task<List<CoachSubscription>> MarkCoachesToMoveAsync(
-        SubscriptionPlan plan, SubscriptionPlanPrice openPrice, CancellationToken ct)
+    private async Task MoveCoachesAsync(SubscriptionPlan plan, SubscriptionPlanPrice openPrice, CancellationToken ct)
     {
         // Only coaches on a row of the same interval move; a monthly coach never lands on the annual row or the reverse.
         var coaches = await db.CoachSubscriptions
             .Where(cs => cs.SubscriptionPlanId == plan.Id
                          && LiveSubscriptionStatuses.All.Contains(cs.Status)
+                         && cs.SubscriptionPlanPriceId != openPrice.Id
                          && cs.SubscriptionPlanPrice.BillingInterval == openPrice.BillingInterval)
+            .OrderBy(cs => cs.Id)
             .ToListAsync(ct);
-        var moved = new List<CoachSubscription>();
+        var canScheduleAtStripe = subscriptionService.IsConfigured && !string.IsNullOrEmpty(openPrice.ExternalPriceId);
+        var notScheduled = 0;
 
         foreach (var coach in coaches)
         {
-            if (openPrice.Id == 0 || coach.SubscriptionPlanPriceId != openPrice.Id)
+            if (!string.IsNullOrEmpty(coach.ExternalSubscriptionId))
             {
-                coach.PendingSubscriptionPlanPrice = openPrice;
-                moved.Add(coach);
+                if (canScheduleAtStripe)
+                {
+                    // Stripe first, then save. If the save fails this coach is rescheduled at Stripe without the marker until a
+                    // resend, which picks it up again; a scheduled change is rebuilt from the current state, so it is idempotent.
+                    await subscriptionService.ChangePlanAsync(
+                        coach.ExternalSubscriptionId,
+                        plan.Code,
+                        openPrice.ExternalPriceId!,
+                        coach.PaysSecondRoleAddOn ? openPrice.SecondRoleAddOnPriceMinorUnits : null,
+                        openPrice.Currency,
+                        openPrice.BillingInterval,
+                        atNextRenewal: true,
+                        ct);
+                }
+                else
+                {
+                    notScheduled++;
+                }
             }
+
+            coach.PendingSubscriptionPlanPrice = openPrice;
+            await db.SaveChangesAsync(ct);
         }
 
-        return moved;
+        if (notScheduled > 0)
+        {
+            logger.LogWarning(
+                "Plan {PlanCode}: {Count} Stripe subscriptions were not scheduled to the new price (Stripe is not configured or the price has no Stripe id)",
+                plan.Code,
+                notScheduled);
+        }
     }
 }

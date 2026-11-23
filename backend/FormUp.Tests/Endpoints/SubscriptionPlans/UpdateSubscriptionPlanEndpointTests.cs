@@ -351,31 +351,64 @@ public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory) : ID
     }
 
     [Fact]
-    public async Task Update_MoveFlagWhenStripeFailsScheduling_Returns502_AndMarksNoCoach()
+    public async Task Update_MoveFlagWhenStripeFailsOnTheSecondCoach_Returns502_SavesTheMovedCoach_AndResendMovesTheRest()
     {
         var fake = BillingTestData.ResetProvider(factory);
         var client = await TestHelpers.RegisterAdminAsync(factory, TestContext.Current.CancellationToken);
         var code = await SeedPlanAsync();
-        var coach = await TestActors.Trainer(factory).CreateAsync();
-        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, code);
-        using (var scope = factory.Services.CreateScope())
+        var coaches = new List<(long ProfileId, string SubscriptionId)>();
+
+        for (var index = 0; index < 3; index++)
         {
+            var coach = await TestActors.Trainer(factory).CreateAsync();
+            var subscriptionId = $"sub_{Guid.NewGuid():N}";
+            await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, code);
+            using var scope = factory.Services.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             await db.CoachSubscriptions.Where(cs => cs.ProfessionalProfileId == coach.ProfileId)
-                .ExecuteUpdateAsync(s => s.SetProperty(cs => cs.ExternalSubscriptionId, "sub_fail"), TestContext.Current.CancellationToken);
+                .ExecuteUpdateAsync(s => s.SetProperty(cs => cs.ExternalSubscriptionId, subscriptionId), TestContext.Current.CancellationToken);
+            coaches.Add((coach.ProfileId, subscriptionId));
         }
 
-        // The price is created first and succeeds; the schedule call then fails.
-        fake.FailPlanChanges = true;
+        // The price is created first and succeeds; the second schedule call then fails.
+        fake.FailPlanChangeOnCall = 2;
+        var payload = UpdatedPayload(code) with { MoveExistingCoachesAtNextRenewal = true };
 
-        var response = await client.PutAsJsonAsync(
-            $"/admin/subscription-plans/{code}",
-            UpdatedPayload(code) with { MoveExistingCoachesAtNextRenewal = true },
-            TestContext.Current.CancellationToken);
+        var failed = await client.PutAsJsonAsync($"/admin/subscription-plans/{code}", payload, TestContext.Current.CancellationToken);
 
-        response.StatusCode.Should().Be(HttpStatusCode.BadGateway);
-        (await ReadSubscriptionAsync(coach.ProfileId)).PendingSubscriptionPlanPriceId.Should().BeNull();
-        (await ReadPricesAsync(code)).Should().ContainSingle();
+        failed.StatusCode.Should().Be(HttpStatusCode.BadGateway);
+        var prices = await ReadPricesAsync(code);
+        prices.Should().HaveCount(2);
+        var newPriceId = prices.Single(p => p.ValidTo is null).Id;
+        var movedSubscriptionId = fake.PlanChanges.Should().ContainSingle().Subject.SubscriptionId;
+
+        foreach (var (profileId, subscriptionId) in coaches)
+        {
+            var pending = (await ReadSubscriptionAsync(profileId)).PendingSubscriptionPlanPriceId;
+
+            if (subscriptionId == movedSubscriptionId)
+            {
+                pending.Should().Be(newPriceId);
+            }
+            else
+            {
+                pending.Should().BeNull();
+            }
+        }
+
+        fake.FailPlanChangeOnCall = null;
+        var pricesCreatedBeforeResend = fake.Prices.Count;
+
+        var resent = await client.PutAsJsonAsync($"/admin/subscription-plans/{code}", payload, TestContext.Current.CancellationToken);
+
+        resent.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await ReadPricesAsync(code)).Should().HaveCount(2);
+        fake.Prices.Should().HaveCount(pricesCreatedBeforeResend);
+
+        foreach (var (profileId, _) in coaches)
+        {
+            (await ReadSubscriptionAsync(profileId)).PendingSubscriptionPlanPriceId.Should().Be(newPriceId);
+        }
     }
 
     private async Task<string> SeedPlanWithAnnualRowAsync()

@@ -22,6 +22,11 @@ public sealed class FakeSubscriptionService : ISubscriptionService
     /// <summary>When true only <see cref="ISubscriptionService.ChangePlanAsync"/> throws <see cref="BillingProviderException"/>.</summary>
     public bool FailPlanChanges { get; set; }
 
+    /// <summary>1-based number of the <see cref="ISubscriptionService.ChangePlanAsync"/> call that throws <see cref="BillingProviderException"/>; other calls and <see cref="ISubscriptionService.UpgradePlanNowAsync"/> are unaffected. Counted since <see cref="Reset"/>.</summary>
+    public int? FailPlanChangeOnCall { get; set; }
+
+    private int planChangeCalls;
+
     /// <summary>When true only <see cref="ISubscriptionService.CreatePriceAsync"/> for the annual interval throws <see cref="BillingProviderException"/>.</summary>
     public bool FailAnnualPriceCreation { get; set; }
 
@@ -191,6 +196,8 @@ public sealed class FakeSubscriptionService : ISubscriptionService
             Fail = false;
             FailAnnualPriceCreation = false;
             FailPlanChanges = false;
+            FailPlanChangeOnCall = null;
+            planChangeCalls = 0;
             FailClearScheduledChange = false;
             UpgradeOutcome = PlanUpgradeOutcome.Applied;
             ExpiredUpgradeRestores.Clear();
@@ -299,6 +306,13 @@ public sealed class FakeSubscriptionService : ISubscriptionService
 
         lock (gate)
         {
+            planChangeCalls++;
+
+            if (FailPlanChangeOnCall == planChangeCalls)
+            {
+                throw new BillingProviderException("Fake plan change failure on a chosen call.");
+            }
+
             PlanChanges.Add(new ChangePlanCall(
                 subscriptionId, planCode, planPriceExternalId, atNextRenewal, addOnAmountMinorUnits, idempotencyKey, interval,
                 PendingPhaseCouponId: pendingPhaseCouponId));
