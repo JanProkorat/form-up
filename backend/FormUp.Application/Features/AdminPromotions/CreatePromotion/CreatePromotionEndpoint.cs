@@ -112,6 +112,8 @@ internal sealed class CreatePromotionEndpoint(
         {
             PublicId = publicId,
             Name = req.Name.Trim(),
+            NameEn = NullIfBlank(req.NameEn),
+            NameDe = NullIfBlank(req.NameDe),
             Kind = req.Kind,
             Value = req.Value,
             Currency = req.Kind == PromotionKind.FixedAmount ? CreatePromotionValidator.FixedAmountCurrency : null,
@@ -255,6 +257,9 @@ internal sealed class CreatePromotionEndpoint(
             return null;
         }
     }
+
+    private static string? NullIfBlank(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     private static CouponSpec CouponSpecFor(
         CreatePromotionRequest req, SelectedPlans plans, BillingInterval interval, string idempotencyKey) =>

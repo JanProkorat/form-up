@@ -7,14 +7,14 @@ import {
   type CoachPlanDto,
   type CoachPromotionDto,
 } from '@/api/generated';
-import { coachPlanName } from '@/components/subscription/planNames';
+import { coachPlanName, promotionDisplayName } from '@/components/subscription/planNames';
 import { FREE_PLAN_CODE } from '@/components/subscription/planPricing';
 import { formatNameList, promotionCoversInterval, promotionValueText } from '@/components/subscription/promotionText';
 
 /** The coach and the public promotion payloads both fit. */
 type BannerPromotion = Pick<
   CoachPromotionDto,
-  'name' | 'kind' | 'value' | 'currency' | 'duration' | 'durationMonths' | 'billingPeriod' | 'claimUntil' | 'planCodes'
+  'name' | 'nameEn' | 'nameDe' | 'kind' | 'value' | 'currency' | 'duration' | 'durationMonths' | 'billingPeriod' | 'claimUntil' | 'planCodes'
 >;
 
 /** The coach and the public plan payloads both fit. */
@@ -36,7 +36,7 @@ export default function PromotionBanner({ promotion, plans, variant, interval = 
   const { t, i18n } = useTranslation();
   const language = i18n.language;
   const value = promotionValueText(t, promotion, language);
-  const name = promotion.name ?? '';
+  const name = promotionDisplayName(promotion, language);
 
   const baseTitle =
     promotion.duration === PromotionDuration.FirstMonth

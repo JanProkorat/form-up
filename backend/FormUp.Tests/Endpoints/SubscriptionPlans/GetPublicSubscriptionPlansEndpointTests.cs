@@ -99,12 +99,16 @@ public class GetPublicSubscriptionPlansEndpointTests(FitnessApiFactory factory) 
             configured.Duration = PromotionDuration.Months;
             configured.DurationMonths = 3;
             configured.ClaimUntil = DateTimeOffset.UtcNow.AddDays(20);
+            configured.NameEn = "Spring sale";
+            configured.NameDe = null;
         });
 
         using var document = await GetJsonAsync(factory.CreateClient());
 
         var promotionJson = document.RootElement.GetProperty("promotion");
         promotionJson.GetProperty("name").GetString().Should().Be(promotion.Name);
+        promotionJson.GetProperty("nameEn").GetString().Should().Be("Spring sale");
+        promotionJson.GetProperty("nameDe").ValueKind.Should().Be(JsonValueKind.Null);
         promotionJson.GetProperty("value").GetInt64().Should().Be(30);
         promotionJson.GetProperty("durationMonths").GetInt32().Should().Be(3);
         promotionJson.GetProperty("planCodes").EnumerateArray().Select(code => code.GetString())
@@ -182,7 +186,7 @@ public class GetPublicSubscriptionPlansEndpointTests(FitnessApiFactory factory) 
         using var document = JsonDocument.Parse(anonymousBody);
         var promotionNames = document.RootElement.GetProperty("promotion").EnumerateObject().Select(property => property.Name).ToList();
         promotionNames.Should().BeEquivalentTo(
-            "name", "kind", "value", "currency", "duration", "durationMonths", "billingPeriod", "claimUntil", "planCodes");
+            "name", "nameEn", "nameDe", "kind", "value", "currency", "duration", "durationMonths", "billingPeriod", "claimUntil", "planCodes");
         anonymousBody.Should().NotContainAny("stripe", "maxUses", "usedCount", "newCoachesOnly", "oneUsePerCoach", "\"code\":\"CODE");
     }
 

@@ -69,7 +69,8 @@ describe('PlanBillingCard billing interval', () => {
       subscription: liveSubscription('pro', BillingInterval.Annual, {
         priceLines: [planLine(599000)],
         promotion: {
-          name: 'Launch offer',
+          name: 'Úvodní nabídka',
+          nameEn: 'Launch offer',
           kind: PromotionKind.Percent,
           value: 30,
           duration: PromotionDuration.Months,
@@ -84,7 +85,9 @@ describe('PlanBillingCard billing interval', () => {
 
     renderCard();
 
+    // The UI language is English, so the English name shows instead of the Czech one.
     expect(await screen.findByText(/Launch offer .* · first year/)).toBeInTheDocument();
+    expect(screen.queryByText(/Úvodní nabídka/)).not.toBeInTheDocument();
     expect(screen.queryByText(/months? left/)).not.toBeInTheDocument();
     const renewal = new Intl.DateTimeFormat('en', { dateStyle: 'medium' }).format(new Date(PERIOD_END));
     const discountEndText = new Intl.DateTimeFormat('en', { dateStyle: 'medium' }).format(new Date(discountEnd));

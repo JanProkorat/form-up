@@ -15,6 +15,12 @@ public class PromotionDto
     /// <summary>Admin-facing name.</summary>
     public string Name { get; set; } = string.Empty;
 
+    /// <summary>English name; null when none was entered.</summary>
+    public string? NameEn { get; set; }
+
+    /// <summary>German name; null when none was entered.</summary>
+    public string? NameDe { get; set; }
+
     /// <summary>Percentage or fixed amount.</summary>
     public PromotionKind Kind { get; set; }
 
@@ -74,6 +80,8 @@ public class PromotionDto
     {
         PromotionId = promotion.PublicId,
         Name = promotion.Name,
+        NameEn = promotion.NameEn,
+        NameDe = promotion.NameDe,
         Kind = promotion.Kind,
         Value = promotion.Value,
         Currency = promotion.Currency,

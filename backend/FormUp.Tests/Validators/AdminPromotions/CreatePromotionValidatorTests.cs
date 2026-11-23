@@ -91,6 +91,29 @@ public class CreatePromotionValidatorTests
         Validate(request).ShouldHaveValidationErrorFor(x => x.Name);
     }
 
+    [Fact]
+    public void Validate_LocalizedNamesAbsentOrAtTheLimit_Passes()
+    {
+        var request = Valid();
+        request.NameEn = new string('e', CreatePromotionValidator.MaxNameLength);
+        request.NameDe = null;
+
+        Validate(request).IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Validate_LocalizedNamesOverTheLimit_Fail()
+    {
+        var request = Valid();
+        request.NameEn = new string('e', CreatePromotionValidator.MaxNameLength + 1);
+        request.NameDe = new string('d', CreatePromotionValidator.MaxNameLength + 1);
+
+        var result = Validate(request);
+
+        result.ShouldHaveValidationErrorFor(x => x.NameEn);
+        result.ShouldHaveValidationErrorFor(x => x.NameDe);
+    }
+
     [Theory]
     [InlineData(PromotionKind.Percent, 0, null)]
     [InlineData(PromotionKind.Percent, 101, null)]

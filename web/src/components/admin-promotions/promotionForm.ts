@@ -32,6 +32,8 @@ const DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 const promotionShape = z.object({
   name: z.string(),
+  nameEn: z.string(),
+  nameDe: z.string(),
   kind: z.enum(['percent', 'fixed']),
   value: z.string(),
   mode: z.enum(['automatic', 'code']),
@@ -68,6 +70,8 @@ function parseDateInput(raw: string, endOfDay: boolean): Date | null {
 export function defaultPromotionValues(now: Date, offeredCodes: readonly string[]): PromotionFormValues {
   return {
     name: '',
+    nameEn: '',
+    nameDe: '',
     kind: 'percent',
     value: '',
     mode: 'automatic',
@@ -95,6 +99,12 @@ export function createPromotionSchema(now: () => Date = () => new Date()) {
       fail('name', 'adminPromotions.validation.nameRequired');
     } else if (name.length > PROMOTION_NAME_MAX) {
       fail('name', 'adminPromotions.validation.nameTooLong');
+    }
+
+    for (const field of ['nameEn', 'nameDe'] as const) {
+      if (values[field].trim().length > PROMOTION_NAME_MAX) {
+        fail(field, 'adminPromotions.validation.nameTooLong');
+      }
     }
 
     if (values.kind === 'percent') {
@@ -174,6 +184,8 @@ export function formValuesToCreateRequest(
   const maxUses = values.maxUses.trim();
   return {
     name: values.name.trim(),
+    nameEn: values.nameEn.trim() || undefined,
+    nameDe: values.nameDe.trim() || undefined,
     kind: percent ? PromotionKind.Percent : PromotionKind.FixedAmount,
     value: percent ? Number(values.value.trim()) : inputToMinor(values.value),
     currency: percent ? undefined : FIXED_AMOUNT_CURRENCY,

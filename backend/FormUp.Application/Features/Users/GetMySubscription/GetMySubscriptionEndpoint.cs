@@ -178,6 +178,8 @@ internal sealed class GetMySubscriptionEndpoint(
         return new CurrentPromotionDto
         {
             Name = current.Promotion.Name,
+            NameEn = current.Promotion.NameEn,
+            NameDe = current.Promotion.NameDe,
             Kind = current.Promotion.Kind,
             Value = current.Promotion.Value,
             Currency = current.Promotion.Currency,

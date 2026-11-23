@@ -385,7 +385,7 @@ trainerTest.describe('admin promotions', () => {
     await expect(drawer.getByLabel('Code', { exact: true })).toHaveCount(0);
     await expect(drawer.getByText('Covers the whole bill, second role included')).toBeVisible();
 
-    await drawer.getByLabel('Name', { exact: true }).fill('Spring offer');
+    await drawer.getByLabel('Name · Czech', { exact: true }).fill('Spring offer');
     await drawer.getByLabel('Value', { exact: true }).fill('25');
 
     await drawer.getByRole('button', { name: 'With a code' }).click();
@@ -432,7 +432,7 @@ trainerTest.describe('admin promotions', () => {
     await expect(drawer.getByText('Enter a name.')).toBeVisible();
     expect(harness.created).toHaveLength(0);
 
-    await drawer.getByLabel('Name', { exact: true }).fill('Crown off');
+    await drawer.getByLabel('Name · Czech', { exact: true }).fill('Crown off');
     await drawer.getByRole('button', { name: 'Fixed amount' }).click();
     await drawer.getByLabel('Value', { exact: true }).fill('200');
     await drawer.getByRole('button', { name: 'Save promotion' }).click();
@@ -450,13 +450,13 @@ trainerTest.describe('admin promotions', () => {
     await page.getByRole('button', { name: 'New promotion' }).click();
 
     const drawer = page.getByRole('dialog');
-    await drawer.getByLabel('Name', { exact: true }).fill('Partner again');
+    await drawer.getByLabel('Name · Czech', { exact: true }).fill('Partner again');
     await drawer.getByLabel('Value', { exact: true }).fill('10');
     await drawer.getByRole('button', { name: 'With a code' }).click();
     await drawer.getByLabel('Code', { exact: true }).fill('COACH20');
     await drawer.getByRole('button', { name: 'Save promotion' }).click();
 
     await expect(drawer.getByText('Another promotion that has not ended already uses this code.')).toBeVisible();
-    await expect(drawer.getByLabel('Name', { exact: true })).toHaveValue('Partner again');
+    await expect(drawer.getByLabel('Name · Czech', { exact: true })).toHaveValue('Partner again');
   });
 });
