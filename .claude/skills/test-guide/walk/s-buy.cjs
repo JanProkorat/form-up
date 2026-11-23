@@ -49,7 +49,7 @@ module.exports = async ({ as, shot, text, BASE, log }) => {
   log("SUBMIT:", await submit.count(), await submit.first().innerText().catch(() => "?"));
   await submit.first().scrollIntoViewIfNeeded();
   await submit.first().click();
-  const backInApp = () => page.url().startsWith(BASE); // BASE follows WALK_BASE
+  const backInApp = () => new URL(page.url()).origin === new URL(BASE).origin; // BASE follows WALK_BASE
   for (let i = 0; i < 40; i++) {
     if (backInApp()) break;
     if (await captchaVisible()) { log("STOP: hCaptcha challenge visible"); await shot(page, "captcha-" + process.env.KEY); return; }
