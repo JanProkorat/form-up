@@ -154,6 +154,7 @@ export default function RolesCard() {
 
   return (
     <SettingsCard
+      id="roles"
       title={t('settings.roles.title')}
       description={t('settings.roles.description')}
       action={

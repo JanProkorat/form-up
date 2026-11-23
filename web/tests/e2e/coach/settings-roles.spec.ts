@@ -131,7 +131,7 @@ trainerTest.describe('settings roles card, adding a second role', () => {
     const addRoleRequests = await mockRolesCard(page, subscription({ secondRole: 'NotAvailable' }));
     await page.goto('/settings');
 
-    await expect(page.getByText(/A second professional role is not part of your plan/)).toBeVisible();
+    await expect(page.locator('#roles').getByText(/A second professional role is not part of your plan/)).toBeVisible();
     await expect(page.getByRole('button', { name: 'Add role' })).toBeDisabled();
     await expect(page.getByRole('dialog')).toHaveCount(0);
     expect(addRoleRequests).toHaveLength(0);
@@ -154,7 +154,7 @@ trainerTest.describe('settings roles card, adding a second role', () => {
     );
     await page.goto('/settings');
 
-    await expect(page.getByText(/You can add a second role after your plan change on .*2026\./)).toBeVisible();
+    await expect(page.locator('#roles').getByText(/You can add a second role after your plan change on .*2026\./)).toBeVisible();
     await expect(page.getByText(/is not part of your plan/)).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Add role' })).toBeDisabled();
     expect(addRoleRequests).toHaveLength(0);
