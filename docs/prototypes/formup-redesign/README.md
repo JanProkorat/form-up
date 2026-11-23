@@ -104,6 +104,11 @@ page per screen in sidebar order (starting at "Start here"), and every board use
 Web export file names changed because their row-column prefix follows the new page layout. Client-app
 and coach-app boards are unchanged: they are still from the versions above.
 
+**Web re-sync, 2026-11-23 (#2360):** every web portal and email board re-exported from web portal
+1795438181-b5db (canvas v81). Adds `PageAdminHome` (C and D, the admin Overview at `/admin`: This month,
+Needs attention, Quick actions) on its own page, adds "Overview" as the first item of the Form Up admin
+sidebar on every admin board, and removes the `ClientHeaderOptions` exploration board.
+
 | Path | Contents |
 |---|---|
 | `index.html` | Gallery of every board, grouped by app and module |
