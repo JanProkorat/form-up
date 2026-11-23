@@ -103,6 +103,15 @@ describe('admin-only route access', () => {
     expect(await screen.findByText('Plan templates page')).toBeInTheDocument();
   });
 
+  it('does not treat an Admin with a removed coach role as admin-only', async () => {
+    // The token keeps Trainer, but no active coach role is left: behaviour stays as before, no 403 page.
+    serveCoachShell([]);
+    renderWithProviders(routes, { initialEntries: ['/clients'], auth: { roles: ['Admin', 'Trainer'] } });
+
+    expect(await screen.findByText('Clients page')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: FORBIDDEN })).not.toBeInTheDocument();
+  });
+
   it('does not treat an Admin whose coach roles failed to load as admin-only', async () => {
     // The lookup fails: the account must not be mistaken for admin-only and get the 403 page.
     server.use(http.get(apiUrl('/users/me/roles'), () => HttpResponse.json({}, { status: 500 })));

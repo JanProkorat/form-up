@@ -13,8 +13,8 @@ export interface ActiveRoles {
   /** True when the coach-role lookup failed; coach roles must be treated as absent. */
   isError: boolean;
   /**
-   * Admin without an active coach role. False while the coach-role lookup is pending or failed:
-   * an Admin+coach account must never be mistaken for admin-only.
+   * Admin whose token has neither a Trainer nor a Nutritionist role (the backend's rule). Independent of the
+   * coach-role lookup: an Admin with a removed coach role is not admin-only.
    */
   isAdminOnly: boolean;
 }
@@ -45,12 +45,9 @@ export function useActiveRoles(): ActiveRoles {
 
   const isLoading = hasCoachToken && query.isPending;
   const isError = hasCoachToken && query.isError;
-  const isAdminOnly =
-    !isLoading &&
-    !isError &&
-    roles.includes('Admin') &&
-    !roles.includes('Trainer') &&
-    !roles.includes('Nutritionist');
+  // Same rule as the backend: decided from the token roles alone, so a removed coach role (which the JWT keeps)
+  // still means "not admin-only", and it is known immediately, without waiting for the roles lookup.
+  const isAdminOnly = tokenRoles.includes('admin') && !hasCoachToken;
 
   return {
     roles,
