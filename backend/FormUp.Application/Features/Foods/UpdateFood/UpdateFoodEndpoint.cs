@@ -23,7 +23,7 @@ public class UpdateFoodEndpoint(IMongoContext mongo) : Endpoint<UpdateFoodReques
     public override void Configure()
     {
         Put("/foods/{FoodId}");
-        Roles(AppRoles.Nutritionist);
+        Roles(AppRoles.Nutritionist, AppRoles.Admin);
         Summary(s =>
         {
             s.Summary = "Update custom food";
@@ -46,9 +46,11 @@ public class UpdateFoodEndpoint(IMongoContext mongo) : Endpoint<UpdateFoodReques
             return;
         }
 
-        var nutritionistId = Guid.Parse(userId);
+        var scope = LibraryCallerScope.From(User, Guid.Parse(userId));
+        var nutritionistId = scope.UserId;
 
-        if (await this.RespondIfCoachFeatureNotEntitledAsync(
+        if (!scope.SystemOnly
+            && await this.RespondIfCoachFeatureNotEntitledAsync(
                 nutritionistId, entitlements => entitlements.CanUseIngredients,
                 "The current subscription does not include ingredients.", ct))
         {
@@ -67,7 +69,13 @@ public class UpdateFoodEndpoint(IMongoContext mongo) : Endpoint<UpdateFoodReques
             return;
         }
 
-        if (food.NutritionistId != nutritionistId)
+        if (scope.HidesFood(food.NutritionistId))
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        if (!scope.OwnsFood(food.NutritionistId))
         {
             this.ThrowErrorWithCode(ErrorCodes.FoodNotOwned, "You can only edit your own custom foods.");
             return;
@@ -105,7 +113,7 @@ public class UpdateFoodEndpoint(IMongoContext mongo) : Endpoint<UpdateFoodReques
                 .ToList())
             .Set(f => f.DateUpdated, DateTime.UtcNow);
 
-        if (req.Visibility.HasValue)
+        if (req.Visibility.HasValue && !scope.SystemOnly)
         {
             update = update.Set(f => f.Visibility, req.Visibility.Value);
         }

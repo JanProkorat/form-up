@@ -6,6 +6,7 @@ using FormUp.Application.Domain.Authorization;
 using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
+using FormUp.Application.Domain.Extensions;
 using FormUp.Application.Domain.Services;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Application.Infrastructure.Data.MongoDb;
@@ -21,7 +22,8 @@ namespace FormUp.Application.Middleware;
 /// Single global gate that makes a removed coach role read-only. Reads and non-coach endpoints pass with no
 /// database work. A single-discipline write is refused once that role is removed; a dual-discipline write
 /// (Trainer and Nutritionist, no Client) is refused only when the caller has no active coach role left, and an
-/// Admin on an endpoint that allows Admin passes. An unannotated write fails closed as a refusal.
+/// Admin on an endpoint that allows Admin passes. An unannotated write fails closed as a refusal. It also answers
+/// 403 for the Admin-membership rule (see <c>IsRefusedByAdminRule</c>), reads included.
 /// Runs as middleware rather than a FastEndpoints pre-processor because FastEndpoints still validates the
 /// request after a pre-processor answers, and endpoints that rethrow (DontCatchExceptions) then abort the response.
 /// </summary>
@@ -41,6 +43,12 @@ public sealed class RemovedCoachRoleMiddleware(RequestDelegate next)
     {
         var endpoint = http.GetEndpoint();
         var rule = endpoint is null ? GateRule.Open : Rules.GetOrAdd(endpoint, Resolve);
+
+        if (IsRefusedByAdminRule(http.User, rule))
+        {
+            http.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return;
+        }
 
         if (rule.Mode is null or RemovedCoachRoleMode.Exempt)
         {
@@ -144,6 +152,22 @@ public sealed class RemovedCoachRoleMiddleware(RequestDelegate next)
                PlanWindowResolver.HasNotEnded(nutritionPlan.StartDate, nutritionPlan.WeekCount, today);
     }
 
+    /// <summary>
+    /// The Admin-membership rule, for reads and writes alike. An endpoint that allows both coach roles plus Admin is
+    /// coach-only for an admin-only caller. An endpoint that allows one coach role plus Admin is open to an admin-only
+    /// caller, and to a caller holding that role; any other caller (such as Admin plus the other coach role) is
+    /// refused exactly as when the endpoint allowed the coach role alone.
+    /// </summary>
+    private static bool IsRefusedByAdminRule(ClaimsPrincipal user, GateRule rule)
+    {
+        if (rule.CoachOnlyForAdminOnly)
+        {
+            return user.IsAdminOnly();
+        }
+
+        return rule.RequiredCoachRole is { } required && !user.IsAdminOnly() && !user.IsInRole(required);
+    }
+
     private static Task RefuseAsync(HttpContext http) =>
         http.Response.SendErrorsAsync(
             [new ValidationFailure("", "This coach role was removed; the account is read-only for it.")
@@ -157,33 +181,56 @@ public sealed class RemovedCoachRoleMiddleware(RequestDelegate next)
     {
         var methods = endpoint.Metadata.GetMetadata<IHttpMethodMetadata>()?.HttpMethods ?? [];
 
-        if (methods.All(method => ReadMethods.Contains(method, StringComparer.OrdinalIgnoreCase)))
-        {
-            return GateRule.Open;
-        }
-
         var roles = endpoint.Metadata.GetOrderedMetadata<IAuthorizeData>()
             .SelectMany(data => (data.Roles ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
             .Distinct()
             .ToList();
 
+        var coachRoles = roles.Where(role => role is AppRoles.Trainer or AppRoles.Nutritionist).ToList();
+        var hasAdmin = roles.Contains(AppRoles.Admin);
+        var allowsClient = roles.Contains(AppRoles.Client);
+
+        // Trainer + Nutritionist + Admin (the Trainers area) is coach-only for an admin-only caller.
+        var coachOnlyForAdminOnly = hasAdmin && !allowsClient && coachRoles.Count == 2;
+
+        // One coach role + Admin (the shared libraries) is open to an admin-only caller and that coach role only.
+        var singleCoach = coachRoles.Count == 1 && roles.Count == (hasAdmin ? 2 : 1) ? coachRoles[0] : null;
+        var requiredCoachRole = hasAdmin ? singleCoach : null;
+
+        if (methods.All(method => ReadMethods.Contains(method, StringComparer.OrdinalIgnoreCase)))
+        {
+            return GateRule.Open with { CoachOnlyForAdminOnly = coachOnlyForAdminOnly, RequiredCoachRole = requiredCoachRole };
+        }
+
         var attribute = endpoint.Metadata.GetMetadata<EndpointDefinition>()?.EndpointType
             .GetCustomAttribute<RemovedCoachRoleAttribute>();
 
-        if (roles.Count == 1 && roles[0] is AppRoles.Trainer or AppRoles.Nutritionist)
+        if (singleCoach is not null)
         {
-            return new GateRule(roles[0], attribute?.Mode ?? RemovedCoachRoleMode.Refuse, false);
+            return new GateRule(singleCoach, attribute?.Mode ?? RemovedCoachRoleMode.Refuse, false)
+            {
+                RequiredCoachRole = requiredCoachRole,
+            };
         }
 
-        var dualCoach = roles.Contains(AppRoles.Trainer) && roles.Contains(AppRoles.Nutritionist) && !roles.Contains(AppRoles.Client);
+        var dualCoach = roles.Contains(AppRoles.Trainer) && roles.Contains(AppRoles.Nutritionist) && !allowsClient;
 
         return dualCoach
-            ? new GateRule(null, attribute?.Mode ?? RemovedCoachRoleMode.Refuse, roles.Contains(AppRoles.Admin))
+            ? new GateRule(null, attribute?.Mode ?? RemovedCoachRoleMode.Refuse, hasAdmin)
+            {
+                CoachOnlyForAdminOnly = coachOnlyForAdminOnly,
+            }
             : GateRule.Open;
     }
 
     private sealed record GateRule(string? Role, RemovedCoachRoleMode? Mode, bool AllowsAdmin)
     {
         public static GateRule Open { get; } = new(null, null, false);
+
+        /// <summary>True when an admin-only caller is refused (both coach roles plus Admin).</summary>
+        public bool CoachOnlyForAdminOnly { get; init; }
+
+        /// <summary>The one coach role a non-admin-only caller must hold (that role plus Admin).</summary>
+        public string? RequiredCoachRole { get; init; }
     }
 }

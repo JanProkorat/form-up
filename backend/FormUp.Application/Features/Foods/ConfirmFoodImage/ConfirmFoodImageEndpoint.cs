@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using FastEndpoints;
+using FormUp.Application.Domain.Services;
 using FormUp.Application.Domain.Authorization;
 using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Documents;
@@ -27,7 +28,7 @@ public class ConfirmFoodImageEndpoint(IMongoContext mongo, IImageUploadService i
     public override void Configure()
     {
         Put("/foods/{FoodId}/image");
-        Roles(AppRoles.Nutritionist);
+        Roles(AppRoles.Nutritionist, AppRoles.Admin);
         Summary(s =>
         {
             s.Summary = "Confirm food image upload";
@@ -50,9 +51,11 @@ public class ConfirmFoodImageEndpoint(IMongoContext mongo, IImageUploadService i
             return;
         }
 
-        var nutritionistId = Guid.Parse(userId);
+        var scope = LibraryCallerScope.From(User, Guid.Parse(userId));
+        var nutritionistId = scope.UserId;
 
-        if (await this.RespondIfCoachFeatureNotEntitledAsync(
+        if (!scope.SystemOnly
+            && await this.RespondIfCoachFeatureNotEntitledAsync(
                 nutritionistId, entitlements => entitlements.CanUseIngredients,
                 "The current subscription does not include ingredients.", ct))
         {
@@ -71,7 +74,13 @@ public class ConfirmFoodImageEndpoint(IMongoContext mongo, IImageUploadService i
             return;
         }
 
-        if (food.NutritionistId != nutritionistId)
+        if (scope.HidesFood(food.NutritionistId))
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        if (!scope.OwnsFood(food.NutritionistId))
         {
             this.ThrowErrorWithCode(ErrorCodes.FoodNotOwned, "You can only set the image on your own custom foods.");
             return;
@@ -100,7 +109,7 @@ public class ConfirmFoodImageEndpoint(IMongoContext mongo, IImageUploadService i
 
         // The IsDeleted guard covers a concurrent soft-delete between the Find above and the write.
         var ownedFood = Builders<Food>.Filter.Eq(f => f.ExternalId, req.FoodId)
-            & Builders<Food>.Filter.Eq(f => f.NutritionistId, nutritionistId)
+            & scope.FoodOwnerFilter()
             & Builders<Food>.Filter.Eq(f => f.IsDeleted, false);
 
         if (isGallery)

@@ -1,4 +1,5 @@
 using FastEndpoints;
+using FormUp.Application.Domain.Services;
 using FormUp.Application.Domain.Documents;
 using FormUp.Application.Features.Exercises.Shared;
 using FormUp.Application.Infrastructure.Data.MongoDb;
@@ -29,7 +30,8 @@ public class GetExerciseEndpoint(IMongoContext mongo) : Endpoint<GetExerciseRequ
         var language = HttpContext.Request.Headers.AcceptLanguage.FirstOrDefault()?.Split(',').FirstOrDefault()?.Split('-').FirstOrDefault();
 
         var filter = Builders<Exercise>.Filter.Eq(e => e.ExternalId, req.ExerciseId)
-            & Builders<Exercise>.Filter.Eq(e => e.IsActive, true);
+            & Builders<Exercise>.Filter.Eq(e => e.IsActive, true)
+            & LibraryCallerScope.From(User, Guid.Empty).ExerciseFilter();
 
         using var cursor = await mongo.Exercises.FindAsync(filter, cancellationToken: ct);
         var exercise = await cursor.FirstOrDefaultAsync(ct);

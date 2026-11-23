@@ -2,6 +2,7 @@ using FormUp.Application.Domain.Authorization;
 using FormUp.Application.Domain.Enums;
 using System.Security.Claims;
 using FastEndpoints;
+using FormUp.Application.Domain.Services;
 using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Documents;
 using FormUp.Application.Domain.Extensions;
@@ -25,7 +26,7 @@ public class GenerateUploadUrlEndpoint(
     public override void Configure()
     {
         Post("/exercises/{ExerciseId}/upload-url");
-        Roles(AppRoles.Trainer);
+        Roles(AppRoles.Trainer, AppRoles.Admin);
         Summary(s =>
         {
             s.Summary = "Generate video upload URL";
@@ -44,7 +45,8 @@ public class GenerateUploadUrlEndpoint(
             return;
         }
 
-        var trainerId = Guid.Parse(userId);
+        var scope = LibraryCallerScope.From(User, Guid.Parse(userId));
+        var trainerId = scope.UserId;
 
         var filter = Builders<Exercise>.Filter.Eq(e => e.ExternalId, req.ExerciseId)
             & Builders<Exercise>.Filter.Eq(e => e.IsActive, true);
@@ -58,13 +60,19 @@ public class GenerateUploadUrlEndpoint(
             return;
         }
 
-        if (!exercise.IsCustom)
+        if (scope.HidesExercise(exercise))
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        if (!scope.SystemOnly && !exercise.IsCustom)
         {
             this.ThrowErrorWithCode(ErrorCodes.SystemExercise, "Cannot upload videos for system exercises.");
             return;
         }
 
-        if (exercise.TrainerId != trainerId)
+        if (!scope.SystemOnly && exercise.TrainerId != trainerId)
         {
             this.ThrowErrorWithCode(ErrorCodes.ExerciseNotOwned, "You can only upload videos for your own exercises.");
             return;

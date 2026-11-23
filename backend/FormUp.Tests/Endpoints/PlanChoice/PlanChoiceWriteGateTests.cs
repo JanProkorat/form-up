@@ -104,6 +104,27 @@ public class PlanChoiceWriteGateTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task RecipeWrite_AdminPlusNutritionistWithEndedGift_StillGetsPlanChoiceRequired()
+    {
+        var account = await TestActors.Professional(factory, UserRole.Admin, UserRole.Nutritionist).CreateAsync(Ct);
+        await CoachSubscriptionBuilder.SubscribeWithEndedGiftAsync(factory, account);
+
+        var response = await account.Http.PostAsJsonAsync("/recipes", new { }, Ct);
+
+        await AssertPlanChoiceRequiredAsync(response);
+    }
+
+    [Fact]
+    public async Task RecipeWrite_AdminOnly_IsNotRefusedByTheGate()
+    {
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+
+        var response = await admin.Http.PostAsJsonAsync("/recipes", new { }, Ct);
+
+        await AssertNotRefusedByGateAsync(response);
+    }
+
+    [Fact]
     public async Task Reads_CoachWithEndedGift_Pass()
     {
         var coach = await EndedGiftCoachAsync();

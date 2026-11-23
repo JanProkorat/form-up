@@ -46,6 +46,8 @@ interface NavItem {
   Icon: ComponentType<{ className?: string; 'aria-hidden'?: boolean | 'true' | 'false' }>;
   /** Rendered as a dimmed, unlinked row until its page exists. */
   disabled?: boolean;
+  /** Also shown to an admin-only account, which sees no other coach item. */
+  adminOnly?: boolean;
 }
 
 interface NavSection {
@@ -71,8 +73,8 @@ const NAV_SECTIONS: readonly NavSection[] = [
     dot: true,
     requiredRole: 'Nutritionist',
     items: [
-      { to: '/recipes', labelKey: 'sidebar.recipes', Icon: BookOpen },
-      { to: '/ingredients', labelKey: 'sidebar.ingredients', Icon: Columns },
+      { to: '/recipes', labelKey: 'sidebar.recipes', Icon: BookOpen, adminOnly: true },
+      { to: '/ingredients', labelKey: 'sidebar.ingredients', Icon: Columns, adminOnly: true },
       { to: '/plan-templates', labelKey: 'sidebar.planTemplates', Icon: CalendarDays },
     ],
   },
@@ -153,11 +155,16 @@ export default function Sidebar({ onNavigate, collapsed = false, onToggleCollaps
   const { t } = useTranslation();
   const filterCounts = useConversationFilterCounts();
   const unreadCount = filterCounts.data?.unreadMessages ?? 0;
-  const { hasRole, isLoading, isError } = useActiveRoles();
+  const { hasRole, isLoading, isError, isAdminOnly } = useActiveRoles();
   // Role-gated sections stay hidden while the active roles load and when the lookup fails.
-  const visibleSections = NAV_SECTIONS.filter(
-    (section) => !section.requiredRole || (!isLoading && !isError && hasRole(section.requiredRole)),
-  );
+  // An admin-only account sees the Admin section plus the items flagged `adminOnly`, nothing else.
+  const visibleSections = isAdminOnly
+    ? NAV_SECTIONS.map((section) =>
+        section.requiredRole === 'Admin' ? section : { ...section, items: section.items.filter((item) => item.adminOnly) },
+      ).filter((section) => section.items.length > 0)
+    : NAV_SECTIONS.filter(
+        (section) => !section.requiredRole || (!isLoading && !isError && hasRole(section.requiredRole)),
+      );
   const { isEntitled } = useSubscription();
   const navRef = useScrollEdgeFade<HTMLDivElement>();
   // isEntitled stays true while the subscription loads or fails, so no lock flashes in.
@@ -325,12 +332,15 @@ export default function Sidebar({ onNavigate, collapsed = false, onToggleCollaps
 
         <div className="flex flex-col">
           {/* In the rail it is the bell above the avatar. */}
-          <NotificationsPopover
-            collapsed={collapsed}
-            rowClassName={cn(ROW, 'font-medium')}
-            label={<RowLabel collapsed={collapsed}>{t('notifications.title')}</RowLabel>}
-            onNavigate={onNavigate}
-          />
+          {/* Notifications are coach-only; an admin-only account has none. */}
+          {!isAdminOnly && (
+            <NotificationsPopover
+              collapsed={collapsed}
+              rowClassName={cn(ROW, 'font-medium')}
+              label={<RowLabel collapsed={collapsed}>{t('notifications.title')}</RowLabel>}
+              onNavigate={onNavigate}
+            />
+          )}
 
           {SHOW_HELP && (
             <Fold open={!collapsed}>

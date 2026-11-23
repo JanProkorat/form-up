@@ -58,7 +58,8 @@ public class SearchFoodsEndpoint(
         }
 
         var filterBuilder = Builders<Food>.Filter;
-        var filter = FoodVisibilityFilter.BuildOwnOrPublic(currentUserId);
+        var scope = LibraryCallerScope.From(User, currentUserId);
+        var filter = FoodVisibilityFilter.BuildOwnOrPublic(currentUserId) & scope.FoodFilter();
 
         if (req.Categories.Count > 0)
         {

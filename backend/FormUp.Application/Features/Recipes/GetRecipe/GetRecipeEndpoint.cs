@@ -21,7 +21,7 @@ public class GetRecipeEndpoint(IMongoContext mongo)
     public override void Configure()
     {
         Get("/recipes/{RecipeId}");
-        Roles(AppRoles.Nutritionist);
+        Roles(AppRoles.Nutritionist, AppRoles.Admin);
         Summary(s =>
         {
             s.Summary = "Get recipe";
@@ -42,10 +42,12 @@ public class GetRecipeEndpoint(IMongoContext mongo)
             return;
         }
 
-        var nutritionistId = Guid.Parse(userId);
+        var scope = LibraryCallerScope.From(User, Guid.Parse(userId));
+        var nutritionistId = scope.RecipeOwnerId;
 
         var filter = Builders<Recipe>.Filter.Eq(r => r.ExternalId, req.RecipeId)
-            & RecipeVisibilityFilter.BuildOwnOrPublic(nutritionistId);
+            & RecipeVisibilityFilter.BuildOwnOrPublic(nutritionistId)
+            & scope.RecipeFilter();
 
         using var cursor = await mongo.Recipes.FindAsync(filter, cancellationToken: ct);
         var recipe = await cursor.FirstOrDefaultAsync(ct);
