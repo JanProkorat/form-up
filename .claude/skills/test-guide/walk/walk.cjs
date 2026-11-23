@@ -2,13 +2,14 @@
 // Usage: node walk.cjs <step-script.cjs> [width] [theme]
 const path = require("path");
 const fs = require("fs");
-const { chromium } = require("/Users/jan/Projects/form-up/web/node_modules/playwright");
+// WALK_PLAYWRIGHT loads Playwright from another checkout's web/node_modules.
+const { chromium } = require(process.env.WALK_PLAYWRIGHT || "/Users/jan/Projects/form-up/web/node_modules/playwright");
 
 const BRAVE = "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser";
-const BASE = "http://localhost:5173";
-const ACCOUNTS = "/Users/jan/Projects/form-up/.claude/private/walk-accounts.json";
-const SHOTS = `/Users/jan/Projects/form-up/.qa-artifacts/${process.env.EPIC || "walk"}/walk`;
-const STATE = "/Users/jan/Projects/form-up/.qa-artifacts/walk-sessions"; // gitignored; holds signed-in sessions
+const BASE = process.env.WALK_BASE || "http://localhost:5173"; // WALK_BASE points the walk at a branch web server
+const ACCOUNTS = process.env.WALK_ACCOUNTS || "/Users/jan/Projects/form-up/.claude/private/walk-accounts.json";
+const SHOTS = process.env.WALK_SHOTS || `/Users/jan/Projects/form-up/.qa-artifacts/${process.env.EPIC || "walk"}/walk`;
+const STATE = process.env.WALK_STATE || "/Users/jan/Projects/form-up/.qa-artifacts/walk-sessions"; // gitignored; holds signed-in sessions
 
 (async () => {
   const [, , scriptPath, width = "1440", theme = "light"] = process.argv;

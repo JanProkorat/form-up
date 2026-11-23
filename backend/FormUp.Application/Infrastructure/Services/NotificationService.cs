@@ -24,13 +24,7 @@ public class NotificationService(IApplicationDbContext db, IPushNotificationServ
         string? variant = null,
         CancellationToken ct = default)
     {
-        var recipientLanguage = await db.Users
-            .AsNoTracking()
-            .Where(u => u.Id == recipientUserId)
-            .Select(u => u.Language)
-            .FirstOrDefaultAsync(ct);
-
-        var (title, body) = NotificationTemplates.Resolve(type, recipientLanguage, parameters, variant);
+        var (title, body) = await ResolveTemplateAsync(recipientUserId, type, parameters, variant, ct);
 
         var notification = new Notification
         {
@@ -47,19 +41,61 @@ public class NotificationService(IApplicationDbContext db, IPushNotificationServ
         // Send push notification to the user's mobile devices. Uses the SAME resolved
         // title/body as the in-app notification — the OS push banner renders before the
         // app opens, so it must already be in the recipient's language at send time.
-        if (await IsPushEnabledAsync(recipientUserId, type, ct))
-        {
-            // The notification's own data (e.g. inviteId) rides along so a tapped push can deep-link;
-            // "type" is written last so a parameter can never override it.
-            var pushData = new Dictionary<string, string>(parameters ?? new Dictionary<string, string>())
-            {
-                ["type"] = type.ToString(),
-            };
-
-            await push.SendAsync(recipientUserId, title, body, pushData, ct);
-        }
+        await PushIfEnabledAsync(recipientUserId, type, title, body, parameters, ct);
 
         return notification;
+    }
+
+    /// <inheritdoc />
+    public async Task SendPushOnlyAsync(
+        Guid recipientUserId,
+        NotificationType type,
+        IReadOnlyDictionary<string, string>? parameters = null,
+        string? variant = null,
+        CancellationToken ct = default)
+    {
+        var (title, body) = await ResolveTemplateAsync(recipientUserId, type, parameters, variant, ct);
+
+        await PushIfEnabledAsync(recipientUserId, type, title, body, parameters, ct);
+    }
+
+    private async Task<(string Title, string Body)> ResolveTemplateAsync(
+        Guid recipientUserId,
+        NotificationType type,
+        IReadOnlyDictionary<string, string>? parameters,
+        string? variant,
+        CancellationToken ct)
+    {
+        var recipientLanguage = await db.Users
+            .AsNoTracking()
+            .Where(u => u.Id == recipientUserId)
+            .Select(u => u.Language)
+            .FirstOrDefaultAsync(ct);
+
+        return NotificationTemplates.Resolve(type, recipientLanguage, parameters, variant);
+    }
+
+    private async Task PushIfEnabledAsync(
+        Guid recipientUserId,
+        NotificationType type,
+        string title,
+        string body,
+        IReadOnlyDictionary<string, string>? parameters,
+        CancellationToken ct)
+    {
+        if (!await IsPushEnabledAsync(recipientUserId, type, ct))
+        {
+            return;
+        }
+
+        // The notification's own data (e.g. inviteId) rides along so a tapped push can deep-link;
+        // "type" is written last so a parameter can never override it.
+        var pushData = new Dictionary<string, string>(parameters ?? new Dictionary<string, string>())
+        {
+            ["type"] = type.ToString(),
+        };
+
+        await push.SendAsync(recipientUserId, title, body, pushData, ct);
     }
 
     private static NotificationEvent? MapToPreferenceEvent(NotificationType type) => type switch
