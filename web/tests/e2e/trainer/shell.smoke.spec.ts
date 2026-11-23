@@ -23,8 +23,8 @@ test('app shell renders the v1 nav and routes between pages', async ({ page }) =
   // Confirm ProtectedRoute did not bounce us back to the public entry route.
   await expect(page).toHaveURL(/\/clients$/);
 
-  // A trainer-only coach sees the client-management items and no nutrition
-  // section — that one is gated on the active Nutritionist role (#1325; the
+  // A trainer-only coach sees the daily-work items and no Recipes, Ingredients
+  // or Plan templates — those are gated on the active Nutritionist role (#1325; the
   // nutritionist side is covered by nutritionist/shell.role-nav.spec.ts).
   const nav = page.getByRole('navigation');
   await expect(nav.getByText('Clients', { exact: true })).toBeVisible();

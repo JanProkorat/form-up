@@ -203,7 +203,6 @@
     "adminReports": "Berichte",
     "automations": "Automatisierungen",
     "checkIns": "Check-ins",
-    "dashboard": "Dashboard",
     "profile": "Profil",
     "clients": "Klienten",
     "inbox": "Nachrichten",
@@ -214,16 +213,11 @@
     "settings": "Einstellungen",
     "recipes": "Rezepte",
     "planTemplates": "Planvorlagen",
-    "exercises": "Übungen",
     "sectionTemplates": "Workouts",
-    "trainingPlans": "Trainingspläne",
     "messages": "Nachrichten",
     "clientsSection": "KLIENTEN",
     "searchClients": "Klient suchen...",
-    "databaseSection": "DATENBANK",
-    "clientManagementSection": "Klientenverwaltung",
-    "nutritionSection": "Ernährung",
-    "formsSection": "Formulare",
+    "librarySection": "Bibliothek",
     "businessSection": "Business",
     "packages": "Pakete",
     "forms": "Formulare",
@@ -5457,14 +5451,11 @@
         }
       },
       "actions": {
-        "chat": "Chat",
-        "tasks": "Aufgaben",
-        "notes": "Notizen"
+        "chat": "Chat"
       },
       "tabs": {
         "overview": "Übersicht",
         "nutrition": "Ernährung",
-        "workouts": "Workouts",
         "storage": "Fotos",
         "payment": "Zahlung",
         "automations": "Automatisierungen",
@@ -5521,7 +5512,6 @@
       },
       "workout": {
         "label": "Training",
-        "openPlan": "Plan öffnen",
         "doneThisWeek": "Diese Woche erledigt · {{done}} von {{total}} Einheiten",
         "heading": "Letztes Workout",
         "exercises_one": "{{count}} Übung",
@@ -6537,12 +6527,6 @@
         "FirstPaymentsChoice": "Nur erste Zahlungen",
         "FirstPayments_one": "Nur die erste Zahlung",
         "FirstPayments_other": "Die ersten {{count}} Zahlungen"
-      },
-      "codes": {
-        "title": "Rabattcodes",
-        "comingLater": "Kommt später",
-        "body": "Geben Sie einem Rabatt einen Code, etwa SOMMER26, und Klienten geben ihn beim Beitritt ein.",
-        "create": "Code erstellen"
       },
       "validation": {
         "nameRequired": "Geben Sie einen Namen ein.",

@@ -4,7 +4,6 @@ import {
   BookOpen,
   CalendarDays,
   ChartLine,
-  ChevronDown,
   ChevronsLeft,
   ChevronsRight,
   ClipboardCheck,
@@ -34,12 +33,9 @@ import { useScrollEdgeFade } from '@/hooks/useScrollEdgeFade';
 const SHOW_HELP = false;
 
 /**
- * v1 navigation — only the sections/items this rebuild actually delivers.
- * See docs/superpowers/specs/2026-09-14-web-v1-rebuild-design.md
- * §9: the wireframe has more sidebar areas (Storage, Exercises, Templates,
- * Mealplans, Metrics) with no backend feature slice behind them yet — those
- * groups are not rendered at all (#1073 AC 2). Automations is delivered and
- * sits in the Forms section.
+ * Sidebar navigation: a headerless daily-work block, the Library and Business
+ * groups, and the Admin section. Wireframe areas with no backend feature yet
+ * (Storage, Exercises, Templates, Mealplans, Metrics) are not rendered.
  */
 interface NavItem {
   to: string;
@@ -49,49 +45,47 @@ interface NavItem {
   disabled?: boolean;
   /** Also shown to an admin-only account, which sees no other coach item. */
   adminOnly?: boolean;
+  /** Coach role the item needs; hidden while roles load or fail to load. */
+  requiredRole?: string;
 }
 
 interface NavSection {
-  headerKey: string;
+  /** Omitted for the headerless first block. */
+  headerKey?: string;
   dot: boolean;
   /** Colour class of the header dot; the nutrition colour when omitted. */
   dotClass?: string;
+  /** Gates the whole section (Admin); coach roles gate single items instead. */
   requiredRole?: string;
   items: readonly NavItem[];
 }
 
 const NAV_SECTIONS: readonly NavSection[] = [
   {
-    headerKey: 'sidebar.clientManagementSection',
     dot: false,
     items: [
       { to: '/clients', labelKey: 'sidebar.clients', Icon: Users },
       { to: '/inbox', labelKey: 'sidebar.inbox', Icon: MessageSquare },
+      { to: '/check-ins', labelKey: 'sidebar.checkIns', Icon: ClipboardCheck },
     ],
   },
   {
-    headerKey: 'sidebar.nutritionSection',
-    dot: true,
-    requiredRole: 'Nutritionist',
-    items: [
-      { to: '/recipes', labelKey: 'sidebar.recipes', Icon: BookOpen, adminOnly: true },
-      { to: '/ingredients', labelKey: 'sidebar.ingredients', Icon: Columns, adminOnly: true },
-      { to: '/plan-templates', labelKey: 'sidebar.planTemplates', Icon: CalendarDays },
-    ],
-  },
-  {
-    headerKey: 'sidebar.formsSection',
+    headerKey: 'sidebar.librarySection',
     dot: false,
     items: [
       { to: '/forms', labelKey: 'sidebar.forms', Icon: FileText },
-      { to: '/automations', labelKey: 'sidebar.automations', Icon: Zap },
-      { to: '/check-ins', labelKey: 'sidebar.checkIns', Icon: ClipboardCheck },
+      { to: '/recipes', labelKey: 'sidebar.recipes', Icon: BookOpen, adminOnly: true, requiredRole: 'Nutritionist' },
+      { to: '/ingredients', labelKey: 'sidebar.ingredients', Icon: Columns, adminOnly: true, requiredRole: 'Nutritionist' },
+      { to: '/plan-templates', labelKey: 'sidebar.planTemplates', Icon: CalendarDays, requiredRole: 'Nutritionist' },
     ],
   },
   {
     headerKey: 'sidebar.businessSection',
     dot: false,
-    items: [{ to: '/packages', labelKey: 'sidebar.packages', Icon: Package }],
+    items: [
+      { to: '/packages', labelKey: 'sidebar.packages', Icon: Package },
+      { to: '/automations', labelKey: 'sidebar.automations', Icon: Zap },
+    ],
   },
   {
     headerKey: 'sidebar.adminSection',
@@ -158,15 +152,21 @@ export default function Sidebar({ onNavigate, collapsed = false, onToggleCollaps
   const filterCounts = useConversationFilterCounts();
   const unreadCount = filterCounts.data?.unreadMessages ?? 0;
   const { hasRole, isLoading, isError, isAdminOnly } = useActiveRoles();
-  // Role-gated sections stay hidden while the active roles load and when the lookup fails.
+  // Role-gated entries stay hidden while the active roles load and when the lookup fails.
   // An admin-only account sees the Admin section plus the items flagged `adminOnly`, nothing else.
-  const visibleSections = isAdminOnly
-    ? NAV_SECTIONS.map((section) =>
-        section.requiredRole === 'Admin' ? section : { ...section, items: section.items.filter((item) => item.adminOnly) },
-      ).filter((section) => section.items.length > 0)
-    : NAV_SECTIONS.filter(
-        (section) => !section.requiredRole || (!isLoading && !isError && hasRole(section.requiredRole)),
-      );
+  const roleKnown = !isLoading && !isError;
+  const visibleSections = NAV_SECTIONS.map((section) => {
+    if (isAdminOnly) {
+      return section.requiredRole === 'Admin'
+        ? section
+        : { ...section, items: section.items.filter((item) => item.adminOnly) };
+    }
+    if (section.requiredRole && !(roleKnown && hasRole(section.requiredRole))) return { ...section, items: [] };
+    return {
+      ...section,
+      items: section.items.filter((item) => !item.requiredRole || (roleKnown && hasRole(item.requiredRole))),
+    };
+  }).filter((section) => section.items.length > 0);
   const { isEntitled } = useSubscription();
   const navRef = useScrollEdgeFade<HTMLDivElement>();
   // isEntitled stays true while the subscription loads or fails, so no lock flashes in.
@@ -246,24 +246,19 @@ export default function Sidebar({ onNavigate, collapsed = false, onToggleCollaps
           )}
         >
           {visibleSections.map((section) => (
-            <div key={section.headerKey} className="flex flex-col">
-              <Fold open={!collapsed}>
-                <div className="flex h-3 items-center justify-between px-2 box-content pb-1">
-                  <span className="flex items-center gap-1.5 text-label font-semibold tracking-label whitespace-nowrap text-sidebar-muted uppercase">
-                    {section.dot && (
-                      <span className={cn('size-1.5 rounded-full', section.dotClass ?? 'bg-nutrition')} aria-hidden="true" />
-                    )}
-                    {t(section.headerKey)}
-                  </span>
-                  {/* Static decorative glyph — not a collapse control. Two
-                      sections of two items each is nothing to collapse, and a
-                      working collapse could hide a nav item that
-                      shell.smoke.spec.ts asserts is always visible. */}
-                  <span className="-mr-1 flex w-8 justify-center">
-                    <ChevronDown className="size-3 text-sidebar-muted" aria-hidden="true" />
-                  </span>
-                </div>
-              </Fold>
+            <div key={section.headerKey ?? 'daily'} className="flex flex-col">
+              {section.headerKey && (
+                <Fold open={!collapsed}>
+                  <div className="flex h-3 items-center px-2 box-content pb-1">
+                    <span className="flex items-center gap-1.5 text-label font-semibold tracking-label whitespace-nowrap text-sidebar-muted uppercase">
+                      {section.dot && (
+                        <span className={cn('size-1.5 rounded-full', section.dotClass ?? 'bg-nutrition')} aria-hidden="true" />
+                      )}
+                      {t(section.headerKey)}
+                    </span>
+                  </div>
+                </Fold>
+              )}
               <div className="flex flex-col gap-1">
                 {section.items.map(({ to, labelKey, Icon, disabled }) =>
                   disabled ? (

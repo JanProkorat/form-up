@@ -74,7 +74,7 @@ test.describe('app shell responsive behaviour', () => {
         const nav = page.getByRole('navigation');
         await expect(nav.getByText('Clients', { exact: true })).toBeVisible();
         await expect(nav.getByText('Inbox', { exact: true })).toBeVisible();
-        // The nutrition section belongs to the Nutritionist role (#1325).
+        // The nutrition library items belong to the Nutritionist role (#1325).
         await expect(nav.getByText('Recipes', { exact: true })).toHaveCount(0);
         await expect(nav.getByText('Ingredients', { exact: true })).toHaveCount(0);
         await expect(nav.getByText('Plan templates', { exact: true })).toHaveCount(0);

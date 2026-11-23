@@ -159,7 +159,6 @@ export default function ClientDetailPage() {
             activeTab={activeTab}
             onTabChange={handleTabChange}
             canViewNutritionPlans={role !== 'trainer'}
-            canViewTrainingPlans={role !== 'nutritionist'}
             hasNewForms={hasNewFormAnswers}
           />
         }
