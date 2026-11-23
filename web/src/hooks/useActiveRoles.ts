@@ -12,6 +12,11 @@ export interface ActiveRoles {
   isLoading: boolean;
   /** True when the coach-role lookup failed; coach roles must be treated as absent. */
   isError: boolean;
+  /**
+   * Admin without an active coach role. False while the coach-role lookup is pending or failed:
+   * an Admin+coach account must never be mistaken for admin-only.
+   */
+  isAdminOnly: boolean;
 }
 
 function canonical(role: string): string {
@@ -38,10 +43,20 @@ export function useActiveRoles(): ActiveRoles {
   const coachRoles = query.data ? query.data.roles.map((r) => r.role.toLowerCase()) : [];
   const roles = [...tokenRoles.filter((role) => !COACH_ROLES.has(role)), ...coachRoles].map(canonical);
 
+  const isLoading = hasCoachToken && query.isPending;
+  const isError = hasCoachToken && query.isError;
+  const isAdminOnly =
+    !isLoading &&
+    !isError &&
+    roles.includes('Admin') &&
+    !roles.includes('Trainer') &&
+    !roles.includes('Nutritionist');
+
   return {
     roles,
     hasRole: (role) => roles.includes(canonical(role)),
-    isLoading: hasCoachToken && query.isPending,
-    isError: hasCoachToken && query.isError,
+    isLoading,
+    isError,
+    isAdminOnly,
   };
 }

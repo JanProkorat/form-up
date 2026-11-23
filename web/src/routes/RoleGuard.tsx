@@ -4,12 +4,14 @@ import { useActiveRoles } from '@/hooks/useActiveRoles';
 
 interface Props {
   allowedRoles: string[];
+  /** Also lets an admin-only account (Admin, no coach role) through; an Admin with a coach role still needs an allowed role. */
+  allowAdminOnly?: boolean;
 }
 
 /** Renders the child routes only when the viewer holds one of the allowed ACTIVE roles; fails closed on error. */
-export default function RoleGuard({ allowedRoles }: Props) {
+export default function RoleGuard({ allowedRoles, allowAdminOnly = false }: Props) {
   const user = useAuthStore((s) => s.user);
-  const { hasRole, isLoading, isError } = useActiveRoles();
+  const { hasRole, isLoading, isError, isAdminOnly } = useActiveRoles();
 
   if (!user) {
     return <Navigate to="/login" replace />;
@@ -19,7 +21,8 @@ export default function RoleGuard({ allowedRoles }: Props) {
     return null;
   }
 
-  if (isError || !allowedRoles.some(hasRole)) {
+  const allowed = (allowAdminOnly && isAdminOnly) || allowedRoles.some(hasRole);
+  if (isError || !allowed) {
     return <Navigate to="/clients" replace />;
   }
 

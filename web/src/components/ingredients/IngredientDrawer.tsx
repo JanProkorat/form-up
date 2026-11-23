@@ -166,6 +166,8 @@ interface Props {
   /** Gates the coach-private tag section (#1120) — kept separate from
    * `readOnly` since a nutritionist can tag any visible food, even a read-only one. */
   isNutritionist: boolean;
+  /** System foods are always public, so an admin-only account gets no visibility control. */
+  hideVisibility?: boolean;
 }
 
 /**
@@ -183,7 +185,14 @@ interface Props {
  * beyond the default (index 0) straight from the loaded `food`, since the
  * drawer's own fields never touch them.
  */
-export default function IngredientDrawer({ open, onOpenChange, food, readOnly, isNutritionist }: Props) {
+export default function IngredientDrawer({
+  open,
+  onOpenChange,
+  food,
+  readOnly,
+  isNutritionist,
+  hideVisibility = false,
+}: Props) {
   const { t } = useTranslation();
   const mode = food === null ? 'create' : readOnly ? 'view' : 'edit';
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -663,7 +672,7 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly, i
                 </div>
               </div>
 
-              {!readOnly && (
+              {!readOnly && !hideVisibility && (
                 <VisibilityToggle
                   id="ingredient-visibility"
                   entity="ingredient"

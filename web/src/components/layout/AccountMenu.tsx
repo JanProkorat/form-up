@@ -183,14 +183,19 @@ export default function AccountMenu({ onNavigate, collapsed = false }: Props) {
           </span>
         </div>
         <div className="my-1.5 h-px bg-border" />
-        <Link to="/profile" onClick={close} className={ITEM_CLASS}>
-          <User className="size-4 text-muted-foreground" aria-hidden="true" />
-          {t('accountMenu.profile')}
-        </Link>
-        <Link to="/settings" onClick={close} className={ITEM_CLASS}>
-          <Settings className="size-4 text-muted-foreground" aria-hidden="true" />
-          {t('accountMenu.settings')}
-        </Link>
+        {/* Profile and settings are coach/client pages; an admin-only account is refused there. */}
+        {!activeRoles.isAdminOnly && (
+          <>
+            <Link to="/profile" onClick={close} className={ITEM_CLASS}>
+              <User className="size-4 text-muted-foreground" aria-hidden="true" />
+              {t('accountMenu.profile')}
+            </Link>
+            <Link to="/settings" onClick={close} className={ITEM_CLASS}>
+              <Settings className="size-4 text-muted-foreground" aria-hidden="true" />
+              {t('accountMenu.settings')}
+            </Link>
+          </>
+        )}
         {subscription.isCoach && (
           <Link to={PLAN_BILLING_PATH} onClick={close} className={ITEM_CLASS}>
             <CreditCard className="size-4 text-muted-foreground" aria-hidden="true" />
@@ -206,7 +211,7 @@ export default function AccountMenu({ onNavigate, collapsed = false }: Props) {
             {t('accountMenu.keepClients')}
           </Link>
         )}
-        <div className="my-1.5 h-px bg-border" />
+        {!activeRoles.isAdminOnly && <div className="my-1.5 h-px bg-border" />}
         <Segmented label={t('accountMenu.language')}>
           {LANGUAGES.map((lng) => (
             <SegmentButton

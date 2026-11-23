@@ -12,6 +12,7 @@ import { Toaster } from '@/components/ui/toast';
 import { useAuthStore } from '@/stores/auth';
 import ProtectedRoute from '@/routes/ProtectedRoute';
 import RoleGuard from '@/routes/RoleGuard';
+import AdminOnlyGuard from '@/routes/AdminOnlyGuard';
 import AppShell from '@/components/layout/AppShell';
 import EntryPage from '@/pages/EntryPage';
 import LoginForm from '@/components/entry/LoginForm';
@@ -108,6 +109,8 @@ const router = createBrowserRouter(
       <Route path="/download-app" element={<DownloadAppPage />} />
 
       <Route element={<ProtectedRoute />}>
+       {/* Admin-only accounts get the 403 page everywhere except the libraries and /admin/*. */}
+       <Route element={<AdminOnlyGuard />}>
        {/* Outside PlanChoiceGuard on purpose: the sign-up plan step and the Stripe return pages must stay reachable
            while a plan decision is pending, or the guard would bounce the coach before the purchase registers. */}
        <Route element={<RoleGuard allowedRoles={['Trainer', 'Nutritionist']} />}>
@@ -135,9 +138,12 @@ const router = createBrowserRouter(
           <Route path="/automations" element={<AutomationsPage />} />
           <Route path="/check-ins" element={<CheckInsPage />} />
           <Route path="/packages" element={<PackagesPage />} />
-          <Route element={<RoleGuard allowedRoles={['Nutritionist']} />}>
+          {/* The system libraries: nutritionists, and admin-only accounts (they manage the system items). */}
+          <Route element={<RoleGuard allowedRoles={['Nutritionist']} allowAdminOnly />}>
             <Route path="/ingredients" element={<IngredientsPage />} />
             <Route path="/recipes" element={<RecipesPage />} />
+          </Route>
+          <Route element={<RoleGuard allowedRoles={['Nutritionist']} />}>
             <Route path="/plan-templates" element={<PlanTemplatesPage />} />
           </Route>
           <Route element={<RoleGuard allowedRoles={['Admin']} />}>
@@ -164,6 +170,7 @@ const router = createBrowserRouter(
             <Route path="/clients/:clientId/nutrition/plans/:planId" element={<ClientPlanEditorPage />} />
           </Route>
         </Route>
+       </Route>
        </Route>
       </Route>
 

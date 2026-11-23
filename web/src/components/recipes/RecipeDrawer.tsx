@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { useActiveRoles } from '@/hooks/useActiveRoles';
 import {
   Allergen,
   DietaryPreference,
@@ -163,6 +164,8 @@ interface FormProps {
 function RecipeForm({ recipe, mode, onClose, onDeleteClick, onBusyChange }: FormProps) {
   const { t } = useTranslation();
   const readOnly = mode === 'view';
+  // System recipes are always public and carry no coach tags, so an admin-only account sees neither control.
+  const { isAdminOnly } = useActiveRoles();
   const [tab, setTab] = useState<TabValue>('details');
   const [lines, setLines] = useState<IngredientLine[]>(() => (recipe ? linesFromRecipe(recipe) : []));
   const [steps, setSteps] = useState<StepItem[]>(() => (recipe ? stepsFromRecipe(recipe) : []));
@@ -373,7 +376,7 @@ function RecipeForm({ recipe, mode, onClose, onDeleteClick, onBusyChange }: Form
                 />
               </div>
 
-              {!readOnly && (
+              {!readOnly && !isAdminOnly && (
                 <VisibilityToggle
                   id="recipe-visibility"
                   entity="recipe"
@@ -478,7 +481,7 @@ function RecipeForm({ recipe, mode, onClose, onDeleteClick, onBusyChange }: Form
                 a nutritionist can tag ANY visible recipe (system, shared, own),
                 even one whose fields are read-only. Hidden on create — tag
                 assignment needs a saved recipe id. */}
-            {recipe?.recipeId && (
+            {recipe?.recipeId && !isAdminOnly && (
               <div className="flex flex-col gap-3 border-t border-border pt-6">
                 <h3 className="flex items-center gap-2 text-body font-semibold text-foreground">
                   <Tag className="size-4 text-muted-foreground" aria-hidden="true" />

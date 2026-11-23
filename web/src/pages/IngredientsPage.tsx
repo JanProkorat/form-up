@@ -5,6 +5,7 @@ import PageHeader from '@/components/library/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuthStore } from '@/stores/auth';
+import { useActiveRoles } from '@/hooks/useActiveRoles';
 import { useSubscription } from '@/hooks/useSubscriptionQueries';
 import PaywallPanel from '@/components/subscription/PaywallPanel';
 import { useIngredientListParams } from '@/hooks/useIngredientListParams';
@@ -51,6 +52,10 @@ function IngredientsLibrary() {
     useIngredientListParams();
   const roles = useAuthStore((s) => s.user?.roles ?? []);
   const isNutritionist = roles.includes('Nutritionist');
+  // Admin-only accounts manage the system ingredients: no owner or tag UI, no tag requests
+  // (their token has no Nutritionist role, so `isNutritionist` is already false for them).
+  const { isAdminOnly } = useActiveRoles();
+  const canManage = isNutritionist || isAdminOnly;
 
   const { viewMode, setViewMode } = useViewMode(INGREDIENTS_VIEW_MODE_KEY, 'list');
 
@@ -80,9 +85,10 @@ function IngredientsLibrary() {
   // nutritionist) must not silently filter a trainer-only coach's results,
   // so it's excluded from both the request and `hasActiveFilter` here.
   const effectiveOwners = isNutritionist ? filters.owners : [];
-  const ingredientsQuery = useIngredients({ ...filters, owners: effectiveOwners });
+  const effectiveTags = isAdminOnly ? [] : filters.tags;
+  const ingredientsQuery = useIngredients({ ...filters, owners: effectiveOwners, tags: effectiveTags });
   const hasActiveFilter =
-    filters.search !== '' || filters.categories.length > 0 || filters.tags.length > 0 || effectiveOwners.length > 0;
+    filters.search !== '' || filters.categories.length > 0 || effectiveTags.length > 0 || effectiveOwners.length > 0;
 
   function openCreateDrawer() {
     setSelectedFood(null);
@@ -99,7 +105,10 @@ function IngredientsLibrary() {
   // another coach's shared row). The previous `!selectedFood?.isOwnedByCurrentUser`
   // evaluated to `!undefined` === true while creating, so "+ New Ingredient"
   // opened a drawer with every input disabled.
-  const drawerReadOnly = !isNutritionist || (selectedFood !== null && !selectedFood.isOwnedByCurrentUser);
+  // An admin-only account edits system foods (the only rows it sees) instead of owned ones.
+  const drawerReadOnly =
+    !canManage ||
+    (selectedFood !== null && (isAdminOnly ? selectedFood.isSystem !== true : !selectedFood.isOwnedByCurrentUser));
 
   return (
     // `h-full` fills AppShell's `<main>` (a definite-height flex-1 region,
@@ -135,7 +144,7 @@ function IngredientsLibrary() {
         {isNutritionist && <LibraryTagFilterPopover selectedTagIds={filters.tags} onChange={setTags} />}
         <div className="ml-auto flex items-center gap-3">
           <ViewModeToggle value={viewMode} onChange={setViewMode} />
-          {isNutritionist && (
+          {canManage && (
             <Button type="button" size="lg" className="gap-1.75 px-3.5 font-semibold" onClick={openCreateDrawer}>
               <Plus aria-hidden="true" />
               {t('ingredients.newIngredient')}
@@ -208,6 +217,7 @@ function IngredientsLibrary() {
         food={selectedFood}
         readOnly={drawerReadOnly}
         isNutritionist={isNutritionist}
+        hideVisibility={isAdminOnly}
       />
     </div>
   );
