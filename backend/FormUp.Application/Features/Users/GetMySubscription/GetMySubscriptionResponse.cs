@@ -176,6 +176,12 @@ public class CurrentPromotionDto
     /// <summary>Promotion name.</summary>
     public string Name { get; set; } = string.Empty;
 
+    /// <summary>English promotion name; null when none was entered.</summary>
+    public string? NameEn { get; set; }
+
+    /// <summary>German promotion name; null when none was entered.</summary>
+    public string? NameDe { get; set; }
+
     /// <summary>Percentage or fixed amount.</summary>
     public PromotionKind Kind { get; set; }
 

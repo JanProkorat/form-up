@@ -20,12 +20,12 @@ async function openDrawer(state: AdminPromotionsState): Promise<Rendered> {
   serveAdminPromotions(state);
   const rendered = renderAdminPromotions();
   await rendered.user.click(await screen.findByRole('button', { name: 'New promotion' }));
-  await screen.findByRole('textbox', { name: 'Name' });
+  await screen.findByRole('textbox', { name: 'Name · Czech' });
   return rendered;
 }
 
 async function fillRequired({ user }: Rendered) {
-  await user.type(screen.getByRole('textbox', { name: 'Name' }), 'Launch');
+  await user.type(screen.getByRole('textbox', { name: 'Name · Czech' }), 'Launch');
   await user.type(screen.getByRole('textbox', { name: 'Value' }), '20');
 }
 
@@ -44,6 +44,20 @@ describe('AdminPromotionsPage billing period', () => {
     expect(await screen.findByText('Promotion saved.')).toBeInTheDocument();
     expect(state.creates).toHaveLength(1);
     expect(state.creates[0]).toMatchObject({ billingPeriod: 'Both' });
+  });
+
+  it('sends the trimmed English and German names, and leaves an empty one out', async () => {
+    const state = newAdminPromotionsState();
+    const rendered = await openDrawer(state);
+
+    await fillRequired(rendered);
+    await rendered.user.type(screen.getByRole('textbox', { name: 'Name · English' }), '  Launch offer ');
+    await rendered.user.type(screen.getByRole('textbox', { name: 'Name · German' }), '   ');
+    await rendered.user.click(screen.getByRole('button', { name: 'Save promotion' }));
+    await screen.findByText('Promotion saved.');
+
+    expect(state.creates[0]).toMatchObject({ name: 'Launch', nameEn: 'Launch offer' });
+    expect(state.creates[0]).not.toHaveProperty('nameDe');
   });
 
   it('sends Annual and Monthly as chosen', async () => {
@@ -84,6 +98,6 @@ describe('AdminPromotionsPage billing period', () => {
         'Pick at least one paid plan. An annual-only promotion needs plans that have a yearly price.',
       ),
     ).toBeInTheDocument();
-    expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('Launch');
+    expect(screen.getByRole('textbox', { name: 'Name · Czech' })).toHaveValue('Launch');
   });
 });

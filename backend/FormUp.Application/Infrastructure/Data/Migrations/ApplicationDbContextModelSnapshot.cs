@@ -3426,6 +3426,16 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("name");
 
+                    b.Property<string>("NameDe")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name_de");
+
+                    b.Property<string>("NameEn")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name_en");
+
                     b.Property<bool>("NewCoachesOnly")
                         .HasColumnType("boolean")
                         .HasColumnName("new_coaches_only");

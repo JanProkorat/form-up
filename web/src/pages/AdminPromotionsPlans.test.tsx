@@ -55,7 +55,7 @@ describe('AdminPromotionsPage plans from the catalog', () => {
     const rendered = await openDrawer(state);
 
     expect(within(await plansGroup()).getByRole('checkbox', { name: 'Elite' })).toBeChecked();
-    await rendered.user.type(screen.getByRole('textbox', { name: 'Name' }), 'Launch');
+    await rendered.user.type(screen.getByRole('textbox', { name: 'Name · Czech' }), 'Launch');
     await rendered.user.type(screen.getByRole('textbox', { name: 'Value' }), '20');
     await rendered.user.click(screen.getByRole('button', { name: 'Save promotion' }));
     await screen.findByText('Promotion saved.');
@@ -97,7 +97,7 @@ describe('AdminPromotionsPage plans from the catalog', () => {
       }),
     );
     await plansGroup();
-    await rendered.user.type(screen.getByRole('textbox', { name: 'Name' }), 'Launch');
+    await rendered.user.type(screen.getByRole('textbox', { name: 'Name · Czech' }), 'Launch');
 
     state.plansFail = true;
     await act(() => rendered.queryClient.invalidateQueries({ queryKey: adminPlansKey }));
@@ -105,7 +105,7 @@ describe('AdminPromotionsPage plans from the catalog', () => {
     await waitFor(() => expect(plansRequests).toBe(1));
     await waitFor(() => expect(rendered.queryClient.getQueryState(adminPlansKey)?.status).toBe('error'));
     expect(screen.queryByText('Could not load the plans. Please try again.')).not.toBeInTheDocument();
-    expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('Launch');
+    expect(screen.getByRole('textbox', { name: 'Name · Czech' })).toHaveValue('Launch');
     expect(screen.getByRole('button', { name: 'Save promotion' })).toBeInTheDocument();
   });
 

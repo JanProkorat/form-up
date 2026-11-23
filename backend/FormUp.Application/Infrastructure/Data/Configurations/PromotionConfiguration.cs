@@ -13,6 +13,8 @@ public class PromotionConfiguration : IEntityTypeConfiguration<Promotion>
     public void Configure(EntityTypeBuilder<Promotion> builder)
     {
         builder.Property(p => p.Name).HasMaxLength(200);
+        builder.Property(p => p.NameEn).HasMaxLength(200);
+        builder.Property(p => p.NameDe).HasMaxLength(200);
         builder.Property(p => p.Currency).HasMaxLength(3);
         builder.Property(p => p.Code).HasMaxLength(50);
         builder.Property(p => p.CodeNormalized).HasMaxLength(50);

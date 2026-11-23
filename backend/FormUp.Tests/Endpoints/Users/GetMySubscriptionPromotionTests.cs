@@ -64,6 +64,8 @@ public class GetMySubscriptionPromotionTests(FitnessApiFactory factory) : IDispo
             p.Value = 30;
             p.Duration = PromotionDuration.Months;
             p.DurationMonths = 3;
+            p.NameEn = "Spring sale";
+            p.NameDe = null;
         });
         var endsAt = DateTimeOffset.UtcNow.AddMonths(2);
         await SetCurrentPromotionAsync(coach.ProfileId, promotion.Id, endsAt);
@@ -72,6 +74,8 @@ public class GetMySubscriptionPromotionTests(FitnessApiFactory factory) : IDispo
 
         response.Promotion.Should().NotBeNull();
         response.Promotion!.Name.Should().Be(promotion.Name);
+        response.Promotion.NameEn.Should().Be("Spring sale");
+        response.Promotion.NameDe.Should().BeNull();
         response.Promotion.Kind.Should().Be(PromotionKind.Percent);
         response.Promotion.Value.Should().Be(30);
         response.Promotion.Duration.Should().Be(PromotionDuration.Months);

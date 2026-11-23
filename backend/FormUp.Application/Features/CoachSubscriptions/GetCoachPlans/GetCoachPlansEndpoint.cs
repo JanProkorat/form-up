@@ -145,6 +145,8 @@ internal sealed class GetCoachPlansEndpoint(IApplicationDbContext db, IOptions<B
     private static CoachPromotionDto ToDto(Promotion promotion) => new()
     {
         Name = promotion.Name,
+        NameEn = promotion.NameEn,
+        NameDe = promotion.NameDe,
         Kind = promotion.Kind,
         Value = promotion.Value,
         Currency = promotion.Currency,

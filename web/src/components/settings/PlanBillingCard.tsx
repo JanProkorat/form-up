@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { CalendarClock, Check, CreditCard, ExternalLink, Ticket } from 'lucide-react';
+import { promotionDisplayName } from '@/components/subscription/planNames';
 import { monthsUntil, promotionValueText } from '@/components/subscription/promotionText';
 import {
   BillingInterval,
@@ -186,7 +187,7 @@ export default function PlanBillingCard() {
         ? periodEnd
         : null;
   const offerValue = promotion ? promotionValueText(t, promotion, language) : '';
-  const offerName = promotion?.name ?? '';
+  const offerName = promotion ? promotionDisplayName(promotion, language) : '';
   const offerLabel = !promotion
     ? ''
     : annualFirstYearOffer

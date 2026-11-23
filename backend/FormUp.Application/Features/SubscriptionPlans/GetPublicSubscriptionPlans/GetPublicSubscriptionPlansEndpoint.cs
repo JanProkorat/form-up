@@ -154,6 +154,8 @@ internal sealed class GetPublicSubscriptionPlansEndpoint(IApplicationDbContext d
     private static PublicPromotionDto ToDto(Promotion promotion) => new()
     {
         Name = promotion.Name,
+        NameEn = promotion.NameEn,
+        NameDe = promotion.NameDe,
         Kind = promotion.Kind,
         Value = promotion.Value,
         Currency = promotion.Currency,
