@@ -24727,6 +24727,66 @@ export class ApiClient {
     }
 
     /**
+     * Get the admin overview attention block
+     * @return The attention block
+     */
+    getAdminAttentionEndpoint(signal?: AbortSignal): Promise<GetAdminAttentionResponse> {
+        let url_ = this.baseUrl + "/admin/overview/attention";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetAdminAttentionEndpoint(_response);
+        });
+    }
+
+    protected processGetAdminAttentionEndpoint(response: AxiosResponse): Promise<GetAdminAttentionResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetAdminAttentionResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Caller is not an Admin", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetAdminAttentionResponse>(null as any);
+    }
+
+    /**
      * List coaches
      * @param page Page number (1-based). Defaults to 1.
      * @param pageSize Number of rows per page, 1 to 100. Defaults to 20.
@@ -35901,6 +35961,46 @@ to have an open annual price. */
     newCoachesOnly?: boolean;
     /** True to let a coach claim it once. */
     oneUsePerCoach?: boolean;
+}
+
+/** The "needs attention" block of the admin overview: failed payments, cancelling coaches, gifts about to end and promotions about to run out. */
+export interface GetAdminAttentionResponse {
+    /** Number of paying coaches whose last payment failed. */
+    paymentFailedCount?: number;
+    /** Up to three of those coaches, ordered by last name, first name and id. */
+    paymentFailedCoaches?: AdminAttentionCoachDto[];
+    /** Number of paying coaches who cancelled their renewal. */
+    cancellingCount?: number;
+    /** Earliest paid-period end among the cancelling coaches; null when there is none. */
+    cancellingEarliestPeriodEndsAt?: string | undefined;
+    /** Latest paid-period end among the cancelling coaches; null when there is none. */
+    cancellingLatestPeriodEndsAt?: string | undefined;
+    /** Number of given-free plans that end within the next 14 days (open-ended gifts excluded). */
+    givenFreeEndingSoonCount?: number;
+    /** Active promotions whose claim window closes within 14 days or whose uses are at least 90 % taken. */
+    promotionsEndingSoon?: AdminAttentionPromotionDto[];
+}
+
+/** A coach named in the attention block. */
+export interface AdminAttentionCoachDto {
+    /** The coach's user id, the same id the Coaches list uses. */
+    coachId?: string;
+    /** Display name. */
+    name?: string;
+}
+
+/** A promotion named in the attention block. */
+export interface AdminAttentionPromotionDto {
+    /** Public id of the promotion. */
+    promotionId?: string;
+    /** Admin-facing name. */
+    name?: string;
+    /** When the claim window closes; null for no end. */
+    claimUntil?: string | undefined;
+    /** How many coaches claimed it. */
+    usedCount?: number;
+    /** Use limit; null for no limit. */
+    maxUses?: number | undefined;
 }
 
 /** One page of coaches plus the stats over all coaches. */
