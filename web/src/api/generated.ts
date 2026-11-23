@@ -5730,7 +5730,7 @@ export class ApiClient {
             let result502: any = null;
             let resultData502  = _responseText;
             result502 = JSON.parse(resultData502);
-            return throwException("Stripe failed; nothing was saved (BILLING_PROVIDER_ERROR)", status, _responseText, _headers, result502);
+            return throwException("Stripe failed; nothing was saved when the price could not be created, otherwise the plan change is saved and a resend moves the remaining coaches (BILLING_PROVIDER_ERROR)", status, _responseText, _headers, result502);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
