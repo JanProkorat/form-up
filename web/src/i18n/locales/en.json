@@ -5457,9 +5457,7 @@
         }
       },
       "actions": {
-        "chat": "Chat",
-        "tasks": "Tasks",
-        "notes": "Notes"
+        "chat": "Chat"
       },
       "tabs": {
         "overview": "Overview",
@@ -6531,12 +6529,6 @@
         "FirstPaymentsChoice": "First payments only",
         "FirstPayments_one": "First payment only",
         "FirstPayments_other": "First {{count}} payments"
-      },
-      "codes": {
-        "title": "Discount codes",
-        "comingLater": "Coming later",
-        "body": "Give a discount a code, such as SUMMER26, and clients enter it when they join you.",
-        "create": "Create code"
       },
       "validation": {
         "nameRequired": "Enter a name.",

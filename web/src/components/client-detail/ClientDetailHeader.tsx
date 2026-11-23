@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router-dom';
 import type { UseQueryResult } from '@tanstack/react-query';
-import { ChevronLeft, ListChecks, MessageSquare, NotebookText } from 'lucide-react';
+import { ChevronLeft, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ClientHeaderFacts from '@/components/client-detail/ClientHeaderFacts';
 import { useClientHeaderFacts } from '@/components/client-detail/useClientHeaderFacts';
@@ -25,8 +25,7 @@ const META_SEPARATOR = ' · ';
  * Client-detail page header (board PageClientDetail, option B): back button,
  * name with a status dot and a muted age / sex / height line, a facts strip
  * (goal, weight, plan weeks), then the tab row with the actions. Chat opens
- * `/inbox?client=<publicId>`; Tasks and Notes stay disabled with the shell's
- * coming-soon treatment (no backend concept for tasks, no notes UI yet).
+ * `/inbox?client=<publicId>`.
  */
 export default function ClientDetailHeader({ clientId, dashboard, plansQuery, measurementsQuery, tabs }: Props) {
   const { t } = useTranslation();
@@ -99,14 +98,6 @@ export default function ClientDetailHeader({ clientId, dashboard, plansQuery, me
               <MessageSquare className="size-4" aria-hidden="true" />
               {t('clientDetail.overview.actions.chat')}
             </Link>
-          </Button>
-          <Button type="button" variant="outline" size="sm" disabled title={t('shell.comingSoon')} className="gap-1.5">
-            <ListChecks className="size-4" aria-hidden="true" />
-            {t('clientDetail.overview.actions.tasks')}
-          </Button>
-          <Button type="button" variant="outline" size="sm" disabled title={t('shell.comingSoon')} className="gap-1.5">
-            <NotebookText className="size-4" aria-hidden="true" />
-            {t('clientDetail.overview.actions.notes')}
           </Button>
         </div>
       </div>
