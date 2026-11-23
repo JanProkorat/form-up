@@ -114,12 +114,16 @@ export function useRequestChatImageUploadUrl(conversationId: string | undefined)
   });
 }
 
-/** Marks a conversation read on open and refreshes the list's unread dot + the filter counts. */
+/**
+ * Marks a conversation read on open and refreshes the list's unread dot, the filter counts and the
+ * clients table (its rows carry `unreadMessageCount`).
+ */
 export function useMarkConversationRead() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (conversationId: string) => markConversationRead(conversationId),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients', 'list'] });
       queryClient.invalidateQueries({ queryKey: ['conversations', 'list'] });
       queryClient.invalidateQueries({ queryKey: ['conversations', 'filter-counts'] });
     },

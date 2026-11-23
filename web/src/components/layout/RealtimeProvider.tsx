@@ -212,18 +212,25 @@ export default function RealtimeProvider({ children }: { children: ReactNode }) 
 
 /**
  * Refetches the coach-facing lists on realtime events (and after a reconnect).
- * A new message only touches the inbox lists and notifications (the open thread
- * is refreshed by `InboxPage`); cooperation events also refresh clients and Pending.
+ * A new message touches the inbox lists and the clients list's unread badge, not notifications
+ * (no in-app notice is stored for it; the open thread is refreshed by `InboxPage`);
+ * cooperation events also refresh notifications, clients and Pending.
  */
 function CoachRealtimeSync() {
   const queryClient = useQueryClient();
   const { t, i18n } = useTranslation();
 
-  const invalidateInbox = useCallback(() => {
-    void queryClient.invalidateQueries({ queryKey: ['notifications'] });
+  // Carries the clients table's unread-message badge, so it moves with the inbox lists.
+  const invalidateNewMessage = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: ['conversations', 'filter-counts'] });
     void queryClient.invalidateQueries({ queryKey: ['conversations', 'list'] });
+    void queryClient.invalidateQueries({ queryKey: ['clients', 'list'] });
   }, [queryClient]);
+
+  const invalidateInbox = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    invalidateNewMessage();
+  }, [queryClient, invalidateNewMessage]);
 
   // Also sent when the backend updates an existing unread conflict notification.
   const invalidateConflicts = useCallback(() => {
@@ -304,7 +311,7 @@ function CoachRealtimeSync() {
       ...Object.fromEntries(COOPERATION_EVENTS.map((event) => [event, invalidateAll])),
       collaborationended: invalidateSubscription,
       subscriptionchanged: handleSubscriptionChanged,
-      newmessage: invalidateInbox,
+      newmessage: invalidateNewMessage,
       offlinesyncconflict: invalidateConflicts,
       questionnairesubmitted: invalidateForms,
       checkinmissed: invalidateForms,
@@ -313,7 +320,7 @@ function CoachRealtimeSync() {
     }),
     [
       invalidateAll,
-      invalidateInbox,
+      invalidateNewMessage,
       invalidateConflicts,
       invalidateForms,
       invalidateSubscription,
