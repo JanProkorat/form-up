@@ -1,3 +1,4 @@
+using System.Text;
 using FastEndpoints;
 using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Entities;
@@ -36,6 +37,9 @@ internal sealed class StripeWebhookEndpoint(
 {
     private const string SignatureHeader = "Stripe-Signature";
 
+    /// <summary>Largest body accepted, in bytes (256 KiB); Stripe events are a few KB.</summary>
+    private const int MaxBodyBytes = 262_144;
+
     /// <summary>The coach's row the applied event changed; null when it changed nothing. One instance serves one request.</summary>
     private CoachSubscription? _changedRow;
 
@@ -55,6 +59,7 @@ internal sealed class StripeWebhookEndpoint(
                             "invoice events to the coach's subscription; a repeated event id is a no-op.";
             s.Response(StatusCodes.Status200OK, "The event was applied, ignored or already processed");
             s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "The signature is missing or does not match the body");
+            s.Response<ProblemDetails>(StatusCodes.Status413PayloadTooLarge, "The body is over the 256 KiB cap; rejected before the signature check");
         });
     }
 
@@ -71,8 +76,15 @@ internal sealed class StripeWebhookEndpoint(
             return;
         }
 
-        using var reader = new StreamReader(HttpContext.Request.Body);
-        var body = await reader.ReadToEndAsync(ct);
+        var body = await ReadBoundedBodyAsync(ct);
+
+        if (body is null)
+        {
+            await this.SendProblemAsync(
+                StatusCodes.Status413PayloadTooLarge, ErrorCodes.WebhookPayloadTooLarge, "Webhook payload is too large.", ct);
+            return;
+        }
+
         Event stripeEvent;
 
         try
@@ -127,6 +139,47 @@ internal sealed class StripeWebhookEndpoint(
         }
 
         await AcknowledgeAsync(ct);
+    }
+
+    /// <summary>
+    /// Reads the raw body as UTF-8, at most <see cref="MaxBodyBytes"/> bytes. Returns null, without reading on, when the
+    /// declared length or the bytes that arrive exceed the cap; nothing of the body is logged.
+    /// </summary>
+    private async Task<string?> ReadBoundedBodyAsync(CancellationToken ct)
+    {
+        var contentLength = HttpContext.Request.ContentLength;
+
+        if (contentLength > MaxBodyBytes)
+        {
+            logger.LogWarning(
+                "Stripe webhook rejected: declared body length {ContentLength} exceeds the {MaxBodyBytes}-byte cap", contentLength, MaxBodyBytes);
+            return null;
+        }
+
+        using var buffer = new MemoryStream();
+        var chunk = new byte[8192];
+
+        while (buffer.Length <= MaxBodyBytes)
+        {
+            var wanted = (int)Math.Min(chunk.Length, MaxBodyBytes + 1 - buffer.Length);
+            var read = await HttpContext.Request.Body.ReadAsync(chunk.AsMemory(0, wanted), ct);
+
+            if (read == 0)
+            {
+                break;
+            }
+
+            buffer.Write(chunk, 0, read);
+        }
+
+        if (buffer.Length > MaxBodyBytes)
+        {
+            logger.LogWarning(
+                "Stripe webhook rejected: body (Content-Length {ContentLength}) exceeds the {MaxBodyBytes}-byte cap", contentLength, MaxBodyBytes);
+            return null;
+        }
+
+        return Encoding.UTF8.GetString(buffer.GetBuffer(), 0, (int)buffer.Length);
     }
 
     /// <summary>

@@ -81,6 +81,22 @@ describe('RegisterForm invite link', () => {
     expect(resolveCalls()).toBe(1);
   });
 
+  it('shows the check-your-email state with the invited address after sign-up', async () => {
+    serveResolve('ok');
+    serveRegister();
+    const { user } = renderWithProviders(<RegisterForm />, {
+      initialEntries: [`/register?role=client&invite=${encodeURIComponent(TOKEN)}`],
+    });
+
+    await waitFor(() => expect(screen.getByLabelText('Email')).toHaveValue(INVITED_EMAIL));
+    await fillAndSubmit(user);
+
+    // An invited user is not auto-verified: they must still confirm via the emailed link.
+    expect(await screen.findByRole('heading', { name: 'Check your email' })).toBeInTheDocument();
+    expect(screen.getByText(INVITED_EMAIL)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Create account' })).not.toBeInTheDocument();
+  });
+
   it('falls back to the normal form and drops the token when the invite cannot be resolved', async () => {
     serveResolve('notFound');
     const bodies = serveRegister();

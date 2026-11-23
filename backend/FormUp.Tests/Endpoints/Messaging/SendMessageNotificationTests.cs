@@ -12,8 +12,9 @@ using Microsoft.Extensions.DependencyInjection;
 namespace FormUp.Tests.Endpoints.Messaging;
 
 /// <summary>
-/// The coach-side effects of POST /conversations/{id}/messages: the in-app notice and the grouped-email burst. Only
-/// a client's message to the coach creates either, and a failing burst upsert never fails the send.
+/// The coach-side effects of POST /conversations/{id}/messages: the push and the grouped-email burst. Only
+/// a client's message to the coach creates either, no in-app notice row is written, and a failing burst upsert never
+/// fails the send.
 /// </summary>
 [Collection(TestCollection.Shard2)]
 public class SendMessageNotificationTests(FitnessApiFactory factory)
@@ -44,8 +45,12 @@ public class SendMessageNotificationTests(FitnessApiFactory factory)
             TestContext.Current.CancellationToken);
     }
 
+    private List<FakePushNotificationService.PushCall> PushesTo(Guid userId) =>
+        factory.Services.GetRequiredService<FakePushNotificationService>().Calls
+            .Where(call => call.UserId == userId).ToList();
+
     [Fact]
-    public async Task Send_ClientWritesToCoach_CreatesOneNoticeForTheCoach()
+    public async Task Send_ClientWritesToCoach_PushesToTheCoachWithoutAnInAppNotice()
     {
         var (coach, client, conversationId) = await SeedConversationAsync();
 
@@ -53,8 +58,12 @@ public class SendMessageNotificationTests(FitnessApiFactory factory)
             $"/conversations/{conversationId}/messages", new { Text = "Hello coach" }, TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        (await NewMessageNoticeCountAsync(coach.UserId)).Should().Be(1);
-        (await NewMessageNoticeCountAsync(client.UserId)).Should().Be(0);
+        (await NewMessageNoticeCountAsync(coach.UserId)).Should().Be(0);
+        var push = PushesTo(coach.UserId).Should().ContainSingle().Subject;
+        var data = push.Data.Should().BeAssignableTo<IDictionary<string, string>>().Subject;
+        data["type"].Should().Be(nameof(NotificationType.NewMessage));
+        data["conversationId"].Should().Be(conversationId.ToString());
+        PushesTo(client.UserId).Should().BeEmpty();
     }
 
     private async Task<List<PendingNotificationEmail>> PendingEmailsAsync(Guid recipientUserId)
@@ -83,7 +92,6 @@ public class SendMessageNotificationTests(FitnessApiFactory factory)
         burst.Event.Should().Be(NotificationEvent.NewMessage);
         burst.GroupId.Should().Be(conversationId);
         burst.DueAt.Should().BeAfter(burst.LastEventAt);
-        (await NewMessageNoticeCountAsync(coach.UserId)).Should().Be(3, "the per-message in-app notice is unchanged");
         (await PendingEmailsAsync(client.UserId)).Should().BeEmpty();
     }
 
@@ -123,7 +131,7 @@ public class SendMessageNotificationTests(FitnessApiFactory factory)
 
             response.StatusCode.Should().Be(HttpStatusCode.OK);
             (await PendingEmailsAsync(coach.UserId)).Should().BeEmpty();
-            (await NewMessageNoticeCountAsync(coach.UserId)).Should().Be(1);
+            PushesTo(coach.UserId).Should().ContainSingle();
         }
         finally
         {
@@ -134,7 +142,7 @@ public class SendMessageNotificationTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task Send_CoachWritesToClient_CreatesNoNoticeForTheClient()
+    public async Task Send_CoachWritesToClient_PushesNothingToTheClient()
     {
         var (coach, client, conversationId) = await SeedConversationAsync();
 
@@ -142,7 +150,7 @@ public class SendMessageNotificationTests(FitnessApiFactory factory)
             $"/conversations/{conversationId}/messages", new { Text = "Hello client" }, TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        (await NewMessageNoticeCountAsync(client.UserId)).Should().Be(0);
-        (await NewMessageNoticeCountAsync(coach.UserId)).Should().Be(0);
+        PushesTo(client.UserId).Should().BeEmpty();
+        PushesTo(coach.UserId).Should().BeEmpty();
     }
 }

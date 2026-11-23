@@ -275,4 +275,5 @@ token hygiene, no verbatim spec in subagent prompts). This repo adds only:
 - Assume the user is a non-VAT-registered sole trader (IČO); do not add VAT to invoices, prices or tax calculations.
 - Continue through remaining tasks without prompting the user; only notify them when the full epic is ready for review and merge.
 - When an epic implementation is finished, automatically test its features end-to-end without asking the user to test them manually.
+- Implement each epic as separate task sessions per sub-task, merging in dependency order, with test steps tracked in a shared test guide.
 <!-- end claude-reflect -->

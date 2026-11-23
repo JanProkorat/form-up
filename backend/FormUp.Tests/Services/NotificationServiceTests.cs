@@ -389,11 +389,10 @@ public class NotificationServiceTests(NotificationServiceContainerFixture contai
     }
 
     /// <summary>
-    /// The new-message, photos and workout notices write their in-app row, but the push switch decides
+    /// The photos and workout notices write their in-app row, but the push switch decides
     /// whether a device is pinged.
     /// </summary>
     [Theory]
-    [InlineData(NotificationType.NewMessage, NotificationEvent.NewMessage)]
     [InlineData(NotificationType.ProgressPhotosSubmitted, NotificationEvent.ProgressPhotosSubmitted)]
     [InlineData(NotificationType.WorkoutFinished, NotificationEvent.WorkoutFinished)]
     public async Task CreateAsync_CoachEventPushDisabled_WritesInAppRowAndSkipsPush(
@@ -418,6 +417,58 @@ public class NotificationServiceTests(NotificationServiceContainerFixture contai
 
         (await _db.Notifications.AsNoTracking().CountAsync(n => n.RecipientUserId == recipientId, ct)).Should().Be(1);
         _push.Calls.Should().BeEmpty();
+    }
+
+    /// <summary>
+    /// Push-only delivery localizes the push to the recipient's language and writes no in-app row.
+    /// </summary>
+    [Fact]
+    public async Task SendPushOnlyAsync_CzechRecipient_PushesLocalizedTitleAndWritesNoRow()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var recipientId = await SeedUserAsync("cs");
+        var conversationId = Guid.NewGuid().ToString();
+
+        await BuildSut().SendPushOnlyAsync(
+            recipientId,
+            NotificationType.NewMessage,
+            new Dictionary<string, string> { ["clientName"] = "Petra", ["conversationId"] = conversationId },
+            ct: ct);
+
+        var push = _push.Calls.Should().ContainSingle(c => c.UserId == recipientId).Subject;
+        push.Title.Should().Be("Nová zpráva");
+        push.Body.Should().Be("Nová zpráva od Petra.");
+        (await _db.Notifications.AsNoTracking().CountAsync(n => n.RecipientUserId == recipientId, ct)).Should().Be(0);
+    }
+
+    /// <summary>
+    /// Push-only delivery honours the recipient's push switch and still writes no row.
+    /// </summary>
+    [Fact]
+    public async Task SendPushOnlyAsync_NewMessagePushDisabled_SkipsPushAndWritesNoRow()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var recipientId = await SeedUserAsync("en");
+        await using (var seedDb = NotificationServiceContainerFixture.BuildDbContext(containerFixture.ConnectionString))
+        {
+            seedDb.NotificationPreferences.Add(new NotificationPreference
+            {
+                UserId = recipientId,
+                Event = NotificationEvent.NewMessage,
+                EmailEnabled = true,
+                PushEnabled = false,
+            });
+            await seedDb.SaveChangesAsync(ct);
+        }
+
+        await BuildSut().SendPushOnlyAsync(
+            recipientId,
+            NotificationType.NewMessage,
+            new Dictionary<string, string> { ["clientName"] = "Petra" },
+            ct: ct);
+
+        _push.Calls.Should().BeEmpty();
+        (await _db.Notifications.AsNoTracking().CountAsync(n => n.RecipientUserId == recipientId, ct)).Should().Be(0);
     }
 
     /// <summary>

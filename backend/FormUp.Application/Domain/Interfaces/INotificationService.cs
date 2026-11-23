@@ -4,12 +4,12 @@ using FormUp.Application.Domain.Enums;
 namespace FormUp.Application.Domain.Interfaces;
 
 /// <summary>
-/// Service for creating notifications in the database.
+/// Service for creating in-app notifications and for push-only delivery.
 /// </summary>
 public interface INotificationService
 {
     /// <summary>
-    /// Creates a notification for the specified user, localized to the recipient's
+    /// Creates an in-app notification (and its push) for the specified user, localized to the recipient's
     /// stored <see cref="Entities.ApplicationUser.Language"/> (falls back to English
     /// when unset — #788). The same localized title/body are used for both the
     /// persisted in-app notification and the push notification, since the OS-level
@@ -35,6 +35,23 @@ public interface INotificationService
     /// off the return value instead of re-querying.
     /// </returns>
     Task<Notification> CreateAsync(
+        Guid recipientUserId,
+        NotificationType type,
+        IReadOnlyDictionary<string, string>? parameters = null,
+        string? variant = null,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// Sends only the push notification (localized, subject to the recipient's push preference)
+    /// and writes no <see cref="Notification"/> row. Same parameters and push data as
+    /// <see cref="CreateAsync"/>.
+    /// </summary>
+    /// <param name="recipientUserId">The recipient's ApplicationUser.Id.</param>
+    /// <param name="type">Type of notification — selects the title/body template.</param>
+    /// <param name="parameters">Template values; also sent as push data.</param>
+    /// <param name="variant">Optional template wording variant.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task SendPushOnlyAsync(
         Guid recipientUserId,
         NotificationType type,
         IReadOnlyDictionary<string, string>? parameters = null,

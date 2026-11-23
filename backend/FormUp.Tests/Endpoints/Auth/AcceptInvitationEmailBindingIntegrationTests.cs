@@ -79,6 +79,8 @@ public class AcceptInvitationEmailBindingIntegrationTests(FitnessApiFactory fact
         (await db.ClientProfiles.CountAsync(cp => cp.UserId == caller.UserId, Ct)).Should().Be(1);
         (await db.InvitationTokens.SingleAsync(t => t.Token == token, Ct)).IsUsed.Should().BeFalse();
         (await db.Users.SingleAsync(u => u.Id == caller.UserId, Ct)).EmailConfirmed.Should().BeFalse();
+        factory.Services.GetRequiredService<FakeEmailService>().SentVerifications
+            .Should().NotContain(v => v.Email == caller.Email);
     }
 
     [Fact]
@@ -112,6 +114,6 @@ public class AcceptInvitationEmailBindingIntegrationTests(FitnessApiFactory fact
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         (await db.InvitationTokens.SingleAsync(t => t.Token == token, Ct)).IsUsed.Should().BeTrue();
-        (await db.Users.SingleAsync(u => u.Id == caller.UserId, Ct)).EmailConfirmed.Should().BeTrue();
+        (await db.Users.SingleAsync(u => u.Id == caller.UserId, Ct)).EmailConfirmed.Should().BeFalse();
     }
 }
