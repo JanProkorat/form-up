@@ -109,6 +109,11 @@ and coach-app boards are unchanged: they are still from the versions above.
 Needs attention, Quick actions) on its own page, adds "Overview" as the first item of the Form Up admin
 sidebar on every admin board, and removes the `ClientHeaderOptions` exploration board.
 
+**Web re-sync, 2026-11-23 (#2360, KPI tiles):** every web portal and email board re-exported from web
+portal 1795468435-1bec (canvas v84). `PageAdminHome` now has "Last 30 days" first (the reports API
+periods are rolling), then Needs attention and Quick actions (Quick actions has no Full reports button).
+All four tiles show a change vs the 30 days before.
+
 | Path | Contents |
 |---|---|
 | `index.html` | Gallery of every board, grouped by app and module |
