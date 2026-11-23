@@ -287,7 +287,7 @@ test.describe('clients selection bar at narrow viewports (#1085)', () => {
         await expect(selectAll).toBeEnabled();
         await selectAll.click();
 
-        // The All tab also lists pending rows with their own Cancel button, so scope to the selection bar.
+        // Scope to the selection bar so its Cancel button is the one matched.
         const bar = page
           .locator('div.fixed')
           .filter({ has: page.getByRole('button', { name: locale.broadcast, exact: true }) });
