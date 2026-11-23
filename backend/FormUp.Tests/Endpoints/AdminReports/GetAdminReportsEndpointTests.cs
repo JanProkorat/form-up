@@ -57,6 +57,13 @@ public class GetAdminReportsEndpointTests(FitnessApiFactory factory)
         _ => Now.AddDays(-30),
     };
 
+    private static DateTimeOffset PreviousStart(AdminReportPeriod period) => period switch
+    {
+        AdminReportPeriod.Days90 => Now.AddDays(-180),
+        AdminReportPeriod.Months12 => Now.AddMonths(-24),
+        _ => Now.AddDays(-60),
+    };
+
     private async Task<HttpClient> AdminClientAsync()
     {
         var admin = await TestActors.Admin(factory).CreateAsync(Ct);
@@ -148,8 +155,12 @@ public class GetAdminReportsEndpointTests(FitnessApiFactory factory)
         var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
         await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, plan);
         var startDay = Day(PeriodStart(period));
+        var previousStart = PreviousStart(period);
         await SeedAsync(
+            Snapshot(Day(previousStart), currency, 1, payingCoaches: 4),
             Snapshot(startDay.AddDays(-1), currency, 1, payingCoaches: 99),
+            Event(CoachEventType.Cancelled, previousStart.AddHours(1), await CoachIdAsync()),
+            Event(CoachEventType.SignedUp, previousStart.AddHours(1), await CoachIdAsync()),
             Snapshot(startDay, currency, 7000, payingCoaches: 2, activeClients: 5),
             Snapshot(startDay.AddDays(2), currency, 8000, payingCoaches: 3),
             Snapshot(Day(Now), currency, 9000, payingCoaches: 4, activeClients: 9, totalCoaches: 87),
@@ -170,10 +181,14 @@ public class GetAdminReportsEndpointTests(FitnessApiFactory factory)
         report.Usage!.ActiveClientsLast7Days.Should().BeEquivalentTo(new AdminReportCountDto { Value = 9, Previous = 5 });
         report.Usage.TotalCoaches.Should().Be(87, "the denominator comes from the latest snapshot");
         report.Money.ChurnPercent.Should().Be(100m, "two coaches cancelled against two paying coaches at the baseline");
+        report.Money.PayingCoaches.Value.Should().BeGreaterThanOrEqualTo(1, "the live summary counts the subscribed coach");
+        report.Money.PayingCoaches.Previous.Should().Be(2);
+        report.Money.ChurnPercentPrevious.Should().Be(25m, "one coach cancelled in the window before, against the 4 paying coaches of its earliest snapshot");
+        report.Funnel.SignedUpPrevious.Should().Be(1);
         report.Money.LostToCancellations.Count.Value.Should().Be(2);
         var lost = For(report.Money.LostToCancellations.Amounts, currency);
         lost.Value.Should().Be(800);
-        lost.Previous.Should().Be(0, "nothing was cancelled in the window before");
+        lost.Previous.Should().Be(0, "the cancellation in the window before carries no revenue effect");
         report.MrrSeries.Select(point => point.Day).Should().Equal(startDay, startDay.AddDays(2), Day(Now));
     }
 
@@ -242,6 +257,9 @@ public class GetAdminReportsEndpointTests(FitnessApiFactory factory)
         For(report.Money.MonthlyRevenueAfterPromotions, currency).Previous.Should().BeNull();
         report.Money.AveragePerPayingCoach.Single(row => row.Currency == currency).Previous.Should().BeNull();
         report.Money.ChurnPercent.Should().BeNull();
+        report.Money.ChurnPercentPrevious.Should().BeNull();
+        report.Money.PayingCoaches.Value.Should().BeGreaterThanOrEqualTo(1);
+        report.Money.PayingCoaches.Previous.Should().BeNull();
         report.Usage!.ActiveClientsLast7Days.Value.Should().Be(9);
         report.Usage.ActiveClientsLast7Days.Previous.Should().BeNull();
         report.MrrSeries.Select(point => point.Day).Should().Equal(Day(Now));
@@ -311,6 +329,7 @@ public class GetAdminReportsEndpointTests(FitnessApiFactory factory)
             EmailVerified = 1,
             ChosePlan = 1,
             StartedPaidPlan = 1,
+            SignedUpPrevious = 1,
         });
         report.PlanChanges.PaymentFailedCoaches.Should().Be(2);
         report.PlanChanges.PromotionCodesApplied.Should().Be(2);
@@ -356,6 +375,7 @@ public class GetAdminReportsEndpointTests(FitnessApiFactory factory)
         report.Funnel.Should().BeEquivalentTo(new AdminReportFunnelDto
         {
             SignedUp = 1,
+            SignedUpPrevious = 0,
             EmailVerified = 1,
             ChosePlan = 1,
             StartedPaidPlan = 1,
