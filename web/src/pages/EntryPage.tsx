@@ -43,7 +43,7 @@ interface DisplayedForm {
  * a dialog route.
  *
  * Signed-in visitors are redirected to a safe `returnTo` if one is given, else
- * to the role's default landing page ("/admin/plans" for admin-only accounts,
+ * to the role's default landing page ("/admin" for admin-only accounts,
  * "/clients" otherwise), except on the reset route: the emailed link must
  * reach its form, and a successful reset signs the browser out locally.
  *

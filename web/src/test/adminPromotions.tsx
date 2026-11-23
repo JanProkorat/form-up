@@ -52,8 +52,8 @@ export function serveAdminPromotions(state: AdminPromotionsState): void {
   );
 }
 
-/** Mounts the promotions page on `/admin/promotion-offers` with the toast outlet the app shell provides. */
-export function renderAdminPromotions() {
+/** Mounts the promotions page on `/admin/promotion-offers` (plus an optional query string) with the toast outlet the app shell provides. */
+export function renderAdminPromotions(search = '') {
   useToastStore.setState({ toasts: [] });
   return renderWithProviders(
     [
@@ -67,6 +67,6 @@ export function renderAdminPromotions() {
         children: [{ path: '/admin/promotion-offers', element: <AdminPromotionsPage /> }],
       },
     ],
-    { initialEntries: ['/admin/promotion-offers'], auth: { roles: ['Admin'] } },
+    { initialEntries: [`/admin/promotion-offers${search}`], auth: { roles: ['Admin'] } },
   );
 }

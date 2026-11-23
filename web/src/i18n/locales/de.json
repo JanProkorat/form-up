@@ -196,6 +196,7 @@
   "sidebar": {
     "lockedInPlan": "Nicht in Ihrem Tarif enthalten",
     "adminSection": "Form Up Admin",
+    "adminOverview": "Übersicht",
     "adminPlans": "Pläne",
     "adminPromotions": "Aktionen",
     "adminCoaches": "Trainer",
@@ -7175,6 +7176,54 @@
       "annualAddOnInvalid": "Geben Sie einen Jahrespreis für die zweite Rolle über 0 ein.",
       "clientsInvalid": "Geben Sie eine Klientenzahl ab 1 ein oder wählen Sie Unbegrenzt.",
       "perClientNeedsWeekly": "Check-in-Einstellungen pro Klient setzen wöchentliche Check-ins voraus."
+    }
+  },
+  "adminOverview": {
+    "title": "Übersicht",
+    "subtitle": "Was Ihre Aufmerksamkeit braucht und wie Form Up in den letzten 30 Tagen läuft.",
+    "retry": "Erneut versuchen",
+    "lastDays": {
+      "title": "Letzte 30 Tage",
+      "fullReports": "Alle Berichte",
+      "loadError": "Die Zahlen konnten nicht geladen werden.",
+      "pointsUnit": "Pp.",
+      "mrr": "Monatlich wiederkehrende Einnahmen",
+      "mrrNote": "Nach Rabatten · gegenüber den vorherigen 30 Tagen",
+      "signups": "Neue Registrierungen",
+      "signupsNote": "In den letzten 30 Tagen angelegte Trainerkonten",
+      "payingCoaches": "Zahlende Trainer",
+      "payingCoachesNote": "Trainer mit einem bezahlten Tarif",
+      "churn": "Abwanderung",
+      "churnNote": "Zahlende Trainer, die in den letzten 30 Tagen gekündigt haben"
+    },
+    "attention": {
+      "title": "Braucht Aufmerksamkeit",
+      "items_one": "{{count}} Eintrag",
+      "items_other": "{{count}} Einträge",
+      "loadError": "Die Hinweise konnten nicht geladen werden.",
+      "allClear": "Alles in Ordnung",
+      "allClearDetail": "Keine fehlgeschlagenen Zahlungen, Kündigungen, endenden Gratis-Tarife oder auslaufenden Aktionen.",
+      "paymentFailed_one": "{{count}} Zahlung fehlgeschlagen",
+      "paymentFailed_other": "{{count}} Zahlungen fehlgeschlagen",
+      "namesMore": "{{names}} und {{count}} weitere",
+      "cancelling_one": "{{count}} Trainer hat gekündigt",
+      "cancelling_other": "{{count}} Trainer haben gekündigt",
+      "cancellingOn": "Deren bezahlte Tarife enden am {{date}}.",
+      "cancellingBetween": "Deren bezahlte Tarife enden zwischen dem {{from}} und dem {{to}}.",
+      "givenFree_one": "{{count}} von Ihnen verschenkter Gratis-Tarif endet innerhalb von 14 Tagen",
+      "givenFree_other": "{{count}} von Ihnen verschenkte Gratis-Tarife enden innerhalb von 14 Tagen",
+      "givenFreeDetail": "Jeder endet am festgelegten Datum, danach wählt der Trainer einen Tarif.",
+      "promotion": "Aktion „{{name}}“ läuft bald aus",
+      "promotionUntil": "Trainer können sie bis {{date}} einlösen.",
+      "promotionUses": "{{used}} von {{max}} Einlösungen genutzt.",
+      "openCoaches": "Trainer öffnen",
+      "openPromotion": "Aktion öffnen"
+    },
+    "quick": {
+      "title": "Schnellaktionen",
+      "findCoach": "Trainer finden",
+      "searchPlaceholder": "Name oder E-Mail",
+      "newPromotion": "Neue Aktion"
     }
   },
   "adminReports": {
