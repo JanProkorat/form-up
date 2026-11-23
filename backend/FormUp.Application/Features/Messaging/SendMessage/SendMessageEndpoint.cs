@@ -244,12 +244,13 @@ public class SendMessageEndpoint(
             imageHeight = message.ImageHeight,
         }, ct);
 
-        // The in-app notice is for the coach only; a client reads the chat itself.
+        // Push and the grouped email are for the coach only; a client reads the chat itself.
+        // No in-app notice row: unread chat shows on the Clients list and Inbox instead.
         if (!senderIsProfessional)
         {
             try
             {
-                await notificationService.CreateAsync(
+                await notificationService.SendPushOnlyAsync(
                     recipientUserId,
                     NotificationType.NewMessage,
                     new Dictionary<string, string>
@@ -262,7 +263,7 @@ public class SendMessageEndpoint(
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 logger.LogWarning(ex,
-                    "Failed to create the new-message notice for user {UserId} in conversation {ConversationId}",
+                    "Failed to send the new-message push for user {UserId} in conversation {ConversationId}",
                     recipientUserId, conversation.PublicId);
             }
 

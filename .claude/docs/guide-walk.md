@@ -79,6 +79,14 @@ one script per step; the Playwright MCP plugin loses its Brave setting on every 
 
 - `walk.cjs <step.cjs> [width] [light|dark]` is the driver. It keeps one saved session per account, and
   logs console errors and 4xx/5xx calls. Set `EPIC=<n>` for the screenshot folder.
+- To walk a branch's own web server instead of the main checkout's, set these variables (each falls back
+  to the main checkout's default): `WALK_BASE` (the server URL, default `http://localhost:5173`),
+  `WALK_ACCOUNTS` (the accounts file), `WALK_STATE` (the saved-session folder), `WALK_SHOTS` (the
+  screenshot folder) and `WALK_PLAYWRIGHT` (the branch's `web/node_modules/playwright`). Give each backend
+  its own `WALK_STATE` folder: a saved sign-in is replaced each time it is used, so two backends sharing
+  one folder overwrite each other's sessions. `s-buy.cjs` waits for Stripe to return to `WALK_BASE`, so a
+  branch walk that covers checkout needs that branch's backend to send Stripe's return URL to the same
+  address; otherwise the step ends with a `checkout-stuck` screenshot.
 - `s-seeded.cjs` (KEYS, default all six) opens the app as each seeded account and logs who is signed in
   and how many login calls were made (expected 0). Run it first to check the seed's sessions.
 - `s-register.cjs` (KEY, ROLE), `s-signin.cjs` (KEYS), `s-verify.cjs` (PAIRS) and `mail.cjs <email>` handle

@@ -2,7 +2,8 @@
 module.exports = async ({ as, shot, text, BASE, log }) => {
   const fs = require("fs");
   const crypto = require("crypto");
-  const FILE = "/Users/jan/Projects/form-up/.claude/private/walk-accounts.json";
+  // Same file walk.cjs reads, so a coach registered here can sign in later.
+  const FILE = process.env.WALK_ACCOUNTS || "/Users/jan/Projects/form-up/.claude/private/walk-accounts.json";
   const key = process.env.KEY;
   const role = process.env.ROLE || "Osobní trenér";
   const accounts = JSON.parse(fs.readFileSync(FILE, "utf8"));

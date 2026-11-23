@@ -49,8 +49,9 @@ module.exports = async ({ as, shot, text, BASE, log }) => {
   log("SUBMIT:", await submit.count(), await submit.first().innerText().catch(() => "?"));
   await submit.first().scrollIntoViewIfNeeded();
   await submit.first().click();
+  const backInApp = () => new URL(page.url()).origin === new URL(BASE).origin; // BASE follows WALK_BASE
   for (let i = 0; i < 40; i++) {
-    if (/localhost:5173/.test(page.url())) break;
+    if (backInApp()) break;
     if (await captchaVisible()) { log("STOP: hCaptcha challenge visible"); await shot(page, "captcha-" + process.env.KEY); return; }
     for (const f of page.frames()) {
       const btn = f.locator('#test-source-authorize-3ds, button:has-text("Complete"), button:has-text("Dokončit"), button:has-text("COMPLETE")');
@@ -59,7 +60,7 @@ module.exports = async ({ as, shot, text, BASE, log }) => {
     await page.waitForTimeout(1500);
   }
   log("BACK AT:", page.url());
-  if (!/localhost:5173/.test(page.url())) { log("CHECKOUT TEXT:", (await page.locator("body").innerText()).slice(0, 400)); await shot(page, "checkout-stuck-" + process.env.KEY); return; }
+  if (!backInApp()) { log("CHECKOUT TEXT:", (await page.locator("body").innerText()).slice(0, 400)); await shot(page, "checkout-stuck-" + process.env.KEY); return; }
   await page.waitForTimeout(12000);
   log("APP:", (await text(page.locator("body"))).slice(0, 500).replace(/\n+/g, " | "));
   await shot(page, "after-buy-" + process.env.KEY);
