@@ -12,6 +12,12 @@ public class Promotion : PublicTimestampableEntity
     /// <summary>Admin-facing name.</summary>
     public required string Name { get; set; }
 
+    /// <summary>English name shown to coaches and visitors; null falls back to <see cref="Name"/>.</summary>
+    public string? NameEn { get; set; }
+
+    /// <summary>German name shown to coaches and visitors; null falls back to <see cref="Name"/>.</summary>
+    public string? NameDe { get; set; }
+
     /// <summary>Percentage or fixed amount.</summary>
     public PromotionKind Kind { get; set; }
 

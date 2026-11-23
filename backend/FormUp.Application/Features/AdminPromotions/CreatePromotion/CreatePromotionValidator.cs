@@ -34,6 +34,9 @@ internal sealed class CreatePromotionValidator : Validator<CreatePromotionReques
             .NotEmpty()
             .MaximumLength(MaxNameLength);
 
+        RuleFor(x => x.NameEn).MaximumLength(MaxNameLength);
+        RuleFor(x => x.NameDe).MaximumLength(MaxNameLength);
+
         RuleFor(x => x.Kind).IsInEnum();
         RuleFor(x => x.Mode).IsInEnum();
         RuleFor(x => x.Duration).IsInEnum();

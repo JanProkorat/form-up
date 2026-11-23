@@ -10,6 +10,12 @@ public class CreatePromotionRequest
     /// <summary>Admin-facing name, up to 200 characters.</summary>
     public string Name { get; set; } = string.Empty;
 
+    /// <summary>Optional English name for coaches and visitors, up to 200 characters.</summary>
+    public string? NameEn { get; set; }
+
+    /// <summary>Optional German name for coaches and visitors, up to 200 characters.</summary>
+    public string? NameDe { get; set; }
+
     /// <summary>Percentage or fixed amount.</summary>
     public PromotionKind Kind { get; set; }
 

@@ -54,12 +54,16 @@ public class GetCoachPlansPromotionTests(FitnessApiFactory factory) : IDisposabl
             p.Duration = PromotionDuration.Months;
             p.DurationMonths = 3;
             p.ClaimUntil = DateTimeOffset.UtcNow.AddDays(20);
+            p.NameEn = "Spring sale";
+            p.NameDe = null;
         });
 
         var response = await GetAsync(coach);
 
         response.Promotion.Should().NotBeNull();
         response.Promotion!.Name.Should().Be(promotion.Name);
+        response.Promotion.NameEn.Should().Be("Spring sale");
+        response.Promotion.NameDe.Should().BeNull();
         response.Promotion.Value.Should().Be(30);
         response.Promotion.Duration.Should().Be(PromotionDuration.Months);
         response.Promotion.DurationMonths.Should().Be(3);

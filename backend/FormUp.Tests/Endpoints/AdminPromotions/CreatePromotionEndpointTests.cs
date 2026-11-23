@@ -41,10 +41,14 @@ public class CreatePromotionEndpointTests(FitnessApiFactory factory) : IDisposab
         DateTimeOffset? claimUntil = null,
         bool newCoachesOnly = false,
         bool oneUsePerCoach = false,
-        string billingPeriod = "Both") => new
+        string billingPeriod = "Both",
+        string? nameEn = null,
+        string? nameDe = null) => new
         {
             BillingPeriod = billingPeriod,
             Name = name,
+            NameEn = nameEn,
+            NameDe = nameDe,
             Kind = "Percent",
             Value = 20,
             Mode = mode,
@@ -134,6 +138,30 @@ public class CreatePromotionEndpointTests(FitnessApiFactory factory) : IDisposab
         audit.UserId.Should().Be(admin.UserId);
         audit.EntityType.Should().Be(nameof(Promotion));
         audit.NewValues.Should().NotContain("COACH20", "the code text is not written to the audit log");
+    }
+
+    [Theory]
+    [InlineData("  Spring sale ", "Spring sale", " Fruehlingsaktion  ", "Fruehlingsaktion")]
+    [InlineData("   ", null, "", null)]
+    [InlineData(null, null, null, null)]
+    public async Task Create_WithLocalizedNames_StoresThemTrimmed_AndBlankBecomesNull(
+        string? nameEn, string? expectedEn, string? nameDe, string? expectedDe)
+    {
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var (plan, _) = await SubsetPlanAsync();
+        var name = UniqueName();
+
+        var response = await admin.Http.PostAsJsonAsync(
+            Route, Body(name, [plan], nameEn: nameEn, nameDe: nameDe), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created, await response.Content.ReadAsStringAsync(Ct));
+        var saved = (await PromotionsNamedAsync(name)).Should().ContainSingle().Subject;
+        saved.NameEn.Should().Be(expectedEn);
+        saved.NameDe.Should().Be(expectedDe);
+
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>(BillingTestData.Json, Ct);
+        body.GetProperty("nameEn").GetString().Should().Be(expectedEn);
+        body.GetProperty("nameDe").GetString().Should().Be(expectedDe);
     }
 
     [Fact]
