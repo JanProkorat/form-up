@@ -4,21 +4,21 @@
  * clients.spec.ts's own header comment — a spec at the e2e/ root runs on
  * no project at all).
  *
- * Verifies the layout contract: the not-yet-built tab and the two
- * still-unbuilt header buttons render disabled with the shell's coming-soon
- * treatment, the rebuilt Overview shows its three stat tiles and four lower
+ * Verifies the layout contract: the not-yet-built tab renders disabled with
+ * the shell's coming-soon treatment, the header has no Tasks, Notes or Info
+ * buttons, the rebuilt Overview shows its three stat tiles and four lower
  * cards (#1295), and — the AC this issue's backend slice exists for — the
  * detail page's status pill text equals the same client's status badge on
  * the clients list, asserted by comparison rather than a hardcoded word.
  *
- * Chat went live in #1095 — it is no longer in DISABLED_BUTTON_NAMES; its
- * own assertion below checks it navigates to `/inbox?client=<publicId>`.
+ * Chat went live in #1095; its own assertion below checks it navigates to
+ * `/inbox?client=<publicId>`.
  */
 import { trainerTest as test, expect } from '../fixtures/auth';
 
 // The QA trainer's link is training-only, so the Nutrition tab is not rendered.
 const DISABLED_TAB_NAMES = ['Workouts'];
-const DISABLED_BUTTON_NAMES = ['Tasks', 'Notes'];
+const REMOVED_BUTTON_NAMES = ['Tasks', 'Notes', 'Info'];
 
 test.describe('client detail page — overview tab', () => {
   test('renders the layout contract: coming-soon tabs/buttons, the rebuilt overview cards, and a status pill matching the clients list', async ({
@@ -64,11 +64,10 @@ test.describe('client detail page — overview tab', () => {
 
     await expect(page.getByRole('tab', { name: 'Development' })).toHaveCount(0);
 
-    // The two still-unbuilt header action buttons render disabled; Info is gone.
-    for (const buttonName of DISABLED_BUTTON_NAMES) {
-      await expect(page.getByRole('button', { name: new RegExp(buttonName) })).toBeDisabled();
+    // The header carries no Tasks, Notes or Info buttons.
+    for (const buttonName of REMOVED_BUTTON_NAMES) {
+      await expect(page.getByRole('button', { name: new RegExp(buttonName) })).toHaveCount(0);
     }
-    await expect(page.getByRole('button', { name: 'Info' })).toHaveCount(0);
 
     // Facts strip for a training-only link: goal, weight and the training plan,
     // no meal plan fact.

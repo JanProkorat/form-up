@@ -5450,9 +5450,7 @@
         }
       },
       "actions": {
-        "chat": "Chat",
-        "tasks": "Aufgaben",
-        "notes": "Notizen"
+        "chat": "Chat"
       },
       "tabs": {
         "overview": "Übersicht",
@@ -6530,12 +6528,6 @@
         "FirstPaymentsChoice": "Nur erste Zahlungen",
         "FirstPayments_one": "Nur die erste Zahlung",
         "FirstPayments_other": "Die ersten {{count}} Zahlungen"
-      },
-      "codes": {
-        "title": "Rabattcodes",
-        "comingLater": "Kommt später",
-        "body": "Geben Sie einem Rabatt einen Code, etwa SOMMER26, und Klienten geben ihn beim Beitritt ein.",
-        "create": "Code erstellen"
       },
       "validation": {
         "nameRequired": "Geben Sie einen Namen ein.",

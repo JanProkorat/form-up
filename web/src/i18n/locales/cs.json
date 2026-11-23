@@ -5647,9 +5647,7 @@
         }
       },
       "actions": {
-        "chat": "Chat",
-        "tasks": "Úkoly",
-        "notes": "Poznámky"
+        "chat": "Chat"
       },
       "tabs": {
         "overview": "Přehled",
@@ -6762,12 +6760,6 @@
         "FirstPayments_few": "První {{count}} platby",
         "FirstPayments_many": "Prvních {{count}} platby",
         "FirstPayments_other": "Prvních {{count}} plateb"
-      },
-      "codes": {
-        "title": "Slevové kódy",
-        "comingLater": "Připravujeme",
-        "body": "Dejte slevě kód, například LETO26, a klienti ho zadají při registraci u vás.",
-        "create": "Vytvořit kód"
       },
       "validation": {
         "nameRequired": "Zadejte název.",
