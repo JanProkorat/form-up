@@ -70,6 +70,19 @@ public class AdminReportMoneyDto
     /// </summary>
     public decimal? ChurnPercent { get; set; }
 
+    /// <summary>
+    /// Churn of the previous window of the same length: distinct coaches who cancelled in it divided by the paying coach
+    /// count of its baseline snapshot (the earliest one inside that window), in percent. Null when that window holds no
+    /// snapshot or its baseline had no paying coach.
+    /// </summary>
+    public decimal? ChurnPercentPrevious { get; set; }
+
+    /// <summary>
+    /// Paying coaches now, including failed and cancelling ones. Previous is the paying coach count of the baseline
+    /// snapshot, null when there is no baseline.
+    /// </summary>
+    public AdminReportCountDto PayingCoaches { get; set; } = new();
+
     /// <summary>Paying coaches and plan-line revenue after promotions per plan.</summary>
     public List<AdminReportPlanRevenueDto> Plans { get; set; } = [];
 
@@ -193,6 +206,12 @@ public class AdminReportFunnelDto
 {
     /// <summary>Sign-ups in the period.</summary>
     public int SignedUp { get; set; }
+
+    /// <summary>
+    /// Sign-ups in the previous window of the same length. Always a count, 0 when there are none, because it comes from
+    /// the event history and not a snapshot; 0 before the events were recorded means no data.
+    /// </summary>
+    public int? SignedUpPrevious { get; set; }
 
     /// <summary>Distinct sign-ups who verified their email, on or after sign-up.</summary>
     public int EmailVerified { get; set; }
