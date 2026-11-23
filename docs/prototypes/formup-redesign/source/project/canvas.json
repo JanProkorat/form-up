@@ -2750,22 +2750,6 @@
    "x": 3040,
    "y": 26776
   },
-  "ClientHeaderOptionsC.dc.html": {
-   "h": 1120,
-   "page": "web",
-   "title": "C · ClientDetail · Header options",
-   "w": 1240,
-   "x": 6800,
-   "y": 28276
-  },
-  "ClientHeaderOptionsD.dc.html": {
-   "h": 1120,
-   "page": "web",
-   "title": "D · ClientDetail · Header options",
-   "w": 1240,
-   "x": 6800,
-   "y": 29636
-  },
   "PageClientActivityOfflineSyncC.dc.html": {
    "h": 520,
    "page": "web",
@@ -4258,13 +4242,29 @@
    "page": "web",
    "title": "D · Coach plan · Choose your plan · annual, code applied"
   },
+  "PageAdminHomeC.dc.html": {
+   "x": 0,
+   "y": 105732,
+   "w": 1440,
+   "h": 900,
+   "page": "web",
+   "title": "C · Admin · Overview"
+  },
+  "PageAdminHomeD.dc.html": {
+   "x": 0,
+   "y": 106872,
+   "w": 1440,
+   "h": 900,
+   "page": "web",
+   "title": "D · Admin · Overview"
+  },
   "PageAdminCoachDialogsC.dc.html": {
    "h": 900,
    "page": "web",
    "title": "C · Admin · Coach action dialogs",
    "w": 2408,
    "x": 10640,
-   "y": 105732
+   "y": 108372
   },
   "PageAdminCoachDialogsD.dc.html": {
    "h": 900,
@@ -4272,7 +4272,7 @@
    "title": "D · Admin · Coach action dialogs",
    "w": 2408,
    "x": 10640,
-   "y": 107212
+   "y": 109852
   },
   "PageAdminCoachProfileC.dc.html": {
    "h": 1240,
@@ -4280,7 +4280,7 @@
    "title": "C · Admin · Coach profile",
    "w": 1440,
    "x": 9120,
-   "y": 105732
+   "y": 108372
   },
   "PageAdminCoachProfileD.dc.html": {
    "h": 1240,
@@ -4288,7 +4288,7 @@
    "title": "D · Admin · Coach profile",
    "w": 1440,
    "x": 9120,
-   "y": 107212
+   "y": 109852
   },
   "PageAdminCoachesC.dc.html": {
    "h": 1240,
@@ -4296,7 +4296,7 @@
    "title": "C · Admin · Coaches",
    "w": 1440,
    "x": 7600,
-   "y": 105732
+   "y": 108372
   },
   "PageAdminCoachesD.dc.html": {
    "h": 1240,
@@ -4304,7 +4304,7 @@
    "title": "D · Admin · Coaches",
    "w": 1440,
    "x": 7600,
-   "y": 107212
+   "y": 109852
   },
   "PageAdminPlanEditorAnnualC.dc.html": {
    "h": 1400,
@@ -4312,7 +4312,7 @@
    "title": "C · Admin · Edit plan · monthly and annual price",
    "w": 1440,
    "x": 17668,
-   "y": 105732
+   "y": 108372
   },
   "PageAdminPlanEditorAnnualD.dc.html": {
    "h": 1400,
@@ -4320,7 +4320,7 @@
    "title": "D · Admin · Edit plan · monthly and annual price",
    "w": 1440,
    "x": 17668,
-   "y": 107212
+   "y": 109852
   },
   "PageAdminPlanEditorC.dc.html": {
    "h": 1360,
@@ -4328,7 +4328,7 @@
    "title": "C · Admin · Edit plan",
    "w": 1440,
    "x": 4560,
-   "y": 105732
+   "y": 108372
   },
   "PageAdminPlanEditorD.dc.html": {
    "h": 1360,
@@ -4336,7 +4336,7 @@
    "title": "D · Admin · Edit plan",
    "w": 1440,
    "x": 4560,
-   "y": 107212
+   "y": 109852
   },
   "PageAdminPlanEditorNewC.dc.html": {
    "h": 1360,
@@ -4344,7 +4344,7 @@
    "title": "C · Admin · New plan",
    "w": 1440,
    "x": 6080,
-   "y": 105732
+   "y": 108372
   },
   "PageAdminPlanEditorNewD.dc.html": {
    "h": 1360,
@@ -4352,7 +4352,7 @@
    "title": "D · Admin · New plan",
    "w": 1440,
    "x": 6080,
-   "y": 107212
+   "y": 109852
   },
   "PageAdminPlansC.dc.html": {
    "h": 1000,
@@ -4360,7 +4360,7 @@
    "title": "C · Admin · Plans",
    "w": 1440,
    "x": 0,
-   "y": 105732
+   "y": 108372
   },
   "PageAdminPlansD.dc.html": {
    "h": 1000,
@@ -4368,7 +4368,7 @@
    "title": "D · Admin · Plans",
    "w": 1440,
    "x": 0,
-   "y": 107212
+   "y": 109852
   },
   "PageAdminPromotionDrawerAnnualC.dc.html": {
    "h": 1200,
@@ -4376,7 +4376,7 @@
    "title": "C · Admin · New promotion · billing period",
    "w": 1440,
    "x": 19188,
-   "y": 105732
+   "y": 108372
   },
   "PageAdminPromotionDrawerAnnualD.dc.html": {
    "h": 1200,
@@ -4384,7 +4384,7 @@
    "title": "D · Admin · New promotion · billing period",
    "w": 1440,
    "x": 19188,
-   "y": 107212
+   "y": 109852
   },
   "PageAdminPromotionDrawerC.dc.html": {
    "h": 1100,
@@ -4392,7 +4392,7 @@
    "title": "C · Admin · New promotion",
    "w": 1440,
    "x": 3040,
-   "y": 105732
+   "y": 108372
   },
   "PageAdminPromotionDrawerD.dc.html": {
    "h": 1100,
@@ -4400,7 +4400,7 @@
    "title": "D · Admin · New promotion",
    "w": 1440,
    "x": 3040,
-   "y": 107212
+   "y": 109852
   },
   "PageAdminPromotionEndC.dc.html": {
    "h": 1028,
@@ -4408,7 +4408,7 @@
    "title": "C · Admin · End promotion",
    "w": 2940,
    "x": 13128,
-   "y": 105732
+   "y": 108372
   },
   "PageAdminPromotionEndD.dc.html": {
    "h": 1028,
@@ -4416,7 +4416,7 @@
    "title": "D · Admin · End promotion",
    "w": 2940,
    "x": 13128,
-   "y": 107212
+   "y": 109852
   },
   "PageAdminPromotionsC.dc.html": {
    "h": 1000,
@@ -4424,7 +4424,7 @@
    "title": "C · Admin · Promotions",
    "w": 1440,
    "x": 1520,
-   "y": 105732
+   "y": 108372
   },
   "PageAdminPromotionsD.dc.html": {
    "h": 1000,
@@ -4432,7 +4432,7 @@
    "title": "D · Admin · Promotions",
    "w": 1440,
    "x": 1520,
-   "y": 107212
+   "y": 109852
   },
   "PageAdminReportsC.dc.html": {
    "h": 1360,
@@ -4440,7 +4440,7 @@
    "title": "C · Admin · Reports",
    "w": 1440,
    "x": 16148,
-   "y": 105732
+   "y": 108372
   },
   "PageAdminReportsD.dc.html": {
    "h": 1360,
@@ -4448,7 +4448,7 @@
    "title": "D · Admin · Reports",
    "w": 1440,
    "x": 16148,
-   "y": 107212
+   "y": 109852
   },
   "EmailCheckInC.dc.html": {
    "h": 1100,
@@ -5117,6 +5117,15 @@
    "y": 102592,
    "text": "Plan limits — feature not on plan, plan ended: pick clients to keep  ·  light above, dark below"
   },
+  "webAdminHome": {
+   "kind": "title1",
+   "maxW": 1440,
+   "page": "web",
+   "w": 240,
+   "x": 0,
+   "y": 105432,
+   "text": "Admin overview — needs attention, quick actions, this month  ·  light above, dark below"
+  },
   "webRow19": {
    "kind": "title1",
    "maxW": 8000,
@@ -5124,7 +5133,7 @@
    "text": "Form Up admin — plans, promotions, new promotion, plan editor (edit, new), coaches, coach detail  ·  light above, dark below",
    "w": 240,
    "x": 0,
-   "y": 105432
+   "y": 108072
   },
   "emailRow1": {
    "kind": "title1",
@@ -5571,8 +5580,6 @@
   "PageTemplateLibraryFiltersD.dc.html",
   "PageTemplateRowRemoveC.dc.html",
   "PageTemplateRowRemoveD.dc.html",
-  "ClientHeaderOptionsC.dc.html",
-  "ClientHeaderOptionsD.dc.html",
   "PageClientPhotosC.dc.html",
   "PageClientPhotosD.dc.html",
   "PageClientPhotosViewerC.dc.html",
@@ -5724,6 +5731,8 @@
   "PageClientAutomationOverrideCheckInC.dc.html",
   "PageClientAutomationOverrideCheckInD.dc.html",
   "PageCheckInsC.dc.html",
-  "PageCheckInsD.dc.html"
+  "PageCheckInsD.dc.html",
+  "PageAdminHomeC.dc.html",
+  "PageAdminHomeD.dc.html"
  ]
 }
