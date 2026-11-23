@@ -35701,6 +35701,13 @@ previous window of the same length. */
     /** Distinct coaches who cancelled in the period divided by the baseline snapshot's paying coach count, in percent.
 Null when there is no baseline or it had no paying coach. */
     churnPercent?: number | undefined;
+    /** Churn of the previous window of the same length: distinct coaches who cancelled in it divided by the paying coach
+count of its baseline snapshot (the earliest one inside that window), in percent. Null when that window holds no
+snapshot or its baseline had no paying coach. */
+    churnPercentPrevious?: number | undefined;
+    /** Paying coaches now, including failed and cancelling ones. Previous is the paying coach count of the baseline
+snapshot, null when there is no baseline. */
+    payingCoaches?: AdminReportCountDto;
     /** Paying coaches and plan-line revenue after promotions per plan. */
     plans?: AdminReportPlanRevenueDto[];
     /** Second-role add-ons per currency. */
@@ -35783,6 +35790,9 @@ export interface AdminReportAddOnDto {
 export interface AdminReportFunnelDto {
     /** Sign-ups in the period. */
     signedUp?: number;
+    /** Sign-ups in the previous window of the same length. Always a count, 0 when there are none, because it comes from
+the event history and not a snapshot; 0 before the events were recorded means no data. */
+    signedUpPrevious?: number | undefined;
     /** Distinct sign-ups who verified their email, on or after sign-up. */
     emailVerified?: number;
     /** Distinct sign-ups who chose a plan, on or after sign-up. */
