@@ -98,6 +98,54 @@ public class RemovedCoachRoleGateIntegrationTests(FitnessApiFactory factory)
         (await response.Content.ReadAsStringAsync(Ct)).Should().NotContain(ErrorCodes.CoachRoleRemoved);
     }
 
+    [Theory]
+    [InlineData(UserRole.Nutritionist, "/recipes")]
+    [InlineData(UserRole.Nutritionist, "/foods")]
+    [InlineData(UserRole.Trainer, "/exercises")]
+    public async Task AdminPlusRemovedCoachRole_LibraryWrite_StillReturns403CoachRoleRemoved(UserRole removedRole, string path)
+    {
+        var account = await TestActors.Professional(factory, UserRole.Admin, removedRole)
+            .WithRemovedCoachRoles(removedRole)
+            .CreateAsync(Ct);
+
+        var response = await SendAsync(account, "POST", path, new { });
+
+        await AssertCoachRoleRemovedAsync(response);
+    }
+
+    [Theory]
+    [InlineData("/recipes")]
+    [InlineData("/foods")]
+    [InlineData("/exercises")]
+    public async Task AdminOnly_LibraryWrite_PassesTheRemovedRoleGate(string path)
+    {
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+
+        var response = await SendAsync(admin, "POST", path, new { });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest, "the empty body fails validation, after the gate");
+        (await response.Content.ReadAsStringAsync(Ct)).Should().NotContain(ErrorCodes.CoachRoleRemoved);
+    }
+
+    /// <summary>
+    /// A removed coach role stays on the account as a role claim, so Admin plus a removed Trainer is not admin-only:
+    /// it keeps today's paths on the Trainers endpoints, and is refused as before on a library of the other discipline.
+    /// </summary>
+    [Fact]
+    public async Task AdminPlusRemovedCoachRole_IsNotAdminOnly_KeepsTodaysBehaviour()
+    {
+        var account = await TestActors.Professional(factory, UserRole.Admin, UserRole.Trainer)
+            .WithRemovedCoachRoles(UserRole.Trainer)
+            .CreateAsync(Ct);
+
+        (await account.Http.GetAsync("/trainer/pending-invites", Ct)).StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var trainersWrite = await SendAsync(account, "POST", "/trainer/pending-invites", new { });
+        (await trainersWrite.Content.ReadAsStringAsync(Ct)).Should().NotContain(ErrorCodes.CoachRoleRemoved);
+
+        (await SendAsync(account, "POST", "/recipes", new { })).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
     [Fact]
     public async Task AddBack_RestoresTheRefusedWrite()
     {

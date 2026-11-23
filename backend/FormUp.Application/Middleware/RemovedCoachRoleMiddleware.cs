@@ -22,7 +22,8 @@ namespace FormUp.Application.Middleware;
 /// Single global gate that makes a removed coach role read-only. Reads and non-coach endpoints pass with no
 /// database work. A single-discipline write is refused once that role is removed; a dual-discipline write
 /// (Trainer and Nutritionist, no Client) is refused only when the caller has no active coach role left, and an
-/// Admin on an endpoint that allows Admin passes. An unannotated write fails closed as a refusal.
+/// Admin on an endpoint that allows Admin passes. An unannotated write fails closed as a refusal. It also answers
+/// 403 for the Admin-membership rule (see <c>IsRefusedByAdminRule</c>), reads included.
 /// Runs as middleware rather than a FastEndpoints pre-processor because FastEndpoints still validates the
 /// request after a pre-processor answers, and endpoints that rethrow (DontCatchExceptions) then abort the response.
 /// </summary>

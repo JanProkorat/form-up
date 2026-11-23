@@ -4,6 +4,8 @@ using FluentAssertions;
 using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Documents;
 using FormUp.Application.Domain.Enums;
+using FormUp.Application.Features.Exercises.GetExercise;
+using FormUp.Application.Features.Exercises.SearchExercises;
 using FormUp.Application.Features.Foods.GetFood;
 using FormUp.Application.Features.Foods.GetFoodTags;
 using FormUp.Application.Features.Foods.SearchFoods;
@@ -62,18 +64,21 @@ public class OwnerScopedVisibilityFilterTests : IAsyncLifetime
     private readonly IMongoCollection<Food> _foods;
     private readonly IMongoCollection<FoodTag> _foodTags;
     private readonly IMongoCollection<FoodTagAssignment> _foodTagAssignments;
+    private readonly IMongoCollection<Exercise> _exercises;
     private readonly IMongoContext _mongoContext;
 
     public OwnerScopedVisibilityFilterTests(OwnerScopedVisibilityMongoContainerFixture containerFixture)
     {
         var mongoClient = new MongoClient(containerFixture.ConnectionString);
         var mongoDb = mongoClient.GetDatabase(containerFixture.DatabaseName);
+        _exercises = mongoDb.GetCollection<Exercise>("exercises");
         _recipes = mongoDb.GetCollection<Recipe>("recipes");
         _foods = mongoDb.GetCollection<Food>("foods");
         _foodTags = mongoDb.GetCollection<FoodTag>("foodTags");
         _foodTagAssignments = mongoDb.GetCollection<FoodTagAssignment>("foodTagAssignments");
 
         var mongoContext = Substitute.For<IMongoContext>();
+        mongoContext.Exercises.Returns(_exercises);
         mongoContext.Recipes.Returns(_recipes);
         mongoContext.Foods.Returns(_foods);
         mongoContext.FoodTags.Returns(_foodTags);
@@ -83,6 +88,7 @@ public class OwnerScopedVisibilityFilterTests : IAsyncLifetime
 
     public async ValueTask InitializeAsync()
     {
+        await _exercises.DeleteManyAsync(FilterDefinition<Exercise>.Empty);
         await _recipes.DeleteManyAsync(FilterDefinition<Recipe>.Empty);
         await _foods.DeleteManyAsync(FilterDefinition<Food>.Empty);
         await _foodTags.DeleteManyAsync(FilterDefinition<FoodTag>.Empty);
@@ -544,5 +550,179 @@ public class OwnerScopedVisibilityFilterTests : IAsyncLifetime
         await ep.HandleAsync(ct);
 
         ep.Response.Tags.Select(t => t.Name).Should().Equal("Almond", "Zucchini");
+    }
+
+    // ── #2088: admin-only callers see the system items alone ──────────────────
+
+    private static ClaimsPrincipal Caller(Guid userId, params string[] roles)
+    {
+        var claims = new List<Claim>
+        {
+            new(AppClaims.UserId, userId.ToString()),
+            new(AppClaims.Email, "test@test.com"),
+        };
+        claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
+
+        return new ClaimsPrincipal(new ClaimsIdentity(claims));
+    }
+
+    private static Exercise MakeExercise(string name, bool isCustom, Guid? trainerId) =>
+        new()
+        {
+            ExternalId = Guid.NewGuid(),
+            Name = name,
+            IsCustom = isCustom,
+            TrainerId = trainerId,
+            IsActive = true,
+            DateCreated = DateTime.UtcNow,
+        };
+
+    [Fact]
+    public async Task SearchRecipes_AdminOnly_ReturnsSystemRecipesOnly_IncludingCountAndOwnerBuckets()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var systemRecipe = MakeRecipe(SystemUsers.AdminId, "System Recipe", RecipeVisibility.Public);
+        var coachPublic = MakeRecipe(Guid.NewGuid(), "Coach Public Recipe", RecipeVisibility.Public);
+        await _recipes.InsertManyAsync([systemRecipe, coachPublic], cancellationToken: ct);
+
+        var ep = Factory.Create<SearchRecipesEndpoint>(
+            ctx => ctx.Request.HttpContext.User = Caller(Guid.NewGuid(), AppRoles.Admin), _mongoContext);
+        await ep.HandleAsync(new SearchRecipesRequest(), ct);
+
+        ep.Response.Recipes.Should().ContainSingle(r => r.Name == "System Recipe");
+        ep.Response.TotalCount.Should().Be(1);
+
+        var otherCoaches = Factory.Create<SearchRecipesEndpoint>(
+            ctx => ctx.Request.HttpContext.User = Caller(Guid.NewGuid(), AppRoles.Admin), _mongoContext);
+        await otherCoaches.HandleAsync(new SearchRecipesRequest { Owners = [FoodOwnerFilter.OtherCoaches] }, ct);
+
+        otherCoaches.Response.Recipes.Should().BeEmpty("the owner bucket cannot widen an admin-only caller's scope");
+        otherCoaches.Response.TotalCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task SearchRecipes_AdminPlusNutritionist_StillSeesCoachPublicRecipes()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var coachPublic = MakeRecipe(Guid.NewGuid(), "Coach Public Recipe", RecipeVisibility.Public);
+        await _recipes.InsertOneAsync(coachPublic, cancellationToken: ct);
+
+        var ep = Factory.Create<SearchRecipesEndpoint>(
+            ctx => ctx.Request.HttpContext.User = Caller(Guid.NewGuid(), AppRoles.Admin, AppRoles.Nutritionist),
+            _mongoContext);
+        await ep.HandleAsync(new SearchRecipesRequest(), ct);
+
+        ep.Response.Recipes.Should().ContainSingle(r => r.Name == "Coach Public Recipe");
+    }
+
+    [Fact]
+    public async Task GetRecipe_AdminOnly_CoachRecipe_Returns404_SystemRecipe_Returns200()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var systemRecipe = MakeRecipe(SystemUsers.AdminId, "System Recipe", RecipeVisibility.Public);
+        var coachPublic = MakeRecipe(Guid.NewGuid(), "Coach Public Recipe", RecipeVisibility.Public);
+        await _recipes.InsertManyAsync([systemRecipe, coachPublic], cancellationToken: ct);
+
+        var coachEp = Factory.Create<GetRecipeEndpoint>(
+            ctx => ctx.Request.HttpContext.User = Caller(Guid.NewGuid(), AppRoles.Admin), _mongoContext);
+        await coachEp.HandleAsync(new GetRecipeRequest { RecipeId = coachPublic.ExternalId }, ct);
+
+        var systemEp = Factory.Create<GetRecipeEndpoint>(
+            ctx => ctx.Request.HttpContext.User = Caller(Guid.NewGuid(), AppRoles.Admin), _mongoContext);
+        await systemEp.HandleAsync(new GetRecipeRequest { RecipeId = systemRecipe.ExternalId }, ct);
+
+        coachEp.HttpContext.Response.StatusCode.Should().Be(404);
+        systemEp.HttpContext.Response.StatusCode.Should().Be(200);
+    }
+
+    [Fact]
+    public async Task SearchFoods_AdminOnly_ReturnsOwnerlessFoodsOnly_IncludingCountAndOwnerBuckets()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await _foods.InsertManyAsync(
+            [
+                MakeOwnerlessFood("System Food", FoodVisibility.Public),
+                MakeFood(Guid.NewGuid(), "Coach Public Food", FoodVisibility.Public),
+            ],
+            cancellationToken: ct);
+
+        var ep = Factory.Create<SearchFoodsEndpoint>(
+            ctx => ctx.Request.HttpContext.User = Caller(Guid.NewGuid(), AppRoles.Admin), _mongoContext);
+        await ep.HandleAsync(new SearchFoodsRequest(), ct);
+
+        ep.Response.Foods.Should().ContainSingle(f => f.Name == "System Food");
+        ep.Response.TotalCount.Should().Be(1);
+
+        var otherCoaches = Factory.Create<SearchFoodsEndpoint>(
+            ctx => ctx.Request.HttpContext.User = Caller(Guid.NewGuid(), AppRoles.Admin), _mongoContext);
+        await otherCoaches.HandleAsync(new SearchFoodsRequest { Owners = [FoodOwnerFilter.OtherCoaches] }, ct);
+
+        otherCoaches.Response.Foods.Should().BeEmpty();
+        otherCoaches.Response.TotalCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task GetFood_AdminOnly_CoachPublicFood_Returns404_SystemFood_Returns200()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var systemFood = MakeOwnerlessFood("System Food", FoodVisibility.Public);
+        var coachPublic = MakeFood(Guid.NewGuid(), "Coach Public Food", FoodVisibility.Public);
+        await _foods.InsertManyAsync([systemFood, coachPublic], cancellationToken: ct);
+
+        var coachEp = Factory.Create<GetFoodEndpoint>(
+            ctx => ctx.Request.HttpContext.User = Caller(Guid.NewGuid(), AppRoles.Admin), _mongoContext);
+        await coachEp.HandleAsync(new GetFoodRequest { FoodId = coachPublic.ExternalId }, ct);
+
+        var systemEp = Factory.Create<GetFoodEndpoint>(
+            ctx => ctx.Request.HttpContext.User = Caller(Guid.NewGuid(), AppRoles.Admin), _mongoContext);
+        await systemEp.HandleAsync(new GetFoodRequest { FoodId = systemFood.ExternalId }, ct);
+
+        coachEp.HttpContext.Response.StatusCode.Should().Be(404);
+        systemEp.HttpContext.Response.StatusCode.Should().Be(200);
+    }
+
+    [Fact]
+    public async Task SearchExercises_AdminOnly_ReturnsSystemExercisesOnly_TrainerSeesBoth()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var trainerId = Guid.NewGuid();
+        await _exercises.InsertManyAsync(
+            [
+                MakeExercise("System Exercise", isCustom: false, trainerId: null),
+                MakeExercise("Custom Exercise", isCustom: true, trainerId: trainerId),
+            ],
+            cancellationToken: ct);
+
+        var adminEp = Factory.Create<SearchExercisesEndpoint>(
+            ctx => ctx.Request.HttpContext.User = Caller(Guid.NewGuid(), AppRoles.Admin), _mongoContext);
+        await adminEp.HandleAsync(new SearchExercisesRequest(), ct);
+
+        var trainerEp = Factory.Create<SearchExercisesEndpoint>(
+            ctx => ctx.Request.HttpContext.User = Caller(trainerId, AppRoles.Trainer), _mongoContext);
+        await trainerEp.HandleAsync(new SearchExercisesRequest(), ct);
+
+        adminEp.Response.Exercises.Select(e => e.RawName).Should().Equal("System Exercise");
+        adminEp.Response.TotalCount.Should().Be(1);
+        trainerEp.Response.Exercises.Select(e => e.RawName).Should().BeEquivalentTo(["System Exercise", "Custom Exercise"]);
+    }
+
+    [Fact]
+    public async Task GetExercise_AdminOnly_CustomExercise_Returns404_SystemExercise_Returns200()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var system = MakeExercise("System Exercise", isCustom: false, trainerId: null);
+        var custom = MakeExercise("Custom Exercise", isCustom: true, trainerId: Guid.NewGuid());
+        await _exercises.InsertManyAsync([system, custom], cancellationToken: ct);
+
+        var customEp = Factory.Create<GetExerciseEndpoint>(
+            ctx => ctx.Request.HttpContext.User = Caller(Guid.NewGuid(), AppRoles.Admin), _mongoContext);
+        await customEp.HandleAsync(new GetExerciseRequest { ExerciseId = custom.ExternalId }, ct);
+
+        var systemEp = Factory.Create<GetExerciseEndpoint>(
+            ctx => ctx.Request.HttpContext.User = Caller(Guid.NewGuid(), AppRoles.Admin), _mongoContext);
+        await systemEp.HandleAsync(new GetExerciseRequest { ExerciseId = system.ExternalId }, ct);
+
+        customEp.HttpContext.Response.StatusCode.Should().Be(404);
+        systemEp.HttpContext.Response.StatusCode.Should().Be(200);
     }
 }
