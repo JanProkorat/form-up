@@ -2,7 +2,7 @@ import { PaymentCurrency, type AdminReportCurrencyValueDto, type GetAdminReports
 import type { ChipTone } from '@/components/admin-reports/ReportCard';
 import {
   deltaPercent,
-  formatPercent,
+  formatNumber,
   formatPercentDelta,
   reportMoney,
   reportPlanName,
@@ -97,7 +97,7 @@ export function buildOverviewTiles(report: GetAdminReportsResponse, unit: string
     },
     {
       id: 'churn',
-      value: typeof churn === 'number' ? formatPercent(churn, language) : DASH,
+      value: typeof churn === 'number' ? `${formatNumber(churn, language)} %` : DASH,
       chip: churnChip(churn, money?.churnPercentPrevious, unit, language),
     },
   ];

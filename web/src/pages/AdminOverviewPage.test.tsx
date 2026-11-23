@@ -65,9 +65,9 @@ describe('AdminOverviewPage Last 30 days', () => {
     expect(within(paying).getByText('+5.7 %')).toHaveClass(GOOD);
     expect(within(paying).getByText('Start 18 · Pro 13')).toBeInTheDocument();
 
-    // Churn: a whole-number value, a percentage-point badge, and less churn is good news.
+    // Churn: a one-decimal value, a percentage-point badge, and less churn is good news.
     const churn = tile('Churn');
-    expect(within(churn).getByText('3 %')).toBeInTheDocument();
+    expect(within(churn).getByText('2.7 %')).toBeInTheDocument();
     expect(within(churn).getByText('−0.4 pp')).toHaveClass(GOOD);
 
     expect(state.reportPeriods).toEqual(['Days30']);
