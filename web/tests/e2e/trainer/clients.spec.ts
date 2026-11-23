@@ -152,8 +152,8 @@ test.describe('clients list page', () => {
     expect(searchHeight).toBeGreaterThan(35);
     expect(searchHeight).toBeLessThan(37);
 
-    // The page eyebrow repeats this copy, so scope to the sidebar nav.
-    const navSectionHeader = page.locator('nav').getByText('Client management', { exact: true });
+    // Scope to the sidebar nav; a trainer sees the Library header (Forms).
+    const navSectionHeader = page.locator('nav').getByText('Library', { exact: true });
     await expect(navSectionHeader).toBeVisible();
     const navHeaderHeight = (await navSectionHeader.boundingBox())?.height ?? 0;
     expect(navHeaderHeight).toBeGreaterThan(10);
@@ -287,7 +287,7 @@ test.describe('clients selection bar at narrow viewports (#1085)', () => {
         await expect(selectAll).toBeEnabled();
         await selectAll.click();
 
-        // The All tab also lists pending rows with their own Cancel button, so scope to the selection bar.
+        // Scope to the selection bar so its Cancel button is the one matched.
         const bar = page
           .locator('div.fixed')
           .filter({ has: page.getByRole('button', { name: locale.broadcast, exact: true }) });

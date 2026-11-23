@@ -11,6 +11,8 @@ import type { ClientPlanItem } from '@/api/generated';
 interface Props {
   /** The client's active Nutrition-type plan summary, or undefined if none. */
   plan?: ClientPlanItem;
+  /** The client the card belongs to; the "Open plan" link goes to that client's Nutrition tab. */
+  clientId: string;
   /** Whether the caller's link grants the nutrition domain (ListClientPlansResponse.canViewNutritionPlans). */
   canView: boolean;
   /** Whether the plans-list query (which resolves `plan`/`canView`) is still loading. */
@@ -23,7 +25,7 @@ interface Props {
  * response, so a second fetch loads the full plan for `globalSettings` once
  * we know which plan is active.
  */
-export default function MealPlanCard({ plan, canView, isPending, isError }: Props) {
+export default function MealPlanCard({ plan, clientId, canView, isPending, isError }: Props) {
   const { t } = useTranslation();
   const headingId = useId();
 
@@ -55,6 +57,7 @@ export default function MealPlanCard({ plan, canView, isPending, isError }: Prop
       <PlanCardHeader
         headingId={headingId}
         tone="nutrition"
+        openPlanTo={canView && plan ? `/clients/${clientId}/nutrition` : undefined}
         label={t('clientDetail.overview.mealPlan.label')}
         heading={t('clientDetail.overview.mealPlan.heading')}
       />

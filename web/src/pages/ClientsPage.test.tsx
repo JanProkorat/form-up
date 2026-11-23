@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
-import { ClientListStatus } from '@/api/generated';
+import { ClientListStatus, PendingInviteStatus, PendingRowKind } from '@/api/generated';
 import {
   TRAINING_PLAN,
   newClientsListState,
@@ -97,6 +97,42 @@ describe('Clients page: Filter menu', () => {
 
     await user.click(screen.getByRole('button', { name: 'Remove filter Active plans' }));
     await waitFor(() => expect(router.state.location.search).not.toMatch(/plan=/));
+  });
+});
+
+describe('Clients page: pending rows', () => {
+  const pendingRows = [
+    {
+      kind: PendingRowKind.Invite,
+      publicId: '11111111-1111-1111-1111-111111111111',
+      firstName: 'Waiting',
+      lastName: 'Invitee',
+      email: 'waiting.invitee@formup.test',
+      sentAt: '2026-11-01T10:00:00Z',
+      status: PendingInviteStatus.Pending,
+    },
+  ];
+
+  it('the All tab shows no pending section or rows', async () => {
+    serveClientsList(newClientsListState({ pending: pendingRows }));
+    const { user, router } = renderClientsPage();
+    await rowSettled();
+
+    await user.click(screen.getByRole('tab', { name: /^All/ }));
+    await waitFor(() => expect(router.state.location.search).toMatch(/tab=All/));
+    await rowSettled();
+
+    expect(screen.queryByRole('heading', { name: 'Pending' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Waiting Invitee')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Cancel invite' })).not.toBeInTheDocument();
+  });
+
+  it('the Pending tab lists the pending rows with their actions', async () => {
+    serveClientsList(newClientsListState({ pending: pendingRows }));
+    renderClientsPage({ url: '/clients?tab=Pending' });
+
+    const row = await screen.findByRole('row', { name: /Waiting Invitee/ });
+    expect(within(row).getByRole('button', { name: 'Cancel invite' })).toBeEnabled();
   });
 });
 

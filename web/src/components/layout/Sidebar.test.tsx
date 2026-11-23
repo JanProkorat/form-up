@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { screen, within } from '@testing-library/react';
 import Sidebar from '@/components/layout/Sidebar';
 import { recordRequests, serveCoachShell } from '@/test/adminOnlyAccess';
+import { HttpResponse, apiUrl, http } from '@/test/msw/handlers';
+import { server } from '@/test/msw/server';
 import { renderWithProviders } from '@/test/render';
 
 const COACH_ONLY_ENTRIES = ['Clients', 'Inbox', 'Forms', 'Automations', 'Check-ins', 'Packages'];
@@ -15,6 +17,36 @@ function navLinkNames(): string[] {
 }
 
 describe('Sidebar entries per role', () => {
+  it("groups a nutritionist's entries as daily work, Library and Business, in order", async () => {
+    serveCoachShell(['Nutritionist']);
+    const { container } = renderWithProviders(<Sidebar />, { auth: { roles: ['Nutritionist'] } });
+
+    expect(await screen.findByRole('link', { name: 'Recipes' })).toBeInTheDocument();
+    // The trailing link is the plan chip in the account area, not a nav entry.
+    expect(navLinkNames().slice(0, 9)).toEqual([
+      'Clients',
+      'Inbox',
+      'Check-ins',
+      'Forms',
+      'Recipes',
+      'Ingredients',
+      'Plan templates',
+      'Packages',
+      'Automations',
+    ]);
+    expect(screen.getByText('Library')).toBeInTheDocument();
+    expect(screen.getByText('Business')).toBeInTheDocument();
+    expect(container.querySelector('svg.lucide-chevron-down')).toBeNull();
+  });
+
+  it('shows the unread badge on Inbox', async () => {
+    serveCoachShell(['Trainer']);
+    server.use(http.get(apiUrl('/conversations/filter-counts'), () => HttpResponse.json({ unreadMessages: 3 })));
+    renderWithProviders(<Sidebar />, { auth: { roles: ['Trainer'] } });
+
+    expect(await screen.findByRole('img', { name: '3 unread messages' })).toBeInTheDocument();
+  });
+
   it('shows an admin-only account just the libraries and the Admin section, and sends no coach request', async () => {
     const recorder = recordRequests();
     renderWithProviders(<Sidebar />, { auth: { roles: ['Admin'] } });
@@ -24,13 +56,15 @@ describe('Sidebar entries per role', () => {
     for (const hidden of [...COACH_ONLY_ENTRIES, 'Plan templates', 'Exercises']) {
       expect(names).not.toContain(hidden);
     }
+    expect(screen.getByText('Library')).toBeInTheDocument();
+    expect(screen.queryByText('Business')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Notifications' })).not.toBeInTheDocument();
     // Nothing is fetched: an unregistered request would also fail the test as unhandled.
     expect(recorder.requests).toEqual([]);
     recorder.stop();
   });
 
-  it('shows a trainer the coach entries but neither the nutrition nor the Admin section', async () => {
+  it('shows a trainer only Forms under Library and no nutrition or Admin entries', async () => {
     serveCoachShell(['Trainer']);
     renderWithProviders(<Sidebar />, { auth: { roles: ['Trainer'] } });
 
@@ -42,7 +76,7 @@ describe('Sidebar entries per role', () => {
     }
   });
 
-  it('shows a nutritionist the coach entries and the full nutrition section', async () => {
+  it('shows a nutritionist the coach entries and all four Library entries', async () => {
     serveCoachShell(['Nutritionist']);
     renderWithProviders(<Sidebar />, { auth: { roles: ['Nutritionist'] } });
 

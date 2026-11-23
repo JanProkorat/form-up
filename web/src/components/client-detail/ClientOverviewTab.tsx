@@ -44,6 +44,7 @@ export default function ClientOverviewTab({
 
   const mealPlanCard = (
     <MealPlanCard
+      clientId={clientId}
       plan={activeNutritionPlan}
       canView={canViewNutritionPlans}
       isPending={plansQuery.isPending}

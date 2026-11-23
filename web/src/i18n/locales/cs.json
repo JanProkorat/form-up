@@ -202,7 +202,6 @@
     "adminReports": "Přehledy",
     "automations": "Automatizace",
     "checkIns": "Check-iny",
-    "dashboard": "Dashboard",
     "profile": "Profil",
     "clients": "Klienti",
     "inbox": "Zprávy",
@@ -213,16 +212,11 @@
     "settings": "Nastavení",
     "recipes": "Recepty",
     "planTemplates": "Šablony plánů",
-    "exercises": "Cviky",
     "sectionTemplates": "Workouty",
-    "trainingPlans": "Tréninkové plány",
     "messages": "Zprávy",
     "clientsSection": "KLIENTI",
     "searchClients": "Hledat klienta...",
-    "databaseSection": "DATABÁZE",
-    "clientManagementSection": "Správa klientů",
-    "nutritionSection": "Výživa",
-    "formsSection": "Formuláře",
+    "librarySection": "Knihovna",
     "businessSection": "Podnikání",
     "packages": "Balíčky",
     "forms": "Formuláře",
@@ -5653,14 +5647,11 @@
         }
       },
       "actions": {
-        "chat": "Chat",
-        "tasks": "Úkoly",
-        "notes": "Poznámky"
+        "chat": "Chat"
       },
       "tabs": {
         "overview": "Přehled",
         "nutrition": "Výživa",
-        "workouts": "Tréninky",
         "storage": "Fotky",
         "payment": "Platby",
         "automations": "Automatizace",
@@ -5723,7 +5714,6 @@
       },
       "workout": {
         "label": "Trénink",
-        "openPlan": "Otevřít plán",
         "doneThisWeek": "Hotovo tento týden · {{done}} z {{total}} sezení",
         "heading": "Poslední trénink",
         "exercises_one": "{{count}} cvik",
@@ -6768,12 +6758,6 @@
         "FirstPayments_few": "První {{count}} platby",
         "FirstPayments_many": "Prvních {{count}} platby",
         "FirstPayments_other": "Prvních {{count}} plateb"
-      },
-      "codes": {
-        "title": "Slevové kódy",
-        "comingLater": "Připravujeme",
-        "body": "Dejte slevě kód, například LETO26, a klienti ho zadají při registraci u vás.",
-        "create": "Vytvořit kód"
       },
       "validation": {
         "nameRequired": "Zadejte název.",
