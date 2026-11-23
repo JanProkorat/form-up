@@ -5456,7 +5456,6 @@
       "tabs": {
         "overview": "Overview",
         "nutrition": "Nutrition",
-        "workouts": "Workouts",
         "storage": "Photos",
         "payment": "Payment",
         "automations": "Automations",
@@ -5513,7 +5512,6 @@
       },
       "workout": {
         "label": "Training",
-        "openPlan": "Open plan",
         "doneThisWeek": "Done this week · {{done}} of {{total}} sessions",
         "heading": "Latest workout",
         "exercises_one": "{{count}} Exercise",
