@@ -348,12 +348,6 @@
   "h": 520
  },
  {
-  "html": "web/15-06-client-header-options-c.html",
-  "png": "web/15-06-client-header-options-c.png",
-  "w": 1240,
-  "h": 1120
- },
- {
   "html": "web/16-01-page-client-detail-d.html",
   "png": "web/16-01-page-client-detail-d.png",
   "w": 1440,
@@ -382,12 +376,6 @@
   "png": "web/16-05-page-client-activity-offline-sync-d.png",
   "w": 640,
   "h": 520
- },
- {
-  "html": "web/16-06-client-header-options-d.html",
-  "png": "web/16-06-client-header-options-d.png",
-  "w": 1240,
-  "h": 1120
  },
  {
   "html": "web/17-01-page-client-nutrition-c.html",
@@ -1446,146 +1434,158 @@
   "h": 1000
  },
  {
-  "html": "web/65-01-page-admin-plans-c.html",
-  "png": "web/65-01-page-admin-plans-c.png",
+  "html": "web/65-01-page-admin-home-c.html",
+  "png": "web/65-01-page-admin-home-c.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/66-01-page-admin-home-d.html",
+  "png": "web/66-01-page-admin-home-d.png",
+  "w": 1440,
+  "h": 900
+ },
+ {
+  "html": "web/67-01-page-admin-plans-c.html",
+  "png": "web/67-01-page-admin-plans-c.png",
   "w": 1440,
   "h": 1000
  },
  {
-  "html": "web/65-02-page-admin-promotions-c.html",
-  "png": "web/65-02-page-admin-promotions-c.png",
+  "html": "web/67-02-page-admin-promotions-c.html",
+  "png": "web/67-02-page-admin-promotions-c.png",
   "w": 1440,
   "h": 1000
  },
  {
-  "html": "web/65-03-page-admin-promotion-drawer-c.html",
-  "png": "web/65-03-page-admin-promotion-drawer-c.png",
+  "html": "web/67-03-page-admin-promotion-drawer-c.html",
+  "png": "web/67-03-page-admin-promotion-drawer-c.png",
   "w": 1440,
   "h": 1100
  },
  {
-  "html": "web/65-04-page-admin-plan-editor-c.html",
-  "png": "web/65-04-page-admin-plan-editor-c.png",
+  "html": "web/67-04-page-admin-plan-editor-c.html",
+  "png": "web/67-04-page-admin-plan-editor-c.png",
   "w": 1440,
   "h": 1360
  },
  {
-  "html": "web/65-05-page-admin-plan-editor-new-c.html",
-  "png": "web/65-05-page-admin-plan-editor-new-c.png",
+  "html": "web/67-05-page-admin-plan-editor-new-c.html",
+  "png": "web/67-05-page-admin-plan-editor-new-c.png",
   "w": 1440,
   "h": 1360
  },
  {
-  "html": "web/65-06-page-admin-coaches-c.html",
-  "png": "web/65-06-page-admin-coaches-c.png",
+  "html": "web/67-06-page-admin-coaches-c.html",
+  "png": "web/67-06-page-admin-coaches-c.png",
   "w": 1440,
   "h": 1240
  },
  {
-  "html": "web/65-07-page-admin-coach-profile-c.html",
-  "png": "web/65-07-page-admin-coach-profile-c.png",
+  "html": "web/67-07-page-admin-coach-profile-c.html",
+  "png": "web/67-07-page-admin-coach-profile-c.png",
   "w": 1440,
   "h": 1240
  },
  {
-  "html": "web/65-08-page-admin-coach-dialogs-c.html",
-  "png": "web/65-08-page-admin-coach-dialogs-c.png",
+  "html": "web/67-08-page-admin-coach-dialogs-c.html",
+  "png": "web/67-08-page-admin-coach-dialogs-c.png",
   "w": 2408,
   "h": 900
  },
  {
-  "html": "web/65-09-page-admin-promotion-end-c.html",
-  "png": "web/65-09-page-admin-promotion-end-c.png",
+  "html": "web/67-09-page-admin-promotion-end-c.html",
+  "png": "web/67-09-page-admin-promotion-end-c.png",
   "w": 2940,
   "h": 1028
  },
  {
-  "html": "web/65-10-page-admin-reports-c.html",
-  "png": "web/65-10-page-admin-reports-c.png",
+  "html": "web/67-10-page-admin-reports-c.html",
+  "png": "web/67-10-page-admin-reports-c.png",
   "w": 1440,
   "h": 1360
  },
  {
-  "html": "web/65-11-page-admin-plan-editor-annual-c.html",
-  "png": "web/65-11-page-admin-plan-editor-annual-c.png",
+  "html": "web/67-11-page-admin-plan-editor-annual-c.html",
+  "png": "web/67-11-page-admin-plan-editor-annual-c.png",
   "w": 1440,
   "h": 1400
  },
  {
-  "html": "web/65-12-page-admin-promotion-drawer-annual-c.html",
-  "png": "web/65-12-page-admin-promotion-drawer-annual-c.png",
+  "html": "web/67-12-page-admin-promotion-drawer-annual-c.html",
+  "png": "web/67-12-page-admin-promotion-drawer-annual-c.png",
   "w": 1440,
   "h": 1200
  },
  {
-  "html": "web/66-01-page-admin-plans-d.html",
-  "png": "web/66-01-page-admin-plans-d.png",
+  "html": "web/68-01-page-admin-plans-d.html",
+  "png": "web/68-01-page-admin-plans-d.png",
   "w": 1440,
   "h": 1000
  },
  {
-  "html": "web/66-02-page-admin-promotions-d.html",
-  "png": "web/66-02-page-admin-promotions-d.png",
+  "html": "web/68-02-page-admin-promotions-d.html",
+  "png": "web/68-02-page-admin-promotions-d.png",
   "w": 1440,
   "h": 1000
  },
  {
-  "html": "web/66-03-page-admin-promotion-drawer-d.html",
-  "png": "web/66-03-page-admin-promotion-drawer-d.png",
+  "html": "web/68-03-page-admin-promotion-drawer-d.html",
+  "png": "web/68-03-page-admin-promotion-drawer-d.png",
   "w": 1440,
   "h": 1100
  },
  {
-  "html": "web/66-04-page-admin-plan-editor-d.html",
-  "png": "web/66-04-page-admin-plan-editor-d.png",
+  "html": "web/68-04-page-admin-plan-editor-d.html",
+  "png": "web/68-04-page-admin-plan-editor-d.png",
   "w": 1440,
   "h": 1360
  },
  {
-  "html": "web/66-05-page-admin-plan-editor-new-d.html",
-  "png": "web/66-05-page-admin-plan-editor-new-d.png",
+  "html": "web/68-05-page-admin-plan-editor-new-d.html",
+  "png": "web/68-05-page-admin-plan-editor-new-d.png",
   "w": 1440,
   "h": 1360
  },
  {
-  "html": "web/66-06-page-admin-coaches-d.html",
-  "png": "web/66-06-page-admin-coaches-d.png",
+  "html": "web/68-06-page-admin-coaches-d.html",
+  "png": "web/68-06-page-admin-coaches-d.png",
   "w": 1440,
   "h": 1240
  },
  {
-  "html": "web/66-07-page-admin-coach-profile-d.html",
-  "png": "web/66-07-page-admin-coach-profile-d.png",
+  "html": "web/68-07-page-admin-coach-profile-d.html",
+  "png": "web/68-07-page-admin-coach-profile-d.png",
   "w": 1440,
   "h": 1240
  },
  {
-  "html": "web/66-08-page-admin-coach-dialogs-d.html",
-  "png": "web/66-08-page-admin-coach-dialogs-d.png",
+  "html": "web/68-08-page-admin-coach-dialogs-d.html",
+  "png": "web/68-08-page-admin-coach-dialogs-d.png",
   "w": 2408,
   "h": 900
  },
  {
-  "html": "web/66-09-page-admin-promotion-end-d.html",
-  "png": "web/66-09-page-admin-promotion-end-d.png",
+  "html": "web/68-09-page-admin-promotion-end-d.html",
+  "png": "web/68-09-page-admin-promotion-end-d.png",
   "w": 2940,
   "h": 1028
  },
  {
-  "html": "web/66-10-page-admin-reports-d.html",
-  "png": "web/66-10-page-admin-reports-d.png",
+  "html": "web/68-10-page-admin-reports-d.html",
+  "png": "web/68-10-page-admin-reports-d.png",
   "w": 1440,
   "h": 1360
  },
  {
-  "html": "web/66-11-page-admin-plan-editor-annual-d.html",
-  "png": "web/66-11-page-admin-plan-editor-annual-d.png",
+  "html": "web/68-11-page-admin-plan-editor-annual-d.html",
+  "png": "web/68-11-page-admin-plan-editor-annual-d.png",
   "w": 1440,
   "h": 1400
  },
  {
-  "html": "web/66-12-page-admin-promotion-drawer-annual-d.html",
-  "png": "web/66-12-page-admin-promotion-drawer-annual-d.png",
+  "html": "web/68-12-page-admin-promotion-drawer-annual-d.html",
+  "png": "web/68-12-page-admin-promotion-drawer-annual-d.png",
   "w": 1440,
   "h": 1200
  },

@@ -15,7 +15,7 @@ NAV = {"Clients": "PageClients", "Inbox": "PageInbox", "Check-ins": "PageCheckIn
        "Ingredients": "PageIngredients", "Plan templates": "PageTemplates", "Forms": "PageForms", "Automations": "PageAutomations",
        "Packages": "PagePackages", "Log out": "PageHome", "Martin Král": "PageAccountMenu"}
 # The Form Up admin section of the sidebar, wired on admin boards only ("Plans" is common text elsewhere).
-ADMIN_NAV = {"Plans": "PageAdminPlans", "Promotions": "PageAdminPromotions", "Coaches": "PageAdminCoaches", "Reports": "PageAdminReports"}
+ADMIN_NAV = {"Overview": "PageAdminHome", "Plans": "PageAdminPlans","Promotions": "PageAdminPromotions", "Coaches": "PageAdminCoaches", "Reports": "PageAdminReports"}
 # The client detail tab row, shared by every client detail board (#2351).
 CLIENT_TABS = {"Overview": "PageClientDetail", "Nutrition": "PageClientNutrition", "Photos": "PageClientPhotos",
                "Payment": "PageClientPayment", "Automations": "PageClientAutomations", "Forms": "PageClientForms"}
@@ -106,7 +106,9 @@ for page in ("PageClientDetail", "PageClientDetailTrainer", "PageClientDetailNut
              "PageClientAutomations", "PageClientAutomationOverrideCheckIn", "PageClientForms", "PageClientFormsEmpty",
              "PageClientFormsCheckIn"):
     FLOWS[page] = dict(CLIENT_TABS, **FLOWS.get(page, {}))
-for page in ("PageAdminPlans", "PageAdminPlanEditor", "PageAdminPlanEditorNew", "PageAdminPlanEditorAnnual", "PageAdminPromotions",
+FLOWS["PageAdminHome"] = {"^Open coaches": "PageAdminCoaches", "^Open promotion": "PageAdminPromotions",
+                          "^New promotion": "PageAdminPromotionDrawer", "Full reports": "PageAdminReports"}
+for page in ("PageAdminHome", "PageAdminPlans", "PageAdminPlanEditor", "PageAdminPlanEditorNew", "PageAdminPlanEditorAnnual", "PageAdminPromotions",
              "PageAdminPromotionDrawer", "PageAdminPromotionDrawerAnnual", "PageAdminPromotionEnd", "PageAdminCoaches",
              "PageAdminCoachProfile", "PageAdminCoachDialogs", "PageAdminReports"):
     FLOWS[page] = dict(ADMIN_NAV, **FLOWS.get(page, {}))
