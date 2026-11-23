@@ -96,12 +96,20 @@ drawer changed for one client, with a form picker) added on the check-in row, an
 1795247449-d5a6. `GlassCheckInHistory` (light and dark, "When check-ins arrive" card) updated from
 client app 1795247417-cb01. Static export and clickable prototype, without PNGs.
 
+**Web re-sync, 2026-11-23 (#2351):** every web portal and email board re-exported from web portal
+1795433849-28ce (canvas v77), with static export, clickable prototype and PNGs. The canvas now has one
+page per screen in sidebar order (starting at "Start here"), and every board uses the same sidebar
+(Clients, Inbox, Check-ins · Library · Business · Form Up admin), collapsed rail and client header
+(Overview, Nutrition, Photos, Payment, Automations, Forms; no Tasks, Notes, Workouts or Metrics).
+Web export file names changed because their row-column prefix follows the new page layout. Client-app
+and coach-app boards are unchanged: they are still from the versions above.
+
 | Path | Contents |
 |---|---|
 | `index.html` | Gallery of every board, grouped by app and module |
 | `interactive/` | Clickable web-portal prototype, light and dark (open `interactive/index.html`) |
 | `interactive-client/`, `interactive-coach/` | Clickable client-app and coach-app prototypes, light and dark, shown in a phone frame |
-| `web/` | Web portal: entry page, registration, clients (incl. Payment and Automations tabs), inbox, recipes, ingredients, plan templates, forms, automations, packages and discounts, coach profile, settings (incl. payments, plan and billing) and account menu, password reset, coach plans (plan picker, sign-up plan step, paywalls, plan ended), Form Up admin (plans, promotions, coaches, reports) — light and dark |
+| `web/` | Web portal: entry page, registration, clients, client detail (Overview, Nutrition, Photos, Payment, Automations and Forms tabs), client plan editor, inbox, check-ins, recipes, ingredients, plan templates, forms, automations, packages and discounts, coach profile, settings (incl. payments, plan and billing) and account menu, password reset, coach plans (plan picker, sign-up plan step, paywalls, plan ended), Form Up admin (plans, promotions, coaches, reports) — light and dark |
 | `mobile-light/`, `mobile-dark/` | Client mobile app (Liquid Glass) |
 | `coach-light/`, `coach-dark/` | Coach mobile app |
 | `email/` | Account, notification and payment emails — light (`C`) and dark (`D`) |
@@ -141,6 +149,10 @@ python3 export_static.py ..          # boards → standalone HTML + index.html +
 python3 export_interactive.py ..     # boards → clickable prototypes in ../interactive*/
 node screenshot.mjs ..               # PNG per screen (uses web/node_modules/playwright and Brave)
 ```
+
+To re-sync one canvas only, pass `-` for the canvas you keep (`merge_canvases.py <web> - -` keeps
+the client-app and coach-app boards as they are), and limit the screenshots to the folders that
+changed (`node screenshot.mjs .. web email`).
 
 Before exporting, download each canvas's `project/canvas.json` and every board file
 into its own folder (`<web>/project/…`, `<client>/project/…`, `<coach>/project/…`) and

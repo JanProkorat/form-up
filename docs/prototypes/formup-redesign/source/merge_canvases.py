@@ -2,6 +2,7 @@
 
 Usage: python3 merge_canvases.py <web_dir> <client_dir> <coach_dir>
 Each <dir> holds project/canvas.json and project/*.dc.html downloaded from one canvas.
+Pass "-" for the client or coach dir to keep that app's boards unchanged.
 The exporters expect one canvas with the pages web, glass, coach and email, so every module page
 of a canvas is stacked under its app page, row title 300 px above its row. The concepts and logo
 pages are not on the new canvases; their boards and notes are kept from the current project/.
@@ -15,6 +16,8 @@ GAP = 600  # space between one module's last row and the next module's title
 web_dir, client_dir, coach_dir = sys.argv[1:4]
 old = json.load(open(os.path.join(PROJECT, "canvas.json")))
 KEEP = {"concepts", "logo"}
+# "-" for the client or coach dir keeps that app's boards as they are (re-sync one canvas only).
+KEEP |= {page for page, d in (("glass", client_dir), ("coach", coach_dir)) if d == "-"}
 
 out = {
     "v": 3,
@@ -39,15 +42,22 @@ def parent(canvas_dir, page_id):
 
 
 for d in (web_dir, client_dir, coach_dir):
+    if d == "-":
+        continue
     c = json.load(open(os.path.join(d, "project", "canvas.json")))
     for page in c["pages"]:
         pid, target = page["id"], parent(d, page["id"])
-        note = next(n for n in c["notes"].values() if n.get("page") == pid and n.get("kind") == "title1")
+        titles = {k: n for k, n in c["notes"].items() if n.get("page") == pid and n.get("kind") == "title1"}
+        note = titles.get(pid) or next(iter(titles.values()))
         boards = {k: b for k, b in c["boards"].items() if b.get("page") == pid}
         top = min(b["y"] for b in boards.values())  # the module's first row
         y0 = offset.get(target, 0)
         # export_static.py finds a row's title 300 px above the row, so pin it there
         out["notes"][pid] = dict(note, page=target, x=0, y=y0 - 300)
+        # A page with several labelled rows keeps each row's title, moved with its row.
+        for k, n in titles.items():
+            if n is not note:
+                out["notes"][k] = dict(n, page=target, x=0, y=y0 + n["y"] - top)
         for k, b in boards.items():
             out["boards"][k] = dict(b, page=target, y=y0 + b["y"] - top)
             sources[k] = os.path.join(d, "project", k)
