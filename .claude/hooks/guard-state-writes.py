@@ -114,8 +114,8 @@ def allowed_stems(agent_type: str, agent_id: str) -> list[str]:
 
 STATE_SUBDIR = os.path.join(".pipeline", "state")
 # Worktree roots in use: Claude Code's `.claude/worktrees/<name>` and the pipeline's `.worktrees/<issue>-<slug>`.
-_WORKTREE_STATE = re.compile(r"/(?:\.claude/worktrees|\.worktrees)/[^/]+/\.pipeline/state/")
-_WORKTREE_MARKER = re.compile(r"/(?:\.claude/worktrees|\.worktrees)/")
+_WORKTREE_STATE = re.compile(r"/(?:\.claude/worktrees|\.worktrees)/[^/]+/\.pipeline/state/", re.IGNORECASE)
+_WORKTREE_MARKER = re.compile(r"/(?:\.claude/worktrees|\.worktrees)/", re.IGNORECASE)
 
 
 def main_checkout(project_dir: str) -> str:
@@ -128,7 +128,9 @@ def is_state_path(real_path: str, project_dir: str) -> bool:
     """True for a file under <main>/.pipeline/state/ or a worktree's <wt>/.pipeline/state/."""
     if not real_path:
         return False
-    root = main_checkout(project_dir)
+    # Case-insensitive: macOS file systems treat `.PIPELINE/state` as `.pipeline/state`.
+    real_path = real_path.casefold()
+    root = main_checkout(project_dir).casefold()
     if real_path.startswith(os.path.join(root, STATE_SUBDIR) + os.sep):
         return True
     rest = real_path[len(root):] if real_path.startswith(root + os.sep) else ""

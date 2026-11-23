@@ -26,6 +26,12 @@ Your **first action** on any issue-driven dispatch is to read
 - `approved_scope.needs_library_research` — true → dispatch a Haiku scout;
   false (default) → don't research what's already in-codebase.
 
+If the file is not in the checkout you work in (you run in an isolated
+worktree), read the main checkout's copy: the `.pipeline/state/` folder of
+the repo root above `.claude/worktrees/` or `.worktrees/` in your path.
+Reading across checkouts is fine; only writing there is refused. Check
+both places before you report the handoff missing.
+
 If the design handoff is missing, return to the orchestrator and ask
 it to run design-review first (Rule 5.5).
 

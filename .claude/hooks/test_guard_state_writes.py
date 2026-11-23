@@ -50,6 +50,11 @@ def main() -> int:
 
     check("session running inside a worktree still guards that worktree's state",
           run(os.path.join(wt_claude, ".pipeline/state/pipeline.json"), wt_claude), "deny")
+    # macOS file systems ignore case, so these name the same folders as the lower-case paths.
+    check("upper-case main state path is still guarded",
+          run(os.path.join(root, ".PIPELINE/State/pipeline.json"), root), "deny")
+    check("upper-case worktree state path is still guarded",
+          run(os.path.join(root, ".Claude/Worktrees/wt-a/.Pipeline/state/pipeline.json"), root), "deny")
     check("files outside .pipeline/state are not inspected",
           run(os.path.join(wt_claude, "web/src/x.ts"), root), "allow")
     check("old .claude/state is no longer guarded",
