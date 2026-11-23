@@ -60,7 +60,8 @@ def main_html(t):
             f'<span style="font-size: 13px; font-weight: 600; color: {t["ink2"]}">{label}</span>'
             f'<span style="display: flex; align-items: baseline; gap: 10px"><span style="font-family: \'Outfit\', sans-serif; font-size: 28px; '
             f'font-weight: 600; letter-spacing: -0.01em; color: {t["ink"]}">{value}</span>'
-            f'<span style="font-size: 13px; font-weight: 700; color: {delta_color}">{delta}</span></span>'
+            + (f'<span style="font-size: 13px; font-weight: 700; color: {delta_color}">{delta}</span>' if delta else '')
+            + f'</span>'
             f'<span style="font-size: 12px; color: {t["muted"]}; line-height: 1.45">{note}</span></div>')
 
     card = (f'border-radius: 16px; border: 1px solid {t["line"]}; background: {t["card"]}; '
@@ -89,18 +90,19 @@ def main_html(t):
         f'font: 600 14px \'DM Sans\', sans-serif; display: inline-flex; align-items: center; justify-content: center; gap: 7px">'
         f'{PLUS}New promotion</button></section>')
     tiles = "".join([
-        tile("Monthly recurring revenue", "21 860 Kč", "↑ 6 %", t["green"], "Paying coaches, after promotions · vs October"),
-        tile("New sign-ups", "14", "↑ 3", t["green"], "Coach accounts created this month"),
+        # Every tile shows its change vs the previous 30 days (decision on #2360: backend adds the missing baselines).
+        tile("Monthly recurring revenue", "21 860 Kč", "↑ 6 %", t["green"], "Paying coaches, after promotions · vs the 30 days before"),
+        tile("New sign-ups", "14", "↑ 3", t["green"], "Coach accounts created in the last 30 days"),
         tile("Paying coaches", "37", "↑ 2", t["green"], "Start 18 · Pro 13 · Studio 6"),
-        tile("Churn", "2.7 %", "↓ 0.4 pt", t["green"], "Paying coaches who cancelled this month"),
+        tile("Churn", "2.7 %", "↓ 0.4 pt", t["green"], "Paying coaches who cancelled in the last 30 days"),
     ])
     return (
         f'<main style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; background: __BG__; padding: 28px 32px 40px; gap: 22px">'
         f'<div style="display: flex; flex-direction: column; gap: 6px"><h1 style="margin: 0; font-family: \'Outfit\', sans-serif; '
         f'font-size: 30px; font-weight: 600; letter-spacing: -0.01em">Overview</h1>'
-        f'<span style="font-size: 14px; color: {t["muted"]}">What needs you, and how Form Up is doing this month.</span></div>'
+        f'<span style="font-size: 14px; color: {t["muted"]}">What needs you, and how Form Up is doing over the last 30 days.</span></div>'
         f'<section aria-labelledby="tm-title" style="display: flex; flex-direction: column; gap: 12px">'
-        f'<div style="display: flex; align-items: baseline"><h2 id="tm-title" style="{section_title}">This month</h2>'
+        f'<div style="display: flex; align-items: baseline"><h2 id="tm-title" style="{section_title}">Last 30 days</h2>'
         f'<a href="#" style="margin-left: auto; font-size: 13px; font-weight: 600; color: {t["ink"]}">Full reports</a></div>'
         f'<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px">{tiles}</div></section>'
         f'<div style="display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; align-items: start">'
