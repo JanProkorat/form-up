@@ -168,13 +168,21 @@ function DrawerBody({ onSubmit, isSaving, onClose, plans }: BodyProps) {
       <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-6 py-5">
         <section className="flex flex-col gap-4">
           <SectionHeading icon={<Tag className="size-4" />}>{t('adminPromotions.drawer.sectionPromotion')}</SectionHeading>
-          <Field
-            label={t('adminPromotions.drawer.name')}
-            error={errors.name?.message}
-            hint={t('adminPromotions.drawer.nameHint')}
-          >
-            {(fieldControl) => <Input {...register('name')} autoComplete="off" className="h-10" {...fieldControl} />}
-          </Field>
+          <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-3">
+            <Field
+              label={t('adminPromotions.drawer.name')}
+              error={errors.name?.message}
+              hint={t('adminPromotions.drawer.nameHint')}
+            >
+              {(fieldControl) => <Input {...register('name')} autoComplete="off" className="h-10" {...fieldControl} />}
+            </Field>
+            <Field label={t('adminPromotions.drawer.nameEn')} error={errors.nameEn?.message}>
+              {(fieldControl) => <Input {...register('nameEn')} autoComplete="off" className="h-10" {...fieldControl} />}
+            </Field>
+            <Field label={t('adminPromotions.drawer.nameDe')} error={errors.nameDe?.message}>
+              {(fieldControl) => <Input {...register('nameDe')} autoComplete="off" className="h-10" {...fieldControl} />}
+            </Field>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <span className="text-body font-medium text-ink-2">{t('adminPromotions.drawer.type')}</span>
