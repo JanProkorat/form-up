@@ -200,7 +200,7 @@ describe('AdminOverviewPage Needs attention', () => {
     serveAdminOverview(allClearAttention());
     renderAdminOverview();
 
-    expect(await screen.findByText('All clear')).toBeInTheDocument();
+    expect(await screen.findByText('Nothing needs you')).toBeInTheDocument();
     expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
   });
 
