@@ -152,8 +152,8 @@ test.describe('clients list page', () => {
     expect(searchHeight).toBeGreaterThan(35);
     expect(searchHeight).toBeLessThan(37);
 
-    // The page eyebrow repeats this copy, so scope to the sidebar nav.
-    const navSectionHeader = page.locator('nav').getByText('Client management', { exact: true });
+    // Scope to the sidebar nav; a trainer sees the Library header (Forms).
+    const navSectionHeader = page.locator('nav').getByText('Library', { exact: true });
     await expect(navSectionHeader).toBeVisible();
     const navHeaderHeight = (await navSectionHeader.boundingBox())?.height ?? 0;
     expect(navHeaderHeight).toBeGreaterThan(10);
