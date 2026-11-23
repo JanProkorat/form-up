@@ -5,7 +5,7 @@ import { recordRequests, serveCoachShell } from '@/test/adminOnlyAccess';
 import { renderWithProviders } from '@/test/render';
 
 const COACH_ONLY_ENTRIES = ['Clients', 'Inbox', 'Forms', 'Automations', 'Check-ins', 'Packages'];
-const ADMIN_ENTRIES = ['Plans', 'Promotions', 'Coaches', 'Reports'];
+const ADMIN_ENTRIES = ['Overview', 'Plans', 'Promotions', 'Coaches', 'Reports'];
 
 function navLinkNames(): string[] {
   const nav = screen.getByRole('navigation');
@@ -62,6 +62,27 @@ describe('Sidebar entries per role', () => {
     expect(navLinkNames()).toEqual(
       expect.arrayContaining([...COACH_ONLY_ENTRIES, 'Recipes', 'Ingredients', 'Plan templates', ...ADMIN_ENTRIES]),
     );
+  });
+});
+
+describe('Admin Overview entry', () => {
+  it('comes first in the Admin section', () => {
+    renderWithProviders(<Sidebar />, { auth: { roles: ['Admin'] }, initialEntries: ['/admin'] });
+
+    const names = navLinkNames();
+    expect(names.indexOf('Overview')).toBeGreaterThanOrEqual(0);
+    expect(names.indexOf('Overview')).toBe(names.indexOf('Plans') - 1);
+  });
+
+  it('is current on /admin only, not on the pages below it', () => {
+    const { unmount } = renderWithProviders(<Sidebar />, { auth: { roles: ['Admin'] }, initialEntries: ['/admin'] });
+    expect(screen.getByRole('link', { name: 'Overview' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'Plans' })).not.toHaveAttribute('aria-current');
+    unmount();
+
+    renderWithProviders(<Sidebar />, { auth: { roles: ['Admin'] }, initialEntries: ['/admin/plans'] });
+    expect(screen.getByRole('link', { name: 'Overview' })).not.toHaveAttribute('aria-current');
+    expect(screen.getByRole('link', { name: 'Plans' })).toHaveAttribute('aria-current', 'page');
   });
 });
 

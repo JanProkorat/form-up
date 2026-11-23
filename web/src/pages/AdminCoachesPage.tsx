@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Search } from 'lucide-react';
 import { AdminCoachStatusFilter, COACHES_PAGE_SIZE } from '@/api/admin-coaches';
@@ -24,9 +24,13 @@ const FILTERS: readonly AdminCoachStatusFilter[] = [
 /** Form Up admin → Coaches: stats, filters and a table of every coach account, and a profile page per coach. */
 export default function AdminCoachesPage() {
   const { t } = useTranslation();
-  const [status, setStatus] = useState<AdminCoachStatusFilter>(AdminCoachStatusFilter.All);
-  const [searchText, setSearchText] = useState('');
-  const [search, setSearch] = useState('');
+  const [searchParams] = useSearchParams();
+  // Deep links from the Overview: ?status= picks a filter (unknown values fall back to All), ?q= pre-fills the search.
+  const [status, setStatus] = useState<AdminCoachStatusFilter>(
+    () => FILTERS.find((filter) => filter === searchParams.get('status')) ?? AdminCoachStatusFilter.All,
+  );
+  const [searchText, setSearchText] = useState(() => searchParams.get('q')?.trim() ?? '');
+  const [search, setSearch] = useState(() => searchParams.get('q')?.trim() ?? '');
   const [page, setPage] = useState(1);
   const navigate = useNavigate();
 

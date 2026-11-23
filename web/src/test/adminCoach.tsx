@@ -11,6 +11,7 @@ import {
 } from '@/api/generated';
 import { RealtimeContext, type RealtimeApi } from '@/hooks/useSignalR';
 import AdminCoachProfilePage from '@/pages/AdminCoachProfilePage';
+import AdminCoachesPage from '@/pages/AdminCoachesPage';
 import { HttpResponse, apiUrl, http } from '@/test/msw/handlers';
 import { server } from '@/test/msw/server';
 import { renderWithProviders } from '@/test/render';
@@ -81,6 +82,31 @@ export function serveAdminCoach(initial: GetAdminCoachResponse = adminCoachPaylo
     http.get(apiUrl('/admin/subscription-plans'), () => HttpResponse.json({ plans: [proPlan] })),
   );
   return state;
+}
+
+export interface AdminCoachesListState {
+  /** The query string of every GET /admin/coaches, in order. */
+  requests: URLSearchParams[];
+}
+
+/** Serves an empty coach list (and its stats) and records each request's query string. */
+export function serveAdminCoachesList(): AdminCoachesListState {
+  const state: AdminCoachesListState = { requests: [] };
+  server.use(
+    http.get(apiUrl('/admin/coaches'), ({ request }) => {
+      state.requests.push(new URL(request.url).searchParams);
+      return HttpResponse.json({ stats: { allCount: 0 }, items: [] }, { headers: { 'X-Total-Count': '0' } });
+    }),
+  );
+  return state;
+}
+
+/** Mounts the coaches list on `/admin/coach-accounts` with the given query string, as an admin. */
+export function renderAdminCoachesList(search = '') {
+  return renderWithProviders([{ path: '/admin/coach-accounts', element: <AdminCoachesPage /> }], {
+    initialEntries: [`/admin/coach-accounts${search}`],
+    auth: { roles: ['Admin'] },
+  });
 }
 
 /** A realtime context whose registered handlers a test can fire. */
