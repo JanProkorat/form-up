@@ -4,8 +4,8 @@
  * clients.spec.ts's own header comment — a spec at the e2e/ root runs on
  * no project at all).
  *
- * Verifies the layout contract: the not-yet-built tab renders disabled with
- * the shell's coming-soon treatment, the header has no Tasks, Notes or Info
+ * Verifies the layout contract: no tab or button renders disabled with
+ * the coming-soon treatment, the header has no Tasks, Notes or Info
  * buttons, the rebuilt Overview shows its three stat tiles and four lower
  * cards (#1295), and — the AC this issue's backend slice exists for — the
  * detail page's status pill text equals the same client's status badge on
@@ -16,8 +16,7 @@
  */
 import { trainerTest as test, expect } from '../fixtures/auth';
 
-// The QA trainer's link is training-only, so the Nutrition tab is not rendered.
-const DISABLED_TAB_NAMES = ['Workouts'];
+// The QA trainer's link is training-only, so the Nutrition tab is not rendered; there is no Workouts tab.
 const REMOVED_BUTTON_NAMES = ['Tasks', 'Notes', 'Info'];
 
 test.describe('client detail page — overview tab', () => {
@@ -48,20 +47,14 @@ test.describe('client detail page — overview tab', () => {
     await expect(page.getByTestId('client-status')).toHaveText(listStatusText);
 
     // Overview, Photos, Payment and Automations are enabled for every coach (Nutrition
-    // only with the nutrition capability); Workouts stays disabled with the
-    // coming-soon treatment. Development was dropped from the row.
+    // only with the nutrition capability). Workouts and Development are not in the row.
     await expect(page.getByRole('tab', { name: 'Overview' })).toBeEnabled();
     await expect(page.getByRole('tab', { name: 'Photos' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Photos' })).toBeEnabled();
     await expect(page.getByRole('tab', { name: 'Payment' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Payment' })).toBeEnabled();
     await expect(page.getByRole('tab', { name: 'Automations' })).toBeEnabled();
-    for (const tabName of DISABLED_TAB_NAMES) {
-      const tab = page.getByRole('tab', { name: tabName });
-      await expect(tab).toBeVisible();
-      await expect(tab).toBeDisabled();
-    }
-
+    await expect(page.getByRole('tab', { name: 'Workouts' })).toHaveCount(0);
     await expect(page.getByRole('tab', { name: 'Development' })).toHaveCount(0);
 
     // The header carries no Tasks, Notes or Info buttons.

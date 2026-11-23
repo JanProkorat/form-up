@@ -1,6 +1,6 @@
 /**
  * Client detail overview for a both-roles link (qa.coach -> "QA Duo", Trainer +
- * Nutritionist, both capabilities): Nutrition and Workouts tabs, a Meal
+ * Nutritionist, both capabilities): a Nutrition tab (no Workouts tab), a Meal
  * compliance / PRs this month / Client since stat row, both the meal plan and
  * latest workout cards, and a profile with injuries, allergies, diet, training
  * days and daily target rows. Training compliance and Weight change are not
@@ -21,10 +21,10 @@ test.describe('client detail — both-roles overview', () => {
 
     await expect(page.getByRole('heading', { name: /QA Duo/ })).toBeVisible();
 
-    // Tabs: Nutrition is live, Workouts is still disabled (coming soon).
+    // Tabs: Nutrition is live, there is no Workouts tab.
     await expect(page.getByRole('tab', { name: 'Overview' })).toBeEnabled();
     await expect(page.getByRole('tab', { name: 'Nutrition' })).toBeEnabled();
-    await expect(page.getByRole('tab', { name: 'Workouts' })).toBeDisabled();
+    await expect(page.getByRole('tab', { name: 'Workouts' })).toHaveCount(0);
 
     // Stat row: Meal compliance, PRs this month (1), Client since.
     for (const label of ['Meal compliance', 'PRs this month', 'Client since']) {

@@ -5652,7 +5652,6 @@
       "tabs": {
         "overview": "Přehled",
         "nutrition": "Výživa",
-        "workouts": "Tréninky",
         "storage": "Fotky",
         "payment": "Platby",
         "automations": "Automatizace",
@@ -5715,7 +5714,6 @@
       },
       "workout": {
         "label": "Trénink",
-        "openPlan": "Otevřít plán",
         "doneThisWeek": "Hotovo tento týden · {{done}} z {{total}} sezení",
         "heading": "Poslední trénink",
         "exercises_one": "{{count}} cvik",
