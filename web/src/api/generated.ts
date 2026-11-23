@@ -968,7 +968,7 @@ export class ApiClient {
 
     /**
      * Delete current user account
-     * @return No Content
+     * @return Account deleted
      */
     deleteAccountEndpoint(signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/users/me";
@@ -1007,9 +1007,28 @@ export class ApiClient {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
 
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Account deletion failed", status, _responseText, _headers, result400);
+
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("User not found", status, _responseText, _headers);
+
+        } else if (status === 502) {
+            const _responseText = response.data;
+            return throwException("The payment provider failed; nothing was deleted (BILLING_PROVIDER_ERROR)", status, _responseText, _headers);
+
+        } else if (status === 503) {
+            const _responseText = response.data;
+            return throwException("A provider subscription must be cancelled and Stripe is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -24358,7 +24377,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Invalid, used or expired token, or the profession slot is already taken (PROFESSION_ALREADY_OCCUPIED)", status, _responseText, _headers, result400);
+            return throwException("Invalid, used, revoked, expired or not-addressed-to-caller token (INVALID_INVITATION), or the profession slot is already taken (PROFESSION_ALREADY_OCCUPIED)", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -25935,6 +25954,10 @@ export interface SubscriptionFeaturesDto {
 export interface CurrentPromotionDto {
     /** Promotion name. */
     name?: string;
+    /** English promotion name; null when none was entered. */
+    nameEn?: string | undefined;
+    /** German promotion name; null when none was entered. */
+    nameDe?: string | undefined;
     /** Percentage or fixed amount. */
     kind?: PromotionKind;
     /** Percent (1 to 100), or the amount in the smallest unit of Currency. */
@@ -28446,6 +28469,10 @@ export interface PublicSubscriptionPlanDto {
 export interface PublicPromotionDto {
     /** Promotion name. */
     name?: string;
+    /** English promotion name; null when none was entered. */
+    nameEn?: string | undefined;
+    /** German promotion name; null when none was entered. */
+    nameDe?: string | undefined;
     /** Percentage or fixed amount. */
     kind?: PromotionKind;
     /** Percent (1 to 100), or the amount in the smallest unit of Currency. */
@@ -32105,6 +32132,10 @@ no add-on. A promotion that covers a plan always discounts its add-on line too. 
 export interface CoachPromotionDto {
     /** Promotion name. */
     name?: string;
+    /** English promotion name; null when none was entered. */
+    nameEn?: string | undefined;
+    /** German promotion name; null when none was entered. */
+    nameDe?: string | undefined;
     /** Percentage or fixed amount. */
     kind?: PromotionKind;
     /** Percent (1 to 100), or the amount in the smallest unit of Currency. */
@@ -35764,6 +35795,10 @@ export interface PromotionDto {
     promotionId?: string;
     /** Admin-facing name. */
     name?: string;
+    /** English name; null when none was entered. */
+    nameEn?: string | undefined;
+    /** German name; null when none was entered. */
+    nameDe?: string | undefined;
     /** Percentage or fixed amount. */
     kind?: PromotionKind;
     /** Percent (1 to 100), or the amount in the smallest unit of Currency. */
@@ -35833,6 +35868,10 @@ export interface EndPromotionRequest {
 export interface CreatePromotionRequest {
     /** Admin-facing name, up to 200 characters. */
     name: string;
+    /** Optional English name for coaches and visitors, up to 200 characters. */
+    nameEn?: string | undefined;
+    /** Optional German name for coaches and visitors, up to 200 characters. */
+    nameDe?: string | undefined;
     /** Percentage or fixed amount. */
     kind?: PromotionKind;
     /** Percent (1 to 100), or the amount in the smallest unit of Currency. */
