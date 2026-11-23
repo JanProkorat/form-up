@@ -14,6 +14,7 @@ import { newClientsListState, serveClientsList } from '@/test/clientsList';
 import {
   COACH_USER_ID,
   QA_CLIENT,
+  QA_FORMER,
   message,
   newInboxState,
   renderInbox,
@@ -89,6 +90,21 @@ describe('Inbox: list', () => {
 
     // Read mark round-trips through the backend + a list invalidation: the unread badge is gone.
     await waitFor(() => expect(within(row('QA Former')).queryByRole('status')).not.toBeInTheDocument());
+  });
+
+  it('marking a conversation read also invalidates the cached clients list that carries the unread count', async () => {
+    const state = newInboxState();
+    serveInbox(state);
+    const { user, queryClient } = renderInbox();
+    // A cached clients list from an earlier visit (no observer here, so only the invalidation flag can show it).
+    const clientsKey = ['clients', 'list', { page: 1 }] as const;
+    queryClient.setQueryData(clientsKey, { items: [] });
+
+    const formerRow = await waitFor(() => row('QA Former'));
+    await user.click(formerRow);
+    await waitFor(() => expect(state.readRequests).toContain(QA_FORMER.conversationId));
+
+    await waitFor(() => expect(queryClient.getQueryState(clientsKey)?.isInvalidated).toBe(true));
   });
 
   it('search narrows the list by participant name', async () => {
