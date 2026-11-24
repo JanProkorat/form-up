@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Info, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -31,6 +32,7 @@ const FILTERS: readonly PromotionStatusFilter[] = [
   PromotionStatusFilter.Ended,
 ];
 
+const NEW_PARAM = 'new';
 const CODE_TAKEN_MESSAGE = 'adminPromotions.validation.codeTaken';
 const CODE_TAKEN = 'PROMOTION_CODE_TAKEN';
 const BILLING_NOT_CONFIGURED = 'BILLING_NOT_CONFIGURED';
@@ -41,7 +43,16 @@ const errorCodeOf = (error: unknown): string | null => getRfc7807ErrorCode(error
 export default function AdminPromotionsPage() {
   const { t } = useTranslation();
   const [status, setStatus] = useState<PromotionStatusFilter>(PromotionStatusFilter.All);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  // The Overview's "New promotion" lands here with ?new=1: open the drawer once, then drop the param so a reload doesn't reopen it.
+  const [drawerOpen, setDrawerOpen] = useState(() => searchParams.get(NEW_PARAM) === '1');
+  useEffect(() => {
+    if (searchParams.has(NEW_PARAM)) {
+      const next = new URLSearchParams(searchParams);
+      next.delete(NEW_PARAM);
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
   const promotionsQuery = useAdminPromotions(status);
   const plansQuery = useAdminPlans();
   const createPromotion = useCreatePromotion();

@@ -29,7 +29,10 @@ const routes: RouteObject[] = [
       },
       {
         element: <RoleGuard allowedRoles={['Admin']} />,
-        children: [{ path: '/admin/plans', element: <p>{'Admin plans page'}</p> }],
+        children: [
+          { path: '/admin', element: <p>{'Admin overview page'}</p> },
+          { path: '/admin/plans', element: <p>{'Admin plans page'}</p> },
+        ],
       },
     ],
   },
@@ -52,12 +55,13 @@ describe('admin-only route access', () => {
     renderWithProviders(routes, { initialEntries: ['/clients'], auth: { roles: ['Admin'] } });
 
     const link = await screen.findByRole('link', { name: 'Back to Admin' });
-    expect(link).toHaveAttribute('href', '/admin/plans');
+    expect(link).toHaveAttribute('href', '/admin');
   });
 
   it.each([
     ['/recipes', 'Recipes page'],
     ['/ingredients', 'Ingredients page'],
+    ['/admin', 'Admin overview page'],
     ['/admin/plans', 'Admin plans page'],
   ])('lets an admin-only account open %s', async (path, text) => {
     renderWithProviders(routes, { initialEntries: [path], auth: { roles: ['Admin'] } });

@@ -204,7 +204,7 @@ describe('entry routes', () => {
     const landingRoutes: RouteObject[] = [
       ...routes,
       { path: '/clients', element: <div data-testid="clients-page" /> },
-      { path: '/admin/plans', element: <div data-testid="admin-plans-page" /> },
+      { path: '/admin', element: <div data-testid="admin-overview-page" /> },
       { path: '/admin/business-reports', element: <div data-testid="admin-reports-page" /> },
     ];
 
@@ -233,11 +233,11 @@ describe('entry routes', () => {
       return { router, visited };
     }
 
-    it('sends an admin-only user to /admin/plans and never visits /clients', async () => {
+    it('sends an admin-only user to /admin and never visits /clients', async () => {
       const { router, visited } = await signInAs(['Admin']);
 
-      await waitFor(() => expect(router.state.location.pathname).toBe('/admin/plans'));
-      expect(await screen.findByTestId('admin-plans-page')).toBeInTheDocument();
+      await waitFor(() => expect(router.state.location.pathname).toBe('/admin'));
+      expect(await screen.findByTestId('admin-overview-page')).toBeInTheDocument();
       expect(visited).not.toContain('/clients');
     });
 

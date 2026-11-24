@@ -11,6 +11,7 @@ import {
   FileText,
   HelpCircle,
   Layers,
+  LayoutGrid,
   Lock,
   MessageSquare,
   Package,
@@ -92,6 +93,7 @@ const NAV_SECTIONS: readonly NavSection[] = [
     dotClass: 'bg-marker',
     requiredRole: 'Admin',
     items: [
+      { to: '/admin', labelKey: 'sidebar.adminOverview', Icon: LayoutGrid },
       { to: '/admin/plans', labelKey: 'sidebar.adminPlans', Icon: Layers },
       { to: '/admin/promotion-offers', labelKey: 'sidebar.adminPromotions', Icon: Tag },
       { to: '/admin/coach-accounts', labelKey: 'sidebar.adminCoaches', Icon: Users },
@@ -275,6 +277,7 @@ export default function Sidebar({ onNavigate, collapsed = false, onToggleCollaps
                   <NavLink
                     key={to}
                     to={to}
+                    end={to === '/admin'}
                     onClick={onNavigate}
                     title={collapsed ? navLabel(labelKey, to) : undefined}
                     aria-label={collapsed ? navLabel(labelKey, to) : undefined}

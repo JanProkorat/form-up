@@ -4,7 +4,7 @@
  * plan that has no yearly price.
  */
 import { describe, expect, it } from 'vitest';
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import {
   newAdminPromotionsState,
   renderAdminPromotions,
@@ -99,5 +99,26 @@ describe('AdminPromotionsPage billing period', () => {
       ),
     ).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Name · Czech' })).toHaveValue('Launch');
+  });
+});
+
+describe('AdminPromotionsPage ?new=1 deep link', () => {
+  it('opens the drawer once and removes the param with a replace', async () => {
+    serveAdminPromotions(newAdminPromotionsState());
+    const { router } = renderAdminPromotions('?new=1');
+
+    expect(await screen.findByRole('textbox', { name: 'Name · Czech' })).toBeInTheDocument();
+    await waitFor(() => expect(router.state.location.search).toBe(''));
+    expect(router.state.historyAction).toBe('REPLACE');
+    // Removing the param does not close the drawer.
+    expect(screen.getByRole('textbox', { name: 'Name · Czech' })).toBeInTheDocument();
+  });
+
+  it('keeps the drawer closed without the param', async () => {
+    serveAdminPromotions(newAdminPromotionsState());
+    renderAdminPromotions();
+
+    expect(await screen.findByRole('button', { name: 'New promotion' })).toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: 'Name · Czech' })).not.toBeInTheDocument();
   });
 });

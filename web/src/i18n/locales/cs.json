@@ -196,6 +196,7 @@
   "sidebar": {
     "lockedInPlan": "Není součástí vašeho tarifu",
     "adminSection": "Správa Form Up",
+    "adminOverview": "Přehled",
     "adminPlans": "Plány",
     "adminPromotions": "Akce",
     "adminCoaches": "Trenéři",
@@ -7424,6 +7425,65 @@
       "annualAddOnInvalid": "Zadejte roční cenu druhé role vyšší než 0.",
       "clientsInvalid": "Zadejte počet klientů od 1, nebo zvolte Neomezeně.",
       "perClientNeedsWeekly": "Check-iny pro jednotlivé klienty vyžadují týdenní check-iny."
+    }
+  },
+  "adminOverview": {
+    "title": "Přehled",
+    "subtitle": "Co potřebuje vaši pozornost a jak se Form Upu daří za posledních 30 dní.",
+    "retry": "Zkusit znovu",
+    "lastDays": {
+      "title": "Posledních 30 dní",
+      "fullReports": "Úplné přehledy",
+      "loadError": "Čísla se nepodařilo načíst.",
+      "pointsUnit": "p. b.",
+      "mrr": "Měsíční opakované tržby",
+      "mrrNote": "Platící trenéři, po slevách · oproti 30 dnům předtím",
+      "signups": "Nové registrace",
+      "signupsNote": "Trenérské účty vytvořené za posledních 30 dní",
+      "payingCoaches": "Platící trenéři",
+      "payingCoachesNote": "Trenéři na placeném tarifu",
+      "churn": "Odchod",
+      "churnNote": "Platící trenéři, kteří za posledních 30 dní zrušili"
+    },
+    "attention": {
+      "title": "Vyžaduje pozornost",
+      "items_one": "{{count}} položka",
+      "items_few": "{{count}} položky",
+      "items_many": "{{count}} položky",
+      "items_other": "{{count}} položek",
+      "loadError": "Nepodařilo se načíst, co vyžaduje pozornost.",
+      "allClear": "Nic nepotřebuje vaši pozornost",
+      "allClearDetail": "Žádné selhané platby, zrušení, končící tarify zdarma ani akce, kterým docházejí využití.",
+      "paymentFailed_one": "{{count}} platba selhala",
+      "paymentFailed_few": "{{count}} platby selhaly",
+      "paymentFailed_many": "{{count}} platby selhaly",
+      "paymentFailed_other": "{{count}} plateb selhalo",
+      "namesMore_one": "{{names}} a {{count}} další",
+      "namesMore_few": "{{names}} a {{count}} další",
+      "namesMore_many": "{{names}} a {{count}} dalšího",
+      "namesMore_other": "{{names}} a {{count}} dalších",
+      "cancelling_one": "{{count}} trenér zrušil",
+      "cancelling_few": "{{count}} trenéři zrušili",
+      "cancelling_many": "{{count}} trenéra zrušilo",
+      "cancelling_other": "{{count}} trenérů zrušilo",
+      "cancellingOn": "Jejich placené tarify končí {{date}}.",
+      "cancellingBetween": "Jejich placené tarify končí mezi {{from}} a {{to}}.",
+      "givenFree_one": "{{count}} tarif zdarma, který jste darovali, končí do 14 dní",
+      "givenFree_few": "{{count}} tarify zdarma, které jste darovali, končí do 14 dní",
+      "givenFree_many": "{{count}} tarifu zdarma, které jste darovali, končí do 14 dní",
+      "givenFree_other": "{{count}} tarifů zdarma, které jste darovali, končí do 14 dní",
+      "givenFreeDetail": "Každý končí k nastavenému datu, poté si trenér vybere tarif.",
+      "promotion": "Akce „{{name}}“ se chýlí ke konci",
+      "promotionUntil": "Trenéři ji mohou uplatnit do {{date}}.",
+      "promotionUses": "Využito {{used}} z {{max}}.",
+      "openCoaches": "Otevřít trenéry",
+      "openPromotion": "Otevřít akci"
+    },
+    "quick": {
+      "title": "Rychlé akce",
+      "findCoach": "Najít trenéra",
+      "searchPlaceholder": "Jméno nebo e-mail",
+      "newPromotion": "Nová akce"
     }
   },
   "adminReports": {

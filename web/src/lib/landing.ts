@@ -1,12 +1,11 @@
-import { PLANS_PATH } from '@/components/admin-plans/PlanEditorForm';
-
+const ADMIN_LANDING_PATH = '/admin';
 const COACH_ROLES = ['trainer', 'nutritionist'];
 
 /** Where a signed-in user lands by default: admin-only accounts have no coach data, so they skip /clients. */
 export function defaultLandingPath(roles: string[]): string {
   const lower = roles.map((role) => role.toLowerCase());
   const isAdminOnly = lower.includes('admin') && !lower.some((role) => COACH_ROLES.includes(role));
-  return isAdminOnly ? PLANS_PATH : '/clients';
+  return isAdminOnly ? ADMIN_LANDING_PATH : '/clients';
 }
 
 /** In-app path only: no protocol-relative, backslash, /login, or control/whitespace characters (browsers strip them). */

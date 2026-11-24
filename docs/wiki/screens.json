@@ -1169,6 +1169,34 @@
       "notionPageId": null
     },
     {
+      "id": "web.admin.overview",
+      "app": "web",
+      "area": "Admin",
+      "title": "Overview",
+      "route": "/admin",
+      "roles": ["Admin"],
+      "files": [
+        "web/src/pages/AdminOverviewPage.tsx",
+        "web/src/components/admin-overview/*",
+        "web/src/api/admin-overview.ts",
+        "web/src/api/admin-coaches.ts",
+        "web/src/components/admin-reports/ReportCard.tsx",
+        "web/src/components/admin-reports/useAdminReportsQuery.ts",
+        "web/src/components/admin-reports/reportFormat.ts",
+        "web/src/components/admin-coaches/coachFormat.ts",
+        "web/src/lib/landing.ts"
+      ],
+      "endpoints": [
+        "GET /admin/overview/attention",
+        "GET /admin/reports"
+      ],
+      "board": "PageAdminHome",
+      "shots": [
+        { "name": "default" }
+      ],
+      "notionPageId": null
+    },
+    {
       "id": "web.admin.plans",
       "app": "web",
       "area": "Admin",

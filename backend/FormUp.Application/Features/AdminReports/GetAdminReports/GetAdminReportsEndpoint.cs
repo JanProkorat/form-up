@@ -30,8 +30,9 @@ internal sealed class GetAdminReportsEndpoint(IApplicationDbContext db, TimeProv
             s.Description = "Returns totals for the admin Reports page over a 30 day, 90 day or 12 month period: monthly revenue " +
                             "(full and after promotions), average per paying coach, collected this month, cancellations, churn, " +
                             "revenue per plan, add-ons, the sign-up funnel, plan changes, the monthly revenue series and usage. " +
-                            "Each metric carries a current value and a raw previous value (null without a baseline); percentages " +
-                            "are computed by the client. Money is in minor units per currency, with no VAT, fees, refunds or " +
+                            "Each metric carries a current value and a raw previous value (null without a baseline; sign-ups of the " +
+                            "previous window are always a count); percentages are computed by the client, except churn, which also " +
+                            "has a previous-window percentage. Money is in minor units per currency, with no VAT, fees, refunds or " +
                             "payouts. Only totals are returned, never a per-client or per-coach row.";
             s.Response<GetAdminReportsResponse>(StatusCodes.Status200OK, "The report totals");
             s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Invalid period");
@@ -63,6 +64,16 @@ internal sealed class GetAdminReportsEndpoint(IApplicationDbContext db, TimeProv
         var previousCancelledEvents = await LoadEventTotalsAsync(CoachEventType.Cancelled, previousStart, periodStart.AddTicks(-1), ct);
         var cancelledCoaches = await CountDistinctCoachesAsync(CoachEventType.Cancelled, periodStart, now, ct);
 
+        // Same "earliest snapshot" rule as the current baseline, applied to the window before the period.
+        var previousStartDay = DateOnly.FromDateTime(previousStart.UtcDateTime);
+        var previousBaseline = await db.DailyReportSnapshots.AsNoTracking()
+            .Where(s => s.Day >= previousStartDay && s.Day < startDay)
+            .OrderBy(s => s.Day)
+            .FirstOrDefaultAsync(ct);
+        var previousCancelledCoaches = previousBaseline is { PayingCoachCount: > 0 }
+            ? await CountDistinctCoachesAsync(CoachEventType.Cancelled, previousStart, periodStart.AddTicks(-1), ct)
+            : 0;
+
         await Send.OkAsync(new GetAdminReportsResponse
         {
             Period = req.Period,
@@ -85,9 +96,13 @@ internal sealed class GetAdminReportsEndpoint(IApplicationDbContext db, TimeProv
                     },
                     Amounts = WithPrevious(Lost(cancelledEvents), Lost(previousCancelledEvents)),
                 },
-                ChurnPercent = baseline is { PayingCoachCount: > 0 }
-                    ? Math.Round(cancelledCoaches * 100m / baseline.PayingCoachCount, 2, MidpointRounding.AwayFromZero)
-                    : null,
+                ChurnPercent = Churn(cancelledCoaches, baseline),
+                ChurnPercentPrevious = Churn(previousCancelledCoaches, previousBaseline),
+                PayingCoaches = new AdminReportCountDto
+                {
+                    Value = summary.PayingCount,
+                    Previous = baseline?.PayingCoachCount,
+                },
                 Plans = BuildPlans(summary),
                 AddOns = summary.ByCurrency
                     .Where(detail => detail.AddOnCount > 0)
@@ -99,7 +114,7 @@ internal sealed class GetAdminReportsEndpoint(IApplicationDbContext db, TimeProv
                     })
                     .ToList(),
             },
-            Funnel = await BuildFunnelAsync(periodStart, now, ct),
+            Funnel = await BuildFunnelAsync(periodStart, previousStart, now, ct),
             PlanChanges = await BuildPlanChangesAsync(cancelledEvents, periodStart, now, ct),
             MrrSeries = snapshots
                 .Select(s => new AdminReportMrrPointDto
@@ -137,6 +152,14 @@ internal sealed class GetAdminReportsEndpoint(IApplicationDbContext db, TimeProv
             AdminReportPeriod.Months12 => (now.AddMonths(-12), now.AddMonths(-24)),
             _ => (now.AddDays(-30), now.AddDays(-60)),
         };
+
+    /// <summary>
+    /// Distinct cancelled coaches as a percentage of the baseline's paying coaches, null without a usable baseline.
+    /// </summary>
+    private static decimal? Churn(int cancelledCoaches, DailyReportSnapshot? baseline) =>
+        baseline is { PayingCoachCount: > 0 }
+            ? Math.Round(cancelledCoaches * 100m / baseline.PayingCoachCount, 2, MidpointRounding.AwayFromZero)
+            : null;
 
     private static List<(string Currency, long Amount)> Pairs(IEnumerable<CoachRevenueCurrencyTotal> totals) =>
         totals.Select(total => (total.Currency, total.AmountMinorUnits)).ToList();
@@ -309,7 +332,8 @@ internal sealed class GetAdminReportsEndpoint(IApplicationDbContext db, TimeProv
     /// or after their sign-up. A coach is the user id, or the anonymous key once the account is deleted, so a deleted
     /// coach stays in every step. Rows with neither only count at step one.
     /// </summary>
-    private async Task<AdminReportFunnelDto> BuildFunnelAsync(DateTimeOffset from, DateTimeOffset to, CancellationToken ct)
+    private async Task<AdminReportFunnelDto> BuildFunnelAsync(
+        DateTimeOffset from, DateTimeOffset previousFrom, DateTimeOffset to, CancellationToken ct)
     {
         var signUps = db.CoachEvents
             .AsNoTracking()
@@ -331,6 +355,8 @@ internal sealed class GetAdminReportsEndpoint(IApplicationDbContext db, TimeProv
         return new AdminReportFunnelDto
         {
             SignedUp = await signUps.CountAsync(ct),
+            SignedUpPrevious = await db.CoachEvents.AsNoTracking().CountAsync(
+                e => e.EventType == CoachEventType.SignedUp && e.OccurredAt >= previousFrom && e.OccurredAt < from, ct),
             EmailVerified = later.GetValueOrDefault(CoachEventType.EmailVerified),
             ChosePlan = later.GetValueOrDefault(CoachEventType.ChosePlan),
             StartedPaidPlan = later.GetValueOrDefault(CoachEventType.StartedPaidPlan),

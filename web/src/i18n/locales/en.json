@@ -196,6 +196,7 @@
   "sidebar": {
     "lockedInPlan": "Not included in your plan",
     "adminSection": "Form Up admin",
+    "adminOverview": "Overview",
     "adminPlans": "Plans",
     "adminPromotions": "Promotions",
     "adminCoaches": "Coaches",
@@ -7154,6 +7155,54 @@
       "annualAddOnInvalid": "Enter a second-role price per year above 0.",
       "clientsInvalid": "Enter a number of clients from 1, or tick Unlimited.",
       "perClientNeedsWeekly": "Per-client check-in settings need weekly check-ins."
+    }
+  },
+  "adminOverview": {
+    "title": "Overview",
+    "subtitle": "What needs you, and how Form Up is doing over the last 30 days.",
+    "retry": "Try again",
+    "lastDays": {
+      "title": "Last 30 days",
+      "fullReports": "Full reports",
+      "loadError": "Could not load the figures.",
+      "pointsUnit": "pp",
+      "mrr": "Monthly recurring revenue",
+      "mrrNote": "Paying coaches, after promotions · vs the 30 days before",
+      "signups": "New sign-ups",
+      "signupsNote": "Coach accounts created in the last 30 days",
+      "payingCoaches": "Paying coaches",
+      "payingCoachesNote": "Coaches on a paid plan",
+      "churn": "Churn",
+      "churnNote": "Paying coaches who cancelled in the last 30 days"
+    },
+    "attention": {
+      "title": "Needs attention",
+      "items_one": "{{count}} item",
+      "items_other": "{{count}} items",
+      "loadError": "Could not load what needs attention.",
+      "allClear": "Nothing needs you",
+      "allClearDetail": "No failed payments, cancellations, ending free plans or promotions running out.",
+      "paymentFailed_one": "{{count}} payment failed",
+      "paymentFailed_other": "{{count}} payments failed",
+      "namesMore": "{{names}} and {{count}} more",
+      "cancelling_one": "{{count}} coach cancelled",
+      "cancelling_other": "{{count}} coaches cancelled",
+      "cancellingOn": "Their paid plans end on {{date}}.",
+      "cancellingBetween": "Their paid plans end between {{from}} and {{to}}.",
+      "givenFree_one": "{{count}} free plan you gave ends within 14 days",
+      "givenFree_other": "{{count}} free plans you gave end within 14 days",
+      "givenFreeDetail": "Each ends on the date you set; the coach then chooses a plan.",
+      "promotion": "“{{name}}” is about to run out",
+      "promotionUntil": "Coaches can claim it until {{date}}.",
+      "promotionUses": "{{used}} of {{max}} uses taken.",
+      "openCoaches": "Open coaches",
+      "openPromotion": "Open promotion"
+    },
+    "quick": {
+      "title": "Quick actions",
+      "findCoach": "Find a coach",
+      "searchPlaceholder": "Name or email",
+      "newPromotion": "New promotion"
     }
   },
   "adminReports": {

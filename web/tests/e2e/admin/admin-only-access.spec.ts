@@ -4,8 +4,9 @@
  *
  * The e2e fixture has no Admin-only account, so the spec signs in as the QA trainer and rewrites the roles of
  * GET /users/me (the session restore reads the roles from there) to Admin alone. A token without a coach role makes
- * the app skip the coach lookups, so the only request mocked besides the profile is the plans list the landing page
- * reads. Entry-by-role, the guard and the request lists are asserted in the component tests.
+ * the app skip the coach lookups, so the only requests mocked besides the profile are the plans list and the two
+ * blocks of the Overview, the landing page. Entry-by-role, the guard and the request lists are asserted in the
+ * component tests.
  */
 import type { Page, Route } from '@playwright/test';
 import { trainerTest, expect } from '../fixtures/auth';
@@ -29,6 +30,10 @@ async function signInAsAdminOnly(page: Page) {
     }
     return json(route, { plans: [] });
   });
+  await page.route(/\/admin\/overview\/attention$/, (route) =>
+    json(route, { paymentFailedCount: 0, cancellingCount: 0, givenFreeEndingSoonCount: 0, promotionsEndingSoon: [] }),
+  );
+  await page.route(/\/admin\/reports(\?.*)?$/, (route) => json(route, { period: 'Days30', money: {}, funnel: {} }));
 }
 
 trainerTest.describe('admin-only access', () => {
@@ -36,7 +41,7 @@ trainerTest.describe('admin-only access', () => {
     await signInAsAdminOnly(page);
     await page.goto('/admin/plans');
 
-    for (const name of ['Recipes', 'Ingredients', 'Plans', 'Promotions', 'Coaches', 'Reports']) {
+    for (const name of ['Recipes', 'Ingredients', 'Overview', 'Plans', 'Promotions', 'Coaches', 'Reports']) {
       await expect(page.getByRole('link', { name, exact: true })).toBeVisible();
     }
     for (const name of [/^Clients/, /^Inbox/, /^Forms/, /^Packages/, /^Plan templates/]) {
@@ -49,6 +54,15 @@ trainerTest.describe('admin-only access', () => {
     await expect(page.getByRole('link', { name: 'Settings', exact: true })).toHaveCount(0);
   });
 
+  trainerTest('signing in lands on the Overview, not on a coach page', async ({ page }) => {
+    await signInAsAdminOnly(page);
+    await page.goto('/login');
+
+    await expect(page).toHaveURL(/\/admin$/);
+    await expect(page.getByRole('heading', { name: 'Overview', level: 1 })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Overview', exact: true })).toHaveAttribute('aria-current', 'page');
+  });
+
   trainerTest('a coach route shows the 403 page with a way back to the Admin section', async ({ page }) => {
     await signInAsAdminOnly(page);
     await page.goto('/clients');
@@ -58,6 +72,6 @@ trainerTest.describe('admin-only access', () => {
 
     await page.getByRole('link', { name: 'Back to Admin' }).click();
 
-    await expect(page).toHaveURL(/\/admin\/plans$/);
+    await expect(page).toHaveURL(/\/admin$/);
   });
 });
