@@ -294,4 +294,12 @@ public interface ISubscriptionService
     /// <param name="subscriptionId">The provider subscription id.</param>
     /// <param name="ct">Cancellation token.</param>
     Task ClearPendingSecondRoleAsync(string subscriptionId, CancellationToken ct);
+
+    /// <summary>
+    /// Permanently deletes the provider customer. The provider keeps its own invoice and charge records. Deleting an
+    /// already-deleted or missing customer succeeds, so a retry is safe. Any other provider failure throws.
+    /// </summary>
+    /// <param name="customerId">The provider customer id.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task DeleteCustomerAsync(string customerId, CancellationToken ct);
 }

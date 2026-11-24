@@ -354,6 +354,25 @@ public sealed class StripeSubscriptionService(
         });
 
     /// <inheritdoc />
+    public Task DeleteCustomerAsync(string customerId, CancellationToken ct) =>
+        RunAsync("delete-customer", async stripe =>
+        {
+            try
+            {
+                await stripe.V1.Customers.DeleteAsync(customerId, cancellationToken: ct);
+            }
+            catch (StripeException ex) when (ex.StripeError?.Code == "resource_missing")
+            {
+                // UNVERIFIED: deleting an already-deleted customer answers resource_missing — https://docs.stripe.com/api/customers/delete
+                // UNVERIFIED: after a successful customer delete and a rolled-back DB delete, a retry calls CancelNowAsync on the
+                // pending-refund subscription of a customer that is gone; whether Stripe still retrieves or refunds it is unconfirmed.
+                logger.LogInformation("Stripe customer {CustomerId} is already gone", customerId);
+            }
+
+            return true;
+        });
+
+    /// <inheritdoc />
     public Task<SubscriptionDiscount?> GetSubscriptionDiscountAsync(string subscriptionId, CancellationToken ct) =>
         RunAsync("get-subscription-discount", async stripe =>
         {
