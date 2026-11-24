@@ -368,7 +368,7 @@ public class EndCoachPlanEndpointTests(FitnessApiFactory factory) : IDisposable
     }
 
     [Fact]
-    public async Task End_LiveStripeSubscription_WhenTheProviderFails_Returns502AndChangesNothing()
+    public async Task End_LiveStripeSubscription_WhenTheProviderFails_Returns502_KeepsThePlan_AndKeepsTheRefundOwed()
     {
         var fake = Billing.BillingTestData.ResetProvider(factory);
         var admin = await TestActors.Admin(factory).CreateAsync(Ct);
@@ -387,8 +387,115 @@ public class EndCoachPlanEndpointTests(FitnessApiFactory factory) : IDisposable
         row.ExternalSubscriptionId.Should().Be(subscriptionId);
         row.CurrentPeriodEndsAt.Should().Be(periodEnd);
         row.PaysSecondRoleAddOn.Should().BeTrue();
+        row.PendingRefundSubscriptionId.Should().Be(subscriptionId, "the refund stays owed so a retry can still pay it");
         (await AuditRowsAsync(coach.UserId)).Should().BeEmpty();
         (await NotificationsAsync(coach.UserId)).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task End_RetryAfterTheWebhookEndedThePlan_Returns200_PaysTheRefundOnce_AndClearsTheMarker()
+    {
+        var fake = Billing.BillingTestData.ResetProvider(factory);
+        await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (plan, _) = await Billing.BillingTestData.StripePlanAsync(factory);
+        var subscriptionId = await Billing.BillingTestData.SubscribeLiveAsync(factory, coach, plan);
+        fake.Fail = true;
+        (await EndAsync(admin, coach.UserId)).StatusCode.Should().Be(HttpStatusCode.BadGateway);
+
+        // What Stripe's subscription-deleted webhook does after the cancel went through.
+        await Billing.BillingTestData.UpdateRowAsync(factory, coach.ProfileId, row =>
+        {
+            row.ExternalSubscriptionId = null;
+            row.Status = SubscriptionStatus.Canceled;
+        });
+        var periodEndBefore = (await Billing.BillingTestData.ReadRowAsync(factory, coach.ProfileId)).CurrentPeriodEndsAt;
+        fake.Fail = false;
+        fake.CancelNowResult = new CancelRefundResult(8000, "czk");
+
+        var retry = await EndAsync(admin, coach.UserId);
+
+        retry.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = (await retry.Content.ReadFromJsonAsync<EndCoachPlanResponse>(JsonOptions, Ct))!;
+        body.RefundedMinorUnits.Should().Be(8000);
+        body.RefundCurrency.Should().Be("CZK");
+        fake.CancelledNow.Should().Equal(subscriptionId);
+        var row = await Billing.BillingTestData.ReadRowAsync(factory, coach.ProfileId);
+        row.PendingRefundSubscriptionId.Should().BeNull();
+        row.CurrentPeriodEndsAt.Should().Be(periodEndBefore, "a refund-only retry does not rewrite the end state");
+        var audit = (await AuditRowsAsync(coach.UserId)).Should().ContainSingle().Subject;
+        audit.NewValues.Should().Contain("\"refundedMinorUnits\":8000");
+        (await NotificationsAsync(coach.UserId)).Should().BeEmpty("the plan-ended notification belongs to the first attempt");
+    }
+
+    [Fact]
+    public async Task End_RetryBeforeAnyWebhook_CancelsTheSubscriptionOnce_AndClearsTheMarker()
+    {
+        var fake = Billing.BillingTestData.ResetProvider(factory);
+        await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (plan, _) = await Billing.BillingTestData.StripePlanAsync(factory);
+        var subscriptionId = await Billing.BillingTestData.SubscribeLiveAsync(factory, coach, plan);
+        fake.Fail = true;
+        (await EndAsync(admin, coach.UserId)).StatusCode.Should().Be(HttpStatusCode.BadGateway);
+        fake.Fail = false;
+
+        var retry = await EndAsync(admin, coach.UserId);
+
+        retry.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.CancelledNow.Should().Equal(subscriptionId);
+        var row = await Billing.BillingTestData.ReadRowAsync(factory, coach.ProfileId);
+        row.PendingRefundSubscriptionId.Should().BeNull();
+        row.Status.Should().Be(SubscriptionStatus.Canceled);
+        row.ExternalSubscriptionId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task End_LapsedCoachWithoutAnOwedRefund_StillReturns409()
+    {
+        var fake = Billing.BillingTestData.ResetProvider(factory);
+        await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (plan, _) = await Billing.BillingTestData.StripePlanAsync(factory);
+        await Billing.BillingTestData.SubscribeLiveAsync(factory, coach, plan);
+        await Billing.BillingTestData.UpdateRowAsync(factory, coach.ProfileId, row =>
+        {
+            row.ExternalSubscriptionId = null;
+            row.Status = SubscriptionStatus.Canceled;
+        });
+
+        var response = await EndAsync(admin, coach.UserId);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await response.Content.ReadAsStringAsync(Ct)).Should().Contain(ErrorCodes.NoPlanToEnd);
+        fake.CancelledNow.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task End_OwedRefundOnly_WhenBillingIsNotConfigured_Returns503_AndKeepsTheMarker()
+    {
+        var fake = Billing.BillingTestData.ResetProvider(factory);
+        await SubscriptionPlanPriceBuilder.EnsureFreePlanAsync(factory);
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (plan, _) = await Billing.BillingTestData.StripePlanAsync(factory);
+        var subscriptionId = await Billing.BillingTestData.SubscribeLiveAsync(factory, coach, plan);
+        await Billing.BillingTestData.UpdateRowAsync(factory, coach.ProfileId, row =>
+        {
+            row.ExternalSubscriptionId = null;
+            row.Status = SubscriptionStatus.Canceled;
+            row.PendingRefundSubscriptionId = subscriptionId;
+        });
+        fake.IsConfigured = false;
+
+        var response = await EndAsync(admin, coach.UserId);
+
+        response.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
+        (await response.Content.ReadAsStringAsync(Ct)).Should().Contain(ErrorCodes.BillingNotConfigured);
+        (await Billing.BillingTestData.ReadRowAsync(factory, coach.ProfileId)).PendingRefundSubscriptionId.Should().Be(subscriptionId);
     }
 
     [Fact]
