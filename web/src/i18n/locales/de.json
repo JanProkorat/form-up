@@ -1922,7 +1922,7 @@
       "hidden": "Ausgeblendet"
     },
     "showHidden": "Ausgeblendete anzeigen",
-    "cardMacros":"P {{protein}} · K {{carbs}} · F {{fat}}",
+    "cardMacros": "P {{protein}} · K {{carbs}} · F {{fat}}",
     "visibility": {
       "label": "Sichtbarkeit",
       "options": {

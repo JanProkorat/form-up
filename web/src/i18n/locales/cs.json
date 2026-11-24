@@ -2012,7 +2012,7 @@
       "hidden": "Skryté"
     },
     "showHidden": "Zobrazit skryté",
-    "cardMacros":"B {{protein}} · S {{carbs}} · T {{fat}}",
+    "cardMacros": "B {{protein}} · S {{carbs}} · T {{fat}}",
     "visibility": {
       "label": "Viditelnost",
       "options": {

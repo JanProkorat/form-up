@@ -237,7 +237,7 @@ function IngredientsLibrary() {
         food={selectedFood}
         readOnly={drawerReadOnly}
         isNutritionist={isNutritionist}
-        hideVisibility={isAdminOnly}      />
+        hideVisibility={isAdminOnly} />
     </div>
   );
 }

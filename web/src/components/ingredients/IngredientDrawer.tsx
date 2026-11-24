@@ -221,7 +221,7 @@ export default function IngredientDrawer({
   function runLibraryAction(mutation: { mutate: (id: string, options: { onSuccess: () => void }) => void }, foodId: string) {
     mutation.mutate(foodId, { onSuccess: () => onOpenChange(false) });
   }
-  const isPending =createMutation.isPending || updateMutation.isPending || isUploadingPictures;
+  const isPending = createMutation.isPending || updateMutation.isPending || isUploadingPictures;
 
   // The Pictures tab reads the loaded food so a refetch after each picture
   // action keeps it current; the form itself keeps seeding from the list snapshot.
