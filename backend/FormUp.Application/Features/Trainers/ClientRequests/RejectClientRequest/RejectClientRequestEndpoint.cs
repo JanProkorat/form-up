@@ -111,7 +111,8 @@ public class RejectClientRequestEndpoint(
             clientRequest.PublicId,
             req.Statement,
             createConversationIfMissing: true,
-            ct);
+            ct,
+            pushCompanionText: true);
 
         logger.LogInformation(
             "Client request {RequestId} rejected by professional {ProfessionalId}",
