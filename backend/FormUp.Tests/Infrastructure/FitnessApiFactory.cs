@@ -26,21 +26,15 @@ public class FitnessApiFactory(SharedTestContainers sharedContainers) : WebAppli
     private string _postgresConnectionString = string.Empty;
     private string _mongoDatabaseName = string.Empty;
 
-    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<HttpClient, FitnessApiFactory> ClientOwners = new();
-
     /// <summary>
-    /// Creates a client and remembers which host it talks to, so <c>TestHelpers.RegisterAsync</c>
-    /// can confirm the registered account's email in this host's database (#1517).
+    /// Remembers which host each client talks to, so <c>TestHelpers.RegisterAsync</c> can confirm the registered
+    /// account's email in this host's database (#1517).
     /// </summary>
     protected override void ConfigureClient(HttpClient client)
     {
         base.ConfigureClient(client);
-        ClientOwners.AddOrUpdate(client, this);
+        TestHelpers.RememberHost(client, this);
     }
-
-    /// <summary>The host a client created by this factory talks to, or null for any other client.</summary>
-    internal static FitnessApiFactory? OwnerOf(HttpClient client) =>
-        ClientOwners.TryGetValue(client, out var owner) ? owner : null;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
