@@ -37,7 +37,8 @@ public class SearchFoodsEndpoint(
             s.Description = "Fulltext search across food database with optional multi-value category, tags, and " +
                 "owner filters, sortable columns, and pagination. With no sort, results are name ascending " +
                 "(localized to the caller's language) — callers wanting newest-first (e.g. the trainer portal's " +
-                "cleared-sort state) request SortBy=DateCreated, SortDir=Descending explicitly.";
+                "cleared-sort state) request SortBy=DateCreated, SortDir=Descending explicitly. Foods the caller " +
+                "hid are left out; Hidden=true returns only those.";
             s.Response<SearchFoodsResponse>(StatusCodes.Status200OK, "Matching foods");
             s.Responses[StatusCodes.Status400BadRequest] =
                 "Invalid page, page size, tags filter, category filter, owner filter, or sort field/direction";
@@ -60,6 +61,11 @@ public class SearchFoodsEndpoint(
         var filterBuilder = Builders<Food>.Filter;
         var scope = LibraryCallerScope.From(User, currentUserId);
         var filter = FoodVisibilityFilter.BuildOwnOrPublic(currentUserId) & scope.FoodFilter();
+
+        // Typed Guid filters only: GUIDs are stored as binary UUIDs, so a string filter would match nothing.
+        // Not(AnyEq) also matches legacy documents that have no hiddenByNutritionistIds field.
+        var hiddenByCaller = filterBuilder.AnyEq(f => f.HiddenByNutritionistIds, currentUserId);
+        filter &= req.Hidden ? hiddenByCaller : filterBuilder.Not(hiddenByCaller);
 
         if (req.Categories.Count > 0)
         {

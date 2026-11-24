@@ -84,6 +84,13 @@ public class Recipe
     public RecipeVisibility Visibility { get; set; } = RecipeVisibility.Public;
 
     /// <summary>
+    /// Nutritionists who hid this recipe from their own library. Never exposed in a response — it
+    /// would reveal who hid what. Absent on older documents.
+    /// </summary>
+    [BsonElement("hiddenByNutritionistIds")]
+    public List<Guid> HiddenByNutritionistIds { get; set; } = [];
+
+    /// <summary>
     /// When this document was created.
     /// </summary>
     [BsonElement("dateCreated")]

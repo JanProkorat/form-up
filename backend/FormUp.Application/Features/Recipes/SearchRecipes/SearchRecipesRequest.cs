@@ -43,6 +43,12 @@ public class SearchRecipesRequest
     public List<Guid> TagIds { get; set; } = [];
 
     /// <summary>
+    /// When <see langword="true"/>, returns only the recipes the caller has hidden instead of the
+    /// library without them. Defaults to <see langword="false"/>.
+    /// </summary>
+    public bool Hidden { get; set; }
+
+    /// <summary>
     /// Column to sort by. <see langword="null"/> (the default) means newest-created first.
     /// </summary>
     public RecipeSortField? SortBy { get; set; }
