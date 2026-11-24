@@ -306,8 +306,17 @@ public class KeepClientsEndpointTests(FitnessApiFactory factory)
     [Fact]
     public async Task KeepClients_CallerWithoutAProfessionalProfile_Returns404()
     {
+        // #1517: the user row must exist and be verified, or the email-verification gate answers 401/403
+        // before the endpoint's own no-profile 404 guard runs.
         var userId = Guid.NewGuid();
         var email = $"{userId:N}@actor-fixture.com";
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            db.Users.Add(EntityBuilder.User.WithId(userId).WithEmail(email).WithEmailConfirmed().Build());
+            await db.SaveChangesAsync(Ct);
+        }
+
         var http = factory.CreateClient();
         TestHelpers.SetBearerToken(http, TestTokenFactory.CreateAccessToken(factory, userId, email, [AppRoles.Trainer]));
 
