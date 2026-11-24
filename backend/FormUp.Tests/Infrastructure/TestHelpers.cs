@@ -21,22 +21,30 @@ public static class TestHelpers
     /// Registers a user and returns the HTTP response.
     /// HealthDataConsent defaults to true for the Client role and null for coach roles.
     /// </summary>
+    /// <remarks>
+    /// The server blocks unverified accounts (#1517), so a successful registration is followed by confirming the
+    /// email in the host's database, unless <paramref name="confirmEmail"/> is false (the verification-flow tests).
+    /// Only a client from <see cref="FitnessApiFactory.CreateClient()"/> can be matched to its host; any other client
+    /// is left unverified.
+    /// </remarks>
     public static Task<HttpResponseMessage> RegisterAsync(
-        HttpClient client, string email, string password, string firstName, string lastName, string role)
+        HttpClient client, string email, string password, string firstName, string lastName, string role,
+        bool confirmEmail = true)
     {
         var isClient = string.Equals(role, "Client", StringComparison.OrdinalIgnoreCase);
         return RegisterAsync(client, email, password, firstName, lastName, new[] { role },
-            gdprConsent: true, healthDataConsent: isClient ? true : null);
+            gdprConsent: true, healthDataConsent: isClient ? true : null, confirmEmail: confirmEmail);
     }
 
     /// <summary>
-    /// Registers a user with explicit consent values and returns the HTTP response.
+    /// Registers a user with explicit consent values and returns the HTTP response. See the other overload for
+    /// <paramref name="confirmEmail"/>.
     /// </summary>
-    public static Task<HttpResponseMessage> RegisterAsync(
+    public static async Task<HttpResponseMessage> RegisterAsync(
         HttpClient client, string email, string password, string firstName, string lastName,
-        string[] roles, bool gdprConsent = true, bool? healthDataConsent = null)
+        string[] roles, bool gdprConsent = true, bool? healthDataConsent = null, bool confirmEmail = true)
     {
-        return client.PostAsJsonAsync("/auth/register", new
+        var response = await client.PostAsJsonAsync("/auth/register", new
         {
             Email = email,
             Password = password,
@@ -47,6 +55,18 @@ public static class TestHelpers
             GdprConsent = gdprConsent,
             HealthDataConsent = healthDataConsent
         });
+
+        if (confirmEmail && response.IsSuccessStatusCode && FitnessApiFactory.OwnerOf(client) is { } host)
+        {
+            using var scope = host.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var normalizedEmail = email.ToUpperInvariant();
+            await db.Users
+                .Where(user => user.NormalizedEmail == normalizedEmail)
+                .ExecuteUpdateAsync(set => set.SetProperty(user => user.EmailConfirmed, true));
+        }
+
+        return response;
     }
 
     /// <summary>

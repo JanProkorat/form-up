@@ -78,7 +78,7 @@ public class AcceptInvitationEmailBindingIntegrationTests(FitnessApiFactory fact
         (await LinkExistsAsync(coach, caller)).Should().BeFalse();
         (await db.ClientProfiles.CountAsync(cp => cp.UserId == caller.UserId, Ct)).Should().Be(1);
         (await db.InvitationTokens.SingleAsync(t => t.Token == token, Ct)).IsUsed.Should().BeFalse();
-        (await db.Users.SingleAsync(u => u.Id == caller.UserId, Ct)).EmailConfirmed.Should().BeFalse();
+        (await db.Users.SingleAsync(u => u.Id == caller.UserId, Ct)).EmailConfirmed.Should().BeTrue("a rejected accept leaves the account as it was");
         factory.Services.GetRequiredService<FakeEmailService>().SentVerifications
             .Should().NotContain(v => v.Email == caller.Email);
     }
@@ -114,6 +114,6 @@ public class AcceptInvitationEmailBindingIntegrationTests(FitnessApiFactory fact
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         (await db.InvitationTokens.SingleAsync(t => t.Token == token, Ct)).IsUsed.Should().BeTrue();
-        (await db.Users.SingleAsync(u => u.Id == caller.UserId, Ct)).EmailConfirmed.Should().BeFalse();
+        (await db.Users.SingleAsync(u => u.Id == caller.UserId, Ct)).EmailConfirmed.Should().BeTrue("accepting an invite never unverifies the account");
     }
 }

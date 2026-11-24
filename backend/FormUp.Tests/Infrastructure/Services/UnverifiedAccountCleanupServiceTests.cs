@@ -43,7 +43,7 @@ public class UnverifiedAccountCleanupServiceTests(FitnessApiFactory factory)
     {
         var ct = TestContext.Current.CancellationToken;
         var coach = await TestActors.Trainer(factory).Verified().CreateAsync(ct);
-        var client = await TestActors.Client(factory).CreatedAt(StaleCreatedAt).CreateAsync(ct);
+        var client = await TestActors.Client(factory).Unverified().CreatedAt(StaleCreatedAt).CreateAsync(ct);
         var linkId = await TestActors.Link(factory, coach, client).CreateAsync(ct);
 
         var diaryRequestId = Guid.NewGuid();
@@ -133,7 +133,7 @@ public class UnverifiedAccountCleanupServiceTests(FitnessApiFactory factory)
     public async Task Sweep_StaleUnverifiedCoachLinkedToVerifiedClient_DeletesCoachData_KeepsClient()
     {
         var ct = TestContext.Current.CancellationToken;
-        var coach = await TestActors.Trainer(factory).CreatedAt(StaleCreatedAt).CreateAsync(ct);
+        var coach = await TestActors.Trainer(factory).Unverified().CreatedAt(StaleCreatedAt).CreateAsync(ct);
         var client = await TestActors.Client(factory).Verified().CreateAsync(ct);
         var linkId = await TestActors.Link(factory, coach, client).CreateAsync(ct);
 
@@ -178,7 +178,7 @@ public class UnverifiedAccountCleanupServiceTests(FitnessApiFactory factory)
         var ct = TestContext.Current.CancellationToken;
         var verifiedOld = await TestActors.Client(factory).Verified().CreatedAt(StaleCreatedAt).CreateAsync(ct);
         var adminOld = await TestActors.Professional(factory, UserRole.Admin).CreatedAt(StaleCreatedAt).CreateAsync(ct);
-        var youngUnverified = await TestActors.Client(factory).CreatedAt(DateTime.UtcNow.AddDays(-2)).CreateAsync(ct);
+        var youngUnverified = await TestActors.Client(factory).Unverified().CreatedAt(DateTime.UtcNow.AddDays(-2)).CreateAsync(ct);
 
         await Service.SweepAsync(DateTime.UtcNow, ct);
 

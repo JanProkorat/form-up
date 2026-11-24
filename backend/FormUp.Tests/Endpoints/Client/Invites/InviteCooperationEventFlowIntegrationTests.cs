@@ -36,9 +36,9 @@ public class InviteCooperationEventFlowIntegrationTests(FitnessApiFactory factor
     private FakeEmailService EmailService => factory.Services.GetRequiredService<FakeEmailService>();
 
     /// <summary>
-    /// TestActors-created users are unverified by default (matches real registration). The
-    /// immediate invite-time seed (#1100 C3, R4) only fires for a VERIFIED existing account, so
-    /// every scenario here needs the client explicitly marked confirmed first.
+    /// The immediate invite-time seed (#1100 C3, R4) only fires for a VERIFIED existing account.
+    /// TestActors users are verified by default since #1517, so this is a no-op kept to make
+    /// that precondition explicit in every scenario.
     /// </summary>
     private async Task MarkEmailConfirmedAsync(Guid userId)
     {

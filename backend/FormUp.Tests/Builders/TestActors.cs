@@ -108,7 +108,7 @@ public sealed class ActorBuilder(FitnessApiFactory factory, UserRole[] roles)
     private string _firstName = "Test";
     private string _lastName = "Actor";
     private UserRole[] _removedRoles = [];
-    private bool _emailConfirmed;
+    private bool _emailConfirmed = true;
     private DateTime? _dateCreated;
     private bool _withPayments;
 
@@ -137,9 +137,14 @@ public sealed class ActorBuilder(FitnessApiFactory factory, UserRole[] roles)
     public ActorBuilder WithLanguage(string language) { _language = language; return this; }
 
     /// <summary>
-    /// Marks the actor's email as verified (the default is unverified).
+    /// Marks the actor's email as verified (already the default, since the server blocks unverified accounts).
     /// </summary>
     public ActorBuilder Verified() { _emailConfirmed = true; return this; }
+
+    /// <summary>
+    /// Leaves the actor's email unconfirmed, for tests of the verification flow and of the email gate.
+    /// </summary>
+    public ActorBuilder Unverified() { _emailConfirmed = false; return this; }
 
     /// <summary>
     /// Overrides the account creation timestamp (default is now).

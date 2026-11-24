@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
+using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Entities;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Tests.Builders;
@@ -11,8 +12,8 @@ using Microsoft.Extensions.DependencyInjection;
 namespace FormUp.Tests.Endpoints.Auth;
 
 /// <summary>
-/// POST /auth/invite/accept must not verify the caller's email; an unverified caller gets
-/// exactly one verification email across register + accept (#1515).
+/// POST /auth/invite/accept must not verify the caller's email (#1515). Since #1517 the endpoint is behind the
+/// email-verification gate, so an unverified caller is refused and accepts only after verifying.
 /// </summary>
 [Collection(TestCollection.Name)]
 public class AcceptInvitationEmailVerificationIntegrationTests(FitnessApiFactory factory)
@@ -49,7 +50,7 @@ public class AcceptInvitationEmailVerificationIntegrationTests(FitnessApiFactory
     }
 
     [Fact]
-    public async Task Accept_AfterInviteRegistration_StaysUnverified_SendsOneEmail_AndVerifyConfirms()
+    public async Task Accept_AfterInviteRegistration_IsRefusedUntilVerified_ThenAcceptSucceedsWithoutAnotherEmail()
     {
         var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
         var email = $"{Guid.NewGuid():N}@invite-verify.com";
@@ -74,9 +75,10 @@ public class AcceptInvitationEmailVerificationIntegrationTests(FitnessApiFactory
         var authed = factory.CreateClient();
         TestHelpers.SetBearerToken(authed, accessToken);
 
-        var accept = await authed.PostAsJsonAsync("/auth/invite/accept", new { Token = inviteToken }, Ct);
+        var refused = await authed.PostAsJsonAsync("/auth/invite/accept", new { Token = inviteToken }, Ct);
 
-        accept.StatusCode.Should().Be(HttpStatusCode.OK);
+        refused.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await refused.Content.ReadAsStringAsync(Ct)).Should().Contain(ErrorCodes.EmailNotVerified);
 
         Guid userId;
         using (var scope = factory.Services.CreateScope())
@@ -88,26 +90,38 @@ public class AcceptInvitationEmailVerificationIntegrationTests(FitnessApiFactory
         (await IsEmailConfirmedAsync(userId)).Should().BeFalse();
 
         var sent = EmailService.SentVerifications.Where(v => v.Email == email).ToList();
-        sent.Should().ContainSingle("register already issued a live token, so accept must not send another");
+        sent.Should().ContainSingle("register issued the only verification email; the refused accept sends none");
 
         var verify = await anonymous.PostAsJsonAsync("/auth/verify-email", new { Token = sent[0].Token }, Ct);
 
         verify.StatusCode.Should().Be(HttpStatusCode.OK);
         (await IsEmailConfirmedAsync(userId)).Should().BeTrue();
+
+        var accept = await authed.PostAsJsonAsync("/auth/invite/accept", new { Token = inviteToken }, Ct);
+
+        accept.StatusCode.Should().Be(HttpStatusCode.OK);
+        EmailService.SentVerifications.Where(v => v.Email == email).Should().ContainSingle();
     }
 
     [Fact]
-    public async Task Accept_UnverifiedCallerWithoutLiveToken_SendsExactlyOneEmail()
+    public async Task Accept_UnverifiedCaller_Returns403_AndCreatesNoLinkOrEmail()
     {
         var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
-        var caller = await TestActors.Client(factory).CreateAsync(Ct);
+        var caller = await TestActors.Client(factory).Unverified().CreateAsync(Ct);
         var inviteToken = await SeedTokenAsync(coach, caller.Email);
 
         var accept = await caller.Http.PostAsJsonAsync("/auth/invite/accept", new { Token = inviteToken }, Ct);
 
-        accept.StatusCode.Should().Be(HttpStatusCode.OK);
+        accept.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await accept.Content.ReadAsStringAsync(Ct)).Should().Contain(ErrorCodes.EmailNotVerified);
         (await IsEmailConfirmedAsync(caller.UserId)).Should().BeFalse();
-        EmailService.SentVerifications.Where(v => v.Email == caller.Email).Should().ContainSingle();
+        EmailService.SentVerifications.Where(v => v.Email == caller.Email).Should().BeEmpty();
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        (await db.ClientProfessionalLinks.AnyAsync(
+            l => l.ClientProfileId == caller.ProfileId && l.ProfessionalProfileId == coach.ProfileId, Ct)).Should().BeFalse();
+        (await db.InvitationTokens.SingleAsync(t => t.Token == inviteToken, Ct)).IsUsed.Should().BeFalse();
     }
 
     [Fact]

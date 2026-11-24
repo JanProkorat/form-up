@@ -44,7 +44,7 @@ public class ChangeUnverifiedEmailEndpointTests(FitnessApiFactory factory)
     [Fact]
     public async Task Change_UnverifiedClient_UpdatesEmail_InvalidatesOldToken_AndSendsNewOne()
     {
-        var actor = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var actor = await TestActors.Client(factory).Unverified().CreateAsync(TestContext.Current.CancellationToken);
         const string oldToken = "OLD-TOKEN-FOR-CHANGE-EMAIL-TEST";
 
         using (var scope = factory.Services.CreateScope())
@@ -113,8 +113,8 @@ public class ChangeUnverifiedEmailEndpointTests(FitnessApiFactory factory)
     [Fact]
     public async Task Change_AddressOfAnotherAccount_Returns400_EmailAlreadyInUse_AndKeepsEmail()
     {
-        var actor = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
-        var other = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var actor = await TestActors.Client(factory).Unverified().CreateAsync(TestContext.Current.CancellationToken);
+        var other = await TestActors.Client(factory).Unverified().CreateAsync(TestContext.Current.CancellationToken);
 
         var response = await actor.Http.PutAsJsonAsync(
             Route, new { NewEmail = other.Email.ToUpperInvariant() }, TestContext.Current.CancellationToken);
@@ -130,7 +130,7 @@ public class ChangeUnverifiedEmailEndpointTests(FitnessApiFactory factory)
     [Fact]
     public async Task Change_SameAddressInOtherCase_Returns400_EmailUnchanged()
     {
-        var actor = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var actor = await TestActors.Client(factory).Unverified().CreateAsync(TestContext.Current.CancellationToken);
 
         var response = await actor.Http.PutAsJsonAsync(
             Route, new { NewEmail = actor.Email.ToUpperInvariant() }, TestContext.Current.CancellationToken);
@@ -143,7 +143,7 @@ public class ChangeUnverifiedEmailEndpointTests(FitnessApiFactory factory)
     [Fact]
     public async Task Change_LifetimeCapReached_Returns400_AndKeepsEmail_NoMailSent()
     {
-        var actor = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var actor = await TestActors.Client(factory).Unverified().CreateAsync(TestContext.Current.CancellationToken);
         await SetVerificationEmailsSentAsync(actor.UserId, 4);
         var newEmail = UniqueEmail();
 
@@ -161,7 +161,7 @@ public class ChangeUnverifiedEmailEndpointTests(FitnessApiFactory factory)
     [Fact]
     public async Task Change_InvalidAddress_Returns400()
     {
-        var actor = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var actor = await TestActors.Client(factory).Unverified().CreateAsync(TestContext.Current.CancellationToken);
 
         var response = await actor.Http.PutAsJsonAsync(
             Route, new { NewEmail = "not-an-email" }, TestContext.Current.CancellationToken);
