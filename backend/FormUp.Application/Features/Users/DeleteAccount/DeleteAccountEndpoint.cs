@@ -34,14 +34,14 @@ public class DeleteAccountEndpoint(
         {
             s.Summary = "Delete current user account";
             s.Description = "Permanently deletes the authenticated user's account and all associated data (GDPR Art. 17). " +
-                            "A coach's provider subscription is cancelled at once and its unused days are refunded; " +
-                            "when the payment provider fails, nothing is deleted.";
+                            "A coach's provider subscription is cancelled at once and its unused days are refunded, then the " +
+                            "provider customer is deleted; when the payment provider fails, nothing is deleted.";
             s.Response(StatusCodes.Status204NoContent, "Account deleted");
             s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Account deletion failed");
             s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
             s.Response(StatusCodes.Status404NotFound, "User not found");
             s.Response(StatusCodes.Status502BadGateway, "The payment provider failed; nothing was deleted (BILLING_PROVIDER_ERROR)");
-            s.Response(StatusCodes.Status503ServiceUnavailable, "A provider subscription must be cancelled and Stripe is not configured on this server (BILLING_NOT_CONFIGURED)");
+            s.Response(StatusCodes.Status503ServiceUnavailable, "A provider subscription must be cancelled or a provider customer deleted and Stripe is not configured on this server (BILLING_NOT_CONFIGURED)");
         });
     }
 
@@ -74,6 +74,7 @@ public class DeleteAccountEndpoint(
         // payment on it would leave a billable subscription nobody owns. The row itself goes with the profile (cascade).
         var cancelRefund = CancelRefundResult.None;
         var cancelsAtProvider = false;
+        var customerDeleted = false;
 
         if (professionalProfile is not null)
         {
@@ -100,6 +101,19 @@ public class DeleteAccountEndpoint(
 
                 cancelRefund = settled;
                 cancelsAtProvider = true;
+            }
+
+            // After the cancel and refund: deleting a customer makes Stripe cancel its subscriptions without our refund logic.
+            // The customer goes for GDPR cleanliness; Stripe keeps invoices and charges for its own legal records, and our
+            // admin reports read stored snapshots, so reporting is unaffected.
+            if (subscription?.ExternalCustomerId is { } customerId)
+            {
+                if (!await TryDeleteCustomerAsync(customerId, ct))
+                {
+                    return;
+                }
+
+                customerDeleted = true;
             }
         }
 
@@ -196,19 +210,58 @@ public class DeleteAccountEndpoint(
             nameof(ApplicationUser),
             entityId: userId,
             ipAddress: ipAddress,
-            newValues: cancelsAtProvider
-                ? AuditPayload.WithReason(
-                    new Dictionary<string, object?>
-                    {
-                        ["providerSubscriptionCancelled"] = true,
-                        ["refundedMinorUnits"] = cancelRefund.RefundedMinorUnits,
-                        ["refundCurrency"] = cancelRefund.Currency,
-                    },
-                    null)
+            newValues: cancelsAtProvider || customerDeleted
+                ? AuditPayload.WithReason(ProviderAuditFields(cancelsAtProvider, cancelRefund, customerDeleted), null)
                 : null,
             ct: ct);
 
         await Send.NoContentAsync(ct);
+    }
+
+    private static Dictionary<string, object?> ProviderAuditFields(
+        bool cancelsAtProvider, CancelRefundResult cancelRefund, bool customerDeleted)
+    {
+        var fields = new Dictionary<string, object?>();
+
+        if (cancelsAtProvider)
+        {
+            fields["providerSubscriptionCancelled"] = true;
+            fields["refundedMinorUnits"] = cancelRefund.RefundedMinorUnits;
+            fields["refundCurrency"] = cancelRefund.Currency;
+        }
+
+        if (customerDeleted)
+        {
+            fields["providerCustomerDeleted"] = true;
+        }
+
+        return fields;
+    }
+
+    /// <summary>
+    /// Deletes the provider customer. Answers 503 or 502 and returns false when it could not.
+    /// </summary>
+    private async Task<bool> TryDeleteCustomerAsync(string customerId, CancellationToken ct)
+    {
+        if (!subscriptions.IsConfigured)
+        {
+            await this.SendProblemAsync(
+                StatusCodes.Status503ServiceUnavailable, ErrorCodes.BillingNotConfigured, "Billing is not configured.", ct);
+            return false;
+        }
+
+        try
+        {
+            await subscriptions.DeleteCustomerAsync(customerId, ct);
+        }
+        catch (BillingProviderException)
+        {
+            await this.SendProblemAsync(
+                StatusCodes.Status502BadGateway, ErrorCodes.BillingProviderError, "The payment provider failed.", ct);
+            return false;
+        }
+
+        return true;
     }
 
     /// <summary>

@@ -93,6 +93,15 @@ public sealed class FakeSubscriptionService : ISubscriptionService
     /// <summary>Recorded <see cref="ISubscriptionService.CancelNowAsync"/> calls (subscription ids).</summary>
     public List<string> CancelledNow { get; } = [];
 
+    /// <summary>Recorded <see cref="ISubscriptionService.DeleteCustomerAsync"/> calls (customer ids).</summary>
+    public List<string> DeletedCustomers { get; } = [];
+
+    /// <summary>How many <see cref="CancelledNow"/> entries existed at each <see cref="ISubscriptionService.DeleteCustomerAsync"/> call; proves cancel-before-delete ordering.</summary>
+    public List<int> CancelsBeforeCustomerDeletion { get; } = [];
+
+    /// <summary>When true only <see cref="ISubscriptionService.DeleteCustomerAsync"/> throws <see cref="BillingProviderException"/>.</summary>
+    public bool FailCustomerDeletion { get; set; }
+
     /// <summary>What <see cref="ISubscriptionService.CancelNowAsync"/> returns.</summary>
     public CancelRefundResult CancelNowResult { get; set; } = CancelRefundResult.None;
 
@@ -220,6 +229,9 @@ public sealed class FakeSubscriptionService : ISubscriptionService
             SubscriptionDiscounts.Clear();
             CancelledAtPeriodEnd.Clear();
             CancelledNow.Clear();
+            DeletedCustomers.Clear();
+            CancelsBeforeCustomerDeletion.Clear();
+            FailCustomerDeletion = false;
             CancelNowResult = CancelRefundResult.None;
             CancelNowHook = null;
             UpgradeNowHook = null;
@@ -623,6 +635,25 @@ public sealed class FakeSubscriptionService : ISubscriptionService
         lock (gate)
         {
             ClearedPendingSecondRoles.Add(subscriptionId);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public Task DeleteCustomerAsync(string customerId, CancellationToken ct)
+    {
+        ThrowIfFailing();
+
+        if (FailCustomerDeletion)
+        {
+            throw new BillingProviderException("Fake customer deletion failure.");
+        }
+
+        lock (gate)
+        {
+            CancelsBeforeCustomerDeletion.Add(CancelledNow.Count);
+            DeletedCustomers.Add(customerId);
         }
 
         return Task.CompletedTask;
