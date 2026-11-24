@@ -13,6 +13,7 @@ import { useIngredients } from '@/hooks/useIngredientsQueries';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import type { FoodSummary } from '@/api/food-types';
 import IngredientCategoryFilterPopover from '@/components/ingredients/IngredientCategoryFilterPopover';
+import FilterChip from '@/components/library/FilterChip';
 import LibraryTagFilterPopover from '@/components/library/LibraryTagFilterPopover';
 import OwnerFilterPopover from '@/components/library/OwnerFilterPopover';
 import ViewModeToggle from '@/components/library/ViewModeToggle';
@@ -48,7 +49,7 @@ export default function IngredientsPage() {
 
 function IngredientsLibrary() {
   const { t } = useTranslation();
-  const { filters, setSearch, setCategories, setTags, setOwners, cycleSort, setPage, clearFilters } =
+  const { filters, setSearch, setCategories, setTags, setOwners, setHidden, cycleSort, setPage, clearFilters } =
     useIngredientListParams();
   const roles = useAuthStore((s) => s.user?.roles ?? []);
   const isNutritionist = roles.includes('Nutritionist');
@@ -86,9 +87,20 @@ function IngredientsLibrary() {
   // so it's excluded from both the request and `hasActiveFilter` here.
   const effectiveOwners = isNutritionist ? filters.owners : [];
   const effectiveTags = isAdminOnly ? [] : filters.tags;
-  const ingredientsQuery = useIngredients({ ...filters, owners: effectiveOwners, tags: effectiveTags });
+  // Hiding is nutritionist-only: a stale `hidden=1` must not narrow anyone else's list.
+  const effectiveHidden = isNutritionist && filters.hidden;
+  const ingredientsQuery = useIngredients({
+    ...filters,
+    owners: effectiveOwners,
+    tags: effectiveTags,
+    hidden: effectiveHidden,
+  });
   const hasActiveFilter =
-    filters.search !== '' || filters.categories.length > 0 || effectiveTags.length > 0 || effectiveOwners.length > 0;
+    filters.search !== '' ||
+    filters.categories.length > 0 ||
+    effectiveTags.length > 0 ||
+    effectiveOwners.length > 0 ||
+    effectiveHidden;
 
   function openCreateDrawer() {
     setSelectedFood(null);
@@ -139,6 +151,14 @@ function IngredientsLibrary() {
             gets no Owner filter UI at all, not even the empty pill, same
             reasoning as the Tags pill below. */}
         {isNutritionist && <OwnerFilterPopover selectedOwners={filters.owners} onChange={setOwners} />}
+        {isNutritionist && (
+          <FilterChip
+            label={t('library.showHidden')}
+            count={effectiveHidden ? 1 : 0}
+            aria-pressed={effectiveHidden}
+            onClick={() => setHidden(!filters.hidden)}
+          />
+        )}
         {/* Food tags are nutritionist-owned (#1120) — the Tags column shows for
             every coach, but only a nutritionist gets the tag filter chip. */}
         {isNutritionist && <LibraryTagFilterPopover selectedTagIds={filters.tags} onChange={setTags} />}
@@ -217,8 +237,7 @@ function IngredientsLibrary() {
         food={selectedFood}
         readOnly={drawerReadOnly}
         isNutritionist={isNutritionist}
-        hideVisibility={isAdminOnly}
-      />
+        hideVisibility={isAdminOnly}      />
     </div>
   );
 }

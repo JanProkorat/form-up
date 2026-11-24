@@ -13,6 +13,7 @@ import { useRecipeListParams } from '@/hooks/useRecipeListParams';
 import { useRecipes } from '@/hooks/useRecipesQueries';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { DietaryPreference, RecipeMealType, type RecipeSummaryDto } from '@/api/recipe-types';
+import FilterChip from '@/components/library/FilterChip';
 import OptionFilterPopover from '@/components/library/OptionFilterPopover';
 import OwnerFilterPopover from '@/components/library/OwnerFilterPopover';
 import LibraryTagFilterPopover from '@/components/library/LibraryTagFilterPopover';
@@ -42,6 +43,7 @@ export default function RecipesPage() {
     setMealTypes,
     setDietaryPreferences,
     setOwners,
+    setHidden,
     setTags,
     cycleSort,
     setPage,
@@ -77,7 +79,8 @@ export default function RecipesPage() {
   const { isEntitled } = useSubscription();
   const planAllows = isEntitled('canUseRecipes');
   // A stale owner/tag value left in the URL must not filter an admin-only account's list.
-  const effectiveFilters = isAdminOnly ? { ...filters, owners: [], tags: [] } : filters;
+  // Hiding is a nutritionist-only action, so a stale `hidden=1` must not narrow an admin-only list either.
+  const effectiveFilters = isAdminOnly ? { ...filters, owners: [], tags: [], hidden: false } : filters;
   const recipesQuery = useRecipes(effectiveFilters, canUseLibrary && planAllows);
   // isEntitled is true while the plan loads, so a refusal from the server locks the page as well.
   const isLocked =
@@ -93,7 +96,8 @@ export default function RecipesPage() {
     filters.mealTypes.length > 0 ||
     filters.dietaryPreferences.length > 0 ||
     effectiveFilters.owners.length > 0 ||
-    effectiveFilters.tags.length > 0;
+    effectiveFilters.tags.length > 0 ||
+    effectiveFilters.hidden;
   const showEmptyState = !recipesQuery.isPending && !recipesQuery.isError && totalCount === 0 && !hasActiveFilter;
 
   function openCreateDrawer() {
@@ -180,6 +184,16 @@ export default function RecipesPage() {
             )}
           </>
         )}
+        {/* Outside the empty-state gate: hiding the last visible recipe empties the list,
+            and the chip is the only way back to the hidden ones. */}
+        {!isAdminOnly && (
+          <FilterChip
+            label={t('library.showHidden')}
+            count={filters.hidden ? 1 : 0}
+            aria-pressed={filters.hidden}
+            onClick={() => setHidden(!filters.hidden)}
+          />
+        )}
         <div className="ml-auto flex items-center gap-3">
           {!showEmptyState && <ViewModeToggle value={viewMode} onChange={setViewMode} />}
           <Button type="button" size="lg" className="gap-1.75 px-3.5 font-semibold" onClick={openCreateDrawer}>
@@ -255,7 +269,7 @@ export default function RecipesPage() {
         </div>
       )}
 
-      <RecipeDrawer open={drawerOpen} onOpenChange={setDrawerOpen} recipe={selectedRecipe} readOnly={drawerReadOnly} />
+      <RecipeDrawer open={drawerOpen} onOpenChange={setDrawerOpen} recipe={selectedRecipe} readOnly={drawerReadOnly} libraryActions={isNutritionist} />
     </div>
   );
 }
