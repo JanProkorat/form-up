@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
+using FormUp.Application.Domain.Enums;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Tests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -69,6 +70,12 @@ public class CreatePendingInviteAbuseGuardsIntegrationTests(FitnessApiFactory fa
         // notification along with the conversation would slip through the assertion above.
         (await db.Notifications.CountAsync(n => n.RecipientUserId == clientUserId, TestContext.Current.CancellationToken))
             .Should().Be(1, "the invitee is told an invite arrived — it is the message body, not the alert, that waits for consent");
+
+        // Positive control: the invite row exists, so the empty conversation above is a deferral and not a lost invite.
+        (await db.PendingInvites.CountAsync(
+                i => i.Email == clientEmail && i.Status == PendingInviteStatus.Pending,
+                TestContext.Current.CancellationToken))
+            .Should().Be(1, "the invite is still created and waiting for the client to accept");
     }
 
 }

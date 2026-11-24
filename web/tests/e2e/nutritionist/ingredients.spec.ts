@@ -16,6 +16,7 @@
  * (only) under the `nutritionist` project, same as every other test here.
  */
 import { request as apiRequest, type Locator } from '@playwright/test';
+import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -72,6 +73,95 @@ interface GetFoodTagsApiBody {
 
 interface SearchFoodsApiBody {
   foods?: FoodApiBody[];
+}
+
+interface MailHogPart {
+  Headers?: Record<string, string[]>;
+  Body?: string;
+  MIME?: { Parts?: MailHogPart[] } | null;
+}
+
+interface MailHogSearchBody {
+  items?: MailHogPart[];
+}
+
+/**
+ * Finds the MailHog HTTP API the harness mail sink serves. Its host port is
+ * ephemeral (docker-compose.test.yml), so: an explicit E2E_MAILHOG_URL wins,
+ * the Playwright container reaches it by service name, and a host run asks
+ * docker for the mailhog-test container in the same compose project as the
+ * API container that publishes E2E_API_URL's port.
+ */
+function resolveMailHogUrl(): string {
+  const explicit = process.env['E2E_MAILHOG_URL'];
+  if (explicit) {
+    return explicit.replace(/\/$/, '');
+  }
+  if (IN_CONTAINER) {
+    return 'http://mailhog-test:8025';
+  }
+  const docker = (args: string[]): string => execFileSync('docker', args, { encoding: 'utf8' }).trim();
+  const apiPort = new URL(process.env['E2E_API_URL'] ?? 'https://localhost:5101').port;
+  const apiContainer = docker(['ps', '--filter', `publish=${apiPort}`, '--format', '{{.ID}}']).split('\n')[0];
+  if (!apiContainer) {
+    throw new Error(`[ingredients] No docker container publishes API port ${apiPort}; set E2E_MAILHOG_URL.`);
+  }
+  const project = docker(['inspect', '-f', '{{index .Config.Labels "com.docker.compose.project"}}', apiContainer]);
+  const mailContainer = docker([
+    'ps',
+    '--filter',
+    `label=com.docker.compose.project=${project}`,
+    '--filter',
+    'label=com.docker.compose.service=mailhog-test',
+    '--format',
+    '{{.ID}}',
+  ]).split('\n')[0];
+  if (!mailContainer) {
+    throw new Error(`[ingredients] No mailhog-test container in compose project ${project}; set E2E_MAILHOG_URL.`);
+  }
+  const hostPort = docker(['port', mailContainer, '8025']).split('\n')[0]?.split(':').pop();
+  return `http://localhost:${hostPort}`;
+}
+
+/** Decodes one MIME part's body per its Content-Transfer-Encoding (quoted-printable or base64). */
+function decodeMailPart(part: MailHogPart): string {
+  const body = part.Body ?? '';
+  const encoding = (part.Headers?.['Content-Transfer-Encoding']?.[0] ?? '').toLowerCase();
+  if (encoding.includes('base64')) {
+    return Buffer.from(body.replace(/\s+/g, ''), 'base64').toString('utf8');
+  }
+  if (encoding.includes('quoted-printable')) {
+    return body
+      .replace(/=\r?\n/g, '')
+      .replace(/=([0-9A-Fa-f]{2})/g, (_match, hex: string) => String.fromCharCode(parseInt(hex, 16)));
+  }
+  return body;
+}
+
+function collectMailText(part: MailHogPart): string[] {
+  return [decodeMailPart(part), ...(part.MIME?.Parts ?? []).flatMap(collectMailText)];
+}
+
+/** Returns the verification token from the newest mail sent to `email`, or null until it arrives. */
+async function findVerificationToken(mailHogUrl: string, email: string): Promise<string | null> {
+  const mailApi = await apiRequest.newContext();
+  try {
+    const response = await mailApi.get(`${mailHogUrl}/api/v2/search`, { params: { kind: 'to', query: email } });
+    if (!response.ok()) {
+      throw new Error(`[ingredients] MailHog search returned ${response.status()} ${response.statusText()}.`);
+    }
+    for (const item of ((await response.json()) as MailHogSearchBody).items ?? []) {
+      for (const text of collectMailText(item)) {
+        const match = /verify-email\?token=([^"'&\s<>]+)/.exec(text);
+        if (match?.[1]) {
+          return new URLSearchParams(`t=${match[1]}`).get('t');
+        }
+      }
+    }
+    return null;
+  } finally {
+    await mailApi.dispose();
+  }
 }
 
 /**
@@ -909,14 +999,16 @@ test.describe('food tags (#1120)', () => {
     // nutritionist (qa.nutri), so the second nutritionist here is a throwaway
     // account registered fresh through the real API rather than a fixture.
     //
-    // API-level only, deliberately: the web portal itself gates an unverified
-    // account client-side (ProtectedRoute.tsx redirects to /verify-email
-    // whenever `user.emailConfirmed` is false), so B's UI can only ever show
-    // "check your email" and never reaches /ingredients — but LoginEndpoint.cs
-    // never gates on EmailConfirmed, so B's own token is fully usable against
-    // the API regardless. Proving isolation at the API layer is therefore both
-    // sufficient (it's what the UI itself would call) and the only layer B can
-    // actually be driven through here.
+    // API-level only, deliberately: B is driven through the API, which is both
+    // sufficient (it's what the UI itself would call) and cheaper than a second
+    // browser session.
+    //
+    // Since #1517 the backend gates unverified accounts centrally: every
+    // authenticated endpoint except logout, resend-verification, PUT /auth/email
+    // and GET /users/me answers 403 EMAIL_NOT_VERIFIED. A freshly registered B
+    // therefore has to verify its email first — the test reads the verification
+    // mail from the harness MailHog and posts its token to /auth/verify-email
+    // before logging in. The isolation assertions below are unchanged.
     const origin = baseURL ?? 'http://localhost:5173';
     const tagName = `QA Nutri Isolation Tag ${Date.now()}`;
 
@@ -975,6 +1067,26 @@ test.describe('food tags (#1120)', () => {
         throw new Error(
           `[ingredients] POST /auth/register (second nutritionist) returned ${registerResponse.status()} ` +
             `${registerResponse.statusText()}: ${await registerResponse.text()}.`,
+        );
+      }
+      // The verification mail is queued, so poll MailHog until it arrives.
+      const mailHogUrl = resolveMailHogUrl();
+      let verificationToken = '';
+      await expect
+        .poll(
+          async () => {
+            verificationToken = (await findVerificationToken(mailHogUrl, secondNutriEmail)) ?? '';
+            return verificationToken !== '';
+          },
+          { message: `verification mail for ${secondNutriEmail} never reached MailHog`, timeout: 30_000 },
+        )
+        .toBe(true);
+
+      const verifyResponse = await registerApi.post('/auth/verify-email', { data: { token: verificationToken } });
+      if (!verifyResponse.ok()) {
+        throw new Error(
+          `[ingredients] POST /auth/verify-email (second nutritionist) returned ${verifyResponse.status()} ` +
+            `${verifyResponse.statusText()}: ${await verifyResponse.text()}.`,
         );
       }
     } finally {
