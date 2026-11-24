@@ -81,8 +81,14 @@ interface MailHogPart {
   MIME?: { Parts?: MailHogPart[] } | null;
 }
 
+/** A MailHog v2 message: a single-part mail has its body under `Content` and `MIME: null`. */
+interface MailHogMessage {
+  Content?: MailHogPart;
+  MIME?: { Parts?: MailHogPart[] } | null;
+}
+
 interface MailHogSearchBody {
-  items?: MailHogPart[];
+  items?: MailHogMessage[];
 }
 
 /**
@@ -151,7 +157,8 @@ async function findVerificationToken(mailHogUrl: string, email: string): Promise
       throw new Error(`[ingredients] MailHog search returned ${response.status()} ${response.statusText()}.`);
     }
     for (const item of ((await response.json()) as MailHogSearchBody).items ?? []) {
-      for (const text of collectMailText(item)) {
+      const parts = [...(item.Content ? [item.Content] : []), ...(item.MIME?.Parts ?? [])];
+      for (const text of parts.flatMap(collectMailText)) {
         const match = /verify-email\?token=([^"'&\s<>]+)/.exec(text);
         if (match?.[1]) {
           return new URLSearchParams(`t=${match[1]}`).get('t');
@@ -1078,7 +1085,7 @@ test.describe('food tags (#1120)', () => {
             verificationToken = (await findVerificationToken(mailHogUrl, secondNutriEmail)) ?? '';
             return verificationToken !== '';
           },
-          { message: `verification mail for ${secondNutriEmail} never reached MailHog`, timeout: 30_000 },
+          { message: `verification mail for ${secondNutriEmail} never reached MailHog`, timeout: 15_000 },
         )
         .toBe(true);
 
