@@ -111,7 +111,7 @@ public class CoachSubscription : TimestampableEntity
     public string? ExternalSubscriptionId { get; set; }
 
     /// <summary>
-    /// Provider subscription id whose cancel-and-refund a delete-account attempt has started but not finished. Written
+    /// Provider subscription id whose cancel-and-refund a delete-account attempt, or an admin End plan / Give plan free, has started but not finished. Written
     /// before the provider call so a retry can still settle the refund after the provider's webhook cleared
     /// <see cref="ExternalSubscriptionId"/>. Null when nothing is pending.
     /// </summary>
