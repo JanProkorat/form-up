@@ -32,7 +32,7 @@ public class ConversationSeedServiceIntegrationTests(FitnessApiFactory factory)
     private static (ApplicationDbContext Db, ConversationSeedService Service) CreateService(IServiceScope scope)
     {
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var service = new ConversationSeedService(db, Substitute.For<IRealtimeNotifier>());
+        var service = new ConversationSeedService(db, Substitute.For<IChatMessageNotifier>());
         return (db, service);
     }
 

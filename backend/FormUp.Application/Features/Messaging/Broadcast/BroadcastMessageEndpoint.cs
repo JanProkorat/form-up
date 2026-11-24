@@ -48,7 +48,8 @@ public class BroadcastMessageEndpoint(
             s.Description = "Sends the same text message to several of the caller's clients at " +
                              "once, substituting {{firstName}}/{{fullName}} per recipient. " +
                              "Auto-unarchives the thread for a recipient who had archived it " +
-                             "(not for a former collaboration). No push notification is sent.";
+                             "(not for a former collaboration). A recipient who is offline " +
+                             "gets a push notification with the message text.";
             s.Responses[StatusCodes.Status200OK] = "Message sent; SentCount is the distinct recipient count.";
             s.Responses[StatusCodes.Status400BadRequest] = "Empty/too-long text, more than 50 recipients, or a " +
                                                              "recipient's substituted text exceeds the storage limit.";
