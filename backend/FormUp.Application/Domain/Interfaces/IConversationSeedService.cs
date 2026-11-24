@@ -101,6 +101,10 @@ public interface IConversationSeedService
     /// "withdrawn" event must never create a thread just to announce there is nothing to see.
     /// </param>
     /// <param name="ct">Cancellation token.</param>
+    /// <param name="pushCompanionText">
+    /// <c>true</c> sends the companion text (not the event row) as a push to an offline recipient.
+    /// Optional after <paramref name="ct"/> by design; only the accept/reject-request flows set it.
+    /// </param>
     /// <remarks>
     /// Idempotency: a re-processed event for the same <paramref name="eventType"/> +
     /// <paramref name="sourceId"/> is a no-op — a pre-check catches the common case, and the
@@ -114,5 +118,6 @@ public interface IConversationSeedService
         Guid? sourceId,
         string? messageText,
         bool createConversationIfMissing,
-        CancellationToken ct);
+        CancellationToken ct,
+        bool pushCompanionText = false);
 }

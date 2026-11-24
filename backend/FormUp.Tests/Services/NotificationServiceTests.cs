@@ -432,12 +432,17 @@ public class NotificationServiceTests(NotificationServiceContainerFixture contai
         await BuildSut().SendPushOnlyAsync(
             recipientId,
             NotificationType.NewMessage,
-            new Dictionary<string, string> { ["clientName"] = "Petra", ["conversationId"] = conversationId },
+            new Dictionary<string, string>
+            {
+                ["senderName"] = "Petra",
+                ["conversationId"] = conversationId,
+                ["messageText"] = "Ahoj {senderName}",
+            },
             ct: ct);
 
         var push = _push.Calls.Should().ContainSingle(c => c.UserId == recipientId).Subject;
-        push.Title.Should().Be("Nová zpráva");
-        push.Body.Should().Be("Nová zpráva od Petra.");
+        push.Title.Should().Be("Petra");
+        push.Body.Should().Be("Ahoj {senderName}");
         (await _db.Notifications.AsNoTracking().CountAsync(n => n.RecipientUserId == recipientId, ct)).Should().Be(0);
     }
 
@@ -464,7 +469,7 @@ public class NotificationServiceTests(NotificationServiceContainerFixture contai
         await BuildSut().SendPushOnlyAsync(
             recipientId,
             NotificationType.NewMessage,
-            new Dictionary<string, string> { ["clientName"] = "Petra" },
+            new Dictionary<string, string> { ["senderName"] = "Petra", ["messageText"] = "Hi" },
             ct: ct);
 
         _push.Calls.Should().BeEmpty();

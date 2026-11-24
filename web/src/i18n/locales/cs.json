@@ -3218,7 +3218,9 @@
       "openInProfile": "Otevřít v profilu klienta"
     },
     "answers": {
-      "noAnswer": "Bez odpovědi"
+      "noAnswer": "Bez odpovědi",
+      "ofMax": "{{value}} / {{max}}",
+      "other": "Jiné: {{text}}"
     },
     "page": {
       "title": "Formuláře",

@@ -3092,7 +3092,9 @@
       "openInProfile": "Open in {{name}}'s profile"
     },
     "answers": {
-      "noAnswer": "No answer"
+      "noAnswer": "No answer",
+      "ofMax": "{{value}} / {{max}}",
+      "other": "Other: {{text}}"
     },
     "page": {
       "title": "Forms",

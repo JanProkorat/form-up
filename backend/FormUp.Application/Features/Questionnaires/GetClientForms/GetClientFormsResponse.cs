@@ -1,6 +1,8 @@
+using System.Text.Json;
 using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Features.Questionnaires.Dtos;
+using FormUp.Application.Features.Questionnaires.Shared;
 
 namespace FormUp.Application.Features.Questionnaires.GetClientForms;
 
@@ -54,6 +56,8 @@ public class ClientFormItem
     /// <summary>For a check-in: when it is due (UTC).</summary>
     public DateTime? CheckInDueAtUtc { get; set; }
 
+    private static readonly JsonSerializerOptions ConfigOptions = new() { PropertyNameCaseInsensitive = true };
+
     /// <summary>The answers; empty until the form is submitted.</summary>
     public List<ClientFormAnswer> Answers { get; set; } = [];
 
@@ -91,12 +95,30 @@ public class ClientFormItem
                         ValueNumber = answer.ValueNumber,
                         ValueJson = answer.ValueJson,
                         FileUrl = answer.FileUrl,
+                        ScaleMax = ReadScaleMax(answer.Question),
                         SectionLabel = sectionLabel,
                         SectionOrder = sectionOrder,
                     };
                 }).ToList()
                 : [],
         };
+    }
+
+    private static decimal? ReadScaleMax(QuestionnaireQuestion question)
+    {
+        if (question.Type != QuestionTypes.Scale || string.IsNullOrWhiteSpace(question.Config))
+        {
+            return null;
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<ScaleQuestionConfig>(question.Config, ConfigOptions)?.Max;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
     }
 
     private static FormResponseState ResolveState(QuestionnaireResponse response, bool submitted, DateTime nowUtc)
@@ -137,6 +159,9 @@ public class ClientFormAnswer
 
     /// <summary>File URL, for upload questions.</summary>
     public string? FileUrl { get; set; }
+
+    /// <summary>Configured max of a scale question; null for other types or when the config has none.</summary>
+    public decimal? ScaleMax { get; set; }
 
     /// <summary>Label of the section the question sits under, or null before the first section.</summary>
     public string? SectionLabel { get; set; }

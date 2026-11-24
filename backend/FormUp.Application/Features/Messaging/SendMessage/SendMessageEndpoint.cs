@@ -21,18 +21,18 @@ namespace FormUp.Application.Features.Messaging.SendMessage;
 /// rebuilds the staging path itself and never trusts a client-supplied blob URL.
 /// </summary>
 /// <param name="db">Relational database context.</param>
-/// <param name="notifier">Realtime notifier — pushes the <c>newmessage</c> event.</param>
+/// <param name="notifier">Realtime notifier — pushes the <c>conversationunarchived</c> event.</param>
 /// <param name="blobStorage">
 /// Blob storage — downloads and sniffs a staged image before promoting it to a permanent
 /// object, and signs the final <c>ImageUrl</c> echoed back in the response.
 /// </param>
-/// <param name="notificationService">Creates the coach's in-app new-message notice.</param>
-/// <param name="logger">Logger for the best-effort notice.</param>
+/// <param name="chatMessageNotifier">Raises the new-message event and the offline push.</param>
+/// <param name="logger">Logger for the best-effort grouped email.</param>
 public class SendMessageEndpoint(
     IApplicationDbContext db,
     IRealtimeNotifier notifier,
     IBlobStorageService blobStorage,
-    INotificationService notificationService,
+    IChatMessageNotifier chatMessageNotifier,
     ILogger<SendMessageEndpoint> logger) : Endpoint<SendMessageRequest, SendMessageResponse>
 {
     public override void Configure()
@@ -230,43 +230,14 @@ public class SendMessageEndpoint(
             ? await blobStorage.GenerateReadUrlAsync(imageBlobUrl, ct) ?? string.Empty
             : null;
 
-        // Notify recipient via SignalR
-        await notifier.NotifyAsync(recipientUserId, "newmessage", new
-        {
-            conversationId = conversation.PublicId,
-            messageId = message.PublicId,
-            senderId = userGuid,
-            senderName,
-            text = message.Text,
-            timestamp = message.DateCreated,
-            imageUrl,
-            imageWidth = message.ImageWidth,
-            imageHeight = message.ImageHeight,
-        }, ct);
+        // SignalR event plus an offline push for either participant. No in-app notice row:
+        // unread chat shows on the Clients list and Inbox instead.
+        await chatMessageNotifier.NotifyNewMessageAsync(
+            message, conversation.PublicId, recipientUserId, senderName, imageUrl, sendPush: true, ct);
 
-        // Push and the grouped email are for the coach only; a client reads the chat itself.
-        // No in-app notice row: unread chat shows on the Clients list and Inbox instead.
+        // The grouped email is for the coach only.
         if (!senderIsProfessional)
         {
-            try
-            {
-                await notificationService.SendPushOnlyAsync(
-                    recipientUserId,
-                    NotificationType.NewMessage,
-                    new Dictionary<string, string>
-                    {
-                        ["clientName"] = senderName,
-                        ["conversationId"] = conversation.PublicId.ToString(),
-                    },
-                    ct: ct);
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                logger.LogWarning(ex,
-                    "Failed to send the new-message push for user {UserId} in conversation {ConversationId}",
-                    recipientUserId, conversation.PublicId);
-            }
-
             // Opens or extends the burst that the grouped email is sent for; the scheduler sends it later.
             try
             {
