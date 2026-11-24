@@ -29769,6 +29769,8 @@ export interface ClientFormAnswer {
     valueJson?: string | undefined;
     /** File URL, for upload questions. */
     fileUrl?: string | undefined;
+    /** Configured max of a scale question; null for other types or when the config has none. */
+    scaleMax?: number | undefined;
     /** Label of the section the question sits under, or null before the first section. */
     sectionLabel?: string | undefined;
     /** 0-based order of the section, or null when SectionLabel is null. */

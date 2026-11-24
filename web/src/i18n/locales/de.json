@@ -3071,7 +3071,9 @@
       "openInProfile": "Im Profil von {{name}} öffnen"
     },
     "answers": {
-      "noAnswer": "Keine Antwort"
+      "noAnswer": "Keine Antwort",
+      "ofMax": "{{value}} / {{max}}",
+      "other": "Sonstiges: {{text}}"
     },
     "page": {
       "title": "Formulare",

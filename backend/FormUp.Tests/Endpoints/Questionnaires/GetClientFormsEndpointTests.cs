@@ -161,6 +161,48 @@ public class GetClientFormsEndpointTests(FitnessApiFactory factory)
         forms.Current.Single(f => f.ResponsePublicId == answered).CheckInWeekStart.Should().Be(week);
     }
 
+    [Theory]
+    [InlineData("scale", "{\"min\":1,\"max\":5}", 5)]
+    [InlineData("scale", null, null)]
+    [InlineData("scale", "{\"min\":1}", null)]
+    [InlineData("scale", "{not json", null)]
+    [InlineData("number", "{\"min\":0,\"max\":100}", null)]
+    public async Task GetForms_NumericAnswer_ReturnsScaleMaxOnlyForAConfiguredScale(
+        string questionType, string? config, int? expectedScaleMax)
+    {
+        var (coach, client, linkId, _) = await SetupAsync(DateTime.UtcNow.AddDays(-5));
+        var form = EntityBuilder.Questionnaire
+            .WithProfessionalUserId(coach.UserId)
+            .WithQuestion(questionType, "Energy")
+            .Build();
+        var question = form.Questions.Single();
+        question.Config = config;
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            db.Questionnaires.Add(form);
+            await db.SaveChangesAsync(Ct);
+        }
+
+        var response = ResponseFor(
+            coach, client, linkId, form, QuestionnaireResponseStatus.Submitted, DateTime.UtcNow.AddDays(-1)).Build();
+        response.Answers.Add(new QuestionnaireAnswer
+        {
+            PublicId = Guid.NewGuid(),
+            QuestionId = question.Id,
+            ValueNumber = 3,
+        });
+        var responseId = await InsertAsync(response);
+
+        var forms = await GetFormsAsync(coach, client);
+
+        var answer = forms.Current.Single(f => f.ResponsePublicId == responseId).Answers.Should().ContainSingle().Subject;
+        answer.QuestionType.Should().Be(questionType);
+        answer.ValueNumber.Should().Be(3);
+        answer.ScaleMax.Should().Be(expectedScaleMax);
+    }
+
     [Fact]
     public async Task GetForms_UnansweredNonCheckInForm_NeverShowsAsMissed()
     {
