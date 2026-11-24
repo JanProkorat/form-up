@@ -1,12 +1,16 @@
 import { Fragment, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Smile, Star } from 'lucide-react';
+import { Angry, Frown, Laugh, Meh, Smile, Star, type LucideIcon } from 'lucide-react';
 import type { ClientFormAnswer } from '@/api/questionnaires';
 import { parseChoices } from '@/components/client-forms/answerValues';
 import { cn } from '@/lib/utils';
 
 const CHIP_CLASS =
   'inline-flex h-7 items-center rounded-full border border-border bg-card px-3 text-body font-semibold text-ink';
+
+const DEFAULT_SCALE_MAX = 10;
+const RATING_MAX = 5;
+const SMILEY_FACES: Record<number, LucideIcon> = { 1: Angry, 2: Frown, 3: Meh, 4: Smile, 5: Laugh };
 
 function AnswerValue({ answer }: { answer: ClientFormAnswer }) {
   const { t } = useTranslation();
@@ -16,7 +20,7 @@ function AnswerValue({ answer }: { answer: ClientFormAnswer }) {
     case 'multi_select': {
       const choices = parseChoices(answer.valueJson);
       const other = answer.valueText?.trim();
-      const items = other ? [...choices, other] : choices;
+      const items = other ? [...choices, t('clientForms.answers.other', { text: other })] : choices;
       if (items.length === 0) {
         return empty;
       }
@@ -31,24 +35,34 @@ function AnswerValue({ answer }: { answer: ClientFormAnswer }) {
       );
     }
     case 'scale':
+      return answer.valueNumber == null ? (
+        empty
+      ) : (
+        <span className="inline-flex items-center gap-1.5 text-copy font-semibold text-ink">
+          {t('clientForms.answers.ofMax', { value: answer.valueNumber, max: answer.scaleMax ?? DEFAULT_SCALE_MAX })}
+        </span>
+      );
     case 'star_rating':
       return answer.valueNumber == null ? (
         empty
       ) : (
         <span className="inline-flex items-center gap-1.5 text-copy font-semibold text-ink">
           <Star className="size-4 fill-current text-training" aria-hidden="true" />
-          {answer.valueNumber}
+          {t('clientForms.answers.ofMax', { value: answer.valueNumber, max: RATING_MAX })}
         </span>
       );
-    case 'smiley_rating':
-      return answer.valueNumber == null ? (
-        empty
-      ) : (
+    case 'smiley_rating': {
+      if (answer.valueNumber == null) {
+        return empty;
+      }
+      const Face = Number.isInteger(answer.valueNumber) ? (SMILEY_FACES[answer.valueNumber] ?? Smile) : Smile;
+      return (
         <span className="inline-flex items-center gap-1.5 text-copy font-semibold text-ink">
-          <Smile className="size-4 text-training" aria-hidden="true" />
-          {answer.valueNumber}
+          <Face className="size-4 text-training" aria-hidden="true" />
+          {t('clientForms.answers.ofMax', { value: answer.valueNumber, max: RATING_MAX })}
         </span>
       );
+    }
     case 'number':
       return answer.valueNumber == null ? empty : <span className="text-copy text-ink">{answer.valueNumber}</span>;
     case 'file_upload':
