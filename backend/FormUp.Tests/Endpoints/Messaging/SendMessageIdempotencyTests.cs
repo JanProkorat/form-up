@@ -120,6 +120,99 @@ public class SendMessageIdempotencyTests(FitnessApiFactory factory)
         PushCountTo(coach.UserId).Should().Be(1);
     }
 
+    /// <summary>
+    /// Mechanism test for the send race: a held, uncommitted row with the same client id is invisible to
+    /// the replay lookup (read committed), so the send's insert blocks on the unique index. Once the
+    /// holder commits, the insert fails with 23505 and the endpoint must answer with the winner's row.
+    /// Deterministic: the lock wait is polled with a deadline, not slept on.
+    /// </summary>
+    [Fact]
+    public async Task Send_InsertBlockedByAnUncommittedRowWithTheSameClientMessageId_ReturnsTheWinnerAfterItCommits()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (coach, client, conversationId) = await SeedConversationAsync();
+        var clientMessageId = Guid.NewGuid();
+
+        long conversationDbId;
+        using (var lookupScope = factory.Services.CreateScope())
+        {
+            var lookupDb = lookupScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            conversationDbId = await lookupDb.Conversations.AsNoTracking()
+                .Where(c => c.PublicId == conversationId)
+                .Select(c => c.Id)
+                .SingleAsync(ct);
+        }
+
+        using var holderScope = factory.Services.CreateScope();
+        var holderDb = holderScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        await using var holderTransaction = await holderDb.Database.BeginTransactionAsync(ct);
+
+        var heldMessage = new ChatMessage
+        {
+            ConversationId = conversationDbId,
+            SenderUserId = client.UserId,
+            ClientMessageId = clientMessageId,
+            Text = "Held winner",
+        };
+        holderDb.ChatMessages.Add(heldMessage);
+        await holderDb.SaveChangesAsync(ct);
+
+        var send = SendAsync(client, conversationId, "Losing send", clientMessageId);
+
+        await WaitForABackendBlockedOnAChatMessageInsertAsync(send, ct);
+        await holderTransaction.CommitAsync(ct);
+
+        var response = await ReadAsync(await send);
+
+        response.Id.Should().Be(heldMessage.PublicId);
+        response.Text.Should().Be("Held winner");
+        var rows = await MessagesAsync(conversationId);
+        rows.Should().ContainSingle(m => m.ClientMessageId == clientMessageId);
+        rows.Should().ContainSingle();
+        PushCountTo(coach.UserId).Should().Be(0, "the losing send must not notify for a message it did not create");
+    }
+
+    /// <summary>
+    /// Polls pg_stat_activity until a backend is waiting on a lock while running a chat_messages
+    /// statement. Fails with a clear message if the send finishes first or the deadline passes.
+    /// </summary>
+    private async Task WaitForABackendBlockedOnAChatMessageInsertAsync(Task<HttpResponseMessage> send, CancellationToken ct)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(30);
+
+        using var probeScope = factory.Services.CreateScope();
+        var probeDb = probeScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        while (true)
+        {
+            send.IsCompleted.Should().BeFalse(
+                "the send must still be blocked on the held row's unique index entry, but it already finished");
+
+            var blocked = await probeDb.Database.SqlQuery<int>($"""
+                SELECT count(*)::int AS "Value"
+                FROM pg_stat_activity
+                WHERE datname = current_database()
+                  AND pid <> pg_backend_pid()
+                  AND wait_event_type = 'Lock'
+                  AND query ILIKE '%chat_messages%'
+                """).SingleAsync(ct);
+
+            if (blocked > 0)
+            {
+                return;
+            }
+
+            if (DateTime.UtcNow > deadline)
+            {
+                throw new TimeoutException(
+                    "No backend was waiting on a lock for a chat_messages statement within 30 s; "
+                    + "the send never reached the unique-index insert.");
+            }
+
+            await Task.Delay(TimeSpan.FromMilliseconds(25), ct);
+        }
+    }
+
     [Fact]
     public async Task Send_OtherParticipantUsesTheSameClientMessageId_CreatesASeparateMessage()
     {
