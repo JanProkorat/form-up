@@ -187,7 +187,9 @@ export default function IngredientsTable({
                 </div>
               </TableCell>
               <TableCell className={CELL_CLASS}>
-                <LibraryBadge isOwnedByCurrentUser={food.isOwnedByCurrentUser} isSystem={food.isSystem} />
+                <LibraryBadge isOwnedByCurrentUser={food.isOwnedByCurrentUser} isSystem={food.isSystem}
+                  isHidden={food.isHiddenByCurrentUser}
+                />
               </TableCell>
             </TableRow>
           ))}

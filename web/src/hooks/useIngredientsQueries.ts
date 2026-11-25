@@ -10,6 +10,9 @@ import {
   removeFoodGalleryImage,
   promoteFoodGalleryImage,
   getFood,
+  copyFood,
+  hideFood,
+  unhideFood,
 } from '@/api/foods';
 import {
   getFoodTags,
@@ -50,6 +53,7 @@ export function useIngredients(filters: IngredientListFilters) {
         categoriesKey,
         tagsKey,
         ownersKey,
+        hidden: filters.hidden,
         sortBy: filters.sortBy,
         sortDir: filters.sortDir,
         page: filters.page,
@@ -62,6 +66,7 @@ export function useIngredients(filters: IngredientListFilters) {
         categories: filters.categories,
         tagIds: filters.tags,
         owners: filters.owners,
+        hidden: filters.hidden,
         page: filters.page,
         pageSize: filters.pageSize,
         // A cleared sort (`sort=none` in the URL, filters.sortBy === null)
@@ -207,6 +212,51 @@ export function useUpdateFood() {
         return;
       }
       showApiError(error, 'ingredients.drawer.updateError');
+    },
+  });
+}
+
+/** Copies a visible food into the caller's own library. The new private copy shows up in the list. */
+export function useCopyFood() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (foodId: string) => copyFood(foodId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ingredients'] });
+      showSuccess('ingredients.copySuccess');
+    },
+    onError: (error) => {
+      showApiError(error, 'ingredients.copyError');
+    },
+  });
+}
+
+/** Hides a food the caller does not own from their lists. */
+export function useHideFood() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (foodId: string) => hideFood(foodId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ingredients'] });
+      showSuccess('ingredients.hideSuccess');
+    },
+    onError: (error) => {
+      showApiError(error, 'ingredients.hideError');
+    },
+  });
+}
+
+/** Brings a hidden food back into the caller's lists. */
+export function useUnhideFood() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (foodId: string) => unhideFood(foodId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ingredients'] });
+      showSuccess('ingredients.unhideSuccess');
+    },
+    onError: (error) => {
+      showApiError(error, 'ingredients.unhideError');
     },
   });
 }

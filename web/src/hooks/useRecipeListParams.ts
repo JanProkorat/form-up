@@ -45,6 +45,8 @@ export interface RecipeListFilters extends RecipeSortState {
   owners: FoodOwnerFilter[];
   /** Ids of the caller's tags; a recipe matches when it carries ANY of them. */
   tags: string[];
+  /** Show-hidden view: only the recipes the caller hid (URL `hidden=1`). */
+  hidden: boolean;
   page: number;
   pageSize: number;
 }
@@ -56,6 +58,8 @@ export interface UseRecipeListParamsResult {
   setMealTypes: (mealTypes: RecipeMealType[]) => void;
   setDietaryPreferences: (preferences: DietaryPreference[]) => void;
   setOwners: (owners: FoodOwnerFilter[]) => void;
+  /** Toggles the show-hidden view; resets page to 1. */
+  setHidden: (hidden: boolean) => void;
   /** Replaces the selected-tags set; resets page to 1. */
   setTags: (tags: string[]) => void;
   /** Cycles a column: unsorted/other column → ascending → descending → cleared. */
@@ -131,7 +135,7 @@ function nextSortState(current: RecipeSortState, field: RecipeSortField): Recipe
   return DEFAULT_SORT;
 }
 
-type UrlPatch = Partial<Record<'q' | 'mealType' | 'diet' | 'owner' | 'tags' | 'sort' | 'page', string | null>>;
+type UrlPatch = Partial<Record<'q' | 'mealType' | 'diet' | 'owner' | 'hidden' | 'tags' | 'sort' | 'page', string | null>>;
 
 /**
  * Owns the recipes-list page's filter state entirely in the URL — `q`,
@@ -148,6 +152,7 @@ export function useRecipeListParams(): UseRecipeListParamsResult {
       dietaryPreferences: parseEnumList<DietaryPreference>(searchParams.get('diet'), VALID_DIETARY_PREFERENCES),
       owners: parseEnumList<FoodOwnerFilter>(searchParams.get('owner'), VALID_OWNERS),
       tags: parseTags(searchParams.get('tags')),
+      hidden: searchParams.get('hidden') === '1',
       sortBy: sort.sortBy,
       sortDir: sort.sortDir,
       page: parsePage(searchParams.get('page')),
@@ -206,6 +211,13 @@ export function useRecipeListParams(): UseRecipeListParamsResult {
     [update],
   );
 
+  const setHidden = useCallback(
+    (hidden: boolean) => {
+      update({ hidden: hidden ? '1' : null, page: null });
+    },
+    [update],
+  );
+
   const setTags = useCallback(
     (tags: string[]) => {
       const deduped = Array.from(new Set(tags));
@@ -233,7 +245,7 @@ export function useRecipeListParams(): UseRecipeListParamsResult {
   );
 
   const clearFilters = useCallback(() => {
-    update({ mealType: null, diet: null, owner: null, tags: null, q: null, page: null });
+    update({ mealType: null, diet: null, owner: null, hidden: null, tags: null, q: null, page: null });
   }, [update]);
 
   return {
@@ -242,6 +254,7 @@ export function useRecipeListParams(): UseRecipeListParamsResult {
     setMealTypes,
     setDietaryPreferences,
     setOwners,
+    setHidden,
     setTags,
     cycleSort,
     setPage,

@@ -40,6 +40,12 @@ public class SearchFoodsRequest
     public List<FoodOwnerFilter> Owners { get; set; } = [];
 
     /// <summary>
+    /// When <see langword="true"/>, returns only the foods the caller has hidden instead of the
+    /// library without them. Defaults to <see langword="false"/>.
+    /// </summary>
+    public bool Hidden { get; set; }
+
+    /// <summary>
     /// Column to sort by. <see langword="null"/> (the default) means no explicit sort —
     /// newest-created foods first.
     /// </summary>

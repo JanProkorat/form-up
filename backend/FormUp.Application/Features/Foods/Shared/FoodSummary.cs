@@ -104,6 +104,12 @@ public class FoodSummary
     public bool IsSystem { get; set; }
 
     /// <summary>
+    /// True when the authenticated caller has hidden this food from their library. Only the caller's
+    /// own flag is exposed, never who else hid it.
+    /// </summary>
+    public bool IsHiddenByCurrentUser { get; set; }
+
+    /// <summary>
     /// Maps a <see cref="Food"/> document to a <see cref="FoodSummary"/> DTO.
     /// </summary>
     /// <param name="food">The food document.</param>
@@ -140,6 +146,7 @@ public class FoodSummary
             && food.NutritionistId.HasValue
             && food.NutritionistId.Value == currentUserId.Value,
         IsSystem = food.NutritionistId is null,
+        IsHiddenByCurrentUser = currentUserId.HasValue && food.HiddenByNutritionistIds.Contains(currentUserId.Value),
         Allergens = FoodEnumListMapping.ParseStoredNames<Allergen>(food.Allergens),
         DietaryPreferences = FoodEnumListMapping.ParseStoredNames<DietaryPreference>(food.DietaryPreferences),
         Tags = tags ?? [],
