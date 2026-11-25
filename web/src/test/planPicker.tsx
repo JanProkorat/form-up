@@ -180,8 +180,8 @@ export const LAUNCH_OFFER: CoachPromotionDto = {
 /** The plans as the server shows them under `LAUNCH_OFFER`: it sends the discounted prices, the page never computes them. */
 export function plansUnderOffer(coverage: 'all' | 'proOnly'): CoachPlanDto[] {
   const discounted: Record<string, { price: number; addOn?: number }> = {
-    start: { price: 20900, addOn: 10400 },
-    pro: { price: 41900, addOn: 20900 },
+    start: { price: 20900, addOn: 10500 },
+    pro: { price: 41900, addOn: 21000 },
     studio: { price: 69900 },
   };
   return ANNUAL_PLANS.map((plan) => {
