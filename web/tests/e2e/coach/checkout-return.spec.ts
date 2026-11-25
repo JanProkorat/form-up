@@ -173,11 +173,8 @@ trainerTest.describe('checkout return with a late webhook', () => {
     mock.setPaid(true);
     await advanceUntilActivated(page, SLOW_STEP_MS, toastsShown);
 
-    await page.waitForLoadState('networkidle');
-    const readsAfterLanding = mock.reads();
-    await advance(page, FAST_PHASE_MS / 2, SLOW_STEP_MS);
-    expect(mock.reads()).toBe(readsAfterLanding);
-    expect(await storedWatch(page)).toBeNull();
+    // That polling stops and the stored watch is cleared once the plan lands is proven in
+    // CheckoutActivationWatcher.test.tsx; this test only proves the watch survives the reload.
     // The recording script re-ran on the reloaded document, so this counts post-reload toasts only.
     expect(await toastsShown(ACTIVATED)).toBe(1);
   });
