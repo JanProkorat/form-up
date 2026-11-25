@@ -73,7 +73,7 @@ function AnswerValue({ answer }: { answer: ClientFormAnswer }) {
           rel="noopener noreferrer"
           className="text-copy font-semibold text-ink underline underline-offset-2 [overflow-wrap:anywhere]"
         >
-          {answer.fileUrl.split('/').pop()}
+          {t('clientForms.answers.openFile')}
         </a>
       ) : (
         empty
