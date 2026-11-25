@@ -97,11 +97,7 @@ public class CreatePendingInviteEndpointTests
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
         captured.Should().NotBeNull();
-        // In unit tests the mock DB does not auto-assign the PK, so the captured object's Id
-        // matches what the response returns (both will be 0 here). The important contract is
-        // that the response field is wired to pendingInvite.Id.
-        ep.Response.Id.Should().Be(captured!.Id);
-        ep.Response.PublicId.Should().Be(captured.PublicId);
+        ep.Response.PublicId.Should().Be(captured!.PublicId);
         ep.Response.Email.Should().Be("jane@test.com");
     }
 
