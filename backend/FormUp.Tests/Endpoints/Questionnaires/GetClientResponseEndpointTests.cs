@@ -1,4 +1,7 @@
 using System.Net;
+using FormUp.Application.Features.Questionnaires.GetClientResponse;
+using FormUp.Application.Domain.Interfaces;
+using FormUp.Application.Features.Questionnaires.Shared;
 using System.Net.Http.Json;
 using FluentAssertions;
 using FormUp.Application.Domain.Entities;
@@ -287,4 +290,21 @@ public class GetClientResponseEndpointTests(FitnessApiFactory factory)
     private record SectionedAnswer(string QuestionLabel, string? SectionLabel, int? SectionOrder);
 
     private record ResponseWithSectionsBody(Guid ResponsePublicId, List<SectionedAnswer> Answers);
+
+    [Fact]
+    public async Task Get_FileAnswer_ReturnsSignedUrlNotTheStoredValue()
+    {
+        var scenario = await QuestionnaireAnswerScenario.CreateAsync(
+            factory, [new("file", QuestionTypes.FileUpload)], status: QuestionnaireResponseStatus.Submitted);
+        var storedUrl = QuestionnaireFilePolicy.BuildFinalContainerPath(scenario.ResponsePublicId, Guid.NewGuid(), "png");
+        await scenario.AddFileAnswerAsync(factory, "file", storedUrl);
+
+        var body = await scenario.Coach.Http.GetFromJsonAsync<GetClientResponseResponse>(
+            $"/trainer/clients/{scenario.Client.PublicId}/questionnaire-response",
+            TestContext.Current.CancellationToken);
+
+        body!.Answers.Should().ContainSingle().Which.FileUrl.Should().Be($"{storedUrl}?signed=test");
+        ((FakeBlobStorageService)factory.Services.GetRequiredService<IBlobStorageService>())
+            .SignedUrlRequests.Should().Contain(storedUrl);
+    }
 }

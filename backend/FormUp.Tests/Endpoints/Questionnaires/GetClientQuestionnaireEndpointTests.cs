@@ -1,4 +1,6 @@
 using System.Net;
+using Microsoft.Extensions.DependencyInjection;
+using FormUp.Application.Domain.Interfaces;
 using System.Net.Http.Json;
 using FormUp.Application.Features.Questionnaires.GetClientQuestionnaire;
 using FormUp.Application.Features.Questionnaires.Shared;
@@ -52,5 +54,35 @@ public class GetClientQuestionnaireEndpointTests(FitnessApiFactory factory)
             TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Get_StoredOwnFileAnswer_ReturnsSignedUrlAndTheUploadId()
+    {
+        var scenario = await QuestionnaireAnswerScenario.CreateAsync(factory, [new("file", QuestionTypes.FileUpload)]);
+        var uploadId = Guid.NewGuid();
+        var storedUrl = QuestionnaireFilePolicy.BuildFinalContainerPath(scenario.ResponsePublicId, uploadId, "png");
+        await scenario.AddFileAnswerAsync(factory, "file", storedUrl);
+
+        var body = await scenario.Client.Http.GetFromJsonAsync<GetClientQuestionnaireResponse>(
+            $"/client/questionnaire?responsePublicId={scenario.ResponsePublicId}",
+            TestContext.Current.CancellationToken);
+
+        var answer = body!.ExistingAnswers.Should().ContainSingle().Subject;
+        answer.FileUrl.Should().Be($"{storedUrl}?signed=test");
+        answer.FileUploadId.Should().Be(uploadId);
+    }
+
+    [Fact]
+    public async Task Get_StoredForeignFileUrl_HasNoUploadId()
+    {
+        var scenario = await QuestionnaireAnswerScenario.CreateAsync(factory, [new("file", QuestionTypes.FileUpload)]);
+        await scenario.AddFileAnswerAsync(factory, "file", "https://storage.example.test/legacy/medical.pdf");
+
+        var body = await scenario.Client.Http.GetFromJsonAsync<GetClientQuestionnaireResponse>(
+            $"/client/questionnaire?responsePublicId={scenario.ResponsePublicId}",
+            TestContext.Current.CancellationToken);
+
+        body!.ExistingAnswers.Should().ContainSingle().Which.FileUploadId.Should().BeNull();
     }
 }
