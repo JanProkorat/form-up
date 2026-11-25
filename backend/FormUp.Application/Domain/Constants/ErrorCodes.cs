@@ -19,6 +19,9 @@ public static class ErrorCodes
     /// <summary>Apple did not provide an email in the identity token, and no (apple, sub) link exists. Cannot provision or log in without an email address.</summary>
     public const string AppleNoEmailNoLink = "APPLE_NO_EMAIL_NO_LINK";
 
+    /// <summary>The caller's email is not confirmed yet, so the endpoint is refused (403) until it is verified.</summary>
+    public const string EmailNotVerified = "EMAIL_NOT_VERIFIED";
+
     /// <summary>Account is deactivated.</summary>
     public const string AccountDeactivated = "ACCOUNT_DEACTIVATED";
 

@@ -573,6 +573,9 @@ app.UseAuthorization();
 app.UseMiddleware<LocaleCaptureMiddleware>();
 app.MapHub<NotificationHub>("/hubs/notifications");
 app.UseRateLimiter();
+// Refuses every authenticated endpoint outside EmailVerificationExemptions while the caller's email is unconfirmed (#1517).
+// First of the gates so its 403 wins over the two below.
+app.UseMiddleware<FormUp.Application.Infrastructure.EmailVerification.EmailVerificationGateMiddleware>();
 // Read-only gate after a coach role is removed (see RemovedCoachRoleAttribute); needs the resolved
 // endpoint and the authenticated user, so it sits after authorization and before the endpoint runs.
 app.UseMiddleware<RemovedCoachRoleMiddleware>();

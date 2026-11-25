@@ -1,7 +1,11 @@
 using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
+using FormUp.Application.Domain.Enums;
+using FormUp.Application.Infrastructure.Data;
 using FormUp.Tests.Infrastructure;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace FormUp.Tests.Endpoints.Trainers;
 
@@ -28,11 +32,12 @@ public class CreatePendingInviteAbuseGuardsIntegrationTests(FitnessApiFactory fa
         // Arrange: the invited email ALREADY belongs to a registered client — the exact shape
         // the abuse case exploited (no relationship required between the professional and the
         // invited account).
+        // Unverified on purpose: a verified account gets its invite thread at once (#1100 C3), and an unverified one
+        // cannot read its own inbox over HTTP (#1517), so the assertions below read the database.
         var clientClient = factory.CreateClient();
         var clientEmail = UniqueEmail("existing-client");
-        await TestHelpers.RegisterAsync(clientClient, clientEmail, "TestPass1!", "Existing", "Client", "Client");
-        var (clientAccessToken, _) = await TestHelpers.LoginAsync(clientClient, clientEmail, "TestPass1!");
-        TestHelpers.SetBearerToken(clientClient, clientAccessToken);
+        await TestHelpers.RegisterAsync(
+            clientClient, clientEmail, "TestPass1!", "Existing", "Client", "Client", confirmEmail: false);
 
         var trainerClient = factory.CreateClient();
         var trainerEmail = UniqueEmail("stranger-trainer");
@@ -51,34 +56,26 @@ public class CreatePendingInviteAbuseGuardsIntegrationTests(FitnessApiFactory fa
         inviteResponse.StatusCode.Should().Be(HttpStatusCode.OK,
             "the invite itself is still created successfully — only the immediate side effect is removed");
 
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var clientUserId = await db.Users.Where(u => u.Email == clientEmail).Select(u => u.Id)
+            .SingleAsync(TestContext.Current.CancellationToken);
+
         // Assert: no conversation was created for the invited client.
-        var conversationsResponse = await clientClient.GetAsync(
-            "/conversations", TestContext.Current.CancellationToken);
-        conversationsResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-        var conversations = await conversationsResponse.Content.ReadFromJsonAsync<List<ConversationResult>>(
-            cancellationToken: TestContext.Current.CancellationToken);
-        conversations.Should().BeEmpty(
-            "the chat message must not be seeded until the client accepts the invite");
+        (await db.Conversations.AnyAsync(c => c.ClientUserId == clientUserId, TestContext.Current.CancellationToken))
+            .Should().BeFalse("the chat message must not be seeded until the client accepts the invite");
 
         // Assert the other half: the notification IS raised. Without this the invitee has no
         // signal at all until they happen to open the app, and a change that defers the
         // notification along with the conversation would slip through the assertion above.
-        var notificationsResponse = await clientClient.GetAsync(
-            "/client/notifications", TestContext.Current.CancellationToken);
-        notificationsResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-        var notifications = await notificationsResponse.Content.ReadFromJsonAsync<GetNotificationsResult>(
-            cancellationToken: TestContext.Current.CancellationToken);
-        notifications!.Items.Should().ContainSingle(
-            "the invitee is told an invite arrived — it is the message body, not the alert, that waits for consent");
+        (await db.Notifications.CountAsync(n => n.RecipientUserId == clientUserId, TestContext.Current.CancellationToken))
+            .Should().Be(1, "the invitee is told an invite arrived — it is the message body, not the alert, that waits for consent");
 
-        // Positive control: the client CAN still discover the invite through the existing
-        // polling endpoint — the fix defers the push, it does not hide the invite entirely.
-        var pendingResponse = await clientClient.GetAsync(
-            "/client/invites/pending", TestContext.Current.CancellationToken);
-        pendingResponse.StatusCode.Should().Be(HttpStatusCode.OK,
-            "the client must still be able to discover the invite via the existing pending-invite query");
+        // Positive control: the invite row exists, so the empty conversation above is a deferral and not a lost invite.
+        (await db.PendingInvites.CountAsync(
+                i => i.Email == clientEmail && i.Status == PendingInviteStatus.Pending,
+                TestContext.Current.CancellationToken))
+            .Should().Be(1, "the invite is still created and waiting for the client to accept");
     }
 
-    private record ConversationResult(Guid Id);
-    private record GetNotificationsResult(List<object> Items, string? Cursor);
 }

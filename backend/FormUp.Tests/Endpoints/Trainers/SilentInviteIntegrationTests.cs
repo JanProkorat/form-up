@@ -209,11 +209,15 @@ public class SilentInviteIntegrationTests(FitnessApiFactory factory)
         {
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var coachConversation = new Conversation { ProfessionalUserId = inviter.UserId, ClientUserId = coach.UserId };
-            var clientConversation = new Conversation { ProfessionalUserId = inviter.UserId, ClientUserId = realClient.UserId };
-            db.Conversations.AddRange(coachConversation, clientConversation);
+            db.Conversations.Add(coachConversation);
             await db.SaveChangesAsync(Ct);
             coachConversationId = coachConversation.PublicId;
-            clientConversationId = clientConversation.PublicId;
+
+            // The real invitee is verified, so the invite already seeded its thread (#1100 C3).
+            clientConversationId = await db.Conversations
+                .Where(c => c.ProfessionalUserId == inviter.UserId && c.ClientUserId == realClient.UserId)
+                .Select(c => c.PublicId)
+                .SingleAsync(Ct);
         }
 
         var coachContext = await coach.Http.GetAsync($"/conversations/{coachConversationId}/context", Ct);

@@ -7,6 +7,7 @@ using FormUp.Application.Infrastructure.Data;
 using FormUp.Tests.Builders;
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -17,26 +18,43 @@ namespace FormUp.Tests.Infrastructure;
 /// </summary>
 public static class TestHelpers
 {
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<HttpClient, WebApplicationFactory<Program>> ClientHosts = new();
+
+    /// <summary>Records the host a factory-created client talks to; called from the test factories' <c>ConfigureClient</c>.</summary>
+    internal static void RememberHost(HttpClient client, WebApplicationFactory<Program> host) =>
+        ClientHosts.AddOrUpdate(client, host);
+
+    private static WebApplicationFactory<Program>? HostOf(HttpClient client) =>
+        ClientHosts.TryGetValue(client, out var host) ? host : null;
+
     /// <summary>
     /// Registers a user and returns the HTTP response.
     /// HealthDataConsent defaults to true for the Client role and null for coach roles.
     /// </summary>
+    /// <remarks>
+    /// The server blocks unverified accounts (#1517), so a successful registration is followed by confirming the
+    /// email in the host's database, unless <paramref name="confirmEmail"/> is false (the verification-flow tests).
+    /// Only a client from a test factory that calls <see cref="RememberHost"/> can be matched to its host; any other
+    /// client is left unverified.
+    /// </remarks>
     public static Task<HttpResponseMessage> RegisterAsync(
-        HttpClient client, string email, string password, string firstName, string lastName, string role)
+        HttpClient client, string email, string password, string firstName, string lastName, string role,
+        bool confirmEmail = true)
     {
         var isClient = string.Equals(role, "Client", StringComparison.OrdinalIgnoreCase);
         return RegisterAsync(client, email, password, firstName, lastName, new[] { role },
-            gdprConsent: true, healthDataConsent: isClient ? true : null);
+            gdprConsent: true, healthDataConsent: isClient ? true : null, confirmEmail: confirmEmail);
     }
 
     /// <summary>
-    /// Registers a user with explicit consent values and returns the HTTP response.
+    /// Registers a user with explicit consent values and returns the HTTP response. See the other overload for
+    /// <paramref name="confirmEmail"/>.
     /// </summary>
-    public static Task<HttpResponseMessage> RegisterAsync(
+    public static async Task<HttpResponseMessage> RegisterAsync(
         HttpClient client, string email, string password, string firstName, string lastName,
-        string[] roles, bool gdprConsent = true, bool? healthDataConsent = null)
+        string[] roles, bool gdprConsent = true, bool? healthDataConsent = null, bool confirmEmail = true)
     {
-        return client.PostAsJsonAsync("/auth/register", new
+        var response = await client.PostAsJsonAsync("/auth/register", new
         {
             Email = email,
             Password = password,
@@ -47,6 +65,18 @@ public static class TestHelpers
             GdprConsent = gdprConsent,
             HealthDataConsent = healthDataConsent
         });
+
+        if (confirmEmail && response.IsSuccessStatusCode && HostOf(client) is { } host)
+        {
+            using var scope = host.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var normalizedEmail = email.ToUpperInvariant();
+            await db.Users
+                .Where(user => user.NormalizedEmail == normalizedEmail)
+                .ExecuteUpdateAsync(set => set.SetProperty(user => user.EmailConfirmed, true));
+        }
+
+        return response;
     }
 
     /// <summary>

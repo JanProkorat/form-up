@@ -35,20 +35,6 @@ public class InviteCooperationEventFlowIntegrationTests(FitnessApiFactory factor
 {
     private FakeEmailService EmailService => factory.Services.GetRequiredService<FakeEmailService>();
 
-    /// <summary>
-    /// TestActors-created users are unverified by default (matches real registration). The
-    /// immediate invite-time seed (#1100 C3, R4) only fires for a VERIFIED existing account, so
-    /// every scenario here needs the client explicitly marked confirmed first.
-    /// </summary>
-    private async Task MarkEmailConfirmedAsync(Guid userId)
-    {
-        using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var user = await db.Users.FirstAsync(u => u.Id == userId, TestContext.Current.CancellationToken);
-        user.EmailConfirmed = true;
-        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
-    }
-
     private async Task<Guid> CreateInviteAsync(HttpClient coachHttp, string clientEmail, string? message)
     {
         var response = await coachHttp.PostAsJsonAsync("/trainer/pending-invites", new
@@ -93,7 +79,6 @@ public class InviteCooperationEventFlowIntegrationTests(FitnessApiFactory factor
     {
         var coach = await TestActors.Trainer(factory).WithName("Coach", "Carl").CreateAsync();
         var client = await TestActors.Client(factory).WithName("Jane", "Doe").CreateAsync();
-        await MarkEmailConfirmedAsync(client.UserId);
 
         // The Invited event + message are written immediately here (#1100 C3) — the client is
         // already verified.
@@ -129,7 +114,6 @@ public class InviteCooperationEventFlowIntegrationTests(FitnessApiFactory factor
     {
         var coach = await TestActors.Trainer(factory).WithName("Coach", "Carl").CreateAsync();
         var client = await TestActors.Client(factory).WithName("Jane", "Doe").CreateAsync();
-        await MarkEmailConfirmedAsync(client.UserId);
 
         var invitePublicId = await CreateInviteAsync(coach.Http, client.Email, "Looking forward to it!");
         var conversationId = await GetSoleConversationIdAsync(client.Http);
@@ -165,7 +149,6 @@ public class InviteCooperationEventFlowIntegrationTests(FitnessApiFactory factor
     {
         var coach = await TestActors.Trainer(factory).WithName("Coach", "Carl").CreateAsync();
         var client = await TestActors.Client(factory).WithName("Jane", "Doe").CreateAsync();
-        await MarkEmailConfirmedAsync(client.UserId);
 
         var invitePublicId = await CreateInviteAsync(coach.Http, client.Email, "Hope to work with you!");
         var conversationId = await GetSoleConversationIdAsync(client.Http);
@@ -220,7 +203,6 @@ public class InviteCooperationEventFlowIntegrationTests(FitnessApiFactory factor
     {
         var coach = await TestActors.Trainer(factory).WithName("Coach", "Carl").CreateAsync();
         var client = await TestActors.Client(factory).WithName("Jane", "Doe").CreateAsync();
-        await MarkEmailConfirmedAsync(client.UserId);
 
         EmailService.FailInvitationSendFor(client.Email);
 
@@ -259,7 +241,6 @@ public class InviteCooperationEventFlowIntegrationTests(FitnessApiFactory factor
         // Prove the worker kept running after the failure, rather than crashing or stalling,
         // by draining a SECOND, unrelated send afterward.
         var secondClient = await TestActors.Client(factory).WithName("Second", "Client").CreateAsync();
-        await MarkEmailConfirmedAsync(secondClient.UserId);
         await CreateInviteAsync(coach.Http, secondClient.Email, "You too!");
 
         await FakeEmailService.WaitForAsync(() => EmailService.SentInvitations.Any(i => i.Email == secondClient.Email));

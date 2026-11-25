@@ -26,6 +26,16 @@ public class FitnessApiFactory(SharedTestContainers sharedContainers) : WebAppli
     private string _postgresConnectionString = string.Empty;
     private string _mongoDatabaseName = string.Empty;
 
+    /// <summary>
+    /// Remembers which host each client talks to, so <c>TestHelpers.RegisterAsync</c> can confirm the registered
+    /// account's email in this host's database (#1517).
+    /// </summary>
+    protected override void ConfigureClient(HttpClient client)
+    {
+        base.ConfigureClient(client);
+        TestHelpers.RememberHost(client, this);
+    }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         // Provide required secrets (test values only, not real credentials)
