@@ -968,7 +968,7 @@ export class ApiClient {
 
     /**
      * Delete current user account
-     * @return No Content
+     * @return Account deleted
      */
     deleteAccountEndpoint(signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/users/me";
@@ -1007,9 +1007,28 @@ export class ApiClient {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
 
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Account deletion failed", status, _responseText, _headers, result400);
+
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("User not found", status, _responseText, _headers);
+
+        } else if (status === 502) {
+            const _responseText = response.data;
+            return throwException("The payment provider failed; nothing was deleted (BILLING_PROVIDER_ERROR)", status, _responseText, _headers);
+
+        } else if (status === 503) {
+            const _responseText = response.data;
+            return throwException("A provider subscription must be cancelled or a provider customer deleted and Stripe is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -5711,7 +5730,7 @@ export class ApiClient {
             let result502: any = null;
             let resultData502  = _responseText;
             result502 = JSON.parse(resultData502);
-            return throwException("Stripe failed; nothing was saved (BILLING_PROVIDER_ERROR)", status, _responseText, _headers, result502);
+            return throwException("Stripe failed; nothing was saved when the price could not be created, otherwise the plan change is saved and a resend moves the remaining coaches (BILLING_PROVIDER_ERROR)", status, _responseText, _headers, result502);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -7307,6 +7326,70 @@ export class ApiClient {
     }
 
     /**
+     * Unhide recipe
+     * @param recipeId Route parameter — public id of the recipe to unhide.
+     * @return Recipe visible again
+     */
+    unhideRecipeEndpoint(recipeId: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/recipes/{recipeId}/unhide";
+        if (recipeId === undefined || recipeId === null)
+            throw new globalThis.Error("The parameter 'recipeId' must be defined.");
+        url_ = url_.replace("{recipeId}", encodeURIComponent("" + recipeId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "PUT",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUnhideRecipeEndpoint(_response);
+        });
+    }
+
+    protected processUnhideRecipeEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The coach role was removed", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Recipe not found, or another coach\'s private recipe", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Search recipes
      * @param mealType Optional meal type filter — matches a recipe carrying ANY of the supplied meal types. Bound
     from the repeated mealType query param.
@@ -7316,6 +7399,8 @@ export class ApiClient {
     values (System means the platform catalog). Bound from the repeated owner query param.
      * @param tagId Optional tags filter — matches a recipe the caller has tagged with ANY of the supplied tag
     ids. At most 20. Bound from the repeated tagId query param.
+     * @param hidden When true, returns only the recipes the caller has hidden instead of the
+    library without them. Defaults to false.
      * @param page Page number (1-based). Defaults to 1.
      * @param pageSize Number of items per page. Defaults to 20.
      * @param search (optional) Optional search term matched against recipe name and description.
@@ -7324,7 +7409,7 @@ export class ApiClient {
     Ignored when SortBy is null.
      * @return Success
      */
-    searchRecipesEndpoint(mealType: RecipeMealType[], dietaryPreference: DietaryPreference[], owner: FoodOwnerFilter[], tagId: string[], page: number, pageSize: number, search?: string | null | undefined, sortBy?: RecipeSortField | null | undefined, sortDir?: FoodSortDirection | null | undefined, signal?: AbortSignal): Promise<SearchRecipesResponse> {
+    searchRecipesEndpoint(mealType: RecipeMealType[], dietaryPreference: DietaryPreference[], owner: FoodOwnerFilter[], tagId: string[], hidden: boolean, page: number, pageSize: number, search?: string | null | undefined, sortBy?: RecipeSortField | null | undefined, sortDir?: FoodSortDirection | null | undefined, signal?: AbortSignal): Promise<SearchRecipesResponse> {
         let url_ = this.baseUrl + "/recipes?";
         if (mealType === undefined || mealType === null)
             throw new globalThis.Error("The parameter 'mealType' must be defined and cannot be null.");
@@ -7342,6 +7427,10 @@ export class ApiClient {
             throw new globalThis.Error("The parameter 'tagId' must be defined and cannot be null.");
         else
             tagId && tagId.forEach(item => { url_ += "tagId=" + encodeURIComponent("" + item) + "&"; });
+        if (hidden === undefined || hidden === null)
+            throw new globalThis.Error("The parameter 'hidden' must be defined and cannot be null.");
+        else
+            url_ += "hidden=" + encodeURIComponent("" + hidden) + "&";
         if (page === undefined || page === null)
             throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
         else
@@ -7715,6 +7804,74 @@ export class ApiClient {
     }
 
     /**
+     * Hide recipe
+     * @param recipeId Route parameter — public id of the recipe to hide.
+     * @return Recipe hidden
+     */
+    hideRecipeEndpoint(recipeId: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/recipes/{recipeId}/hide";
+        if (recipeId === undefined || recipeId === null)
+            throw new globalThis.Error("The parameter 'recipeId' must be defined.");
+        url_ = url_.replace("{recipeId}", encodeURIComponent("" + recipeId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "PUT",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processHideRecipeEndpoint(_response);
+        });
+    }
+
+    protected processHideRecipeEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            return throwException("The caller owns the recipe (RECIPE_HIDE_OWN_NOT_ALLOWED)", status, _responseText, _headers);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The coach role was removed", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Recipe not found, or another coach\'s private recipe", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Remove recipe image
      * @param recipeId The recipe's public identifier (from route).
      * @return Image cleared (or was already unset)
@@ -7849,6 +8006,78 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Copy recipe to own library
+     * @param recipeId Route parameter — public id of the recipe to copy.
+     * @return Copy created
+     */
+    copyRecipeEndpoint(recipeId: string, signal?: AbortSignal): Promise<GetRecipeResponse> {
+        let url_ = this.baseUrl + "/recipes/{recipeId}/copy";
+        if (recipeId === undefined || recipeId === null)
+            throw new globalThis.Error("The parameter 'recipeId' must be defined.");
+        url_ = url_.replace("{recipeId}", encodeURIComponent("" + recipeId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCopyRecipeEndpoint(_response);
+        });
+    }
+
+    protected processCopyRecipeEndpoint(response: AxiosResponse): Promise<GetRecipeResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<GetRecipeResponse>(result201);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            return throwException("An ingredient food is deleted or not visible to the caller", status, _responseText, _headers);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The subscription does not include recipes, or the coach role was removed", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Recipe not found, or another coach\'s private recipe", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetRecipeResponse>(null as any);
     }
 
     /**
@@ -12052,7 +12281,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid request, or the staged image upload was not found", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -13491,6 +13720,70 @@ export class ApiClient {
     }
 
     /**
+     * Unhide food
+     * @param foodId Route parameter — public id of the food to unhide.
+     * @return Food visible again
+     */
+    unhideFoodEndpoint(foodId: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/foods/{foodId}/unhide";
+        if (foodId === undefined || foodId === null)
+            throw new globalThis.Error("The parameter 'foodId' must be defined.");
+        url_ = url_.replace("{foodId}", encodeURIComponent("" + foodId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "PUT",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUnhideFoodEndpoint(_response);
+        });
+    }
+
+    protected processUnhideFoodEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The coach role was removed", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Food not found, deleted, or another coach\'s private food", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Search foods
      * @param category Optional category filter — matches a food carrying ANY of the supplied categories. Bound
     from the repeated category query param, so a single ?category=Dairy still
@@ -13501,6 +13794,8 @@ export class ApiClient {
     FoodOwnerFilter values. Bound from the repeated owner query param, so
     a single ?owner=Mine still binds a one-item list. At most 3 (one per enum member).
     None supplied applies no owner filter.
+     * @param hidden When true, returns only the foods the caller has hidden instead of the
+    library without them. Defaults to false.
      * @param page Page number (1-based). Defaults to 1.
      * @param pageSize Number of items per page. Defaults to 20.
      * @param q (optional) Free-text search query.
@@ -13511,7 +13806,7 @@ export class ApiClient {
     null.
      * @return Matching foods
      */
-    searchFoodsEndpoint(category: FoodCategory[], tagIds: string[], owner: FoodOwnerFilter[], page: number, pageSize: number, q?: string | null | undefined, sortBy?: FoodSortField | null | undefined, sortDir?: FoodSortDirection | null | undefined, signal?: AbortSignal): Promise<SearchFoodsResponse> {
+    searchFoodsEndpoint(category: FoodCategory[], tagIds: string[], owner: FoodOwnerFilter[], hidden: boolean, page: number, pageSize: number, q?: string | null | undefined, sortBy?: FoodSortField | null | undefined, sortDir?: FoodSortDirection | null | undefined, signal?: AbortSignal): Promise<SearchFoodsResponse> {
         let url_ = this.baseUrl + "/foods/search?";
         if (category === undefined || category === null)
             throw new globalThis.Error("The parameter 'category' must be defined and cannot be null.");
@@ -13525,6 +13820,10 @@ export class ApiClient {
             throw new globalThis.Error("The parameter 'owner' must be defined and cannot be null.");
         else
             owner && owner.forEach(item => { url_ += "owner=" + encodeURIComponent("" + item) + "&"; });
+        if (hidden === undefined || hidden === null)
+            throw new globalThis.Error("The parameter 'hidden' must be defined and cannot be null.");
+        else
+            url_ += "hidden=" + encodeURIComponent("" + hidden) + "&";
         if (page === undefined || page === null)
             throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
         else
@@ -13814,6 +14113,74 @@ export class ApiClient {
         } else if (status === 409) {
             const _responseText = response.data;
             return throwException("FOOD_IMAGES_CONFLICT \u2014 the images changed concurrently", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Hide food
+     * @param foodId Route parameter — public id of the food to hide.
+     * @return Food hidden
+     */
+    hideFoodEndpoint(foodId: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/foods/{foodId}/hide";
+        if (foodId === undefined || foodId === null)
+            throw new globalThis.Error("The parameter 'foodId' must be defined.");
+        url_ = url_.replace("{foodId}", encodeURIComponent("" + foodId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "PUT",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processHideFoodEndpoint(_response);
+        });
+    }
+
+    protected processHideFoodEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            return throwException("The caller owns the food (FOOD_HIDE_OWN_NOT_ALLOWED)", status, _responseText, _headers);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The coach role was removed", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Food not found, deleted, or another coach\'s private food", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -14230,6 +14597,74 @@ export class ApiClient {
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<FoodSummary>(null as any);
+    }
+
+    /**
+     * Copy food to own library
+     * @param foodId Route parameter — public id of the food to copy.
+     * @return Copy created
+     */
+    copyFoodEndpoint(foodId: string, signal?: AbortSignal): Promise<FoodSummary> {
+        let url_ = this.baseUrl + "/foods/{foodId}/copy";
+        if (foodId === undefined || foodId === null)
+            throw new globalThis.Error("The parameter 'foodId' must be defined.");
+        url_ = url_.replace("{foodId}", encodeURIComponent("" + foodId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCopyFoodEndpoint(_response);
+        });
+    }
+
+    protected processCopyFoodEndpoint(response: AxiosResponse): Promise<FoodSummary> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<FoodSummary>(result201);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The subscription does not include ingredients, or the coach role was removed", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Food not found, deleted, or another coach\'s private food", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -23001,7 +23436,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Invalid trigger or options, a progress photos message over 500 characters, or check-in fields that do not match the rule\'s form", status, _responseText, _headers, result400);
+            return throwException("Invalid trigger or options, a progress photos message over 500 characters, check-in fields that do not match the rule\'s form, or a check-in form that is inactive, not a check-in form, or sent for a rule that is not a check-in", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -23653,6 +24088,77 @@ export class ApiClient {
     }
 
     /**
+     * Resolve an invitation token to the invited email
+     * @return Invited email
+     */
+    resolveInviteTokenEndpoint(resolveInviteTokenRequest: ResolveInviteTokenRequest, signal?: AbortSignal): Promise<ResolveInviteTokenResponse> {
+        let url_ = this.baseUrl + "/auth/invite/resolve";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(resolveInviteTokenRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processResolveInviteTokenEndpoint(_response);
+        });
+    }
+
+    protected processResolveInviteTokenEndpoint(response: AxiosResponse): Promise<ResolveInviteTokenResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<ResolveInviteTokenResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Validation error", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Token unknown, expired or already used", status, _responseText, _headers);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ResolveInviteTokenResponse>(null as any);
+    }
+
+    /**
      * Reset password
      * @return Password reset; all sessions revoked
      */
@@ -24287,7 +24793,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Invalid, used or expired token, or the profession slot is already taken (PROFESSION_ALREADY_OCCUPIED)", status, _responseText, _headers, result400);
+            return throwException("Invalid, used, revoked, expired or not-addressed-to-caller token (INVALID_INVITATION), or the profession slot is already taken (PROFESSION_ALREADY_OCCUPIED)", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -24637,6 +25143,66 @@ export class ApiClient {
     }
 
     /**
+     * Get the admin overview attention block
+     * @return The attention block
+     */
+    getAdminAttentionEndpoint(signal?: AbortSignal): Promise<GetAdminAttentionResponse> {
+        let url_ = this.baseUrl + "/admin/overview/attention";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetAdminAttentionEndpoint(_response);
+        });
+    }
+
+    protected processGetAdminAttentionEndpoint(response: AxiosResponse): Promise<GetAdminAttentionResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetAdminAttentionResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Caller is not an Admin", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetAdminAttentionResponse>(null as any);
+    }
+
+    /**
      * List coaches
      * @param page Page number (1-based). Defaults to 1.
      * @param pageSize Number of rows per page, 1 to 100. Defaults to 20.
@@ -24798,7 +25364,7 @@ export class ApiClient {
             let result502: any = null;
             let resultData502  = _responseText;
             result502 = JSON.parse(resultData502);
-            return throwException("Stripe failed; nothing was saved (BILLING_PROVIDER_ERROR)", status, _responseText, _headers, result502);
+            return throwException("Stripe failed; the plan is unchanged and the refund stays owed for a retry (BILLING_PROVIDER_ERROR)", status, _responseText, _headers, result502);
 
         } else if (status === 503) {
             const _responseText = response.data;
@@ -24959,11 +25525,11 @@ export class ApiClient {
             let result409: any = null;
             let resultData409  = _responseText;
             result409 = JSON.parse(resultData409);
-            return throwException("No plan to end: no subscription, the Free plan, an ended paid plan, or a gift that has expired (NO_PLAN_TO_END)", status, _responseText, _headers, result409);
+            return throwException("No plan to end: no subscription, the Free plan, an ended paid plan, or a gift that has expired, and no refund left owed by an earlier attempt (NO_PLAN_TO_END)", status, _responseText, _headers, result409);
 
         } else if (status === 502) {
             const _responseText = response.data;
-            return throwException("Stripe failed; nothing was saved (BILLING_PROVIDER_ERROR)", status, _responseText, _headers);
+            return throwException("Stripe failed; the plan is unchanged and the refund stays owed for a retry (BILLING_PROVIDER_ERROR)", status, _responseText, _headers);
 
         } else if (status === 503) {
             const _responseText = response.data;
@@ -25327,27 +25893,20 @@ export interface CreateWorkoutTemplateSetRequest {
     restSeconds?: number | undefined;
 }
 
-/** RFC7807 compatible problem details/ error response class. this can be used by configuring startup like so: app.UseFastEndpoints(c => c.Errors.UseProblemDetails()) */
 export interface ProblemDetails {
     type?: string;
     title?: string;
     status?: number;
     instance?: string;
     traceId?: string;
-    /** the details of the error */
     detail?: string | undefined;
     errors?: ProblemDetails_Error[];
 }
 
-/** the error details object */
 export interface ProblemDetails_Error {
-    /** the name of the error or property of the dto that caused the error */
     name?: string;
-    /** the reason for the error */
     reason?: string;
-    /** the code of the error */
     code?: string | undefined;
-    /** the severity of the error */
     severity?: string | undefined;
 }
 
@@ -25864,6 +26423,10 @@ export interface SubscriptionFeaturesDto {
 export interface CurrentPromotionDto {
     /** Promotion name. */
     name?: string;
+    /** English promotion name; null when none was entered. */
+    nameEn?: string | undefined;
+    /** German promotion name; null when none was entered. */
+    nameDe?: string | undefined;
     /** Percentage or fixed amount. */
     kind?: PromotionKind;
     /** Percent (1 to 100), or the amount in the smallest unit of Currency. */
@@ -28375,6 +28938,10 @@ export interface PublicSubscriptionPlanDto {
 export interface PublicPromotionDto {
     /** Promotion name. */
     name?: string;
+    /** English promotion name; null when none was entered. */
+    nameEn?: string | undefined;
+    /** German promotion name; null when none was entered. */
+    nameDe?: string | undefined;
     /** Percentage or fixed amount. */
     kind?: PromotionKind;
     /** Percent (1 to 100), or the amount in the smallest unit of Currency. */
@@ -29131,6 +29698,10 @@ export interface RecipeFoodDto {
     note?: string | undefined;
 }
 
+/** Request for restoring a hidden recipe to the caller's library. */
+export interface UnhideRecipeRequest {
+}
+
 /** Paginated response for recipe search results. */
 export interface SearchRecipesResponse {
     /** List of matching recipes. */
@@ -29169,6 +29740,9 @@ export interface RecipeSummaryDto {
     version?: number;
     /** True when the recipe belongs to the platform catalog rather than a coach. */
     isSystem?: boolean;
+    /** True when the authenticated caller has hidden this recipe from their library. Only the caller's
+own flag is exposed, never who else hid it. */
+    isHiddenByCurrentUser?: boolean;
     /** Number of servings the recipe yields. */
     servings?: number;
     /** Meal types the recipe is suited for. */
@@ -29230,6 +29804,10 @@ export interface PromoteRecipeGalleryImageRequest {
     imageUrl: string;
 }
 
+/** Request for hiding a recipe from the caller's library. */
+export interface HideRecipeRequest {
+}
+
 /** Request model for retrieving a single recipe. */
 export interface GetRecipeRequest {
 }
@@ -29269,6 +29847,10 @@ title at most 120 and description at most 2000 characters, optional minutes 1 to
     foods: RecipeFoodDto[];
     /** Visibility of the recipe. Defaults to Private when omitted. */
     visibility?: RecipeVisibility;
+}
+
+/** Request for copying a recipe into the caller's own library. */
+export interface CopyRecipeRequest {
 }
 
 /** Request model for confirming the uploaded recipe image blob URL. */
@@ -29611,6 +30193,8 @@ export interface ClientFormAnswer {
     valueJson?: string | undefined;
     /** File URL, for upload questions. */
     fileUrl?: string | undefined;
+    /** Configured max of a scale question; null for other types or when the config has none. */
+    scaleMax?: number | undefined;
     /** Label of the section the question sits under, or null before the first section. */
     sectionLabel?: string | undefined;
     /** 0-based order of the section, or null when SectionLabel is null. */
@@ -31012,6 +31596,8 @@ export interface SendMessageResponse {
     imageUrl?: string | undefined;
     imageWidth?: number | undefined;
     imageHeight?: number | undefined;
+    /** Echo of the request's ClientMessageId; null when the send carried none. */
+    clientMessageId?: string | undefined;
 }
 
 export interface SendMessageRequest {
@@ -31023,6 +31609,10 @@ when absent, the message is text-only. */
     imageWidth?: number | undefined;
     /** Client-reported layout hint. Never trusted for security; ignored unless ImageUploadId is set. */
     imageHeight?: number | undefined;
+    /** Optional client-generated id that makes a retry safe. Reuse it only while the payload is
+unchanged; a repeat from the same sender in the same conversation within 24 hours returns
+the original message instead of creating another. */
+    clientMessageId?: string | undefined;
 }
 
 export interface MarkConversationReadRequest {
@@ -31350,6 +31940,9 @@ Lets clients distinguish the three Library badge states — System, Mine
 (IsOwnedByCurrentUser), and Shared (another coach's Public food, neither of
 the above) — without exposing the owner's identifier itself. */
     isSystem?: boolean;
+    /** True when the authenticated caller has hidden this food from their library. Only the caller's
+own flag is exposed, never who else hid it. */
+    isHiddenByCurrentUser?: boolean;
 }
 
 /** Nutrient values DTO for API responses. */
@@ -31430,6 +32023,10 @@ Only the food's creator can change this value. */
     commonServings: ServingSizeDto[];
 }
 
+/** Request for restoring a hidden food to the caller's library. */
+export interface UnhideFoodRequest {
+}
+
 /** Response model for food search results. */
 export interface SearchFoodsResponse {
     /** List of matching food items. */
@@ -31478,6 +32075,10 @@ export interface RemoveFoodGalleryImageRequest {
 export interface PromoteFoodGalleryImageRequest {
     /** The exact stored gallery URL to promote. */
     imageUrl: string;
+}
+
+/** Request for hiding a food from the caller's library. */
+export interface HideFoodRequest {
 }
 
 /** The food tags owned by the calling nutritionist. */
@@ -31553,6 +32154,10 @@ a coach-authored ingredient starts out visible only to its creator. */
     dietaryPreferences?: DietaryPreference[];
     /** Common serving sizes. The first entry is the default serving and is required. */
     commonServings: ServingSizeDto[];
+}
+
+/** Request for copying a food into the caller's own library. */
+export interface CopyFoodRequest {
 }
 
 /** Request model for confirming the uploaded food image blob URL. */
@@ -32034,6 +32639,10 @@ no add-on. A promotion that covers a plan always discounts its add-on line too. 
 export interface CoachPromotionDto {
     /** Promotion name. */
     name?: string;
+    /** English promotion name; null when none was entered. */
+    nameEn?: string | undefined;
+    /** German promotion name; null when none was entered. */
+    nameDe?: string | undefined;
     /** Percentage or fixed amount. */
     kind?: PromotionKind;
     /** Percent (1 to 100), or the amount in the smallest unit of Currency. */
@@ -35086,6 +35695,9 @@ export interface PauseClientAutomationRequest {
 
 /** Request for customising a global rule for one client; the body is the customised message, trigger and options. */
 export interface OverrideClientAutomationRequest extends AutomationTriggerBody {
+    /** Public id of the check-in form this client gets instead of the rule's own; null keeps (or returns to) the
+rule's form. Only valid on a check-in rule. */
+    checkInQuestionnaireId?: string | undefined;
 }
 
 /** A client's effective automation rules with a 30-day summary of what was sent. */
@@ -35110,6 +35722,10 @@ export interface ClientAutomationItem {
     actionType?: AutomationActionType | undefined;
     /** Public id of the questionnaire a SendForm rule sends. */
     questionnaireId?: string | undefined;
+    /** Public id of the check-in form this client gets instead of the rule's own; null when they follow the rule's form. */
+    checkInQuestionnaireId?: string | undefined;
+    /** Title of the client's own check-in form; null when they follow the rule's form. */
+    checkInQuestionnaireName?: string | undefined;
     /** Effective message. */
     message?: string | undefined;
     /** Effective trigger kind; null for a linked check-in row. */
@@ -35341,6 +35957,18 @@ must be absent for a coach sign-up. Ignored when the Apple identity is already l
     healthDataConsent?: boolean | undefined;
 }
 
+/** The email an invitation token was issued for. */
+export interface ResolveInviteTokenResponse {
+    /** Invited email address. */
+    email?: string;
+}
+
+/** Request for resolving an invitation token to the invited email. */
+export interface ResolveInviteTokenRequest {
+    /** The invitation token from the invite link. */
+    token: string;
+}
+
 /** Request model for completing a password reset using a token. */
 export interface ResetPasswordRequest {
     /** The password reset token received via email. */
@@ -35388,6 +36016,8 @@ export interface RegisterRequest {
     /** Explicit consent for processing health data under GDPR Art. 9.
 Must be true for the Client role; must be null for Trainer and Nutritionist roles. */
     healthDataConsent?: boolean | undefined;
+    /** Optional invitation token from an invite link. When valid, the email and Client role are bound to the invite. */
+    inviteToken?: string | undefined;
 }
 
 /** Response model returned after successful token refresh. */
@@ -35518,6 +36148,13 @@ previous window of the same length. */
     /** Distinct coaches who cancelled in the period divided by the baseline snapshot's paying coach count, in percent.
 Null when there is no baseline or it had no paying coach. */
     churnPercent?: number | undefined;
+    /** Churn of the previous window of the same length: distinct coaches who cancelled in it divided by the paying coach
+count of its baseline snapshot (the earliest one inside that window), in percent. Null when that window holds no
+snapshot or its baseline had no paying coach. */
+    churnPercentPrevious?: number | undefined;
+    /** Paying coaches now, including failed and cancelling ones. Previous is the paying coach count of the baseline
+snapshot, null when there is no baseline. */
+    payingCoaches?: AdminReportCountDto;
     /** Paying coaches and plan-line revenue after promotions per plan. */
     plans?: AdminReportPlanRevenueDto[];
     /** Second-role add-ons per currency. */
@@ -35600,6 +36237,9 @@ export interface AdminReportAddOnDto {
 export interface AdminReportFunnelDto {
     /** Sign-ups in the period. */
     signedUp?: number;
+    /** Sign-ups in the previous window of the same length. Always a count, 0 when there are none, because it comes from
+the event history and not a snapshot; 0 before the events were recorded means no data. */
+    signedUpPrevious?: number | undefined;
     /** Distinct sign-ups who verified their email, on or after sign-up. */
     emailVerified?: number;
     /** Distinct sign-ups who chose a plan, on or after sign-up. */
@@ -35672,6 +36312,10 @@ export interface PromotionDto {
     promotionId?: string;
     /** Admin-facing name. */
     name?: string;
+    /** English name; null when none was entered. */
+    nameEn?: string | undefined;
+    /** German name; null when none was entered. */
+    nameDe?: string | undefined;
     /** Percentage or fixed amount. */
     kind?: PromotionKind;
     /** Percent (1 to 100), or the amount in the smallest unit of Currency. */
@@ -35741,6 +36385,10 @@ export interface EndPromotionRequest {
 export interface CreatePromotionRequest {
     /** Admin-facing name, up to 200 characters. */
     name: string;
+    /** Optional English name for coaches and visitors, up to 200 characters. */
+    nameEn?: string | undefined;
+    /** Optional German name for coaches and visitors, up to 200 characters. */
+    nameDe?: string | undefined;
     /** Percentage or fixed amount. */
     kind?: PromotionKind;
     /** Percent (1 to 100), or the amount in the smallest unit of Currency. */
@@ -35770,6 +36418,46 @@ to have an open annual price. */
     newCoachesOnly?: boolean;
     /** True to let a coach claim it once. */
     oneUsePerCoach?: boolean;
+}
+
+/** The "needs attention" block of the admin overview: failed payments, cancelling coaches, gifts about to end and promotions about to run out. */
+export interface GetAdminAttentionResponse {
+    /** Number of paying coaches whose last payment failed. */
+    paymentFailedCount?: number;
+    /** Up to three of those coaches, ordered by last name, first name and id. */
+    paymentFailedCoaches?: AdminAttentionCoachDto[];
+    /** Number of paying coaches who cancelled their renewal. */
+    cancellingCount?: number;
+    /** Earliest paid-period end among the cancelling coaches; null when there is none. */
+    cancellingEarliestPeriodEndsAt?: string | undefined;
+    /** Latest paid-period end among the cancelling coaches; null when there is none. */
+    cancellingLatestPeriodEndsAt?: string | undefined;
+    /** Number of given-free plans that end within the next 14 days (open-ended gifts excluded). */
+    givenFreeEndingSoonCount?: number;
+    /** Active promotions whose claim window closes within 14 days or whose uses are at least 90 % taken. */
+    promotionsEndingSoon?: AdminAttentionPromotionDto[];
+}
+
+/** A coach named in the attention block. */
+export interface AdminAttentionCoachDto {
+    /** The coach's user id, the same id the Coaches list uses. */
+    coachId?: string;
+    /** Display name. */
+    name?: string;
+}
+
+/** A promotion named in the attention block. */
+export interface AdminAttentionPromotionDto {
+    /** Public id of the promotion. */
+    promotionId?: string;
+    /** Admin-facing name. */
+    name?: string;
+    /** When the claim window closes; null for no end. */
+    claimUntil?: string | undefined;
+    /** How many coaches claimed it. */
+    usedCount?: number;
+    /** Use limit; null for no limit. */
+    maxUses?: number | undefined;
 }
 
 /** One page of coaches plus the stats over all coaches. */

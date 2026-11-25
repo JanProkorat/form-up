@@ -12281,7 +12281,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid request, or the staged image upload was not found", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -25893,27 +25893,20 @@ export interface CreateWorkoutTemplateSetRequest {
     restSeconds?: number | undefined;
 }
 
-/** RFC7807 compatible problem details/ error response class. this can be used by configuring startup like so: app.UseFastEndpoints(c => c.Errors.UseProblemDetails()) */
 export interface ProblemDetails {
     type?: string;
     title?: string;
     status?: number;
     instance?: string;
     traceId?: string;
-    /** the details of the error */
     detail?: string | undefined;
     errors?: ProblemDetails_Error[];
 }
 
-/** the error details object */
 export interface ProblemDetails_Error {
-    /** the name of the error or property of the dto that caused the error */
     name?: string;
-    /** the reason for the error */
     reason?: string;
-    /** the code of the error */
     code?: string | undefined;
-    /** the severity of the error */
     severity?: string | undefined;
 }
 
@@ -31603,6 +31596,8 @@ export interface SendMessageResponse {
     imageUrl?: string | undefined;
     imageWidth?: number | undefined;
     imageHeight?: number | undefined;
+    /** Echo of the request's ClientMessageId; null when the send carried none. */
+    clientMessageId?: string | undefined;
 }
 
 export interface SendMessageRequest {
@@ -31614,6 +31609,10 @@ when absent, the message is text-only. */
     imageWidth?: number | undefined;
     /** Client-reported layout hint. Never trusted for security; ignored unless ImageUploadId is set. */
     imageHeight?: number | undefined;
+    /** Optional client-generated id that makes a retry safe. Reuse it only while the payload is
+unchanged; a repeat from the same sender in the same conversation within 24 hours returns
+the original message instead of creating another. */
+    clientMessageId?: string | undefined;
 }
 
 export interface MarkConversationReadRequest {
