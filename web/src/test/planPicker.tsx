@@ -3,7 +3,17 @@
  * coach's subscription and roles, and recorders for the billing requests a screen sends. Per-test overrides go on
  * `servePlanScreens`; the billing writes are served by `servePlanPreview`, `serveChangePlan` and `serveCheckout`.
  */
-import { BillingInterval, BillingTaxMode, PlanChangeTiming, SecondRoleState, SubscriptionPriceLineKind, SubscriptionStatus } from '@/api/generated';
+import { afterEach, vi } from 'vitest';
+import {
+  BillingInterval,
+  BillingTaxMode,
+  PlanChangeTiming,
+  PromotionDuration,
+  PromotionKind,
+  SecondRoleState,
+  SubscriptionPriceLineKind,
+  SubscriptionStatus,
+} from '@/api/generated';
 import type {
   ChangePlanRequest,
   CoachPlanDto,
@@ -18,6 +28,7 @@ import type {
 import { renderWithProviders } from '@/test/render';
 import { HttpResponse, apiUrl, http } from '@/test/msw/handlers';
 import { server } from '@/test/msw/server';
+import { useToastStore } from '@/stores/toast';
 
 export const CHECKOUT_URL = 'https://checkout.stripe.test/c/pay/cs_test_plan_picker';
 /** A fixed renewal date, well after the pinned "now" of the tests that read it. */
@@ -116,6 +127,7 @@ const SINGLE_ROLE: GetMyCoachRolesResponse = {
 };
 
 interface ServeOptions {
+  taxMode?: BillingTaxMode;
   subscription?: GetMySubscriptionResponse;
   plans?: CoachPlanDto[];
   promotion?: CoachPromotionDto;
@@ -124,17 +136,94 @@ interface ServeOptions {
 
 /** Serves the reads the plan screens load in the background. */
 export function servePlanScreens({
+  taxMode = BillingTaxMode.None,
   subscription = freeSubscription,
   plans = ANNUAL_PLANS,
   promotion,
   roles = SINGLE_ROLE,
 }: ServeOptions = {}) {
-  const body: GetCoachPlansResponse = { plans, taxMode: BillingTaxMode.None, promotion };
+  const body: GetCoachPlansResponse = { plans, taxMode, promotion };
   server.use(
     http.get(apiUrl('/users/me/subscription'), () => HttpResponse.json(subscription)),
     http.get(apiUrl('/users/me/subscription/plans'), () => HttpResponse.json(body)),
     http.get(apiUrl('/users/me/roles'), () => HttpResponse.json(roles)),
   );
+}
+
+/** The "now" the date-dependent plan tests run at; only `Date` is faked, so msw and Query timers stay real. */
+export const PINNED_NOW = '2026-11-25T12:00:00Z';
+
+/** Pins `Date` to `PINNED_NOW` for one test; the real clock comes back after it. */
+export function pinNow() {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date(PINNED_NOW));
+}
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
+/** The messages of the toasts shown so far (a page test mounts no Toaster, so the store is the place to read them). */
+export const toastMessages = () => useToastStore.getState().toasts.map((toast) => toast.message);
+
+/** The offer the picker tests run under: 30 % off for the first 3 months, claimable until the end of the year. */
+export const LAUNCH_OFFER: CoachPromotionDto = {
+  name: 'Launch offer',
+  kind: PromotionKind.Percent,
+  value: 30,
+  duration: PromotionDuration.Months,
+  durationMonths: 3,
+  claimUntil: '2026-12-31T12:00:00Z',
+  planCodes: ['start', 'pro', 'studio'],
+};
+
+/** The plans as the server shows them under `LAUNCH_OFFER`: it sends the discounted prices, the page never computes them. */
+export function plansUnderOffer(coverage: 'all' | 'proOnly'): CoachPlanDto[] {
+  const discounted: Record<string, { price: number; addOn?: number }> = {
+    start: { price: 20900, addOn: 10400 },
+    pro: { price: 41900, addOn: 20900 },
+    studio: { price: 69900 },
+  };
+  return ANNUAL_PLANS.map((plan) => {
+    const prices = discounted[plan.code ?? ''];
+    const covered = prices !== undefined && (coverage === 'all' || plan.code === 'pro');
+    return covered
+      ? { ...plan, discountedPriceMinorUnits: prices.price, discountedSecondRoleAddOnPriceMinorUnits: prices.addOn }
+      : plan;
+  });
+}
+
+/** A live paid coach whose switch to `target` is scheduled for the end of the period. */
+export function scheduledChangeSubscription(
+  target: 'free' | 'start',
+  cancellable: boolean,
+  overrides: Partial<GetMySubscriptionResponse> = {},
+): GetMySubscriptionResponse {
+  return liveSubscription('pro', BillingInterval.Monthly, {
+    secondRole: SecondRoleState.NotAvailable,
+    cancelAtPeriodEnd: target === 'free',
+    scheduledPlan: {
+      planCode: target,
+      nameEn: target === 'free' ? 'Free' : 'Start',
+      startsAt: PERIOD_END,
+      cancellable,
+      billingInterval: BillingInterval.Monthly,
+      priceLines: [],
+    },
+    ...overrides,
+  });
+}
+
+/** A coach on Pro set by Form Up: no Stripe subscription, no billing account, an optional gift end date. */
+export function formUpSubscription(freeUntil?: string): GetMySubscriptionResponse {
+  return {
+    ...freeSubscription,
+    planCode: 'pro',
+    nameEn: 'Pro',
+    isSetByFormUp: true,
+    secondRole: SecondRoleState.NotAvailable,
+    freeUntil,
+  };
 }
 
 /** Records the preview request bodies; answers each with `respond(body)` (a plain "now" preview by default). */
