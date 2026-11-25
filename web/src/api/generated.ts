@@ -1028,7 +1028,7 @@ export class ApiClient {
 
         } else if (status === 503) {
             const _responseText = response.data;
-            return throwException("A provider subscription must be cancelled and Stripe is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers);
+            return throwException("A provider subscription must be cancelled or a provider customer deleted and Stripe is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -25364,7 +25364,7 @@ export class ApiClient {
             let result502: any = null;
             let resultData502  = _responseText;
             result502 = JSON.parse(resultData502);
-            return throwException("Stripe failed; nothing was saved (BILLING_PROVIDER_ERROR)", status, _responseText, _headers, result502);
+            return throwException("Stripe failed; the plan is unchanged and the refund stays owed for a retry (BILLING_PROVIDER_ERROR)", status, _responseText, _headers, result502);
 
         } else if (status === 503) {
             const _responseText = response.data;
@@ -25525,11 +25525,11 @@ export class ApiClient {
             let result409: any = null;
             let resultData409  = _responseText;
             result409 = JSON.parse(resultData409);
-            return throwException("No plan to end: no subscription, the Free plan, an ended paid plan, or a gift that has expired (NO_PLAN_TO_END)", status, _responseText, _headers, result409);
+            return throwException("No plan to end: no subscription, the Free plan, an ended paid plan, or a gift that has expired, and no refund left owed by an earlier attempt (NO_PLAN_TO_END)", status, _responseText, _headers, result409);
 
         } else if (status === 502) {
             const _responseText = response.data;
-            return throwException("Stripe failed; nothing was saved (BILLING_PROVIDER_ERROR)", status, _responseText, _headers);
+            return throwException("Stripe failed; the plan is unchanged and the refund stays owed for a retry (BILLING_PROVIDER_ERROR)", status, _responseText, _headers);
 
         } else if (status === 503) {
             const _responseText = response.data;
