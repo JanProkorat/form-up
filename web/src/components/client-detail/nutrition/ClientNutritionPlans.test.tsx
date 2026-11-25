@@ -127,6 +127,26 @@ describe('Nutrition tab: past plans and templates', () => {
     expect(saved[0]).toMatchObject({ planId: COMPLETED_PLAN_ID, name: 'Summer cut template', visibility: LibraryVisibility.Private });
   });
 
+  it('derives the dates and week count of a past plan that has no end date', async () => {
+    pinNow(new Date(2026, 5, 10, 12, 0, 0));
+    const state = newClientDetailState();
+    serveClientDetail(state);
+    seedActivePlan(state);
+    addPlan(state, {
+      planId: COMPLETED_PLAN_ID,
+      name: 'Open-ended cut',
+      periodStart: '2026-01-05',
+      status: 'Completed',
+      weekCount: 6,
+    });
+
+    renderNutritionTab();
+
+    const past = await screen.findByRole('region', { name: 'Past plans' });
+    // Six weeks from Mon 5 Jan end on Sun 15 Feb.
+    expect(within(past).getByText('Jan 5 – Feb 15 · 6 weeks')).toBeInTheDocument();
+  });
+
   it('shows the empty state with matched templates and starts a draft from one', async () => {
     // The seeded client's goal is LoseFat: the two LoseFat templates are recommended, the other three are not.
     const state = newClientDetailState({
