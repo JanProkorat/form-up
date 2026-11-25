@@ -16,6 +16,12 @@ public class ChatMessage : PublicTimestampableEntity
     public const int MaxTextLength = 4000;
 
     /// <summary>
+    /// Database name of the unique index behind <see cref="ClientMessageId"/>; the send race
+    /// handler matches the Postgres constraint name against it.
+    /// </summary>
+    public const string ClientMessageIdIndexName = "ix_chat_messages_client_message_id";
+
+    /// <summary>
     /// The conversation this message belongs to.
     /// </summary>
     public long ConversationId { get; set; }
@@ -92,6 +98,13 @@ public class ChatMessage : PublicTimestampableEntity
     /// never trusted for security. Null when the message carries no image.
     /// </summary>
     public int? ImageHeight { get; set; }
+
+    /// <summary>
+    /// Client-generated id that makes a send retry-safe. Unique per
+    /// (ConversationId, SenderUserId) while set; cleared once the replay window has passed.
+    /// Null for event rows and for sends that carried no id.
+    /// </summary>
+    public Guid? ClientMessageId { get; set; }
 
     /// <summary>
     /// Navigation property to the conversation.
