@@ -465,6 +465,41 @@
       "notionPageId": null
     },
     {
+      "id": "web.clients.detail-forms",
+      "app": "web",
+      "area": "Clients",
+      "title": "Client detail — Forms",
+      "route": "/clients/:clientId/forms",
+      "roles": ["Trainer", "Nutritionist"],
+      "files": [
+        "web/src/pages/ClientDetailPage.tsx",
+        "web/src/components/client-detail/**",
+        "web/src/components/client-forms/**",
+        "web/src/components/client-plan-editor/forms/FormCard.tsx",
+        "web/src/components/client-plan-editor/forms/planEditorForms.ts",
+        "web/src/components/client-plan-editor/onboardingChipClasses.ts",
+        "web/src/api/questionnaires.ts",
+        "web/src/hooks/useQuestionnaireQueries.ts",
+        "web/src/hooks/useSubscriptionQueries.ts",
+        "web/src/components/subscription/PaywallCard.tsx",
+        "web/src/components/subscription/PaywallDialog.tsx",
+        "web/src/components/subscription/planLinks.ts",
+        "web/src/lib/subscriptionErrors.ts"
+      ],
+      "endpoints": [
+        "GET /trainer/clients/{clientPublicId}/forms",
+        "POST /trainer/clients/{clientPublicId}/forms/{responsePublicId}/seen",
+        "POST /trainer/clients/{clientPublicId}/assign-questionnaire",
+        "GET /trainer/questionnaires",
+        "GET /users/me/subscription"
+      ],
+      "board": "PageClientForms",
+      "shots": [
+        { "name": "default", "steps": "sign in as the trainer, open /clients, click 'QA Client', open the Forms tab, select 'QA Onboarding Questionnaire' and wait for its answers to load (board PageClientForms)" }
+      ],
+      "notionPageId": null
+    },
+    {
       "id": "web.clients.detail-payment",
       "app": "web",
       "area": "Clients",
@@ -607,6 +642,7 @@
       "files": [
         "web/src/pages/ClientPlanEditorPage.tsx",
         "web/src/components/client-plan-editor/**",
+        "web/src/components/client-forms/**",
         "web/src/components/plan-editor/**",
         "web/src/components/editor/**",
         "web/src/hooks/useClientPlanEditor.ts",
