@@ -222,6 +222,8 @@ interface Props {
   libraryExtraTab?: PlanEditorLibraryTab;
   /** Adds top-level tabs to the side panel, after Plan info and Library. */
   extraSideTabs?: EditorSideTabDef<EditorSideTab>[];
+  /** On a read-only plan, still shows the side panel with the info and extra tabs, without the library. */
+  sidePanelWhenReadOnly?: boolean;
   /** Publication state per week: shows a dot on each pill (empty weeks get a dashed ring) and a count legend. */
   weekStatus?: (weekIndex: number) => WeekStatus | undefined;
   /** Rendered last in the header row, e.g. a plan actions menu. */
@@ -411,6 +413,7 @@ export default function PlanEditor({
   infoTabLabel,
   libraryExtraTab,
   extraSideTabs,
+  sidePanelWhenReadOnly,
   weekStatus,
   renderHeaderActions,
   renderBanner,
@@ -1618,7 +1621,7 @@ export default function PlanEditor({
         }
       : null;
 
-  const sideTabs: EditorSideTabDef<EditorSideTab>[] = [
+  const allSideTabs: EditorSideTabDef<EditorSideTab>[] = [
     {
       id: 'info',
       label: infoTabLabel ?? t('planEditor.info.tab'),
@@ -1661,6 +1664,9 @@ export default function PlanEditor({
     },
     ...(extraSideTabs ?? []),
   ];
+  // The library has nothing to offer on a plan that cannot be edited.
+  const sideTabs = readOnly ? allSideTabs.filter((def) => def.id !== 'library') : allSideTabs;
+  const activeSideTab: EditorSideTab = readOnly && sideTab === 'library' ? 'info' : sideTab;
 
   return (
     <SyncConflictsContext.Provider value={conflictsModel}>
@@ -1730,10 +1736,10 @@ export default function PlanEditor({
       }}
     >
       <div className="flex h-full min-h-0">
-        {!readOnly && (
+        {(!readOnly || sidePanelWhenReadOnly) && (
           <EditorSidePanel
             tabs={sideTabs}
-            tab={sideTab}
+            tab={activeSideTab}
             onTabChange={setSideTab}
             open={libraryOpen}
             onOpenChange={setLibraryOpen}
