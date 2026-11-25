@@ -14,6 +14,7 @@ import SaveAsTemplateDialog from '@/components/client-detail/nutrition/SaveAsTem
 import { copyNutritionPlan } from '@/api/plans';
 import { showApiError, showSuccess } from '@/lib/api-errors';
 import { formatSignedNumber } from '@/lib/client-metrics';
+import { planEndDate } from '@/components/client-plan-editor/clientPlanDates';
 import type { ClientPlanItem } from '@/api/generated';
 import {
   diffDays,
@@ -50,8 +51,16 @@ function PastPlanRow({
   const start = parseCalendarDate(plan.periodStart);
   const end = parseCalendarDate(plan.periodEnd);
 
-  const dates = start && end ? `${formatShortDate(start, locale)} – ${formatShortDate(end, locale)}` : undefined;
-  const weeks = start && end ? Math.max(1, Math.ceil((diffDays(end, start) + 1) / DAYS_PER_WEEK)) : undefined;
+  const plannedWeeks = plan.weekCount && plan.weekCount > 0 ? plan.weekCount : undefined;
+  // A plan without a recorded end date (archived, never completed) falls back to its planned length.
+  const shownEnd =
+    end ??
+    (start && plannedWeeks && plan.periodStart
+      ? parseCalendarDate(planEndDate(plan.periodStart.slice(0, 10), plannedWeeks))
+      : undefined);
+
+  const dates = start && shownEnd ? `${formatShortDate(start, locale)} – ${formatShortDate(shownEnd, locale)}` : undefined;
+  const weeks = start && end ? Math.max(1, Math.ceil((diffDays(end, start) + 1) / DAYS_PER_WEEK)) : plannedWeeks;
   const detail = [dates, weeks ? t('clientDetail.nutrition.past.weeks', { count: weeks }) : undefined]
     .filter(Boolean)
     .join(' · ');
