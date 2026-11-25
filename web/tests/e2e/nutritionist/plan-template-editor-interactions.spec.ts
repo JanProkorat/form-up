@@ -443,9 +443,13 @@ test.describe('plan template editor interactions', () => {
       await page.goto(`/plan-templates/${templateId}`);
       await libraryPanel(page).getByRole('tab', { name: 'Ingredients' }).click();
       await page.getByLabel('Search ingredients…').fill('Apple');
-      const card = libraryPanel(page).getByTestId('library-card').first();
+      // Resolve the card by its accessible control, not position: the list shown before the
+      // debounced q=Apple response lands is kept visible (keepPreviousData), so `.first()` can
+      // be another food, and that card unmounts (closing its popover) when the filtered list arrives.
+      const detailsButton = page.getByRole('button', { name: 'Show details of Apple', exact: true });
+      const card = libraryPanel(page).getByTestId('library-card').filter({ has: detailsButton });
       await expect(card.locator('svg.lucide-apple')).toHaveCount(1);
-      await card.getByRole('button', { name: /^Show details of / }).click();
+      await card.getByRole('button', { name: 'Show details of Apple', exact: true }).click();
 
       const info = page.getByTestId('library-info');
       await expect(info).toBeVisible();
