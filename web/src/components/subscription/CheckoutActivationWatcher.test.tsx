@@ -22,12 +22,12 @@ import {
   serveSubscriptionFlag,
   storedWatch,
   toastsShown,
-  useWatchClock,
+  fakeWatchClock,
 } from '@/test/checkoutReturn';
 
 /** A watch already running, as the return page leaves it, with the shell and the watcher mounted. */
 function startWatching(initiallyPaid = false) {
-  useWatchClock();
+  fakeWatchClock();
   const subscription = serveSubscriptionFlag(initiallyPaid);
   useCheckoutActivationStore.getState().start(COACH_ID);
   const rendered = renderProtectedShell('/settings');
@@ -83,7 +83,7 @@ describe('CheckoutActivationWatcher', () => {
   });
 
   it('does not poll for a watch that belongs to another coach', async () => {
-    useWatchClock();
+    fakeWatchClock();
     const subscription = serveSubscriptionFlag(false);
     useCheckoutActivationStore.setState({
       startedAt: Date.now() - 1_000,

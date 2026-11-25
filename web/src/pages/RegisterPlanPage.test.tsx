@@ -638,7 +638,7 @@ describe('RegisterPlanPage roles', () => {
     const { router } = renderWithProviders(
       [
         { element: <RoleGuard allowedRoles={['Trainer', 'Nutritionist']} />, children: [{ path: '/register/plan', element: <RegisterPlanPage /> }] },
-        { path: '/clients', element: <p>Clients page</p> },
+        { path: '/clients', element: <p>{'Clients page'}</p> },
       ],
       { initialEntries: ['/register/plan'], auth: { roles: ['Trainer'] } },
     );

@@ -65,7 +65,7 @@ export function serveSubscriptionFlag(initiallyPaid: boolean): SubscriptionMock 
 }
 
 /** Fakes the timers and `Date` at `WATCH_NOW`; real time keeps flowing so msw answers and Query timers still run. */
-export function useWatchClock() {
+export function fakeWatchClock() {
   vi.useFakeTimers({ shouldAdvanceTime: true });
   vi.setSystemTime(new Date(WATCH_NOW));
 }
@@ -112,12 +112,12 @@ export function renderProtectedShell(path: string, roles = ['Trainer']) {
       {
         element: <ProtectedRoute />,
         children: [
-          { path: '/settings', element: <p>Settings page</p> },
+          { path: '/settings', element: <p>{'Settings page'}</p> },
           { path: '/billing/success', element: <BillingReturnPage /> },
           { path: '/billing/cancel', element: <BillingReturnPage /> },
         ],
       },
-      { path: '/login', element: <p>Login page</p> },
+      { path: '/login', element: <p>{'Login page'}</p> },
     ],
     { initialEntries: [path], auth: { roles } },
   );

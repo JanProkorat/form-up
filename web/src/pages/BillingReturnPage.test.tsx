@@ -17,12 +17,12 @@ import {
   serveSubscriptionFlag,
   storedWatch,
   toastsShown,
-  useWatchClock,
+  fakeWatchClock,
 } from '@/test/checkoutReturn';
 
 describe('BillingReturnPage after Checkout', () => {
   it('a plan that is already paid continues without a note', async () => {
-    useWatchClock();
+    fakeWatchClock();
     serveSubscriptionFlag(true);
 
     const { router } = renderProtectedShell('/billing/success');
@@ -36,7 +36,7 @@ describe('BillingReturnPage after Checkout', () => {
   });
 
   it('gives up after 10 seconds: shows the pending note once and starts the watch for this coach', async () => {
-    useWatchClock();
+    fakeWatchClock();
     serveSubscriptionFlag(false);
 
     const rendered = renderProtectedShell('/billing/success');
