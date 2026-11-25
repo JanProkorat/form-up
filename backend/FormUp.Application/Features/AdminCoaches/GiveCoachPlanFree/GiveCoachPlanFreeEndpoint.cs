@@ -49,10 +49,10 @@ internal sealed class GiveCoachPlanFreeEndpoint(
                             "paid Stripe subscription never run together: a coach with an Active, Trialing, PastDue or Incomplete Stripe " +
                             "subscription has it cancelled at once and the unused days of the paid period are refunded to the card (nothing " +
                             "for a payment that never went through or a 100 % discount). The second-role add-on ends with the subscription, " +
-                            "and the given plan includes both professional roles while it is in force (no role is removed when it ends). If Stripe fails nothing is saved and repeating the call is safe.";
+                            "and the given plan includes both professional roles while it is in force (no role is removed when it ends). If Stripe fails the plan is unchanged, the refund stays owed and repeating the call pays it once, even after Stripe's webhook already cancelled the subscription.";
             s.Response<GiveCoachPlanFreeResponse>(StatusCodes.Status200OK, "The plan as it now stands");
             s.Response<ProblemDetails>(StatusCodes.Status502BadGateway,
-                "Stripe failed; nothing was saved (BILLING_PROVIDER_ERROR)");
+                "Stripe failed; the plan is unchanged and the refund stays owed for a retry (BILLING_PROVIDER_ERROR)");
             s.Response<ProblemDetails>(StatusCodes.Status503ServiceUnavailable,
                 "The coach has a cancellable Stripe subscription and Stripe is not configured on this server (BILLING_NOT_CONFIGURED)");
             s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Invalid request body");
@@ -102,24 +102,28 @@ internal sealed class GiveCoachPlanFreeEndpoint(
 
         // Stripe first, read untracked: the cancel takes seconds and Stripe's deleted webhook can rewrite the row meanwhile.
         // The row is tracked only afterwards, so every assignment below is compared with what is stored now, not with a
-        // value loaded before the cancel. A refusal leaves the row untouched.
+        // value loaded before the cancel. A refusal leaves the plan untouched and the refund owed (marker).
         var beforeCancel = await db.CoachSubscriptions
             .AsNoTracking()
             .FirstOrDefaultAsync(cs => cs.ProfessionalProfileId == profileId, ct);
         var cancelsAtProvider = beforeCancel?.HasCancellableProviderSubscription ?? false;
         var endedAddOn = beforeCancel?.PaysSecondRoleAddOn ?? false;
+        var pendingId = beforeCancel?.PendingRefundSubscriptionId;
+        var cancellableId = cancelsAtProvider ? beforeCancel!.ExternalSubscriptionId : null;
+        var settlesAtProvider = pendingId is not null || cancellableId is not null;
         var refund = CancelRefundResult.None;
 
-        if (cancelsAtProvider)
+        // A refund an earlier attempt left owed (marker) is paid now even after the webhook cleared the live id.
+        if (settlesAtProvider)
         {
-            var cancelled = await TryCancelAtProviderAsync(beforeCancel!.ExternalSubscriptionId!, ct);
+            var settled = await TrySettleAtProviderAsync(beforeCancel!.Id, pendingId, cancellableId, ct);
 
-            if (cancelled is null)
+            if (settled is null)
             {
                 return;
             }
 
-            refund = cancelled;
+            refund = settled;
         }
 
         var subscription = await db.CoachSubscriptions
@@ -142,6 +146,7 @@ internal sealed class GiveCoachPlanFreeEndpoint(
         subscription.GivenFreeAt = now;
         subscription.FreeUntil = req.FreeUntil;
         subscription.Status = SubscriptionStatus.Active;
+        subscription.PendingRefundSubscriptionId = null;
 
         // The add-on is billed on the subscription that was just cancelled. Only the billing flags go; no role is removed, so
         // the coach keeps what they hold. A given plan includes both roles while it is in force (EntitlementService).
@@ -172,7 +177,7 @@ internal sealed class GiveCoachPlanFreeEndpoint(
         {
             ["planCode"] = req.PlanCode,
             ["freeUntil"] = req.FreeUntil?.ToString("O"),
-            ["providerSubscriptionCancelled"] = cancelsAtProvider,
+            ["providerSubscriptionCancelled"] = settlesAtProvider,
             ["refundedMinorUnits"] = refund.RefundedMinorUnits,
             ["refundCurrency"] = refund.Currency,
             ["secondRoleAddOnEnded"] = endedAddOn,
@@ -205,10 +210,13 @@ internal sealed class GiveCoachPlanFreeEndpoint(
     }
 
     /// <summary>
-    /// Cancels the subscription at Stripe now and refunds its unused days. Answers 503 or 502 and returns null when it
-    /// could not, so the caller saves nothing.
+    /// Settles the owed-refund marker id and the live subscription id at Stripe, each at most once: cancels now and
+    /// refunds unused days (an already-cancelled subscription is only refunded). The live id is written to the marker
+    /// first, so a retry can still refund after the webhook cleared it. Answers 503 or 502 and returns null when it could
+    /// not.
     /// </summary>
-    private async Task<CancelRefundResult?> TryCancelAtProviderAsync(string externalSubscriptionId, CancellationToken ct)
+    private async Task<CancelRefundResult?> TrySettleAtProviderAsync(
+        long subscriptionRowId, string? pendingId, string? cancellableId, CancellationToken ct)
     {
         if (!subscriptionService.IsConfigured)
         {
@@ -217,15 +225,40 @@ internal sealed class GiveCoachPlanFreeEndpoint(
             return null;
         }
 
+        var refundedMinorUnits = 0L;
+        string? currency = null;
+
         try
         {
-            return await subscriptionService.CancelNowAsync(externalSubscriptionId, ct);
+            if (pendingId is not null && pendingId != cancellableId)
+            {
+                var earlier = await subscriptionService.CancelNowAsync(pendingId, ct);
+                refundedMinorUnits += earlier.RefundedMinorUnits;
+                currency ??= earlier.Currency;
+            }
+
+            if (cancellableId is not null)
+            {
+                if (pendingId != cancellableId)
+                {
+                    await db.CoachSubscriptions
+                        .Where(cs => cs.Id == subscriptionRowId)
+                        .ExecuteUpdateAsync(setters => setters.SetProperty(cs => cs.PendingRefundSubscriptionId, cancellableId), ct);
+                }
+
+                var current = await subscriptionService.CancelNowAsync(cancellableId, ct);
+                refundedMinorUnits += current.RefundedMinorUnits;
+                currency ??= current.Currency;
+            }
         }
         catch (BillingProviderException)
         {
             await this.SendProblemAsync(
-                StatusCodes.Status502BadGateway, ErrorCodes.BillingProviderError, "The payment provider failed; nothing was saved.", ct);
+                StatusCodes.Status502BadGateway, ErrorCodes.BillingProviderError,
+                "The payment provider failed; the plan is unchanged and repeating the call retries the refund.", ct);
             return null;
         }
+
+        return new CancelRefundResult(refundedMinorUnits, currency);
     }
 }

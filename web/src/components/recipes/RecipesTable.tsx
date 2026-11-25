@@ -196,7 +196,11 @@ export default function RecipesTable({
                     </div>
                   </TableCell>
                   <TableCell className={CELL_CLASS}>
-                    <LibraryBadge isOwnedByCurrentUser={recipe.isOwnedByCurrentUser} isSystem={recipe.isSystem} />
+                    <LibraryBadge
+                      isOwnedByCurrentUser={recipe.isOwnedByCurrentUser}
+                      isSystem={recipe.isSystem}
+                      isHidden={recipe.isHiddenByCurrentUser}
+                    />
                   </TableCell>
                 </TableRow>
               );

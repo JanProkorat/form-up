@@ -1752,6 +1752,12 @@
     "noResultsForFilters": "Keine Zutaten entsprechen Ihren Filtern.",
     "clearFilters": "Filter zurücksetzen",
     "deleteSuccess": "Zutat gelöscht.",
+    "copySuccess": "Zutat wurde in Ihre Bibliothek kopiert.",
+    "copyError": "Die Zutat konnte nicht kopiert werden. Bitte versuchen Sie es erneut.",
+    "hideSuccess": "Zutat wurde ausgeblendet.",
+    "hideError": "Die Zutat konnte nicht ausgeblendet werden. Bitte versuchen Sie es erneut.",
+    "unhideSuccess": "Zutat wird wieder angezeigt.",
+    "unhideError": "Die Zutat konnte nicht wieder eingeblendet werden. Bitte versuchen Sie es erneut.",
     "deleteError": "Zutat konnte nicht gelöscht werden. Bitte versuchen Sie es erneut.",
     "filters": {
       "category": "Kategorie"
@@ -1833,6 +1839,9 @@
       "createTitle": "Neue Zutat",
       "editTitle": "Zutat bearbeiten",
       "viewTitle": "Zutat",
+      "copy": "In meine Zutaten kopieren",
+      "hide": "Ausblenden",
+      "unhide": "Einblenden",
       "subtitleCreate": "Fügen Sie Ihrer Bibliothek eine neue Zutat hinzu",
       "subtitleEdit": "Bearbeiten Sie die Angaben zu dieser Zutat",
       "subtitleView": "Details zur Zutat",
@@ -1909,8 +1918,10 @@
       "mine": "Meine",
       "shared": "Geteilt",
       "myLibrary": "Meine Bibliothek",
-      "publicLibrary": "Öffentlich"
+      "publicLibrary": "Öffentlich",
+      "hidden": "Ausgeblendet"
     },
+    "showHidden": "Ausgeblendete anzeigen",
     "cardMacros": "P {{protein}} · K {{carbs}} · F {{fat}}",
     "visibility": {
       "label": "Sichtbarkeit",
@@ -2017,6 +2028,12 @@
     "noResultsForFilters": "Keine Rezepte passen zu Ihren Filtern.",
     "clearFilters": "Filter zurücksetzen",
     "deleteSuccess": "Rezept gelöscht.",
+    "copySuccess": "Rezept wurde in Ihre Bibliothek kopiert.",
+    "copyError": "Das Rezept konnte nicht kopiert werden. Bitte versuchen Sie es erneut.",
+    "hideSuccess": "Rezept wurde ausgeblendet.",
+    "hideError": "Das Rezept konnte nicht ausgeblendet werden. Bitte versuchen Sie es erneut.",
+    "unhideSuccess": "Rezept wird wieder angezeigt.",
+    "unhideError": "Das Rezept konnte nicht wieder eingeblendet werden. Bitte versuchen Sie es erneut.",
     "deleteError": "Das Rezept konnte nicht gelöscht werden. Bitte versuchen Sie es erneut.",
     "empty": {
       "title": "Noch keine Rezepte",
@@ -2060,6 +2077,9 @@
       "createTitle": "Neues Rezept",
       "editTitle": "Rezept bearbeiten",
       "viewTitle": "Rezept",
+      "copy": "In meine Rezepte kopieren",
+      "hide": "Ausblenden",
+      "unhide": "Einblenden",
       "subtitleCreate": "Fügen Sie Details zu Ihrem Rezept hinzu",
       "subtitleEdit": "Bearbeiten Sie die Details dieses Rezepts",
       "subtitleView": "Rezeptdetails",
@@ -3071,7 +3091,9 @@
       "openInProfile": "Im Profil von {{name}} öffnen"
     },
     "answers": {
-      "noAnswer": "Keine Antwort"
+      "noAnswer": "Keine Antwort",
+      "ofMax": "{{value}} / {{max}}",
+      "other": "Sonstiges: {{text}}"
     },
     "page": {
       "title": "Formulare",
@@ -3841,6 +3863,8 @@
     "RECIPE_VERSION_CONFLICT": "Dieses Rezept wurde anderswo geändert. Schließen Sie es und öffnen Sie es erneut, um die aktuelle Version zu sehen.",
     "RECIPE_FOOD_NOT_AVAILABLE": "Eine der Zutaten ist nicht mehr verfügbar. Entfernen Sie sie und versuchen Sie es erneut.",
     "RECIPE_NOT_OWNED": "Sie können nur Ihre eigenen Rezepte ändern.",
+    "FOOD_HIDE_OWN_NOT_ALLOWED": "Eigene Zutaten können nicht ausgeblendet werden.",
+    "RECIPE_HIDE_OWN_NOT_ALLOWED": "Eigene Rezepte können nicht ausgeblendet werden.",
     "RECIPE_GALLERY_FULL": "Dieses Rezept hat bereits die maximale Anzahl an Bildern.",
     "RECIPE_GALLERY_IMAGE_NOT_FOUND": "Dieses Bild gehört nicht mehr zu diesem Rezept. Es wurde möglicherweise an anderer Stelle geändert.",
     "FOOD_GALLERY_FULL": "Diese Zutat hat bereits die maximale Anzahl an Bildern.",

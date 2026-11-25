@@ -102,7 +102,13 @@ public static class ErrorCodes
     /// <summary>A food tag with this Name already exists for the owning nutritionist.</summary>
     public const string FoodTagNameAlreadyExists = "FOOD_TAG_NAME_ALREADY_EXISTS";
 
+    /// <summary>A coach cannot hide a food they own; they delete it instead.</summary>
+    public const string FoodHideOwnNotAllowed = "FOOD_HIDE_OWN_NOT_ALLOWED";
+
     // ── Recipes ──────────────────────────────────────────────────────
+    /// <summary>A coach cannot hide a recipe they own; they delete it instead.</summary>
+    public const string RecipeHideOwnNotAllowed = "RECIPE_HIDE_OWN_NOT_ALLOWED";
+
     /// <summary>User can only edit/delete/upload images for their own recipes.</summary>
     public const string RecipeNotOwned = "RECIPE_NOT_OWNED";
 

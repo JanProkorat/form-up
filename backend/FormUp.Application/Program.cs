@@ -340,6 +340,7 @@ builder.Services.AddScoped<IRealtimeNotifier, SignalRNotifier>();
 // Get-or-create conversation + seed-first-message (invite messages, accept-time
 // statements) — shared by CreatePendingInviteEndpoint, AcceptClientInviteEndpoint,
 // and AcceptInvitationEndpoint (#768).
+builder.Services.AddScoped<IChatMessageNotifier, ChatMessageNotifier>();
 builder.Services.AddScoped<IConversationSeedService, ConversationSeedService>();
 
 // Seeds a professional-client conversation for a brand-new account against any

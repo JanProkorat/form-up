@@ -1753,6 +1753,12 @@
     "noResultsForFilters": "No ingredients match your filters.",
     "clearFilters": "Clear filters",
     "deleteSuccess": "Ingredient deleted.",
+    "copySuccess": "Ingredient copied to your library.",
+    "copyError": "Couldn't copy the ingredient. Please try again.",
+    "hideSuccess": "Ingredient hidden.",
+    "hideError": "Couldn't hide the ingredient. Please try again.",
+    "unhideSuccess": "Ingredient is visible again.",
+    "unhideError": "Couldn't unhide the ingredient. Please try again.",
     "deleteError": "Couldn't delete the ingredient. Please try again.",
     "filters": {
       "category": "Category"
@@ -1834,6 +1840,9 @@
       "createTitle": "New Ingredient",
       "editTitle": "Edit Ingredient",
       "viewTitle": "Ingredient",
+      "copy": "Copy to my ingredients",
+      "hide": "Hide",
+      "unhide": "Unhide",
       "subtitleCreate": "Add a new ingredient to your library",
       "subtitleEdit": "Edit this ingredient's details",
       "subtitleView": "Ingredient details",
@@ -1910,8 +1919,10 @@
       "mine": "Mine",
       "shared": "Shared",
       "myLibrary": "My library",
-      "publicLibrary": "Public"
+      "publicLibrary": "Public",
+      "hidden": "Hidden"
     },
+    "showHidden": "Show hidden",
     "cardMacros": "P {{protein}} · C {{carbs}} · F {{fat}}",
     "visibility": {
       "label": "Visibility",
@@ -2018,6 +2029,12 @@
     "noResultsForFilters": "No recipes match your filters.",
     "clearFilters": "Clear filters",
     "deleteSuccess": "Recipe deleted.",
+    "copySuccess": "Recipe copied to your library.",
+    "copyError": "Couldn't copy the recipe. Please try again.",
+    "hideSuccess": "Recipe hidden.",
+    "hideError": "Couldn't hide the recipe. Please try again.",
+    "unhideSuccess": "Recipe is visible again.",
+    "unhideError": "Couldn't unhide the recipe. Please try again.",
     "deleteError": "Couldn't delete the recipe. Please try again.",
     "empty": {
       "title": "No recipes yet",
@@ -2061,6 +2078,9 @@
       "createTitle": "New Recipe",
       "editTitle": "Edit Recipe",
       "viewTitle": "Recipe",
+      "copy": "Copy to my recipes",
+      "hide": "Hide",
+      "unhide": "Unhide",
       "subtitleCreate": "Add details about your recipe",
       "subtitleEdit": "Edit this recipe's details",
       "subtitleView": "Recipe details",
@@ -3072,7 +3092,9 @@
       "openInProfile": "Open in {{name}}'s profile"
     },
     "answers": {
-      "noAnswer": "No answer"
+      "noAnswer": "No answer",
+      "ofMax": "{{value}} / {{max}}",
+      "other": "Other: {{text}}"
     },
     "page": {
       "title": "Forms",
@@ -3842,6 +3864,8 @@
     "RECIPE_VERSION_CONFLICT": "This recipe was changed elsewhere. Close it and reopen it to see the latest version.",
     "RECIPE_FOOD_NOT_AVAILABLE": "One of the ingredients is no longer available. Remove it and try again.",
     "RECIPE_NOT_OWNED": "You can only change your own recipes.",
+    "FOOD_HIDE_OWN_NOT_ALLOWED": "You can't hide your own ingredients.",
+    "RECIPE_HIDE_OWN_NOT_ALLOWED": "You can't hide your own recipes.",
     "RECIPE_GALLERY_FULL": "This recipe already has the maximum number of pictures.",
     "RECIPE_GALLERY_IMAGE_NOT_FOUND": "That picture is no longer part of this recipe. It may have been changed elsewhere.",
     "FOOD_GALLERY_FULL": "This ingredient already has the maximum number of pictures.",

@@ -47,6 +47,8 @@ export interface IngredientListFilters {
   categories: FoodCategory[];
   tags: string[];
   owners: FoodOwnerFilter[];
+  /** Show-hidden view: only the foods the caller hid (URL `hidden=1`). */
+  hidden: boolean;
   sortBy: FoodSortField | null;
   sortDir: FoodSortDirection;
   page: number;
@@ -64,6 +66,8 @@ export interface UseIngredientListParamsResult {
   setTags: (tags: string[]) => void;
   /** Replaces the full selected-owners set. Pushes a history entry; resets page to 1. */
   setOwners: (owners: FoodOwnerFilter[]) => void;
+  /** Toggles the show-hidden view. Pushes a history entry; resets page to 1. */
+  setHidden: (hidden: boolean) => void;
   /** Cycles the given column's sort state: unsorted/other-column → ascending
    * → descending → cleared (back to unsorted). Resets page to 1. */
   cycleSort: (field: FoodSortField) => void;
@@ -168,7 +172,7 @@ function nextSortState(current: SortState, field: FoodSortField): SortState {
   return CLEARED_SORT;
 }
 
-type UrlPatch = Partial<Record<'q' | 'category' | 'tags' | 'owner' | 'sort' | 'page', string | null>>;
+type UrlPatch = Partial<Record<'q' | 'category' | 'tags' | 'owner' | 'hidden' | 'sort' | 'page', string | null>>;
 
 /**
  * Owns the ingredients-list page's filter state entirely in the URL — `q`,
@@ -186,6 +190,7 @@ export function useIngredientListParams(): UseIngredientListParamsResult {
       categories: parseCategories(searchParams.get('category')),
       tags: parseTags(searchParams.get('tags')),
       owners: parseOwners(searchParams.get('owner')),
+      hidden: searchParams.get('hidden') === '1',
       sortBy: sort.sortBy,
       sortDir: sort.sortDir,
       page: parsePage(searchParams.get('page')),
@@ -244,6 +249,13 @@ export function useIngredientListParams(): UseIngredientListParamsResult {
     [update],
   );
 
+  const setHidden = useCallback(
+    (hidden: boolean) => {
+      update({ hidden: hidden ? '1' : null, page: null });
+    },
+    [update],
+  );
+
   const cycleSort = useCallback(
     (field: FoodSortField) => {
       // Read the live URL: React Router re-renders in a transition, so rendered
@@ -263,8 +275,8 @@ export function useIngredientListParams(): UseIngredientListParamsResult {
   );
 
   const clearFilters = useCallback(() => {
-    update({ category: null, tags: null, owner: null, q: null, page: null });
+    update({ category: null, tags: null, owner: null, hidden: null, q: null, page: null });
   }, [update]);
 
-  return { filters, setSearch, setCategories, setTags, setOwners, cycleSort, setPage, clearFilters };
+  return { filters, setSearch, setCategories, setTags, setOwners, setHidden, cycleSort, setPage, clearFilters };
 }

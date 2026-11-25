@@ -15,6 +15,7 @@
  */
 import type { Page, Route } from '@playwright/test';
 import { trainerTest as test, expect } from '../fixtures/auth';
+import { recordExit, readExit } from '../fixtures/sheet-exit';
 
 const STUB_PACKAGE_ID = 'bbbbbbbb-0000-0000-0000-000000001907';
 
@@ -228,16 +229,26 @@ test.describe('clients list page', () => {
     const enterContentName = await dialog.evaluate((el) => getComputedStyle(el).animationName);
     const enterOverlayName = await overlay.evaluate((el) => getComputedStyle(el).animationName);
 
+    // The exit animations last 200ms, shorter than a few sequential Playwright
+    // round trips under load: once Radix unmounts the overlay, a post-close
+    // locator read waits on a detached element until the test timeout. Record
+    // the closed state inside the page before closing instead.
+    await recordExit(dialog, 'content');
+    await recordExit(overlay, 'overlay');
+
     await dialog.getByRole('button', { name: 'Close' }).click();
 
     // B. Exit suspension — the actual regression test.
-    await expect(dialog).toHaveAttribute('data-state', 'closed');
-    await expect(dialog).toHaveCSS('animation-name', 'sheet-out-right');
-    await expect(overlay).toHaveCSS('animation-name', 'sheet-overlay-out');
-    const exitContentName = await dialog.evaluate((el) => getComputedStyle(el).animationName);
-    const exitOverlayName = await overlay.evaluate((el) => getComputedStyle(el).animationName);
-    expect(exitContentName).not.toBe(enterContentName);
-    expect(exitOverlayName).not.toBe(enterOverlayName);
+    await expect
+      .poll(() => readExit(page, 'content'))
+      .toMatchObject({ closedWhileConnected: true, closedAnimationName: 'sheet-out-right' });
+    await expect
+      .poll(() => readExit(page, 'overlay'))
+      .toMatchObject({ closedWhileConnected: true, closedAnimationName: 'sheet-overlay-out' });
+    const contentExit = await readExit(page, 'content');
+    const overlayExit = await readExit(page, 'overlay');
+    expect(contentExit?.closedAnimationName).not.toBe(enterContentName);
+    expect(overlayExit?.closedAnimationName).not.toBe(enterOverlayName);
 
     await expect(dialog).toBeHidden();
   });

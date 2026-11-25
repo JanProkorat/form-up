@@ -213,6 +213,7 @@ export default function LibraryPanel({
     {
       search,
       ...recipeFilters,
+      hidden: false,
       sortBy: null,
       sortDir: FoodSortDirection.Ascending,
       page: 1,
@@ -226,6 +227,7 @@ export default function LibraryPanel({
     // Owner and Tags are nutritionist-only, as on the Ingredients page.
     tags: isNutritionist ? ingredientFilters.tags : [],
     owners: isNutritionist ? ingredientFilters.owners : [],
+    hidden: false,
     sortBy: null,
     sortDir: FoodSortDirection.Ascending,
     page: 1,

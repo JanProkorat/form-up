@@ -71,6 +71,12 @@ public class RecipeSummaryDto
     public bool IsSystem { get; set; }
 
     /// <summary>
+    /// True when the authenticated caller has hidden this recipe from their library. Only the caller's
+    /// own flag is exposed, never who else hid it.
+    /// </summary>
+    public bool IsHiddenByCurrentUser { get; set; }
+
+    /// <summary>
     /// Number of servings the recipe yields.
     /// </summary>
     public int Servings { get; set; } = 1;
@@ -116,6 +122,7 @@ public class RecipeSummaryDto
             .ToList(),
         Version = recipe.Version,
         IsSystem = recipe.NutritionistId == SystemUsers.AdminId,
+        IsHiddenByCurrentUser = currentUserId.HasValue && recipe.HiddenByNutritionistIds.Contains(currentUserId.Value),
         Servings = recipe.Servings,
         MealTypes = FoodEnumListMapping.ParseStoredNames<RecipeMealType>(recipe.MealTypes ?? []),
         CookTimeMinutes = recipe.CookTimeMinutes,

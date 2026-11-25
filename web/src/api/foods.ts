@@ -6,6 +6,7 @@
  * lives in the sibling `food-tags.ts` module (#1120).
  */
 import { apiClient } from '@/api/client';
+import { postEmptyJson, putEmptyJson } from '@/api/empty-body';
 import type {
   UploadFoodImageUrlRequest,
   ConfirmFoodImageRequest,
@@ -36,6 +37,8 @@ export interface SearchFoodsParams {
    * `FoodOwnerFilter` values (#1139). Always passed through (even empty) —
    * same repeated-query-param shape as `categories`/`tagIds` above. */
   owners: FoodOwnerFilter[];
+  /** `true` returns ONLY the foods the caller hid; `false` (default) excludes them. */
+  hidden: boolean;
   page: number;
   pageSize: number;
   /** Column to sort by. `undefined` means no explicit sort — the backend
@@ -61,6 +64,7 @@ export async function searchFoods(params: SearchFoodsParams): Promise<SearchFood
     params.categories,
     params.tagIds,
     params.owners,
+    params.hidden,
     params.page,
     params.pageSize,
     params.q,
@@ -95,6 +99,21 @@ export async function updateFood(foodId: string, request: UpdateFoodRequest): Pr
 /** Delete a custom food (soft delete, owner only). */
 export async function deleteFood(foodId: string): Promise<void> {
   await apiClient.deleteFoodEndpoint(foodId);
+}
+
+/** Copies a visible food into the caller's own library (Nutritionist only). The copy is Private. */
+export async function copyFood(foodId: string): Promise<void> {
+  await postEmptyJson(`/foods/${encodeURIComponent(foodId)}/copy`);
+}
+
+/** Hides another coach's / a system food from the caller's lists. Not allowed for the caller's own foods. */
+export async function hideFood(foodId: string): Promise<void> {
+  await putEmptyJson(`/foods/${encodeURIComponent(foodId)}/hide`);
+}
+
+/** Reverses `hideFood`. */
+export async function unhideFood(foodId: string): Promise<void> {
+  await putEmptyJson(`/foods/${encodeURIComponent(foodId)}/unhide`);
 }
 
 /** Get custom foods for the authenticated nutritionist. */

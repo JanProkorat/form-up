@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import type { FoodSummary } from '@/api/food-types';
 import { CardLibraryPill, CardNutritionLine } from '@/components/library/CardParts';
+import { Badge } from '@/components/ui/badge';
 import MacroBar from '@/components/library/MacroBar';
 import Thumbnail from '@/components/library/Thumbnail';
 import TagPill from '@/components/tags/TagPill';
@@ -31,6 +32,11 @@ export default function IngredientCard({ food, onClick, onViewPicture }: Props) 
         <div className="absolute top-2.5 left-2.5">
           <CardLibraryPill isOwnedByCurrentUser={food.isOwnedByCurrentUser} />
         </div>
+        {food.isHiddenByCurrentUser && (
+          <Badge variant="library-system" className="absolute bottom-2.5 left-2.5">
+            {t('library.badge.hidden')}
+          </Badge>
+        )}
       </div>
       <div className="flex flex-1 flex-col gap-3 p-4">
         <div className="flex flex-col gap-1">

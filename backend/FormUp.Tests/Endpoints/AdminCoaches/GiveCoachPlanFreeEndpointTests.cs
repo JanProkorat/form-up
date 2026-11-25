@@ -246,7 +246,7 @@ public class GiveCoachPlanFreeEndpointTests(FitnessApiFactory factory) : IDispos
     }
 
     [Fact]
-    public async Task Give_WhenStripeFails_Returns502_AndSavesNothing()
+    public async Task Give_WhenStripeFails_Returns502_KeepsThePlan_AndKeepsTheRefundOwed()
     {
         var fake = BillingTestData.ResetProvider(factory);
         var admin = await TestActors.Admin(factory).CreateAsync(Ct);
@@ -263,7 +263,89 @@ public class GiveCoachPlanFreeEndpointTests(FitnessApiFactory factory) : IDispos
         row.SubscriptionPlan.Code.Should().Be(plan);
         row.GivenFreeAt.Should().BeNull();
         row.ExternalSubscriptionId.Should().Be(subscriptionId, "a retry must still find the subscription to refund");
+        row.PendingRefundSubscriptionId.Should().Be(subscriptionId, "the refund stays owed so a retry can still pay it");
         (await AuditRowsAsync(coach.UserId, "AdminGiveCoachPlanFree")).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Give_RetryAfterTheWebhookCancelledTheSubscription_PaysTheRefundOnce_AndClearsTheMarker()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var plan = await PaidPlanBuilder.CreateAsync(factory);
+        var gift = await PaidPlanBuilder.CreateAsync(factory, priceMinorUnits: 50000);
+        var subscriptionId = await SubscribeWithStripeAsync(coach, plan);
+        fake.Fail = true;
+        (await admin.Http.PostAsJsonAsync($"/admin/coaches/{coach.UserId}/give-free", Body(gift, null), Ct))
+            .StatusCode.Should().Be(HttpStatusCode.BadGateway);
+
+        // What Stripe's subscription-deleted webhook does after the cancel went through.
+        await BillingTestData.UpdateRowAsync(factory, coach.ProfileId, row =>
+        {
+            row.ExternalSubscriptionId = null;
+            row.Status = SubscriptionStatus.Canceled;
+        });
+        fake.Fail = false;
+        fake.CancelNowResult = new CancelRefundResult(8000, "czk");
+
+        var retry = await admin.Http.PostAsJsonAsync($"/admin/coaches/{coach.UserId}/give-free", Body(gift, null), Ct);
+
+        retry.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = (await retry.Content.ReadFromJsonAsync<GiveCoachPlanFreeResponse>(Ct))!;
+        body.RefundedMinorUnits.Should().Be(8000);
+        body.RefundCurrency.Should().Be("CZK");
+        fake.CancelledNow.Should().Equal(subscriptionId);
+        var row = await ReadSubscriptionAsync(coach.ProfileId);
+        row.SubscriptionPlan.Code.Should().Be(gift);
+        row.GivenFreeAt.Should().NotBeNull();
+        row.PendingRefundSubscriptionId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Give_RetryBeforeAnyWebhook_CancelsTheSubscriptionOnce_AndClearsTheMarker()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var plan = await PaidPlanBuilder.CreateAsync(factory);
+        var gift = await PaidPlanBuilder.CreateAsync(factory, priceMinorUnits: 50000);
+        var subscriptionId = await SubscribeWithStripeAsync(coach, plan);
+        fake.Fail = true;
+        (await admin.Http.PostAsJsonAsync($"/admin/coaches/{coach.UserId}/give-free", Body(gift, null), Ct))
+            .StatusCode.Should().Be(HttpStatusCode.BadGateway);
+        fake.Fail = false;
+
+        var retry = await admin.Http.PostAsJsonAsync($"/admin/coaches/{coach.UserId}/give-free", Body(gift, null), Ct);
+
+        retry.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.CancelledNow.Should().Equal(subscriptionId);
+        var row = await ReadSubscriptionAsync(coach.ProfileId);
+        row.PendingRefundSubscriptionId.Should().BeNull();
+        row.ExternalSubscriptionId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Give_OwedRefundOnly_WhenStripeIsNotConfigured_Returns503_AndKeepsTheMarker()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var plan = await PaidPlanBuilder.CreateAsync(factory);
+        var subscriptionId = await SubscribeWithStripeAsync(coach, plan);
+        await BillingTestData.UpdateRowAsync(factory, coach.ProfileId, row =>
+        {
+            row.ExternalSubscriptionId = null;
+            row.Status = SubscriptionStatus.Canceled;
+            row.PendingRefundSubscriptionId = subscriptionId;
+        });
+        fake.IsConfigured = false;
+
+        var response = await admin.Http.PostAsJsonAsync($"/admin/coaches/{coach.UserId}/give-free", Body(plan, null), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
+        (await response.Content.ReadAsStringAsync(Ct)).Should().Contain("BILLING_NOT_CONFIGURED");
+        (await ReadSubscriptionAsync(coach.ProfileId)).PendingRefundSubscriptionId.Should().Be(subscriptionId);
     }
 
     [Fact]
