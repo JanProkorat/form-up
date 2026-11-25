@@ -9,7 +9,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FormUp.Application.Features.Questionnaires.GetClientResponse;
 
-public class GetClientResponseEndpoint(IApplicationDbContext db, IClientLinkAuthorizationService linkAuthorizationService)
+public class GetClientResponseEndpoint(
+    IApplicationDbContext db,
+    IClientLinkAuthorizationService linkAuthorizationService,
+    IBlobStorageService blobStorage)
     : EndpointWithoutRequest<GetClientResponseResponse>
 {
     public override void Configure()
@@ -84,29 +87,36 @@ public class GetClientResponseEndpoint(IApplicationDbContext db, IClientLinkAuth
         // builder shows, without a second fetch of the questionnaire definition.
         var sectionsByQuestionId = QuestionSectionResolver.Resolve(response.Questionnaire.Questions);
 
+        var answers = new List<ResponseAnswerDto>();
+
+        foreach (var a in response.Answers)
+        {
+            var (sectionLabel, sectionOrder) = sectionsByQuestionId.GetValueOrDefault(a.QuestionId);
+            answers.Add(new ResponseAnswerDto
+            {
+                QuestionPublicId = a.Question.PublicId,
+                QuestionLabel = a.Question.Label,
+                QuestionType = a.Question.Type,
+                MappedField = a.Question.MappedField,
+                ValueText = a.ValueText,
+                ValueNumber = a.ValueNumber,
+                ValueJson = a.ValueJson,
+                // Never the stored value: it is a permanent unsigned reference.
+                FileUrl = string.IsNullOrEmpty(a.FileUrl)
+                    ? a.FileUrl
+                    : await blobStorage.GenerateReadUrlAsync(a.FileUrl, ct) ?? string.Empty,
+                SectionLabel = sectionLabel,
+                SectionOrder = sectionOrder,
+            });
+        }
+
         await Send.OkAsync(new GetClientResponseResponse
         {
             ResponsePublicId = response.PublicId,
             QuestionnaireTitle = response.Questionnaire.Title,
             SubmittedAt = response.SubmittedAt,
             AnswerCount = response.Answers.Count,
-            Answers = response.Answers.Select(a =>
-            {
-                var (sectionLabel, sectionOrder) = sectionsByQuestionId.GetValueOrDefault(a.QuestionId);
-                return new ResponseAnswerDto
-                {
-                    QuestionPublicId = a.Question.PublicId,
-                    QuestionLabel = a.Question.Label,
-                    QuestionType = a.Question.Type,
-                    MappedField = a.Question.MappedField,
-                    ValueText = a.ValueText,
-                    ValueNumber = a.ValueNumber,
-                    ValueJson = a.ValueJson,
-                    FileUrl = a.FileUrl,
-                    SectionLabel = sectionLabel,
-                    SectionOrder = sectionOrder,
-                };
-            }).ToList(),
+            Answers = answers,
         }, ct);
     }
 }

@@ -16,10 +16,12 @@ namespace FormUp.Application.Features.Questionnaires.GetClientForms;
 /// <param name="db">Database context.</param>
 /// <param name="linkAuthorizationService">Resolves the caller's live link to the client.</param>
 /// <param name="timeProvider">Clock, used to tell a missed check-in from a waiting one.</param>
+/// <param name="blobStorage">Signs stored file_upload answer URLs for reading.</param>
 internal sealed class GetClientFormsEndpoint(
     IApplicationDbContext db,
     IClientLinkAuthorizationService linkAuthorizationService,
-    TimeProvider timeProvider)
+    TimeProvider timeProvider,
+    IBlobStorageService blobStorage)
     : EndpointWithoutRequest<GetClientFormsResponse>
 {
     /// <inheritdoc />
@@ -107,6 +109,15 @@ internal sealed class GetClientFormsEndpoint(
             else if (response.Status == QuestionnaireResponseStatus.Submitted)
             {
                 result.Previous.Add(ClientFormItem.FromEntity(response, nowUtc));
+            }
+        }
+
+        // The stored FileUrl is a permanent unsigned reference; the coach only ever gets a short-lived signed URL.
+        foreach (var answer in result.Current.Concat(result.Previous).SelectMany(item => item.Answers))
+        {
+            if (!string.IsNullOrEmpty(answer.FileUrl))
+            {
+                answer.FileUrl = await blobStorage.GenerateReadUrlAsync(answer.FileUrl, ct) ?? string.Empty;
             }
         }
 
