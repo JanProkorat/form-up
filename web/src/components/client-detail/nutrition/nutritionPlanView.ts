@@ -227,8 +227,9 @@ export function buildTimelineModel(
   }
   const sorted = [...bars].sort((a, b) => a.start.getTime() - b.start.getTime());
   const earliestAllowed = addMonths(monthStart(today), -MAX_TIMELINE_MONTHS_BACK);
+  // The default window always holds today's month, so plans far ahead cannot push its start past its end.
   const baseStart = monthStart(
-    new Date(Math.max(sorted[0].start.getTime(), earliestAllowed.getTime())),
+    new Date(Math.min(Math.max(sorted[0].start.getTime(), earliestAllowed.getTime()), today.getTime())),
   );
   const latestEnd = sorted.reduce((max, b) => Math.max(max, b.end.getTime()), 0);
   const minEnd = addMonths(monthStart(today), MIN_TIMELINE_MONTHS_AHEAD + 1);

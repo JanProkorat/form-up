@@ -114,7 +114,8 @@ test.describe('client detail — nutrition tab', () => {
     await expect(earlier).toBeEnabled();
     const defaultRange = await range.textContent();
 
-    for (let step = 0; step < 4 && (await oldBar.count()) === 0; step += 1) {
+    // The window may be only a couple of months wide, so the number of steps back varies.
+    for (let step = 0; step < 12 && (await oldBar.count()) === 0 && (await earlier.isEnabled()); step += 1) {
       await earlier.click();
     }
     await expect(oldBar).toBeVisible();

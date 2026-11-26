@@ -76,6 +76,18 @@ describe('buildTimelineModel', () => {
     expect(spanPercent(model, model.items[0].start, model.items[0].end)).toEqual({ leftPct: 0, widthPct: 100 });
   });
 
+  it('starts the default range at today when every plan lies beyond the forward limit', () => {
+    const far = bar('far', '2027-09-06', '2027-10-04', { status: 'Draft' });
+    const model = buildTimelineModel([far], TODAY)!;
+
+    expect(iso(model.rangeStart)).toBe('2026-06-01');
+    expect(model.totalDays).toBeGreaterThan(0);
+    expect(model.todayPct).toBeGreaterThan(0);
+    expect(model.hasEarlier).toBe(false);
+    expect(model.hasLater).toBe(true);
+    expect(buildTimelineModel([far], TODAY, 15)!.items.some((i) => i.kind === 'plan')).toBe(true);
+  });
+
   it('spans one gap across a window between two distant plans and hides the today marker', () => {
     const a = bar('a', '2023-01-02', '2023-03-01');
     const b = bar('b', '2028-01-03', '2028-02-01');
