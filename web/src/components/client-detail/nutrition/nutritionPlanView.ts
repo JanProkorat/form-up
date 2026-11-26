@@ -290,6 +290,14 @@ export function spanPercent(model: TimelineModel, start: Date, end: Date): { lef
   return { leftPct, widthPct };
 }
 
+/** "4 Nov 2024 – 5 Jan 2025" style range of two calendar dates (UTC midnight), both inclusive. */
+export function formatDateRange(first: Date, last: Date, locale: string): string {
+  return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).formatRange(
+    first,
+    last,
+  );
+}
+
 /** "1 Sep" style label for a calendar date (UTC midnight). */
 export function formatShortDate(date: Date, locale: string): string {
   return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(date);

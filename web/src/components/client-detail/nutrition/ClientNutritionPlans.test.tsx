@@ -393,7 +393,9 @@ describe('Nutrition tab: plan timeline navigation', () => {
 
     expect(rangeLabel()).toBe('Jan 2025 – Jan 2026');
     // Only January 2025 of the plan is on screen, but its label still carries the whole run.
-    expect(within(timeline).getByRole('link', { name: /Old cut · Nov – Jan/ })).toBeInTheDocument();
+    const oldBar = within(timeline).getByRole('link', { name: /Old cut · Nov – Jan/ });
+    // The hover tooltip names the full first and last day, with years.
+    expect((oldBar.getAttribute('title') ?? '').replace(/\s/g, ' ')).toMatch(/^Old cut · Nov 4, 2024 – Jan 5, 2025$/);
     expect(later).toBeEnabled();
 
     await user.click(within(timeline).getByRole('button', { name: 'Today' }));

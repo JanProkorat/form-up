@@ -59,7 +59,7 @@ test.describe('client detail — nutrition tab', () => {
       'href',
       /\/clients\/[^/]+\/nutrition\/plans\/[^/]+$/,
     );
-    await expect(page.getByText('Today', { exact: true })).toBeVisible();
+    await expect(page.getByTestId('plan-timeline-today-marker')).toBeVisible();
 
     // Past plans: none yet for this client.
     await expect(page.getByRole('heading', { name: 'Past plans' })).toBeVisible();

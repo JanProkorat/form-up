@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import {
   buildTimelineBars,
   buildTimelineModel,
+  formatDateRange,
   formatMonth,
   formatTimelineRange,
   formatShortDate,
@@ -58,6 +59,19 @@ function barSubtitle(
   return t('clientDetail.nutrition.timeline.range', { range, count: bar.weeks });
 }
 
+/** Hover text with the plan's full first and last day, even when the bar is clipped at the range edge. */
+function barTooltip(
+  bar: TimelineBar,
+  locale: string,
+  t: (key: string, options?: Record<string, unknown>) => string,
+): string {
+  if (bar.endUnknown) {
+    return `${bar.name} · ${barSubtitle(bar, locale, t)}`;
+  }
+  const lastDay = new Date(bar.end.getTime() - 1);
+  return `${bar.name} · ${formatDateRange(bar.start, lastDay, locale)}`;
+}
+
 function TimelineRow({ model, locale, clientId }: { model: TimelineModel; locale: string; clientId: string }) {
   const { t } = useTranslation();
 
@@ -92,6 +106,7 @@ function TimelineRow({ model, locale, clientId }: { model: TimelineModel; locale
             <Link
               to={`/clients/${clientId}/nutrition/plans/${item.planId}`}
               aria-label={`${item.name} · ${barSubtitle(item, locale, t)}`}
+              title={barTooltip(item, locale, t)}
               className={cn(
                 'flex h-full w-full flex-col justify-center overflow-hidden rounded-lg border px-2.5 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
                 BAR_TONE[item.status] ?? BAR_TONE.Completed,
@@ -189,6 +204,7 @@ export default function PlanTimelineCard({ clientId, plans, details }: Props) {
             {model.todayPct !== undefined && (
               <div
                 aria-hidden="true"
+                data-testid="plan-timeline-today-marker"
                 className="absolute top-0 flex flex-col items-center"
                 style={{ left: `${model.todayPct}%` }}
               >
