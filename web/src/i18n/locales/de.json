@@ -3092,6 +3092,7 @@
     },
     "answers": {
       "noAnswer": "Keine Antwort",
+      "openFile": "Datei öffnen",
       "ofMax": "{{value}} / {{max}}",
       "other": "Sonstiges: {{text}}"
     },

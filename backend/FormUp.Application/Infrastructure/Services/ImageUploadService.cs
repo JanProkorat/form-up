@@ -186,6 +186,8 @@ public class ImageUploadService(IBlobStorageService blobStorage) : IImageUploadS
         // that class rebuilds this same container path directly against IBlobStorageService at send
         // time (download + delete), bypassing this service, so the two literals cannot drift silently.
         ImageUploadScope.ChatUpload => "chat-uploads",
+        // Must match QuestionnaireFilePolicy.StagingPrefix for the same reason as ChatUpload above.
+        ImageUploadScope.QuestionnaireUpload => "questionnaire-uploads",
         _                           => throw new ArgumentOutOfRangeException(nameof(scope), scope, null)
     };
 }

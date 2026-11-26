@@ -4,6 +4,7 @@ using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Interfaces;
 using FormUp.Application.Domain.Services;
+using FormUp.Application.Features.Questionnaires.Shared;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Application.Infrastructure.Data.MongoDb;
 using Microsoft.AspNetCore.Identity;
@@ -425,6 +426,9 @@ public static class QaSeedRunner
     /// <summary>Submitted response owned by the QA trainer, linked to the training plan.</summary>
     public static readonly Guid QaQuestionnaireResponseExternalId = new("00000000-0000-0000-7777-000000000099");
 
+    /// <summary>uploadId of the seeded file_upload answer on the trainer's response (#1850).</summary>
+    public static readonly Guid QaQuestionnaireFileUploadId = new("00000000-0000-0000-7777-0000000000f1");
+
     // Section headers (Type="section" — non-answerable, rendered as group titles).
     public static readonly Guid QaQuestionSectionBasicInfoId = new("00000000-0000-0000-7777-000000000001");
     public static readonly Guid QaQuestionSectionHealthId    = new("00000000-0000-0000-7777-000000000005");
@@ -454,6 +458,9 @@ public static class QaSeedRunner
 
     /// <summary>Submitted response owned by the QA nutritionist, linked to the nutrition plan.</summary>
     public static readonly Guid QaNutriQuestionnaireResponseExternalId = new("00000000-0000-0000-8888-000000000099");
+
+    /// <summary>uploadId of the seeded file_upload answer on the nutritionist's response (#1850).</summary>
+    public static readonly Guid QaNutriQuestionnaireFileUploadId = new("00000000-0000-0000-8888-0000000000f1");
 
     // Section headers (Type="section" — non-answerable, rendered as group titles).
     public static readonly Guid QaNutriQuestionSectionIntakeId    = new("00000000-0000-0000-8888-000000000001");
@@ -613,12 +620,12 @@ public static class QaSeedRunner
 
             // #715 — Questionnaire template + submitted response owned by the
             // QA trainer, linked to the training plan created above.
-            await EnsureQuestionnaireFixtureAsync(db, mongo, logger);
+            await EnsureQuestionnaireFixtureAsync(db, mongo, sp.GetRequiredService<IBlobStorageService>(), logger);
 
             // #720 — Second questionnaire template + submitted response owned
             // by the QA nutritionist, linked to the nutrition plan created
             // above (replacing the trainer-owned link #715 used to set there).
-            await EnsureNutritionistQuestionnaireFixtureAsync(db, mongo, logger);
+            await EnsureNutritionistQuestionnaireFixtureAsync(db, mongo, sp.GetRequiredService<IBlobStorageService>(), logger);
 
             // #946 — Photo diary request fixtures on the nutritionist<->client link. Must
             // run AFTER EnsureNutritionistQuestionnaireFixtureAsync, which is what creates
@@ -698,6 +705,7 @@ public static class QaSeedRunner
             // Image blobs in MinIO — idempotent, bucket created if absent.
             await EnsureAvatarAsync(sp, logger);
             await EnsureFoodImageAsync(sp, logger);
+            await EnsureQuestionnaireFilesAsync(sp, logger);
         }
         else
         {
@@ -2600,6 +2608,7 @@ public static class QaSeedRunner
     private static async Task EnsureQuestionnaireFixtureAsync(
         ApplicationDbContext db,
         IMongoContext mongo,
+        IBlobStorageService blobStorage,
         ILogger logger)
     {
         // 1. Questionnaire template — two sections, six answerable question types.
@@ -2705,7 +2714,8 @@ public static class QaSeedRunner
                     {
                         PublicId   = new Guid("00000000-0000-0000-7777-000000001008"),
                         QuestionId = questionnaire.Questions.First(q => q.PublicId == QaQuestionMedicalDocId).Id,
-                        FileUrl    = "https://storage.qa.formup.test/qa-fixtures/medical-clearance-checkup.pdf",
+                        FileUrl    = blobStorage.BuildPublicUrl(QuestionnaireFilePolicy.BuildFinalContainerPath(
+                            QaQuestionnaireResponseExternalId, QaQuestionnaireFileUploadId, "png")),
                     },
                 ],
             };
@@ -2785,6 +2795,7 @@ public static class QaSeedRunner
     private static async Task EnsureNutritionistQuestionnaireFixtureAsync(
         ApplicationDbContext db,
         IMongoContext mongo,
+        IBlobStorageService blobStorage,
         ILogger logger)
     {
         // 0. Nutritionist↔client link — required by GetClientResponsesEndpoint's
@@ -2919,7 +2930,8 @@ public static class QaSeedRunner
                     {
                         PublicId   = new Guid("00000000-0000-0000-8888-000000001008"),
                         QuestionId = questionnaire.Questions.First(q => q.PublicId == QaNutriQuestionFoodDiaryId).Id,
-                        FileUrl    = "https://storage.qa.formup.test/qa-fixtures/food-diary-week1.pdf",
+                        FileUrl    = blobStorage.BuildPublicUrl(QuestionnaireFilePolicy.BuildFinalContainerPath(
+                            QaNutriQuestionnaireResponseExternalId, QaNutriQuestionnaireFileUploadId, "png")),
                     },
                 ],
             };
@@ -3001,6 +3013,32 @@ public static class QaSeedRunner
         var bytes = LoadEmbeddedAsset("qa-food.png");
         await blobStorage.UploadAsync(QaFoodImageBlobKey, bytes, "image/png", CancellationToken.None);
         logger.LogInformation("QA food image blob uploaded to {Key} ({Bytes} bytes).", QaFoodImageBlobKey, bytes.Length);
+    }
+
+    /// <summary>
+    /// Uploads the tiny QA PNG to the final paths of the two seeded file_upload answers (#1850), so
+    /// the coach's signed-URL read resolves to a real object.
+    /// </summary>
+    private static async Task EnsureQuestionnaireFilesAsync(IServiceProvider sp, ILogger logger)
+    {
+        var blobStorage = sp.GetRequiredService<IBlobStorageService>();
+        string[] paths =
+        [
+            QuestionnaireFilePolicy.BuildFinalContainerPath(QaQuestionnaireResponseExternalId, QaQuestionnaireFileUploadId, "png"),
+            QuestionnaireFilePolicy.BuildFinalContainerPath(QaNutriQuestionnaireResponseExternalId, QaNutriQuestionnaireFileUploadId, "png"),
+        ];
+        var bytes = LoadEmbeddedAsset("qa-avatar.png");
+
+        foreach (var path in paths)
+        {
+            if (await blobStorage.ObjectExistsAsync(path, CancellationToken.None))
+            {
+                continue;
+            }
+
+            await blobStorage.UploadAsync(path, bytes, "image/png", CancellationToken.None);
+            logger.LogInformation("QA questionnaire file uploaded to {Key} ({Bytes} bytes).", path, bytes.Length);
+        }
     }
 
     private static byte[] LoadEmbeddedAsset(string fileName)

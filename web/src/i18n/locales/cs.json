@@ -3219,6 +3219,7 @@
     },
     "answers": {
       "noAnswer": "Bez odpovědi",
+      "openFile": "Otevřít soubor",
       "ofMax": "{{value}} / {{max}}",
       "other": "Jiné: {{text}}"
     },

@@ -176,6 +176,28 @@ public class GetCoachPlansPromotionTests(FitnessApiFactory factory) : IDisposabl
     }
 
     [Fact]
+    public async Task Get_AFixedAmountPromotionInAnotherCurrency_DiscountsNothingOnThePlan()
+    {
+        await PromotionBuilder.ClearAsync(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var plan = await PlanWithAddOnAsync();
+        await SubscriptionPlanPriceBuilder.AddOpenAnnualPriceAsync(factory, plan, 299000, 99000);
+        await PromotionBuilder.CreateAsync(factory, [plan], PromotionMode.Automatic, p =>
+        {
+            p.Kind = PromotionKind.FixedAmount;
+            p.Value = 30000;
+            p.Currency = "EUR";
+        });
+
+        var dto = (await GetAsync(coach)).Plans.Single(item => item.Code == plan);
+
+        dto.DiscountedPriceMinorUnits.Should().BeNull("an EUR amount cannot come off a CZK price");
+        dto.DiscountedSecondRoleAddOnPriceMinorUnits.Should().BeNull();
+        dto.AnnualDiscountedPriceMinorUnits.Should().BeNull();
+        dto.AnnualDiscountedSecondRoleAddOnPriceMinorUnits.Should().BeNull();
+    }
+
+    [Fact]
     public async Task Get_WhenTwoOverlap_ReturnsTheLatestClaimFrom_AndDoesNotFallBackForAPlanItDoesNotCover()
     {
         await PromotionBuilder.ClearAsync(factory);

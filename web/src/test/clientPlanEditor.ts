@@ -64,6 +64,8 @@ export const dayAfter = (date: string) => isoDay(Date.parse(`${date}T00:00:00Z`)
 export interface PlanEditorState {
   /** The Monday of week 1, as the editor is told it. */
   startDate: string;
+  /** The plan's status as the plan GET returns it; `Completed` and `Archived` open the editor read-only. */
+  status: string;
   /** Lock verdicts patched into the plan response; they carry the snapshots and item tags. */
   locks: MealLockDto[];
   /** The unreviewed conflicts the list answers with; null answers 403. */
@@ -83,6 +85,7 @@ export interface PlanEditorState {
 export function newPlanEditorState(overrides: Partial<PlanEditorState> = {}): PlanEditorState {
   return {
     startDate: futureStart(),
+    status: 'Draft',
     locks: [],
     conflicts: [],
     reviewStatus: 204,
@@ -102,7 +105,7 @@ export function editorPlan(state: PlanEditorState): GetPlanResponse {
     clientId: CLIENT_ID,
     nutritionistId: COACH_USER_ID,
     name: PLAN_NAME,
-    status: 'Draft',
+    status: state.status,
     globalSettings: { dailyKcal: 2000 },
     version: state.version,
     dateCreated: '2026-01-01T00:00:00Z',

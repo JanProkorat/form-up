@@ -3093,6 +3093,7 @@
     },
     "answers": {
       "noAnswer": "No answer",
+      "openFile": "Open file",
       "ofMax": "{{value}} / {{max}}",
       "other": "Other: {{text}}"
     },

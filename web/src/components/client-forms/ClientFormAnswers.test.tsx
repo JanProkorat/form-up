@@ -71,6 +71,27 @@ describe('ClientFormAnswers', () => {
     expect(within(row as HTMLElement).getByText('No answer')).toBeInTheDocument();
   });
 
+  it('links an uploaded file with a translated label instead of the signed URL', () => {
+    const url = 'https://files.example.test/questionnaire-files/r1/u1.png?X-Amz-Signature=abc';
+    renderAnswer({ questionType: 'file_upload', fileUrl: url });
+
+    const link = screen.getByRole('link', { name: 'Open file' });
+    expect(link).toHaveAttribute('href', url);
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(screen.queryByText(/X-Amz-Signature/)).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['an empty string', ''],
+    ['no', undefined],
+  ])('shows the no-answer state for a file with %s URL', (_label, fileUrl) => {
+    renderAnswer({ questionType: 'file_upload', fileUrl });
+
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    expect(screen.getByText('No answer')).toBeInTheDocument();
+  });
+
   it('still shows a short text answer as plain text', () => {
     renderAnswer({ questionType: 'short_text', valueText: 'Hello there' });
 
