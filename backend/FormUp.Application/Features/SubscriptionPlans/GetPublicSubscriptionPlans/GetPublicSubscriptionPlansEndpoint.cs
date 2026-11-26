@@ -95,9 +95,9 @@ internal sealed class GetPublicSubscriptionPlansEndpoint(IApplicationDbContext d
         long? annualDiscountedPrice = null;
         long? annualDiscountedAddOn = null;
 
-        if (promotion is not null && PromotionRules.CoversPlan(promotion, plan.Code))
+        if (promotion is not null)
         {
-            if (PromotionRules.CoversInterval(promotion, BillingInterval.Monthly))
+            if (PromotionPricing.Applies(promotion, plan.Code, plan.Currency, BillingInterval.Monthly))
             {
                 var (planPrice, addOnDiscounted) = PromotionPricing.Apply(promotion, plan.PriceMinorUnits, addOnPrice);
 
@@ -105,7 +105,8 @@ internal sealed class GetPublicSubscriptionPlansEndpoint(IApplicationDbContext d
                 discountedAddOn = addOnDiscounted;
             }
 
-            if (annualPrice is not null && PromotionRules.CoversInterval(promotion, BillingInterval.Annual))
+            if (annualPrice is not null
+                && PromotionPricing.Applies(promotion, plan.Code, plan.Currency, BillingInterval.Annual))
             {
                 var (annualPlanPrice, annualAddOnDiscounted) =
                     PromotionPricing.Apply(promotion, annualPrice.PriceMinorUnits, annualAddOnPrice);

@@ -216,7 +216,9 @@ export default function ClientPlanInfoPanel({
               </div>
             </div>
           </div>
-          <p className="text-meta text-muted-foreground">{t('clientPlanEditor.info.datesHint', { count: weekCount })}</p>
+          {!readOnly && (
+            <p className="text-meta text-muted-foreground">{t('clientPlanEditor.info.datesHint', { count: weekCount })}</p>
+          )}
           {startLocked && (
             <p data-testid="plan-start-locked" className="text-meta text-muted-foreground">
               {t('apiErrors.START_DATE_LOCKED')}
