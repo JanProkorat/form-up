@@ -392,6 +392,7 @@ public class GetClientDashboardEndpoint(
             Email = clientProfile.User.Email!,
             FirstName = clientProfile.User.FirstName,
             LastName = clientProfile.User.LastName,
+            AvatarBlobUrl = clientProfile.User.AvatarBlobUrl,
             DateOfBirth = clientProfile.DateOfBirth,
             HeightCm = clientProfile.HeightCm,
             WeightKg = clientProfile.WeightKg,
