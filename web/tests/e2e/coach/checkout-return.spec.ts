@@ -1,7 +1,9 @@
 /**
- * Return from Stripe Checkout: when the webhook lands after the 10 s wait on /billing/success, the app keeps
- * refreshing the subscription in the background and announces the plan once it arrives. The subscription read is
- * mocked with a mutable flag and the page clock is faked, so the spec needs neither Stripe nor real waiting.
+ * Return from Stripe Checkout, the one case that needs a real page reload: the watch for a late webhook lives in
+ * sessionStorage and must survive it. The polling phases, the stop, other coaches' watches, failing reads and the
+ * session refresh are proven by src/components/subscription/CheckoutActivationWatcher.test.tsx and
+ * src/pages/BillingReturnPage.test.tsx. The subscription read is mocked with a mutable flag and the page clock is
+ * faked, so the spec needs neither Stripe nor real waiting.
  */
 import type { Page, Route } from '@playwright/test';
 import { trainerTest, expect } from '../fixtures/auth';
@@ -12,7 +14,6 @@ const POLL_STEP_MS = 5_000;
 const SLOW_STEP_MS = 30_000;
 /** Mirrors the watch phases: 5 s polling to 2 min, 30 s polling to 15 min, then focus refresh only. */
 const FAST_PHASE_MS = 120_000;
-const SLOW_PHASE_MS = 900_000;
 const WATCH_KEY = 'checkoutActivationWatch';
 
 const FEATURES = {
@@ -51,26 +52,19 @@ function subscription(paid: boolean) {
 
 interface SubscriptionMock {
   setPaid: (paid: boolean) => void;
-  /** Makes the subscription read answer with this status instead of the plan; 200 restores it. */
-  setStatus: (status: number) => void;
   reads: () => number;
 }
 
 /** Answers the subscription read from a flag the test flips, and counts the reads. */
 async function mockSubscription(page: Page, initiallyPaid: boolean): Promise<SubscriptionMock> {
   let paid = initiallyPaid;
-  let status = 200;
   let reads = 0;
   await page.route(/\/users\/me\/subscription$/, (route: Route) => {
     reads += 1;
-    if (status !== 200) {
-      return route.fulfill({ status, contentType: 'application/problem+json', body: JSON.stringify({ status }) });
-    }
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(subscription(paid)) });
   });
   return {
     setPaid: (value) => void (paid = value),
-    setStatus: (value) => void (status = value),
     reads: () => reads,
   };
 }
@@ -159,45 +153,7 @@ async function advanceUntilActivated(page: Page, step: number, toastsShown: Toas
 }
 
 trainerTest.describe('checkout return with a late webhook', () => {
-  trainerTest('announces the plan when it lands after the return page gave up', async ({ page }) => {
-    const mock = await mockSubscription(page, false);
-    const toastsShown = await trackToastTitles(page);
-    await page.clock.install();
-    await startWatch(page);
-    await expect(toastTitle(page, ACTIVATED)).toHaveCount(0);
-
-    mock.setPaid(true);
-    await advanceUntilActivated(page, POLL_STEP_MS, toastsShown);
-
-    // The watch ends with the announcement: no further reads on the polling cadence.
-    await page.waitForLoadState('networkidle');
-    const readsAfterLanding = mock.reads();
-    await advance(page, FAST_PHASE_MS / 2);
-    expect(mock.reads()).toBe(readsAfterLanding);
-    expect(await storedWatch(page)).toBeNull();
-    // The toast has closed by now (5 s of the faked clock), so count the ones that were ever shown.
-    expect(await toastsShown(ACTIVATED)).toBe(1);
-  });
-
-  trainerTest('announces the plan when it lands in the slow phase', async ({ page }) => {
-    const mock = await mockSubscription(page, false);
-    const toastsShown = await trackToastTitles(page);
-    await page.clock.install();
-    await startWatch(page);
-    await reachSlowPhase(page);
-
-    // Polling is slower now: two minutes of clock make a handful of reads, not the 24 a 5 s cadence would.
-    await page.waitForLoadState('networkidle');
-    const readsBefore = mock.reads();
-    await advance(page, FAST_PHASE_MS, SLOW_STEP_MS);
-    expect(mock.reads() - readsBefore).toBeLessThanOrEqual(5);
-
-    mock.setPaid(true);
-    await advanceUntilActivated(page, SLOW_STEP_MS, toastsShown);
-    expect(await storedWatch(page)).toBeNull();
-    expect(await toastsShown(ACTIVATED)).toBe(1);
-  });
-
+  // E2E: the watch lives in sessionStorage and must survive a real page reload.
   trainerTest('announces the plan once when it lands after a reload', async ({ page }) => {
     const mock = await mockSubscription(page, false);
     await page.clock.install();
@@ -217,91 +173,9 @@ trainerTest.describe('checkout return with a late webhook', () => {
     mock.setPaid(true);
     await advanceUntilActivated(page, SLOW_STEP_MS, toastsShown);
 
-    await page.waitForLoadState('networkidle');
-    const readsAfterLanding = mock.reads();
-    await advance(page, FAST_PHASE_MS / 2, SLOW_STEP_MS);
-    expect(mock.reads()).toBe(readsAfterLanding);
-    expect(await storedWatch(page)).toBeNull();
+    // That polling stops and the stored watch is cleared once the plan lands is proven in
+    // CheckoutActivationWatcher.test.tsx; this test only proves the watch survives the reload.
     // The recording script re-ran on the reloaded document, so this counts post-reload toasts only.
     expect(await toastsShown(ACTIVATED)).toBe(1);
-  });
-
-  trainerTest('stops polling after 15 minutes when the plan never lands', async ({ page }) => {
-    const mock = await mockSubscription(page, false);
-    const toastsShown = await trackToastTitles(page);
-    await page.clock.install();
-    await startWatch(page);
-
-    await advance(page, SLOW_PHASE_MS + SLOW_STEP_MS, SLOW_STEP_MS);
-    await page.waitForLoadState('networkidle');
-    const readsAtBound = mock.reads();
-    await advance(page, FAST_PHASE_MS, SLOW_STEP_MS);
-
-    expect(mock.reads()).toBe(readsAtBound);
-    await expect(toastTitle(page, ACTIVATED)).toHaveCount(0);
-    // The note closed on its own long ago; it was announced once and not again by the watch.
-    expect(await toastsShown(PENDING_TEXT)).toBe(1);
-  });
-
-  trainerTest('does not poll for a watch that belongs to another coach', async ({ page }) => {
-    const mock = await mockSubscription(page, false);
-    await page.clock.install();
-    await page.addInitScript((key) => {
-      sessionStorage.setItem(key, JSON.stringify({ startedAt: Date.now() - 1_000, userId: 'another-coach' }));
-    }, WATCH_KEY);
-    await page.goto('/settings');
-    await expect(page).toHaveURL(/\/settings/);
-    await page.waitForLoadState('networkidle');
-
-    // The foreign watch is dropped once the signed-in coach is known, and nothing polls on its behalf.
-    await expect.poll(() => storedWatch(page)).toBeNull();
-    const readsAfterLoad = mock.reads();
-    await advance(page, FAST_PHASE_MS / 2);
-    expect(mock.reads()).toBe(readsAfterLoad);
-    await expect(toastTitle(page, ACTIVATED)).toHaveCount(0);
-  });
-
-  trainerTest('keeps watching through a failing subscription read', async ({ page }) => {
-    const mock = await mockSubscription(page, false);
-    const toastsShown = await trackToastTitles(page);
-    await page.clock.install();
-    await startWatch(page);
-
-    mock.setStatus(500);
-    await advance(page, FAST_PHASE_MS / 2);
-    await expect(toastTitle(page, ACTIVATED)).toHaveCount(0);
-    expect(await storedWatch(page)).not.toBeNull();
-
-    mock.setStatus(200);
-    mock.setPaid(true);
-    await advanceUntilActivated(page, POLL_STEP_MS, toastsShown);
-  });
-
-  trainerTest('clears the watch when the session cannot be refreshed', async ({ page }) => {
-    const mock = await mockSubscription(page, false);
-    await page.clock.install();
-    await startWatch(page);
-    expect(await storedWatch(page)).not.toBeNull();
-
-    await page.route(/\/auth\/refresh$/, (route: Route) =>
-      route.fulfill({ status: 401, contentType: 'application/problem+json', body: JSON.stringify({ status: 401 }) }),
-    );
-    mock.setStatus(401);
-    await expect(async () => {
-      await advance(page, POLL_STEP_MS);
-      await expect(page).toHaveURL(/\/login/, { timeout: 500 });
-    }).toPass();
-
-    expect(await storedWatch(page)).toBeNull();
-  });
-
-  trainerTest('a plan that is already paid continues without a note', async ({ page }) => {
-    await mockSubscription(page, true);
-    await page.clock.install();
-    await page.goto('/billing/success');
-
-    await expect(page).toHaveURL(/\/settings/);
-    await expect(toastTitle(page, PENDING)).toHaveCount(0);
-    await expect(toastTitle(page, ACTIVATED)).toHaveCount(0);
   });
 });

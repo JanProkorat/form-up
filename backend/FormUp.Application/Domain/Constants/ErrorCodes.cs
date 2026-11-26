@@ -749,6 +749,9 @@ public static class ErrorCodes
     /// <summary>An answer does not fit its question's type or config.</summary>
     public const string QuestionnaireAnswerInvalid = "QUESTIONNAIRE_ANSWER_INVALID";
 
+    /// <summary>A file_upload answer references an upload that was never staged by this caller for this response.</summary>
+    public const string QuestionnaireFileUploadNotFound = "QUESTIONNAIRE_FILE_UPLOAD_NOT_FOUND";
+
     /// <summary>The coach tried to mark a response as seen before the client submitted it.</summary>
     public const string QuestionnaireResponseNotSubmitted = "QUESTIONNAIRE_RESPONSE_NOT_SUBMITTED";
 

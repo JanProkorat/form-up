@@ -8133,7 +8133,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("An answer is invalid (QUESTIONNAIRE_ANSWER_INVALID) or a question is not part of the form (QUESTIONNAIRE_QUESTION_NOT_IN_FORM)", status, _responseText, _headers, result400);
+            return throwException("An answer is invalid (QUESTIONNAIRE_ANSWER_INVALID), a question is not part of the form (QUESTIONNAIRE_QUESTION_NOT_IN_FORM), or a fileUploadId is unknown or repeated (QUESTIONNAIRE_FILE_UPLOAD_NOT_FOUND)", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -9199,6 +9199,89 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<GetClientFormsResponse>(null as any);
+    }
+
+    /**
+     * Generate a questionnaire file upload URL
+     * @param responsePublicId Route parameter — the in-progress response the file belongs to.
+     * @return Upload URL and uploadId
+     */
+    generateAnswerFileUploadUrlEndpoint(responsePublicId: string, generateAnswerFileUploadUrlRequest: GenerateAnswerFileUploadUrlRequest, signal?: AbortSignal): Promise<GenerateAnswerFileUploadUrlResponse> {
+        let url_ = this.baseUrl + "/client/questionnaire/response/{responsePublicId}/file-upload-url";
+        if (responsePublicId === undefined || responsePublicId === null)
+            throw new globalThis.Error("The parameter 'responsePublicId' must be defined.");
+        url_ = url_.replace("{responsePublicId}", encodeURIComponent("" + responsePublicId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(generateAnswerFileUploadUrlRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGenerateAnswerFileUploadUrlEndpoint(_response);
+        });
+    }
+
+    protected processGenerateAnswerFileUploadUrlEndpoint(response: AxiosResponse): Promise<GenerateAnswerFileUploadUrlResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GenerateAnswerFileUploadUrlResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid content type or size, or the question is not a visible file_upload question of the form", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The response belongs to another client", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Unknown response, or one outside the current collaboration", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("The response has already been submitted, or it is a check-in past its answer window (CHECK_IN_ANSWER_WINDOW_CLOSED)", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GenerateAnswerFileUploadUrlResponse>(null as any);
     }
 
     /**
@@ -27549,9 +27632,6 @@ export interface GetPendingInvitesResponse {
 
 /** DTO representing a single pending invitation. */
 export interface PendingInviteDto {
-    /** Internal integer primary key of the PendingInvite row.
-Used to populate pendingInviteId on the photo-diary-request create form. */
-    id?: number;
     /** Public identifier of the pending invite. */
     publicId?: string;
     /** Email address of the invited client. */
@@ -27585,9 +27665,6 @@ export interface DeletePendingInviteRequest {
 
 /** Response model returned after creating a pending invitation. */
 export interface CreatePendingInviteResponse {
-    /** Internal integer primary key of the PendingInvite row.
-Used to populate pendingInviteId on the photo-diary-request create form. */
-    id?: number;
     /** Public identifier of the created pending invite. */
     publicId?: string;
     /** Email address of the invited client. */
@@ -29868,7 +29945,9 @@ export interface AnswerDto {
     valueText?: string | undefined;
     valueNumber?: number | undefined;
     valueJson?: string | undefined;
-    fileUrl?: string | undefined;
+    /** For file_upload questions: the uploadId issued by the file-upload-url endpoint, or the one
+already stored on this answer (a no-op resend). Never a URL. */
+    fileUploadId?: string | undefined;
 }
 
 export interface GetTrainerQuestionnaireResponse {
@@ -30057,7 +30136,11 @@ export interface ClientAnswerDto {
     valueText?: string | undefined;
     valueNumber?: number | undefined;
     valueJson?: string | undefined;
+    /** Short-lived signed URL of the stored file; empty when it cannot be signed. */
     fileUrl?: string | undefined;
+    /** The uploadId behind FileUrl, or null for a foreign or legacy value. Resend it as
+fileUploadId to keep the file unchanged. */
+    fileUploadId?: string | undefined;
 }
 
 /** Query parameters of GET /client/questionnaire. */
@@ -30199,6 +30282,24 @@ export interface ClientFormAnswer {
     sectionLabel?: string | undefined;
     /** 0-based order of the section, or null when SectionLabel is null. */
     sectionOrder?: number | undefined;
+}
+
+/** Pre-signed upload URL and the id to reference from the answer save. */
+export interface GenerateAnswerFileUploadUrlResponse {
+    /** The pre-signed URL the client should PUT the file bytes to. */
+    uploadUrl?: string;
+    /** The identifier to send as fileUploadId in PUT /client/questionnaire/response/{id} once the upload completes. */
+    uploadId?: string;
+}
+
+/** Request for a pre-signed upload URL for one file_upload answer. */
+export interface GenerateAnswerFileUploadUrlRequest {
+    /** Public id of the file_upload question being answered. */
+    questionPublicId: string;
+    /** Declared content type: image/jpeg, image/png or image/webp. */
+    contentType?: string;
+    /** Declared size in bytes, 1 to 5 MiB. */
+    sizeBytes?: number;
 }
 
 export interface DeleteQuestionnaireRequest {
