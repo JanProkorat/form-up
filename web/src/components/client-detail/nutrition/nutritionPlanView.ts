@@ -154,6 +154,10 @@ export interface TimelineModel {
   months: { start: Date; leftPct: number }[];
   /** Position of today, as a percentage of the range, or undefined when outside it. */
   todayPct?: number;
+  /** Some plan starts before the visible range. */
+  hasEarlier: boolean;
+  /** Some plan ends after the visible range. */
+  hasLater: boolean;
 }
 
 function monthStart(date: Date): Date {
@@ -212,39 +216,47 @@ export function buildTimelineBars(
   return bars;
 }
 
-/** Lay bars on a month axis, inserting "no plan" gaps; returns undefined when there is nothing to draw. */
-export function buildTimelineModel(bars: TimelineBar[], today: Date): TimelineModel | undefined {
+/** Lay bars on a month axis, inserting "no plan" gaps; undefined only when there are no bars at all. */
+export function buildTimelineModel(
+  bars: TimelineBar[],
+  today: Date,
+  offsetMonths = 0,
+): TimelineModel | undefined {
   if (bars.length === 0) {
     return undefined;
   }
   const sorted = [...bars].sort((a, b) => a.start.getTime() - b.start.getTime());
   const earliestAllowed = addMonths(monthStart(today), -MAX_TIMELINE_MONTHS_BACK);
-  const rangeStart = monthStart(
-    new Date(Math.max(sorted[0].start.getTime(), earliestAllowed.getTime())),
+  // The default window always holds today's month, so plans far ahead cannot push its start past its end.
+  const baseStart = monthStart(
+    new Date(Math.min(Math.max(sorted[0].start.getTime(), earliestAllowed.getTime()), today.getTime())),
   );
   const latestEnd = sorted.reduce((max, b) => Math.max(max, b.end.getTime()), 0);
   const minEnd = addMonths(monthStart(today), MIN_TIMELINE_MONTHS_AHEAD + 1);
   const maxEnd = addMonths(monthStart(today), MAX_TIMELINE_MONTHS_AHEAD + 1);
-  const rangeEnd = new Date(
+  const baseEnd = new Date(
     Math.min(Math.max(addMonths(monthStart(new Date(latestEnd)), 1).getTime(), minEnd.getTime()), maxEnd.getTime()),
   );
+  const rangeStart = addMonths(baseStart, offsetMonths);
+  const rangeEnd = addMonths(baseEnd, offsetMonths);
   const totalDays = diffDays(rangeEnd, rangeStart);
 
-  const visible = sorted.filter((b) => b.end.getTime() > rangeStart.getTime() && b.start.getTime() < rangeEnd.getTime());
-  if (visible.length === 0) {
-    return undefined;
-  }
-
-  const items: TimelineItem[] = [];
+  // Gaps come from all bars, so a window keeps a gap whose neighbour is off-screen.
+  const all: TimelineItem[] = [];
   let cursor: Date | undefined;
-  for (const bar of visible) {
+  for (const bar of sorted) {
     if (cursor && diffDays(bar.start, cursor) >= MIN_GAP_DAYS) {
-      items.push({ kind: 'gap', start: cursor, end: bar.start, days: diffDays(bar.start, cursor) });
+      all.push({ kind: 'gap', start: cursor, end: bar.start, days: diffDays(bar.start, cursor) });
     }
-    items.push({ kind: 'plan', ...bar });
+    all.push({ kind: 'plan', ...bar });
     if (!cursor || bar.end.getTime() > cursor.getTime()) {
       cursor = bar.end;
     }
+  }
+  const items = all.filter((i) => i.end.getTime() > rangeStart.getTime() && i.start.getTime() < rangeEnd.getTime());
+  if (items.length === 0) {
+    // Bars exist but none (and no gap between two) reaches the window.
+    items.push({ kind: 'gap', start: rangeStart, end: rangeEnd, days: totalDays });
   }
 
   const months: TimelineModel['months'] = [];
@@ -255,7 +267,18 @@ export function buildTimelineModel(bars: TimelineBar[], today: Date): TimelineMo
   const todayOffset = diffDays(today, rangeStart);
   const todayPct = todayOffset >= 0 && todayOffset <= totalDays ? (todayOffset / totalDays) * 100 : undefined;
 
-  return { rangeStart, rangeEnd, totalDays, items, months, todayPct };
+  const hasEarlier = sorted.some((b) => b.start.getTime() < rangeStart.getTime());
+  const hasLater = sorted.some((b) => b.end.getTime() > rangeEnd.getTime());
+
+  return { rangeStart, rangeEnd, totalDays, items, months, todayPct, hasEarlier, hasLater };
+}
+
+/** "May – Nov 2026" label for the visible months (the range end is exclusive). */
+export function formatTimelineRange(model: TimelineModel, locale: string): string {
+  return new Intl.DateTimeFormat(locale, { month: 'short', year: 'numeric', timeZone: 'UTC' }).formatRange(
+    model.rangeStart,
+    addMonths(model.rangeEnd, -1),
+  );
 }
 
 /** Left offset and width of a span on the model's axis, clipped to the range, as percentages. */
@@ -265,6 +288,14 @@ export function spanPercent(model: TimelineModel, start: Date, end: Date): { lef
   const leftPct = (diffDays(new Date(clippedStart), model.rangeStart) / model.totalDays) * 100;
   const widthPct = (diffDays(new Date(clippedEnd), new Date(clippedStart)) / model.totalDays) * 100;
   return { leftPct, widthPct };
+}
+
+/** "4 Nov 2024 – 5 Jan 2025" style range of two calendar dates (UTC midnight), both inclusive. */
+export function formatDateRange(first: Date, last: Date, locale: string): string {
+  return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).formatRange(
+    first,
+    last,
+  );
 }
 
 /** "1 Sep" style label for a calendar date (UTC midnight). */

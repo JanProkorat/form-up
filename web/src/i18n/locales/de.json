@@ -5029,7 +5029,10 @@
       },
       "timeline": {
         "heading": "Plan-Zeitleiste",
-        "hint": "Pläne nach Monat",
+        "hint": "Klicken Sie auf einen Plan, um ihn zu öffnen",
+        "earlier": "Frühere Monate",
+        "later": "Spätere Monate",
+        "todayAction": "Heute",
         "empty": "Noch keine Pläne mit Termin.",
         "today": "Heute",
         "noPlan": "Kein Plan",
@@ -5936,7 +5939,6 @@
     }
   },
   "entry": {
-    "brand": "Form Up",
     "login": {
       "title": "Willkommen zurück",
       "lede": "Im Trainerportal anmelden.",
@@ -6212,8 +6214,7 @@
       "cs": "CS",
       "en": "EN",
       "de": "DE"
-    },
-    "brandMark": "GF"
+    }
   },
   "home": {
     "brand": { "form": "FORM", "up": "UP", "name": "Form Up" },
