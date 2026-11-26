@@ -384,7 +384,7 @@ dialog.lightbox button { position: fixed; top: calc(12px + env(safe-area-inset-t
     let list = [...state.sections].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
     if (state.filter === "fail") list = list.filter((s) => stepsOf(s.id).some((x) => x.status === "fail"));
     if (state.filter === "yours") list = list.filter((s) => s.status === "ready" && (stepsOf(s.id).some(needsYou) || stepsOf(s.id).some((x) => x.status === "fail")));
-    if (state.filter === "open") list = list.filter((s) => s.status !== "superseded" && (stepsOf(s.id).some((x) => (x.status || "todo") !== "pass") || notesOf(s.id).some((n) => n.state !== "done") || s.status !== "ready"));
+    if (state.filter === "open") list = list.filter((s) => s.status !== "superseded" && (stepsOf(s.id).some((x) => (x.status || "todo") !== "pass" || needsYou(x)) || notesOf(s.id).some((n) => n.state !== "done") || s.status !== "ready"));
     if (!state.sections.length) { box.append(el("p", { class: "empty", text: "Issues appear here as they are planned and merged. Each one lists the steps to try and has a box for your notes and screenshots." })); return; }
     if (!list.length) { box.append(el("p", { class: "empty", text: state.filter === "fail" ? "Nothing marked broken." : state.filter === "yours" ? "Nothing waits on you. Claude checked every step it could." :"Everything here is tested and handled. Switch to All to see it." })); return; }
     list.forEach((s) => {
