@@ -13,6 +13,7 @@ import WeekAverageCard from '@/components/plan-editor/WeekAverageCard';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePlanTemplate } from '@/hooks/usePlanTemplatesQueries';
+import { cn } from '@/lib/utils';
 
 const MAX_NAME_LENGTH = 200;
 const MAX_KCAL = 20000;
@@ -210,7 +211,10 @@ export default function ClientPlanInfoPanel({
               <span className="text-body font-medium text-ink">{t('clientPlanEditor.info.ends')}</span>
               <div
                 data-testid="plan-end-date"
-                className="flex h-10 items-center truncate rounded-field border border-input bg-background px-2.5 text-body font-semibold text-foreground"
+                className={cn(
+                  'flex h-10 items-center truncate rounded-field border border-input bg-background px-2.5 text-body font-semibold text-foreground',
+                  readOnly && 'opacity-60',
+                )}
               >
                 {doc.startDate && weekCount > 0 ? formatCalendarDate(planEndDate(doc.startDate, weekCount), locale) : '—'}
               </div>
