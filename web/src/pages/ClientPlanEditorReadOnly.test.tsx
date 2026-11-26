@@ -23,17 +23,21 @@ describe('plan editor: closed plan', () => {
     expect(within(tabs).queryByRole('tab', { name: 'Library' })).not.toBeInTheDocument();
 
     // pastStart() is Mon 8 Jun; one week ends Sun 14 Jun.
-    expect(await screen.findByTestId('plan-end-date')).toHaveTextContent('Sun, Jun 14');
+    const endDate = await screen.findByTestId('plan-end-date');
+    expect(endDate).toHaveTextContent('Sun, Jun 14');
+    // Fades like the disabled start date; jsdom has no stylesheets, so assert the class.
+    expect(endDate).toHaveClass('opacity-60');
     expect(screen.getByLabelText(/^Plan name/)).toBeDisabled();
     expect(screen.getByLabelText('Calories')).toBeDisabled();
     expect(screen.queryByText(/add or remove weeks/)).not.toBeInTheDocument();
   });
 
-  it('an open plan still offers the Library tab', async () => {
+  it('an open plan still offers the Library tab and keeps the end date unfaded', async () => {
     servePlanEditor(newPlanEditorState());
     renderPlanEditor();
     await screen.findByRole('heading', { name: PLAN_NAME });
 
     expect(await screen.findByRole('tab', { name: 'Library' })).toBeInTheDocument();
+    expect(await screen.findByTestId('plan-end-date')).not.toHaveClass('opacity-60');
   });
 });
