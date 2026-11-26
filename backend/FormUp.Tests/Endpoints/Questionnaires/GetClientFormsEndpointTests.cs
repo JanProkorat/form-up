@@ -1,4 +1,6 @@
 using System.Net;
+using FormUp.Application.Domain.Interfaces;
+using FormUp.Application.Features.Questionnaires.Shared;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -270,5 +272,19 @@ public class GetClientFormsEndpointTests(FitnessApiFactory factory)
         var response = await coach.Http.GetAsync($"/trainer/clients/{Guid.NewGuid()}/forms", Ct);
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task GetForms_FileAnswer_ReturnsSignedUrlNotTheStoredValue()
+    {
+        var scenario = await QuestionnaireAnswerScenario.CreateAsync(
+            factory, [new("file", QuestionTypes.FileUpload)], status: QuestionnaireResponseStatus.Submitted);
+        var storedUrl = QuestionnaireFilePolicy.BuildFinalContainerPath(scenario.ResponsePublicId, Guid.NewGuid(), "png");
+        await scenario.AddFileAnswerAsync(factory, "file", storedUrl);
+
+        var forms = await GetFormsAsync(scenario.Coach, scenario.Client);
+
+        forms.Current.Should().ContainSingle()
+            .Which.Answers.Should().ContainSingle().Which.FileUrl.Should().Be($"{storedUrl}?signed=test");
     }
 }

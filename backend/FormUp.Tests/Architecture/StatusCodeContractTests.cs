@@ -77,6 +77,7 @@ public class StatusCodeContractTests(FitnessApiFactory factory)
     [InlineData("post", "/admin/promotions/{promotionId}/end", "200,400,401,403,404,409,502,503", true, Body)]
     [InlineData("get", "/admin/reports", "200,400,401,403", true, Body)]
     [InlineData("get", "/admin/overview/attention", "200,401,403", true, Absent)]
+    [InlineData("post", "/client/questionnaire/response/{responsePublicId}/file-upload-url", "200,400,401,403,404,409", true, Body)]
     public async Task Swagger_Operation_DeclaresExactlyTheStatusCodesItCanReturn(
         string method, string route, string expected, bool typedSuccess, string badRequest)
     {

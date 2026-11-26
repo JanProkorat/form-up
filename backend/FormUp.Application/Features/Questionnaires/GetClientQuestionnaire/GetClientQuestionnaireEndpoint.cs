@@ -3,12 +3,14 @@ using FastEndpoints;
 using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Extensions;
+using FormUp.Application.Domain.Interfaces;
+using FormUp.Application.Features.Questionnaires.Shared;
 using FormUp.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace FormUp.Application.Features.Questionnaires.GetClientQuestionnaire;
 
-public class GetClientQuestionnaireEndpoint(IApplicationDbContext db, TimeProvider timeProvider)
+public class GetClientQuestionnaireEndpoint(IApplicationDbContext db, TimeProvider timeProvider, IBlobStorageService blobStorage)
     : Endpoint<GetClientQuestionnaireRequest, GetClientQuestionnaireResponse>
 {
     public override void Configure()
@@ -156,6 +158,33 @@ public class GetClientQuestionnaireEndpoint(IApplicationDbContext db, TimeProvid
 
         var questionLookup = questionnaire.Questions.ToDictionary(q => q.Id, q => q.PublicId);
 
+        List<ClientAnswerDto>? existingAnswers = null;
+
+        if (existingResponse is not null)
+        {
+            existingAnswers = [];
+
+            foreach (var a in existingResponse.Answers)
+            {
+                // The stored value is a permanent unsigned reference: return a signed URL, plus the
+                // uploadId parsed from it so a resumed form can resend the answer unchanged.
+                var hasOwnUpload = QuestionnaireFilePolicy.TryParseOwnFinalUrl(
+                    blobStorage, existingResponse.PublicId, a.FileUrl, out var uploadId, out _);
+
+                existingAnswers.Add(new ClientAnswerDto
+                {
+                    QuestionPublicId = questionLookup.GetValueOrDefault(a.QuestionId),
+                    ValueText = a.ValueText,
+                    ValueNumber = a.ValueNumber,
+                    ValueJson = a.ValueJson,
+                    FileUrl = string.IsNullOrEmpty(a.FileUrl)
+                        ? a.FileUrl
+                        : await blobStorage.GenerateReadUrlAsync(a.FileUrl, ct) ?? string.Empty,
+                    FileUploadId = hasOwnUpload ? uploadId : null,
+                });
+            }
+        }
+
         await Send.OkAsync(new GetClientQuestionnaireResponse
         {
             QuestionnairePublicId = questionnaire.PublicId,
@@ -178,14 +207,7 @@ public class GetClientQuestionnaireEndpoint(IApplicationDbContext db, TimeProvid
             }).ToList(),
             ExistingResponsePublicId = existingResponse?.PublicId,
             ExistingResponseStatus = existingResponse?.Status.ToString(),
-            ExistingAnswers = existingResponse?.Answers.Select(a => new ClientAnswerDto
-            {
-                QuestionPublicId = questionLookup.GetValueOrDefault(a.QuestionId),
-                ValueText = a.ValueText,
-                ValueNumber = a.ValueNumber,
-                ValueJson = a.ValueJson,
-                FileUrl = a.FileUrl,
-            }).ToList(),
+            ExistingAnswers = existingAnswers,
         }, ct);
     }
 }

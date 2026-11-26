@@ -6,38 +6,44 @@ namespace FormUp.Application.Features.Questionnaires.Shared;
 /// Checks one client answer against its question's type and config.
 /// Encoding: single_choice = valueText; multi_select = valueJson string array (+ valueText for "Other");
 /// short_text = valueText; number / scale = valueNumber within config bounds (scale integer, default 1-10);
-/// smiley_rating / star_rating = integer valueNumber 1-5; file_upload = https fileUrl; section takes no answer.
+/// smiley_rating / star_rating = integer valueNumber 1-5; file_upload = fileUploadId; section takes no answer.
 /// An answer with every value blank is "cleared" and always valid.
 /// </summary>
 public static class AnswerValueChecker
 {
     private const int MaxTextLength = 2000;
-    private const int MaxFileUrlLength = 500;
 
     private static readonly JsonSerializerOptions Options = new()
     {
         PropertyNameCaseInsensitive = true,
     };
 
-    /// <summary>True when no value field carries content (a cleared answer).</summary>
+    /// <summary>True when no value field carries content (a cleared answer); <paramref name="fileUrl"/> is the stored value.</summary>
     public static bool IsBlank(string? valueText, decimal? valueNumber, string? valueJson, string? fileUrl) =>
+        IsBlankCore(valueText, valueNumber, valueJson, !string.IsNullOrWhiteSpace(fileUrl));
+
+    /// <summary>Same as <see cref="IsBlank"/>, for a client request that carries a <paramref name="fileUploadId"/>.</summary>
+    public static bool IsBlankUpload(string? valueText, decimal? valueNumber, string? valueJson, Guid? fileUploadId) =>
+        IsBlankCore(valueText, valueNumber, valueJson, fileUploadId.HasValue);
+
+    private static bool IsBlankCore(string? valueText, decimal? valueNumber, string? valueJson, bool hasFile) =>
         string.IsNullOrWhiteSpace(valueText)
         && valueNumber is null
         && string.IsNullOrWhiteSpace(valueJson)
-        && string.IsNullOrWhiteSpace(fileUrl);
+        && !hasFile;
 
     /// <summary>Returns why the answer is invalid, or null when it is acceptable.</summary>
     public static string? FindProblem(
-        string? type, string? config, string? valueText, decimal? valueNumber, string? valueJson, string? fileUrl)
+        string? type, string? config, string? valueText, decimal? valueNumber, string? valueJson, Guid? fileUploadId)
     {
-        if (IsBlank(valueText, valueNumber, valueJson, fileUrl))
+        if (IsBlankUpload(valueText, valueNumber, valueJson, fileUploadId))
         {
             return null;
         }
 
         var hasText = !string.IsNullOrWhiteSpace(valueText);
         var hasJson = !string.IsNullOrWhiteSpace(valueJson);
-        var hasFile = !string.IsNullOrWhiteSpace(fileUrl);
+        var hasFile = fileUploadId.HasValue;
 
         if (valueText is { Length: > MaxTextLength })
         {
@@ -57,7 +63,7 @@ public static class AnswerValueChecker
                 QuestionTypes.SmileyRating or QuestionTypes.StarRating =>
                     CheckWholeNumber(1, 5, hasText, valueNumber, hasJson, hasFile),
                 QuestionTypes.Scale => CheckScale(config, hasText, valueNumber, hasJson, hasFile),
-                QuestionTypes.FileUpload => CheckFile(fileUrl, hasText, valueNumber, hasJson),
+                QuestionTypes.FileUpload => CheckFile(hasFile, hasText, valueNumber, hasJson),
                 QuestionTypes.Section => "A section takes no answer.",
                 _ => "Unknown question type.",
             };
@@ -167,22 +173,10 @@ public static class AnswerValueChecker
             : $"valueNumber must be a whole number from {min} to {max}.";
     }
 
-    private static string? CheckFile(string? fileUrl, bool hasText, decimal? valueNumber, bool hasJson)
-    {
-        if (string.IsNullOrWhiteSpace(fileUrl) || hasText || valueNumber is not null || hasJson)
-        {
-            return "File upload takes fileUrl only.";
-        }
-
-        if (fileUrl.Length > MaxFileUrlLength)
-        {
-            return "fileUrl is too long.";
-        }
-
-        return Uri.TryCreate(fileUrl, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps
+    private static string? CheckFile(bool hasFile, bool hasText, decimal? valueNumber, bool hasJson) =>
+        hasFile && !hasText && valueNumber is null && !hasJson
             ? null
-            : "fileUrl must be an absolute https URL.";
-    }
+            : "File upload takes fileUploadId only.";
 
     private static (HashSet<string> Options, bool AllowOther) ParseChoice(string? config)
     {
