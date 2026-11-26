@@ -18,6 +18,7 @@ async function openClientDetail(page: Page): Promise<void> {
   await row.getByRole('link', { name: /QA Client/ }).click();
   await page.waitForLoadState('networkidle');
   await expect(page.getByRole('heading', { name: /QA Client/ })).toBeVisible();
+  await expect(page.getByTestId('client-avatar')).toBeVisible();
 }
 
 async function openNutritionTab(page: Page): Promise<void> {
