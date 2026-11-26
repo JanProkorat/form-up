@@ -12,7 +12,7 @@ public class GetPendingInvitesEndpointTests
     private readonly Guid _trainerId = Guid.NewGuid();
 
     [Fact]
-    public async Task HandleAsync_WithPendingInvites_ReturnsIdInEachItem()
+    public async Task HandleAsync_WithPendingInvites_ReturnsEachItem()
     {
         var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUserId(_trainerId).Build();
         var invite = EntityBuilder.PendingInvite
@@ -35,7 +35,6 @@ public class GetPendingInvitesEndpointTests
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
         ep.Response.Invites.Should().ContainSingle();
-        ep.Response.Invites[0].Id.Should().Be(77);
         ep.Response.Invites[0].Email.Should().Be("invited@test.com");
     }
 
@@ -66,9 +65,10 @@ public class GetPendingInvitesEndpointTests
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
         ep.Response.Invites.Should().HaveCount(2);
-        ep.Response.Invites.Single(i => i.Id == 1).Status.Should().Be(PendingInviteStatus.Pending);
-        ep.Response.Invites.Single(i => i.Id == 2).Status.Should().Be(PendingInviteStatus.Expired);
-        ep.Response.Invites.Select(i => i.Id).Should().BeEquivalentTo([1L, 2L], "cancelled and declined invites are not listed");
+        ep.Response.Invites.Single(i => i.Email == "fresh@test.com").Status.Should().Be(PendingInviteStatus.Pending);
+        ep.Response.Invites.Single(i => i.Email == "stale@test.com").Status.Should().Be(PendingInviteStatus.Expired);
+        ep.Response.Invites.Select(i => i.Email).Should().BeEquivalentTo(
+            ["fresh@test.com", "stale@test.com"], "cancelled and declined invites are not listed");
     }
 
     [Fact]

@@ -3,8 +3,6 @@ import { apiClient } from '@/api/client';
 import type { CheckPendingInviteSlotResponse, LinkCapabilityScope } from '@/api/generated';
 
 export interface PendingInviteDto {
-  /** Internal integer PK of the PendingInvite row. Used for diary requests. */
-  id?: number;
   publicId: string;
   email: string;
   message?: string | null;
@@ -27,8 +25,6 @@ export interface CreatePendingInviteRequest {
 }
 
 export interface CreatePendingInviteResponse {
-  /** Internal integer PK of the PendingInvite row. Used for diary requests. */
-  id?: number;
   publicId: string;
   email: string;
   sentAt: string;

@@ -27639,9 +27639,6 @@ export interface GetPendingInvitesResponse {
 
 /** DTO representing a single pending invitation. */
 export interface PendingInviteDto {
-    /** Internal integer primary key of the PendingInvite row.
-Used to populate pendingInviteId on the photo-diary-request create form. */
-    id?: number;
     /** Public identifier of the pending invite. */
     publicId?: string;
     /** Email address of the invited client. */
@@ -27675,9 +27672,6 @@ export interface DeletePendingInviteRequest {
 
 /** Response model returned after creating a pending invitation. */
 export interface CreatePendingInviteResponse {
-    /** Internal integer primary key of the PendingInvite row.
-Used to populate pendingInviteId on the photo-diary-request create form. */
-    id?: number;
     /** Public identifier of the created pending invite. */
     publicId?: string;
     /** Email address of the invited client. */
