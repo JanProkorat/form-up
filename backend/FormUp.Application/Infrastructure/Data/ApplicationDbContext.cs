@@ -299,6 +299,13 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             e.HasIndex(m => new { m.ConversationId, m.EventType, m.EventSourceId })
                 .IsUnique()
                 .HasFilter("event_source_id IS NOT NULL");
+
+            // Makes a retried send idempotent: one row per (conversation, sender, client id).
+            // Partial so rows without an id are unconstrained.
+            e.HasIndex(m => new { m.ConversationId, m.SenderUserId, m.ClientMessageId })
+                .IsUnique()
+                .HasDatabaseName(ChatMessage.ClientMessageIdIndexName)
+                .HasFilter("client_message_id IS NOT NULL");
         });
 
         builder.Entity<PlanPhoto>(e =>

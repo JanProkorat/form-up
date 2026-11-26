@@ -787,6 +787,10 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<Guid?>("ClientMessageId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("client_message_id");
+
                     b.Property<long>("ConversationId")
                         .HasColumnType("bigint")
                         .HasColumnName("conversation_id");
@@ -868,6 +872,11 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                         .IsUnique()
                         .HasDatabaseName("ix_chat_messages_conversation_id_event_type_event_source_id")
                         .HasFilter("event_source_id IS NOT NULL");
+
+                    b.HasIndex("ConversationId", "SenderUserId", "ClientMessageId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_chat_messages_client_message_id")
+                        .HasFilter("client_message_id IS NOT NULL");
 
                     b.ToTable("chat_messages", (string)null);
                 });

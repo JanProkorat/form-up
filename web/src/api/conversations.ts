@@ -66,6 +66,8 @@ export interface SendMessagePayload {
   imageWidth?: number;
   /** Client-reported layout hint, read from the file before upload. Never trusted for security. */
   imageHeight?: number;
+  /** Retry-safe send id (GUID): a repeat with the same id returns the original message instead of a new one. */
+  clientMessageId?: string;
 }
 
 /** POST /conversations/{id}/messages — text, an image, or both. */
