@@ -353,3 +353,65 @@ describe('Nutrition tab: Duplicate', () => {
     expect(Object.keys(copyRequests[0].body)).toEqual(['clientId']);
   });
 });
+
+describe('Nutrition tab: plan timeline navigation', () => {
+  const OLD_PLAN_ID = '00000000-0000-0000-1329-000000000004';
+
+  /** Active plan (Jun 2026) plus a Completed one in Nov 2024 - Jan 2025, outside the default range. */
+  function seedWithOldPlan() {
+    pinNow(new Date(2026, 5, 10, 12, 0, 0));
+    const state = newClientDetailState();
+    serveClientDetail(state);
+    seedActivePlan(state);
+    addPlan(state, {
+      planId: OLD_PLAN_ID,
+      name: 'Old cut',
+      periodStart: '2024-11-04',
+      periodEnd: '2025-01-05',
+      status: 'Completed',
+    });
+    return renderNutritionTab();
+  }
+
+  /** Range label with thin / no-break spaces folded, since ICU versions differ. */
+  const rangeLabel = () => (screen.getByTestId('plan-timeline-range').textContent ?? '').replace(/\s/g, ' ');
+
+  it('steps back to a past plan, keeps its full dates when clipped and returns with Today', async () => {
+    const { user } = seedWithOldPlan();
+
+    const timeline = await screen.findByRole('region', { name: 'Plan timeline' });
+    expect(within(timeline).queryByRole('link', { name: /Old cut/ })).not.toBeInTheDocument();
+    const earlier = within(timeline).getByRole('button', { name: 'Earlier months' });
+    const later = within(timeline).getByRole('button', { name: 'Later months' });
+    expect(earlier).toBeEnabled();
+    expect(later).toBeDisabled();
+    const defaultLabel = rangeLabel();
+    expect(defaultLabel).toBe('Jul 2025 – Jul 2026');
+
+    await user.click(earlier);
+    await user.click(earlier);
+
+    expect(rangeLabel()).toBe('Jan 2025 – Jan 2026');
+    // Only January 2025 of the plan is on screen, but its label still carries the whole run.
+    expect(within(timeline).getByRole('link', { name: /Old cut · Nov – Jan/ })).toBeInTheDocument();
+    expect(later).toBeEnabled();
+
+    await user.click(within(timeline).getByRole('button', { name: 'Today' }));
+    expect(rangeLabel()).toBe(defaultLabel);
+    expect(within(timeline).queryByRole('link', { name: /Old cut/ })).not.toBeInTheDocument();
+    expect(later).toBeDisabled();
+  });
+
+  it('disables Earlier once nothing lies before the range', async () => {
+    const { user } = seedWithOldPlan();
+    const timeline = await screen.findByRole('region', { name: 'Plan timeline' });
+    const earlier = within(timeline).getByRole('button', { name: 'Earlier months' });
+
+    await user.click(earlier);
+    await user.click(earlier);
+    await user.click(earlier);
+
+    expect(rangeLabel()).toBe('Oct 2024 – Oct 2025');
+    expect(earlier).toBeDisabled();
+  });
+});

@@ -75,4 +75,54 @@ test.describe('client detail — nutrition tab', () => {
     await expect(page).toHaveURL(/\/clients\/[^/]+$/);
     await expect(page.getByRole('region', { name: 'Current meal plan' })).toBeVisible();
   });
+
+  // Real-backend journey for the timeline arrows (#2091). The seeded client has no past plan,
+  // so the plans-list read is passed through and one old Completed plan is appended to it.
+  // Range, disabled-arrow and clipping logic is covered by the Vitest tests.
+  test('timeline arrows reach a plan from over a year ago and Today returns', async ({ page }) => {
+    const monthsAgo = (months: number): string => {
+      const now = new Date();
+      return new Date(Date.UTC(now.getFullYear(), now.getMonth() - months, 10)).toISOString().slice(0, 10);
+    };
+    await page.route(/\/trainer\/clients\/[^/]+\/plans(\?.*)?$/, async (route) => {
+      const response = await route.fetch();
+      const body = (await response.json()) as { plans?: Record<string, unknown>[] };
+      body.plans = [
+        ...(body.plans ?? []),
+        {
+          planId: '00000000-0000-0000-2091-000000000001',
+          planType: 'Nutrition',
+          name: 'Archived cut (mock)',
+          status: 'Completed',
+          periodStart: monthsAgo(17),
+          periodEnd: monthsAgo(15),
+        },
+      ];
+      await route.fulfill({ response, json: body });
+    });
+
+    await openNutritionTab(page);
+
+    const timeline = page.getByRole('region', { name: 'Plan timeline' });
+    const range = timeline.getByTestId('plan-timeline-range');
+    const earlier = timeline.getByRole('button', { name: 'Earlier months' });
+    const oldBar = timeline.getByTestId('plan-timeline-row').getByRole('link', { name: /Archived cut \(mock\)/ });
+    const activeBar = timeline.getByTestId('plan-timeline-row').getByRole('link').first();
+
+    await expect(activeBar).toBeVisible();
+    await expect(oldBar).toHaveCount(0);
+    await expect(earlier).toBeEnabled();
+    const defaultRange = await range.textContent();
+
+    for (let step = 0; step < 4 && (await oldBar.count()) === 0; step += 1) {
+      await earlier.click();
+    }
+    await expect(oldBar).toBeVisible();
+    await expect(range).not.toHaveText(defaultRange ?? '');
+
+    await timeline.getByRole('button', { name: 'Today' }).click();
+    await expect(range).toHaveText(defaultRange ?? '');
+    await expect(oldBar).toHaveCount(0);
+    await expect(activeBar).toBeVisible();
+  });
 });

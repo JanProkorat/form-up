@@ -1,12 +1,15 @@
-import { useId, useMemo } from 'react';
+import { useId, useMemo, useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import type { ClientPlanItem } from '@/api/generated';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import {
   buildTimelineBars,
   buildTimelineModel,
   formatMonth,
+  formatTimelineRange,
   formatShortDate,
   selectOpenPlans,
   spanPercent,
@@ -21,6 +24,9 @@ interface Props {
   plans: ClientPlanItem[];
   details: Record<string, PlanDetailState>;
 }
+
+/** Months the arrows move the visible range by. */
+const TIMELINE_STEP_MONTHS = 3;
 
 const BAR_TONE: Record<string, string> = {
   Active: 'border-nutrition bg-nutrition-soft text-nutrition-ink',
@@ -111,6 +117,7 @@ export default function PlanTimelineCard({ clientId, plans, details }: Props) {
   const { t, i18n } = useTranslation();
   const headingId = useId();
   const locale = i18n.language;
+  const [offset, setOffset] = useState(0);
 
   const model = useMemo(() => {
     const today = todayCalendarDate();
@@ -119,8 +126,8 @@ export default function PlanTimelineCard({ clientId, plans, details }: Props) {
       details,
       today,
     );
-    return buildTimelineModel(bars, today);
-  }, [plans, details]);
+    return buildTimelineModel(bars, today, offset);
+  }, [plans, details, offset]);
 
   const detailsPending = selectOpenPlans(plans).some((p) => p.planId && details[p.planId]?.isPending);
 
@@ -129,11 +136,45 @@ export default function PlanTimelineCard({ clientId, plans, details }: Props) {
       aria-labelledby={headingId}
       className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5"
     >
-      <div className="flex items-baseline justify-between gap-3">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <h2 id={headingId} className="text-card-title font-bold text-ink">
           {t('clientDetail.nutrition.timeline.heading')}
         </h2>
-        <span className="text-body text-muted-foreground">{t('clientDetail.nutrition.timeline.hint')}</span>
+        {model && (
+          <>
+            <span className="inline-flex items-center gap-1.5">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                aria-label={t('clientDetail.nutrition.timeline.earlier')}
+                title={t('clientDetail.nutrition.timeline.earlier')}
+                disabled={!model.hasEarlier}
+                onClick={() => setOffset((o) => o - TIMELINE_STEP_MONTHS)}
+              >
+                <ChevronLeft aria-hidden="true" />
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                aria-label={t('clientDetail.nutrition.timeline.later')}
+                title={t('clientDetail.nutrition.timeline.later')}
+                disabled={!model.hasLater}
+                onClick={() => setOffset((o) => o + TIMELINE_STEP_MONTHS)}
+              >
+                <ChevronRight aria-hidden="true" />
+              </Button>
+            </span>
+            <Button type="button" variant="outline" className="px-3 font-semibold" onClick={() => setOffset(0)}>
+              {t('clientDetail.nutrition.timeline.todayAction')}
+            </Button>
+            <span className="text-body font-semibold text-ink" data-testid="plan-timeline-range">
+              {formatTimelineRange(model, locale)}
+            </span>
+          </>
+        )}
+        <span className="ml-auto text-meta text-muted-foreground">{t('clientDetail.nutrition.timeline.hint')}</span>
       </div>
 
       {!model && (

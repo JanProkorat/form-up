@@ -5030,7 +5030,10 @@
       },
       "timeline": {
         "heading": "Plan timeline",
-        "hint": "Plans by month",
+        "hint": "Click a plan to open it",
+        "earlier": "Earlier months",
+        "later": "Later months",
+        "todayAction": "Today",
         "empty": "No dated plans to show yet.",
         "today": "Today",
         "noPlan": "No plan",
