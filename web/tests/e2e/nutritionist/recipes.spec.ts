@@ -191,6 +191,8 @@ test.describe('recipes page', () => {
     const origin = baseURL ?? 'http://localhost:5173';
     const name = `QA Recipe ${Date.now()}`;
     const drawer = page.locator('[data-slot="sheet-content"]');
+    // Long enough to wrap onto several lines in the drawer.
+    const longStepText = 'Wash the apple under cold running water and dry it well. '.repeat(4).trim();
 
     await page.getByRole('button', { name: 'New Recipe' }).click();
     await expect(drawer.getByRole('heading', { name: 'New Recipe' })).toBeVisible();
@@ -213,7 +215,7 @@ test.describe('recipes page', () => {
     // Preparation tab: two steps.
     await drawer.getByRole('tab', { name: /Preparation/ }).click();
     await drawer.getByRole('button', { name: '+ Add step' }).click();
-    await drawer.getByLabel('Step 1', { exact: true }).fill('Wash the apple.');
+    await drawer.getByLabel('Step 1', { exact: true }).fill(longStepText);
     await drawer.getByLabel('Step 1 time in minutes').fill('5');
     await drawer.getByRole('button', { name: '+ Add step' }).click();
     await drawer.getByLabel('Step 2', { exact: true }).fill('Slice and serve.');
@@ -241,7 +243,12 @@ test.describe('recipes page', () => {
       await drawer.getByRole('tab', { name: /Ingredients/ }).click();
       await expect(drawer.getByLabel(/^Amount in grams for/)).toHaveValue('200');
       await drawer.getByRole('tab', { name: /Preparation/ }).click();
-      await expect(drawer.getByLabel('Step 1', { exact: true })).toHaveValue('Wash the apple.');
+      const step1 = drawer.getByLabel('Step 1', { exact: true });
+      await expect(step1).toHaveValue(longStepText);
+      // The saved long text must show in full: the box fits its content (no clipped last line) and spans several lines.
+      await expect
+        .poll(() => step1.evaluate((el) => el.clientHeight >= el.scrollHeight && el.clientHeight > 2 * parseFloat(getComputedStyle(el).lineHeight)))
+        .toBe(true);
       await expect(drawer.getByLabel('Step 2', { exact: true })).toHaveValue('Slice and serve.');
       await expect(drawer.getByLabel('Step 1 time in minutes')).toHaveValue('5');
       await expect(drawer.getByLabel('Step 2 title')).toHaveValue('Serve');
