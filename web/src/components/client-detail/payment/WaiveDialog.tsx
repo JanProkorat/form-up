@@ -54,26 +54,26 @@ function WaiveForm({ clientId, clientName, row, periodLabel, onClose }: FormProp
   });
   const reasonLength = useWatch({ control, name: 'reason' }).length;
 
-  const submit = (values: FormValues) => {
+  const submit = async (values: FormValues) => {
     if (!row.paymentId) {
       return;
     }
     const reason = values.reason.trim();
-    waiveMutation.mutate(
-      { paymentId: row.paymentId, request: { reason: reason === '' ? undefined : reason } },
-      {
-        onSuccess: () => {
-          showSuccess('payments.client.waive.success');
-          onClose();
-        },
-        onError: (error) => {
-          showApiError(error, 'payments.client.waive.error');
-          if (isAlreadySettled(error)) {
-            onClose();
-          }
-        },
-      },
-    );
+    try {
+      // mutateAsync, not mutate callbacks: the refetch can unmount this form first.
+      await waiveMutation.mutateAsync({
+        paymentId: row.paymentId,
+        request: { reason: reason === '' ? undefined : reason },
+      });
+    } catch (error) {
+      showApiError(error, 'payments.client.waive.error');
+      if (isAlreadySettled(error)) {
+        onClose();
+      }
+      return;
+    }
+    showSuccess('payments.client.waive.success');
+    onClose();
   };
 
   return (
