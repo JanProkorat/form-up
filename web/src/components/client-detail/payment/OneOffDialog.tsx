@@ -79,22 +79,21 @@ function OneOffForm({ clientId, clientName, defaultCurrency, defaultDueDays, onC
     },
   });
 
-  const submit = (values: FormValues) => {
-    addMutation.mutate(
-      {
+  const submit = async (values: FormValues) => {
+    try {
+      // mutateAsync, not mutate callbacks: the refetch can unmount this form first.
+      await addMutation.mutateAsync({
         title: values.title.trim(),
         amount: parseAmount(values.amount) ?? 0,
         currency: values.currency,
         dueDate: values.dueDate,
-      },
-      {
-        onSuccess: () => {
-          showSuccess('payments.client.oneOff.success');
-          onClose();
-        },
-        onError: (error) => showApiError(error, 'payments.client.oneOff.error'),
-      },
-    );
+      });
+    } catch (error) {
+      showApiError(error, 'payments.client.oneOff.error');
+      return;
+    }
+    showSuccess('payments.client.oneOff.success');
+    onClose();
   };
 
   return (

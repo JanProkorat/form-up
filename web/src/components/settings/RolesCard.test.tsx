@@ -3,13 +3,21 @@
  * opens the paid dialog, Included the free one, NotAvailable nothing but a note. Removing a second role names the
  * billing change and keeps the dialog open on a billing failure.
  */
-import { afterEach, describe, expect, it } from 'vitest';
-import { screen, within } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { screen, waitFor, within } from '@testing-library/react';
 import { BillingInterval, SecondRoleState, SubscriptionPriceLineKind } from '@/api/generated';
 import type { GetMyCoachRolesResponse, GetMySubscriptionResponse, PreviewSecondRoleAddOnResponse } from '@/api/generated';
 import RolesCard from '@/components/settings/RolesCard';
 import { useCheckoutActivationStore } from '@/stores/checkoutActivation';
-import { PERIOD_END, liveSubscription, renderCoachScreen, servePlanScreens } from '@/test/planPicker';
+import { useToastStore } from '@/stores/toast';
+import {
+  PERIOD_END,
+  formUpSubscription,
+  liveSubscription,
+  renderCoachScreen,
+  servePlanScreens,
+  toastMessages,
+} from '@/test/planPicker';
 import { HttpResponse, apiUrl, http, rfc7807 } from '@/test/msw/handlers';
 import { server } from '@/test/msw/server';
 
@@ -135,6 +143,70 @@ describe('RolesCard adding a second role', () => {
     expect(within(dialog).getByText('Add the Nutritionist role?')).toBeInTheDocument();
     expect(within(dialog).getByText(/You get the tools for this role/)).toBeInTheDocument();
     expect(within(dialog).queryByRole('button', { name: /pay / })).not.toBeInTheDocument();
+  });
+});
+
+describe('RolesCard add success toast on a free role', () => {
+  /** Answers POST /users/me/roles with a fresh token pair, as the backend does for a role that costs nothing. */
+  function serveAdd(role: string) {
+    server.use(
+      http.post(apiUrl('/users/me/roles'), () =>
+        HttpResponse.json({ accessToken: 'access-token-stub', refreshToken: 'refresh-token-stub', addedRole: role }),
+      ),
+    );
+  }
+
+  const confirmAdd = async (user: ReturnType<typeof renderCard>['user']) => {
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Add role' }));
+  };
+
+  beforeEach(() => {
+    useToastStore.setState({ toasts: [] });
+  });
+
+  it('an included second role shows the Role added toast', async () => {
+    serveCard(subscription({ secondRole: SecondRoleState.Included }));
+    serveAdd('Nutritionist');
+
+    const { user } = renderCard();
+    await user.click(await addRole());
+    await confirmAdd(user);
+
+    await waitFor(() => expect(toastMessages()).toContain('Role added.'));
+  });
+
+  it('a second role on a plan set by Form Up shows the Role added toast', async () => {
+    serveCard({ ...formUpSubscription(), secondRole: SecondRoleState.Included });
+    serveAdd('Nutritionist');
+
+    const { user } = renderCard();
+    await user.click(await addRole());
+    await confirmAdd(user);
+
+    await waitFor(() => expect(toastMessages()).toContain('Role added.'));
+  });
+
+  it('a plan set by Form Up that does not state the second-role state shows the Role added toast', async () => {
+    serveCard({ ...formUpSubscription(), secondRole: undefined });
+    serveAdd('Nutritionist');
+
+    const { user } = renderCard();
+    await user.click(await addRole());
+    await confirmAdd(user);
+
+    await waitFor(() => expect(toastMessages()).toContain('Role added.'));
+  });
+
+  it('reactivating with no role held shows the Role added toast', async () => {
+    serveCard(subscription({ secondRole: SecondRoleState.Purchasable }), { roles: [] });
+    serveAdd('Trainer');
+
+    const { user } = renderCard();
+    await user.click(await addRole());
+    await confirmAdd(user);
+
+    await waitFor(() => expect(toastMessages()).toContain('Role added.'));
   });
 });
 

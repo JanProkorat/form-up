@@ -64,30 +64,27 @@ function MarkPaidForm({ clientId, clientName, row, periodLabel, onClose }: FormP
     defaultValues: { paidOn: today },
   });
 
-  const submit = (values: FormValues) => {
+  const submit = async (values: FormValues) => {
     if (!row.paymentId) {
       return;
     }
-    markMutation.mutate(
-      { paymentId: row.paymentId, request: { paidOn: values.paidOn } },
-      {
-        onSuccess: () => {
-          showSuccess('payments.client.markPaid.success');
-          onClose();
-        },
-        onError: (error) => {
-          if (paymentErrorCode(error) === PAYMENT_PAID_ON_IN_FUTURE) {
-            setError('paidOn', { message: t('payments.client.markPaid.dateInFuture') });
-            return;
-          }
-          showApiError(error, 'payments.client.markPaid.error');
-          // Settled elsewhere: the rows refetch, so the dialog has nothing left to act on.
-          if (isAlreadySettled(error)) {
-            onClose();
-          }
-        },
-      },
-    );
+    try {
+      // mutateAsync, not mutate callbacks: the refetch can unmount this form first.
+      await markMutation.mutateAsync({ paymentId: row.paymentId, request: { paidOn: values.paidOn } });
+    } catch (error) {
+      if (paymentErrorCode(error) === PAYMENT_PAID_ON_IN_FUTURE) {
+        setError('paidOn', { message: t('payments.client.markPaid.dateInFuture') });
+        return;
+      }
+      showApiError(error, 'payments.client.markPaid.error');
+      // Settled elsewhere: the rows refetch, so the dialog has nothing left to act on.
+      if (isAlreadySettled(error)) {
+        onClose();
+      }
+      return;
+    }
+    showSuccess('payments.client.markPaid.success');
+    onClose();
   };
 
   return (
