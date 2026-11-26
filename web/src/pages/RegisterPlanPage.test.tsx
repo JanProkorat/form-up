@@ -20,8 +20,10 @@ import type {
   GetMySubscriptionResponse,
 } from '@/api/generated';
 import RegisterPlanPage from '@/pages/RegisterPlanPage';
+import RoleGuard from '@/routes/RoleGuard';
 import { renderWithProviders } from '@/test/render';
-import { HttpResponse, apiUrl, http, problem } from '@/test/msw/handlers';
+import { ANNUAL_PLANS as PICKER_PLANS, LAUNCH_OFFER, pinNow, plansUnderOffer } from '@/test/planPicker';
+import { HttpResponse, apiUrl, http, problem, rfc7807 } from '@/test/msw/handlers';
 import { server } from '@/test/msw/server';
 import { useToastStore } from '@/stores/toast';
 
@@ -91,14 +93,21 @@ const roles: GetMyCoachRolesResponse = {
 interface ServeOptions {
   plans?: CoachPlanDto[];
   promotion?: CoachPromotionDto;
+  /** The coach roles the server reports; one role unless a test says otherwise. */
+  coachRoles?: string[];
+  /** Answers the roles read instead of the roles above (held back, or failing). */
+  rolesResponse?: () => Promise<Response>;
 }
 
-function serve({ plans = ANNUAL_PLANS, promotion }: ServeOptions = {}) {
+function serve({ plans = ANNUAL_PLANS, promotion, coachRoles, rolesResponse }: ServeOptions = {}) {
   const body: GetCoachPlansResponse = { plans, taxMode: BillingTaxMode.None, promotion };
+  const rolesBody: GetMyCoachRolesResponse = coachRoles
+    ? { roles: coachRoles.map((role) => ({ role, clientCount: 0, sharedWithOtherRoleCount: 0 })) }
+    : roles;
   server.use(
     http.get(apiUrl('/users/me/subscription'), () => HttpResponse.json(subscription)),
     http.get(apiUrl('/users/me/subscription/plans'), () => HttpResponse.json(body)),
-    http.get(apiUrl('/users/me/roles'), () => HttpResponse.json(roles)),
+    http.get(apiUrl('/users/me/roles'), () => (rolesResponse ? rolesResponse() : HttpResponse.json(rolesBody))),
   );
 }
 
@@ -519,13 +528,155 @@ describe('RegisterPlanPage code errors', () => {
     expect(within(bar()).queryByRole('alert')).not.toBeInTheDocument();
   });
 
-  it('a 503 stays a toast', async () => {
+  it('a 503 stays a localized toast on the plan step, with the selection and Continue intact', async () => {
     serve();
-    serveCheckout(() => HttpResponse.json({ errorCode: 'BILLING_NOT_CONFIGURED' }, { status: 503 }));
+    serveCheckout(() => rfc7807(503, 'BILLING_NOT_CONFIGURED'));
 
-    await submitCode('YEAR40');
+    const { router } = await submitCode('YEAR40');
 
     await vi.waitFor(() => expect(useToastStore.getState().toasts).toHaveLength(1));
+    expect(useToastStore.getState().toasts[0].message).toBe("Billing isn't available right now. Please try again later.");
     expect(within(bar()).queryByRole('alert')).not.toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/register/plan');
+    expect(within(bar()).getByText(/^Pro · /)).toBeInTheDocument();
+    expect(within(bar()).getByRole('button', { name: 'Continue to payment' })).toBeEnabled();
+  });
+});
+
+describe('RegisterPlanPage roles', () => {
+  const crossedOut = (element: HTMLElement) => element.querySelectorAll('s');
+  const BOTH = ['Trainer', 'Nutritionist'];
+
+  it('a two-role coach sees combined prices, the breakdown and the roles line', async () => {
+    serve({ plans: PICKER_PLANS, coachRoles: BOTH });
+
+    renderPlanStep();
+
+    expect(await screen.findByText('You signed up as Personal trainer and Nutritionist. Prices below include your second role.')).toBeInTheDocument();
+    const start = screen.getByRole('article', { name: 'Start' });
+    expect(within(start).getAllByText(/448/)[0]).toBeInTheDocument();
+    expect(within(start).getByText(/Start .*299.* \+ second role .*149/)).toBeInTheDocument();
+    expect(within(start).getByText(/Second role included \+.*149/)).toBeInTheDocument();
+    expect(within(start).queryByText(/Second role later/)).not.toBeInTheDocument();
+    expect(crossedOut(start)).toHaveLength(0);
+
+    expect(within(screen.getByRole('article', { name: 'Pro' })).getByText(/Second role included \+.*299/)).toBeInTheDocument();
+    expect(within(screen.getByRole('article', { name: 'Free' })).getByText('Both roles included')).toBeInTheDocument();
+    expect(within(screen.getByRole('article', { name: 'Studio' })).getByText('Both roles included')).toBeInTheDocument();
+  });
+
+  it('a two-role coach sees the promotion on the combined price', async () => {
+    pinNow();
+    serve({ plans: plansUnderOffer('all'), promotion: LAUNCH_OFFER, coachRoles: BOTH });
+
+    renderPlanStep();
+
+    const start = await screen.findByRole('article', { name: 'Start' });
+    expect(within(start).getAllByText(/314/)[0]).toBeInTheDocument();
+    expect(crossedOut(start)[0]).toHaveTextContent('448');
+    expect(within(start).getByText(/Start .*299.* \+ second role .*149.* · −30 % for 3 months, then .*448/)).toBeInTheDocument();
+
+    // Studio includes both roles, so its note carries the promotion only.
+    const studio = screen.getByRole('article', { name: 'Studio' });
+    expect(crossedOut(studio)[0]).toHaveTextContent('999');
+    expect(within(studio).queryByText(/second role/i)).not.toBeInTheDocument();
+    expect(within(studio).getByText(/−30 % for 3 months, then .*999/)).toBeInTheDocument();
+  });
+
+  it('a one-role coach keeps the one-role prices and "Second role later"', async () => {
+    serve({ plans: PICKER_PLANS });
+
+    renderPlanStep();
+
+    const start = await screen.findByRole('article', { name: 'Start' });
+    expect(within(start).getAllByText(/299/)[0]).toBeInTheDocument();
+    expect(within(start).getByText(/Second role later \+.*149/)).toBeInTheDocument();
+    expect(within(start).queryByText(/Second role included/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/You signed up as/)).not.toBeInTheDocument();
+    expect(within(screen.getByRole('article', { name: 'Free' })).getByText('Add a second role any time, free')).toBeInTheDocument();
+  });
+
+  it('the cards wait for the roles, so a two-role coach never sees one-role prices', async () => {
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let plansServed = false;
+    serve({
+      plans: PICKER_PLANS,
+      coachRoles: BOTH,
+      rolesResponse: async () => {
+        await gate;
+        return HttpResponse.json({ roles: BOTH.map((role) => ({ role, clientCount: 0, sharedWithOtherRoleCount: 0 })) });
+      },
+    });
+    server.use(
+      http.get(apiUrl('/users/me/subscription/plans'), () => {
+        plansServed = true;
+        return HttpResponse.json({ plans: PICKER_PLANS, taxMode: BillingTaxMode.None });
+      }),
+    );
+
+    renderPlanStep();
+
+    await vi.waitFor(() => expect(plansServed).toBe(true));
+    // Let the plans answer land; the cards must still be held back by the pending roles read.
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(screen.queryByRole('article')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Second role later/)).not.toBeInTheDocument();
+
+    release();
+    const start = await screen.findByRole('article', { name: 'Start' });
+    expect(within(start).getAllByText(/448/)[0]).toBeInTheDocument();
+    expect(within(start).getByText(/Second role included/)).toBeInTheDocument();
+    expect(screen.queryByText(/Second role later/)).not.toBeInTheDocument();
+  });
+
+  it('a failed roles lookup sends the coach to /clients (the guard fails closed)', async () => {
+    serve({ plans: PICKER_PLANS, rolesResponse: async () => rfc7807(500, 'SERVER_ERROR') });
+
+    const { router } = renderWithProviders(
+      [
+        { element: <RoleGuard allowedRoles={['Trainer', 'Nutritionist']} />, children: [{ path: '/register/plan', element: <RegisterPlanPage /> }] },
+        { path: '/clients', element: <p>{'Clients page'}</p> },
+      ],
+      { initialEntries: ['/register/plan'], auth: { roles: ['Trainer'] } },
+    );
+
+    expect(await screen.findByText('Clients page')).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/clients');
+    expect(screen.queryByRole('article')).not.toBeInTheDocument();
+  });
+
+  it('a two-role coach choosing Pro posts includeSecondRoleAddOn true', async () => {
+    serve({ plans: PICKER_PLANS, coachRoles: BOTH });
+    const bodies = serveCheckout();
+    const assign = vi.fn();
+    vi.stubGlobal('location', { ...window.location, assign });
+
+    const { user } = renderPlanStep();
+    await selectPlan(user, 'Pro');
+    await user.click(within(bar()).getByRole('button', { name: 'Continue to payment' }));
+
+    await vi.waitFor(() => expect(assign).toHaveBeenCalledWith(CHECKOUT_URL));
+    expect(bodies).toEqual([{ planCode: 'pro', billingInterval: BillingInterval.Monthly, includeSecondRoleAddOn: true, flow: 'SignUp' }]);
+  });
+
+  it('Free is preselected and selecting a paid plan starts nothing until Continue', async () => {
+    serve({ plans: PICKER_PLANS });
+    const bodies = serveCheckout();
+
+    const { user } = renderPlanStep();
+    const free = await screen.findByRole('article', { name: 'Free' });
+    expect(within(free).getByRole('button', { name: 'Selected' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(bar()).getByText(/^Free · .*0.* \/ month/)).toBeInTheDocument();
+    expect(within(bar()).getByText('No card needed', { exact: true })).toBeInTheDocument();
+
+    // The card body selects too; a paid plan switches the bar to the payment step without calling Stripe.
+    await user.click(within(screen.getByRole('article', { name: 'Start' })).getByRole('heading', { name: 'Start' }));
+    expect(within(bar()).getByText(/^Start · .*299/)).toBeInTheDocument();
+    expect(within(bar()).getByText("You pay on Stripe's secure page")).toBeInTheDocument();
+    expect(within(bar()).getByRole('button', { name: 'Continue to payment' })).toBeInTheDocument();
+    expect(bodies).toEqual([]);
   });
 });

@@ -1,14 +1,10 @@
 /**
- * Plan picker: the four plan cards render with the coach's plan outlined, the VAT line follows the server's tax mode,
- * a paid plan sends the coach to the checkout URL the server returns (no real Stripe), and a billing error
- * shows as a localized toast without leaving the page. The subscription, plan and role reads are mocked so the
- * spec does not depend on the seeded plan catalogue or on Stripe being configured in the harness.
+ * Plan picker layout: what only a real browser can measure. The cards, prices, promotions, plan changes and
+ * their errors are proven by the component tests in src/pages/PlanPickerPage.test.tsx. The subscription, plan and
+ * role reads are mocked so the spec does not depend on the seeded plan catalogue or on Stripe being configured.
  */
 import type { Page, Route } from '@playwright/test';
 import { trainerTest, expect } from '../fixtures/auth';
-
-const CHECKOUT_URL = 'https://checkout.stripe.test/c/pay/cs_test_e2e';
-const PAYMENT_URL = 'https://invoice.stripe.test/i/acct_e2e/test_e2e_invoice';
 
 interface PlanMock {
   code: string;
@@ -43,39 +39,19 @@ const PLANS: PlanMock[] = [
   { code: 'studio', nameEn: 'Studio', priceMinorUnits: 99900, bothRolesIncluded: true, canSendQuestionnaires: true },
 ];
 
-/** Toast text is also mirrored in a screen-reader live region, so assert on the toast title only. */
-function toastTitle(page: Page, text: string | RegExp) {
-  return page.locator('[data-slot="toast-title"]').filter({ hasText: text });
+function json(route: Route, body: unknown) {
+  return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
 }
 
-function json(route: Route, body: unknown, status = 200, contentType = 'application/json') {
-  return route.fulfill({ status, contentType, body: JSON.stringify(body) });
-}
-
-/** Display prices after a 30 % automatic promotion: the server sends them, the page never computes them. */
-const DISCOUNTED_MINOR_UNITS: Record<string, { price: number; addOn?: number }> = {
-  start: { price: 20900, addOn: 10400 },
-  pro: { price: 41900, addOn: 20900 },
-  studio: { price: 69900 },
-};
-
-/** Which plans the mocked automatic promotion covers: all paid plans, or only Pro. */
-type OfferCoverage = 'all' | 'proOnly';
-
-/** Mocks the reads behind the picker: a coach on Free with one role, and the four plans (with an offer, if asked). */
-async function mockPickerReads(
-  page: Page,
-  taxMode: 'None' | 'Vat21',
-  offer?: OfferCoverage,
-  subscription: Record<string, unknown> = {},
-) {
+/** Mocks the reads behind the picker: a coach on Free with one role, and the four plans. */
+async function mockPickerReads(page: Page) {
   await page.route(/\/users\/me\/subscription$/, (route) =>
     json(route, {
       planCode: 'free',
       nameCs: 'Free',
       nameEn: 'Free',
       nameDe: 'Free',
-      taxMode,
+      taxMode: 'Vat21',
       hasBillingAccount: false,
       cancelAtPeriodEnd: false,
       isSetByFormUp: false,
@@ -96,45 +72,23 @@ async function mockPickerReads(
         canUsePerClientCheckInConfig: false,
         canUsePayments: false,
       },
-      ...subscription,
     }),
   );
   await page.route(/\/users\/me\/subscription\/plans$/, (route) =>
     json(route, {
-      taxMode,
-      ...(offer && {
-        promotion: {
-          name: 'Launch offer',
-          kind: 'Percent',
-          value: 30,
-          duration: 'Months',
-          durationMonths: 3,
-          claimUntil: '2026-12-31T12:00:00Z',
-          planCodes: offer === 'all' ? ['start', 'pro', 'studio'] : ['pro'],
-        },
-      }),
-      plans: PLANS.map((plan) => {
-        const covered = offer !== undefined && (offer === 'all' || plan.code === 'pro') && plan.code !== 'free';
-        const discounted = DISCOUNTED_MINOR_UNITS[plan.code];
-        return {
-          ...plan,
-          nameCs: plan.nameEn,
-          nameDe: plan.nameEn,
-          currency: 'CZK',
-          billingInterval: 'Monthly',
-          canCreatePlans: true,
-          canMessage: true,
-          canUseWeeklyCheckIns: plan.canSendQuestionnaires,
-          canUsePerClientCheckInConfig: plan.code === 'studio',
-          canUsePayments: false,
-          ...(covered && discounted
-            ? {
-                discountedPriceMinorUnits: discounted.price,
-                discountedSecondRoleAddOnPriceMinorUnits: discounted.addOn,
-              }
-            : {}),
-        };
-      }),
+      taxMode: 'Vat21',
+      plans: PLANS.map((plan) => ({
+        ...plan,
+        nameCs: plan.nameEn,
+        nameDe: plan.nameEn,
+        currency: 'CZK',
+        billingInterval: 'Monthly',
+        canCreatePlans: true,
+        canMessage: true,
+        canUseWeeklyCheckIns: plan.canSendQuestionnaires,
+        canUsePerClientCheckInConfig: plan.code === 'studio',
+        canUsePayments: false,
+      })),
     }),
   );
   await page.route(/\/users\/me\/roles$/, (route) =>
@@ -148,190 +102,24 @@ async function mockPickerReads(
   );
 }
 
-trainerTest.describe('plan picker', () => {
-  trainerTest('shows four plans, outlines the current one and shows the VAT line only for Vat21', async ({ page }) => {
-    await mockPickerReads(page, 'Vat21');
-    await page.goto('/plan');
-
-    await expect(page.getByRole('heading', { name: 'Choose your plan', level: 1 })).toBeVisible();
-    for (const name of ['Free', 'Start', 'Pro', 'Studio']) {
-      await expect(page.getByRole('article', { name })).toBeVisible();
-    }
-
-    const free = page.getByRole('article', { name: 'Free' });
-    await expect(free.getByText('Your plan', { exact: true }).first()).toBeVisible();
-    await expect(free.getByRole('button', { name: 'Your plan' })).toBeDisabled();
-    await expect(page.getByRole('article', { name: 'Pro' }).getByRole('button', { name: 'Select Pro' })).toBeEnabled();
-    await expect(page.getByRole('link', { name: 'Back to settings' })).toBeVisible();
-    await expect(page.getByText('Have a code? Enter it next to the price below. It replaces any current offer.')).toBeVisible();
-    await expect(page.getByText('Prices without VAT, 21 % VAT is added.')).toBeVisible();
-  });
-
-  trainerTest('shows no VAT line when the server tax mode is None', async ({ page }) => {
-    await mockPickerReads(page, 'None');
-    await page.goto('/plan');
-
-    await expect(page.getByRole('article', { name: 'Pro' })).toBeVisible();
-    await expect(page.getByText(/Prices without VAT/)).toHaveCount(0);
-  });
-
-  trainerTest('shows no banner and no crossed-out price when no promotion applies', async ({ page }) => {
-    await mockPickerReads(page, 'Vat21');
-    await page.goto('/plan');
-
-    await expect(page.getByRole('article', { name: 'Pro' })).toBeVisible();
-    await expect(page.getByText(/Launch offer/)).toHaveCount(0);
-    await expect(page.locator('article s')).toHaveCount(0);
-  });
-
-  trainerTest('an automatic promotion shows the banner and crossed-out prices on every paid plan', async ({ page }) => {
-    await mockPickerReads(page, 'Vat21', 'all');
-    await page.goto('/plan');
-
-    const banner = page.getByRole('status').filter({ hasText: 'Launch offer' });
-    await expect(banner.getByText('Launch offer: −30 % for your first 3 months')).toBeVisible();
-    await expect(banner.getByText(/Applied at checkout on every paid plan\. Claim it by .*2026\./)).toBeVisible();
-
-    for (const name of ['Start', 'Pro', 'Studio']) {
-      const card = page.getByRole('article', { name });
-      await expect(card.locator('s')).toHaveCount(1);
-      await expect(card.getByText('−30 % for 3 months')).toBeVisible();
-    }
-    // The server's discounted price is the big one; the plan's own price is the crossed-out one.
-    const pro = page.getByRole('article', { name: 'Pro' });
-    await expect(pro.locator('s')).toContainText('599');
-    await expect(pro.getByText(/419/)).toBeVisible();
-
-    // Free is never discounted.
-    await expect(page.getByRole('article', { name: 'Free' }).locator('s')).toHaveCount(0);
-  });
-
-  trainerTest('a promotion that covers only Pro crosses out only the Pro price and names the plan', async ({ page }) => {
-    await mockPickerReads(page, 'Vat21', 'proOnly');
-    await page.goto('/plan');
-
-    await expect(page.getByText(/Applied at checkout on Pro\./)).toBeVisible();
-    await expect(page.getByRole('article', { name: 'Pro' }).locator('s')).toHaveCount(1);
-    await expect(page.getByRole('article', { name: 'Start' }).locator('s')).toHaveCount(0);
-    await expect(page.getByRole('article', { name: 'Studio' }).locator('s')).toHaveCount(0);
-  });
-
-  trainerTest('a paid plan posts the checkout request and follows the returned URL', async ({ page }) => {
-    await mockPickerReads(page, 'Vat21');
-    let checkoutBody: unknown = null;
-    await page.route(/\/billing\/checkout-session$/, (route) => {
-      checkoutBody = route.request().postDataJSON();
-      return json(route, { url: CHECKOUT_URL });
-    });
-    // The fake Stripe page: nothing leaves the machine.
-    await page.route('https://checkout.stripe.test/**', (route) =>
-      route.fulfill({ status: 200, contentType: 'text/html', body: '<h1>Stripe Checkout stand-in</h1>' }),
-    );
-
-    await page.goto('/plan');
-    await page.getByRole('article', { name: 'Pro' }).getByRole('button', { name: 'Select Pro' }).click();
-    await page.getByRole('region', { name: 'Selected plan' }).getByRole('button', { name: 'Upgrade to Pro' }).click();
-
-    await page.waitForURL(`${CHECKOUT_URL}**`);
-    await expect(page.getByRole('heading', { name: 'Stripe Checkout stand-in' })).toBeVisible();
-    expect(checkoutBody).toEqual({
-      planCode: 'pro',
-      billingInterval: 'Monthly',
-      includeSecondRoleAddOn: false,
-      flow: 'Settings',
-    });
-  });
-
-  trainerTest('billing not configured shows a localized toast and stays on the picker', async ({ page }) => {
-    await mockPickerReads(page, 'Vat21');
-    await page.route(/\/billing\/checkout-session$/, (route) =>
-      json(
-        route,
-        { status: 503, title: 'Service Unavailable', errorCode: 'BILLING_NOT_CONFIGURED' },
-        503,
-        'application/problem+json',
-      ),
-    );
-
-    await page.goto('/plan');
-    await page.getByRole('article', { name: 'Start' }).getByRole('button', { name: 'Select Start' }).click();
-    const bar = page.getByRole('region', { name: 'Selected plan' });
-    await bar.getByRole('button', { name: 'Upgrade to Start' }).click();
-
-    await expect(toastTitle(page, "Billing isn't available right now. Please try again later.")).toBeVisible();
-    await expect(page).toHaveURL(/\/plan$/);
-    await expect(page.getByRole('article', { name: 'Start' }).getByRole('button', { name: 'Selected' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
-    await expect(bar.getByRole('button', { name: 'Upgrade to Start' })).toBeEnabled();
-  });
-
-  trainerTest('selecting a card, by its button or its body, starts nothing until the bar is confirmed', async ({ page }) => {
-    await mockPickerReads(page, 'Vat21');
-    const billingCalls: string[] = [];
-    await page.route(/\/billing\/(checkout-session|change-plan|switch-to-free)$/, (route) => {
-      billingCalls.push(route.request().url());
-      return route.fulfill({ status: 500, contentType: 'application/json', body: '{}' });
-    });
-
-    await page.goto('/plan');
-    const bar = page.getByRole('region', { name: 'Selected plan' });
-    await expect(page.getByRole('article', { name: 'Pro' })).toBeVisible();
-    // Nothing is preselected on /plan, so there is no bar.
-    await expect(bar).toHaveCount(0);
-
-    const pro = page.getByRole('article', { name: 'Pro' });
-    await pro.getByRole('button', { name: 'Select Pro' }).click();
-    await expect(bar).toBeVisible();
-    await expect(bar.getByText('Pro · ', { exact: false })).toBeVisible();
-    await expect(pro.getByRole('button', { name: 'Selected' })).toHaveAttribute('aria-pressed', 'true');
-
-    // A click on the card body moves the selection and still starts nothing.
-    await page.getByRole('article', { name: 'Studio' }).getByRole('heading', { name: 'Studio' }).click();
-    await expect(page.getByRole('article', { name: 'Studio' }).getByRole('button', { name: 'Selected' })).toBeVisible();
-    await expect(pro.getByRole('button', { name: 'Select Pro' })).toHaveAttribute('aria-pressed', 'false');
-    await expect(bar.getByRole('button', { name: 'Upgrade to Studio' })).toBeEnabled();
-    expect(billingCalls).toEqual([]);
-  });
-
-  trainerTest('the current plan is not selectable and the bar spells out the promotion price', async ({ page }) => {
-    await mockPickerReads(page, 'Vat21', 'all');
-    await page.goto('/plan');
-
-    const free = page.getByRole('article', { name: 'Free' });
-    await expect(free.getByRole('button', { name: 'Your plan' })).toBeDisabled();
-    await free.getByRole('heading', { name: 'Free' }).click();
-    await expect(page.getByRole('region', { name: 'Selected plan' })).toHaveCount(0);
-
-    await page.getByRole('article', { name: 'Pro' }).getByRole('button', { name: 'Select Pro' }).click();
-    const bar = page.getByRole('region', { name: 'Selected plan' });
-    await expect(bar.getByText(/Pro · .*419.* \/ month/)).toBeVisible();
-    await expect(bar.getByText(/−30 % for 3 months, then .*599/)).toBeVisible();
-    await expect(bar.getByText('Card and invoices on Stripe\'s secure pages')).toBeVisible();
-  });
-
-  trainerTest('the back icon button sits left of the title and opens Settings at Plan and billing', async ({ page }) => {
-    await mockPickerReads(page, 'Vat21');
+trainerTest.describe('plan picker layout', () => {
+  // Real-browser geometry: the icon sits left of the title. Where it leads is asserted in PlanPickerPage.test.tsx.
+  trainerTest('the back icon button sits left of the title', async ({ page }) => {
+    await mockPickerReads(page);
     await page.goto('/plan');
 
     const back = page.getByRole('link', { name: 'Back to settings' });
-    await expect(back).toHaveAttribute('href', '/settings#plan-billing');
-    // Icon only: no visible text, and it comes before the title in the layout.
-    await expect(back).toHaveText('');
     const backBox = await back.boundingBox();
     const titleBox = await page.getByRole('heading', { name: 'Choose your plan', level: 1 }).boundingBox();
     expect(backBox).not.toBeNull();
     expect(titleBox).not.toBeNull();
     expect(backBox!.x + backBox!.width).toBeLessThanOrEqual(titleBox!.x);
-
-    await back.click();
-    await expect(page).toHaveURL(/\/settings#plan-billing$/);
   });
 
+  // Real-browser geometry: a fixed bar and the page footer need a layout engine.
   trainerTest('the confirm bar is pinned to the bottom of the viewport even when the page is short', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 1600 });
-    await mockPickerReads(page, 'Vat21');
+    await mockPickerReads(page);
     await page.goto('/plan');
 
     await page.getByRole('article', { name: 'Pro' }).getByRole('button', { name: 'Select Pro' }).click();
@@ -349,362 +137,5 @@ trainerTest.describe('plan picker', () => {
     const footerBox = await footer.boundingBox();
     const barBox = await bar.boundingBox();
     expect(footerBox!.y + footerBox!.height).toBeLessThanOrEqual(barBox!.y);
-  });
-});
-
-const PERIOD_END = '2026-12-01T00:00:00Z';
-
-/** A coach with a live paid subscription on the given plan; the plan name doubles as the "You keep" name. */
-function liveSubscription(plan: 'start' | 'pro', extra: Record<string, unknown> = {}) {
-  const name = plan === 'pro' ? 'Pro' : 'Start';
-  return {
-    planCode: plan,
-    nameCs: name,
-    nameEn: name,
-    nameDe: name,
-    status: 'Active',
-    hasBillingAccount: true,
-    currentPeriodEndsAt: PERIOD_END,
-    secondRole: 'NotAvailable',
-    ...extra,
-  };
-}
-
-function previewBody(overrides: Record<string, unknown>) {
-  return {
-    planCode: 'pro',
-    timing: 'Now',
-    billingInterval: 'Monthly',
-    currency: 'CZK',
-    todayAmountMinorUnits: 15800,
-    todayTaxMinorUnits: 0,
-    nextAmountMinorUnits: 59900,
-    nextChargeAt: PERIOD_END,
-    cancelsScheduledSwitchToFree: false,
-    taxMode: 'Vat21',
-    ...overrides,
-  };
-}
-
-trainerTest.describe('plan picker: changing a live paid plan', () => {
-  trainerTest('an upgrade shows today\'s charge from the preview and sends one attempt id per attempt', async ({ page }) => {
-    await mockPickerReads(page, 'Vat21', undefined, liveSubscription('start'));
-    const previewBodies: unknown[] = [];
-    await page.route(/\/billing\/change-plan\/preview$/, (route) => {
-      previewBodies.push(route.request().postDataJSON());
-      return json(route, previewBody({}));
-    });
-    const changeBodies: { planCode: string; attemptId: string }[] = [];
-    await page.route(/\/billing\/change-plan$/, (route) => {
-      changeBodies.push(route.request().postDataJSON());
-      return changeBodies.length === 1
-        ? json(
-            route,
-            { status: 502, title: 'Bad Gateway', errorCode: 'BILLING_PROVIDER_ERROR' },
-            502,
-            'application/problem+json',
-          )
-        : json(route, { planCode: 'pro', timing: 'Now', effectiveAt: '2026-11-16T10:00:00Z' });
-    });
-
-    await page.goto('/plan');
-    await page.getByRole('article', { name: 'Pro' }).getByRole('button', { name: 'Select Pro' }).click();
-    const bar = page.getByRole('region', { name: 'Selected plan' });
-    await expect(bar.getByText(/Today about .*158.* for the rest of this month, then .*599.* \/ month from .*2026/)).toBeVisible();
-    await expect(bar.getByText('Your switch to Free will be cancelled.')).toHaveCount(0);
-    expect(previewBodies).toEqual([{ planCode: 'pro', billingInterval: 'Monthly' }]);
-
-    // A declined charge ends that attempt: the retry carries a new id.
-    await bar.getByRole('button', { name: 'Upgrade to Pro' }).click();
-    await expect(bar.getByRole('button', { name: 'Upgrade to Pro' })).toBeEnabled();
-    await bar.getByRole('button', { name: 'Upgrade to Pro' }).click();
-    await expect.poll(() => changeBodies.length).toBe(2);
-    expect(changeBodies[0].planCode).toBe('pro');
-    expect(changeBodies[0].attemptId).toMatch(/^[0-9a-f-]{36}$/);
-    expect(changeBodies[1].attemptId).toMatch(/^[0-9a-f-]{36}$/);
-    expect(changeBodies[1].attemptId).not.toBe(changeBodies[0].attemptId);
-  });
-
-  trainerTest('an upgrade that needs payment shows a link to Stripe, keeps the old plan and starts the watch on click', async ({
-    page,
-    context,
-  }) => {
-    await mockPickerReads(page, 'Vat21', undefined, liveSubscription('start'));
-    await page.route(/\/billing\/change-plan\/preview$/, (route) => json(route, previewBody({})));
-    await page.route(/\/billing\/change-plan$/, (route) =>
-      json(route, { planCode: 'pro', timing: 'AwaitingPayment', paymentUrl: PAYMENT_URL }),
-    );
-    // Nothing may reach real Stripe: the tab the link opens lands on a stub host.
-    await context.route(/invoice\.stripe\.test/, (route) => route.fulfill({ status: 200, contentType: 'text/html', body: 'stub' }));
-
-    await page.goto('/plan');
-    await page.getByRole('article', { name: 'Pro' }).getByRole('button', { name: 'Select Pro' }).click();
-    const bar = page.getByRole('region', { name: 'Selected plan' });
-    await bar.getByRole('button', { name: 'Upgrade to Pro' }).click();
-
-    const notice = page.getByTestId('upgrade-payment-notice');
-    await expect(notice).toBeVisible();
-    const link = notice.getByRole('link', { name: 'Continue to payment' });
-    await expect(link).toHaveAttribute('href', PAYMENT_URL);
-    await expect(link).toHaveAttribute('target', '_blank');
-    await expect(link).toHaveAttribute('rel', /noopener/);
-    // No tab opens by itself, no "changed" toast, and the page still shows the old plan.
-    expect(context.pages()).toHaveLength(1);
-    await expect(toastTitle(page, /You are now on the/)).toHaveCount(0);
-    await expect(page.getByRole('article', { name: 'Start' }).getByRole('button', { name: 'Your plan' })).toBeDisabled();
-    expect(await page.evaluate(() => sessionStorage.getItem('checkoutActivationWatch'))).toBeNull();
-
-    // The click is what opens the payment page and starts the watch for the Pro plan.
-    const popup = context.waitForEvent('page');
-    await link.click();
-    await popup;
-    await expect
-      .poll(() => page.evaluate(() => sessionStorage.getItem('checkoutActivationWatch')))
-      .toContain('"targetPlanCode":"pro"');
-  });
-
-  trainerTest('an annual preview says the rest of this year and bills per year', async ({ page }) => {
-    await mockPickerReads(page, 'Vat21', undefined, liveSubscription('start'));
-    await page.route(/\/billing\/change-plan\/preview$/, (route) =>
-      json(route, previewBody({ billingInterval: 'Annual', nextAmountMinorUnits: 599000 })),
-    );
-
-    await page.goto('/plan');
-    await page.getByRole('article', { name: 'Pro' }).getByRole('button', { name: 'Select Pro' }).click();
-    const bar = page.getByRole('region', { name: 'Selected plan' });
-    await expect(bar.getByText(/Today about .*158.* for the rest of this year, then .*5.?990.* \/ year from .*2026/)).toBeVisible();
-    await expect(bar.getByText(/rest of this month/)).toHaveCount(0);
-  });
-
-  trainerTest('the bar shows an error hint when the preview fails and confirming still works', async ({ page }) => {
-    await mockPickerReads(page, 'Vat21', undefined, liveSubscription('start'));
-    await page.route(/\/billing\/change-plan\/preview$/, (route) =>
-      json(route, { status: 502, title: 'Bad Gateway', errorCode: 'BILLING_PROVIDER_ERROR' }, 502, 'application/problem+json'),
-    );
-
-    await page.goto('/plan');
-    await page.getByRole('article', { name: 'Pro' }).getByRole('button', { name: 'Select Pro' }).click();
-    const bar = page.getByRole('region', { name: 'Selected plan' });
-    await expect(bar.getByText("Couldn't calculate today's charge. You can still confirm the change.")).toBeVisible();
-    await expect(bar.getByText(/Today about/)).toHaveCount(0);
-    await expect(bar.getByText('Your switch to Free will be cancelled.')).toHaveCount(0);
-    await expect(bar.getByRole('button', { name: 'Upgrade to Pro' })).toBeEnabled();
-  });
-
-  trainerTest('an upgrade that drops a scheduled switch to Free says so in the bar', async ({ page }) => {
-    await mockPickerReads(
-      page,
-      'Vat21',
-      undefined,
-      liveSubscription('start', {
-        cancelAtPeriodEnd: true,
-        scheduledPlan: { planCode: 'free', nameCs: 'Free', nameEn: 'Free', nameDe: 'Free', startsAt: PERIOD_END, priceLines: [] },
-      }),
-    );
-    await page.route(/\/billing\/change-plan\/preview$/, (route) =>
-      json(route, previewBody({ cancelsScheduledSwitchToFree: true })),
-    );
-
-    await page.goto('/plan');
-    await page.getByRole('article', { name: 'Pro' }).getByRole('button', { name: 'Select Pro' }).click();
-    const bar = page.getByRole('region', { name: 'Selected plan' });
-    await expect(bar.getByText(/Today about .*158/)).toBeVisible();
-    await expect(bar.getByText('Your switch to Free will be cancelled.')).toBeVisible();
-  });
-
-  trainerTest('a downgrade and a switch to Free say when they start and what the coach keeps until then', async ({ page }) => {
-    await mockPickerReads(page, 'Vat21', undefined, liveSubscription('pro'));
-    await page.route(/\/billing\/change-plan\/preview$/, (route) =>
-      json(
-        route,
-        previewBody({
-          planCode: 'start',
-          timing: 'AtNextRenewal',
-          todayAmountMinorUnits: 0,
-          nextAmountMinorUnits: 29900,
-        }),
-      ),
-    );
-
-    await page.goto('/plan');
-    const bar = page.getByRole('region', { name: 'Selected plan' });
-
-    await page.getByRole('article', { name: 'Start' }).getByRole('button', { name: 'Select Start' }).click();
-    await expect(bar.getByText(/Start starts on .*2026\. You keep Pro until then\./)).toBeVisible();
-    await expect(bar.getByText(/Today about/)).toHaveCount(0);
-
-    await page.getByRole('article', { name: 'Free' }).getByRole('button', { name: /Select Free/ }).click();
-    await expect(bar.getByText(/Free starts on .*2026\. You keep Pro until then\./)).toBeVisible();
-  });
-
-  trainerTest('a coach on Free keeps the checkout hint and makes no preview call', async ({ page }) => {
-    await mockPickerReads(page, 'Vat21');
-    const previewCalls: string[] = [];
-    await page.route(/\/billing\/change-plan\/preview$/, (route) => {
-      previewCalls.push(route.request().url());
-      return route.fulfill({ status: 500, contentType: 'application/json', body: '{}' });
-    });
-
-    await page.goto('/plan');
-    await page.getByRole('article', { name: 'Pro' }).getByRole('button', { name: 'Select Pro' }).click();
-    await expect(page.getByRole('region', { name: 'Selected plan' }).getByText("Card and invoices on Stripe's secure pages")).toBeVisible();
-    await expect(page.getByText(/plan from Form Up will end/)).toHaveCount(0);
-    expect(previewCalls).toEqual([]);
-  });
-});
-
-/** A coach on Pro set by Form Up: no Stripe subscription, no billing account, an optional gift end date. */
-function formUpSubscription(freeUntil?: string) {
-  return {
-    planCode: 'pro',
-    nameCs: 'Pro',
-    nameEn: 'Pro',
-    nameDe: 'Pro',
-    isSetByFormUp: true,
-    secondRole: 'NotAvailable',
-    ...(freeUntil && { freeUntil }),
-  };
-}
-
-trainerTest.describe('plan picker: a plan set by Form Up', () => {
-  trainerTest('the current card says who provides the plan until when, with no price', async ({ page }) => {
-    await mockPickerReads(page, 'Vat21', 'all', formUpSubscription('2099-01-31T12:00:00Z'));
-    await page.goto('/plan');
-
-    const pro = page.getByRole('article', { name: 'Pro' });
-    await expect(pro.getByText(/^Provided by Form Up until .*2099/)).toBeVisible();
-    await expect(pro.locator('s')).toHaveCount(0);
-    // The price block stays in the DOM as an invisible spacer that keeps the card height, so only visible text counts.
-    await expect(pro.getByText(/599|419/).filter({ visible: true })).toHaveCount(0);
-    await expect(pro.getByRole('button', { name: 'Your plan' })).toBeDisabled();
-    // Other cards keep their price and promotion.
-    await expect(page.getByRole('article', { name: 'Studio' }).locator('s')).toHaveCount(1);
-  });
-
-  trainerTest('without a future end date the card uses the undated wording', async ({ page }) => {
-    await mockPickerReads(page, 'Vat21', undefined, formUpSubscription('2020-01-31T12:00:00Z'));
-    await page.goto('/plan');
-
-    await expect(page.getByRole('article', { name: 'Pro' }).getByText('Provided by Form Up', { exact: true })).toBeVisible();
-  });
-
-  trainerTest('any paid plan shows the warning in the bar, a higher or a cheaper one', async ({ page }) => {
-    await mockPickerReads(page, 'Vat21', undefined, formUpSubscription('2099-01-31T12:00:00Z'));
-    await page.goto('/plan');
-    const bar = page.getByRole('region', { name: 'Selected plan' });
-
-    await page.getByRole('article', { name: 'Studio' }).getByRole('button', { name: 'Select Studio' }).click();
-    await expect(bar.getByText('Your plan from Form Up will end and you will pay for Studio from today.')).toBeVisible();
-    await expect(bar.getByText("Card and invoices on Stripe's secure pages")).toBeVisible();
-
-    await page.getByRole('article', { name: 'Start' }).getByRole('button', { name: 'Select Start' }).click();
-    await expect(bar.getByText('Your plan from Form Up will end and you will pay for Start from today.')).toBeVisible();
-    await expect(bar.getByText('Takes effect at the end of the paid month')).toHaveCount(0);
-  });
-
-  trainerTest('a coach on Free sees neither the Form Up card text nor the warning', async ({ page }) => {
-    await mockPickerReads(page, 'Vat21');
-    await page.goto('/plan');
-
-    await expect(page.getByText(/Provided by Form Up/)).toHaveCount(0);
-    await page.getByRole('article', { name: 'Start' }).getByRole('button', { name: 'Select Start' }).click();
-    await expect(page.getByText(/plan from Form Up will end/)).toHaveCount(0);
-  });
-});
-
-/** A live Pro coach whose switch to `target` is scheduled for the end of the period. */
-function scheduledChange(target: 'free' | 'start', cancellable: boolean) {
-  const name = target === 'free' ? 'Free' : 'Start';
-  return liveSubscription('pro', {
-    cancelAtPeriodEnd: target === 'free',
-    scheduledPlan: {
-      planCode: target,
-      nameCs: name,
-      nameEn: name,
-      nameDe: name,
-      startsAt: PERIOD_END,
-      cancellable,
-      priceLines: [],
-    },
-  });
-}
-
-trainerTest.describe('plan picker: cancelling a scheduled change', () => {
-  trainerTest('keeps Pro over a scheduled switch to Free: Free stays disabled, no preview call, one cancel POST', async ({ page }) => {
-    await mockPickerReads(page, 'Vat21', undefined, scheduledChange('free', true));
-    const previewCalls: string[] = [];
-    await page.route(/\/billing\/change-plan\/preview$/, (route) => {
-      previewCalls.push(route.request().url());
-      return route.fulfill({ status: 500, contentType: 'application/json', body: '{}' });
-    });
-    const cancelCalls: string[] = [];
-    await page.route(/\/billing\/scheduled-change\/cancel$/, async (route) => {
-      cancelCalls.push(route.request().method());
-      // The refetch after the cancel no longer carries a scheduled change.
-      await mockPickerReads(page, 'Vat21', undefined, liveSubscription('pro'));
-      return json(route, { kind: 'SwitchToFree', planCode: 'free' });
-    });
-
-    await page.goto('/plan');
-    const pro = page.getByRole('article', { name: 'Pro' });
-    await expect(pro.getByText('Your plan', { exact: true }).first()).toBeVisible();
-    await expect(page.getByRole('article', { name: 'Free' }).getByRole('button', { name: /Switches to Free on .*2026/ })).toBeDisabled();
-
-    await pro.getByRole('button', { name: 'Select Pro' }).click();
-    const bar = page.getByRole('region', { name: 'Selected plan' });
-    await expect(bar.getByText(/Cancels your switch to Free on .*2026\. You stay on Pro, nothing is charged now\./)).toBeVisible();
-    expect(previewCalls).toEqual([]);
-
-    await bar.getByRole('button', { name: 'Keep Pro' }).click();
-    await expect(toastTitle(page, 'Change cancelled. You stay on Pro.')).toBeVisible();
-    await expect(page.getByRole('region', { name: 'Selected plan' })).toHaveCount(0);
-    await expect(pro.getByRole('button', { name: 'Your plan' })).toBeDisabled();
-    expect(cancelCalls).toEqual(['POST']);
-    expect(previewCalls).toEqual([]);
-  });
-
-  trainerTest('keeps Pro over a scheduled downgrade: the target card is disabled and the bar names it', async ({ page }) => {
-    await mockPickerReads(page, 'Vat21', undefined, scheduledChange('start', true));
-    await page.route(/\/billing\/scheduled-change\/cancel$/, async (route) => {
-      await mockPickerReads(page, 'Vat21', undefined, liveSubscription('pro'));
-      return json(route, { kind: 'Downgrade', planCode: 'start', renewsAt: PERIOD_END });
-    });
-
-    await page.goto('/plan');
-    await expect(page.getByRole('article', { name: 'Start' }).getByRole('button', { name: /Switches to Start on .*2026/ })).toBeDisabled();
-
-    await page.getByRole('article', { name: 'Pro' }).getByRole('button', { name: 'Select Pro' }).click();
-    const bar = page.getByRole('region', { name: 'Selected plan' });
-    await expect(bar.getByText(/Cancels your switch to Start on .*2026\. You stay on Pro/)).toBeVisible();
-    await bar.getByRole('button', { name: 'Keep Pro' }).click();
-
-    await expect(toastTitle(page, 'Change cancelled. You stay on Pro.')).toBeVisible();
-    await expect(page.getByRole('article', { name: 'Start' }).getByRole('button', { name: 'Select Start' })).toBeEnabled();
-  });
-
-  trainerTest('a change that cannot be cancelled leaves the current card unselectable', async ({ page }) => {
-    await mockPickerReads(page, 'Vat21', undefined, scheduledChange('start', false));
-    await page.goto('/plan');
-
-    await expect(page.getByRole('article', { name: 'Pro' }).getByRole('button', { name: 'Your plan' })).toBeDisabled();
-    await expect(page.getByRole('button', { name: /Keep Pro/ })).toHaveCount(0);
-  });
-
-  trainerTest('a 409 from a stale tab shows its message', async ({ page }) => {
-    await mockPickerReads(page, 'Vat21', undefined, scheduledChange('free', true));
-    await page.route(/\/billing\/scheduled-change\/cancel$/, (route) =>
-      json(
-        route,
-        { status: 409, title: 'Conflict', errorCode: 'BILLING_RENEWAL_CANCELLED_BY_ADMIN' },
-        409,
-        'application/problem+json',
-      ),
-    );
-
-    await page.goto('/plan');
-    await page.getByRole('article', { name: 'Pro' }).getByRole('button', { name: 'Select Pro' }).click();
-    await page.getByRole('region', { name: 'Selected plan' }).getByRole('button', { name: 'Keep Pro' }).click();
-
-    await expect(toastTitle(page, 'Form Up cancelled the renewal of your plan. Contact us to change this.')).toBeVisible();
   });
 });
