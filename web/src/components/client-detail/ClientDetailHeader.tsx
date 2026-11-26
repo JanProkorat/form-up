@@ -54,7 +54,7 @@ export default function ClientDetailHeader({ clientId, dashboard, plansQuery, me
   return (
     <div className="flex flex-col gap-4.5">
       <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3">
-        <div className="flex min-w-0 items-center gap-3.5">
+        <div className="flex min-w-0 items-center gap-2.5 md:gap-3.5">
           <Link
             to={getClientDetailBackPath(location.state)}
             aria-label={t('clientDetail.overview.backAriaLabel')}
@@ -67,8 +67,8 @@ export default function ClientDetailHeader({ clientId, dashboard, plansQuery, me
               firstName={dashboard.firstName}
               lastName={dashboard.lastName}
               avatarBlobUrl={dashboard.avatarBlobUrl ?? undefined}
-              className="size-16 shrink-0"
-              fallbackClassName="bg-sunken text-card-title font-semibold text-ink"
+              className="size-10 shrink-0 md:size-16"
+              fallbackClassName="bg-sunken text-body md:text-card-title font-semibold text-ink"
             />
           </span>
           <div className="flex min-w-0 flex-col gap-1">
