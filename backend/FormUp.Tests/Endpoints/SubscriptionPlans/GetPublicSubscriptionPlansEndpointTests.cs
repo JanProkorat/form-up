@@ -14,7 +14,7 @@ namespace FormUp.Tests.Endpoints.SubscriptionPlans;
 /// Integration tests for <c>GET /subscription-plans</c>.
 /// </summary>
 [Collection(TestCollection.Shard2)]
-public class GetPublicSubscriptionPlansEndpointTests(FitnessApiFactory factory) : IDisposable
+public class GetPublicSubscriptionPlansEndpointTests(FitnessApiFactory factory) : IAsyncLifetime
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -281,6 +281,34 @@ public class GetPublicSubscriptionPlansEndpointTests(FitnessApiFactory factory) 
         document.RootElement.GetProperty("promotion").GetProperty("billingPeriod").GetString().Should().Be(period.ToString());
     }
 
+    [Theory]
+    [InlineData("CZK", true)]
+    [InlineData("EUR", false)]
+    public async Task Get_AFixedAmountPromotion_DiscountsOnlyPlansInItsCurrency(string promotionCurrency, bool discounted)
+    {
+        await PromotionBuilder.ClearAsync(factory);
+        var plan = await PaidPlanBuilder.CreateAsync(factory, priceMinorUnits: 29900, addOnMinorUnits: 9900, bothRolesIncluded: false);
+        await SubscriptionPlanPriceBuilder.AddOpenAnnualPriceAsync(factory, plan, 299000, 99000);
+        await PromotionBuilder.CreateAsync(factory, [plan], PromotionMode.Automatic, configured =>
+        {
+            configured.Kind = PromotionKind.FixedAmount;
+            configured.Value = 1000;
+            configured.Currency = promotionCurrency;
+        });
+
+        using var document = await GetJsonAsync(factory.CreateClient());
+
+        var item = document.RootElement.GetProperty("plans").EnumerateArray().Single(candidate => candidate.GetProperty("code").GetString() == plan);
+        (item.GetProperty("discountedPriceMinorUnits").ValueKind != JsonValueKind.Null).Should().Be(discounted);
+        (item.GetProperty("annualDiscountedPriceMinorUnits").ValueKind != JsonValueKind.Null).Should().Be(discounted);
+
+        if (discounted)
+        {
+            item.GetProperty("discountedPriceMinorUnits").GetInt64().Should().Be(28900);
+            item.GetProperty("annualDiscountedPriceMinorUnits").GetInt64().Should().Be(298000);
+        }
+    }
+
     private static async Task<JsonDocument> GetJsonAsync(HttpClient client)
     {
         var response = await client.GetAsync("/subscription-plans", Ct);
@@ -290,6 +318,9 @@ public class GetPublicSubscriptionPlansEndpointTests(FitnessApiFactory factory) 
         return JsonDocument.Parse(await response.Content.ReadAsStringAsync(Ct));
     }
 
+    /// <inheritdoc />
+    public ValueTask InitializeAsync() => ValueTask.CompletedTask;
+
     /// <summary>Leaves the promotions table empty for the next test class.</summary>
-    public void Dispose() => PromotionBuilder.ClearAsync(factory).GetAwaiter().GetResult();
+    public async ValueTask DisposeAsync() => await PromotionBuilder.ClearAsync(factory);
 }
