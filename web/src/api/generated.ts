@@ -25976,20 +25976,27 @@ export interface CreateWorkoutTemplateSetRequest {
     restSeconds?: number | undefined;
 }
 
+/** RFC7807 compatible problem details/ error response class. this can be used by configuring startup like so: app.UseFastEndpoints(c => c.Errors.UseProblemDetails()) */
 export interface ProblemDetails {
     type?: string;
     title?: string;
     status?: number;
     instance?: string;
     traceId?: string;
+    /** the details of the error */
     detail?: string | undefined;
     errors?: ProblemDetails_Error[];
 }
 
+/** the error details object */
 export interface ProblemDetails_Error {
+    /** the name of the error or property of the dto that caused the error */
     name?: string;
+    /** the reason for the error */
     reason?: string;
+    /** the code of the error */
     code?: string | undefined;
+    /** the severity of the error */
     severity?: string | undefined;
 }
 
@@ -28473,6 +28480,9 @@ endpoints — it differs from ClientPublicId. */
     /** True when the client is outside the plan in force (over its client cap): visible to the
 coach but not workable. Same source as the CLIENT_OVER_PLAN_LIMIT gate. */
     isOutsidePlan?: boolean;
+    /** The client's avatar, if uploaded. Read straight off ApplicationUser.AvatarBlobUrl —
+same as GetClientsResponse, no presigning at this layer. */
+    avatarBlobUrl?: string | undefined;
     /** Derived Active/Paused/Archived status — computed by
 Classify, the same derivation
 GetClientsEndpoint uses, so this value always agrees with the caller's clients-list

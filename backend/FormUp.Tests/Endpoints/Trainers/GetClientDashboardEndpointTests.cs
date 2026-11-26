@@ -105,6 +105,43 @@ public class GetClientDashboardEndpointTests
         ep.Response.ClientUserId.Should().NotBe(clientProfile.PublicId);
     }
 
+    [Theory]
+    [InlineData("https://cdn.test/avatars/client.jpg")]
+    [InlineData(null)]
+    public async Task HandleAsync_LinkedClient_ReturnsAvatarBlobUrlFromUser(string? avatarBlobUrl)
+    {
+        var clientUser = EntityBuilder.User.WithEmail("avatar@test.com")
+            .WithFirstName("Ava").WithLastName("Tar").Build();
+        clientUser.AvatarBlobUrl = avatarBlobUrl;
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(3).WithUserId(_trainerId).Build();
+        var clientProfile = EntityBuilder.ClientProfile.WithId(3).WithUser(clientUser).Build();
+        var link = EntityBuilder.ClientProfessionalLink
+            .WithId(101)
+            .WithClientProfile(clientProfile)
+            .WithProfessionalProfile(trainerProfile)
+            .Build();
+
+        var db = new MockDbBuilder()
+            .With(trainerProfile)
+            .With(clientProfile)
+            .With(link)
+            .Build();
+
+        var ep = Factory.Create<GetClientDashboardEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
+                new System.Security.Claims.ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+            db, _audit, _complianceService, EmptyMongo(), TimeProvider.System, PassThroughCoachDisciplineAccess.Instance,
+            new EntitlementService(db, TimeProvider.System, NullLogger<EntitlementService>.Instance));
+
+        await ep.HandleAsync(new GetClientDashboardRequest
+        {
+            ClientId = clientProfile.PublicId
+        }, TestContext.Current.CancellationToken);
+
+        ep.Response.AvatarBlobUrl.Should().Be(avatarBlobUrl);
+    }
+
     [Fact]
     public async Task HandleAsync_UnlinkedClient_Returns404()
     {
