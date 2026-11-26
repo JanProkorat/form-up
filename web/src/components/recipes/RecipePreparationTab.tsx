@@ -37,7 +37,8 @@ function AutoGrowTextarea(props: Omit<React.ComponentProps<'textarea'>, 'rows' |
       return;
     }
     element.style.height = 'auto';
-    element.style.height = `${element.scrollHeight}px`;
+    // scrollHeight excludes the border, so add it or the last line is clipped.
+    element.style.height = `${element.scrollHeight + (element.offsetHeight - element.clientHeight)}px`;
   }, []);
 
   useLayoutEffect(fitToContent, [props.value, fitToContent]);
@@ -59,7 +60,7 @@ function AutoGrowTextarea(props: Omit<React.ComponentProps<'textarea'>, 'rows' |
     return () => observer.disconnect();
   }, [fitToContent]);
 
-  return <Textarea {...props} ref={textareaRef} rows={1} className="min-h-0 flex-1 resize-none overflow-hidden" />;
+  return <Textarea {...props} ref={textareaRef} rows={1} className="min-h-0 resize-none overflow-hidden" />;
 }
 
 /** One draggable step. Declared at module scope so its sortable state survives parent re-renders. */

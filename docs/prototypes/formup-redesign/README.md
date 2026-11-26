@@ -114,6 +114,13 @@ portal 1795468435-1bec (canvas v84): "This month" became "Last 30 days" (the rep
 rolling), and every tile's note now compares with the 30 days before. Other exports are unchanged, and
 their PNGs were not re-rendered.
 
+**Partial update, 2026-11-26 (#2092, #2091):** the 34 client-detail boards (`PageClientDetail` and its
+Trainer/Nutritionist/Restricted variants, `PageClientNutrition*`, `PageClientPhotos*`, `PageClientPayment*`,
+`PageClientAutomation*`, `PageClientForms*`, C and D) re-exported from web portal 1795692234-55ef (canvas
+v87): the client's avatar (initials, 64 px) sits between the back button and the name, as on
+`PageAdminCoachProfile`. `PageClientNutrition` also gains ‹ › arrows, a "Today" button and the visible
+range label in the Plan timeline title row. Web PNGs re-rendered; other exports unchanged.
+
 | Path | Contents |
 |---|---|
 | `index.html` | Gallery of every board, grouped by app and module |

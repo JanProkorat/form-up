@@ -1,5 +1,6 @@
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import Wordmark from '@/components/brand/Wordmark';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import StoreButtons from '@/components/register/StoreButtons';
@@ -39,10 +40,7 @@ export default function InviteAcceptPage() {
       />
       <Card className="relative">
         <CardHeader>
-          <span className="flex size-7.5 items-center justify-center rounded-md bg-marker text-caption font-bold tracking-wide text-on-dark">
-            {t('entry.brandMark')}
-          </span>
-          <span>{t('entry.brand')}</span>
+          <Wordmark />
         </CardHeader>
         <CardTitle>{t('entry.inviteAccept.title')}</CardTitle>
         <CardDescription>{t('entry.inviteAccept.lede')}</CardDescription>

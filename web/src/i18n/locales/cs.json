@@ -5202,7 +5202,10 @@
       },
       "timeline": {
         "heading": "Časová osa plánů",
-        "hint": "Plány podle měsíců",
+        "hint": "Kliknutím na plán ho otevřete",
+        "earlier": "Dřívější měsíce",
+        "later": "Pozdější měsíce",
+        "todayAction": "Dnes",
         "empty": "Zatím tu nejsou žádné plány s termínem.",
         "today": "Dnes",
         "noPlan": "Bez plánu",
@@ -6161,7 +6164,6 @@
     }
   },
   "entry": {
-    "brand": "Form Up",
     "login": {
       "title": "Vítejte zpět",
       "lede": "Přihlaste se do trenérského portálu.",
@@ -6437,8 +6439,7 @@
       "cs": "CS",
       "en": "EN",
       "de": "DE"
-    },
-    "brandMark": "GF"
+    }
   },
   "home": {
     "brand": { "form": "FORM", "up": "UP", "name": "Form Up" },
