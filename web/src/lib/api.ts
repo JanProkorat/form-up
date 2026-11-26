@@ -1,8 +1,11 @@
 import axios from 'axios';
 import i18n from '@/i18n';
 import { useAuthStore } from '@/stores/auth';
+import { getErrorCode } from '@/lib/api-errors';
 import { executeRefresh } from '@/lib/refresh';
 import { PLAN_CHOICE_REQUIRED_EVENT, isPlanChoiceRequired } from '@/lib/subscriptionErrors';
+
+const EMAIL_NOT_VERIFIED = 'EMAIL_NOT_VERIFIED';
 
 const api = axios.create({
   baseURL: '/',
@@ -73,6 +76,15 @@ function handleRefresh(instance: import('axios').AxiosInstance) {
     // wall, tell the app shell once: it refetches the subscription and sends the coach to the plan picker.
     if (err.response?.status === 403 && isPlanChoiceRequired(error)) {
       window.dispatchEvent(new Event(PLAN_CHOICE_REQUIRED_EVENT));
+      return Promise.reject(error);
+    }
+
+    // The server gate refuses an unverified account: mirror that in the store so ProtectedRoute sends it to /verify-email.
+    if (err.response?.status === 403 && getErrorCode(error) === EMAIL_NOT_VERIFIED) {
+      const { user, setUser } = useAuthStore.getState();
+      if (user?.emailConfirmed) {
+        setUser({ ...user, emailConfirmed: false });
+      }
       return Promise.reject(error);
     }
 

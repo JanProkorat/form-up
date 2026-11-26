@@ -137,6 +137,7 @@ function LoadedClientPlanEditor({
       )}
       mealLocks={mealLocks}
       readOnly={isClosedPlan(plan)}
+      sidePanelWhenReadOnly
       readOnlyNotice={t('clientPlanEditor.readOnly')}
       breadcrumb={{
         label: clientName,
