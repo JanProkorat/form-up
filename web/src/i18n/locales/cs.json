@@ -5202,7 +5202,10 @@
       },
       "timeline": {
         "heading": "Časová osa plánů",
-        "hint": "Plány podle měsíců",
+        "hint": "Kliknutím na plán ho otevřete",
+        "earlier": "Dřívější měsíce",
+        "later": "Pozdější měsíce",
+        "todayAction": "Dnes",
         "empty": "Zatím tu nejsou žádné plány s termínem.",
         "today": "Dnes",
         "noPlan": "Bez plánu",
