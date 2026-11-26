@@ -295,6 +295,21 @@ public class EmailTemplateRendererNotificationTests
         subject.Should().Be(expectedSubject);
     }
 
+    [Theory]
+    [InlineData("en", "Reply in Form Up &mdash; Petra sees it straight away in the app.", "Reply in Form Up", "Open inbox", "Conversation:")]
+    [InlineData("cs", "Odpovězte ve Form Up &mdash; Petra to uvidí hned v aplikaci.", "Odpovědět ve Form Up", "Otevřít zprávy", "Konverzace:")]
+    [InlineData("de", "Antworten Sie in Form Up &ndash; Petra sieht es sofort in der App.", "In Form Up antworten", "Nachrichten öffnen", "Unterhaltung:")]
+    public void RenderNotification_NewMessage_InvitesAReplyInTheApp(
+        string language, string expectedLead, string expectedButton, string oldButton, string oldLeadPrefix)
+    {
+        var (_, html) = Renderer.RenderNotification(Item(
+            NotificationEvent.NewMessage, language, (NotificationEmailWorkItem.MessageCountKey, "3")));
+
+        html.Should().Contain(expectedLead);
+        html.Should().MatchRegex($"<a href=\"{System.Text.RegularExpressions.Regex.Escape(WebUtility.HtmlEncode(ActionUrl))}\"[^>]*>{expectedButton}</a>");
+        html.Should().NotContain(oldButton).And.NotContain(oldLeadPrefix);
+    }
+
     [Fact]
     public void RenderNotification_NewMessage_HasNoMessageBubblesOrMoreLine()
     {
