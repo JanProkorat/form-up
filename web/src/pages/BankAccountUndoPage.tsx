@@ -6,6 +6,7 @@ import { useMutation } from '@tanstack/react-query';
 import { CheckIcon, HistoryIcon, TriangleAlertIcon } from 'lucide-react';
 import { undoBankAccountChange } from '@/api/payment-settings';
 import { getErrorCode, getErrorStatus, getRfc7807ErrorCode } from '@/lib/api-errors';
+import Wordmark from '@/components/brand/Wordmark';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -52,10 +53,7 @@ export default function BankAccountUndoPage() {
 
   const brandRow = (
     <CardHeader>
-      <span className="flex size-7.5 items-center justify-center rounded-md bg-marker text-caption font-bold tracking-wide text-on-dark">
-        {t('entry.brandMark')}
-      </span>
-      <span>{t('entry.brand')}</span>
+      <Wordmark />
     </CardHeader>
   );
 

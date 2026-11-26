@@ -5936,7 +5936,6 @@
     }
   },
   "entry": {
-    "brand": "Form Up",
     "login": {
       "title": "Willkommen zurück",
       "lede": "Im Trainerportal anmelden.",
@@ -6212,8 +6211,7 @@
       "cs": "CS",
       "en": "EN",
       "de": "DE"
-    },
-    "brandMark": "GF"
+    }
   },
   "home": {
     "brand": { "form": "FORM", "up": "UP", "name": "Form Up" },

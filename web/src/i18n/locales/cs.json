@@ -6161,7 +6161,6 @@
     }
   },
   "entry": {
-    "brand": "Form Up",
     "login": {
       "title": "Vítejte zpět",
       "lede": "Přihlaste se do trenérského portálu.",
@@ -6437,8 +6436,7 @@
       "cs": "CS",
       "en": "EN",
       "de": "DE"
-    },
-    "brandMark": "GF"
+    }
   },
   "home": {
     "brand": { "form": "FORM", "up": "UP", "name": "Form Up" },
