@@ -152,7 +152,7 @@ export default function PlanTimelineCard({ clientId, plans, details }: Props) {
       className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5"
     >
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <h2 id={headingId} className="text-card-title font-bold text-ink">
+        <h2 id={headingId} className="font-sans text-subhead font-semibold text-ink">
           {t('clientDetail.nutrition.timeline.heading')}
         </h2>
         {model && (
