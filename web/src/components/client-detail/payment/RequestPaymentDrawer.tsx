@@ -129,13 +129,15 @@ function RequestForm({ clientId, clientName, rows, initialPaymentId, onClose }: 
   const amountInvalid =
     editingAmount && !(amountValue != null && amountValue > 0 && amountValue <= AMOUNT_MAX);
 
-  const submit = (values: FormValues) => {
+  const submit = async (values: FormValues) => {
     if (amountInvalid || !row?.paymentId) {
       return;
     }
     setSubmitError(null);
-    requestMutation.mutate(
-      {
+    let response;
+    try {
+      // mutateAsync, not mutate callbacks: the refetch can unmount this form first.
+      response = await requestMutation.mutateAsync({
         paymentId: values.paymentId,
         request: {
           dueDate: values.dueDate,
@@ -143,31 +145,27 @@ function RequestForm({ clientId, clientName, rows, initialPaymentId, onClose }: 
           sendNotification: values.sendNotification,
           sendEmail: values.sendEmail,
         },
-      },
-      {
-        onSuccess: (response) => {
-          showSuccess(
-            values.sendEmail && response.emailSent === false
-              ? 'payments.client.request.sentEmailFailed'
-              : 'payments.client.request.sent',
-          );
-          onClose();
-        },
-        onError: (error) => {
-          if (isAlreadySettled(error)) {
-            showApiError(error, 'payments.client.request.error');
-            onClose();
-            return;
-          }
-          setSubmitError({
-            message: isRateLimited(error)
-              ? t('apiErrors.PAYMENT_REQUEST_RATE_LIMITED')
-              : getApiErrorMessage(error, 'payments.client.request.error'),
-            needsBankAccount: paymentErrorCode(error) === BANK_ACCOUNT_NOT_SET,
-          });
-        },
-      },
+      });
+    } catch (error) {
+      if (isAlreadySettled(error)) {
+        showApiError(error, 'payments.client.request.error');
+        onClose();
+        return;
+      }
+      setSubmitError({
+        message: isRateLimited(error)
+          ? t('apiErrors.PAYMENT_REQUEST_RATE_LIMITED')
+          : getApiErrorMessage(error, 'payments.client.request.error'),
+        needsBankAccount: paymentErrorCode(error) === BANK_ACCOUNT_NOT_SET,
+      });
+      return;
+    }
+    showSuccess(
+      values.sendEmail && response.emailSent === false
+        ? 'payments.client.request.sentEmailFailed'
+        : 'payments.client.request.sent',
     );
+    onClose();
   };
 
   if (!row) {

@@ -5030,7 +5030,10 @@
       },
       "timeline": {
         "heading": "Plan timeline",
-        "hint": "Plans by month",
+        "hint": "Click a plan to open it",
+        "earlier": "Earlier months",
+        "later": "Later months",
+        "todayAction": "Today",
         "empty": "No dated plans to show yet.",
         "today": "Today",
         "noPlan": "No plan",
@@ -5937,7 +5940,6 @@
     }
   },
   "entry": {
-    "brand": "Form Up",
     "login": {
       "title": "Welcome back",
       "lede": "Sign in to the coach portal.",
@@ -6213,8 +6215,7 @@
       "cs": "CS",
       "en": "EN",
       "de": "DE"
-    },
-    "brandMark": "GF"
+    }
   },
   "home": {
     "brand": { "form": "FORM", "up": "UP", "name": "Form Up" },
