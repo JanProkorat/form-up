@@ -297,7 +297,7 @@ public class EmailTemplateRendererNotificationTests
 
     [Theory]
     [InlineData("en", "Reply in Form Up &mdash; Petra sees it straight away in the app.", "Reply in Form Up", "Open inbox", "Conversation:")]
-    [InlineData("cs", "Odpovězte ve Form Up &mdash; Petra to uvidí hned v aplikaci.", "Odpovědět ve Form Up", "Otevřít zprávy", "Konverzace:")]
+    [InlineData("cs", "Odpovězte ve Form Up &ndash; Petra to uvidí hned v aplikaci.", "Odpovědět ve Form Up", "Otevřít zprávy", "Konverzace:")]
     [InlineData("de", "Antworten Sie in Form Up &ndash; Petra sieht es sofort in der App.", "In Form Up antworten", "Nachrichten öffnen", "Unterhaltung:")]
     public void RenderNotification_NewMessage_InvitesAReplyInTheApp(
         string language, string expectedLead, string expectedButton, string oldButton, string oldLeadPrefix)
