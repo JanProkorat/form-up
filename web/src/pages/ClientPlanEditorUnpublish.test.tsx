@@ -75,7 +75,7 @@ describe('plan editor: unpublish week', () => {
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Unpublish week 1' }));
 
     const dialog = await screen.findByTestId('unpublish-week-dialog');
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Unpublish week' }));
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Back to draft' }));
 
     expect(await screen.findByText('Week 1 is unpublished.')).toBeInTheDocument();
     expect(calls.count).toBe(1);
@@ -89,7 +89,7 @@ describe('plan editor: unpublish week', () => {
     renderPlanEditor();
     await openMenu();
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Unpublish week 1' }));
-    await userEvent.click(within(await screen.findByTestId('unpublish-week-dialog')).getByRole('button', { name: 'Unpublish week' }));
+    await userEvent.click(within(await screen.findByTestId('unpublish-week-dialog')).getByRole('button', { name: 'Back to draft' }));
 
     expect(await screen.findByText(/already logged meals in this week/)).toBeInTheDocument();
     expect(calls.count).toBe(1);

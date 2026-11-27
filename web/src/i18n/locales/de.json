@@ -3173,7 +3173,7 @@
     "unpublish": {
       "title": "Veröffentlichung von Woche {{week}} zurückziehen?",
       "body": "Nicht gespeicherte Änderungen werden zuerst gespeichert. Der Klient sieht diese Woche erst wieder, wenn Sie sie erneut veröffentlichen.",
-      "confirm": "Veröffentlichung zurückziehen",
+      "confirm": "Zurück zum Entwurf",
       "success": "Die Veröffentlichung von Woche {{week}} wurde zurückgezogen.",
       "error": "Die Veröffentlichung konnte nicht zurückgezogen werden. Bitte versuchen Sie es erneut."
     },
