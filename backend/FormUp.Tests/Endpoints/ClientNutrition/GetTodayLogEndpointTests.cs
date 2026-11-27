@@ -9,6 +9,7 @@ using FormUp.Application.Features.ClientNutrition.GetTodayLog;
 using FormUp.Application.Features.ClientNutrition.GetTodayPlan;
 using FormUp.Application.Features.ClientNutrition.GetWeekPlan;
 using FormUp.Application.Infrastructure.Data;
+using FormUp.Application.Infrastructure.Services;
 using FormUp.Tests.Builders;
 using FormUp.Tests.Endpoints.NutritionPlans;
 using FormUp.Tests.Infrastructure;
@@ -90,7 +91,7 @@ public class GetTodayLogEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _blobStorage, TimeProvider.System);
+            mongo, db, _blobStorage, TimeProvider.System, new MacroCalculatorService());
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -131,7 +132,7 @@ public class GetTodayLogEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _blobStorage, TimeProvider.System);
+            mongo, db, _blobStorage, TimeProvider.System, new MacroCalculatorService());
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -186,7 +187,7 @@ public class GetTodayLogEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _blobStorage, TimeProvider.System);
+            mongo, db, _blobStorage, TimeProvider.System, new MacroCalculatorService());
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -249,7 +250,7 @@ public class GetTodayLogEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _blobStorage, TimeProvider.System);
+            mongo, db, _blobStorage, TimeProvider.System, new MacroCalculatorService());
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -306,7 +307,7 @@ public class GetTodayLogEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _blobStorage, TimeProvider.System);
+            mongo, db, _blobStorage, TimeProvider.System, new MacroCalculatorService());
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -379,7 +380,7 @@ public class GetTodayLogEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _blobStorage, TimeProvider.System);
+            mongo, db, _blobStorage, TimeProvider.System, new MacroCalculatorService());
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 

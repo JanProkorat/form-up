@@ -44,6 +44,8 @@ export interface QuestionnaireSummaryDto {
   questionCount: number;
   /** Distinct clients with a non-cancelled response to this form. */
   usedForClientCount: number;
+  /** Whole percent of last week's check-ins that were answered; absent for other forms or when none were sent. */
+  lastWeekAnswerRatePercent?: number | null;
   dateCreated: string;
   /** Last edit time: the update timestamp, or the creation time when never edited. */
   editedAt: string;

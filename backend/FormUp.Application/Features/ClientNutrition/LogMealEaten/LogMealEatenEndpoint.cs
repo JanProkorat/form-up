@@ -97,15 +97,9 @@ public class LogMealEatenEndpoint(
 
         // Resolve the Active plan whose date window contains today — a client may hold several
         // sequential, non-overlapping Active plans (#780).
-        var filter = Builders<NutritionPlan>.Filter.And(
-            Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientId),
-            Builders<NutritionPlan>.Filter.Eq(p => p.Status, NutritionPlanStatus.Active));
-
-        var cursor = await mongo.NutritionPlans.FindAsync(filter, cancellationToken: ct);
-        var activePlans = await cursor.ToListAsync(ct);
-        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, todayLocalUtc);
-
-        var meal = plan is null ? null : FindMeal(plan, req.MealId);
+        var current = await CurrentPlanMealResolver.FindCurrentPlanMealAsync(mongo, clientId, req.MealId, todayLocalUtc, ct);
+        var plan = current?.Plan;
+        var meal = current?.Meal;
         OfflineSyncConflict? conflict = null;
 
         if (plan is null || meal is null)
@@ -114,7 +108,7 @@ public class LogMealEatenEndpoint(
             // when the meal is provably this client's own; an unknown id stays 404.
             var removed = req.BasedOnPlanVersion is null
                 ? null
-                : await FindRemovedMealAsync(clientId, req.MealId, ct);
+                : await RemovedMealFinder.FindRemovedMealAsync(mongo, clientId, req.MealId, ct);
 
             if (removed is null)
             {
@@ -161,13 +155,14 @@ public class LogMealEatenEndpoint(
 
         if (conflict is not null)
         {
-            await NotifyCoachesOfConflictAsync(clientProfile, conflict, ct);
+            await OfflineSyncConflictRecorder.NotifyCoachesAsync(
+                db, mongo, notifications, notifier, coachDiscipline, logger, clientProfile, conflict, ct);
         }
 
         // The SignalR payload's ClientId is the trainer-facing ClientProfile.PublicId
         // convention (unrelated to the Mongo document clientId key migrated in #840) —
         // pass clientProfile.PublicId explicitly rather than the (now UserId-valued) clientId.
-        await NotifyLinkedProfessionalsAsync(clientProfile.Id, clientProfile.PublicId, ct);
+        await ClientComplianceNotifier.NotifyLinkedProfessionalsAsync(db, notifier, clientProfile.Id, clientProfile.PublicId, ct);
 
         await Send.ResponseAsync(LogMealEatenResponse.FromConflict(conflict?.Kind, conflict?.MealLogged ?? true), 201, ct);
     }
@@ -185,105 +180,6 @@ public class LogMealEatenEndpoint(
         Fat = item.Fat,
         Fibre = item.Fibre,
     };
-
-    private static PlanMeal? FindMeal(NutritionPlan plan, Guid mealId) =>
-        plan.Weeks
-            .SelectMany(w => w.Days)
-            .SelectMany(d => d.Meals)
-            .FirstOrDefault(m => m.MealId == mealId);
-
-    private OfflineSyncConflict NewConflict(
-        NutritionPlan plan, MealKind mealKind, int? mealChangedAtPlanVersion, LogMealEatenRequest req, Guid clientId,
-        OfflineSyncConflictKind kind, bool mealLogged, DateTime occurredAt, DateTime logDate) => new()
-    {
-        ExternalId = Guid.NewGuid(),
-        ClientId = clientId,
-        PlanId = plan.ExternalId,
-        PlanAuthorId = plan.NutritionistId,
-        Operation = OperationName,
-        Kind = kind,
-        MealId = req.MealId,
-        OccurredAt = occurredAt,
-        LogDate = logDate,
-        BasedOnPlanVersion = req.BasedOnPlanVersion!.Value,
-        CurrentPlanVersion = plan.Version,
-        MealChangedAtPlanVersion = mealChangedAtPlanVersion,
-        PlanName = plan.Name,
-        MealKind = mealKind,
-        MealLogged = mealLogged,
-        DateCreated = timeProvider.GetUtcNow().UtcDateTime,
-        SeenItems = (req.SeenMealItems ?? [])
-            .Select(item => new SeenMealItem
-            {
-                Kind = item.Kind,
-                RefId = item.RefId,
-                Name = item.Name,
-                Amount = item.Amount,
-                Kcal = item.Kcal,
-                ItemId = item.ItemId,
-                Protein = item.Protein,
-                Carbs = item.Carbs,
-                Fat = item.Fat,
-                Fibre = item.Fibre,
-            })
-            .ToList(),
-    };
-
-    /// <summary>
-    /// Finds where a meal that is no longer in the current plan went: a plan of the client's own
-    /// (any status) that still contains it, or that recorded its removal in
-    /// <see cref="NutritionPlan.RemovedMeals"/>. Null when the id is unknown to the client.
-    /// </summary>
-    private async Task<(NutritionPlan Plan, MealKind Kind, int? ChangedAtPlanVersion)?> FindRemovedMealAsync(
-        Guid clientId, Guid mealId, CancellationToken ct)
-    {
-        var containing = await FindOwnPlanContainingMealAsync(clientId, mealId, ct);
-
-        if (containing is not null)
-        {
-            var meal = FindMeal(containing, mealId)!;
-            return (containing, meal.Kind, meal.ChangedAtPlanVersion);
-        }
-
-        var recordFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientId)
-                           & Builders<NutritionPlan>.Filter.ElemMatch(
-                               p => p.RemovedMeals, Builders<RemovedPlanMeal>.Filter.Eq(r => r.MealId, mealId));
-
-        using var cursor = await mongo.NutritionPlans.FindAsync(recordFilter, cancellationToken: ct);
-        var candidates = await cursor.ToListAsync(ct);
-
-        foreach (var candidate in candidates.Where(p => p.ClientId == clientId))
-        {
-            var record = candidate.RemovedMeals.FirstOrDefault(r => r.MealId == mealId);
-
-            if (record is not null)
-            {
-                return (candidate, record.Kind, record.RemovedAtPlanVersion);
-            }
-        }
-
-        return null;
-    }
-
-    /// <summary>
-    /// Finds any of the client's own plans (any status) that contains the meal, or null.
-    /// </summary>
-    private async Task<NutritionPlan?> FindOwnPlanContainingMealAsync(Guid clientId, Guid mealId, CancellationToken ct)
-    {
-        var filter = Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientId)
-                     & Builders<NutritionPlan>.Filter.ElemMatch(
-                         p => p.Weeks,
-                         Builders<PlanWeek>.Filter.ElemMatch(
-                             w => w.Days,
-                             Builders<PlanDay>.Filter.ElemMatch(
-                                 d => d.Meals,
-                                 Builders<PlanMeal>.Filter.Eq(m => m.MealId, mealId))));
-
-        using var cursor = await mongo.NutritionPlans.FindAsync(filter, cancellationToken: ct);
-        var candidates = await cursor.ToListAsync(ct);
-
-        return candidates.FirstOrDefault(p => p.ClientId == clientId && FindMeal(p, mealId) is not null);
-    }
 
     /// <summary>
     /// Rebuilds the original response of a replayed request from its dedupe record.
@@ -304,9 +200,32 @@ public class LogMealEatenEndpoint(
             : LogMealEatenResponse.FromConflict(conflict.Kind, conflict.MealLogged);
     }
 
+    private OfflineSyncConflict NewConflict(
+        NutritionPlan plan, MealKind mealKind, int? mealChangedAtPlanVersion, LogMealEatenRequest req, Guid clientId,
+        OfflineSyncConflictKind kind, bool mealLogged, DateTime occurredAt, DateTime logDate) =>
+        OfflineSyncConflictRecorder.Build(
+            plan, mealKind, mealChangedAtPlanVersion, OperationName, req.MealId, req.BasedOnPlanVersion!.Value, clientId,
+            kind, mealLogged, occurredAt, logDate, timeProvider.GetUtcNow().UtcDateTime,
+            (req.SeenMealItems ?? [])
+                .Select(item => new SeenMealItem
+                {
+                    Kind = item.Kind,
+                    RefId = item.RefId,
+                    Name = item.Name,
+                    Amount = item.Amount,
+                    Kcal = item.Kcal,
+                    ItemId = item.ItemId,
+                    Protein = item.Protein,
+                    Carbs = item.Carbs,
+                    Fat = item.Fat,
+                    Fibre = item.Fibre,
+                })
+                .ToList());
+
     /// <summary>
     /// Writes or revives the day's log row for the meal. <paramref name="meal"/> is the live plan meal,
     /// or null for a meal that has left the plan (the request's seen items are then the only source).
+    /// A concurrent request that inserts the day's row first (unique index) turns this insert into an update.
     /// </summary>
     private async Task WriteMealLogAsync(
         LogMealEatenRequest req, Guid planId, MealKind mealKind, PlanMeal? meal, Guid clientId, DateTime now,
@@ -314,18 +233,7 @@ public class LogMealEatenEndpoint(
     {
         // Same lookup as SaveMealPhotos: a photo-only row kept by an unmark (or created by a
         // photo save) is revived instead of duplicated, so one meal has one row per day.
-        var existingFilter = Builders<MealLog>.Filter.And(
-            Builders<MealLog>.Filter.Eq(l => l.ClientId, clientId),
-            Builders<MealLog>.Filter.Eq(l => l.PlanId, planId),
-            Builders<MealLog>.Filter.Eq(l => l.MealId, req.MealId),
-            Builders<MealLog>.Filter.Or(
-                Builders<MealLog>.Filter.Eq(l => l.LogDate, todayLocalUtc),
-                Builders<MealLog>.Filter.And(
-                    Builders<MealLog>.Filter.Gte(l => l.EatenAt, windowStartUtc),
-                    Builders<MealLog>.Filter.Lt(l => l.EatenAt, windowEndUtc))));
-
-        using var existingCursor = await mongo.MealLogs.FindAsync(existingFilter, cancellationToken: ct);
-        var existingLog = await existingCursor.FirstOrDefaultAsync(ct);
+        var existingFilter = MealLogDayFilter.Build(clientId, planId, req.MealId, todayLocalUtc, windowStartUtc, windowEndUtc);
 
         var note = string.IsNullOrWhiteSpace(req.Note) ? null : req.Note.Trim();
 
@@ -338,8 +246,18 @@ public class LogMealEatenEndpoint(
             : meal is null ? [] : MealItemEatenState.BuildSnapshot(meal);
         List<MealFood> foodsEaten = hasSeenItems || meal is null ? [] : meal.Foods;
 
-        if (existingLog is null)
+        for (var attempt = 0; ; attempt++)
         {
+            using var existingCursor = await mongo.MealLogs.FindAsync(existingFilter, cancellationToken: ct);
+            var existingLog = await existingCursor.FirstOrDefaultAsync(ct);
+
+            if (existingLog is not null)
+            {
+                await UpdateExistingLogAsync(
+                    req, existingLog, mealKind, meal, snapshot, foodsEaten, note, now, todayLocalUtc, ct);
+                return;
+            }
+
             var mealLog = new MealLog
             {
                 ClientId = clientId,
@@ -361,10 +279,22 @@ public class LogMealEatenEndpoint(
                 BasedOnPlanVersion = req.BasedOnPlanVersion
             };
 
-            await mongo.MealLogs.InsertOneAsync(mealLog, cancellationToken: ct);
-            return;
+            try
+            {
+                await mongo.MealLogs.InsertOneAsync(mealLog, cancellationToken: ct);
+                return;
+            }
+            catch (MongoWriteException ex) when (attempt == 0 && ex.WriteError.Category == ServerErrorCategory.DuplicateKey)
+            {
+                // A concurrent request inserted the day's row first; loop once and update it instead.
+            }
         }
+    }
 
+    private async Task UpdateExistingLogAsync(
+        LogMealEatenRequest req, MealLog existingLog, MealKind mealKind, PlanMeal? meal, List<EatenMealItem> snapshot,
+        List<MealFood> foodsEaten, string? note, DateTime now, DateTime todayLocalUtc, CancellationToken ct)
+    {
         var knownUrls = existingLog.Photos.Select(p => p.BlobUrl).ToHashSet();
         var photos = existingLog.Photos.ToList();
         foreach (var url in req.PhotoBlobUrls ?? [])
@@ -409,141 +339,5 @@ public class LogMealEatenEndpoint(
 
         await mongo.MealLogs.UpdateOneAsync(
             Builders<MealLog>.Filter.Eq(l => l.Id, existingLog.Id), update, cancellationToken: ct);
-    }
-
-    /// <summary>
-    /// Tells the plan's author, if still actively linked with effective nutrition access, about the conflict: the first conflict
-    /// per client and plan creates one unread notification (with push), later ones only update its
-    /// count. Failures are logged and never fail the client's already-applied write.
-    /// </summary>
-    private async Task NotifyCoachesOfConflictAsync(
-        ClientProfile clientProfile, OfflineSyncConflict conflict, CancellationToken ct)
-    {
-        try
-        {
-            var links = await db.ClientProfessionalLinks
-                .AsNoTracking()
-                .Where(l => l.ClientProfileId == clientProfile.Id
-                            && l.ConnectionState != ConnectionState.Ended
-                            && l.ProfessionalProfile.UserId == conflict.PlanAuthorId)
-                .Select(l => new
-                {
-                    l.ProfessionalProfile.UserId,
-                    l.CanViewNutritionPlans,
-                    l.CanViewTrainingPlans,
-                    l.ProfessionalProfile.User.Language,
-                })
-                .ToListAsync(ct);
-
-            if (links.Count == 0)
-            {
-                return;
-            }
-
-            var clientName = await db.Users
-                .AsNoTracking()
-                .Where(u => u.Id == clientProfile.UserId)
-                .Select(u => u.FirstName + " " + u.LastName)
-                .FirstOrDefaultAsync(ct) ?? string.Empty;
-
-            var count = (int)await mongo.OfflineSyncConflicts.CountDocumentsAsync(
-                Builders<OfflineSyncConflict>.Filter.Eq(c => c.ClientId, conflict.ClientId)
-                & Builders<OfflineSyncConflict>.Filter.Eq(c => c.PlanId, conflict.PlanId)
-                & Builders<OfflineSyncConflict>.Filter.Eq(c => c.ReviewedAt, null),
-                cancellationToken: ct);
-
-            var coalesceKey = $"{clientProfile.PublicId}:{conflict.PlanId}";
-            var parameters = new Dictionary<string, string>
-            {
-                ["clientName"] = clientName,
-                ["planName"] = conflict.PlanName,
-                ["count"] = count.ToString(),
-                ["clientPublicId"] = clientProfile.PublicId.ToString(),
-                ["planId"] = conflict.PlanId.ToString(),
-                ["coalesceKey"] = coalesceKey,
-            };
-
-            foreach (var link in links.DistinctBy(l => l.UserId))
-            {
-                var effective = await coachDiscipline.GetEffectiveAsync(
-                    link.UserId, new LinkCapabilities(link.CanViewNutritionPlans, link.CanViewTrainingPlans), ct);
-
-                if (!effective.CanViewNutritionPlans)
-                {
-                    continue;
-                }
-
-                await NotifyCoachAsync(link.UserId, link.Language, parameters, clientProfile.PublicId, conflict.PlanId, count, ct);
-            }
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            logger.LogWarning(
-                ex, "Offline sync conflict notification failed for client {ClientId} and plan {PlanId}",
-                conflict.ClientId, conflict.PlanId);
-        }
-    }
-
-    private async Task NotifyCoachAsync(
-        Guid coachUserId, string? coachLanguage, Dictionary<string, string> parameters,
-        Guid clientPublicId, Guid planId, int count, CancellationToken ct)
-    {
-        var coalesceKey = parameters["coalesceKey"];
-        var unread = await db.Notifications
-            .Where(n => n.RecipientUserId == coachUserId
-                        && n.Type == NotificationType.OfflineSyncConflict
-                        && !n.IsRead
-                        && n.Data != null
-                        && n.Data.Contains(coalesceKey))
-            .FirstOrDefaultAsync(ct);
-
-        var conflictPayload = new { clientId = clientPublicId, planId, count };
-
-        if (unread is null)
-        {
-            var created = await notifications.CreateAsync(
-                coachUserId, NotificationType.OfflineSyncConflict, parameters, ct: ct);
-
-            await notifier.NotifyAsync(
-                coachUserId,
-                "newnotification",
-                new { id = created.Id, type = NotificationType.OfflineSyncConflict.ToString(), data = created.Data },
-                ct);
-            await notifier.NotifyAsync(coachUserId, "offlinesyncconflict", conflictPayload, ct);
-            return;
-        }
-
-        var (title, body) = NotificationTemplates.Resolve(
-            NotificationType.OfflineSyncConflict, coachLanguage, parameters);
-        unread.Title = title;
-        unread.Body = body;
-        unread.Data = JsonSerializer.Serialize(parameters);
-        await db.SaveChangesAsync(ct);
-
-        await notifier.NotifyAsync(coachUserId, "offlinesyncconflict", conflictPayload, ct);
-    }
-
-    /// <summary>
-    /// Pushes a <c>clientcomplianceupdated</c> SignalR event to every active professional
-    /// (trainer/nutritionist) linked to this client so their dashboards can refresh streak
-    /// and compliance without polling.
-    /// </summary>
-    private async Task NotifyLinkedProfessionalsAsync(long clientProfileId, Guid clientPublicId, CancellationToken ct)
-    {
-        var professionalUserIds = await db.ClientProfessionalLinks
-            .AsNoTracking()
-            .Where(l => l.ClientProfileId == clientProfileId && l.ConnectionState != ConnectionState.Ended)
-            .Join(db.ProfessionalProfiles.AsNoTracking(),
-                link => link.ProfessionalProfileId,
-                prof => prof.Id,
-                (_, prof) => prof.UserId)
-            .Distinct()
-            .ToListAsync(ct);
-
-        var payload = new { ClientId = clientPublicId };
-        foreach (var userId in professionalUserIds)
-        {
-            await notifier.NotifyAsync(userId, "clientcomplianceupdated", payload, ct);
-        }
     }
 }

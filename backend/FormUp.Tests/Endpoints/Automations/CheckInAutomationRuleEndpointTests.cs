@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Enums;
+using FormUp.Application.Features.Automations.GetClientAutomations;
 using FormUp.Application.Features.Automations.Shared;
 using FormUp.Tests.Builders;
 using FormUp.Tests.Infrastructure;
@@ -69,6 +70,27 @@ public class CheckInAutomationRuleEndpointTests(FitnessApiFactory factory)
         rule.ReminderAfterHours.Should().Be(24);
         rule.NotifyCoachOnMissedWeek.Should().BeTrue();
         rule.SkipWhilePreviousUnanswered.Should().BeFalse("each check-in week stands on its own");
+    }
+
+    [Fact]
+    public async Task ListClientAutomations_WeeklyCheckInRuleWithARun_ReportsNextSendAndLastResult()
+    {
+        var coach = await CreateEntitledCoachAsync();
+        var client = await TestActors.Client(factory).CreateAsync(Ct);
+        await TestActors.Link(factory, coach, client).CreateAsync(Ct);
+        var formId = await AutomationTestData.CreateQuestionnaireAsync(factory, coach, QuestionnaireType.CheckIn);
+        var rule = await ReadRuleAsync(await coach.Http.PostAsJsonAsync("/trainer/automations/rules", CheckInRule(formId), Ct));
+        await AutomationTestData.AddRunAsync(factory, rule.RuleId, client.ProfileId, AutomationRunStatus.Sent,
+            sentAt: DateTime.UtcNow.AddDays(-2));
+
+        var response = await coach.Http.GetAsync($"/trainer/clients/{client.PublicId}/automations", Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var list = (await response.Content.ReadFromJsonAsync<GetClientAutomationsResponse>(AutomationTestData.Json, Ct))!;
+        var item = list.Items.Single(i => i.RuleId == rule.RuleId);
+        item.NextSendAt.Should().NotBeNull().And.BeAfter(DateTime.UtcNow);
+        item.LastResult.Should().NotBeNull();
+        item.LastResult!.Status.Should().Be(AutomationRunStatus.Sent);
     }
 
     [Fact]

@@ -1437,6 +1437,12 @@
       "subtitle": "Was Kunden sehen, wenn sie Sie finden, und wie sie Sie erreichen",
       "allSaved": "Alle Änderungen gespeichert",
       "saved": "Profil gespeichert",
+      "leave": {
+        "title": "Ohne Speichern verlassen?",
+        "body": "Sie haben nicht gespeicherte Änderungen. Wenn Sie jetzt gehen, gehen sie verloren.",
+        "stay": "Weiter bearbeiten",
+        "discard": "Verlassen"
+      },
       "photo": {
         "title": "Foto und Name",
         "description": "Kunden sehen das auf Ihrem Profil, in der Suche und im Chat.",
@@ -2881,7 +2887,8 @@
       "questions_one": "{{count}} Frage",
       "questions_other": "{{count}} Fragen",
       "clients_one": "{{count}} Klient",
-      "clients_other": "{{count}} Klienten"
+      "clients_other": "{{count}} Klienten",
+      "answeredLastWeek": "{{percent}} % letzte Woche beantwortet"
     },
     "rowMenu": {
       "open": "Aktionen für {{name}}",
@@ -6095,6 +6102,19 @@
         "resendConfirmation": "Falls nötig, haben wir einen neuen Link gesendet.",
         "wrongEmail": "Falsche Adresse?",
         "changeEmail": "E-Mail ändern"
+      },
+      "changeEmail": {
+        "title": "E-Mail-Adresse ändern",
+        "lede": "Wir verschieben Ihr Konto auf die neue Adresse und senden einen neuen Link.<br/>Der an <old>{{email}}</old> gesendete Link wird ungültig.",
+        "label": "Neue E-Mail-Adresse",
+        "submit": "Neuen Link senden",
+        "submitting": "Wird gesendet...",
+        "cancel": "Abbrechen",
+        "required": "Geben Sie die neue E-Mail-Adresse ein.",
+        "invalid": "Geben Sie eine gültige E-Mail-Adresse ein.",
+        "taken": "Diese E-Mail-Adresse ist bereits registriert.",
+        "unchanged": "Das ist bereits Ihre Adresse. Geben Sie eine andere ein.",
+        "generic": "Ihre E-Mail-Adresse konnte nicht geändert werden. Bitte versuchen Sie es erneut."
       }
     },
     "forgotPassword": {

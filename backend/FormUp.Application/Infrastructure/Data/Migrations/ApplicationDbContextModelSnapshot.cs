@@ -590,6 +590,10 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("answered_at");
 
+                    b.Property<int>("AttemptCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("attempt_count");
+
                     b.Property<long>("AutomationRuleId")
                         .HasColumnType("bigint")
                         .HasColumnName("automation_rule_id");
@@ -609,6 +613,10 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
                     b.Property<Guid?>("DeliveredEntityId")
                         .HasColumnType("uuid")
                         .HasColumnName("delivered_entity_id");
+
+                    b.Property<DateTime?>("NextRetryAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("next_retry_at");
 
                     b.Property<string>("Occurrence")
                         .IsRequired()
@@ -630,6 +638,10 @@ namespace FormUp.Application.Infrastructure.Data.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_automation_runs");
+
+                    b.HasIndex("NextRetryAt")
+                        .HasDatabaseName("ix_automation_runs_next_retry_at")
+                        .HasFilter("next_retry_at IS NOT NULL");
 
                     b.HasIndex("ClientProfileId", "SentAt")
                         .HasDatabaseName("ix_automation_runs_client_profile_id_sent_at");

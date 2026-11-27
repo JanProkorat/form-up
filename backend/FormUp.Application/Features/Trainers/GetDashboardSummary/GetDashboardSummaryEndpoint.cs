@@ -20,7 +20,8 @@ namespace FormUp.Application.Features.Trainers.GetDashboardSummary;
 public class GetDashboardSummaryEndpoint(
     IApplicationDbContext db,
     IMongoContext mongo,
-    IComplianceService complianceService)
+    IComplianceService complianceService,
+    IMacroCalculatorService macroCalculator)
     : EndpointWithoutRequest<GetDashboardSummaryResponse>
 {
     /// <summary>
@@ -313,7 +314,7 @@ public class GetDashboardSummaryEndpoint(
 
                 return merged.Count == 0 || eatenIds.Count == 0
                     ? 0
-                    : MealItemEatenState.EatenTotals(planMeal, eatenIds).Kcal;
+                    : MealItemEatenState.EatenTotals(planMeal, eatenIds, macroCalculator).Kcal;
             });
         }
 

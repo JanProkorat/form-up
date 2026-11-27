@@ -75,19 +75,6 @@ export async function linkQuestionnaire(
   return data;
 }
 
-/** Publish a single week of a nutrition plan. */
-export async function publishWeek(
-  planId: string,
-  weekNumber: number,
-  version: number,
-): Promise<NutritionPlanDetail> {
-  const { data } = await api.post<NutritionPlanDetail>(
-    `/nutrition/plans/${planId}/weeks/${weekNumber}/publish`,
-    { version },
-  );
-  return data;
-}
-
 /** Copy a nutrition plan to a client as a new Draft plan (POST /nutrition/plans/{planId}/copy). */
 export function copyNutritionPlan(
   planId: string,
@@ -120,9 +107,8 @@ export function completePlanFromEditor(planId: string, version: number | undefin
 export function publishPlanWeekFromEditor(
   planId: string,
   weekNumber: number,
-  version: number | undefined,
 ): Promise<GetPlanResponse> {
-  return apiClient.publishWeekEndpoint(planId, weekNumber, { version });
+  return apiClient.publishWeekEndpoint(planId, weekNumber);
 }
 
 /** Unpublishes one stored week (POST /nutrition/plans/{planId}/weeks/{weekNumber}/unpublish); returns the plan. */

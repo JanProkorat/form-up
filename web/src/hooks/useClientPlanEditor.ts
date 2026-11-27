@@ -125,8 +125,7 @@ export function useClientPlanEditor(loadedPlan: GetPlanResponse, clientId: strin
     mutationFn: (request: UpdatePlanRequest) => savePlanFromEditor(planId, request),
   });
   const publishMutation = useMutation({
-    mutationFn: (args: { weekNumber: number; version: number | undefined }) =>
-      publishPlanWeekFromEditor(planId, args.weekNumber, args.version),
+    mutationFn: (weekNumber: number) => publishPlanWeekFromEditor(planId, weekNumber),
   });
 
   /** Takes a server response as the new baseline: version, week statuses and the saved document. */
@@ -288,7 +287,7 @@ export function useClientPlanEditor(loadedPlan: GetPlanResponse, clientId: strin
         preserveNextSaveRef.current = false;
         adopt(saved);
       }
-      const published = await publishMutation.mutateAsync({ weekNumber, version: planRef.current.version });
+      const published = await publishMutation.mutateAsync(weekNumber);
       setSaveState({ status: 'idle' });
       return adopt(published);
     } catch (error) {

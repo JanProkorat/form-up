@@ -2960,7 +2960,7 @@ export class ApiClient {
      * @param weekNumber Week number to publish.
      * @return The plan with the week published
      */
-    publishTrainingWeekEndpoint(planId: string, weekNumber: number, publishTrainingWeekRequest: PublishTrainingWeekRequest, signal?: AbortSignal): Promise<GetTrainingPlanResponse> {
+    publishTrainingWeekEndpoint(planId: string, weekNumber: number, signal?: AbortSignal): Promise<GetTrainingPlanResponse> {
         let url_ = this.baseUrl + "/training/plans/{planId}/weeks/{weekNumber}/publish";
         if (planId === undefined || planId === null)
             throw new globalThis.Error("The parameter 'planId' must be defined.");
@@ -2970,14 +2970,10 @@ export class ApiClient {
         url_ = url_.replace("{weekNumber}", encodeURIComponent("" + weekNumber));
         url_ = url_.replace(/[?&]$/, "");
 
-        const content_ = JSON.stringify(publishTrainingWeekRequest);
-
         let options_: AxiosRequestConfig = {
-            data: content_,
             method: "POST",
             url: url_,
             headers: {
-                "Content-Type": "application/json",
                 "Accept": "application/json"
             },
             signal
@@ -11626,7 +11622,7 @@ export class ApiClient {
      * @param weekNumber Week number to publish.
      * @return The plan with the week published
      */
-    publishWeekEndpoint(planId: string, weekNumber: number, publishWeekRequest: PublishWeekRequest, signal?: AbortSignal): Promise<GetPlanResponse> {
+    publishWeekEndpoint(planId: string, weekNumber: number, signal?: AbortSignal): Promise<GetPlanResponse> {
         let url_ = this.baseUrl + "/nutrition/plans/{planId}/weeks/{weekNumber}/publish";
         if (planId === undefined || planId === null)
             throw new globalThis.Error("The parameter 'planId' must be defined.");
@@ -11636,14 +11632,10 @@ export class ApiClient {
         url_ = url_.replace("{weekNumber}", encodeURIComponent("" + weekNumber));
         url_ = url_.replace(/[?&]$/, "");
 
-        const content_ = JSON.stringify(publishWeekRequest);
-
         let options_: AxiosRequestConfig = {
-            data: content_,
             method: "POST",
             url: url_,
             headers: {
-                "Content-Type": "application/json",
                 "Accept": "application/json"
             },
             signal
@@ -23839,7 +23831,7 @@ export class ApiClient {
 
     /**
      * List automation rules
-     * @return The caller's global rules and linked check-ins
+     * @return The caller's global rules
      */
     getAutomationRulesEndpoint(signal?: AbortSignal): Promise<GetAutomationRulesResponse> {
         let url_ = this.baseUrl + "/trainer/automations/rules";
@@ -27476,8 +27468,6 @@ export interface RelockTrainingSessionRequest {
 
 /** Request to publish a specific week of a training plan. */
 export interface PublishTrainingWeekRequest {
-    /** Optimistic concurrency version. */
-    version?: number;
 }
 
 /** Request to link or unlink a questionnaire response to/from a training plan. */
@@ -30114,6 +30104,9 @@ export interface QuestionnaireSummaryDto {
     questionCount?: number;
     /** Distinct clients with a non-cancelled response to this form. */
     usedForClientCount?: number;
+    /** Share of last week's check-ins that clients submitted, as a whole percent. Null for a form that is
+not a check-in or has no check-ins for last week. */
+    lastWeekAnswerRatePercent?: number | undefined;
     dateCreated?: string;
     /** Last edit time: the update timestamp, or the creation time when never edited. */
     editedAt?: string;
@@ -31510,8 +31503,6 @@ export interface UnpublishNutritionWeekRequest {
 
 /** Request to publish a specific week of a nutrition plan. */
 export interface PublishWeekRequest {
-    /** Optimistic concurrency version. */
-    version?: number;
 }
 
 /** Request to link or unlink a questionnaire response to/from a nutrition plan. */
@@ -35908,15 +35899,13 @@ export interface GetClientAutomationsResponse {
 
 /** One row of a client's effective rule list. */
 export interface ClientAutomationItem {
-    /** Public id of the rule; null for a linked check-in row. */
+    /** Public id of the rule. */
     ruleId?: string | undefined;
     /** Where the row comes from. */
     source?: AutomationRuleSource;
-    /** Rule name; null for a linked check-in row. */
+    /** Rule name. */
     name?: string | undefined;
-    /** Training or Nutrition for a linked check-in row; null for rules. */
-    profession?: string | undefined;
-    /** What the rule asks of the client; null for a linked check-in row. */
+    /** What the rule asks of the client. */
     actionType?: AutomationActionType | undefined;
     /** Public id of the questionnaire a SendForm rule sends. */
     questionnaireId?: string | undefined;
@@ -35926,7 +35915,7 @@ export interface ClientAutomationItem {
     checkInQuestionnaireName?: string | undefined;
     /** Effective message. */
     message?: string | undefined;
-    /** Effective trigger kind; null for a linked check-in row. */
+    /** Effective trigger kind. */
     triggerKind?: AutomationTriggerKind | undefined;
     /** Effective schedule interval. */
     scheduleInterval?: number | undefined;
@@ -36030,18 +36019,6 @@ export interface GetClientAutomationsRequest {
 export interface GetAutomationRulesResponse {
     /** Global rules, oldest first. */
     rules?: AutomationRuleDto[];
-    /** Always empty: the weekly check-in is an ordinary rule now. Kept so the generated clients keep compiling. */
-    linkedCheckIns?: AutomationLinkedCheckInDto[];
-}
-
-/** The weekly check-in of one profession as a linked, read-only entry among the global rules. It names no weekday and no time. */
-export interface AutomationLinkedCheckInDto {
-    /** The profession the check-in belongs to. */
-    profession?: Profession;
-    /** Whether the coach's check-in is enabled. */
-    enabled?: boolean;
-    /** Covered clients with the check-in enabled, after per-client overrides. */
-    clientCount?: number;
 }
 
 /** Request for one automation rule. */
