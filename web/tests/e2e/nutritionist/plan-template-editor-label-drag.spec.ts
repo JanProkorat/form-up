@@ -168,7 +168,7 @@ async function readVersion(api: Api, headers: Auth, planId: string): Promise<num
 
 /**
  * A client plan with one week of the given meals. A draft stays editable; `completed` publishes week 1
- * (POST /nutrition/plans/{PlanId}/weeks/{WeekNumber}/publish with `{ version }`, which needs a start date and
+ * (POST /nutrition/plans/{PlanId}/weeks/{WeekNumber}/publish with no body, which needs a start date and
  * makes the plan Active), then POST /nutrition/plans/{PlanId}/complete with `{ version }`. The client editor
  * treats a Completed plan as read-only. DELETE permanently removes a plan that has not started, so the spec
  * deletes it afterwards.
@@ -209,10 +209,7 @@ async function createClientPlan(
         throw new Error(`${LOG_TAG} PUT /nutrition/plans/${planId} returned ${update.status()}: ${await update.text()}`);
       }
       if (finish === 'completed') {
-        const published = await api.post(`/nutrition/plans/${planId}/weeks/1/publish`, {
-          headers,
-          data: { version: await readVersion(api, headers, planId) },
-        });
+        const published = await api.post(`/nutrition/plans/${planId}/weeks/1/publish`, { headers });
         if (!published.ok()) {
           throw new Error(`${LOG_TAG} publish week 1 returned ${published.status()}: ${await published.text()}`);
         }
