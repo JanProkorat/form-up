@@ -107,11 +107,11 @@ public class PublishWeekConcurrencyIntegrationTests(FitnessApiFactory factory)
                 cancellationToken: TestContext.Current.CancellationToken);
         }
 
-        // Publish request carries the STALE version the client last read (1) — the document is
-        // now at Version 2. Pre-#839 this would 409; post-#839 it must succeed.
+        // The publish request is an empty JSON body (the plan id and week number come from the
+        // route) and the document is now at Version 2. The publish must still succeed.
         var response = await client.PostAsync(
             $"/nutrition/plans/{plan.ExternalId}/weeks/1/publish",
-            JsonContent.Create(new { PlanId = plan.ExternalId, WeekNumber = 1, Version = 1 }),
+            JsonContent.Create(new { }),
             TestContext.Current.CancellationToken);
 
         var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);

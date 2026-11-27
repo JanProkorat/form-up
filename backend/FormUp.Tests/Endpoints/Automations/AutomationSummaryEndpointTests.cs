@@ -17,7 +17,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace FormUp.Tests.Endpoints.Automations;
 
 /// <summary>
-/// Integration tests for the rule summary, the linked check-in entries and the plan-event next send.
+/// Integration tests for the rule summary and the plan-event next send.
 /// Plan dates run against the real Mongo container because the mock ignores filters.
 /// </summary>
 [Collection(TestCollection.Shard3)]
