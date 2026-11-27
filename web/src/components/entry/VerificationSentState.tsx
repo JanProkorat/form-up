@@ -5,6 +5,7 @@ import axios from 'axios';
 import { MailIcon } from 'lucide-react';
 import { resendVerificationAnonymous } from '@/api/auth';
 import { cn } from '@/lib/utils';
+import ChangeEmailForm from '@/components/entry/ChangeEmailForm';
 import RegisterStepper from '@/components/register/RegisterStepper';
 
 /**
@@ -17,7 +18,9 @@ const RESEND_COOLDOWN_SECONDS = 60;
 interface VerificationSentStateProps {
   email: string;
   isClient: boolean;
-  onWrongEmail: () => void;
+  /** Registration password, in memory only; used to sign in for an email change. */
+  password: string;
+  onEmailChanged: (newEmail: string) => void;
 }
 
 function formatCountdown(totalSeconds: number): string {
@@ -35,9 +38,11 @@ function formatCountdown(totalSeconds: number): string {
 export default function VerificationSentState({
   email,
   isClient,
-  onWrongEmail,
+  password,
+  onEmailChanged,
 }: VerificationSentStateProps) {
   const { t } = useTranslation();
+  const [changing, setChanging] = useState(false);
   const [resendConfirmed, setResendConfirmed] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(RESEND_COOLDOWN_SECONDS);
 
@@ -88,64 +93,75 @@ export default function VerificationSentState({
         <MailIcon className="size-9.5 short:size-7" strokeWidth={1.8} aria-hidden="true" />
       </span>
 
-      <h1 className="font-display text-display font-semibold tracking-heading text-ink short:text-card-title">
-        {t('entry.register.sent.title')}
-      </h1>
-      <p className="text-subhead text-ink-2">
-        {t('entry.register.sent.lede')}
-        <br />
-        <b className="font-bold break-all text-ink">{email}</b>
-      </p>
+      {changing ? (
+        <ChangeEmailForm
+          email={email}
+          password={password}
+          onChanged={onEmailChanged}
+          onCancel={() => setChanging(false)}
+        />
+      ) : (
+        <>
+        <h1 className="font-display text-display font-semibold tracking-heading text-ink short:text-card-title">
+          {t('entry.register.sent.title')}
+        </h1>
+        <p className="text-subhead text-ink-2">
+          {t('entry.register.sent.lede')}
+          <br />
+          <b className="font-bold break-all text-ink">{email}</b>
+        </p>
 
-      <div className="flex flex-col gap-1.5 self-stretch rounded-xl border border-border bg-surface px-4 py-3.5 text-left text-body leading-normal text-muted-foreground">
-        <span className="font-bold text-ink">{t('entry.register.sent.noteTitle')}</span>
-        <span>{t('entry.register.sent.note')}</span>
+        <div className="flex flex-col gap-1.5 self-stretch rounded-xl border border-border bg-surface px-4 py-3.5 text-left text-body leading-normal text-muted-foreground">
+          <span className="font-bold text-ink">{t('entry.register.sent.noteTitle')}</span>
+          <span>{t('entry.register.sent.note')}</span>
 
-        {errorMessage && (
-          <p role="alert" className="text-meta text-destructive">
-            {errorMessage}
-          </p>
-        )}
-        {resendConfirmed && !errorMessage && (
-          <p role="status" className="text-meta text-success-ink">
-            {t('entry.register.sent.resendConfirmation')}
-          </p>
-        )}
+          {errorMessage && (
+            <p role="alert" className="text-meta text-destructive">
+              {errorMessage}
+            </p>
+          )}
+          {resendConfirmed && !errorMessage && (
+            <p role="status" className="text-meta text-success-ink">
+              {t('entry.register.sent.resendConfirmation')}
+            </p>
+          )}
 
-        <span className="flex items-center gap-2 pt-1">
+          <span className="flex items-center gap-2 pt-1">
+            <button
+              type="button"
+              disabled={resendDisabled}
+              onClick={handleResend}
+              className={cn(
+                'font-semibold',
+                resendDisabled
+                  ? 'cursor-not-allowed text-muted-foreground opacity-70'
+                  : 'text-ink underline underline-offset-2'
+              )}
+            >
+              {resendMutation.isPending
+                ? t('entry.register.sent.resending')
+                : t('entry.register.sent.resend')}
+            </button>
+            {secondsLeft > 0 && (
+              <span className="text-meta">
+                · {t('entry.register.sent.resendIn', { time: formatCountdown(secondsLeft) })}
+              </span>
+            )}
+          </span>
+        </div>
+
+        <p className="text-body text-muted-foreground">
+          {t('entry.register.sent.wrongEmail')}{' '}
           <button
             type="button"
-            disabled={resendDisabled}
-            onClick={handleResend}
-            className={cn(
-              'font-semibold',
-              resendDisabled
-                ? 'cursor-not-allowed text-muted-foreground opacity-70'
-                : 'text-ink underline underline-offset-2'
-            )}
+            onClick={() => setChanging(true)}
+            className="font-bold text-ink underline underline-offset-2"
           >
-            {resendMutation.isPending
-              ? t('entry.register.sent.resending')
-              : t('entry.register.sent.resend')}
+            {t('entry.register.sent.changeEmail')}
           </button>
-          {secondsLeft > 0 && (
-            <span className="text-meta">
-              · {t('entry.register.sent.resendIn', { time: formatCountdown(secondsLeft) })}
-            </span>
-          )}
-        </span>
-      </div>
-
-      <p className="text-body text-muted-foreground">
-        {t('entry.register.sent.wrongEmail')}{' '}
-        <button
-          type="button"
-          onClick={onWrongEmail}
-          className="font-bold text-ink underline underline-offset-2"
-        >
-          {t('entry.register.sent.changeEmail')}
-        </button>
-      </p>
+        </p>
+        </>
+      )}
     </div>
   );
 }

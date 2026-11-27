@@ -210,9 +210,18 @@ test('a successful registration reaches the check-your-email state, shows the ad
   await expect(page.getByRole('button', { name: 'Resend email' })).toBeDisabled();
   await expect(page.getByText(/available in \d:\d\d/)).toBeVisible();
 
-  // "Change email" returns to the form with the typed values still in place.
+  // "Change email" edits the same unverified account in place (real backend:
+  // login accepts it, PUT /auth/email moves it) and restarts the resend wait.
+  // Error and branch cases live in ChangeEmailForm.test.tsx.
+  const newEmail = uniqueEmail('register-changed');
   await page.getByRole('button', { name: 'Change email' }).click();
-  await expect(page.getByLabel('First name')).toHaveValue('Ada');
+  await page.getByLabel('New email address').fill(newEmail);
+  await page.getByRole('button', { name: 'Send new link' }).click();
+
+  await expect(page.getByRole('heading', { name: 'Check your email' })).toBeVisible();
+  await expect(page.getByText(newEmail)).toBeVisible();
+  await expect(page.getByText(email)).toHaveCount(0);
+  await expect(page.getByText(/available in \d:\d\d/)).toBeVisible();
 });
 
 test('a duplicate email surfaces a localized message and never the raw "already taken" string', async ({

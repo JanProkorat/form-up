@@ -6091,6 +6091,19 @@
         "resendConfirmation": "Falls nötig, haben wir einen neuen Link gesendet.",
         "wrongEmail": "Falsche Adresse?",
         "changeEmail": "E-Mail ändern"
+      },
+      "changeEmail": {
+        "title": "E-Mail-Adresse ändern",
+        "lede": "Wir verschieben Ihr Konto auf die neue Adresse und senden einen neuen Link.<br/>Der an <old>{{email}}</old> gesendete Link wird ungültig.",
+        "label": "Neue E-Mail-Adresse",
+        "submit": "Neuen Link senden",
+        "submitting": "Wird gesendet...",
+        "cancel": "Abbrechen",
+        "required": "Geben Sie die neue E-Mail-Adresse ein.",
+        "invalid": "Geben Sie eine gültige E-Mail-Adresse ein.",
+        "taken": "Diese E-Mail-Adresse ist bereits registriert.",
+        "unchanged": "Das ist bereits Ihre Adresse. Geben Sie eine andere ein.",
+        "generic": "Ihre E-Mail-Adresse konnte nicht geändert werden. Bitte versuchen Sie es erneut."
       }
     },
     "forgotPassword": {

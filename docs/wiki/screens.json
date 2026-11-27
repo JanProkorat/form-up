@@ -170,13 +170,15 @@
       "roles": ["Public"],
       "files": [
         "web/src/components/entry/VerificationSentState.tsx",
+        "web/src/components/entry/ChangeEmailForm.tsx",
         "web/src/components/register/RegisterShell.tsx",
         "web/src/components/register/RegisterStepper.tsx"
       ],
-      "endpoints": ["POST /auth/resend-verification/anonymous"],
+      "endpoints": ["POST /auth/resend-verification/anonymous", "POST /auth/login", "PUT /auth/email", "POST /auth/logout"],
       "board": "PageRegisterCheckEmail",
       "shots": [
-        { "name": "default", "steps": "on /register click 'Osobní trenér', fill the form with a new email, tick the consent, click 'Založit účet', wait for 'Zkontrolujte poštu'" }
+        { "name": "default", "steps": "on /register click 'Osobní trenér', fill the form with a new email, tick the consent, click 'Založit účet', wait for 'Zkontrolujte poštu'" },
+        { "name": "change-email", "steps": "from the default state click 'Změnit e-mail' (board PageRegisterEmailSteps frame 2b), wait for 'Změňte svůj e-mail'" }
       ],
       "notionPageId": null
     },
