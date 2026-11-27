@@ -169,6 +169,13 @@ public class UnpublishNutritionWeekEndpoint(
                     w => w.WeekNumber != req.WeekNumber && w.Status == WeekStatus.Published));
             update = update.Set(p => p.Status, NutritionPlanStatus.Draft);
         }
+        else
+        {
+            // Not the last week: another week must still be Published at write time, so two concurrent
+            // unpublishes of the last two published weeks cannot both match and leave an Active plan empty.
+            writeFilter &= Builders<NutritionPlan>.Filter.ElemMatch(p => p.Weeks,
+                w => w.WeekNumber != req.WeekNumber && w.Status == WeekStatus.Published);
+        }
 
         var arrayFilters = new List<ArrayFilterDefinition>
         {
