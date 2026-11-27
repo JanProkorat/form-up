@@ -88,8 +88,8 @@ export default function PaymentsTable({ rows, canRequest, onMarkPaid, onRequest,
                 >
                   <PaymentStatusChip row={row} />
                 </TableCell>
-                <TableCell className={`${CELL_CLASS} whitespace-nowrap`}>
-                  <span className="flex shrink-0 items-center justify-end gap-1.5">
+                <TableCell className={CELL_CLASS}>
+                  <span className="flex items-center justify-end gap-1.5">
                     {canMarkPaid && (
                       <Button
                         type="button"

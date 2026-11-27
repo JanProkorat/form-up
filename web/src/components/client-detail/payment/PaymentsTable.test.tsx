@@ -23,13 +23,16 @@ const ROW: ClientPaymentRowDto = {
 };
 
 describe('PaymentsTable', () => {
-  it('keeps "Mark paid" as the button name when its label is hidden at narrow widths', async () => {
+  it('names the Mark paid button by aria-label, so it keeps its name when the label text is hidden', async () => {
     const onMarkPaid = vi.fn();
     renderWithProviders(
       <PaymentsTable rows={[ROW]} canRequest onMarkPaid={onMarkPaid} onRequest={vi.fn()} onWaive={vi.fn()} />,
     );
 
-    await userEvent.click(screen.getByRole('button', { name: 'Mark paid' }));
+    const button = screen.getByRole('button', { name: 'Mark paid' });
+    // jsdom applies no container queries, so the name must not depend on the visible label.
+    expect(button).toHaveAttribute('aria-label', 'Mark paid');
+    await userEvent.click(button);
 
     expect(onMarkPaid).toHaveBeenCalledWith(ROW);
   });
