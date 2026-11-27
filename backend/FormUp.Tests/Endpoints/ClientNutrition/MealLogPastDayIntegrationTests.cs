@@ -398,7 +398,6 @@ public class MealLogPastDayIntegrationTests(FitnessApiFactory factory)
         var (plan, mealId, _) = await SeedPlanAsync(client.UserId);
         var pastDate = PastNonMonday;
         var legacyRow = await SeedLogAsync(client.UserId, plan.ExternalId, mealId, pastDate, eaten: true, PhotoA);
-        await SeedLogAsync(client.UserId, plan.ExternalId, mealId, pastDate, eaten: false, PhotoA, PhotoB);
 
         // The unique (client, plan, meal, day) index rejects two rows with the same LogDate, so the older row
         // takes the legacy shape: no LogDate, keyed to the day only by its EatenAt.
@@ -410,6 +409,8 @@ public class MealLogPastDayIntegrationTests(FitnessApiFactory factory)
                 Builders<MealLog>.Update.Set(l => l.LogDate, DateTime.MinValue),
                 cancellationToken: TestContext.Current.CancellationToken);
         }
+
+        await SeedLogAsync(client.UserId, plan.ExternalId, mealId, pastDate, eaten: false, PhotoA, PhotoB);
 
         var week = await GetWeekAsync(client, pastDate);
 
