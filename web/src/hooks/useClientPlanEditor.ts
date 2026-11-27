@@ -168,7 +168,7 @@ export function useClientPlanEditor(loadedPlan: GetPlanResponse, clientId: strin
         void queryClient.invalidateQueries({ queryKey: ['nutrition-plan-detail', planId] });
         return;
       }
-      setSaveState({ status: 'conflict', message: t('planEditor.conflict.message') });
+      setSaveState({ status: 'conflict', message: t('clientPlanEditor.conflict.message') });
     } else {
       setSaveState({ status: 'error', message: getApiErrorMessage(error, 'planEditor.saveError') });
     }
@@ -228,7 +228,7 @@ export function useClientPlanEditor(loadedPlan: GetPlanResponse, clientId: strin
         return false;
       }
       if (getErrorStatus(error) === 409) {
-        setSaveState({ status: 'conflict', message: t('planEditor.conflict.message') });
+        setSaveState({ status: 'conflict', message: t('clientPlanEditor.conflict.message') });
       } else {
         showApiError(error, 'clientPlanEditor.finish.error');
       }
@@ -261,7 +261,7 @@ export function useClientPlanEditor(loadedPlan: GetPlanResponse, clientId: strin
           // The plan did not change, so there is nothing to refetch: say why and leave the editor as it is.
           useToastStore.getState().addToast(t(`apiErrors.${code}`), 'error');
         } else {
-          setSaveState({ status: 'conflict', message: t('planEditor.conflict.message') });
+          setSaveState({ status: 'conflict', message: t('clientPlanEditor.conflict.message') });
         }
       } else {
         showApiError(error, 'clientPlanEditor.unpublish.error');
