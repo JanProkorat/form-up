@@ -367,6 +367,14 @@ public interface IApplicationDbContext
     Task<AutomationSchedule?> ClaimDueAutomationScheduleAsync(DateTime nowUtc, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Claims the earliest Failed automation run whose retry is due at <paramref name="nowUtc"/> with
+    /// <c>FOR UPDATE SKIP LOCKED</c>, so two workers never retry the same run. Call it inside a
+    /// transaction from <see cref="BeginTransactionAsync"/>; the lock lasts until that transaction
+    /// ends. Returns the tracked row, or null when no retry is due.
+    /// </summary>
+    Task<AutomationRun?> ClaimDueAutomationRetryAsync(DateTime nowUtc, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Opens or extends the grouped-email burst for one recipient, event and group with a single
     /// <c>INSERT … ON CONFLICT DO UPDATE</c>: a new burst is due after the event's quiet window, an open one
     /// moves its last event and due time on, never past the event's maximum wait. Timing only; no content.

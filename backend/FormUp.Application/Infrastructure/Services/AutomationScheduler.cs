@@ -30,6 +30,8 @@ public class AutomationScheduler(
 
     private const int MaxClaimsPerTick = 500;
 
+    private const int MaxRetriesPerTick = 500;
+
     /// <summary>
     /// Runs everything that is due right now. The hosted loop calls this every tick; tests call it
     /// directly instead of waiting for <see cref="ExecuteAsync"/>, which the host may never start.
@@ -41,6 +43,7 @@ public class AutomationScheduler(
         var now = DateTime.SpecifyKind(nowUtc ?? timeProvider.GetUtcNow().UtcDateTime, DateTimeKind.Utc);
 
         await RunPhaseAsync("claim", () => ProcessDueAsync(now, ct), ct);
+        await RunPhaseAsync("retry", () => ProcessRetriesAsync(now, ct), ct);
         await RunPhaseAsync("coaches", () => ForEachCoachAsync(now, ct), ct);
         await RunPhaseAsync("sweep", () => SweepAnswersAsync(now, ct), ct);
         await RunPhaseAsync("check-ins", () => SweepCheckInsAsync(now, ct), ct);
@@ -112,6 +115,26 @@ public class AutomationScheduler(
                     }
 
                     break;
+            }
+        }
+    }
+
+    private async Task ProcessRetriesAsync(DateTime now, CancellationToken ct)
+    {
+        for (var retried = 0; retried < MaxRetriesPerTick; retried++)
+        {
+            bool claimed;
+
+            using (var scope = scopeFactory.CreateScope())
+            {
+                claimed = await scope.ServiceProvider
+                    .GetRequiredService<AutomationRetryProcessor>()
+                    .ProcessNextAsync(now, ct);
+            }
+
+            if (!claimed)
+            {
+                return;
             }
         }
     }
