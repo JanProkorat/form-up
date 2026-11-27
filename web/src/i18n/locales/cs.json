@@ -3000,7 +3000,8 @@
       "clients_one": "{{count}} klient",
       "clients_few": "{{count}} klienti",
       "clients_many": "{{count}} klienta",
-      "clients_other": "{{count}} klientů"
+      "clients_other": "{{count}} klientů",
+      "answeredLastWeek": "{{percent}} % odpovědělo minulý týden"
     },
     "rowMenu": {
       "open": "Akce pro {{name}}",
