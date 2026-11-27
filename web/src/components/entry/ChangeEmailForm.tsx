@@ -85,10 +85,13 @@ export default function ChangeEmailForm({
       if (!session.accessToken) {
         throw new SignInFailedError(null);
       }
-      await changeUnverifiedEmail(session.accessToken, newEmail);
-      if (session.refreshToken) {
-        // Best effort: a failed revoke must not undo a successful change.
-        await revokeSession(session.accessToken, session.refreshToken).catch(() => undefined);
+      try {
+        await changeUnverifiedEmail(session.accessToken, newEmail);
+      } finally {
+        if (session.refreshToken) {
+          // Best effort, also after a failed change: never masks the change result.
+          await revokeSession(session.accessToken, session.refreshToken).catch(() => undefined);
+        }
       }
       return newEmail;
     },

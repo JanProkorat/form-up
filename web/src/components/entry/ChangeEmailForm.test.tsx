@@ -180,6 +180,16 @@ describe('RegisterForm change email', () => {
     expect(backend.registerCalls()).toBe(1);
   });
 
+  it('still revokes the throwaway session when the change is rejected', async () => {
+    const backend = serveBackend({ put: [{ status: 400, code: 'EMAIL_ALREADY_IN_USE' }] });
+    const { user } = renderWithProviders(<RegisterForm />, { initialEntries: ['/register?role=client'] });
+    await registerAndOpenChange(user);
+    await change(user, 'other@example.com');
+
+    expect(await screen.findByText('This email is already registered.')).toBeInTheDocument();
+    await waitFor(() => expect(backend.log.some((entry) => entry.path === '/auth/logout')).toBe(true));
+  });
+
   it('still shows the new address when the logout revoke fails', async () => {
     serveBackend({ logoutFails: true });
     const { user } = renderWithProviders(<RegisterForm />, { initialEntries: ['/register?role=client'] });
