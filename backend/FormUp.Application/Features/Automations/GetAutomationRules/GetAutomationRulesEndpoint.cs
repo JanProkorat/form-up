@@ -27,7 +27,7 @@ public class GetAutomationRulesEndpoint(IApplicationDbContext db, IMongoContext 
         {
             s.Summary = "List automation rules";
             s.Description =
-                "Returns the caller's global rules, each with a coverage summary, and the weekly check-in per profession as a linked entry; client-only rules are listed on the client.";
+                "Returns the caller's global rules, each with a coverage summary; client-only rules are listed on the client.";
             s.Responses[StatusCodes.Status200OK] = "The caller's global rules";
             s.Responses[StatusCodes.Status401Unauthorized] = "Missing or invalid credentials";
             s.Responses[StatusCodes.Status404NotFound] = "Caller has no professional profile";
