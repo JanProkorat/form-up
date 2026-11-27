@@ -300,6 +300,7 @@ public sealed class AutomationEventPoller(
             using var scope = scopeFactory.CreateScope();
             var sendDb = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
             var sender = scope.ServiceProvider.GetRequiredService<AutomationOccurrenceSender>();
+            var afterCommit = scope.ServiceProvider.GetRequiredService<AutomationAfterCommitQueue>();
 
             await using var transaction = await sendDb.BeginTransactionAsync(ct);
 
@@ -309,10 +310,17 @@ public sealed class AutomationEventPoller(
             var outcome = await sender.SendAsync(
                 candidate.RuleId, candidate.ClientProfileId, candidate.Occurrence, null, nowUtc, ct);
 
-            if (outcome != AutomationSendOutcome.Duplicate)
+            if (outcome == AutomationSendOutcome.Duplicate)
             {
-                await transaction.CommitAsync(ct);
+                afterCommit.Discard();
+
+                return;
             }
+
+            await transaction.CommitAsync(ct);
+
+            // The send is committed: tell the client now, and never fail it over that.
+            await afterCommit.FlushAsync(ct);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -320,11 +328,11 @@ public sealed class AutomationEventPoller(
                 "AutomationScheduler: sending {Occurrence} of rule {RuleId} to client {ClientProfileId} failed.",
                 candidate.Occurrence, candidate.RuleId, candidate.ClientProfileId);
 
-            await RecordFailureAsync(candidate, ct);
+            await RecordFailureAsync(candidate, nowUtc, ct);
         }
     }
 
-    private async Task RecordFailureAsync(Candidate candidate, CancellationToken ct)
+    private async Task RecordFailureAsync(Candidate candidate, DateTime nowUtc, CancellationToken ct)
     {
         try
         {
@@ -333,7 +341,7 @@ public sealed class AutomationEventPoller(
             var sender = scope.ServiceProvider.GetRequiredService<AutomationOccurrenceSender>();
 
             await using var transaction = await sendDb.BeginTransactionAsync(ct);
-            await sender.RecordFailureAsync(candidate.RuleId, candidate.ClientProfileId, candidate.Occurrence, ct);
+            await sender.RecordFailureAsync(candidate.RuleId, candidate.ClientProfileId, candidate.Occurrence, nowUtc, ct);
             await transaction.CommitAsync(ct);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)

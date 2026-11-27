@@ -276,9 +276,13 @@ public static class AutomationRuleGuards
         {
             var publicIds = body.AudienceClientIds.Distinct().ToList();
 
+            // Same rule as AutomationCoverage.IsCovered: some live link must grant a plan view.
             var clientProfileIds = await db.ClientProfessionalLinks
                 .AsNoTracking()
-                .Where(l => l.ProfessionalProfileId == profile.Id && l.ConnectionState != ConnectionState.Ended && publicIds.Contains(l.ClientProfile.PublicId))
+                .Where(l => l.ProfessionalProfileId == profile.Id
+                            && l.ConnectionState != ConnectionState.Ended
+                            && (l.CanViewTrainingPlans || l.CanViewNutritionPlans)
+                            && publicIds.Contains(l.ClientProfile.PublicId))
                 .Select(l => l.ClientProfileId)
                 .Distinct()
                 .ToListAsync(ct);

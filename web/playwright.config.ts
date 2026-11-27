@@ -34,7 +34,8 @@
  *   JWT_SECRET to auth.setup.ts and global-setup.ts. dotenv.config does NOT
  *   override existing shell exports, so local devs and CI can still inject
  *   values via their own environment. Copy .env.test.example → .env.test and
- *   fill it in for local runs — do NOT source it manually first.
+ *   fill it in for local runs — do NOT source it manually first. From a git
+ *   worktree without its own copy, the main checkout's .env.test is used.
  *
  *   New spec authors: the globalSetup resets the database via POST /test/reset
  *   before any spec project runs. Add new specs to tests/e2e/<role>/ and rely
@@ -43,6 +44,8 @@
  */
 
 import { defineConfig, devices } from '@playwright/test';
+import { execFileSync } from 'node:child_process';
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
@@ -50,11 +53,39 @@ import dotenv from 'dotenv';
 // ESM-safe __dirname substitute (package.json has "type":"module").
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Load QA_SEED_PASSWORD (and any other test-only vars) from .env.test in the
-// repo root. dotenv silently no-ops when the file is absent (CI sets the vars
-// via shell env before this runs). Does NOT override already-set env vars, so
-// shell exports and GitHub Actions secrets always win.
-dotenv.config({ path: path.resolve(__dirname, '..', '.env.test') });
+// Resolve .env.test: the repo root copy first, else the main checkout's copy
+// when run from a git worktree without its own, else the root path.
+function resolveEnvTestPath(): string {
+  const local = path.resolve(__dirname, '..', '.env.test');
+  const isFile = (p: string): boolean => {
+    try {
+      return fs.statSync(p).isFile();
+    } catch {
+      return false;
+    }
+  };
+  if (isFile(local)) return local;
+  try {
+    const commonDir = execFileSync(
+      'git',
+      ['rev-parse', '--path-format=absolute', '--git-common-dir'],
+      { cwd: __dirname, stdio: ['ignore', 'pipe', 'ignore'], encoding: 'utf8' },
+    ).trim();
+    if (path.basename(commonDir) === '.git') {
+      const candidate = path.join(path.dirname(commonDir), '.env.test');
+      if (isFile(candidate)) return candidate;
+    }
+  } catch {
+    // No git binary (e.g. qa-playwright container) or not a repo: keep local.
+  }
+  return local;
+}
+
+// Load QA_SEED_PASSWORD (and any other test-only vars) from .env.test (see
+// resolveEnvTestPath). dotenv silently no-ops when the file is absent (CI sets
+// the vars via shell env before this runs). Does NOT override already-set env
+// vars, so shell exports and GitHub Actions secrets always win.
+dotenv.config({ path: resolveEnvTestPath() });
 
 const E2E_API_URL = process.env['E2E_API_URL'] ?? 'https://localhost:5101';
 
