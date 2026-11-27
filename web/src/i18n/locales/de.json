@@ -3157,6 +3157,9 @@
     }
   },
   "clientPlanEditor": {
+    "conflict": {
+      "message": "Dieser Plan wurde seit dem Öffnen an anderer Stelle geändert. Ihre Änderungen bleiben hier erhalten und nichts wurde überschrieben. Wenn Sie die neueste Version laden, gehen Ihre Änderungen verloren."
+    },
     "publishWeek": "Woche {{week}} veröffentlichen",
     "clientFallback": "Klient",
     "backToNutrition": "Zurück zur Ernährung",
