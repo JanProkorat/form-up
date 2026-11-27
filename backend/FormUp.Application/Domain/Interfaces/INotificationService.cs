@@ -42,6 +42,23 @@ public interface INotificationService
         CancellationToken ct = default);
 
     /// <summary>
+    /// Writes the in-app <see cref="Notification"/> row exactly like <see cref="CreateAsync"/> but sends
+    /// no push; the caller sends it later with <see cref="SendPushOnlyAsync"/>, e.g. after a transaction commits.
+    /// </summary>
+    /// <param name="recipientUserId">The recipient's ApplicationUser.Id.</param>
+    /// <param name="type">Type of notification — selects the title/body template.</param>
+    /// <param name="parameters">Template values; persisted as JSON in the notification's data.</param>
+    /// <param name="variant">Optional template wording variant.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>The persisted <see cref="Notification"/> entity.</returns>
+    Task<Notification> CreateWithoutPushAsync(
+        Guid recipientUserId,
+        NotificationType type,
+        IReadOnlyDictionary<string, string>? parameters = null,
+        string? variant = null,
+        CancellationToken ct = default);
+
+    /// <summary>
     /// Sends only the push notification (localized, subject to the recipient's push preference)
     /// and writes no <see cref="Notification"/> row. Same parameters and push data as
     /// <see cref="CreateAsync"/>.

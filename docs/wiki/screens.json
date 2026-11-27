@@ -1019,7 +1019,9 @@
         "web/src/pages/ProfilePage.tsx",
         "web/src/components/profile/**",
         "web/src/api/profile.ts",
-        "web/src/api/avatar.ts"
+        "web/src/api/avatar.ts",
+        "web/src/components/layout/UnsavedChangesDialog.tsx",
+        "web/src/hooks/useUnsavedChangesBlocker.ts"
       ],
       "endpoints": [
         "GET /users/me",
@@ -1611,7 +1613,9 @@
         "web/src/components/forms/FormTypePicker.tsx",
         "web/src/components/editor/**",
         "web/src/hooks/useQuestionnaireQueries.ts",
-        "web/src/api/questionnaires.ts"
+        "web/src/api/questionnaires.ts",
+        "web/src/components/layout/UnsavedChangesDialog.tsx",
+        "web/src/hooks/useUnsavedChangesBlocker.ts"
       ],
       "endpoints": [
         "GET /trainer/questionnaires/{publicId}",
