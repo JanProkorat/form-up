@@ -4,8 +4,10 @@ using System.Net.Http.Json;
 using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Infrastructure.Data;
+using FormUp.Tests.Builders;
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -16,26 +18,43 @@ namespace FormUp.Tests.Infrastructure;
 /// </summary>
 public static class TestHelpers
 {
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<HttpClient, WebApplicationFactory<Program>> ClientHosts = new();
+
+    /// <summary>Records the host a factory-created client talks to; called from the test factories' <c>ConfigureClient</c>.</summary>
+    internal static void RememberHost(HttpClient client, WebApplicationFactory<Program> host) =>
+        ClientHosts.AddOrUpdate(client, host);
+
+    private static WebApplicationFactory<Program>? HostOf(HttpClient client) =>
+        ClientHosts.TryGetValue(client, out var host) ? host : null;
+
     /// <summary>
     /// Registers a user and returns the HTTP response.
     /// HealthDataConsent defaults to true for the Client role and null for coach roles.
     /// </summary>
+    /// <remarks>
+    /// The server blocks unverified accounts (#1517), so a successful registration is followed by confirming the
+    /// email in the host's database, unless <paramref name="confirmEmail"/> is false (the verification-flow tests).
+    /// Only a client from a test factory that calls <see cref="RememberHost"/> can be matched to its host; any other
+    /// client is left unverified.
+    /// </remarks>
     public static Task<HttpResponseMessage> RegisterAsync(
-        HttpClient client, string email, string password, string firstName, string lastName, string role)
+        HttpClient client, string email, string password, string firstName, string lastName, string role,
+        bool confirmEmail = true)
     {
         var isClient = string.Equals(role, "Client", StringComparison.OrdinalIgnoreCase);
         return RegisterAsync(client, email, password, firstName, lastName, new[] { role },
-            gdprConsent: true, healthDataConsent: isClient ? true : null);
+            gdprConsent: true, healthDataConsent: isClient ? true : null, confirmEmail: confirmEmail);
     }
 
     /// <summary>
-    /// Registers a user with explicit consent values and returns the HTTP response.
+    /// Registers a user with explicit consent values and returns the HTTP response. See the other overload for
+    /// <paramref name="confirmEmail"/>.
     /// </summary>
-    public static Task<HttpResponseMessage> RegisterAsync(
+    public static async Task<HttpResponseMessage> RegisterAsync(
         HttpClient client, string email, string password, string firstName, string lastName,
-        string[] roles, bool gdprConsent = true, bool? healthDataConsent = null)
+        string[] roles, bool gdprConsent = true, bool? healthDataConsent = null, bool confirmEmail = true)
     {
-        return client.PostAsJsonAsync("/auth/register", new
+        var response = await client.PostAsJsonAsync("/auth/register", new
         {
             Email = email,
             Password = password,
@@ -46,6 +65,18 @@ public static class TestHelpers
             GdprConsent = gdprConsent,
             HealthDataConsent = healthDataConsent
         });
+
+        if (confirmEmail && response.IsSuccessStatusCode && HostOf(client) is { } host)
+        {
+            using var scope = host.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var normalizedEmail = email.ToUpperInvariant();
+            await db.Users
+                .Where(user => user.NormalizedEmail == normalizedEmail)
+                .ExecuteUpdateAsync(set => set.SetProperty(user => user.EmailConfirmed, true));
+        }
+
+        return response;
     }
 
     /// <summary>
@@ -101,15 +132,14 @@ public static class TestHelpers
         FitnessApiFactory factory, Guid professionalUserId, CancellationToken ct,
         bool canViewNutritionPlans, bool canViewTrainingPlans)
     {
-        var httpClient = factory.CreateClient();
-        var email = $"{Guid.NewGuid():N}@linked-client-fixture.com";
-        await RegisterAsync(httpClient, email, "TestPass1!", "Linked", "Client", "Client");
+        var client = await TestActors.Client(factory)
+            .WithEmail($"{Guid.NewGuid():N}@linked-client-fixture.com")
+            .WithName("Linked", "Client")
+            .CreateAsync(ct);
 
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-        var user = await db.Users.FirstAsync(u => u.Email == email, ct);
-        var clientProfile = await db.ClientProfiles.FirstAsync(cp => cp.UserId == user.Id, ct);
         var professionalProfile = await db.ProfessionalProfiles.FirstAsync(
             pp => pp.UserId == professionalUserId, ct);
 
@@ -117,7 +147,7 @@ public static class TestHelpers
         {
             PublicId = Guid.NewGuid(),
             ProfessionalProfileId = professionalProfile.Id,
-            ClientProfileId = clientProfile.Id,
+            ClientProfileId = client.ProfileId,
             ProfessionalRole = UserRole.Trainer,
             ConnectionState = ConnectionState.Connected,
             CanViewNutritionPlans = canViewNutritionPlans,
@@ -127,7 +157,7 @@ public static class TestHelpers
 
         await db.SaveChangesAsync(ct);
 
-        return user.Id;
+        return client.UserId;
     }
 
     /// <summary>
@@ -140,24 +170,12 @@ public static class TestHelpers
     /// </summary>
     public static async Task<HttpClient> RegisterAdminAsync(FitnessApiFactory factory, CancellationToken ct)
     {
-        var httpClient = factory.CreateClient();
-        var email = $"{Guid.NewGuid():N}@admin-fixture.com";
-        await RegisterAsync(httpClient, email, "TestPass1!", "Admin", "Fixture", "Trainer");
+        var admin = await TestActors.Professional(factory, UserRole.Trainer, UserRole.Admin)
+            .WithEmail($"{Guid.NewGuid():N}@admin-fixture.com")
+            .WithName("Admin", "Fixture")
+            .CreateAsync(ct);
 
-        using (var scope = factory.Services.CreateScope())
-        {
-            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            var user = await userManager.FindByEmailAsync(email);
-            var roleResult = await userManager.AddToRoleAsync(user!, nameof(UserRole.Admin));
-
-            roleResult.Succeeded.Should().BeTrue(
-                $"AddToRoleAsync failed: {string.Join(", ", roleResult.Errors.Select(e => e.Description))}");
-        }
-
-        var (accessToken, _) = await LoginAsync(httpClient, email, "TestPass1!");
-        SetBearerToken(httpClient, accessToken);
-
-        return httpClient;
+        return admin.Http;
     }
 
     /// <summary>

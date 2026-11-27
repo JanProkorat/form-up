@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using FastEndpoints;
+using FormUp.Application.Domain.Services;
 using FormUp.Application.Domain.Authorization;
 using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Documents;
@@ -30,7 +31,7 @@ public class ConfirmRecipeImageEndpoint(IMongoContext mongo, IImageUploadService
     public override void Configure()
     {
         Put("/recipes/{RecipeId}/image");
-        Roles(AppRoles.Nutritionist);
+        Roles(AppRoles.Nutritionist, AppRoles.Admin);
         Summary(s =>
         {
             s.Summary = "Confirm recipe image upload";
@@ -53,9 +54,11 @@ public class ConfirmRecipeImageEndpoint(IMongoContext mongo, IImageUploadService
             return;
         }
 
-        var nutritionistId = Guid.Parse(userId);
+        var scope = LibraryCallerScope.From(User, Guid.Parse(userId));
+        var nutritionistId = scope.RecipeOwnerId;
 
-        if (await this.RespondIfCoachFeatureNotEntitledAsync(
+        if (!scope.SystemOnly
+            && await this.RespondIfCoachFeatureNotEntitledAsync(
                 nutritionistId, entitlements => entitlements.CanUseRecipes,
                 "The current subscription does not include recipes.", ct))
         {
@@ -68,6 +71,12 @@ public class ConfirmRecipeImageEndpoint(IMongoContext mongo, IImageUploadService
         var recipe = await cursor.FirstOrDefaultAsync(ct);
 
         if (recipe is null)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        if (scope.HidesRecipe(recipe.NutritionistId))
         {
             await Send.NotFoundAsync(ct);
             return;

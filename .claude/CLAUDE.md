@@ -8,7 +8,7 @@ Detailed conventions live in [`rules/*.md`](rules/) — cite anchors, never
 restate. Citation format: `rules/<file>.md#<anchor>`.
 
 Rules are path-scoped (`paths:` frontmatter): backend rules load on `backend/**`,
-client rules on `web/**`/`mobile/**`, pipeline rules on `.claude/state/**`.
+client rules on `web/**`/`mobile/**`, pipeline rules on `.pipeline/state/**`.
 None preload. A citation is a load instruction — `Read` the cited rule file
 before acting on it if it is not already in context.
 
@@ -62,6 +62,7 @@ package label per package whose code it changes:
 | i18n mechanism (generic) — locale list is in root `CLAUDE.md` | [`rules/i18n.md`](rules/i18n.md) |
 | Verification surfaces per scope | [`rules/verification-contract.md`](rules/verification-contract.md) |
 | Backend test layers, builders, isolation, CI time budget | [`rules/testing.md`](rules/testing.md) |
+| Web test layers (Vitest component vs Playwright E2E), double coverage | [`rules/web-testing.md`](rules/web-testing.md) |
 
 Scope → stack map: [`rules/scope-boundaries.md#scope-to-stack-mapping`](rules/scope-boundaries.md#scope-to-stack-mapping).
 Locales: root `CLAUDE.md` → Shared Conventions.
@@ -138,7 +139,7 @@ canvas (`HFzM8WqykBxJvkLdiqU85h`) is frozen; do not use it.
    (target sub-agent, base branch, scope summary, guessed files-in-scope).
    - **APPROVE** → proceed with dispatch. Pass `approved_scope.files_in_scope`,
      `required_reads`, and `error_paths` to the dev agent as its scope contract
-     (it reads `state/handoff-design-<issue>.json` as its first action).
+     (it reads `.pipeline/state/handoff-design-<issue>.json` as its first action).
    - **NEEDS-REVISION** → address the listed findings (usually tighten the
      brief — drop out-of-scope files, add missing test plan), re-submit.
      Loop up to **3 rounds total**. Round 4 NEEDS-REVISION → surface to user.
@@ -179,8 +180,11 @@ canvas (`HFzM8WqykBxJvkLdiqU85h`) is frozen; do not use it.
       gap (e.g. extend `QaSeedRunner` via `backend-dotnet`) or accept the
       gap with a follow-up issue; user decides. PARTIAL with a documented
       gap may proceed to code-review on user authorization.
-   d. PASS → orchestrator tells the user the task is done and (if applicable)
-      suggests closing via `github-issues` with `Fixes #<N>`.
+   d. PASS → orchestrator runs the browser walk of the test guide
+      ([`docs/guide-walk.md`](docs/guide-walk.md)) on the main thread and fixes
+      what it finds. Only then tell the user the task is done, pointing at the
+      guide's **Needs you** list, and (if applicable) suggest closing via
+      `github-issues` with `Fixes #<N>`.
    Skip only if the task did not originate from a GitHub issue. Never skip to
    save a round trip — the AC is the contract.
 
@@ -255,6 +259,7 @@ canvas (`HFzM8WqykBxJvkLdiqU85h`) is frozen; do not use it.
 | `ui-tradeoff`     | Enforces Working Principles §4 (two-attempt stop rule).                                                                       |
 | `root-cause-swarm`| Enforces Working Principles §1 (no speculative patches) for multi-layer bugs.                                                 |
 | `ship-epic`       | Full epic-to-PR lifecycle. Orchestrator-only. See [`rules/epic-branch.md`](rules/epic-branch.md).                            |
+| `test-guide`      | Living test-guide page (claude.ai artifact) per implementation request: steps per issue, Works/Broken marks, the maintainer's notes + screenshots, open decisions. Orchestrator-only; use on every implementation request and on "check the guide". |
 
 ## Chainable plugin skills (external)
 
@@ -289,7 +294,7 @@ testing strategy → the stack `*-verify` skills; anything else → do it inline
   e.g. `qa-tester` is blocked from `git commit`, `backend-dotnet` from `npm`.
 - Sub-agent handoffs are JSON-schema-validated before control returns
   (`gate-check.sh` SubagentStop hook). Schemas under `.claude/schemas/`.
-- Long-running orchestration state persists to `.claude/state/ship-epic.json`;
+- Long-running orchestration state persists to `.pipeline/state/ship-epic.json`;
   `reinject-state.py` re-hydrates context after `/clear` or compact.
 
 ## Task lifecycle reminder

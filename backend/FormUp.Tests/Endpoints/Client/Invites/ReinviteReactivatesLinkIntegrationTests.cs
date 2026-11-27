@@ -19,7 +19,7 @@ namespace FormUp.Tests.Endpoints.Client.Invites;
 /// A former client whose link ended and who is invited again gets the link switched back on, through both
 /// the in-app accept and the emailed-token accept.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class ReinviteReactivatesLinkIntegrationTests(FitnessApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

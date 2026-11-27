@@ -6,19 +6,22 @@ using FluentAssertions;
 using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
+using FormUp.Application.Domain.Services;
 using FormUp.Application.Features.CoachSubscriptions.GetCoachPlans;
 using FormUp.Application.Infrastructure.Data;
+using FormUp.Application.Infrastructure.Services.Billing;
 using FormUp.Tests.Builders;
 using FormUp.Tests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace FormUp.Tests.Endpoints.CoachSubscriptions;
 
 /// <summary>
 /// Integration tests for <c>GET /users/me/subscription/plans</c>.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class GetCoachPlansEndpointTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -70,6 +73,10 @@ public class GetCoachPlansEndpointTests(FitnessApiFactory factory)
         using var verifyScope = factory.Services.CreateScope();
         var pro = await verifyScope.ServiceProvider.GetRequiredService<ApplicationDbContext>().SubscriptionPlans
             .AsNoTracking().SingleAsync(plan => plan.Code == "pro", Ct);
+        var proAnnual = await verifyScope.ServiceProvider.GetRequiredService<ApplicationDbContext>().SubscriptionPlanPrices
+            .AsNoTracking()
+            .SingleOrDefaultAsync(
+                price => price.SubscriptionPlan.Code == "pro" && price.ValidTo == null && price.BillingInterval == BillingInterval.Annual, Ct);
         response.Plans.Single(plan => plan.Code == "pro").Should().BeEquivalentTo(new CoachPlanDto
         {
             Code = pro.Code,
@@ -79,7 +86,10 @@ public class GetCoachPlansEndpointTests(FitnessApiFactory factory)
             PriceMinorUnits = pro.PriceMinorUnits,
             SecondRoleAddOnPriceMinorUnits = pro.SecondRoleAddOnPriceMinorUnits,
             Currency = pro.Currency,
-            BillingInterval = pro.BillingInterval,
+            AnnualPriceMinorUnits = proAnnual?.PriceMinorUnits,
+            AnnualSecondRoleAddOnPriceMinorUnits = proAnnual?.SecondRoleAddOnPriceMinorUnits,
+            AnnualSavingPercent = AnnualSaving.Percent(pro.PriceMinorUnits, proAnnual?.PriceMinorUnits),
+            BillingInterval = BillingInterval.Monthly,
             MaxActiveClients = pro.MaxActiveClients,
             BothRolesIncluded = pro.BothRolesIncluded,
             CanCreatePlans = pro.CanCreatePlans,
@@ -97,6 +107,50 @@ public class GetCoachPlansEndpointTests(FitnessApiFactory factory)
             CanUsePackages = pro.CanUsePackages,
         });
         pro.CanUsePackages.Should().BeTrue("the seeded Pro plan carries every new flag");
+    }
+
+    [Fact]
+    public async Task Get_PlanSoldAnnually_ReturnsAnnualLinesAndSaving_AndOthersReturnNone()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var annual = await PaidPlanBuilder.CreateAsync(factory, priceMinorUnits: 29900, addOnMinorUnits: 9900, bothRolesIncluded: false);
+        await SubscriptionPlanPriceBuilder.AddOpenAnnualPriceAsync(factory, annual, 299000, 99000);
+        var monthlyOnly = await PaidPlanBuilder.CreateAsync(factory, priceMinorUnits: 19900);
+
+        var plans = (await GetAsync(coach)).Plans;
+
+        var annualPlan = plans.Single(plan => plan.Code == annual);
+        annualPlan.PriceMinorUnits.Should().Be(29900);
+        annualPlan.BillingInterval.Should().Be(BillingInterval.Monthly);
+        annualPlan.AnnualPriceMinorUnits.Should().Be(299000);
+        annualPlan.AnnualSecondRoleAddOnPriceMinorUnits.Should().Be(99000);
+        annualPlan.AnnualSavingPercent.Should().Be(17);
+
+        var monthlyOnlyPlan = plans.Single(plan => plan.Code == monthlyOnly);
+        monthlyOnlyPlan.AnnualPriceMinorUnits.Should().BeNull();
+        monthlyOnlyPlan.AnnualSecondRoleAddOnPriceMinorUnits.Should().BeNull();
+        monthlyOnlyPlan.AnnualSavingPercent.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Get_ReportsTheConfiguredTaxMode()
+    {
+        var options = factory.Services.GetRequiredService<IOptions<BillingOptions>>().Value;
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var original = options.TaxMode;
+
+        try
+        {
+            (await GetAsync(coach)).TaxMode.Should().Be(original);
+
+            options.TaxMode = BillingTaxMode.Vat21;
+
+            (await GetAsync(coach)).TaxMode.Should().Be(BillingTaxMode.Vat21);
+        }
+        finally
+        {
+            options.TaxMode = original;
+        }
     }
 
     [Fact]

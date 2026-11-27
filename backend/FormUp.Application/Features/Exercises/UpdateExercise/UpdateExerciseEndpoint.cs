@@ -2,6 +2,7 @@ using FormUp.Application.Domain.Authorization;
 using FormUp.Application.Domain.Enums;
 using System.Security.Claims;
 using FastEndpoints;
+using FormUp.Application.Domain.Services;
 using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Documents;
 using FormUp.Application.Domain.Extensions;
@@ -23,7 +24,7 @@ public class UpdateExerciseEndpoint(IMongoContext mongo) : Endpoint<UpdateExerci
     public override void Configure()
     {
         Put("/exercises/{ExerciseId}");
-        Roles(AppRoles.Trainer);
+        Roles(AppRoles.Trainer, AppRoles.Admin);
         Summary(s =>
         {
             s.Summary = "Update custom exercise";
@@ -43,7 +44,8 @@ public class UpdateExerciseEndpoint(IMongoContext mongo) : Endpoint<UpdateExerci
             return;
         }
 
-        var trainerId = Guid.Parse(userId);
+        var scope = LibraryCallerScope.From(User, Guid.Parse(userId));
+        var trainerId = scope.UserId;
 
         var filter = Builders<Exercise>.Filter.Eq(e => e.ExternalId, req.ExerciseId)
             & Builders<Exercise>.Filter.Eq(e => e.IsActive, true);
@@ -57,13 +59,19 @@ public class UpdateExerciseEndpoint(IMongoContext mongo) : Endpoint<UpdateExerci
             return;
         }
 
-        if (!exercise.IsCustom)
+        if (scope.HidesExercise(exercise))
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        if (!scope.SystemOnly && !exercise.IsCustom)
         {
             this.ThrowErrorWithCode(ErrorCodes.SystemExercise, "System exercises cannot be modified.");
             return;
         }
 
-        if (exercise.TrainerId != trainerId)
+        if (!scope.SystemOnly && exercise.TrainerId != trainerId)
         {
             this.ThrowErrorWithCode(ErrorCodes.ExerciseNotOwned, "You can only edit your own custom exercises.");
             return;

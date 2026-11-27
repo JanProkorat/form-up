@@ -19,7 +19,7 @@ namespace FormUp.Tests.Endpoints.Messaging;
 /// rejects empty names, so the repro user is seeded directly via a DB scope
 /// (the <c>ParticipantAvatarTests</c> pattern) after normal registration.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class StartConversationInitialsTests(FitnessApiFactory factory)
 {
     private static string UniqueEmail() => $"{Guid.NewGuid():N}@msg-initials-test.com";

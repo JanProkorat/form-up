@@ -9,7 +9,7 @@ namespace FormUp.Tests.Infrastructure;
 /// <summary>
 /// Smoke tests for <see cref="FitnessApiFactory"/> configuration correctness.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class FitnessApiFactoryTests(FitnessApiFactory factory)
 {
     /// <summary>

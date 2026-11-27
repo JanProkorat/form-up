@@ -37,7 +37,7 @@ namespace FormUp.Tests.Endpoints.Authorization;
 /// professional's live plan.
 /// </para>
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class PlanLinkRevocationTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions JsonOptions = new()

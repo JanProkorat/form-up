@@ -13,7 +13,7 @@ namespace FormUp.Tests.Endpoints.Client.PushToken;
 /// <summary>
 /// <c>POST /client/push-token</c>: a token belongs to one device install, so registering it takes it over.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class RegisterPushTokenEndpointTests(FitnessApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

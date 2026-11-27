@@ -185,6 +185,9 @@
     "notFoundTitle": "Stránka nenalezena",
     "notFoundBody": "Stránka, kterou hledáte, neexistuje.",
     "backToClients": "Zpět na klienty",
+    "forbiddenTitle": "K této stránce nemáte přístup",
+    "forbiddenBody": "Váš účet je omezen na knihovny receptů a surovin a na sekci Admin.",
+    "backToAdmin": "Zpět do sekce Admin",
     "openNavigation": "Otevřít navigaci",
     "collapseNavigation": "Sbalit navigaci",
     "expandNavigation": "Rozbalit navigaci",
@@ -193,11 +196,13 @@
   "sidebar": {
     "lockedInPlan": "Není součástí vašeho tarifu",
     "adminSection": "Správa Form Up",
+    "adminOverview": "Přehled",
     "adminPlans": "Plány",
     "adminPromotions": "Akce",
     "adminCoaches": "Trenéři",
+    "adminReports": "Přehledy",
     "automations": "Automatizace",
-    "dashboard": "Dashboard",
+    "checkIns": "Check-iny",
     "profile": "Profil",
     "clients": "Klienti",
     "inbox": "Zprávy",
@@ -208,16 +213,11 @@
     "settings": "Nastavení",
     "recipes": "Recepty",
     "planTemplates": "Šablony plánů",
-    "exercises": "Cviky",
     "sectionTemplates": "Workouty",
-    "trainingPlans": "Tréninkové plány",
     "messages": "Zprávy",
     "clientsSection": "KLIENTI",
     "searchClients": "Hledat klienta...",
-    "databaseSection": "DATABÁZE",
-    "clientManagementSection": "Správa klientů",
-    "nutritionSection": "Výživa",
-    "formsSection": "Formuláře",
+    "librarySection": "Knihovna",
     "businessSection": "Podnikání",
     "packages": "Balíčky",
     "forms": "Formuláře",
@@ -252,6 +252,194 @@
   },
   "subscription": {
     "seePlans": "Zobrazit tarify",
+    "promotion": {
+      "percentOff": "−{{value}} %",
+      "amountOff": "−{{amount}}",
+      "short": {
+        "firstMonth": "{{value}} na první měsíc",
+        "months_one": "{{value}} na {{count}} měsíc",
+        "months_few": "{{value}} na {{count}} měsíce",
+        "months_many": "{{value}} na {{count}} měsíce",
+        "months_other": "{{value}} na {{count}} měsíců",
+        "forever": "{{value}} navždy"
+      },
+      "banner": {
+        "firstMonth": "{{name}}: {{value}} na váš první měsíc",
+        "months_one": "{{name}}: {{value}} na váš první {{count}} měsíc",
+        "months_few": "{{name}}: {{value}} na první {{count}} měsíce",
+        "months_many": "{{name}}: {{value}} na prvních {{count}} měsíce",
+        "months_other": "{{name}}: {{value}} na prvních {{count}} měsíců",
+        "forever": "{{name}}: {{value}} po celou dobu",
+        "allPlans": "Uplatní se při platbě u každého placeného tarifu.",
+        "somePlans": "Uplatní se při platbě u tarifů {{plans}}.",
+        "claimBy": "Využít ji můžete do {{date}}.",
+        "taken": "Sleva je už odečtena od cen placených tarifů níže.",
+        "takenSomePlans": "Sleva je už odečtena od cen tarifů {{plans}} níže.",
+        "annualOnly": "{{name}}: {{value}} v prvním roce při roční platbě",
+        "monthlyOnly": "{{title}}, jen při měsíční platbě",
+        "orFirstYear": "{{title}} nebo první rok při roční platbě",
+        "otherPeriod": "Pro toto období placení neplatí."
+      },
+      "card": {
+        "then": "{{short}}, poté {{price}}",
+        "regularPrice": "Běžná cena",
+        "thenAnnual": "{{value}} v prvním roce, poté {{price}}"
+      }
+    },
+    "billing": {
+      "vat": "Ceny jsou bez DPH, připočítá se {{rate}} % DPH.",
+      "interval": {
+        "label": "Období placení",
+        "monthly": "Měsíčně",
+        "annual": "Ročně",
+        "save": "Ušetřete až {{percent}} %"
+      },
+      "promoCode": {
+        "label": "Máte kód?",
+        "apply": "Uplatnit",
+        "applied": "Kód {{code}}",
+        "remove": "Odebrat kód",
+        "annualOnly": "Tento kód platí jen pro roční tarify.",
+        "monthlyOnly": "Tento kód platí jen pro měsíční tarify."
+      },
+      "select": {
+        "select": "Vybrat {{plan}}",
+        "selected": "Vybráno",
+        "region": "Vybraný tarif",
+        "planLine": "{{plan}} · {{price}} {{per}}",
+        "secondRoleLater": "druhá role později +{{amount}}",
+        "hintFree": "Bez karty",
+        "hintStripeCheckout": "Platíte na zabezpečené stránce Stripe",
+        "hintStripePages": "Karta a faktury na zabezpečených stránkách Stripe",
+        "hintPeriodEnd": "Projeví se na konci zaplaceného měsíce",
+        "hintStartsOnYearEnd": "{{plan}} začne {{date}}, až skončí zaplacený rok. Do té doby vám zůstává {{current}}, bez vrácení peněz.",
+        "hintMoveToAnnual": "Dnes zhruba {{today}}: nevyužitá část vašeho měsíce na tarifu {{plan}} se započítá. Obnovení {{date}}.",
+        "hintMoveToAnnualNoDate": "Dnes zhruba {{today}}: nevyužitá část vašeho měsíce na tarifu {{plan}} se započítá.",
+        "hintStartsOn": "{{plan}} začne {{date}}. Do té doby vám zůstává {{current}}.",
+        "hintSpanMonth": "za zbytek tohoto měsíce",
+        "hintSpanYear": "za zbytek tohoto roku",
+        "hintUpgradeToday": "Dnes zhruba {{today}} {{span}}, poté {{next}} {{per}} od {{date}}",
+        "hintUpgradeTodayNoDate": "Dnes zhruba {{today}} {{span}}, poté {{next}} {{per}}",
+        "hintPreviewLoading": "Počítáme dnešní platbu…",
+        "hintPreviewError": "Dnešní platbu se nepodařilo spočítat. Změnu můžete přesto potvrdit.",
+        "hintCancelsFree": "Plánovaný přechod na tarif {{free}} se zruší.",
+        "hintEndsFormUpPlan": "Váš tarif od Form Up skončí a {{plan}} budete platit od dnešního dne.",
+        "continue": "Pokračovat k platbě"
+      },
+      "picker": {
+        "title": "Vyberte si tarif",
+        "subtitle": "Vaši klienti aplikaci používají vždy zdarma. Tarif můžete kdykoli změnit nebo zrušit.",
+        "back": "Zpět do nastavení",
+        "rolesBoth": "Působíte jako {{first}} a {{second}}. Ceny níže zahrnují vaši druhou roli.",
+        "rolesOne": "Působíte jako {{role}}.",
+        "codeNote": "Máte kód? Zadejte ho u ceny níže. Nahradí aktuální nabídku.",
+        "payingMonthly": "Teď platíte tarif {{plan}} měsíčně.",
+        "payingAnnual": "Teď platíte tarif {{plan}} ročně.",
+        "breakdown": "{{plan}} {{base}} + druhá role {{addOn}}",
+        "noCard": "Navždy, bez karty",
+        "providedByFormUpUntil": "Poskytuje Form Up do {{date}}",
+        "providedByFormUp": "Poskytuje Form Up",
+        "yourPlan": "Váš tarif",
+        "switchTo": "Přejít na {{plan}}",
+        "upgradeAnnual": "Přejít na {{plan}}, ročně",
+        "switchToAnnual": "Přejít na {{plan}}, ročně",
+        "switchToMonthly": "Přejít na {{plan}}, měsíčně",
+        "switchesToFree": "Přechod na tarif {{free}} {{date}}",
+        "switchesToFreeNoDate": "Přechod na tarif {{free}} na konci období",
+        "switchesTo": "Přechod na tarif {{plan}} {{date}}",
+        "switchesToNoDate": "Přechod na tarif {{plan}} na konci období",
+        "footer": "Platba měsíčně. Platba kartou, faktury i zrušení probíhají na zabezpečených stránkách Stripe. Snížení tarifu nebo zrušení se projeví na konci zaplaceného měsíce.",
+        "footerAnnual": "Platba ročně. Platba kartou, faktury i zrušení probíhají na zabezpečených stránkách Stripe. Přechod na roční platbu začne dnes a započítá nevyužitou část vašeho měsíce. Návrat na měsíční platbu, snížení tarifu nebo zrušení se projeví na konci zaplaceného roku, bez vrácení peněz.",
+        "footerAnnualNew": "Platba ročně. Platba kartou, faktury i zrušení probíhají na zabezpečených stránkách Stripe. Snížení tarifu nebo zrušení se projeví na konci zaplaceného roku, bez vrácení peněz."
+      },
+      "register": {
+        "signedInAs": "Přihlášeno jako {{email}}",
+        "title": "Vyberte si tarif",
+        "subtitle": "Začněte zdarma a přejděte na vyšší tarif, až vyrostete. Vaši klienti aplikaci používají vždy zdarma.",
+        "noCardBadge": "Bez karty",
+        "codeNote": "Máte kód? Zadejte ho u ceny před platbou.",
+        "annualNote": "Platba jednou za rok. Na měsíční platbu můžete přejít po skončení roku.",
+        "startFree": "Začít zdarma",
+        "secondRoleLater": "Druhá role později +{{amount}}",
+        "secondRoleFree": "Druhou roli můžete kdykoli přidat zdarma",
+        "rolesBoth": "Zaregistrovali jste se jako {{first}} a {{second}}. Ceny níže zahrnují vaši druhou roli.",
+        "secondRoleIncluded": "Druhá role v ceně +{{amount}}",
+        "footer": "Placené tarify pokračují na zabezpečenou platbu Stripe, poté se vrátíte sem a nastavíte si profil. Tarif můžete kdykoli změnit nebo zrušit v Nastavení."
+      },
+      "returning": {
+        "title": "Dokončujeme",
+        "body": "Ověřujeme vaši platbu u Stripe.",
+        "pending": "Vaše platba proběhla. Aktivace tarifu může trvat několik minut, dáme vám vědět, jakmile bude hotovo.",
+        "activated": "Váš tarif {{plan}} je nyní aktivní."
+      },
+      "changed": {
+        "now": "Nyní máte tarif {{plan}}.",
+        "atRenewal": "Váš tarif se změní na {{plan}} dne {{date}}.",
+        "atRenewalNoDate": "Váš tarif se změní na {{plan}} při příštím obnovení."
+      },
+      "upgradePayment": {
+        "text": "Vaše karta vyžaduje pro přechod na tarif {{plan}} dodatečné potvrzení. Dokončete platbu na zabezpečené stránce Stripe. Do jejího potvrzení zůstáváte na tarifu {{current}}.",
+        "open": "Pokračovat k platbě",
+        "dismiss": "Zavřít",
+        "notConfirmed": "Platbu se nepodařilo potvrdit, proto zůstáváte na tarifu {{plan}}."
+      },
+      "switchFree": {
+        "scheduled": "Přejdete na tarif {{free}} dne {{date}}.",
+        "scheduledNoDate": "Na konci zaplaceného období přejdete na tarif {{free}}."
+      },
+      "cancelChange": {
+        "keep": "Ponechat {{plan}}",
+        "hint": "Zruší přechod na tarif {{target}} {{date}}. Zůstanete na tarifu {{plan}}, nyní se nic neúčtuje.",
+        "hintNoDate": "Zruší přechod na tarif {{target}}. Zůstanete na tarifu {{plan}}, nyní se nic neúčtuje.",
+        "toast": "Změna zrušena. Zůstáváte na tarifu {{plan}}."
+      },
+      "code": {
+        "applied": "Kód byl použit."
+      },
+      "pastDue": {
+        "title": "Vaši poslední platbu se nepodařilo provést",
+        "body": "Kartu zkusíme znovu {{retry}}. Vše funguje do {{until}}.",
+        "bodyUntil": "Vše funguje do {{until}}. Aktualizujte kartu, ať o tarif nepřijdete.",
+        "bodyRetry": "Kartu zkusíme znovu {{retry}}.",
+        "bodyNoDates": "Aktualizujte kartu, ať o tarif nepřijdete.",
+        "updateCard": "Aktualizovat kartu"
+      },
+      "addRole": {
+        "title": "Přidat roli: {{role}}?",
+        "body": {
+          "trainer": "Získáte tréninkové plány, tréninky a cviky. Klienti si vás mohou vybrat jako svého trenéra.",
+          "nutritionist": "Získáte jídelníčky, recepty a suroviny. Klienti si vás mohou vybrat jako svého nutričního poradce."
+        },
+        "planLine": "Tarif {{plan}}",
+        "addOnLine": "Druhá role · {{role}}",
+        "total": "Nová celková cena",
+        "discountEnds": "Sleva platí do {{date}}, poté {{amount}} {{per}}.",
+        "today_one": "Dnes zaplatíte {{amount}} za {{count}} den do {{date}}.",
+        "today_few": "Dnes zaplatíte {{amount}} za {{count}} dny do {{date}}.",
+        "today_many": "Dnes zaplatíte {{amount}} za {{count}} dne do {{date}}.",
+        "today_other": "Dnes zaplatíte {{amount}} za {{count}} dní do {{date}}.",
+        "todayNoDate": "Dnes zaplatíte {{amount}} za zbytek tohoto období.",
+        "taxIncluded": "Včetně DPH {{tax}}.",
+        "studio": "Tarif {{plan}} zahrnuje obě role za {{price}} {{per}}.",
+        "compare": "Porovnat tarify",
+        "confirm": "Přidat roli · zaplatit {{amount}}",
+        "alreadyPaid": "Druhá role je už zaplacená, přidání dnes nic nestojí.",
+        "paymentNotice": "Vaše banka musí platbu potvrdit. Dokončete ji na zabezpečené stránce Stripe. Role se přidá až po potvrzení platby.",
+        "roleAdded": "Platba je potvrzena a role byla přidána.",
+        "roleNotAppeared": "Platba je potvrzena, ale role se zatím nezobrazila. Načtěte stránku znovu nebo se přihlaste znovu.",
+        "notConfirmed": "Platbu se nepodařilo potvrdit, proto role nebyla přidána."
+      },
+      "errors": {
+        "generic": "Něco se nepovedlo. Zkuste to prosím znovu.",
+        "cancelChange": "Změnu se nepodařilo zrušit. Zkuste to prosím znovu.",
+        "changePlan": "Tarif se nepodařilo změnit. Zkuste to prosím znovu.",
+        "switchFree": "Přechod na tarif Zdarma se nepodařilo naplánovat. Zkuste to prosím znovu.",
+        "portal": "Správu plateb se nepodařilo otevřít. Zkuste to prosím znovu.",
+        "code": "Kód se nepodařilo použít. Zkuste to prosím znovu.",
+        "addRole": "Platbu se nepodařilo provést, role proto nebyla přidána. Zkuste to prosím znovu.",
+        "preview": "Cenu druhé role se nepodařilo načíst. Zkuste to prosím znovu."
+      }
+    },
     "clientsOfLimit": "{{count}} z {{limit}} klientů",
     "status": {
       "Trialing": "Zkušební období",
@@ -353,14 +541,14 @@
       "bannerTitleNoDate": "Váš bezplatný tarif {{plan}} skončil. Pro pokračování si vyberte tarif.",
       "title": "Váš tarif se změnil",
       "decision": {
-        "lapse_one": "Váš tarif {{plan}} skončil, a proto jste nyní na Free. Free povoluje {{count}} klienta a vy jich máte {{have}}. Ponechte Free a vyberte ty, které si ponecháte, nebo zvolte jiný tarif.",
-        "lapse_few": "Váš tarif {{plan}} skončil, a proto jste nyní na Free. Free povoluje {{count}} klienty a vy jich máte {{have}}. Ponechte Free a vyberte ty, které si ponecháte, nebo zvolte jiný tarif.",
-        "lapse_many": "Váš tarif {{plan}} skončil, a proto jste nyní na Free. Free povoluje {{count}} klienta a vy jich máte {{have}}. Ponechte Free a vyberte ty, které si ponecháte, nebo zvolte jiný tarif.",
-        "lapse_other": "Váš tarif {{plan}} skončil, a proto jste nyní na Free. Free povoluje {{count}} klientů a vy jich máte {{have}}. Ponechte Free a vyberte ty, které si ponecháte, nebo zvolte jiný tarif.",
-        "free_one": "Jste na tarifu Free, který povoluje {{count}} klienta, a vy jich máte {{have}}. Ponechte Free a vyberte ty, které si ponecháte, nebo zvolte jiný tarif.",
-        "free_few": "Jste na tarifu Free, který povoluje {{count}} klienty, a vy jich máte {{have}}. Ponechte Free a vyberte ty, které si ponecháte, nebo zvolte jiný tarif.",
-        "free_many": "Jste na tarifu Free, který povoluje {{count}} klienta, a vy jich máte {{have}}. Ponechte Free a vyberte ty, které si ponecháte, nebo zvolte jiný tarif.",
-        "free_other": "Jste na tarifu Free, který povoluje {{count}} klientů, a vy jich máte {{have}}. Ponechte Free a vyberte ty, které si ponecháte, nebo zvolte jiný tarif.",
+        "lapse_one": "Váš tarif {{plan}} skončil, a proto jste nyní na tarifu Zdarma. Tarif Zdarma povoluje {{count}} klienta a vy jich máte {{have}}. Ponechte tarif Zdarma a vyberte ty, které si ponecháte, nebo zvolte jiný tarif.",
+        "lapse_few": "Váš tarif {{plan}} skončil, a proto jste nyní na tarifu Zdarma. Tarif Zdarma povoluje {{count}} klienty a vy jich máte {{have}}. Ponechte tarif Zdarma a vyberte ty, které si ponecháte, nebo zvolte jiný tarif.",
+        "lapse_many": "Váš tarif {{plan}} skončil, a proto jste nyní na tarifu Zdarma. Tarif Zdarma povoluje {{count}} klienta a vy jich máte {{have}}. Ponechte tarif Zdarma a vyberte ty, které si ponecháte, nebo zvolte jiný tarif.",
+        "lapse_other": "Váš tarif {{plan}} skončil, a proto jste nyní na tarifu Zdarma. Tarif Zdarma povoluje {{count}} klientů a vy jich máte {{have}}. Ponechte tarif Zdarma a vyberte ty, které si ponecháte, nebo zvolte jiný tarif.",
+        "free_one": "Jste na tarifu Zdarma, který povoluje {{count}} klienta, a vy jich máte {{have}}. Ponechte tarif Zdarma a vyberte ty, které si ponecháte, nebo zvolte jiný tarif.",
+        "free_few": "Jste na tarifu Zdarma, který povoluje {{count}} klienty, a vy jich máte {{have}}. Ponechte tarif Zdarma a vyberte ty, které si ponecháte, nebo zvolte jiný tarif.",
+        "free_many": "Jste na tarifu Zdarma, který povoluje {{count}} klienta, a vy jich máte {{have}}. Ponechte tarif Zdarma a vyberte ty, které si ponecháte, nebo zvolte jiný tarif.",
+        "free_other": "Jste na tarifu Zdarma, který povoluje {{count}} klientů, a vy jich máte {{have}}. Ponechte tarif Zdarma a vyberte ty, které si ponecháte, nebo zvolte jiný tarif.",
         "smaller_one": "Váš tarif se změnil na {{plan}}. {{plan}} povoluje {{count}} klienta a vy jich máte {{have}}. Ponechte {{plan}} a vyberte ty, které si ponecháte, nebo zvolte jiný tarif.",
         "smaller_few": "Váš tarif se změnil na {{plan}}. {{plan}} povoluje {{count}} klienty a vy jich máte {{have}}. Ponechte {{plan}} a vyberte ty, které si ponecháte, nebo zvolte jiný tarif.",
         "smaller_many": "Váš tarif se změnil na {{plan}}. {{plan}} povoluje {{count}} klienta a vy jich máte {{have}}. Ponechte {{plan}} a vyberte ty, které si ponecháte, nebo zvolte jiný tarif.",
@@ -376,7 +564,7 @@
       "card": {
         "current": "Váš tarif nyní",
         "upgrade": "Přejít na {{plan}}",
-        "switchFree": "Přejít na Free",
+        "switchFree": "Přejít na tarif Zdarma",
         "keepAll": "Ponechat {{plan}}",
         "keep_one": "Ponechat {{plan}}, vybrat {{count}} klienta",
         "keep_few": "Ponechat {{plan}}, vybrat {{count}} klienty",
@@ -397,10 +585,10 @@
       },
       "keep": {
         "back": "Zpět na tarify",
-        "confirm_one": "Přejít na Free a ponechat tohoto klienta",
-        "confirm_few": "Přejít na Free a ponechat tyto {{count}}",
-        "confirm_many": "Přejít na Free a ponechat těchto {{count}}",
-        "confirm_other": "Přejít na Free a ponechat těchto {{count}}",
+        "confirm_one": "Přejít na tarif Zdarma a ponechat tohoto klienta",
+        "confirm_few": "Přejít na tarif Zdarma a ponechat tyto {{count}}",
+        "confirm_many": "Přejít na tarif Zdarma a ponechat těchto {{count}}",
+        "confirm_other": "Přejít na tarif Zdarma a ponechat těchto {{count}}",
         "save_one": "Ponechat {{plan}} a tohoto klienta",
         "save_few": "Ponechat {{plan}} a tyto {{count}}",
         "save_many": "Ponechat {{plan}} a těchto {{count}}",
@@ -490,21 +678,49 @@
       "description": "Co platíte Form Upu. Vaši klienti za aplikaci neplatí nikdy.",
       "loadError": "Tarif se nepodařilo načíst. Obnovte prosím stránku.",
       "renews": "Měsíčně · Obnovení {{date}}",
+      "renewsAnnual": "Ročně · Obnovení {{date}}",
       "ends": "Končí {{date}}",
+      "scheduled": {
+        "until": "Měsíčně · {{plan}} do {{date}}",
+        "untilAnnual": "Ročně · {{plan}} do {{date}}",
+        "begins": "{{plan}} začne {{date}}",
+        "beginsPriced": "{{plan}} začne {{date}} · {{price}}",
+        "secondRoleEnds": "Druhá role se přestane účtovat od {{date}}. Nová měsíční platba: {{amount}}.",
+        "secondRoleEndsAnnual": "Druhá role se přestane účtovat od {{date}}. Nová roční platba: {{amount}}.",
+        "cancel": "Zrušit změnu",
+        "cancelDialog": {
+          "title": "Zrušit naplánovanou změnu?",
+          "body": "Zůstanete na tarifu {{plan}} a {{date}} se obnoví. Nic se nyní neúčtuje.",
+          "bodyNoDate": "Zůstanete na tarifu {{plan}} a obnoví se. Nic se nyní neúčtuje."
+        }
+      },
       "freeUntil": "V ceně do {{date}}",
       "setByFormUpUntil": "Do {{date}} · Nastaveno Form Up",
       "setByFormUp": "Nastaveno Form Up",
-      "endedByFormUp": "Form Up ukončil váš tarif {{plan}}. Nyní jste na tarifu Free.",
+      "endedByFormUp": "Form Up ukončil váš tarif {{plan}}. Nyní jste na tarifu Zdarma.",
       "changePlan": "Změnit tarif",
       "manageBilling": "Spravovat platby",
       "bill": {
         "title": "Vaše měsíční platba",
+        "titleAnnual": "Vaše roční platba",
         "free": "Bez měsíčního poplatku.",
         "plan": "Tarif {{plan}}",
         "secondRole": "Druhá role",
         "total": "Celkem",
         "perMonth": "{{amount}} / měsíc",
-        "secondRoleUnavailable": "Druhá profesní role není součástí tohoto tarifu."
+        "perYear": "{{amount}} / rok",
+        "afterOffer": "Od {{date}}: {{amount}} / měsíc.",
+        "afterOfferAnnual": "Od {{date}}: {{amount}} / rok.",
+        "annualSwitch": "Chcete-li platit měsíčně, změňte tarif; přepne se, až tento rok skončí.",
+        "offer": {
+          "months_one": "{{name}} {{value}} · zbývá {{left}} z {{count}} měsíců",
+          "months_few": "{{name}} {{value}} · zbývá {{left}} z {{count}} měsíců",
+          "months_many": "{{name}} {{value}} · zbývá {{left}} z {{count}} měsíců",
+          "months_other": "{{name}} {{value}} · zbývá {{left}} z {{count}} měsíců",
+          "firstMonth": "{{name}} {{value}} · první měsíc",
+          "firstYear": "{{name}} {{value}} · první rok",
+          "forever": "{{name}} {{value}}"
+        }
       },
       "clients": {
         "title": "Klienti",
@@ -528,7 +744,8 @@
       },
       "card": {
         "title": "Karta, faktury a zrušení",
-        "description": "Bude k dispozici, jakmile se otevře výběr tarifu."
+        "description": "Aktualizujte kartu, stáhněte si faktury, změňte fakturační údaje nebo tarif zrušte v zabezpečeném portálu Stripe.",
+        "descriptionFree": "K dispozici, jakmile budete na placeném tarifu."
       }
     }
   },
@@ -659,8 +876,11 @@
       "loadError": "Vaše role se nepodařilo načíst. Obnovte prosím stránku.",
       "onlyRoleNote": "Toto je vaše jediná role. Její odebrání zakáže váš trenérský účet, stejně jako tlačítko níže.",
       "noRolesNote": "Váš trenérský účet je deaktivovaný. Přidejte roli a znovu ho aktivujte.",
+      "secondRoleUnavailable": "Druhá profesní role není součástí vašeho tarifu. Pro její přidání změňte tarif.",
+      "secondRoleAfterChange": "Druhou roli můžete přidat po změně tarifu dne {{date}}.",
       "removeDialog": {
         "keep": "Ponechat roli",
+        "billing": "Druhá role se přestane účtovat od {{date}}. Nová měsíční platba: {{amount}}.",
         "footnote": "Role okamžitě zmizí z vyhledávání i z vaší profilové karty. Kdykoli ji můžete přidat zpět a znovu upravovat.",
         "notified_zero": "Žádný klient nebude upozorněn",
         "notified_one": "{{count}} klient bude upozorněn",
@@ -1622,6 +1842,12 @@
     "noResultsForFilters": "Žádné suroviny neodpovídají filtrům.",
     "clearFilters": "Zrušit filtry",
     "deleteSuccess": "Surovina byla smazána.",
+    "copySuccess": "Surovina byla zkopírována do vaší knihovny.",
+    "copyError": "Surovinu se nepodařilo zkopírovat. Zkuste to prosím znovu.",
+    "hideSuccess": "Surovina byla skryta.",
+    "hideError": "Surovinu se nepodařilo skrýt. Zkuste to prosím znovu.",
+    "unhideSuccess": "Surovina je opět zobrazena.",
+    "unhideError": "Surovinu se nepodařilo znovu zobrazit. Zkuste to prosím znovu.",
     "deleteError": "Surovinu se nepodařilo smazat. Zkuste to prosím znovu.",
     "filters": {
       "category": "Kategorie"
@@ -1703,6 +1929,9 @@
       "createTitle": "Nová surovina",
       "editTitle": "Upravit surovinu",
       "viewTitle": "Surovina",
+      "copy": "Zkopírovat do mých surovin",
+      "hide": "Skrýt",
+      "unhide": "Zobrazit",
       "subtitleCreate": "Přidejte novou surovinu do své knihovny",
       "subtitleEdit": "Upravte údaje o této surovině",
       "subtitleView": "Podrobnosti o surovině",
@@ -1779,8 +2008,10 @@
       "mine": "Moje",
       "shared": "Sdílená",
       "myLibrary": "Moje knihovna",
-      "publicLibrary": "Veřejné"
+      "publicLibrary": "Veřejné",
+      "hidden": "Skryté"
     },
+    "showHidden": "Zobrazit skryté",
     "cardMacros": "B {{protein}} · S {{carbs}} · T {{fat}}",
     "visibility": {
       "label": "Viditelnost",
@@ -1887,6 +2118,12 @@
     "noResultsForFilters": "Filtrům neodpovídá žádný recept.",
     "clearFilters": "Zrušit filtry",
     "deleteSuccess": "Recept byl smazán.",
+    "copySuccess": "Recept byl zkopírován do vaší knihovny.",
+    "copyError": "Recept se nepodařilo zkopírovat. Zkuste to prosím znovu.",
+    "hideSuccess": "Recept byl skryt.",
+    "hideError": "Recept se nepodařilo skrýt. Zkuste to prosím znovu.",
+    "unhideSuccess": "Recept je opět zobrazen.",
+    "unhideError": "Recept se nepodařilo znovu zobrazit. Zkuste to prosím znovu.",
     "deleteError": "Recept se nepodařilo smazat. Zkuste to prosím znovu.",
     "empty": {
       "title": "Zatím žádné recepty",
@@ -1930,6 +2167,9 @@
       "createTitle": "Nový recept",
       "editTitle": "Upravit recept",
       "viewTitle": "Recept",
+      "copy": "Zkopírovat do mých receptů",
+      "hide": "Skrýt",
+      "unhide": "Zobrazit",
       "subtitleCreate": "Přidejte podrobnosti o receptu",
       "subtitleEdit": "Upravte podrobnosti tohoto receptu",
       "subtitleView": "Podrobnosti receptu",
@@ -2978,7 +3218,10 @@
       "openInProfile": "Otevřít v profilu klienta"
     },
     "answers": {
-      "noAnswer": "Bez odpovědi"
+      "noAnswer": "Bez odpovědi",
+      "openFile": "Otevřít soubor",
+      "ofMax": "{{value}} / {{max}}",
+      "other": "Jiné: {{text}}"
     },
     "page": {
       "title": "Formuláře",
@@ -3000,6 +3243,8 @@
       "noMatch": "Zatím žádné formuláře tohoto druhu.",
       "selectAForm": "Vyberte zodpovězený formulář, který chcete číst.",
       "noLink": "Formuláře klienta {{name}} už nejsou dostupné, protože spolupráce skončila.",
+      "checkInsOnlyHint": "Ostatní formuláře vyžadují funkci formulářů.",
+      "checkInsOnlyEmptyBody": "Jakmile {{name}} odpoví na týdenní check-in, odpovědi se zobrazí tady.",
       "emptyTitle": "Od klienta {{name}} zatím nejsou žádné odpovědi",
       "emptyBody": "Až klient {{name}} formulář odešle zpět, odpovědi se zobrazí tady. Přečíst si je můžete i v editoru plánu při jeho tvorbě.",
       "weekTitle": "{{title}} · týden {{week}}",
@@ -3598,7 +3843,7 @@
     }
   },
   "apiErrors": {
-    "FREE_PLAN_LOCKED": "Plán Free nejde takto změnit: jeho cena zůstává 0 a vždy se nabízí.",
+    "FREE_PLAN_LOCKED": "Plán Zdarma nejde takto změnit: jeho cena zůstává 0 a vždy se nabízí.",
     "PER_CLIENT_CHECK_IN_REQUIRES_WEEKLY_CHECK_INS": "Nastavení check-inů pro jednotlivé klienty vyžaduje týdenní check-iny. Nejdřív zapněte týdenní check-iny.",
     "SUBSCRIPTION_PLAN_CODE_ALREADY_EXISTS": "Plán s tímto kódem už existuje.",
     "SUBSCRIPTION_PLAN_NOT_FOUND": "Tento plán už neexistuje.",
@@ -3632,7 +3877,7 @@
     "AUTOMATION_AUDIENCE_CLIENT_NOT_FOUND": "Jeden z vybraných klientů už s vámi není propojený.",
     "AUTOMATION_QUESTIONNAIRE_NOT_FOUND": "Vybraný formulář už neexistuje.",
     "AUTOMATION_ACTION_TYPE_LOCKED": "Akci pravidla nelze změnit. Vytvořte místo toho nové pravidlo.",
-    "AUTOMATION_QUESTIONNAIRE_NOT_USABLE": "Tento formulář nelze odesílat automatizací. Vyberte aktivní formulář, který není check-in.",
+    "AUTOMATION_QUESTIONNAIRE_NOT_USABLE": "Tento formulář tady nelze odeslat. Vyberte aktivní formulář správného typu.",
     "AUTOMATION_SCHEDULE_INVALID": "Zkontrolujte plán: každých 1 až 365 dní nebo týdnů, v platný čas.",
     "AUTOMATION_EVENT_INVALID": "Zkontrolujte událost a její načasování.",
     "AUTOMATION_ONCE_PER_PLAN_NEEDS_PLAN_EVENT": "„Jednou za plán“ funguje jen u události plánu.",
@@ -3656,6 +3901,42 @@
     "SUBSCRIPTION_NOT_LAPSED": "Váš tarif neskončil, není tedy co vybírat.",
     "PLAN_CHOICE_REQUIRED": "Váš bezplatný tarif skončil. Pro pokračování si vyberte tarif.",
     "PLAN_CHOICE_NOT_REQUIRED": "Tarif už máte vybraný.",
+    "PLAN_NOT_PURCHASABLE": "Tento tarif teď nelze koupit online.",
+    "BILLING_NO_SUBSCRIPTION": "Zatím nemáte žádné aktivní placené předplatné.",
+    "BILLING_ALREADY_SUBSCRIBED": "Placené předplatné už máte. Použijte Změnit tarif.",
+    "BILLING_GIFT_IN_FORCE": "Váš současný tarif nastavil Form Up, takže ho tady nelze změnit, dokud neskončí.",
+    "BILLING_RENEWAL_CANCELLED_BY_ADMIN": "Obnovení vašeho tarifu zrušil Form Up. Chcete-li to změnit, kontaktujte nás.",
+    "BILLING_ACCOUNT_DISABLING": "Váš trenérský účet se ruší. Nejprve ho ponechte.",
+    "BILLING_NOTHING_SCHEDULED": "Žádná změna není naplánovaná.",
+    "BILLING_PLAN_UNCHANGED": "Tento tarif už máte.",
+    "BILLING_CANCELLATION_PENDING": "Váš tarif už na konci zaplaceného období končí.",
+    "BILLING_PLAN_CHANGE_PENDING": "Změna tarifu je už naplánovaná. Zkuste to znovu, až se projeví.",
+    "PROMOTION_CODE_INVALID": "Tento kód nelze použít.",
+    "PROMOTION_CODE_NOT_FOUND": "Tento kód neznáme. Zkontrolujte ho a zkuste to znovu.",
+    "PROMOTION_CODE_NOT_STARTED": "Tato nabídka ještě nezačala.",
+    "PROMOTION_CODE_PLAN_NOT_ELIGIBLE": "Tento kód se na váš tarif nevztahuje.",
+    "PROMOTION_CODE_USED_UP": "Tento kód už je vyčerpaný.",
+    "PROMOTION_CODE_NEW_COACHES_ONLY": "Tento kód je jen pro nové trenéry.",
+    "PROMOTION_CODE_ALREADY_USED": "Tento kód jste už použili.",
+    "PROMOTION_CODE_INTERVAL_NOT_ELIGIBLE": "Tento kód neplatí pro zvolené období placení.",
+    "PROMOTION_CODE_TAKEN": "Tento kód už používá jiná akce, která neskončila.",
+    "PROMOTION_ALREADY_ENDED": "Tato akce už skončila.",
+    "PROMOTION_VALUE_INVALID": "Zkontrolujte hodnotu akce.",
+    "PROMOTION_MODE_INVALID": "Zkontrolujte kód: u akce s kódem je povinný, u automatické akce ho zadat nelze.",
+    "PROMOTION_MONTHS_INVALID": "Zadejte počet měsíců od 2 do 36.",
+    "PROMOTION_WINDOW_INVALID": "Doba, kdy lze akci uplatnit, musí končit v budoucnu a po svém začátku.",
+    "PROMOTION_PLANS_INVALID": "Vyberte alespoň jeden placený plán. U akce jen na roční platby musí mít každý vybraný plán roční cenu.",
+    "ANNUAL_PRICE_INVALID": "Roční cena není platná. Plán Zdarma ji nemá a u ostatních musí být vyšší než 0.",
+    "ANNUAL_ADD_ON_PRICE_INVALID": "Roční cena druhé role není platná. Je povinná, pokud má plán roční cenu a placenou druhou roli, jinak ji zadat nelze.",
+    "PROMOTION_MAX_USES_INVALID": "Maximální počet použití musí být alespoň 1.",
+    "BILLING_RATE_LIMITED": "Příliš mnoho pokusů. Chvíli počkejte a zkuste to znovu.",
+    "BILLING_ADD_ON_NOT_AVAILABLE": "Váš tarif placenou druhou roli nenabízí.",
+    "BILLING_ADD_ON_ALREADY_PAID": "Druhá role je už zaplacená.",
+    "BILLING_PAYMENT_DECLINED": "Vaše karta byla zamítnuta. Nic nebylo strženo a role nebyla přidána. Aktualizujte kartu ve Spravovat platby nebo zkuste jinou.",
+    "BILLING_CUSTOMER_NOT_FOUND": "Zatím nemáte platební účet. Nejdřív vyberte placený tarif.",
+    "BILLING_NOT_CONFIGURED": "Platby teď nejsou k dispozici. Zkuste to prosím později.",
+    "BILLING_PROVIDER_ERROR": "Platební služba neodpověděla. Zkuste to prosím za chvíli znovu.",
+    "SECOND_ROLE_NOT_ON_SCHEDULED_PLAN": "Plán naplánovaný na příští obnovení druhou roli nezahrnuje.",
     "CHECK_IN_ANSWER_WINDOW_CLOSED": "Čas na odpověď na tento check-in už vypršel.",
     "INVALID_CREDENTIALS": "Neplatný email nebo heslo.",
     "ACCOUNT_DEACTIVATED": "Váš účet byl deaktivován.",
@@ -3684,6 +3965,8 @@
     "PLAN_OVERLAP": "Zvolené období se překrývá s existujícím plánem tohoto klienta.",
     "PLAN_ALREADY_STARTED": "Plán nelze smazat, protože publikovaný týden už začal.",
     "CLIENT_NUTRITION_PROFILE_MISSING": "Tento klient zatím nemá výživové cíle ani odpovědi z dotazníku, které by šlo upravit.",
+    "INVITE_EMAIL_MISMATCH": "Tento e-mail neodpovídá pozvánce.",
+    "INVITE_ROLE_MISMATCH": "Pozvánku lze použít pouze k registraci jako klient.",
     "INVALID_VERIFICATION_TOKEN": "Neplatný nebo vypršelý ověřovací odkaz.",
     "VERIFICATION_TOKEN_EXPIRED": "Ověřovací odkaz vypršel. Vyžádejte si nový.",
     "VERIFICATION_RESEND_LIMIT_REACHED": "Příliš mnoho odeslaných ověřovacích e-mailů. Zkuste to později.",
@@ -3734,6 +4017,8 @@
     "RECIPE_VERSION_CONFLICT": "Tento recept byl mezitím změněn jinde. Zavřete ho a otevřete znovu, abyste viděli nejnovější verzi.",
     "RECIPE_FOOD_NOT_AVAILABLE": "Jedna ze surovin už není dostupná. Odeberte ji a zkuste to znovu.",
     "RECIPE_NOT_OWNED": "Můžete upravovat jen své vlastní recepty.",
+    "FOOD_HIDE_OWN_NOT_ALLOWED": "Své vlastní suroviny nelze skrýt.",
+    "RECIPE_HIDE_OWN_NOT_ALLOWED": "Své vlastní recepty nelze skrýt.",
     "RECIPE_GALLERY_FULL": "Tento recept už má maximální počet obrázků.",
     "RECIPE_GALLERY_IMAGE_NOT_FOUND": "Tento obrázek už k receptu nepatří. Mohl být změněn jinde.",
     "FOOD_GALLERY_FULL": "Tato surovina už má maximální počet obrázků.",
@@ -4708,7 +4993,8 @@
         "changedFrom": "Změněno oproti: {{when}}",
         "paused": "Pozastaveno",
         "pausedUntil": "Pozastaveno do {{date}}",
-        "changedFromWeekday": "Změněno z: {{day}}"
+        "changedFromWeekday": "Změněno z: {{day}}",
+        "changedFromWeekdayForm": "Změněno z: {{day}} · Formulář: {{form}}"
       },
       "result": {
         "notSent": "Zatím neodesláno",
@@ -4738,7 +5024,10 @@
         "overrideDescription": "Změna tady platí jen pro klienta {{client}}. Samotné pravidlo zůstane beze změny.",
         "clientOnlyTitleNew": "Nové pravidlo pro klienta {{client}}",
         "clientOnlyTitleEdit": "Upravit pravidlo · {{name}}",
-        "clientOnlyDescription": "Toto pravidlo platí jen pro klienta {{client}}"
+        "clientOnlyDescription": "Toto pravidlo platí jen pro klienta {{client}}",
+        "overrideSave": "Uložit pro klienta {{client}}",
+        "overrideFooter": "Další odeslání pro klienta {{client}}: {{date}} · {{form}}",
+        "overrideFooterNoForm": "Další odeslání pro klienta {{client}}: {{date}}"
       }
     },
     "photos": {
@@ -4913,7 +5202,10 @@
       },
       "timeline": {
         "heading": "Časová osa plánů",
-        "hint": "Plány podle měsíců",
+        "hint": "Kliknutím na plán ho otevřete",
+        "earlier": "Dřívější měsíce",
+        "later": "Pozdější měsíce",
+        "todayAction": "Dnes",
         "empty": "Zatím tu nejsou žádné plány s termínem.",
         "today": "Dnes",
         "noPlan": "Bez plánu",
@@ -5384,14 +5676,11 @@
         }
       },
       "actions": {
-        "chat": "Chat",
-        "tasks": "Úkoly",
-        "notes": "Poznámky"
+        "chat": "Chat"
       },
       "tabs": {
         "overview": "Přehled",
         "nutrition": "Výživa",
-        "workouts": "Tréninky",
         "storage": "Fotky",
         "payment": "Platby",
         "automations": "Automatizace",
@@ -5454,7 +5743,6 @@
       },
       "workout": {
         "label": "Trénink",
-        "openPlan": "Otevřít plán",
         "doneThisWeek": "Hotovo tento týden · {{done}} z {{total}} sezení",
         "heading": "Poslední trénink",
         "exercises_one": "{{count}} cvik",
@@ -5876,7 +6164,6 @@
     }
   },
   "entry": {
-    "brand": "Form Up",
     "login": {
       "title": "Vítejte zpět",
       "lede": "Přihlaste se do trenérského portálu.",
@@ -5970,6 +6257,10 @@
         "consentRequired": "Pro založení účtu musíte souhlasit s Podmínkami použití a Zásadami ochrany osobních údajů.",
         "healthConsentRequired": "Pro založení účtu musíte souhlasit se zpracováním zdravotních údajů."
       },
+      "invite": {
+        "emailHint": "Na tento e-mail byla odeslána vaše pozvánka.",
+        "unavailable": "Tento odkaz pozvánky už nelze použít. Účet si můžete vytvořit i níže."
+      },
       "errors": {
         "duplicateEmail": "Tento e-mail je již zaregistrován.",
         "network": "Nepodařilo se spojit se serverem. Zkontrolujte připojení a zkuste to znovu.",
@@ -6060,7 +6351,10 @@
       "coach": {
         "ready": "Váš účet je připravený.",
         "setUpProfile": "Nastavit profil",
-        "skip": "Prozatím přeskočit a přejít do portálu",
+        "choosePlan": "Vybrat tarif",
+        "skip": "Prozatím přeskočit a začít na tarifu Zdarma",
+        "signInToChoosePlan": "Přihlaste se a vyberte si tarif",
+        "signInToSkip": "Přihlaste se a prozatím začněte na tarifu Zdarma",
         "nextHeading": "CO DÁL",
         "inviteTitle": "Pozvěte prvního klienta",
         "inviteHint": "Připojí se přes aplikaci Form Up",
@@ -6145,8 +6439,7 @@
       "cs": "CS",
       "en": "EN",
       "de": "DE"
-    },
-    "brandMark": "GF"
+    }
   },
   "home": {
     "brand": { "form": "FORM", "up": "UP", "name": "Form Up" },
@@ -6493,12 +6786,6 @@
         "FirstPayments_many": "Prvních {{count}} platby",
         "FirstPayments_other": "Prvních {{count}} plateb"
       },
-      "codes": {
-        "title": "Slevové kódy",
-        "comingLater": "Připravujeme",
-        "body": "Dejte slevě kód, například LETO26, a klienti ho zadají při registraci u vás.",
-        "create": "Vytvořit kód"
-      },
       "validation": {
         "nameRequired": "Zadejte název.",
         "nameTooLong": "Název může mít nejvýše 100 znaků.",
@@ -6710,6 +6997,8 @@
         "answerWindowDays_few": "{{count}} dny",
         "answerWindowDays_other": "{{count}} dní",
         "answerWindowHint": "Poté se týden počítá jako zmeškaný",
+        "weekdayRuleHint": "Vaše pravidlo: {{day}}",
+        "answerWindowRuleHint": "Vaše pravidlo: {{window}}. Poté se týden počítá jako zmeškaný",
         "eventLabel": "Událost",
         "timing": "Načasování",
         "daysAfter": "Dní po",
@@ -6729,6 +7018,12 @@
         "formOption_other": "{{title}} · {{count}} otázek",
         "formOptionCheckIn": "{{title}} · formulář check-inu",
         "formHintCheckIn": "Otázky změníte ve Formulářích › {{title}}",
+        "overrideForm": "Check-in formulář",
+        "overrideRuleForm": "Formulář pravidla · {{title}}",
+        "overrideRuleFormNoTitle": "Formulář pravidla",
+        "overrideHint": "Vaše pravidlo odesílá {{title}}. Nabízíme jen Vaše check-in formuláře.",
+        "overrideHintNoTitle": "Nabízíme jen Vaše check-in formuláře.",
+        "overrideUseRuleForm": "Použít formulář pravidla",
         "formsError": "Formuláře se nepodařilo načíst.",
         "reminder": "Připomenout klientovi po {{hours}} h, pokud neodpoví",
         "missedWeek": "Upozornit mě na zmeškaný týden",
@@ -6867,7 +7162,8 @@
       "keepUntil": "zůstává, nově do {{date}}. Poté si {{name}} vybere plán.",
       "keepNoEnd": "zůstává, nově bez data konce.",
       "keepPickDate": "zůstává. Zvolte nové datum konce.",
-      "confirmKeep": "Změnit datum konce"
+      "confirmKeep": "Změnit datum konce",
+      "refundNotice": "Placené předplatné trenéra {{name}} ve Stripe se hned zruší a nevyužité dny se vrátí na kartu trenéra."
     },
     "drawer": {
       "titleFallback": "Trenér",
@@ -6886,7 +7182,8 @@
       "clientsUnlimited": "{{used}}, neomezeně",
       "actions": "Akce",
       "privacy": "Jména a data klientů administrátoři nevidí. Jen počty.",
-      "openInStripe": "Otevřít ve Stripe"
+      "openInStripe": "Otevřít ve Stripe",
+      "noStripeCustomer": "Tento trenér zatím nemá zákazníka ve Stripe."
     },
     "actions": {
       "reason": "Důvod",
@@ -6896,6 +7193,7 @@
         "noEnd": "Bez data konce",
         "button": "Změnit plán",
         "success": "Plán byl změněn.",
+        "successRefund": "Plán byl změněn. Vráceno {{amount}}.",
         "error": "Plán se nepodařilo změnit."
       },
       "promotion": {
@@ -6924,13 +7222,15 @@
         "button": "Ukončit plán",
         "none": "Tento trenér nemá placený ani darovaný plán, který by šel ukončit.",
         "success": "Plán byl ukončen.",
+        "successRefund": "Plán byl ukončen. Vráceno {{amount}}.",
         "error": "Plán se nepodařilo ukončit.",
+        "refundNotice": "Placené předplatné trenéra ve Stripe se hned zruší a nevyužité dny se vrátí na kartu trenéra.",
         "dialogTitle": "Ukončit plán hned?",
         "dialogDescription": "Trenér {{name}} dnes přejde z plánu {{plan}} na Zdarma a už se mu nic neúčtuje.",
-        "callout_one": "Trenér {{name}} má {{count}} klienta a Zdarma jich povoluje {{max}}. Při příštím přihlášení bude vybírat, které si ponechá. Plány ostatních klientů doběhnou do posledního zveřejněného týdne.",
-        "callout_few": "Trenér {{name}} má {{count}} klienty a Zdarma jich povoluje {{max}}. Při příštím přihlášení bude vybírat, které si ponechá. Plány ostatních klientů doběhnou do posledního zveřejněného týdne.",
-        "callout_many": "Trenér {{name}} má {{count}} klienta a Zdarma jich povoluje {{max}}. Při příštím přihlášení bude vybírat, které si ponechá. Plány ostatních klientů doběhnou do posledního zveřejněného týdne.",
-        "callout_other": "Trenér {{name}} má {{count}} klientů a Zdarma jich povoluje {{max}}. Při příštím přihlášení bude vybírat, které si ponechá. Plány ostatních klientů doběhnou do posledního zveřejněného týdne.",
+        "callout_one": "Trenér {{name}} má {{count}} klienta a Zdarma jich povoluje {{max}}. Jakmile otevře aplikaci nebo přejde na jinou stránku, vybere si, které si ponechá. Plány ostatních klientů doběhnou do posledního zveřejněného týdne.",
+        "callout_few": "Trenér {{name}} má {{count}} klienty a Zdarma jich povoluje {{max}}. Jakmile otevře aplikaci nebo přejde na jinou stránku, vybere si, které si ponechá. Plány ostatních klientů doběhnou do posledního zveřejněného týdne.",
+        "callout_many": "Trenér {{name}} má {{count}} klienta a Zdarma jich povoluje {{max}}. Jakmile otevře aplikaci nebo přejde na jinou stránku, vybere si, které si ponechá. Plány ostatních klientů doběhnou do posledního zveřejněného týdne.",
+        "callout_other": "Trenér {{name}} má {{count}} klientů a Zdarma jich povoluje {{max}}. Jakmile otevře aplikaci nebo přejde na jinou stránku, vybere si, které si ponechá. Plány ostatních klientů doběhnou do posledního zveřejněného týdne.",
         "placeholder": "Proč plán ukončujete?",
         "cancel": "Zrušit",
         "confirm": "Ukončit plán hned"
@@ -6959,6 +7259,11 @@
         "givenFree_plain": "Změněno na {{plan}}, bez data konce",
         "planAssigned": "Plán změněn na {{plan}}",
         "planEnded": "Plán ukončen: {{plan}}",
+        "choseFreePlan": "Zvolil plán Free",
+        "paidPlanStarted": "Zahájen placený plán: {{plan}}",
+        "paidPlanUpgraded": "Placený plán navýšen: {{plan}}",
+        "paidPlanDowngraded": "Placený plán snížen: {{plan}}",
+        "paidPlanEnded": "Placený plán skončil",
         "renewalCancelled_until": "Obnova zrušena, plán končí {{date}}",
         "renewalCancelled_plain": "Obnova zrušena",
         "accountDisabled_until": "Účet deaktivován, aktivní do {{date}}",
@@ -6985,7 +7290,7 @@
     "title": "Plány",
     "subtitle": "Co si mohou trenéři koupit. Změna ceny vytvoří ve Stripe novou cenu; trenéři, kteří už platí, si ponechají tu svou.",
     "newPlan": "Nový plán",
-    "note": "Každý trenér začíná na plánu Free. Akce ceny na určitou dobu snižují, nikdy je nemění.",
+    "note": "Každý trenér začíná na plánu Zdarma. Akce ceny na určitou dobu snižují, nikdy je nemění.",
     "loadError": "Plány se nepodařilo načíst.",
     "retry": "Zkusit znovu",
     "empty": "Zatím žádné plány.",
@@ -7051,14 +7356,16 @@
       "codeHint": "Používá ho aplikace a Stripe. Po vytvoření plánu už nejde změnit.",
       "sectionPrice": "Cena",
       "perMonth": "Za měsíc",
-      "freePriceHint": "Free vždy stojí 0.",
-      "billing": "Fakturace",
-      "billingMonthly": "Měsíčně",
-      "billingAnnualLater": "Roční fakturace přijde později.",
+      "freePriceHint": "Plán Zdarma vždy stojí 0.",
+      "perYear": "Za rok",
+      "annualEmptyHint": "Nechte prázdné, pokud se plán neprodává ročně.",
+      "annualSavingHint": "Ušetří {{percent}} % oproti 12 × {{monthly}} ({{total}}).",
+      "annualAddOnSavingHint": "Ušetří {{percent}} % oproti 12 × {{monthly}}.",
       "secondRole": "Druhá role",
       "secondRoleAddOn": "Placený doplněk",
       "secondRoleIncluded": "V ceně",
       "addOnPrice": "Druhá role za měsíc",
+      "annualAddOnPrice": "Druhá role za rok",
       "sectionClients": "Klienti",
       "activeClients": "Aktivní klienti",
       "activeClientsHint": "Klient v obou rolích se počítá jednou.",
@@ -7066,7 +7373,7 @@
       "sectionPreview": "Jak to uvidí trenéři",
       "offer": "Nabízet trenérům",
       "offerHint": "Vypnuto = plán zmizí z výběru plánů. Trenéři, kteří ho už mají, si ho ponechají.",
-      "offerFreeHint": "Plán Free se nabízí vždy.",
+      "offerFreeHint": "Plán Zdarma se nabízí vždy.",
       "stopOffering": "Přestat nabízet",
       "saving": "Ukládání…",
       "save": "Uložit plán"
@@ -7084,6 +7391,8 @@
       "perMonthSuffix": "/ měsíc",
       "secondRoleLine": "Druhá role +{{price}} / měsíc",
       "secondRoleIncludedLine": "Druhá role v ceně",
+      "annualLine": "Ročně: {{price}} / rok",
+      "annualLineWithSecondRole": "Ročně: {{price}} / rok, druhá role +{{addOn}} / rok",
       "unlimitedClientsLine": "Neomezený počet aktivních klientů",
       "clientsLine_one": "Až {{count}} aktivní klient",
       "clientsLine_few": "Až {{count}} aktivní klienti",
@@ -7138,8 +7447,282 @@
       "codeTaken": "Plán s tímto kódem už existuje.",
       "priceInvalid": "Zadejte cenu od 0 do 1 000 000.",
       "addOnInvalid": "Zadejte cenu druhé role vyšší než 0, nebo zvolte „V ceně“.",
+      "annualInvalid": "Zadejte roční cenu vyšší než 0, nebo pole nechte prázdné, pokud se plán neprodává ročně.",
+      "annualAddOnInvalid": "Zadejte roční cenu druhé role vyšší než 0.",
       "clientsInvalid": "Zadejte počet klientů od 1, nebo zvolte Neomezeně.",
       "perClientNeedsWeekly": "Check-iny pro jednotlivé klienty vyžadují týdenní check-iny."
+    }
+  },
+  "adminOverview": {
+    "title": "Přehled",
+    "subtitle": "Co potřebuje vaši pozornost a jak se Form Upu daří za posledních 30 dní.",
+    "retry": "Zkusit znovu",
+    "lastDays": {
+      "title": "Posledních 30 dní",
+      "fullReports": "Úplné přehledy",
+      "loadError": "Čísla se nepodařilo načíst.",
+      "pointsUnit": "p. b.",
+      "mrr": "Měsíční opakované tržby",
+      "mrrNote": "Platící trenéři, po slevách · oproti 30 dnům předtím",
+      "signups": "Nové registrace",
+      "signupsNote": "Trenérské účty vytvořené za posledních 30 dní",
+      "payingCoaches": "Platící trenéři",
+      "payingCoachesNote": "Trenéři na placeném tarifu",
+      "churn": "Odchod",
+      "churnNote": "Platící trenéři, kteří za posledních 30 dní zrušili"
+    },
+    "attention": {
+      "title": "Vyžaduje pozornost",
+      "items_one": "{{count}} položka",
+      "items_few": "{{count}} položky",
+      "items_many": "{{count}} položky",
+      "items_other": "{{count}} položek",
+      "loadError": "Nepodařilo se načíst, co vyžaduje pozornost.",
+      "allClear": "Nic nepotřebuje vaši pozornost",
+      "allClearDetail": "Žádné selhané platby, zrušení, končící tarify zdarma ani akce, kterým docházejí využití.",
+      "paymentFailed_one": "{{count}} platba selhala",
+      "paymentFailed_few": "{{count}} platby selhaly",
+      "paymentFailed_many": "{{count}} platby selhaly",
+      "paymentFailed_other": "{{count}} plateb selhalo",
+      "namesMore_one": "{{names}} a {{count}} další",
+      "namesMore_few": "{{names}} a {{count}} další",
+      "namesMore_many": "{{names}} a {{count}} dalšího",
+      "namesMore_other": "{{names}} a {{count}} dalších",
+      "cancelling_one": "{{count}} trenér zrušil",
+      "cancelling_few": "{{count}} trenéři zrušili",
+      "cancelling_many": "{{count}} trenéra zrušilo",
+      "cancelling_other": "{{count}} trenérů zrušilo",
+      "cancellingOn": "Jejich placené tarify končí {{date}}.",
+      "cancellingBetween": "Jejich placené tarify končí mezi {{from}} a {{to}}.",
+      "givenFree_one": "{{count}} tarif zdarma, který jste darovali, končí do 14 dní",
+      "givenFree_few": "{{count}} tarify zdarma, které jste darovali, končí do 14 dní",
+      "givenFree_many": "{{count}} tarifu zdarma, které jste darovali, končí do 14 dní",
+      "givenFree_other": "{{count}} tarifů zdarma, které jste darovali, končí do 14 dní",
+      "givenFreeDetail": "Každý končí k nastavenému datu, poté si trenér vybere tarif.",
+      "promotion": "Akce „{{name}}“ se chýlí ke konci",
+      "promotionUntil": "Trenéři ji mohou uplatnit do {{date}}.",
+      "promotionUses": "Využito {{used}} z {{max}}.",
+      "openCoaches": "Otevřít trenéry",
+      "openPromotion": "Otevřít akci"
+    },
+    "quick": {
+      "title": "Rychlé akce",
+      "findCoach": "Najít trenéra",
+      "searchPlaceholder": "Jméno nebo e-mail",
+      "newPromotion": "Nová akce"
+    }
+  },
+  "adminReports": {
+    "title": "Přehledy",
+    "subtitle": "Součty za všechny trenéry, aktualizované jednou denně. Data jejich klientů zůstávají soukromá.",
+    "stripeDashboard": "Stripe dashboard",
+    "loadError": "Přehledy se nepodařilo načíst.",
+    "retry": "Zkusit znovu",
+    "footnote": "Tržby vycházejí z uhrazených faktur ze Stripe, které si ukládáme průběžně. Poplatky, vratky a výplaty zůstávají ve Stripe dashboardu.",
+    "period": {
+      "label": "Období",
+      "Days30": "30 dní",
+      "Days90": "90 dní",
+      "Months12": "12 měsíců",
+      "window": {
+        "Days30": "posledních 30 dní",
+        "Days90": "posledních 90 dní",
+        "Months12": "posledních 12 měsíců"
+      }
+    },
+    "money": {
+      "title": "Peníze",
+      "subtitle": "Stav k {{day}} · změna oproti stavu k {{against}}",
+      "subtitleNoBaseline": "Stav k {{day}} · zatím není s čím porovnat",
+      "noSnapshot": "Zatím žádný denní snímek",
+      "revenue": "Měsíční tržby",
+      "revenueNote": "Po slevách · plná cena {{full}}",
+      "revenueNoteShort": "Po slevách",
+      "collected": "Přijato tento měsíc",
+      "collectedNote": "Uhrazené faktury ze Stripe tento měsíc",
+      "lost": "Ztraceno zrušeními",
+      "lostNote": "Zrušení: {{count}}",
+      "lostNoteChurn": "Zrušení: {{count}} · odchod {{churn}} %",
+      "average": "Průměr na platícího trenéra",
+      "averageNote": "Měsíční tržby ÷ platící trenéři ({{count}})"
+    },
+    "mrr": {
+      "title": "Měsíční opakované tržby",
+      "subtitle": "Kolik se platícím trenérům účtuje každý měsíc · denní snímky",
+      "afterPromotions": "Po slevách",
+      "fullPrice": "Plná cena",
+      "empty": "V tomto období zatím nejsou žádné snímky.",
+      "chartLabel": "Měsíční opakované tržby po slevách, od {{from}} do {{to}}"
+    },
+    "plans": {
+      "title": "Platící trenéři podle tarifu",
+      "subtitle": "Platících trenérů: {{count}} · účtováno po slevách",
+      "barLabel": "Platící trenéři podle tarifu: {{summary}}",
+      "perMonth": "{{amount}} / měs.",
+      "addOn": "Doplněk druhé role"
+    },
+    "coaches": {
+      "title": "Trenéři",
+      "subtitle": "Registrace, konverze a změny tarifů"
+    },
+    "funnel": {
+      "title": "Cesta nových trenérů",
+      "subtitle": "Trenéři, kteří se zaregistrovali za {{window}}",
+      "signedUp": "Registrace",
+      "emailVerified": "Ověřený e-mail",
+      "chosePlan": "Vybraný tarif",
+      "startedPaidPlan": "Placený tarif",
+      "note": "Procenta porovnávají každý krok s předchozím."
+    },
+    "changes": {
+      "title": "Změny tarifů",
+      "subtitle": "Dopad na měsíční tržby za {{window}}",
+      "upgraded": "Přechod na vyšší tarif",
+      "downgraded": "Přechod na nižší tarif",
+      "cancelled": "Zrušení",
+      "paymentFailed": "Platba selhala",
+      "paymentFailedNote": "Stripe to zkouší znovu",
+      "promotionCodes": "Použité slevové kódy"
+    },
+    "usage": {
+      "title": "Využití",
+      "subtitle": "Používá se produkt",
+      "empty": "Zatím neexistuje žádný denní snímek, takže nejsou k dispozici čísla o využití. Objeví se po prvním snímku.",
+      "activeCoaches": "Aktivní trenéři",
+      "activeCoachesNote": "Přihlášení za posledních 30 dní, ze všech trenérů",
+      "clientsPerCoach": "Klientů na trenéra",
+      "clientsPerCoachNote": "Medián přes všechny trenéry",
+      "atCap": "Trenéři na tarifu Zdarma na limitu",
+      "atCapNote": "Na limitu klientů tarifu Zdarma",
+      "activeClients": "Aktivní klienti v aplikaci",
+      "activeClientsNote": "Otevřeli aplikaci za posledních 7 dní",
+      "planWeeks": "Zveřejněné týdny plánů",
+      "planWeeksNote": "Trénink a výživa, posledních 7 dní"
+    }
+  },
+  "adminPromotions": {
+    "title": "Akce",
+    "subtitle": "Slevy na plány Form Up pro trenéry. Slevy, které trenér nabízí svým klientům, jsou něco jiného.",
+    "newPromotion": "Nová akce",
+    "note": "Každý trenér má vždy jen jednu akci. Týká se celé platby, včetně druhé role.",
+    "loadError": "Akce se nepodařilo načíst.",
+    "retry": "Zkusit znovu",
+    "empty": "Zatím tu nejsou žádné akce.",
+    "saveSuccess": "Akce byla uložena.",
+    "saveError": "Akci se nepodařilo uložit.",
+    "filters": {
+      "label": "Filtr akcí",
+      "All": "Vše",
+      "Active": "Aktivní",
+      "Scheduled": "Naplánované",
+      "Ended": "Ukončené"
+    },
+    "status": {
+      "Active": "Aktivní",
+      "Scheduled": "Naplánovaná",
+      "Ended": "Ukončená"
+    },
+    "table": {
+      "promotion": "Akce",
+      "how": "Jak",
+      "value": "Hodnota",
+      "lasts": "Trvá",
+      "window": "Platnost nabídky",
+      "plans": "Plány",
+      "used": "Využito",
+      "status": "Stav",
+      "everyone": "Pro všechny při platbě",
+      "codeSubline": "Kód",
+      "automatic": "Automaticky",
+      "allPaidPlans": "Všechny placené plány",
+      "actions": "Možnosti",
+      "usedOf": "{{count}} z {{max}}"
+    },
+    "lasts": {
+      "firstMonth": "První měsíc",
+      "months_one": "{{count}} měsíc",
+      "months_few": "{{count}} měsíce",
+      "months_many": "{{count}} měsíce",
+      "months_other": "{{count}} měsíců",
+      "forever": "Navždy"
+    },
+    "window": {
+      "range": "{{from}} – {{to}}",
+      "noEnd": "Bez konce"
+    },
+    "plansLoadError": "Tarify se nepodařilo načíst. Zkuste to prosím znovu.",
+    "noPaidPlans": "Momentálně není nabízen žádný placený tarif, takže promo akce nemůže žádný tarif pokrývat.",
+    "end": {
+      "action": "Ukončit {{name}}",
+      "tooltip": "Ukončit akci",
+      "title": "Ukončit akci „{{name}}“?",
+      "description": "Od dnešního dne se přestane uplatňovat při platbě a žádný další trenér ji už nezíská. Její stav se změní na Ukončená.",
+      "note_one": "Trenér, který ji už má, si slevu ponechá, dokud neskončí.",
+      "note_few": "{{count}} trenéři, kteří ji už mají, si slevu ponechají, dokud neskončí.",
+      "note_many": "{{count}} trenéra, kteří ji už mají, si slevu ponechají, dokud neskončí.",
+      "note_other": "{{count}} trenérů, kteří ji už mají, si slevu ponechají, dokud neskončí.",
+      "confirm": "Ukončit akci",
+      "success": "Akce byla ukončena.",
+      "notFound": "Tato akce už neexistuje.",
+      "error": "Akci se nepodařilo ukončit."
+    },
+    "drawer": {
+      "titleNew": "Nová akce",
+      "description": "Při uložení se vytvoří ve Stripe",
+      "sectionPromotion": "Akce",
+      "name": "Název · česky",
+      "nameEn": "Název · anglicky",
+      "nameDe": "Název · německy",
+      "nameHint": "Trenéři vidí název ve svém jazyce ve výběru plánu a v Nastavení; bez překladu vidí český. Český název je zároveň název kupónu ve Stripe a může být i na jejich faktuře.",
+      "type": "Typ",
+      "typePercent": "Procenta",
+      "typeFixed": "Pevná částka",
+      "value": "Hodnota",
+      "sectionHow": "Jak ji trenéři získají",
+      "claimed": "Uplatnění",
+      "automatic": "Automaticky pro všechny",
+      "withCode": "S kódem",
+      "code": "Kód",
+      "codeHint": "Písmena a čísla. Na velikosti písmen nezáleží.",
+      "sectionLasts": "Jak dlouho trvá u trenéra",
+      "lasts": "Trvá",
+      "firstMonth": "První měsíc",
+      "months": "Několik měsíců",
+      "forever": "Navždy",
+      "monthCount": "Počet měsíců",
+      "monthCountHint": "Od {{min}} do {{max}}.",
+      "billingPeriod": "Fakturační období",
+      "periodMonthly": "Měsíčně",
+      "periodAnnual": "Ročně",
+      "periodBoth": "Obojí",
+      "annualHint": "U ročních plánů akce na několik měsíců sníží jen první roční fakturu. Akce navždy sníží každou roční fakturu.",
+      "sectionWindow": "Platnost nabídky",
+      "claimFrom": "Uplatnit od",
+      "claimUntil": "Uplatnit do",
+      "optional": "Volitelné",
+      "sectionLimits": "Plány a omezení",
+      "plans": "Plány",
+      "maxUses": "Max. počet použití",
+      "maxUsesHint": "Prázdné = bez omezení",
+      "newCoachesOnly": "Jen noví trenéři",
+      "oneUsePerCoach": "Jedno použití na trenéra",
+      "coversBill": "Týká se celé platby, včetně druhé role",
+      "save": "Uložit akci",
+      "saving": "Ukládám…"
+    },
+    "validation": {
+      "nameRequired": "Zadejte název.",
+      "nameTooLong": "Název může mít nejvýše 200 znaků.",
+      "valuePercent": "Zadejte celé procento od 1 do 100.",
+      "valueAmount": "Zadejte částku větší než 0.",
+      "codeRequired": "Zadejte kód.",
+      "codeInvalid": "Použijte jen písmena a čísla, nejvýše 50 znaků.",
+      "codeTaken": "Tento kód už používá jiná akce, která neskončila.",
+      "monthsInvalid": "Zadejte celý počet měsíců od 2 do 36.",
+      "claimFromRequired": "Vyberte datum začátku.",
+      "windowInvalid": "Datum konce musí být po začátku a v budoucnu.",
+      "plansRequired": "Vyberte alespoň jeden plán.",
+      "maxUsesInvalid": "Zadejte celé číslo od 1, nebo pole nechte prázdné."
     }
   },
   "pricing": {
@@ -7161,7 +7744,12 @@
       "clientCap_many": "Až {{count}} klienta",
       "clientCap_other": "Až {{count}} klientů",
       "featureCount": "{{count}} z {{total}} funkcí",
-      "seeAll": "zobrazit vše"
+      "seeAll": "zobrazit vše",
+      "thenAnnual": "v prvním roce, poté {{price}}"
+    },
+    "interval": {
+      "annualNote": "Platba jednou za rok. U každého tarifu vidíte, kolik ušetříte oproti 12 měsíčním platbám.",
+      "annualFooter": "Platba ročně přes Stripe. Snížení tarifu, přechod na měsíční platbu nebo zrušení se projeví na konci zaplaceného roku."
     },
     "table": {
       "title": "Porovnání funkcí",
@@ -7187,6 +7775,60 @@
       "automations": { "label": "Automatizace", "hint": "Připomínky a zprávy, které se odesílají samy" },
       "packages": { "label": "Balíčky", "hint": "Nabízejte placené balíčky služeb" },
       "payments": { "label": "Platby klientů", "hint": "Platební žádosti s QR kódem" }
+    }
+  },
+  "checkIns": {
+    "title": "Check-iny",
+    "subtitle": "Týdenní check-iny od všech vašich klientů. Odpověď zůstává nová, dokud ji neoznačíte jako posouzenou.",
+    "retry": "Zkusit znovu",
+    "loadError": "Check-iny se nepodařilo načíst.",
+    "empty": "Pro tento týden zatím nejsou žádné check-iny. Objeví se tu, jakmile se klientům odešlou.",
+    "emptyFilter": "Tomuto filtru neodpovídá žádný check-in.",
+    "timeZoneNote": "Časy se řídí časovým pásmem každého klienta",
+    "footer": "Zobrazeno {{shown}} z {{total}} · Otevřít odpovědi zobrazí check-in na záložce Formuláře u klienta",
+    "markReviewedError": "Check-in se nepodařilo označit jako posouzený.",
+    "week": {
+      "group": "Týden",
+      "previous": "Předchozí týden",
+      "next": "Další týden",
+      "label": "Týden {{week}} · {{range}}"
+    },
+    "totals": {
+      "answered": "Zodpovězeno",
+      "answeredValue": "{{answered}} z {{total}}",
+      "answeredSubline": "{{percent}} % odeslaných check-inů",
+      "notReviewedSubline": "Odpovědi čekající na vás",
+      "missedSubline": "Čas na odpověď vypršel",
+      "waitingSubline": "Klienti ještě mohou odpovědět"
+    },
+    "filters": {
+      "label": "Filtrovat check-iny",
+      "all": "Vše"
+    },
+    "status": {
+      "notReviewed": "Neposouzeno",
+      "missed": "Zmeškáno",
+      "waiting": "Čeká se",
+      "reviewed": "Posouzeno"
+    },
+    "table": {
+      "client": "Klient",
+      "form": "Formulář",
+      "sent": "Odesláno",
+      "answered": "Zodpovězeno",
+      "status": "Stav",
+      "actions": "Akce"
+    },
+    "row": {
+      "canAnswerUntil": "Může odpovědět do {{date}}",
+      "windowEnded": "Čas na odpověď skončil {{date}}",
+      "reviewedOn": "Posouzeno {{date}}",
+      "noAnswer": "—"
+    },
+    "actions": {
+      "openAnswers": "Otevřít odpovědi",
+      "markReviewed": "Označit jako posouzené",
+      "writeTo": "Napsat: {{name}}"
     }
   }
 }

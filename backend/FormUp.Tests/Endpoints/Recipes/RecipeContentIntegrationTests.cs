@@ -17,7 +17,7 @@ namespace FormUp.Tests.Endpoints.Recipes;
 /// concurrency. The Mongo mock used by the unit tests ignores filters, so none of this can be
 /// proven there.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class RecipeContentIntegrationTests(FitnessApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

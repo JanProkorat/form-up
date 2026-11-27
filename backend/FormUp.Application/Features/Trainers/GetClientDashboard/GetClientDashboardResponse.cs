@@ -77,6 +77,12 @@ public class GetClientDashboardResponse
     public bool IsOutsidePlan { get; set; }
 
     /// <summary>
+    /// The client's avatar, if uploaded. Read straight off <c>ApplicationUser.AvatarBlobUrl</c> —
+    /// same as <c>GetClientsResponse</c>, no presigning at this layer.
+    /// </summary>
+    public string? AvatarBlobUrl { get; set; }
+
+    /// <summary>
     /// Derived Active/Paused/Archived status — computed by
     /// <see cref="Domain.Services.ClientStatusClassifier.Classify"/>, the same derivation
     /// <c>GetClientsEndpoint</c> uses, so this value always agrees with the caller's clients-list

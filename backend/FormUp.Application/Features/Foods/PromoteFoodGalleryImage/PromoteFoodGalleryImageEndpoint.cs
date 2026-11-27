@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using FastEndpoints;
+using FormUp.Application.Domain.Services;
 using FormUp.Application.Domain.Authorization;
 using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Documents;
@@ -22,7 +23,7 @@ public class PromoteFoodGalleryImageEndpoint(IMongoContext mongo) : Endpoint<Pro
     public override void Configure()
     {
         Post("/foods/{FoodId}/gallery/promote");
-        Roles(AppRoles.Nutritionist);
+        Roles(AppRoles.Nutritionist, AppRoles.Admin);
         Summary(s =>
         {
             s.Summary = "Promote a food gallery image to main";
@@ -47,9 +48,11 @@ public class PromoteFoodGalleryImageEndpoint(IMongoContext mongo) : Endpoint<Pro
             return;
         }
 
-        var nutritionistId = Guid.Parse(userId);
+        var scope = LibraryCallerScope.From(User, Guid.Parse(userId));
+        var nutritionistId = scope.UserId;
 
-        if (await this.RespondIfCoachFeatureNotEntitledAsync(
+        if (!scope.SystemOnly
+            && await this.RespondIfCoachFeatureNotEntitledAsync(
                 nutritionistId, entitlements => entitlements.CanUseIngredients,
                 "The current subscription does not include ingredients.", ct))
         {
@@ -68,7 +71,13 @@ public class PromoteFoodGalleryImageEndpoint(IMongoContext mongo) : Endpoint<Pro
             return;
         }
 
-        if (food.NutritionistId != nutritionistId)
+        if (scope.HidesFood(food.NutritionistId))
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        if (!scope.OwnsFood(food.NutritionistId))
         {
             this.ThrowErrorWithCode(ErrorCodes.FoodNotOwned, "You can only change images on your own custom foods.");
             return;
@@ -103,7 +112,7 @@ public class PromoteFoodGalleryImageEndpoint(IMongoContext mongo) : Endpoint<Pro
         // picture change is not clobbered.
         var result = await mongo.Foods.UpdateOneAsync(
             activeFood
-                & Builders<Food>.Filter.Eq(f => f.NutritionistId, nutritionistId)
+                & scope.FoodOwnerFilter()
                 & Builders<Food>.Filter.Eq(f => f.ImageUrl, food.ImageUrl)
                 & Builders<Food>.Filter.Eq(f => f.GalleryImageUrls, food.GalleryImageUrls),
             Builders<Food>.Update

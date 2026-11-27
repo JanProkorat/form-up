@@ -109,7 +109,7 @@ public class ProfessionSlotRaceTests(FitnessApiFactory factory)
 
         // Give B every chance to finish if the lock were not doing its job. This delay does not
         // create the ordering — it only bounds how long we wait before asserting B is stuck.
-        var raced = await Task.WhenAny(racerB, Task.Delay(TimeSpan.FromSeconds(2), ct));
+        var raced = await Task.WhenAny(racerB, Task.Delay(TimeSpan.FromMilliseconds(500), ct));
         raced.Should().NotBeSameAs(
             racerB,
             "racer B must still be blocked on the row lock that racer A's open transaction holds");

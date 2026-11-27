@@ -10,6 +10,7 @@ import NotificationsCard from '@/components/settings/NotificationsCard';
 import PaymentsCard from '@/components/settings/payments/PaymentsCard';
 import PlanBillingCard from '@/components/settings/PlanBillingCard';
 import RolesCard from '@/components/settings/RolesCard';
+import PastDueBanner from '@/components/subscription/PastDueBanner';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function SettingsPage() {
@@ -42,6 +43,7 @@ export default function SettingsPage() {
 
   return (
     <div className="flex w-full flex-col gap-5.5">
+      <PastDueBanner />
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="flex flex-col gap-1.5">
           <span className="flex items-center gap-1.75 text-label font-semibold tracking-label text-marker-text uppercase">

@@ -15,7 +15,10 @@ namespace FormUp.Application.Features.Questionnaires.GetClientResponses;
 /// specific client, scoped to the requesting professional. Supports response
 /// history when a coach sends multiple questionnaires over time.
 /// </summary>
-public class GetClientResponsesEndpoint(IApplicationDbContext db, IClientLinkAuthorizationService linkAuthorizationService)
+public class GetClientResponsesEndpoint(
+    IApplicationDbContext db,
+    IClientLinkAuthorizationService linkAuthorizationService,
+    IBlobStorageService blobStorage)
     : EndpointWithoutRequest<GetClientResponsesResponse>
 {
     public override void Configure()
@@ -76,6 +79,19 @@ public class GetClientResponsesEndpoint(IApplicationDbContext db, IClientLinkAut
             .OrderByDescending(r => r.SubmittedAt ?? r.DateCreated)
             .ToListAsync(ct);
 
+        // Stored FileUrl values are permanent unsigned references; only signed URLs are returned.
+        var signedFileUrls = new Dictionary<string, string>();
+
+        foreach (var storedUrl in responses
+                     .Where(r => r.Status == QuestionnaireResponseStatus.Submitted)
+                     .SelectMany(r => r.Answers)
+                     .Select(a => a.FileUrl)
+                     .Where(url => !string.IsNullOrEmpty(url))
+                     .Distinct())
+        {
+            signedFileUrls[storedUrl!] = await blobStorage.GenerateReadUrlAsync(storedUrl, ct) ?? string.Empty;
+        }
+
         await Send.OkAsync(new GetClientResponsesResponse
         {
             Responses = responses.Select(r =>
@@ -106,7 +122,7 @@ public class GetClientResponsesEndpoint(IApplicationDbContext db, IClientLinkAut
                                 ValueText = a.ValueText,
                                 ValueNumber = a.ValueNumber,
                                 ValueJson = a.ValueJson,
-                                FileUrl = a.FileUrl,
+                                FileUrl = string.IsNullOrEmpty(a.FileUrl) ? a.FileUrl : signedFileUrls[a.FileUrl],
                                 SectionLabel = sectionLabel,
                                 SectionOrder = sectionOrder,
                             };

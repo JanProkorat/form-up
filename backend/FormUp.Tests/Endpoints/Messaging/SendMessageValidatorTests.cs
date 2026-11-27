@@ -59,6 +59,27 @@ public class SendMessageValidatorTests
     // (rules/validation.md#testing-validators).
 
     [Fact]
+    public void Validate_EmptyGuidClientMessageId_Fails()
+    {
+        var request = TextOnlyRequest();
+        request.ClientMessageId = Guid.Empty;
+
+        var result = new SendMessageValidator().TestValidate(request);
+
+        result.Errors.Should().ContainSingle(e => e.ErrorMessage == "ClientMessageId must not be an empty GUID.");
+    }
+
+    [Fact]
+    public void Validate_RealOrAbsentClientMessageId_Passes()
+    {
+        var request = TextOnlyRequest();
+        new SendMessageValidator().TestValidate(request).ShouldNotHaveAnyValidationErrors();
+
+        request.ClientMessageId = Guid.NewGuid();
+        new SendMessageValidator().TestValidate(request).ShouldNotHaveAnyValidationErrors();
+    }
+
+    [Fact]
     public void Validate_NeitherTextNorImage_FailsOnText()
     {
         var request = TextOnlyRequest();

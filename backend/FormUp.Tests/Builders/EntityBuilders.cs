@@ -973,6 +973,29 @@ public static class CheckInFixtures
     }
 
     /// <summary>
+    /// Puts one coach on the Free plan (cap 2) with <paramref name="clientCount"/> linked clients, activated
+    /// 10 days apart, oldest first; each client gets a scenario with its own check-in form.
+    /// </summary>
+    /// <param name="factory">The test host.</param>
+    /// <param name="clientCount">How many clients to link.</param>
+    public static async Task<List<CheckInScenario>> CreateFreePlanCoachScenariosAsync(
+        FitnessApiFactory factory, int clientCount)
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, "free");
+
+        var scenarios = new List<CheckInScenario>();
+
+        for (var i = 0; i < clientCount; i++)
+        {
+            scenarios.Add(await CreateScenarioAsync(
+                factory, coach, activatedAtUtc: DateTime.UtcNow.AddDays(-(100 - i * 10))));
+        }
+
+        return scenarios;
+    }
+
+    /// <summary>
     /// Gives an existing link a check-in form owned by the coach.
     /// </summary>
     /// <param name="factory">The test host.</param>
@@ -1001,6 +1024,32 @@ public static class CheckInFixtures
     }
 
     /// <summary>
+    /// Adds a further check-in form owned by the scenario's coach and returns its ids.
+    /// </summary>
+    /// <param name="factory">The test host.</param>
+    /// <param name="scenario">The scenario whose coach owns the form.</param>
+    /// <param name="title">The form title.</param>
+    public static async Task<(long Id, Guid PublicId)> AddFormAsync(
+        FitnessApiFactory factory, CheckInScenario scenario, string title)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var form = new Questionnaire
+        {
+            PublicId = Guid.NewGuid(),
+            ProfessionalId = scenario.Coach.UserId,
+            Title = title,
+            IsActive = true,
+            Type = QuestionnaireType.CheckIn,
+            DateCreated = DateTime.UtcNow,
+        };
+        db.Questionnaires.Add(form);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        return (form.Id, form.PublicId);
+    }
+
+    /// <summary>
     /// Adds one check-in response and returns its public id.
     /// </summary>
     /// <param name="factory">The test host.</param>
@@ -1010,6 +1059,7 @@ public static class CheckInFixtures
     /// <param name="status">The response status.</param>
     /// <param name="submittedAt">When it was submitted, for a submitted response.</param>
     /// <param name="reviewedAt">When the coach opened it, if they did.</param>
+    /// <param name="questionnaireId">Internal id of the form to answer; the scenario's form when null.</param>
     public static async Task<Guid> AddCheckInAsync(
         FitnessApiFactory factory,
         CheckInScenario scenario,
@@ -1017,10 +1067,11 @@ public static class CheckInFixtures
         DateTime dueAtUtc,
         QuestionnaireResponseStatus status = QuestionnaireResponseStatus.Pending,
         DateTime? submittedAt = null,
-        DateTime? reviewedAt = null)
+        DateTime? reviewedAt = null,
+        long? questionnaireId = null)
     {
         var builder = EntityBuilder.QuestionnaireResponse
-            .ForQuestionnaire(scenario.QuestionnaireId)
+            .ForQuestionnaire(questionnaireId ?? scenario.QuestionnaireId)
             .OnLink(scenario.LinkId)
             .FromClient(scenario.Client.UserId)
             .FromProfessional(scenario.Coach.UserId)
@@ -1114,12 +1165,14 @@ public static class SubscriptionPlanPriceBuilder
     /// is saved together with the plan.
     /// </summary>
     /// <param name="plan">The plan to give a price row.</param>
-    public static SubscriptionPlanPrice OpenPriceFor(SubscriptionPlan plan)
+    /// <param name="interval">Billing cadence of the row.</param>
+    public static SubscriptionPlanPrice OpenPriceFor(SubscriptionPlan plan, BillingInterval interval = BillingInterval.Monthly)
     {
         var price = new SubscriptionPlanPrice
         {
             SubscriptionPlanId = 0,
             SubscriptionPlan = plan,
+            BillingInterval = interval,
             PriceMinorUnits = plan.PriceMinorUnits,
             SecondRoleAddOnPriceMinorUnits = plan.SecondRoleAddOnPriceMinorUnits,
             Currency = plan.Currency,
@@ -1127,6 +1180,34 @@ public static class SubscriptionPlanPriceBuilder
         };
         plan.Prices.Add(price);
         return price;
+    }
+
+    /// <summary>
+    /// Adds an open Annual price row to an existing plan, next to its open Monthly row, without touching the plan's own
+    /// price fields (which mirror the Monthly row).
+    /// </summary>
+    /// <param name="factory">The test host.</param>
+    /// <param name="planCode">Code of the plan to sell annually.</param>
+    /// <param name="priceMinorUnits">Annual plan price per year.</param>
+    /// <param name="addOnMinorUnits">Annual second-role add-on price per year, or null.</param>
+    public static async Task AddOpenAnnualPriceAsync(
+        FitnessApiFactory factory, string planCode, long priceMinorUnits, long? addOnMinorUnits = null)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var plan = await db.SubscriptionPlans.SingleAsync(p => p.Code == planCode, TestContext.Current.CancellationToken);
+
+        db.SubscriptionPlanPrices.Add(new SubscriptionPlanPrice
+        {
+            SubscriptionPlanId = plan.Id,
+            BillingInterval = BillingInterval.Annual,
+            PriceMinorUnits = priceMinorUnits,
+            SecondRoleAddOnPriceMinorUnits = addOnMinorUnits,
+            Currency = plan.Currency,
+            ValidFrom = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
     /// <summary>
@@ -1161,7 +1242,6 @@ public static class SubscriptionPlanPriceBuilder
             MaxActiveClients = 2,
             PriceMinorUnits = 0,
             Currency = "CZK",
-            BillingInterval = BillingInterval.Monthly,
             IsActive = true,
         };
         OpenPriceFor(plan);
@@ -1215,10 +1295,9 @@ public static class PaidPlanBuilder
             PriceMinorUnits = priceMinorUnits,
             SecondRoleAddOnPriceMinorUnits = addOnMinorUnits,
             Currency = currency,
-            BillingInterval = interval,
             IsActive = true,
         };
-        SubscriptionPlanPriceBuilder.OpenPriceFor(plan);
+        SubscriptionPlanPriceBuilder.OpenPriceFor(plan, interval);
         db.SubscriptionPlans.Add(plan);
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -1243,6 +1322,7 @@ public static class CoachSubscriptionBuilder
     /// <param name="givenFreeAt">When an admin gave the plan for free, or null when it is not a gift.</param>
     /// <param name="cancelAtPeriodEnd">True when the renewal is cancelled.</param>
     /// <param name="currentPeriodEndsAt">When the current paid period ends.</param>
+    /// <param name="interval">Which of the plan's open price rows the coach is on.</param>
     public static async Task SubscribeToPlanAsync(
         FitnessApiFactory factory,
         Actor coach,
@@ -1252,14 +1332,18 @@ public static class CoachSubscriptionBuilder
         bool paysSecondRoleAddOn = false,
         DateTimeOffset? givenFreeAt = null,
         bool cancelAtPeriodEnd = false,
-        DateTimeOffset? currentPeriodEndsAt = null)
+        DateTimeOffset? currentPeriodEndsAt = null,
+        BillingInterval? interval = null)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
+        // Without an interval the Monthly row wins, so a plan sold only annually (PaidPlanBuilder) still resolves.
         var price = await db.SubscriptionPlanPrices
-            .Where(p => p.SubscriptionPlan.Code == planCode && p.ValidTo == null)
-            .SingleAsync(TestContext.Current.CancellationToken);
+            .Where(p => p.SubscriptionPlan.Code == planCode && p.ValidTo == null
+                        && (interval == null || p.BillingInterval == interval))
+            .OrderBy(p => p.BillingInterval)
+            .FirstAsync(TestContext.Current.CancellationToken);
 
         await ReplaceSubscriptionAsync(db, coach);
         db.CoachSubscriptions.Add(new CoachSubscription
@@ -1334,7 +1418,6 @@ public static class CoachSubscriptionBuilder
             MaxActiveClients = maxActiveClients,
             PriceMinorUnits = 99900,
             Currency = "CZK",
-            BillingInterval = BillingInterval.Monthly,
             IsActive = true,
         };
         var price = SubscriptionPlanPriceBuilder.OpenPriceFor(plan);
@@ -1386,7 +1469,6 @@ public static class CoachSubscriptionBuilder
             CanUsePackages = true,
             PriceMinorUnits = 99900,
             Currency = "CZK",
-            BillingInterval = BillingInterval.Monthly,
             IsActive = true,
         };
         configure(plan);
@@ -1432,7 +1514,6 @@ public static class CoachSubscriptionBuilder
             CanUseAutomations = true,
             PriceMinorUnits = 99900,
             Currency = "CZK",
-            BillingInterval = BillingInterval.Monthly,
             IsActive = true,
         };
         var price = SubscriptionPlanPriceBuilder.OpenPriceFor(plan);
@@ -1470,4 +1551,99 @@ public static class EntitlementServiceBuilder
     /// <param name="db">The database context the service reads.</param>
     public static FormUp.Application.Domain.Services.EntitlementService For(IApplicationDbContext db) =>
         new(db, TimeProvider.System, Microsoft.Extensions.Logging.Abstractions.NullLogger<FormUp.Application.Domain.Services.EntitlementService>.Instance);
+}
+
+/// <summary>
+/// Writes promotions and their redemptions straight to the database. Automatic promotions are global (one wins per coach),
+/// so a test that creates one calls <see cref="ClearAsync"/> before and after to stay out of other tests' way.
+/// </summary>
+public static class PromotionBuilder
+{
+    /// <summary>
+    /// Creates a promotion, a code-mode 20 % one for the given plans from yesterday with no end by default, and returns it.
+    /// </summary>
+    /// <param name="factory">The test host.</param>
+    /// <param name="planCodes">Codes of the plans it covers.</param>
+    /// <param name="mode">Automatic or code.</param>
+    /// <param name="configure">Adjusts the promotion before it is saved.</param>
+    public static async Task<Promotion> CreateAsync(
+        FitnessApiFactory factory,
+        IEnumerable<string> planCodes,
+        PromotionMode mode = PromotionMode.Code,
+        Action<Promotion>? configure = null)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var suffix = Guid.NewGuid().ToString("N");
+        var code = mode == PromotionMode.Code ? $"CODE{suffix[..12].ToUpperInvariant()}" : null;
+        var promotion = new Promotion
+        {
+            Name = $"Promotion {suffix[..8]}",
+            Kind = PromotionKind.Percent,
+            Value = 20,
+            Mode = mode,
+            Code = code,
+            CodeNormalized = code,
+            Duration = PromotionDuration.Forever,
+            ClaimFrom = DateTimeOffset.UtcNow.AddDays(-1),
+            PlanCodes = planCodes.ToList(),
+            StripeCouponId = $"coupon_test_{suffix}",
+            StripePromotionCodeId = code is null ? null : $"promo_test_{suffix}",
+        };
+        configure?.Invoke(promotion);
+
+        db.Promotions.Add(promotion);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        return promotion;
+    }
+
+    /// <summary>
+    /// Records that a coach claimed a promotion.
+    /// </summary>
+    /// <param name="factory">The test host.</param>
+    /// <param name="promotionId">The promotion's internal id.</param>
+    /// <param name="profileId">The coach's profile id.</param>
+    public static async Task AddRedemptionAsync(FitnessApiFactory factory, long promotionId, long profileId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        db.PromotionRedemptions.Add(new PromotionRedemption
+        {
+            PromotionId = promotionId,
+            ProfessionalProfileId = profileId,
+            RedeemedAt = DateTimeOffset.UtcNow,
+        });
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>
+    /// Marks the coach as having paid before.
+    /// </summary>
+    /// <param name="factory">The test host.</param>
+    /// <param name="profileId">The coach's profile id.</param>
+    public static async Task MarkPaidBeforeAsync(FitnessApiFactory factory, long profileId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        await db.CoachSubscriptions
+            .Where(cs => cs.ProfessionalProfileId == profileId)
+            .ExecuteUpdateAsync(
+                setters => setters.SetProperty(cs => cs.FirstPaidAt, DateTimeOffset.UtcNow.AddDays(-30)),
+                TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>
+    /// Deletes every promotion (redemptions go with them; coaches' current promotion is cleared).
+    /// </summary>
+    /// <param name="factory">The test host.</param>
+    public static async Task ClearAsync(FitnessApiFactory factory)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        await db.Promotions.ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+    }
 }

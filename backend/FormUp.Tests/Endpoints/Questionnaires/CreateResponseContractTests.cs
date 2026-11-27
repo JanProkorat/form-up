@@ -5,7 +5,7 @@ using FluentAssertions;
 namespace FormUp.Tests.Endpoints.Questionnaires;
 
 /// <summary>Swagger contract of POST /client/questionnaire/response, which the generated clients are built from.</summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class CreateResponseContractTests(FitnessApiFactory factory)
 {
     [Fact]

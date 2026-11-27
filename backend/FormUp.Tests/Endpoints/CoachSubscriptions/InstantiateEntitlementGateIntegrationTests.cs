@@ -15,7 +15,7 @@ namespace FormUp.Tests.Endpoints.CoachSubscriptions;
 /// The two template-instantiate endpoints answer 403 SUBSCRIPTION_REQUIRED for a coach whose plan lacks plan creation,
 /// but only after the template and the client link resolved: a missing template still answers 404.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class InstantiateEntitlementGateIntegrationTests(FitnessApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

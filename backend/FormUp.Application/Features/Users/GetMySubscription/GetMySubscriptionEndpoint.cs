@@ -1,9 +1,13 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FormUp.Application.Domain.Constants;
+using FormUp.Application.Domain.Enums;
+using FormUp.Application.Domain.Interfaces;
 using FormUp.Application.Domain.Services;
 using FormUp.Application.Infrastructure.Data;
+using FormUp.Application.Infrastructure.Services.Billing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace FormUp.Application.Features.Users.GetMySubscription;
 
@@ -13,8 +17,14 @@ namespace FormUp.Application.Features.Users.GetMySubscription;
 /// <param name="db">Application database context.</param>
 /// <param name="entitlementService">Resolves entitlements, client usage and the second-role state.</param>
 /// <param name="timeProvider">Clock.</param>
+/// <param name="billingOptions">Billing settings, for the tax mode.</param>
+/// <param name="coachRoleStatus">Resolves the coach roles that are not removed, for the scheduled plan's add-on line.</param>
 internal sealed class GetMySubscriptionEndpoint(
-    IApplicationDbContext db, EntitlementService entitlementService, TimeProvider timeProvider)
+    IApplicationDbContext db,
+    EntitlementService entitlementService,
+    TimeProvider timeProvider,
+    IOptions<BillingOptions> billingOptions,
+    ICoachRoleStatus coachRoleStatus)
     : EndpointWithoutRequest<GetMySubscriptionResponse>
 {
     /// <inheritdoc />
@@ -25,16 +35,19 @@ internal sealed class GetMySubscriptionEndpoint(
         Summary(s =>
         {
             s.Summary = "Get my coach subscription";
-            s.Description = "The caller's plan, status, active-client usage and limit, second-role state, monthly price lines and the " +
+            s.Description = "The caller's plan, status, secondRoleAddOnEndsAt (when a removed second role's add-on stops being billed, " +
+                            "or null), active-client usage and limit, second-role state, price lines with their billingInterval (the subscription's own price row; Monthly on Free) and the " +
                             "feature flags that currently apply. A coach with no subscription is shown on the Free plan with no status. When the paid " +
-                            "plan has lapsed the plan fields read as Free, the lapsed plan's names and end date are returned separately, " +
+                            "plan has lapsed the plan fields read as Free with no status, period end or cancelAtPeriodEnd (all empty once a plan has ended), " +
+                            "the lapsed plan's names and end date are returned separately, " +
                             "the active-client count is the kept clients and the over-cap count is reported. When an admin-given plan has ended and no plan " +
                             "was chosen yet, planChoiceRequired is true (never together with isLapsed), the plan fields still describe the ended plan " +
                             "and its names are repeated as the ended-plan names. A coach on an explicit Free plan with clients over the cap gets the " +
                             "kept count and the over-cap count too, as does a coach on a smaller paid plan than their client count. " +
                             "keepClientsChoiceRequired is true while some over-cap client has no kept or released decision yet " +
-                            "(never together with planChoiceRequired).";
-            s.Response<GetMySubscriptionResponse>(StatusCodes.Status200OK, "The caller's subscription block");
+                            "(never together with planChoiceRequired). scheduledPlan is the plan that starts when the period ends " +
+                            "(a scheduled downgrade, or Free when the subscription is set to end) with its names, price lines and start date, or null.";
+            s.Response<GetMySubscriptionResponse>(StatusCodes.Status200OK, "The caller's subscription block, with the current promotion and its display-only discount and the plan scheduled to start next while the paid subscription is live");
             s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
             s.Response(StatusCodes.Status403Forbidden, "The caller is not a trainer or nutritionist");
             s.Response(StatusCodes.Status404NotFound, "The caller has no professional profile, or the Free plan is missing");
@@ -70,6 +83,9 @@ internal sealed class GetMySubscriptionEndpoint(
             return;
         }
 
+        response.TaxMode = billingOptions.Value.TaxMode;
+        response.Promotion = await LoadPromotionAsync(profileId.Value, response, ct);
+
         var entitlements = await entitlementService.GetEntitlementsAsync(profileId.Value, ct);
 
         var keepState = await entitlementService.GetKeepClientsStateAsync(profileId.Value, ct);
@@ -86,6 +102,11 @@ internal sealed class GetMySubscriptionEndpoint(
         else
         {
             response.ActiveClientCount = await entitlementService.GetActiveClientCountAsync(profileId.Value, ct);
+        }
+
+        if (!keepState.IsLapsed)
+        {
+            response.ScheduledPlan = await LoadScheduledPlanAsync(profileId.Value, userId, response, ct);
         }
 
         if (keepState.IsPlanChoiceRequired)
@@ -121,8 +142,191 @@ internal sealed class GetMySubscriptionEndpoint(
     }
 
     /// <summary>
+    /// The promotion discounting the coach's live provider subscription, or null, with the display-only discount worked out
+    /// from the response's own price lines. A subscription that is not live (Free, canceled, incomplete) shows none.
+    /// </summary>
+    private async Task<CurrentPromotionDto?> LoadPromotionAsync(long profileId, GetMySubscriptionResponse response, CancellationToken ct)
+    {
+        if (response.Status is not (SubscriptionStatus.Active or SubscriptionStatus.Trialing or SubscriptionStatus.PastDue))
+        {
+            return null;
+        }
+
+        var current = await db.CoachSubscriptions
+            .AsNoTracking()
+            .Where(cs => cs.ProfessionalProfileId == profileId && cs.CurrentPromotionId != null)
+            .Select(cs => new { Promotion = cs.CurrentPromotion!, cs.CurrentPromotionEndsAt })
+            .FirstOrDefaultAsync(ct);
+
+        if (current is null)
+        {
+            return null;
+        }
+
+        var planLine = response.PriceLines.FirstOrDefault(line => line.Kind == SubscriptionPriceLineKind.Plan);
+        var addOnLine = response.PriceLines.FirstOrDefault(line => line.Kind == SubscriptionPriceLineKind.SecondRoleAddOn);
+        var (discount, discountedTotal) = planLine is null
+            ? (0L, 0L)
+            : PromotionPricing.ForSubscription(
+                current.Promotion,
+                response.PlanCode,
+                planLine.Currency,
+                response.BillingInterval,
+                planLine.AmountMinorUnits,
+                addOnLine?.AmountMinorUnits);
+
+        return new CurrentPromotionDto
+        {
+            Name = current.Promotion.Name,
+            NameEn = current.Promotion.NameEn,
+            NameDe = current.Promotion.NameDe,
+            Kind = current.Promotion.Kind,
+            Value = current.Promotion.Value,
+            Currency = current.Promotion.Currency,
+            Duration = current.Promotion.Duration,
+            DurationMonths = current.Promotion.DurationMonths,
+            BillingPeriod = current.Promotion.BillingPeriod,
+            EndsAt = current.CurrentPromotionEndsAt,
+            DiscountMinorUnits = discount,
+            DiscountedTotalMinorUnits = discountedTotal,
+        };
+    }
+
+    /// <summary>
+    /// The plan that starts when the period ends, read from our own row: Free when the subscription is set to end, else the
+    /// price a downgrade is scheduled to. Null when nothing is scheduled or the subscription is not live.
+    /// </summary>
+    private async Task<ScheduledPlanDto?> LoadScheduledPlanAsync(
+        long profileId, Guid userId, GetMySubscriptionResponse response, CancellationToken ct)
+    {
+        if (response.Status is not (SubscriptionStatus.Active or SubscriptionStatus.Trialing or SubscriptionStatus.PastDue))
+        {
+            return null;
+        }
+
+        var row = await db.CoachSubscriptions
+            .AsNoTracking()
+            .Where(cs => cs.ProfessionalProfileId == profileId)
+            .Select(cs => new
+            {
+                cs.CancelAtPeriodEnd,
+                cs.PendingSubscriptionPlanPriceId,
+                cs.CurrentPeriodEndsAt,
+                cs.GivenFreeAt,
+                cs.FreeUntil,
+                cs.RenewalCancelledByAdminAt,
+                HasProviderSubscription = cs.ExternalSubscriptionId != null,
+                IsDisabling = cs.ProfessionalProfile.CoachAccountActiveUntil != null,
+            })
+            .FirstOrDefaultAsync(ct);
+
+        if (row is null)
+        {
+            return null;
+        }
+
+        var now = timeProvider.GetUtcNow();
+        var cancellable = row.HasProviderSubscription
+                          && !(row.GivenFreeAt is not null && (row.FreeUntil is null || row.FreeUntil > now))
+                          && !row.IsDisabling
+                          && row.RenewalCancelledByAdminAt is null;
+
+        if (row.CancelAtPeriodEnd)
+        {
+            var free = await db.SubscriptionPlans
+                .AsNoTracking()
+                .Where(p => p.Code == SubscriptionPlanCodes.Free)
+                .FirstOrDefaultAsync(ct);
+
+            return free is null
+                ? null
+                : new ScheduledPlanDto
+                {
+                    PlanCode = free.Code,
+                    NameCs = free.NameCs,
+                    NameEn = free.NameEn,
+                    NameDe = free.NameDe,
+                    StartsAt = row.CurrentPeriodEndsAt,
+                    Cancellable = cancellable,
+                    BillingInterval = BillingInterval.Monthly,
+                    PriceLines =
+                    [
+                        new SubscriptionPriceLineDto
+                        {
+                            Kind = SubscriptionPriceLineKind.Plan,
+                            AmountMinorUnits = free.PriceMinorUnits,
+                            Currency = free.Currency,
+                        },
+                    ],
+                };
+        }
+
+        if (row.PendingSubscriptionPlanPriceId is not { } pendingPriceId)
+        {
+            return null;
+        }
+
+        var pending = await db.SubscriptionPlanPrices
+            .AsNoTracking()
+            .Where(p => p.Id == pendingPriceId)
+            .Select(p => new
+            {
+                p.SubscriptionPlan.Code,
+                p.SubscriptionPlan.NameCs,
+                p.SubscriptionPlan.NameEn,
+                p.SubscriptionPlan.NameDe,
+                p.SubscriptionPlan.BothRolesIncluded,
+                p.BillingInterval,
+                p.PriceMinorUnits,
+                p.SecondRoleAddOnPriceMinorUnits,
+                p.Currency,
+            })
+            .FirstOrDefaultAsync(ct);
+
+        if (pending is null)
+        {
+            return null;
+        }
+
+        var scheduled = new ScheduledPlanDto
+        {
+            PlanCode = pending.Code,
+            NameCs = pending.NameCs,
+            NameEn = pending.NameEn,
+            NameDe = pending.NameDe,
+            StartsAt = row.CurrentPeriodEndsAt,
+            Cancellable = cancellable,
+            BillingInterval = pending.BillingInterval,
+            PriceLines =
+            [
+                new SubscriptionPriceLineDto
+                {
+                    Kind = SubscriptionPriceLineKind.Plan,
+                    AmountMinorUnits = pending.PriceMinorUnits,
+                    Currency = pending.Currency,
+                },
+            ],
+        };
+
+        if (!pending.BothRolesIncluded
+            && pending.SecondRoleAddOnPriceMinorUnits is > 0 and var addOnPrice
+            && (await coachRoleStatus.GetActiveRolesAsync(userId, ct)).Count >= 2)
+        {
+            scheduled.PriceLines.Add(new SubscriptionPriceLineDto
+            {
+                Kind = SubscriptionPriceLineKind.SecondRoleAddOn,
+                AmountMinorUnits = addOnPrice,
+                Currency = pending.Currency,
+            });
+        }
+
+        return scheduled;
+    }
+
+    /// <summary>
     /// A lapsed plan reads as the Free plan: the plan that ended moves to the lapsed fields, the kept clients are the
-    /// active clients and the rest are over the cap. Without a Free plan row the plan fields stay as they were.
+    /// active clients and the rest are over the cap. The status, period end and cancel flag of the ended subscription are
+    /// cleared; the end moment stays in <c>EndedAt</c>. Without a Free plan row the plan fields stay as they were.
     /// </summary>
     private async Task ApplyLapseAsync(GetMySubscriptionResponse response, KeepClientsState keepState, CancellationToken ct)
     {
@@ -131,6 +335,9 @@ internal sealed class GetMySubscriptionEndpoint(
         response.LapsedPlanNameEn = response.NameEn;
         response.LapsedPlanNameDe = response.NameDe;
         response.EndedAt = response.CurrentPeriodEndsAt;
+        response.Status = null;
+        response.CurrentPeriodEndsAt = null;
+        response.CancelAtPeriodEnd = false;
         response.ActiveClientCount = keepState.KeptClientProfileIds.Count;
         response.OverCapClientCount = keepState.OverCapClientProfileIds.Count;
 
@@ -148,6 +355,7 @@ internal sealed class GetMySubscriptionEndpoint(
         response.NameCs = free.NameCs;
         response.NameEn = free.NameEn;
         response.NameDe = free.NameDe;
+        response.BillingInterval = BillingInterval.Monthly;
         response.PriceLines =
         [
             new SubscriptionPriceLineDto
@@ -179,6 +387,10 @@ internal sealed class GetMySubscriptionEndpoint(
                 cs.FreeUntil,
                 cs.GivenFreeAt,
                 cs.PaysSecondRoleAddOn,
+                cs.SecondRoleAddOnEndsAt,
+                cs.NextPaymentAttemptAt,
+                HasBillingAccount = cs.ExternalCustomerId != null,
+                cs.SubscriptionPlanPrice.BillingInterval,
                 cs.SubscriptionPlanPrice.PriceMinorUnits,
                 cs.SubscriptionPlanPrice.SecondRoleAddOnPriceMinorUnits,
                 cs.SubscriptionPlanPrice.Currency,
@@ -196,10 +408,17 @@ internal sealed class GetMySubscriptionEndpoint(
                 Status = subscription.Status,
                 CurrentPeriodEndsAt = subscription.CurrentPeriodEndsAt,
                 CancelAtPeriodEnd = subscription.CancelAtPeriodEnd,
+                BillingInterval = subscription.BillingInterval,
                 FreeUntil = subscription.FreeUntil,
+                NextPaymentAttemptAt = subscription.NextPaymentAttemptAt,
+                HasBillingAccount = subscription.HasBillingAccount,
                 IsSetByFormUp = subscription.GivenFreeAt is not null
                     && CoachSubscriptionStatusClassifier.PlanApplies(
                         subscription.Status, subscription.FreeUntil, subscription.GivenFreeAt, timeProvider.GetUtcNow()),
+                SecondRoleAddOnEndsAt = subscription.Status is SubscriptionStatus.Active or SubscriptionStatus.Trialing or SubscriptionStatus.PastDue
+                    && !subscription.CancelAtPeriodEnd
+                        ? subscription.SecondRoleAddOnEndsAt
+                        : null,
                 PriceLines =
                 [
                     new SubscriptionPriceLineDto
@@ -221,10 +440,18 @@ internal sealed class GetMySubscriptionEndpoint(
                 });
             }
 
+            if (response.IsSetByFormUp)
+            {
+                foreach (var line in response.PriceLines)
+                {
+                    line.AmountMinorUnits = 0;
+                }
+            }
+
             return response;
         }
 
-        var free = await db.SubscriptionPlans
+        var free =await db.SubscriptionPlans
             .AsNoTracking()
             .Where(p => p.Code == SubscriptionPlanCodes.Free)
             .FirstOrDefaultAsync(ct);
@@ -240,6 +467,7 @@ internal sealed class GetMySubscriptionEndpoint(
             NameCs = free.NameCs,
             NameEn = free.NameEn,
             NameDe = free.NameDe,
+            BillingInterval = BillingInterval.Monthly,
             PriceLines =
             [
                 new SubscriptionPriceLineDto

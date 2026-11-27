@@ -161,6 +161,36 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public virtual DbSet<CoachSubscription> CoachSubscriptions { get; set; } = null!;
 
     /// <summary>
+    /// Ids of the payment-provider webhook events already applied, so a repeated delivery is a no-op.
+    /// </summary>
+    public virtual DbSet<ProcessedWebhookEvent> ProcessedWebhookEvents { get; set; } = null!;
+
+    /// <summary>
+    /// The coach sign-up and billing event history behind the admin Reports funnel.
+    /// </summary>
+    public virtual DbSet<CoachEvent> CoachEvents { get; set; } = null!;
+
+    /// <summary>
+    /// One row of totals per UTC day for the admin Reports trends.
+    /// </summary>
+    public virtual DbSet<DailyReportSnapshot> DailyReportSnapshots { get; set; } = null!;
+
+    /// <summary>
+    /// Paid Stripe invoices of coach subscriptions, for revenue reporting.
+    /// </summary>
+    public virtual DbSet<PaidInvoice> PaidInvoices { get; set; } = null!;
+
+    /// <summary>
+    /// Our copy of the Stripe coupons that discount coach plans.
+    /// </summary>
+    public virtual DbSet<Promotion> Promotions { get; set; } = null!;
+
+    /// <summary>
+    /// Coaches who claimed a <see cref="Promotion"/>, one row per coach and promotion.
+    /// </summary>
+    public virtual DbSet<PromotionRedemption> PromotionRedemptions { get; set; } = null!;
+
+    /// <summary>
     /// Coach-owned tags used to label clients.
     /// </summary>
     public virtual DbSet<ClientTag> ClientTags { get; set; } = null!;
@@ -269,6 +299,13 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             e.HasIndex(m => new { m.ConversationId, m.EventType, m.EventSourceId })
                 .IsUnique()
                 .HasFilter("event_source_id IS NOT NULL");
+
+            // Makes a retried send idempotent: one row per (conversation, sender, client id).
+            // Partial so rows without an id are unconstrained.
+            e.HasIndex(m => new { m.ConversationId, m.SenderUserId, m.ClientMessageId })
+                .IsUnique()
+                .HasDatabaseName(ChatMessage.ClientMessageIdIndexName)
+                .HasFilter("client_message_id IS NOT NULL");
         });
 
         builder.Entity<PlanPhoto>(e =>

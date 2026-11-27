@@ -12,6 +12,15 @@
 
 [build.environment]
   NODE_VERSION = "20"
+  # This file configures the dev site only; it is backed by Stripe test mode.
+  # No production site exists yet. It needs its own netlify.toml (its redirects must point at the
+  # production backend anyway) setting VITE_STRIPE_DASHBOARD_URL = "https://dashboard.stripe.com".
+  # A Netlify UI variable does not override a value set in a netlify.toml, so setting it in the UI
+  # only works for a site that does not read this file.
+  # UNVERIFIED: file value beats UI value — https://docs.netlify.com/configure-builds/file-based-configuration/
+  # Do not add [context.production] here: if this site's production branch is develop, that would
+  # switch the dev site to live mode.
+  VITE_STRIPE_DASHBOARD_URL = "https://dashboard.stripe.com/test"
 
 # ── Backend API proxy (mirrors vite.config.ts dev proxy paths) ────────────
 # Each rule forwards a backend route to the Render API. `force = true` ensures
@@ -83,6 +92,56 @@
   status = 200
   force = true
 
+# Narrow on purpose: Stripe sends the coach back to the SPA pages /billing, /billing/success and
+# /billing/cancel, so a blanket /billing/* would send those page loads to the backend.
+[[redirects]]
+  from = "/billing/checkout-session"
+  to = "https://dev-fitnessplatform.onrender.com/billing/checkout-session"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/billing/portal-session"
+  to = "https://dev-fitnessplatform.onrender.com/billing/portal-session"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/billing/change-plan"
+  to = "https://dev-fitnessplatform.onrender.com/billing/change-plan"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/billing/change-plan/preview"
+  to = "https://dev-fitnessplatform.onrender.com/billing/change-plan/preview"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/billing/scheduled-change/cancel"
+  to = "https://dev-fitnessplatform.onrender.com/billing/scheduled-change/cancel"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/billing/switch-to-free"
+  to = "https://dev-fitnessplatform.onrender.com/billing/switch-to-free"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/billing/promotion-code"
+  to = "https://dev-fitnessplatform.onrender.com/billing/promotion-code"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/billing/second-role/*"
+  to = "https://dev-fitnessplatform.onrender.com/billing/second-role/:splat"
+  status = 200
+  force = true
+
 # Narrow on purpose: the SPA page lives at /admin/plans, so a blanket /admin/* would
 # send a page reload to the backend (Netlify cannot tell navigation from an API call).
 [[redirects]]
@@ -97,6 +156,19 @@
   status = 200
   force = true
 
+# Same reasoning: the SPA page lives at /admin/promotion-offers, the API at /admin/promotions[/:id/end].
+[[redirects]]
+  from = "/admin/promotions"
+  to = "https://dev-fitnessplatform.onrender.com/admin/promotions"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/admin/promotions/*"
+  to = "https://dev-fitnessplatform.onrender.com/admin/promotions/:splat"
+  status = 200
+  force = true
+
 # Same reasoning: the SPA pages live at /admin/coach-accounts[/:coachId].
 [[redirects]]
   from = "/admin/coaches"
@@ -107,6 +179,13 @@
 [[redirects]]
   from = "/admin/coaches/*"
   to = "https://dev-fitnessplatform.onrender.com/admin/coaches/:splat"
+  status = 200
+  force = true
+
+# Same reasoning: the SPA page lives at /admin/business-reports, the API at exactly /admin/reports.
+[[redirects]]
+  from = "/admin/reports"
+  to = "https://dev-fitnessplatform.onrender.com/admin/reports"
   status = 200
   force = true
 

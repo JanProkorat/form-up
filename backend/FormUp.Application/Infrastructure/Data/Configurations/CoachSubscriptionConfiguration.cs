@@ -16,6 +16,11 @@ public class CoachSubscriptionConfiguration : IEntityTypeConfiguration<CoachSubs
         builder.HasIndex(cs => cs.ProfessionalProfileId)
             .IsUnique();
 
+        // Webhooks find the coach by the provider's customer or subscription id.
+        builder.HasIndex(cs => cs.ExternalCustomerId);
+
+        builder.HasIndex(cs => cs.ExternalSubscriptionId);
+
         builder.Property(cs => cs.CancelAtPeriodEnd)
             .HasDefaultValue(false);
 
@@ -34,6 +39,12 @@ public class CoachSubscriptionConfiguration : IEntityTypeConfiguration<CoachSubs
             .WithMany()
             .HasForeignKey(cs => cs.SubscriptionPlanPriceId)
             .OnDelete(DeleteBehavior.NoAction);
+
+        // A promotion is never deleted; if one ever is, the coach's row just loses the reference.
+        builder.HasOne(cs => cs.CurrentPromotion)
+            .WithMany()
+            .HasForeignKey(cs => cs.CurrentPromotionId)
+            .OnDelete(DeleteBehavior.SetNull);
 
         builder.HasOne(cs => cs.PendingSubscriptionPlanPrice)
             .WithMany()

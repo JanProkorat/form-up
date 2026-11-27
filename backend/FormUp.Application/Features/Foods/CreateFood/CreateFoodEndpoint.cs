@@ -22,7 +22,7 @@ public class CreateFoodEndpoint(IMongoContext mongo) : Endpoint<CreateFoodReques
     public override void Configure()
     {
         Post("/foods");
-        Roles(AppRoles.Nutritionist);
+        Roles(AppRoles.Nutritionist, AppRoles.Admin);
         Summary(s =>
         {
             s.Summary = "Create custom food";
@@ -44,9 +44,11 @@ public class CreateFoodEndpoint(IMongoContext mongo) : Endpoint<CreateFoodReques
             return;
         }
 
-        var nutritionistId = Guid.Parse(userId);
+        var scope = LibraryCallerScope.From(User, Guid.Parse(userId));
+        var nutritionistId = scope.UserId;
 
-        if (await this.RespondIfCoachFeatureNotEntitledAsync(
+        if (!scope.SystemOnly
+            && await this.RespondIfCoachFeatureNotEntitledAsync(
                 nutritionistId, entitlements => entitlements.CanUseIngredients,
                 "The current subscription does not include ingredients.", ct))
         {
@@ -81,8 +83,8 @@ public class CreateFoodEndpoint(IMongoContext mongo) : Endpoint<CreateFoodReques
             CommonServings = req.CommonServings
                 .Select(s => new ServingSize { Label = s.Label, WeightGrams = s.WeightGrams })
                 .ToList(),
-            NutritionistId = nutritionistId,
-            Visibility = req.Visibility,
+            NutritionistId = scope.SystemOnly ? null : nutritionistId,
+            Visibility = scope.SystemOnly ? FoodVisibility.Public : req.Visibility,
             DateCreated = DateTime.UtcNow
         };
 

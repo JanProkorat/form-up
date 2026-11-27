@@ -185,6 +185,9 @@
     "notFoundTitle": "Seite nicht gefunden",
     "notFoundBody": "Die gesuchte Seite existiert nicht.",
     "backToClients": "Zurück zu Klienten",
+    "forbiddenTitle": "Kein Zugriff auf diese Seite",
+    "forbiddenBody": "Ihr Konto ist auf die Rezept- und Zutatenbibliothek sowie den Admin-Bereich beschränkt.",
+    "backToAdmin": "Zurück zum Admin-Bereich",
     "openNavigation": "Navigation öffnen",
     "collapseNavigation": "Navigation einklappen",
     "expandNavigation": "Navigation ausklappen",
@@ -193,11 +196,13 @@
   "sidebar": {
     "lockedInPlan": "Nicht in Ihrem Tarif enthalten",
     "adminSection": "Form Up Admin",
+    "adminOverview": "Übersicht",
     "adminPlans": "Pläne",
     "adminPromotions": "Aktionen",
     "adminCoaches": "Trainer",
+    "adminReports": "Berichte",
     "automations": "Automatisierungen",
-    "dashboard": "Dashboard",
+    "checkIns": "Check-ins",
     "profile": "Profil",
     "clients": "Klienten",
     "inbox": "Nachrichten",
@@ -208,16 +213,11 @@
     "settings": "Einstellungen",
     "recipes": "Rezepte",
     "planTemplates": "Planvorlagen",
-    "exercises": "Übungen",
     "sectionTemplates": "Workouts",
-    "trainingPlans": "Trainingspläne",
     "messages": "Nachrichten",
     "clientsSection": "KLIENTEN",
     "searchClients": "Klient suchen...",
-    "databaseSection": "DATENBANK",
-    "clientManagementSection": "Klientenverwaltung",
-    "nutritionSection": "Ernährung",
-    "formsSection": "Formulare",
+    "librarySection": "Bibliothek",
     "businessSection": "Business",
     "packages": "Pakete",
     "forms": "Formulare",
@@ -252,6 +252,188 @@
   },
   "subscription": {
     "seePlans": "Tarife ansehen",
+    "promotion": {
+      "percentOff": "−{{value}} %",
+      "amountOff": "−{{amount}}",
+      "short": {
+        "firstMonth": "{{value}} im ersten Monat",
+        "months_one": "{{value}} für {{count}} Monat",
+        "months_other": "{{value}} für {{count}} Monate",
+        "forever": "{{value}} dauerhaft"
+      },
+      "banner": {
+        "firstMonth": "{{name}}: {{value}} im ersten Monat",
+        "months_one": "{{name}}: {{value}} im ersten {{count}} Monat",
+        "months_other": "{{name}}: {{value}} in den ersten {{count}} Monaten",
+        "forever": "{{name}}: {{value}} für die gesamte Laufzeit",
+        "allPlans": "Wird beim Bezahlen auf jeden kostenpflichtigen Tarif angewendet.",
+        "somePlans": "Wird beim Bezahlen auf {{plans}} angewendet.",
+        "claimBy": "Sichern Sie sich das Angebot bis {{date}}.",
+        "taken": "Bereits von den Preisen der kostenpflichtigen Tarife unten abgezogen.",
+        "takenSomePlans": "Bereits von den Preisen von {{plans}} unten abgezogen.",
+        "annualOnly": "{{name}}: {{value}} im ersten Jahr bei jährlicher Zahlung",
+        "monthlyOnly": "{{title}}, nur bei monatlicher Zahlung",
+        "orFirstYear": "{{title}} oder im ersten Jahr bei jährlicher Zahlung",
+        "otherPeriod": "Gilt nicht für diesen Zahlungszeitraum."
+      },
+      "card": {
+        "then": "{{short}}, danach {{price}}",
+        "regularPrice": "Regulärer Preis",
+        "thenAnnual": "{{value}} im ersten Jahr, danach {{price}}"
+      }
+    },
+    "billing": {
+      "vat": "Preise ohne MwSt., {{rate}} % MwSt. werden hinzugerechnet.",
+      "interval": {
+        "label": "Zahlungszeitraum",
+        "monthly": "Monatlich",
+        "annual": "Jährlich",
+        "save": "Bis zu {{percent}} % sparen"
+      },
+      "promoCode": {
+        "label": "Sie haben einen Code?",
+        "apply": "Einlösen",
+        "applied": "Code {{code}}",
+        "remove": "Code entfernen",
+        "annualOnly": "Dieser Code gilt nur für Jahrestarife.",
+        "monthlyOnly": "Dieser Code gilt nur für Monatstarife."
+      },
+      "select": {
+        "select": "{{plan}} auswählen",
+        "selected": "Ausgewählt",
+        "region": "Ausgewählter Tarif",
+        "planLine": "{{plan}} · {{price}} {{per}}",
+        "secondRoleLater": "zweite Rolle später +{{amount}}",
+        "hintFree": "Keine Karte nötig",
+        "hintStripeCheckout": "Sie zahlen auf der sicheren Seite von Stripe",
+        "hintStripePages": "Karte und Rechnungen auf den sicheren Seiten von Stripe",
+        "hintPeriodEnd": "Gilt ab dem Ende des bezahlten Monats",
+        "hintStartsOnYearEnd": "{{plan}} beginnt am {{date}}, wenn Ihr bezahltes Jahr endet. Bis dahin behalten Sie {{current}}, ohne Erstattung.",
+        "hintMoveToAnnual": "Heute etwa {{today}}: Der ungenutzte Teil Ihres Monats mit {{plan}} wird angerechnet. Verlängerung am {{date}}.",
+        "hintMoveToAnnualNoDate": "Heute etwa {{today}}: Der ungenutzte Teil Ihres Monats mit {{plan}} wird angerechnet.",
+        "hintStartsOn": "{{plan}} beginnt am {{date}}. Bis dahin behalten Sie {{current}}.",
+        "hintSpanMonth": "für den Rest dieses Monats",
+        "hintSpanYear": "für den Rest dieses Jahres",
+        "hintUpgradeToday": "Heute etwa {{today}} {{span}}, danach {{next}} {{per}} ab {{date}}",
+        "hintUpgradeTodayNoDate": "Heute etwa {{today}} {{span}}, danach {{next}} {{per}}",
+        "hintPreviewLoading": "Heutige Zahlung wird berechnet…",
+        "hintPreviewError": "Die heutige Zahlung konnte nicht berechnet werden. Sie können die Änderung trotzdem bestätigen.",
+        "hintCancelsFree": "Ihr Wechsel zu {{free}} wird aufgehoben.",
+        "hintEndsFormUpPlan": "Ihr Tarif von Form Up endet und Sie zahlen {{plan}} ab heute.",
+        "continue": "Weiter zur Zahlung"
+      },
+      "picker": {
+        "title": "Wählen Sie Ihren Tarif",
+        "subtitle": "Ihre Kundinnen und Kunden nutzen die App immer kostenlos. Sie können jederzeit wechseln oder kündigen.",
+        "back": "Zurück zu den Einstellungen",
+        "rolesBoth": "Sie arbeiten als {{first}} und {{second}}. Die Preise unten enthalten Ihre zweite Rolle.",
+        "rolesOne": "Sie arbeiten als {{role}}.",
+        "codeNote": "Sie haben einen Code? Geben Sie ihn beim Preis unten ein. Er ersetzt ein aktuelles Angebot.",
+        "payingMonthly": "Sie zahlen {{plan}} derzeit monatlich.",
+        "payingAnnual": "Sie zahlen {{plan}} derzeit jährlich.",
+        "breakdown": "{{plan}} {{base}} + zweite Rolle {{addOn}}",
+        "noCard": "Für immer, ohne Karte",
+        "providedByFormUpUntil": "Von Form Up bereitgestellt bis {{date}}",
+        "providedByFormUp": "Von Form Up bereitgestellt",
+        "yourPlan": "Ihr Tarif",
+        "switchTo": "Zu {{plan}} wechseln",
+        "upgradeAnnual": "Auf {{plan}} upgraden, jährlich",
+        "switchToAnnual": "Zu {{plan}} wechseln, jährlich",
+        "switchToMonthly": "Zu {{plan}} wechseln, monatlich",
+        "switchesToFree": "Wechsel zu {{free}} am {{date}}",
+        "switchesToFreeNoDate": "Wechsel zu {{free}} zum Periodenende",
+        "switchesTo": "Wechsel zu {{plan}} am {{date}}",
+        "switchesToNoDate": "Wechsel zu {{plan}} zum Periodenende",
+        "footer": "Monatliche Abrechnung. Kartenzahlung, Rechnungen und Kündigung laufen auf den sicheren Seiten von Stripe. Ein Downgrade oder eine Kündigung gilt zum Ende des bezahlten Monats.",
+        "footerAnnual": "Jährliche Abrechnung. Kartenzahlung, Rechnungen und Kündigung laufen auf den sicheren Seiten von Stripe. Der Wechsel zur jährlichen Zahlung beginnt heute und rechnet den ungenutzten Teil Ihres Monats an. Ein Wechsel zurück zu monatlich, ein Downgrade oder eine Kündigung gilt zum Ende des bezahlten Jahres, ohne Erstattung.",
+        "footerAnnualNew": "Jährliche Abrechnung. Kartenzahlung, Rechnungen und Kündigung laufen auf den sicheren Seiten von Stripe. Ein Downgrade oder eine Kündigung gilt zum Ende des bezahlten Jahres, ohne Erstattung."
+      },
+      "register": {
+        "signedInAs": "Angemeldet als {{email}}",
+        "title": "Wählen Sie Ihren Tarif",
+        "subtitle": "Starten Sie kostenlos und wechseln Sie, wenn Sie wachsen. Ihre Kundinnen und Kunden nutzen die App immer kostenlos.",
+        "noCardBadge": "Ohne Karte",
+        "codeNote": "Sie haben einen Code? Geben Sie ihn neben dem Preis ein, bevor Sie bezahlen.",
+        "annualNote": "Einmal pro Jahr bezahlt. Nach Ablauf des Jahres können Sie auf monatliche Zahlung wechseln.",
+        "startFree": "Kostenlos starten",
+        "secondRoleLater": "Zweite Rolle später +{{amount}}",
+        "secondRoleFree": "Eine zweite Rolle können Sie jederzeit kostenlos hinzufügen",
+        "rolesBoth": "Sie haben sich als {{first}} und {{second}} registriert. Die Preise unten enthalten Ihre zweite Rolle.",
+        "secondRoleIncluded": "Zweite Rolle inklusive +{{amount}}",
+        "footer": "Bezahlte Tarife führen zur sicheren Zahlung bei Stripe, danach kehren Sie hierher zurück und richten Ihr Profil ein. Sie können Ihren Tarif jederzeit in den Einstellungen ändern oder kündigen."
+      },
+      "returning": {
+        "title": "Wir schließen ab",
+        "body": "Wir bestätigen Ihre Zahlung bei Stripe.",
+        "pending": "Ihre Zahlung ist eingegangen. Die Aktivierung Ihres Tarifs kann einige Minuten dauern, wir informieren Sie, sobald sie abgeschlossen ist.",
+        "activated": "Ihr Tarif {{plan}} ist jetzt aktiv."
+      },
+      "changed": {
+        "now": "Sie nutzen jetzt den Tarif {{plan}}.",
+        "atRenewal": "Ihr Tarif wechselt am {{date}} zu {{plan}}.",
+        "atRenewalNoDate": "Ihr Tarif wechselt bei der nächsten Verlängerung zu {{plan}}."
+      },
+      "upgradePayment": {
+        "text": "Ihre Karte benötigt für den Wechsel zum Tarif {{plan}} eine zusätzliche Bestätigung. Schließen Sie die Zahlung auf der sicheren Stripe-Seite ab. Bis zur Bestätigung bleiben Sie beim Tarif {{current}}.",
+        "open": "Weiter zur Zahlung",
+        "dismiss": "Schließen",
+        "notConfirmed": "Die Zahlung konnte nicht bestätigt werden, daher bleiben Sie beim Tarif {{plan}}."
+      },
+      "switchFree": {
+        "scheduled": "Ihr Tarif wechselt am {{date}} zu {{free}}.",
+        "scheduledNoDate": "Ihr Tarif wechselt zum Ende des bezahlten Zeitraums zu {{free}}."
+      },
+      "cancelChange": {
+        "keep": "{{plan}} behalten",
+        "hint": "Hebt den Wechsel zu {{target}} am {{date}} auf. Sie bleiben bei {{plan}}, jetzt wird nichts berechnet.",
+        "hintNoDate": "Hebt den Wechsel zu {{target}} auf. Sie bleiben bei {{plan}}, jetzt wird nichts berechnet.",
+        "toast": "Änderung zurückgenommen. Sie bleiben beim Tarif {{plan}}."
+      },
+      "code": {
+        "applied": "Code eingelöst."
+      },
+      "pastDue": {
+        "title": "Ihre letzte Zahlung ist nicht durchgegangen",
+        "body": "Wir versuchen es am {{retry}} erneut mit der Karte. Alles funktioniert bis zum {{until}}.",
+        "bodyUntil": "Alles funktioniert bis zum {{until}}. Aktualisieren Sie Ihre Karte, um Ihren Tarif zu behalten.",
+        "bodyRetry": "Wir versuchen es am {{retry}} erneut mit der Karte.",
+        "bodyNoDates": "Aktualisieren Sie Ihre Karte, um Ihren Tarif zu behalten.",
+        "updateCard": "Karte aktualisieren"
+      },
+      "addRole": {
+        "title": "Rolle {{role}} hinzufügen?",
+        "body": {
+          "trainer": "Sie erhalten Trainingspläne, Einheiten und Übungen. Ihre Kundinnen und Kunden können Sie als Trainer wählen.",
+          "nutritionist": "Sie erhalten Ernährungspläne, Rezepte und Zutaten. Ihre Kundinnen und Kunden können Sie als Ernährungsberater wählen."
+        },
+        "planLine": "Tarif {{plan}}",
+        "addOnLine": "Zweite Rolle · {{role}}",
+        "total": "Neuer Gesamtpreis",
+        "discountEnds": "Ihr Rabatt gilt bis {{date}}, danach {{amount}} {{per}}.",
+        "today_one": "Heute zahlen Sie {{amount}} für den {{count}} Tag bis zum {{date}}.",
+        "today_other": "Heute zahlen Sie {{amount}} für die {{count}} Tage bis zum {{date}}.",
+        "todayNoDate": "Heute zahlen Sie {{amount}} für den Rest dieses Abrechnungszeitraums.",
+        "taxIncluded": "Enthält {{tax}} MwSt.",
+        "studio": "{{plan}} enthält beide Rollen für {{price}} {{per}}.",
+        "compare": "Tarife vergleichen",
+        "confirm": "Rolle hinzufügen · {{amount}} zahlen",
+        "alreadyPaid": "Die zweite Rolle ist bereits bezahlt, das Hinzufügen kostet heute nichts.",
+        "paymentNotice": "Ihre Bank muss diese Zahlung bestätigen. Schließen Sie sie auf der sicheren Stripe-Seite ab. Die Rolle wird erst nach der Bestätigung der Zahlung hinzugefügt.",
+        "roleAdded": "Die Zahlung ist bestätigt und die Rolle wurde hinzugefügt.",
+        "roleNotAppeared": "Die Zahlung ist bestätigt, aber die Rolle wird noch nicht angezeigt. Laden Sie die Seite neu oder melden Sie sich erneut an.",
+        "notConfirmed": "Die Zahlung konnte nicht bestätigt werden, daher wurde die Rolle nicht hinzugefügt."
+      },
+      "errors": {
+        "generic": "Etwas ist schiefgegangen. Bitte versuchen Sie es erneut.",
+        "cancelChange": "Die Änderung konnte nicht zurückgenommen werden. Bitte versuchen Sie es erneut.",
+        "changePlan": "Der Tarif konnte nicht geändert werden. Bitte versuchen Sie es erneut.",
+        "switchFree": "Der Wechsel zu Free konnte nicht vorgemerkt werden. Bitte versuchen Sie es erneut.",
+        "portal": "Die Zahlungsverwaltung konnte nicht geöffnet werden. Bitte versuchen Sie es erneut.",
+        "code": "Der Code konnte nicht eingelöst werden. Bitte versuchen Sie es erneut.",
+        "addRole": "Die Zahlung ist fehlgeschlagen, daher wurde die Rolle nicht hinzugefügt. Bitte versuchen Sie es erneut.",
+        "preview": "Der Preis für die zweite Rolle konnte nicht geladen werden. Bitte versuchen Sie es erneut."
+      }
+    },
     "clientsOfLimit": "{{count}} von {{limit}} Klienten",
     "status": {
       "Trialing": "Testphase",
@@ -458,7 +640,22 @@
       "description": "Was Sie Form Up zahlen. Ihre Klienten zahlen nie für die App.",
       "loadError": "Ihr Tarif konnte nicht geladen werden. Bitte laden Sie die Seite neu.",
       "renews": "Monatlich · Verlängerung am {{date}}",
+      "renewsAnnual": "Jährlich · Verlängerung am {{date}}",
       "ends": "Endet am {{date}}",
+      "scheduled": {
+        "until": "Monatlich · {{plan}} bis {{date}}",
+        "untilAnnual": "Jährlich · {{plan}} bis {{date}}",
+        "begins": "{{plan}} beginnt am {{date}}",
+        "beginsPriced": "{{plan}} beginnt am {{date}} · {{price}}",
+        "secondRoleEnds": "Die zweite Rolle wird ab dem {{date}} nicht mehr berechnet. Neue monatliche Zahlung: {{amount}}.",
+        "secondRoleEndsAnnual": "Die zweite Rolle wird ab dem {{date}} nicht mehr berechnet. Neue jährliche Zahlung: {{amount}}.",
+        "cancel": "Änderung zurücknehmen",
+        "cancelDialog": {
+          "title": "Geplante Änderung zurücknehmen?",
+          "body": "Sie bleiben beim Tarif {{plan}}, der sich am {{date}} verlängert. Jetzt wird nichts berechnet.",
+          "bodyNoDate": "Sie bleiben beim Tarif {{plan}}, der sich verlängert. Jetzt wird nichts berechnet."
+        }
+      },
       "freeUntil": "Inklusive bis {{date}}",
       "setByFormUpUntil": "Bis {{date}} · Von Form Up gesetzt",
       "setByFormUp": "Von Form Up gesetzt",
@@ -467,12 +664,23 @@
       "manageBilling": "Abrechnung verwalten",
       "bill": {
         "title": "Ihre monatliche Rechnung",
+        "titleAnnual": "Ihre jährliche Rechnung",
         "free": "Keine monatliche Gebühr.",
         "plan": "Tarif {{plan}}",
         "secondRole": "Zweite Rolle",
         "total": "Gesamt",
         "perMonth": "{{amount}} / Monat",
-        "secondRoleUnavailable": "Eine zweite Berufsrolle ist in diesem Tarif nicht enthalten."
+        "perYear": "{{amount}} / Jahr",
+        "afterOffer": "Ab {{date}}: {{amount}} / Monat.",
+        "afterOfferAnnual": "Ab {{date}}: {{amount}} / Jahr.",
+        "annualSwitch": "Um monatlich zu zahlen, ändern Sie Ihren Tarif; er wechselt, wenn dieses Jahr endet.",
+        "offer": {
+          "months_one": "{{name}} {{value}} · noch {{left}} von {{count}} Monat",
+          "months_other": "{{name}} {{value}} · noch {{left}} von {{count}} Monaten",
+          "firstMonth": "{{name}} {{value}} · erster Monat",
+          "firstYear": "{{name}} {{value}} · erstes Jahr",
+          "forever": "{{name}} {{value}}"
+        }
       },
       "clients": {
         "title": "Klienten",
@@ -496,7 +704,8 @@
       },
       "card": {
         "title": "Karte, Rechnungen und Kündigung",
-        "description": "Verfügbar, sobald die Tarifauswahl öffnet."
+        "description": "Karte aktualisieren, Rechnungen herunterladen, Rechnungsdaten ändern oder im sicheren Stripe-Portal kündigen.",
+        "descriptionFree": "Verfügbar, sobald Sie einen bezahlten Tarif haben."
       }
     }
   },
@@ -625,8 +834,11 @@
       "loadError": "Ihre Rollen konnten nicht geladen werden. Bitte laden Sie die Seite neu.",
       "onlyRoleNote": "Das ist Ihre einzige Rolle. Sie zu entfernen deaktiviert Ihr Coach-Konto, genau wie die Schaltfläche unten.",
       "noRolesNote": "Ihr Coach-Konto ist deaktiviert. Fügen Sie eine Rolle hinzu, um es zu reaktivieren.",
+      "secondRoleUnavailable": "Eine zweite Berufsrolle ist in Ihrem Tarif nicht enthalten. Wechseln Sie den Tarif, um sie hinzuzufügen.",
+      "secondRoleAfterChange": "Sie können eine zweite Rolle nach Ihrem Tarifwechsel am {{date}} hinzufügen.",
       "removeDialog": {
         "keep": "Rolle behalten",
+        "billing": "Die zweite Rolle wird ab dem {{date}} nicht mehr berechnet. Neue monatliche Zahlung: {{amount}}.",
         "footnote": "Die Rolle verschwindet sofort aus der Suche und von Ihrer Profilkarte. Fügen Sie sie jederzeit wieder hinzu, um erneut zu bearbeiten.",
         "notified_zero": "Kein Klient wird benachrichtigt",
         "notified_one": "{{count}} Klient wird benachrichtigt",
@@ -1540,6 +1752,12 @@
     "noResultsForFilters": "Keine Zutaten entsprechen Ihren Filtern.",
     "clearFilters": "Filter zurücksetzen",
     "deleteSuccess": "Zutat gelöscht.",
+    "copySuccess": "Zutat wurde in Ihre Bibliothek kopiert.",
+    "copyError": "Die Zutat konnte nicht kopiert werden. Bitte versuchen Sie es erneut.",
+    "hideSuccess": "Zutat wurde ausgeblendet.",
+    "hideError": "Die Zutat konnte nicht ausgeblendet werden. Bitte versuchen Sie es erneut.",
+    "unhideSuccess": "Zutat wird wieder angezeigt.",
+    "unhideError": "Die Zutat konnte nicht wieder eingeblendet werden. Bitte versuchen Sie es erneut.",
     "deleteError": "Zutat konnte nicht gelöscht werden. Bitte versuchen Sie es erneut.",
     "filters": {
       "category": "Kategorie"
@@ -1621,6 +1839,9 @@
       "createTitle": "Neue Zutat",
       "editTitle": "Zutat bearbeiten",
       "viewTitle": "Zutat",
+      "copy": "In meine Zutaten kopieren",
+      "hide": "Ausblenden",
+      "unhide": "Einblenden",
       "subtitleCreate": "Fügen Sie Ihrer Bibliothek eine neue Zutat hinzu",
       "subtitleEdit": "Bearbeiten Sie die Angaben zu dieser Zutat",
       "subtitleView": "Details zur Zutat",
@@ -1697,8 +1918,10 @@
       "mine": "Meine",
       "shared": "Geteilt",
       "myLibrary": "Meine Bibliothek",
-      "publicLibrary": "Öffentlich"
+      "publicLibrary": "Öffentlich",
+      "hidden": "Ausgeblendet"
     },
+    "showHidden": "Ausgeblendete anzeigen",
     "cardMacros": "P {{protein}} · K {{carbs}} · F {{fat}}",
     "visibility": {
       "label": "Sichtbarkeit",
@@ -1805,6 +2028,12 @@
     "noResultsForFilters": "Keine Rezepte passen zu Ihren Filtern.",
     "clearFilters": "Filter zurücksetzen",
     "deleteSuccess": "Rezept gelöscht.",
+    "copySuccess": "Rezept wurde in Ihre Bibliothek kopiert.",
+    "copyError": "Das Rezept konnte nicht kopiert werden. Bitte versuchen Sie es erneut.",
+    "hideSuccess": "Rezept wurde ausgeblendet.",
+    "hideError": "Das Rezept konnte nicht ausgeblendet werden. Bitte versuchen Sie es erneut.",
+    "unhideSuccess": "Rezept wird wieder angezeigt.",
+    "unhideError": "Das Rezept konnte nicht wieder eingeblendet werden. Bitte versuchen Sie es erneut.",
     "deleteError": "Das Rezept konnte nicht gelöscht werden. Bitte versuchen Sie es erneut.",
     "empty": {
       "title": "Noch keine Rezepte",
@@ -1848,6 +2077,9 @@
       "createTitle": "Neues Rezept",
       "editTitle": "Rezept bearbeiten",
       "viewTitle": "Rezept",
+      "copy": "In meine Rezepte kopieren",
+      "hide": "Ausblenden",
+      "unhide": "Einblenden",
       "subtitleCreate": "Fügen Sie Details zu Ihrem Rezept hinzu",
       "subtitleEdit": "Bearbeiten Sie die Details dieses Rezepts",
       "subtitleView": "Rezeptdetails",
@@ -2859,7 +3091,10 @@
       "openInProfile": "Im Profil von {{name}} öffnen"
     },
     "answers": {
-      "noAnswer": "Keine Antwort"
+      "noAnswer": "Keine Antwort",
+      "openFile": "Datei öffnen",
+      "ofMax": "{{value}} / {{max}}",
+      "other": "Sonstiges: {{text}}"
     },
     "page": {
       "title": "Formulare",
@@ -2879,6 +3114,8 @@
       "noMatch": "Noch keine Formulare dieser Art.",
       "selectAForm": "Wählen Sie ein beantwortetes Formular, um es zu lesen.",
       "noLink": "Die Formulare von {{name}} sind nicht mehr verfügbar, weil die Zusammenarbeit beendet wurde.",
+      "checkInsOnlyHint": "Andere Formulare benötigen die Formulare-Funktion.",
+      "checkInsOnlyEmptyBody": "Sobald {{name}} einen wöchentlichen Check-in beantwortet, erscheinen die Antworten hier.",
       "emptyTitle": "Noch keine Antworten von {{name}}",
       "emptyBody": "Sobald {{name}} ein Formular zurückschickt, erscheinen die Antworten hier. Sie können sie auch im Planeditor lesen, während Sie den Plan erstellen.",
       "weekTitle": "{{title}} · Woche {{week}}",
@@ -3487,7 +3724,7 @@
     "AUTOMATION_AUDIENCE_CLIENT_NOT_FOUND": "Einer der gewählten Klienten ist nicht mehr mit Ihnen verknüpft.",
     "AUTOMATION_QUESTIONNAIRE_NOT_FOUND": "Das gewählte Formular existiert nicht mehr.",
     "AUTOMATION_ACTION_TYPE_LOCKED": "Die Aktion einer Regel kann nicht geändert werden. Legen Sie stattdessen eine neue Regel an.",
-    "AUTOMATION_QUESTIONNAIRE_NOT_USABLE": "Dieses Formular kann nicht automatisch gesendet werden. Wählen Sie ein aktives Formular, das kein Check-in ist.",
+    "AUTOMATION_QUESTIONNAIRE_NOT_USABLE": "Dieses Formular kann hier nicht gesendet werden. Wählen Sie ein aktives Formular des passenden Typs.",
     "AUTOMATION_SCHEDULE_INVALID": "Prüfen Sie den Zeitplan: alle 1 bis 365 Tage oder Wochen, zu einer gültigen Uhrzeit.",
     "AUTOMATION_EVENT_INVALID": "Prüfen Sie das Ereignis und seinen Zeitpunkt.",
     "AUTOMATION_ONCE_PER_PLAN_NEEDS_PLAN_EVENT": "„Einmal pro Plan“ funktioniert nur mit einem Plan-Ereignis.",
@@ -3511,6 +3748,42 @@
     "SUBSCRIPTION_NOT_LAPSED": "Ihr Tarif ist nicht abgelaufen, daher gibt es nichts auszuwählen.",
     "PLAN_CHOICE_REQUIRED": "Ihr kostenloser Tarif ist beendet. Wählen Sie einen Tarif, um fortzufahren.",
     "PLAN_CHOICE_NOT_REQUIRED": "Sie haben bereits einen Tarif gewählt.",
+    "PLAN_NOT_PURCHASABLE": "Dieser Tarif kann derzeit nicht online gekauft werden.",
+    "BILLING_NO_SUBSCRIPTION": "Sie haben noch kein aktives bezahltes Abonnement.",
+    "BILLING_ALREADY_SUBSCRIBED": "Sie haben bereits ein bezahltes Abonnement. Nutzen Sie stattdessen Tarif ändern.",
+    "BILLING_GIFT_IN_FORCE": "Form Up hat Ihren aktuellen Tarif festgelegt, daher kann er hier erst nach seinem Ende geändert werden.",
+    "BILLING_RENEWAL_CANCELLED_BY_ADMIN": "Form Up hat die Verlängerung Ihres Tarifs beendet. Kontaktieren Sie uns, wenn Sie das ändern möchten.",
+    "BILLING_ACCOUNT_DISABLING": "Ihr Coach-Konto wird deaktiviert. Behalten Sie es zuerst.",
+    "BILLING_NOTHING_SCHEDULED": "Es ist keine Änderung geplant.",
+    "BILLING_PLAN_UNCHANGED": "Sie haben diesen Tarif bereits.",
+    "BILLING_CANCELLATION_PENDING": "Ihr Tarif endet bereits zum Ende des bezahlten Zeitraums.",
+    "BILLING_PLAN_CHANGE_PENDING": "Eine Tarifänderung ist bereits vorgemerkt. Versuchen Sie es erneut, sobald sie gilt.",
+    "PROMOTION_CODE_INVALID": "Dieser Code kann nicht verwendet werden.",
+    "PROMOTION_CODE_NOT_FOUND": "Diesen Code kennen wir nicht. Prüfen Sie ihn und versuchen Sie es erneut.",
+    "PROMOTION_CODE_NOT_STARTED": "Dieses Angebot hat noch nicht begonnen.",
+    "PROMOTION_CODE_PLAN_NOT_ELIGIBLE": "Dieser Code gilt nicht für Ihren Tarif.",
+    "PROMOTION_CODE_USED_UP": "Dieser Code ist aufgebraucht.",
+    "PROMOTION_CODE_NEW_COACHES_ONLY": "Dieser Code gilt nur für neue Trainer.",
+    "PROMOTION_CODE_ALREADY_USED": "Sie haben diesen Code bereits verwendet.",
+    "PROMOTION_CODE_INTERVAL_NOT_ELIGIBLE": "Dieser Code gilt nicht für den gewählten Zahlungszeitraum.",
+    "PROMOTION_CODE_TAKEN": "Diesen Code verwendet bereits eine andere Aktion, die noch nicht beendet ist.",
+    "PROMOTION_ALREADY_ENDED": "Diese Aktion ist bereits beendet.",
+    "PROMOTION_VALUE_INVALID": "Prüfen Sie den Wert der Aktion.",
+    "PROMOTION_MODE_INVALID": "Prüfen Sie den Code: Bei einer Aktion mit Code ist er Pflicht, bei einer automatischen Aktion nicht erlaubt.",
+    "PROMOTION_MONTHS_INVALID": "Geben Sie eine Monatszahl von 2 bis 36 ein.",
+    "PROMOTION_WINDOW_INVALID": "Das Einlösefenster muss nach seinem Beginn und in der Zukunft enden.",
+    "PROMOTION_PLANS_INVALID": "Wählen Sie mindestens einen kostenpflichtigen Tarif. Bei einer reinen Jahresaktion braucht jeder gewählte Tarif einen Jahrespreis.",
+    "ANNUAL_PRICE_INVALID": "Der Jahrespreis ist ungültig. Der Tarif Free hat keinen, bei allen anderen muss er über 0 liegen.",
+    "ANNUAL_ADD_ON_PRICE_INVALID": "Der Jahrespreis der zweiten Rolle ist ungültig. Er ist Pflicht, wenn der Tarif einen Jahrespreis und eine kostenpflichtige zweite Rolle hat, sonst nicht zulässig.",
+    "PROMOTION_MAX_USES_INVALID": "Die maximale Nutzungszahl muss mindestens 1 sein.",
+    "BILLING_RATE_LIMITED": "Zu viele Versuche. Warten Sie einen Moment und versuchen Sie es erneut.",
+    "BILLING_ADD_ON_NOT_AVAILABLE": "Ihr Tarif bietet keine kostenpflichtige zweite Rolle.",
+    "BILLING_ADD_ON_ALREADY_PAID": "Die zweite Rolle ist bereits bezahlt.",
+    "BILLING_PAYMENT_DECLINED": "Ihre Karte wurde abgelehnt. Es wurde nichts abgebucht und die Rolle wurde nicht hinzugefügt. Aktualisieren Sie Ihre Karte unter Abrechnung verwalten oder versuchen Sie eine andere.",
+    "BILLING_CUSTOMER_NOT_FOUND": "Es gibt noch kein Zahlungskonto. Wählen Sie zuerst einen bezahlten Tarif.",
+    "BILLING_NOT_CONFIGURED": "Zahlungen sind derzeit nicht verfügbar. Bitte versuchen Sie es später erneut.",
+    "BILLING_PROVIDER_ERROR": "Der Zahlungsanbieter hat nicht geantwortet. Bitte versuchen Sie es gleich erneut.",
+    "SECOND_ROLE_NOT_ON_SCHEDULED_PLAN": "Der für die nächste Verlängerung geplante Tarif enthält keine zweite Rolle.",
     "CHECK_IN_ANSWER_WINDOW_CLOSED": "Die Zeit zum Beantworten dieses Check-ins ist abgelaufen.",
     "INVALID_CREDENTIALS": "Ungültige E-Mail oder Passwort.",
     "ACCOUNT_DEACTIVATED": "Ihr Konto wurde deaktiviert.",
@@ -3539,6 +3812,8 @@
     "PLAN_OVERLAP": "Der gewählte Zeitraum überschneidet sich mit einem bestehenden Plan dieses Klienten.",
     "PLAN_ALREADY_STARTED": "Der Plan kann nicht gelöscht werden, weil eine veröffentlichte Woche bereits begonnen hat.",
     "CLIENT_NUTRITION_PROFILE_MISSING": "Dieser Klient hat noch keine Ernährungsziele oder Fragebogenantworten, die sich bearbeiten ließen.",
+    "INVITE_EMAIL_MISMATCH": "Diese E-Mail-Adresse passt nicht zur Einladung.",
+    "INVITE_ROLE_MISMATCH": "Eine Einladung kann nur zur Registrierung als Klient verwendet werden.",
     "INVALID_VERIFICATION_TOKEN": "Ungültiger oder abgelaufener Bestätigungslink.",
     "VERIFICATION_TOKEN_EXPIRED": "Der Bestätigungslink ist abgelaufen. Bitte fordern Sie einen neuen an.",
     "VERIFICATION_RESEND_LIMIT_REACHED": "Zu viele Bestätigungs-E-Mails gesendet. Bitte versuchen Sie es später erneut.",
@@ -3589,6 +3864,8 @@
     "RECIPE_VERSION_CONFLICT": "Dieses Rezept wurde anderswo geändert. Schließen Sie es und öffnen Sie es erneut, um die aktuelle Version zu sehen.",
     "RECIPE_FOOD_NOT_AVAILABLE": "Eine der Zutaten ist nicht mehr verfügbar. Entfernen Sie sie und versuchen Sie es erneut.",
     "RECIPE_NOT_OWNED": "Sie können nur Ihre eigenen Rezepte ändern.",
+    "FOOD_HIDE_OWN_NOT_ALLOWED": "Eigene Zutaten können nicht ausgeblendet werden.",
+    "RECIPE_HIDE_OWN_NOT_ALLOWED": "Eigene Rezepte können nicht ausgeblendet werden.",
     "RECIPE_GALLERY_FULL": "Dieses Rezept hat bereits die maximale Anzahl an Bildern.",
     "RECIPE_GALLERY_IMAGE_NOT_FOUND": "Dieses Bild gehört nicht mehr zu diesem Rezept. Es wurde möglicherweise an anderer Stelle geändert.",
     "FOOD_GALLERY_FULL": "Diese Zutat hat bereits die maximale Anzahl an Bildern.",
@@ -4551,7 +4828,8 @@
         "changedFrom": "Geändert gegenüber: {{when}}",
         "paused": "Pausiert",
         "pausedUntil": "Pausiert bis {{date}}",
-        "changedFromWeekday": "Geändert von: {{day}}"
+        "changedFromWeekday": "Geändert von: {{day}}",
+        "changedFromWeekdayForm": "Geändert von: {{day}} · Formular: {{form}}"
       },
       "result": {
         "notSent": "Noch nicht gesendet",
@@ -4581,7 +4859,10 @@
         "overrideDescription": "Eine Änderung hier gilt nur für {{client}}. Die Regel selbst bleibt unverändert.",
         "clientOnlyTitleNew": "Neue Regel für {{client}}",
         "clientOnlyTitleEdit": "Regel bearbeiten · {{name}}",
-        "clientOnlyDescription": "Diese Regel gilt nur für {{client}}"
+        "clientOnlyDescription": "Diese Regel gilt nur für {{client}}",
+        "overrideSave": "Für {{client}} speichern",
+        "overrideFooter": "Nächster Versand an {{client}}: {{date}} · {{form}}",
+        "overrideFooterNoForm": "Nächster Versand an {{client}}: {{date}}"
       }
     },
     "photos": {
@@ -4748,7 +5029,10 @@
       },
       "timeline": {
         "heading": "Plan-Zeitleiste",
-        "hint": "Pläne nach Monat",
+        "hint": "Klicken Sie auf einen Plan, um ihn zu öffnen",
+        "earlier": "Frühere Monate",
+        "later": "Spätere Monate",
+        "todayAction": "Heute",
         "empty": "Noch keine Pläne mit Termin.",
         "today": "Heute",
         "noPlan": "Kein Plan",
@@ -5195,14 +5479,11 @@
         }
       },
       "actions": {
-        "chat": "Chat",
-        "tasks": "Aufgaben",
-        "notes": "Notizen"
+        "chat": "Chat"
       },
       "tabs": {
         "overview": "Übersicht",
         "nutrition": "Ernährung",
-        "workouts": "Workouts",
         "storage": "Fotos",
         "payment": "Zahlung",
         "automations": "Automatisierungen",
@@ -5259,7 +5540,6 @@
       },
       "workout": {
         "label": "Training",
-        "openPlan": "Plan öffnen",
         "doneThisWeek": "Diese Woche erledigt · {{done}} von {{total}} Einheiten",
         "heading": "Letztes Workout",
         "exercises_one": "{{count}} Übung",
@@ -5659,7 +5939,6 @@
     }
   },
   "entry": {
-    "brand": "Form Up",
     "login": {
       "title": "Willkommen zurück",
       "lede": "Im Trainerportal anmelden.",
@@ -5753,6 +6032,10 @@
         "consentRequired": "Sie müssen den Nutzungsbedingungen und der Datenschutzerklärung zustimmen, um ein Konto zu erstellen.",
         "healthConsentRequired": "Sie müssen der Verarbeitung Ihrer Gesundheitsdaten zustimmen, um ein Konto zu erstellen."
       },
+      "invite": {
+        "emailHint": "An diese E-Mail-Adresse wurde Ihre Einladung gesendet.",
+        "unavailable": "Dieser Einladungslink kann nicht mehr verwendet werden. Sie können unten trotzdem ein Konto erstellen."
+      },
       "errors": {
         "duplicateEmail": "Diese E-Mail-Adresse ist bereits registriert.",
         "network": "Der Server konnte nicht erreicht werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
@@ -5843,7 +6126,10 @@
       "coach": {
         "ready": "Ihr Konto ist bereit.",
         "setUpProfile": "Profil einrichten",
-        "skip": "Vorerst überspringen und zum Portal",
+        "choosePlan": "Tarif wählen",
+        "skip": "Vorerst überspringen und mit Free starten",
+        "signInToChoosePlan": "Melden Sie sich an, um Ihren Tarif zu wählen",
+        "signInToSkip": "Anmelden und vorerst mit Free starten",
         "nextHeading": "WIE ES WEITERGEHT",
         "inviteTitle": "Laden Sie Ihren ersten Klienten ein",
         "inviteHint": "Er tritt über die Form-Up-App bei",
@@ -5928,8 +6214,7 @@
       "cs": "CS",
       "en": "EN",
       "de": "DE"
-    },
-    "brandMark": "GF"
+    }
   },
   "home": {
     "brand": { "form": "FORM", "up": "UP", "name": "Form Up" },
@@ -6269,12 +6554,6 @@
         "FirstPayments_one": "Nur die erste Zahlung",
         "FirstPayments_other": "Die ersten {{count}} Zahlungen"
       },
-      "codes": {
-        "title": "Rabattcodes",
-        "comingLater": "Kommt später",
-        "body": "Geben Sie einem Rabatt einen Code, etwa SOMMER26, und Klienten geben ihn beim Beitritt ein.",
-        "create": "Code erstellen"
-      },
       "validation": {
         "nameRequired": "Geben Sie einen Namen ein.",
         "nameTooLong": "Der Name darf höchstens 100 Zeichen haben.",
@@ -6467,6 +6746,8 @@
         "answerWindowDays_one": "{{count}} Tag",
         "answerWindowDays_other": "{{count}} Tage",
         "answerWindowHint": "Danach zählt die Woche als verpasst",
+        "weekdayRuleHint": "Ihre Regel: {{day}}",
+        "answerWindowRuleHint": "Ihre Regel: {{window}}. Danach zählt die Woche als verpasst",
         "eventLabel": "Ereignis",
         "timing": "Zeitpunkt",
         "daysAfter": "Tage danach",
@@ -6484,6 +6765,12 @@
         "formOption_other": "{{title}} · {{count}} Fragen",
         "formOptionCheckIn": "{{title}} · Check-in-Formular",
         "formHintCheckIn": "Die Fragen ändern Sie unter Formulare › {{title}}",
+        "overrideForm": "Check-in-Formular",
+        "overrideRuleForm": "Formular der Regel · {{title}}",
+        "overrideRuleFormNoTitle": "Formular der Regel",
+        "overrideHint": "Ihre Regel sendet {{title}}. Es werden nur Ihre Check-in-Formulare angezeigt.",
+        "overrideHintNoTitle": "Es werden nur Ihre Check-in-Formulare angezeigt.",
+        "overrideUseRuleForm": "Formular der Regel verwenden",
         "formsError": "Die Formulare konnten nicht geladen werden.",
         "reminder": "Klienten nach {{hours}} h erinnern, wenn nicht geantwortet wurde",
         "missedWeek": "Mich benachrichtigen, wenn eine Woche verpasst wird",
@@ -6620,7 +6907,8 @@
       "keepUntil": "bleibt, neu bis {{date}}. Danach wählt {{name}} einen Plan.",
       "keepNoEnd": "bleibt, jetzt ohne Enddatum.",
       "keepPickDate": "bleibt. Wählen Sie das neue Enddatum.",
-      "confirmKeep": "Enddatum ändern"
+      "confirmKeep": "Enddatum ändern",
+      "refundNotice": "Das bezahlte Stripe-Abonnement von {{name}} wird jetzt gekündigt, und die ungenutzten Tage werden auf die Karte zurückerstattet."
     },
     "drawer": {
       "titleFallback": "Trainer",
@@ -6639,7 +6927,8 @@
       "clientsUnlimited": "{{used}}, unbegrenzt",
       "actions": "Aktionen",
       "privacy": "Namen und Daten der Kunden sehen Administratoren nicht. Nur Zahlen.",
-      "openInStripe": "In Stripe öffnen"
+      "openInStripe": "In Stripe öffnen",
+      "noStripeCustomer": "Dieser Trainer hat noch keinen Stripe-Kunden."
     },
     "actions": {
       "reason": "Grund",
@@ -6649,6 +6938,7 @@
         "noEnd": "Ohne Enddatum",
         "button": "Plan ändern",
         "success": "Der Plan wurde geändert.",
+        "successRefund": "Der Plan wurde geändert. Erstattet: {{amount}}.",
         "error": "Der Plan konnte nicht geändert werden."
       },
       "promotion": {
@@ -6677,11 +6967,13 @@
         "button": "Plan beenden",
         "none": "Dieser Trainer hat keinen bezahlten oder geschenkten Plan, der beendet werden könnte.",
         "success": "Der Plan wurde beendet.",
+        "successRefund": "Der Plan wurde beendet. Erstattet: {{amount}}.",
         "error": "Der Plan konnte nicht beendet werden.",
+        "refundNotice": "Das bezahlte Stripe-Abonnement des Trainers wird jetzt gekündigt, und die ungenutzten Tage werden auf die Karte zurückerstattet.",
         "dialogTitle": "Plan jetzt beenden?",
         "dialogDescription": "{{name}} wechselt heute vom Plan {{plan}} auf Kostenlos und wird nicht mehr belastet.",
-        "callout_one": "{{name}} hat {{count}} Kunde und Kostenlos erlaubt {{max}}. Bei der nächsten Anmeldung wählt der Trainer aus, welche er behält. Die Pläne der übrigen Kunden laufen bis zur letzten veröffentlichten Woche.",
-        "callout_other": "{{name}} hat {{count}} Kunden und Kostenlos erlaubt {{max}}. Bei der nächsten Anmeldung wählt der Trainer aus, welche er behält. Die Pläne der übrigen Kunden laufen bis zur letzten veröffentlichten Woche.",
+        "callout_one": "{{name}} hat {{count}} Kunde und Kostenlos erlaubt {{max}}. Sobald der Trainer die App öffnet oder auf eine andere Seite wechselt, wählt er aus, welche er behält. Die Pläne der übrigen Kunden laufen bis zur letzten veröffentlichten Woche.",
+        "callout_other": "{{name}} hat {{count}} Kunden und Kostenlos erlaubt {{max}}. Sobald der Trainer die App öffnet oder auf eine andere Seite wechselt, wählt er aus, welche er behält. Die Pläne der übrigen Kunden laufen bis zur letzten veröffentlichten Woche.",
         "placeholder": "Warum beenden Sie den Plan?",
         "cancel": "Abbrechen",
         "confirm": "Plan jetzt beenden"
@@ -6710,6 +7002,11 @@
         "givenFree_plain": "Auf Plan {{plan}} geändert, ohne Enddatum",
         "planAssigned": "Plan geändert auf {{plan}}",
         "planEnded": "Plan beendet: {{plan}}",
+        "choseFreePlan": "Free-Plan gewählt",
+        "paidPlanStarted": "Kostenpflichtiger Plan gestartet: {{plan}}",
+        "paidPlanUpgraded": "Kostenpflichtiger Plan erhöht: {{plan}}",
+        "paidPlanDowngraded": "Kostenpflichtiger Plan reduziert: {{plan}}",
+        "paidPlanEnded": "Kostenpflichtiger Plan beendet",
         "renewalCancelled_until": "Verlängerung gekündigt, Plan endet am {{date}}",
         "renewalCancelled_plain": "Verlängerung gekündigt",
         "accountDisabled_until": "Konto deaktiviert, aktiv bis {{date}}",
@@ -6801,13 +7098,15 @@
       "sectionPrice": "Preis",
       "perMonth": "Pro Monat",
       "freePriceHint": "Free kostet immer 0.",
-      "billing": "Abrechnung",
-      "billingMonthly": "Monatlich",
-      "billingAnnualLater": "Jährliche Abrechnung folgt später.",
+      "perYear": "Pro Jahr",
+      "annualEmptyHint": "Lassen Sie das Feld leer, wenn der Tarif nicht jährlich verkauft wird.",
+      "annualSavingHint": "Spart {{percent}} % gegenüber 12 × {{monthly}} ({{total}}).",
+      "annualAddOnSavingHint": "Spart {{percent}} % gegenüber 12 × {{monthly}}.",
       "secondRole": "Zweite Rolle",
       "secondRoleAddOn": "Kostenpflichtiges Zusatzangebot",
       "secondRoleIncluded": "Im Preis inklusive",
       "addOnPrice": "Zweite Rolle pro Monat",
+      "annualAddOnPrice": "Zweite Rolle pro Jahr",
       "sectionClients": "Klienten",
       "activeClients": "Aktive Klienten",
       "activeClientsHint": "Ein Klient in beiden Rollen zählt einmal.",
@@ -6833,6 +7132,8 @@
       "perMonthSuffix": "/ Monat",
       "secondRoleLine": "Zweite Rolle +{{price}} / Monat",
       "secondRoleIncludedLine": "Zweite Rolle inklusive",
+      "annualLine": "Jährlich: {{price}} / Jahr",
+      "annualLineWithSecondRole": "Jährlich: {{price}} / Jahr, zweite Rolle +{{addOn}} / Jahr",
       "unlimitedClientsLine": "Unbegrenzt viele aktive Klienten",
       "clientsLine_one": "Bis zu {{count}} aktiver Klient",
       "clientsLine_other": "Bis zu {{count}} aktive Klienten",
@@ -6881,8 +7182,267 @@
       "codeTaken": "Ein Plan mit diesem Code existiert bereits.",
       "priceInvalid": "Geben Sie einen Preis von 0 bis 1.000.000 ein.",
       "addOnInvalid": "Geben Sie einen Preis für die zweite Rolle über 0 ein oder wählen Sie „Im Preis inklusive“.",
+      "annualInvalid": "Geben Sie einen Jahrespreis über 0 ein oder lassen Sie das Feld leer, wenn der Tarif nicht jährlich verkauft wird.",
+      "annualAddOnInvalid": "Geben Sie einen Jahrespreis für die zweite Rolle über 0 ein.",
       "clientsInvalid": "Geben Sie eine Klientenzahl ab 1 ein oder wählen Sie Unbegrenzt.",
       "perClientNeedsWeekly": "Check-in-Einstellungen pro Klient setzen wöchentliche Check-ins voraus."
+    }
+  },
+  "adminOverview": {
+    "title": "Übersicht",
+    "subtitle": "Was Ihre Aufmerksamkeit braucht und wie Form Up in den letzten 30 Tagen läuft.",
+    "retry": "Erneut versuchen",
+    "lastDays": {
+      "title": "Letzte 30 Tage",
+      "fullReports": "Alle Berichte",
+      "loadError": "Die Zahlen konnten nicht geladen werden.",
+      "pointsUnit": "Pp.",
+      "mrr": "Monatlich wiederkehrende Einnahmen",
+      "mrrNote": "Zahlende Trainer, nach Rabatten · gegenüber den 30 Tagen davor",
+      "signups": "Neue Registrierungen",
+      "signupsNote": "In den letzten 30 Tagen angelegte Trainerkonten",
+      "payingCoaches": "Zahlende Trainer",
+      "payingCoachesNote": "Trainer mit einem bezahlten Tarif",
+      "churn": "Abwanderung",
+      "churnNote": "Zahlende Trainer, die in den letzten 30 Tagen gekündigt haben"
+    },
+    "attention": {
+      "title": "Braucht Aufmerksamkeit",
+      "items_one": "{{count}} Eintrag",
+      "items_other": "{{count}} Einträge",
+      "loadError": "Die Hinweise konnten nicht geladen werden.",
+      "allClear": "Nichts braucht Ihre Aufmerksamkeit",
+      "allClearDetail": "Keine fehlgeschlagenen Zahlungen, Kündigungen, endenden Gratis-Tarife oder auslaufenden Aktionen.",
+      "paymentFailed_one": "{{count}} Zahlung fehlgeschlagen",
+      "paymentFailed_other": "{{count}} Zahlungen fehlgeschlagen",
+      "namesMore": "{{names}} und {{count}} weitere",
+      "cancelling_one": "{{count}} Trainer hat gekündigt",
+      "cancelling_other": "{{count}} Trainer haben gekündigt",
+      "cancellingOn": "Deren bezahlte Tarife enden am {{date}}.",
+      "cancellingBetween": "Deren bezahlte Tarife enden zwischen dem {{from}} und dem {{to}}.",
+      "givenFree_one": "{{count}} von Ihnen verschenkter Gratis-Tarif endet innerhalb von 14 Tagen",
+      "givenFree_other": "{{count}} von Ihnen verschenkte Gratis-Tarife enden innerhalb von 14 Tagen",
+      "givenFreeDetail": "Jeder endet am festgelegten Datum, danach wählt der Trainer einen Tarif.",
+      "promotion": "Aktion „{{name}}“ läuft bald aus",
+      "promotionUntil": "Trainer können sie bis {{date}} einlösen.",
+      "promotionUses": "{{used}} von {{max}} Einlösungen genutzt.",
+      "openCoaches": "Trainer öffnen",
+      "openPromotion": "Aktion öffnen"
+    },
+    "quick": {
+      "title": "Schnellaktionen",
+      "findCoach": "Trainer finden",
+      "searchPlaceholder": "Name oder E-Mail",
+      "newPromotion": "Neue Aktion"
+    }
+  },
+  "adminReports": {
+    "title": "Berichte",
+    "subtitle": "Summen über alle Trainer, einmal täglich aktualisiert. Die Daten ihrer Klienten bleiben privat.",
+    "stripeDashboard": "Stripe-Dashboard",
+    "loadError": "Die Berichte konnten nicht geladen werden.",
+    "retry": "Erneut versuchen",
+    "footnote": "Die Einnahmen stammen aus bezahlten Stripe-Rechnungen, die wir laufend speichern. Gebühren, Rückerstattungen und Auszahlungen bleiben im Stripe-Dashboard.",
+    "period": {
+      "label": "Zeitraum",
+      "Days30": "30 Tage",
+      "Days90": "90 Tage",
+      "Months12": "12 Monate",
+      "window": {
+        "Days30": "den letzten 30 Tagen",
+        "Days90": "den letzten 90 Tagen",
+        "Months12": "den letzten 12 Monaten"
+      }
+    },
+    "money": {
+      "title": "Geld",
+      "subtitle": "Stand vom {{day}} · Änderung gegenüber dem Stand vom {{against}}",
+      "subtitleNoBaseline": "Stand vom {{day}} · noch kein früherer Stand zum Vergleich",
+      "noSnapshot": "Noch kein täglicher Snapshot",
+      "revenue": "Monatliche Einnahmen",
+      "revenueNote": "Nach Rabatten · Vollpreis {{full}}",
+      "revenueNoteShort": "Nach Rabatten",
+      "collected": "Diesen Monat eingenommen",
+      "collectedNote": "Bezahlte Stripe-Rechnungen in diesem Monat",
+      "lost": "Durch Kündigungen verloren",
+      "lostNote": "Kündigungen: {{count}}",
+      "lostNoteChurn": "Kündigungen: {{count}} · Abwanderung {{churn}} %",
+      "average": "Durchschnitt pro zahlendem Trainer",
+      "averageNote": "Monatliche Einnahmen ÷ zahlende Trainer ({{count}})"
+    },
+    "mrr": {
+      "title": "Monatlich wiederkehrende Einnahmen",
+      "subtitle": "Was zahlenden Trainern jeden Monat berechnet wird · tägliche Snapshots",
+      "afterPromotions": "Nach Rabatten",
+      "fullPrice": "Vollpreis",
+      "empty": "In diesem Zeitraum gibt es noch keine Snapshots.",
+      "chartLabel": "Monatlich wiederkehrende Einnahmen nach Rabatten, von {{from}} bis {{to}}"
+    },
+    "plans": {
+      "title": "Zahlende Trainer nach Tarif",
+      "subtitle": "Zahlende Trainer: {{count}} · nach Rabatten abgerechnet",
+      "barLabel": "Zahlende Trainer nach Tarif: {{summary}}",
+      "perMonth": "{{amount}} / Monat",
+      "addOn": "Zusatz für die zweite Rolle"
+    },
+    "coaches": {
+      "title": "Trainer",
+      "subtitle": "Registrierungen, Konversion und Tarifwechsel"
+    },
+    "funnel": {
+      "title": "Trichter neuer Trainer",
+      "subtitle": "Trainer, die sich in {{window}} registriert haben",
+      "signedUp": "Registriert",
+      "emailVerified": "E-Mail bestätigt",
+      "chosePlan": "Tarif gewählt",
+      "startedPaidPlan": "Bezahlter Tarif",
+      "note": "Die Prozentwerte vergleichen jeden Schritt mit dem darüber."
+    },
+    "changes": {
+      "title": "Tarifwechsel",
+      "subtitle": "Auswirkung auf die monatlichen Einnahmen in {{window}}",
+      "upgraded": "Upgrades",
+      "downgraded": "Downgrades",
+      "cancelled": "Kündigungen",
+      "paymentFailed": "Zahlung fehlgeschlagen",
+      "paymentFailedNote": "Stripe versucht es erneut",
+      "promotionCodes": "Verwendete Rabattcodes"
+    },
+    "usage": {
+      "title": "Nutzung",
+      "subtitle": "Wird das Produkt genutzt",
+      "empty": "Es gibt noch keinen täglichen Snapshot, daher keine Nutzungszahlen. Sie erscheinen nach dem ersten Snapshot.",
+      "activeCoaches": "Aktive Trainer",
+      "activeCoachesNote": "In den letzten 30 Tagen angemeldet, von allen Trainern",
+      "clientsPerCoach": "Klienten pro Trainer",
+      "clientsPerCoachNote": "Median über alle Trainer",
+      "atCap": "Kostenlose Trainer am Limit",
+      "atCapNote": "Am Klientenlimit des kostenlosen Tarifs",
+      "activeClients": "Aktive Klienten in der App",
+      "activeClientsNote": "App in den letzten 7 Tagen geöffnet",
+      "planWeeks": "Veröffentlichte Planwochen",
+      "planWeeksNote": "Training und Ernährung, letzte 7 Tage"
+    }
+  },
+  "adminPromotions": {
+    "title": "Aktionen",
+    "subtitle": "Rabatte auf Form-Up-Tarife für Trainer. Die eigenen Rabatte eines Trainers für seine Kunden sind davon getrennt.",
+    "newPromotion": "Neue Aktion",
+    "note": "Pro Trainer gilt immer nur eine Aktion. Sie gilt für die gesamte Rechnung, einschließlich der zweiten Rolle.",
+    "loadError": "Die Aktionen konnten nicht geladen werden.",
+    "retry": "Erneut versuchen",
+    "empty": "Noch keine Aktionen.",
+    "saveSuccess": "Aktion gespeichert.",
+    "saveError": "Die Aktion konnte nicht gespeichert werden.",
+    "filters": {
+      "label": "Aktionen filtern",
+      "All": "Alle",
+      "Active": "Aktiv",
+      "Scheduled": "Geplant",
+      "Ended": "Beendet"
+    },
+    "status": {
+      "Active": "Aktiv",
+      "Scheduled": "Geplant",
+      "Ended": "Beendet"
+    },
+    "table": {
+      "promotion": "Aktion",
+      "how": "Wie",
+      "value": "Wert",
+      "lasts": "Dauer",
+      "window": "Angebotszeitraum",
+      "plans": "Tarife",
+      "used": "Genutzt",
+      "status": "Status",
+      "everyone": "Für alle beim Bezahlen",
+      "codeSubline": "Code",
+      "automatic": "Automatisch",
+      "allPaidPlans": "Alle kostenpflichtigen Tarife",
+      "actions": "Optionen",
+      "usedOf": "{{count}} von {{max}}"
+    },
+    "lasts": {
+      "firstMonth": "Erster Monat",
+      "months_one": "{{count}} Monat",
+      "months_other": "{{count}} Monate",
+      "forever": "Dauerhaft"
+    },
+    "window": {
+      "range": "{{from}} – {{to}}",
+      "noEnd": "Kein Enddatum"
+    },
+    "plansLoadError": "Die Tarife konnten nicht geladen werden. Bitte versuchen Sie es erneut.",
+    "noPaidPlans": "Derzeit wird kein kostenpflichtiger Tarif angeboten, daher kann eine Aktion keinen Tarif abdecken.",
+    "end": {
+      "action": "{{name}} beenden",
+      "tooltip": "Aktion beenden",
+      "title": "„{{name}}“ beenden?",
+      "description": "Sie gilt ab heute beim Bezahlen nicht mehr, und kein weiterer Trainer kann sie erhalten. Ihr Status wechselt zu Beendet.",
+      "note_one": "Der {{count}} Trainer, der sie bereits hat, behält seinen Rabatt, bis er ausläuft.",
+      "note_other": "Die {{count}} Trainer, die sie bereits haben, behalten ihren Rabatt, bis er ausläuft.",
+      "confirm": "Aktion beenden",
+      "success": "Aktion beendet.",
+      "notFound": "Diese Aktion gibt es nicht mehr.",
+      "error": "Die Aktion konnte nicht beendet werden."
+    },
+    "drawer": {
+      "titleNew": "Neue Aktion",
+      "description": "Wird beim Speichern in Stripe angelegt",
+      "sectionPromotion": "Aktion",
+      "name": "Name · Tschechisch",
+      "nameEn": "Name · Englisch",
+      "nameDe": "Name · Deutsch",
+      "nameHint": "Trainer sehen den Namen in ihrer Sprache in der Tarifauswahl und in den Einstellungen; ohne Übersetzung sehen sie den tschechischen. Der tschechische Name ist auch der Name des Coupons in Stripe und kann auf ihrer Rechnung erscheinen.",
+      "type": "Art",
+      "typePercent": "Prozent",
+      "typeFixed": "Fester Betrag",
+      "value": "Wert",
+      "sectionHow": "Wie Trainer sie erhalten",
+      "claimed": "Einlösung",
+      "automatic": "Automatisch für alle",
+      "withCode": "Mit Code",
+      "code": "Code",
+      "codeHint": "Buchstaben und Zahlen. Groß- und Kleinschreibung spielt keine Rolle.",
+      "sectionLasts": "Wie lange sie für einen Trainer gilt",
+      "lasts": "Dauer",
+      "firstMonth": "Erster Monat",
+      "months": "Mehrere Monate",
+      "forever": "Dauerhaft",
+      "monthCount": "Anzahl der Monate",
+      "monthCountHint": "Von {{min}} bis {{max}}.",
+      "billingPeriod": "Abrechnungszeitraum",
+      "periodMonthly": "Monatlich",
+      "periodAnnual": "Jährlich",
+      "periodBoth": "Beides",
+      "annualHint": "Bei Jahrestarifen senkt eine Aktion über einige Monate nur die erste Jahresrechnung. „Dauerhaft“ senkt jede Jahresrechnung.",
+      "sectionWindow": "Angebotszeitraum",
+      "claimFrom": "Einlösbar ab",
+      "claimUntil": "Einlösbar bis",
+      "optional": "Optional",
+      "sectionLimits": "Tarife und Grenzen",
+      "plans": "Tarife",
+      "maxUses": "Max. Nutzungen",
+      "maxUsesHint": "Leer = keine Grenze",
+      "newCoachesOnly": "Nur neue Trainer",
+      "oneUsePerCoach": "Eine Nutzung pro Trainer",
+      "coversBill": "Gilt für die gesamte Rechnung, einschließlich der zweiten Rolle",
+      "save": "Aktion speichern",
+      "saving": "Wird gespeichert…"
+    },
+    "validation": {
+      "nameRequired": "Geben Sie einen Namen ein.",
+      "nameTooLong": "Der Name darf höchstens 200 Zeichen lang sein.",
+      "valuePercent": "Geben Sie eine ganze Prozentzahl von 1 bis 100 ein.",
+      "valueAmount": "Geben Sie einen Betrag über 0 ein.",
+      "codeRequired": "Geben Sie einen Code ein.",
+      "codeInvalid": "Verwenden Sie nur Buchstaben und Zahlen, höchstens 50 Zeichen.",
+      "codeTaken": "Diesen Code verwendet bereits eine andere Aktion, die noch nicht beendet ist.",
+      "monthsInvalid": "Geben Sie eine ganze Monatszahl von 2 bis 36 ein.",
+      "claimFromRequired": "Wählen Sie ein Startdatum.",
+      "windowInvalid": "Das Enddatum muss nach dem Startdatum und in der Zukunft liegen.",
+      "plansRequired": "Wählen Sie mindestens einen Tarif.",
+      "maxUsesInvalid": "Geben Sie eine ganze Zahl ab 1 ein oder lassen Sie das Feld leer."
     }
   },
   "pricing": {
@@ -6902,7 +7462,12 @@
       "clientCap_one": "Bis zu {{count}} Klient",
       "clientCap_other": "Bis zu {{count}} Klienten",
       "featureCount": "{{count}} von {{total}} Funktionen",
-      "seeAll": "alle anzeigen"
+      "seeAll": "alle anzeigen",
+      "thenAnnual": "im ersten Jahr, danach {{price}}"
+    },
+    "interval": {
+      "annualNote": "Einmal pro Jahr bezahlt. Jeder Tarif zeigt, was Sie gegenüber 12 Monatszahlungen sparen.",
+      "annualFooter": "Jährliche Abrechnung über Stripe. Ein Downgrade, der Wechsel zu monatlicher Zahlung oder eine Kündigung wird am Ende des bezahlten Jahres wirksam."
     },
     "table": {
       "title": "Funktionen im Vergleich",
@@ -6928,6 +7493,60 @@
       "automations": { "label": "Automatisierungen", "hint": "Erinnerungen und Nachrichten, die sich selbst versenden" },
       "packages": { "label": "Pakete", "hint": "Bezahlte Coaching-Pakete anbieten" },
       "payments": { "label": "Klientenzahlungen", "hint": "Zahlungsanfragen mit QR-Code" }
+    }
+  },
+  "checkIns": {
+    "title": "Check-ins",
+    "subtitle": "Wöchentliche Check-ins aller Ihrer Klienten. Eine Antwort bleibt neu, bis Sie sie als geprüft markieren.",
+    "retry": "Erneut versuchen",
+    "loadError": "Die Check-ins konnten nicht geladen werden.",
+    "empty": "Für diese Woche gibt es noch keine Check-ins. Sie erscheinen hier, sobald sie an Ihre Klienten gesendet wurden.",
+    "emptyFilter": "Kein Check-in entspricht diesem Filter.",
+    "timeZoneNote": "Die Zeiten folgen der Zeitzone des jeweiligen Klienten",
+    "footer": "{{shown}} von {{total}} angezeigt · „Antworten öffnen“ zeigt den Check-in im Tab Formulare des Klienten",
+    "markReviewedError": "Der Check-in konnte nicht als geprüft markiert werden.",
+    "week": {
+      "group": "Woche",
+      "previous": "Vorherige Woche",
+      "next": "Nächste Woche",
+      "label": "Woche {{week}} · {{range}}"
+    },
+    "totals": {
+      "answered": "Beantwortet",
+      "answeredValue": "{{answered}} von {{total}}",
+      "answeredSubline": "{{percent}} % der gesendeten Check-ins",
+      "notReviewedSubline": "Antworten, die auf Sie warten",
+      "missedSubline": "Antwortfrist abgelaufen",
+      "waitingSubline": "Klienten können noch antworten"
+    },
+    "filters": {
+      "label": "Check-ins filtern",
+      "all": "Alle"
+    },
+    "status": {
+      "notReviewed": "Nicht geprüft",
+      "missed": "Verpasst",
+      "waiting": "Ausstehend",
+      "reviewed": "Geprüft"
+    },
+    "table": {
+      "client": "Klient",
+      "form": "Formular",
+      "sent": "Gesendet",
+      "answered": "Beantwortet",
+      "status": "Status",
+      "actions": "Aktionen"
+    },
+    "row": {
+      "canAnswerUntil": "Kann bis {{date}} antworten",
+      "windowEnded": "Antwortfrist endete {{date}}",
+      "reviewedOn": "Geprüft {{date}}",
+      "noAnswer": "—"
+    },
+    "actions": {
+      "openAnswers": "Antworten öffnen",
+      "markReviewed": "Als geprüft markieren",
+      "writeTo": "{{name}} schreiben"
     }
   }
 }

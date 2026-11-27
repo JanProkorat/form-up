@@ -13,7 +13,7 @@ namespace FormUp.Tests.Endpoints.Users;
 /// <summary>
 /// A coach whose professional profile is created by adding a role gets the default "Weekly check-in" form.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class AddRoleDefaultCheckInFormTests(FitnessApiFactory factory)
 {
     private static readonly CancellationToken Ct = TestContext.Current.CancellationToken;

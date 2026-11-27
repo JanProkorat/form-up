@@ -36,6 +36,8 @@ internal class AdminCoachRecord
 
     public bool PaysSecondRoleAddOn { get; set; }
 
+    public bool HasCancellableSubscription { get; set; }
+
     public string? PlanCode { get; set; }
 
     public string? PlanNameCs { get; set; }
@@ -55,4 +57,6 @@ internal class AdminCoachRecord
     public long? AddOnMinorUnits { get; set; }
 
     public string? Currency { get; set; }
+
+    public string? StripeCustomerId { get; set; }
 }

@@ -336,7 +336,8 @@ public class AcceptClientRequestEndpoint(
             clientRequest.PublicId,
             req.Statement,
             createConversationIfMissing: true,
-            ct);
+            ct,
+            pushCompanionText: true);
 
         logger.LogInformation(
             "Client request {RequestId} accepted by professional {ProfessionalId}",

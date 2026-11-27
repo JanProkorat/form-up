@@ -17,7 +17,7 @@ namespace FormUp.Tests.Endpoints.Questionnaires;
 /// <summary>
 /// A coach who picks "no onboarding form" must not have the default form offered to the client.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class SkipOnboardingFormTests(FitnessApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

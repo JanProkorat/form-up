@@ -13,6 +13,7 @@ using FormUp.Application.Infrastructure.Data.MongoDb;
 using FormUp.Application.Infrastructure.HealthChecks;
 using FormUp.Application.Infrastructure.Hubs;
 using FormUp.Application.Infrastructure.Services;
+using FormUp.Application.Infrastructure.Services.Reporting;
 using FormUp.Application.Middleware;
 using FormUp.Application.Seed;
 using MongoDB.Driver;
@@ -201,6 +202,19 @@ builder.Services.AddRateLimiter(options =>
                     QueueLimit = 0
                 }));
 
+    // Promotion codes: partitioned by the coach's UserId, see AppPolicies.PromotionCodeRateLimit.
+    options.AddPolicy(AppPolicies.PromotionCodeRateLimit, context =>
+        rateLimitingDisabled
+            ? RateLimitPartition.GetNoLimiter("disabled")
+            : RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: context.User.FindFirst(AppClaims.UserId)?.Value ?? GetPartitionKey(context),
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 10,
+                    Window = TimeSpan.FromMinutes(15),
+                    QueueLimit = 0
+                }));
+
     // Anonymous notification email links: see AppPolicies.EmailLinkRateLimit for why this is not the auth budget.
     options.AddPolicy(AppPolicies.EmailLinkRateLimit, context =>
         rateLimitingDisabled
@@ -240,6 +254,19 @@ builder.Services.AddRateLimiter(options =>
                     QueueLimit = 0
                 }));
 
+    // Anonymous invite token lookup: see AppPolicies.InviteResolveRateLimit for why this is not the auth budget.
+    options.AddPolicy(AppPolicies.InviteResolveRateLimit, context =>
+        rateLimitingDisabled
+            ? RateLimitPartition.GetNoLimiter("disabled")
+            : RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: GetPartitionKey(context),
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 20,
+                    Window = TimeSpan.FromMinutes(15),
+                    QueueLimit = 0
+                }));
+
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
 
@@ -272,6 +299,8 @@ builder.Services.AddSingleton(TimeProvider.System);
 // call site resolves professional/client link capabilities through; see #958, #964.
 builder.Services.AddScoped<IClientLinkAuthorizationService, ClientLinkAuthorizationService>();
 builder.Services.AddScoped<ICoachRoleStatus, CoachRoleStatus>();
+builder.Services.AddScoped<ICoachRevenueService, CoachRevenueService>();
+builder.Services.AddScoped<ICoachEventRecorder, CoachEventRecorder>();
 builder.Services.AddScoped<ICoachDisciplineAccess, CoachDisciplineAccess>();
 builder.Services.AddScoped<ICoachRoleRemover, CoachRoleRemover>();
 builder.Services.AddScoped<IPrDetectionService, PrDetectionService>();
@@ -311,6 +340,7 @@ builder.Services.AddScoped<IRealtimeNotifier, SignalRNotifier>();
 // Get-or-create conversation + seed-first-message (invite messages, accept-time
 // statements) — shared by CreatePendingInviteEndpoint, AcceptClientInviteEndpoint,
 // and AcceptInvitationEndpoint (#768).
+builder.Services.AddScoped<IChatMessageNotifier, ChatMessageNotifier>();
 builder.Services.AddScoped<IConversationSeedService, ConversationSeedService>();
 
 // Seeds a professional-client conversation for a brand-new account against any
@@ -325,6 +355,11 @@ builder.Services.AddSingleton<PhotoDiaryReminderScheduler>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<PhotoDiaryReminderScheduler>());
 builder.Services.AddSingleton<CoachRoleLinkSweeper>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<CoachRoleLinkSweeper>());
+
+// Daily reporting snapshot — the writer is a separate singleton so tests call it directly; the hosted service only schedules it.
+builder.Services.AddSingleton<DailyReportSnapshotWriter>();
+builder.Services.AddSingleton<DailyReportSnapshotService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<DailyReportSnapshotService>());
 
 // Automation worker — runs due schedule rows and polled events. Singleton (for test access, which
 // calls RunDueNowAsync) and hosted service; its units of work are scoped and resolved per claim.
@@ -366,6 +401,13 @@ builder.Services.AddScoped<ISessionLockService, SessionLockService>();
 // Client app switches (optional "ClientApp" section; defaults show everything)
 builder.Services.Configure<FormUp.Application.Features.Client.GetClientAppConfig.ClientAppOptions>(
     builder.Configuration.GetSection(FormUp.Application.Features.Client.GetClientAppConfig.ClientAppOptions.SectionName));
+
+// Stripe billing seam. The secret key and webhook secret come only from the Stripe__SecretKey and
+// Stripe__WebhookSecret environment variables (or user-secrets); without them the app still boots and
+// ISubscriptionService.IsConfigured is false.
+builder.Services.Configure<FormUp.Application.Infrastructure.Services.Billing.BillingOptions>(
+    builder.Configuration.GetSection(FormUp.Application.Infrastructure.Services.Billing.BillingOptions.SectionName));
+builder.Services.AddSingleton<ISubscriptionService, FormUp.Application.Infrastructure.Services.Billing.StripeSubscriptionService>();
 
 // Compliance
 builder.Services.AddScoped<IComplianceService, ComplianceService>();
@@ -531,6 +573,9 @@ app.UseAuthorization();
 app.UseMiddleware<LocaleCaptureMiddleware>();
 app.MapHub<NotificationHub>("/hubs/notifications");
 app.UseRateLimiter();
+// Refuses every authenticated endpoint outside EmailVerificationExemptions while the caller's email is unconfirmed (#1517).
+// First of the gates so its 403 wins over the two below.
+app.UseMiddleware<FormUp.Application.Infrastructure.EmailVerification.EmailVerificationGateMiddleware>();
 // Read-only gate after a coach role is removed (see RemovedCoachRoleAttribute); needs the resolved
 // endpoint and the authenticated user, so it sits after authorization and before the endpoint runs.
 app.UseMiddleware<RemovedCoachRoleMiddleware>();

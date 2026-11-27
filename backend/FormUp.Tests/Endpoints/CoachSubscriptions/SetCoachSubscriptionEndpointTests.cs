@@ -15,7 +15,7 @@ namespace FormUp.Tests.Endpoints.CoachSubscriptions;
 /// <summary>
 /// Integration tests for <c>PUT /admin/coaches/{CoachId}/subscription</c> (<see cref="SetCoachSubscriptionEndpoint"/>).
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class SetCoachSubscriptionEndpointTests(FitnessApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
@@ -193,7 +193,6 @@ public class SetCoachSubscriptionEndpointTests(FitnessApiFactory factory)
             NameDe = "Plan",
             Currency = "CZK",
             PriceMinorUnits = 1000,
-            BillingInterval = BillingInterval.Monthly,
             IsActive = false,
         };
         SubscriptionPlanPriceBuilder.OpenPriceFor(plan);

@@ -2,6 +2,7 @@ using System.Net;
 using System.Text.Json;
 using FluentAssertions;
 using FormUp.Application.Domain.Entities;
+using FormUp.Application.Domain.Enums;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Tests.Builders;
 using FormUp.Tests.Infrastructure;
@@ -12,8 +13,8 @@ namespace FormUp.Tests.Endpoints.SubscriptionPlans;
 /// <summary>
 /// Integration tests for <c>GET /subscription-plans</c>.
 /// </summary>
-[Collection(TestCollection.Name)]
-public class GetPublicSubscriptionPlansEndpointTests(FitnessApiFactory factory)
+[Collection(TestCollection.Shard2)]
+public class GetPublicSubscriptionPlansEndpointTests(FitnessApiFactory factory) : IAsyncLifetime
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -84,4 +85,242 @@ public class GetPublicSubscriptionPlansEndpointTests(FitnessApiFactory factory)
 
         document.RootElement.EnumerateObject().Select(property => property.Name).Should().NotIntersectWith(ForbiddenFields);
     }
+
+    [Fact]
+    public async Task Get_ActiveAutomaticPromotion_ReturnsItWithDiscountedPricesOnCoveredPlansOnly()
+    {
+        await PromotionBuilder.ClearAsync(factory);
+        var covered = await PaidPlanBuilder.CreateAsync(factory, priceMinorUnits: 29900, addOnMinorUnits: 9900, bothRolesIncluded: false);
+        var bothRoles = await PaidPlanBuilder.CreateAsync(factory, priceMinorUnits: 49900);
+        var uncovered = await PaidPlanBuilder.CreateAsync(factory, priceMinorUnits: 19900, addOnMinorUnits: 5000, bothRolesIncluded: false);
+        var promotion = await PromotionBuilder.CreateAsync(factory, [covered, bothRoles], PromotionMode.Automatic, configured =>
+        {
+            configured.Value = 30;
+            configured.Duration = PromotionDuration.Months;
+            configured.DurationMonths = 3;
+            configured.ClaimUntil = DateTimeOffset.UtcNow.AddDays(20);
+            configured.NameEn = "Spring sale";
+            configured.NameDe = null;
+        });
+
+        using var document = await GetJsonAsync(factory.CreateClient());
+
+        var promotionJson = document.RootElement.GetProperty("promotion");
+        promotionJson.GetProperty("name").GetString().Should().Be(promotion.Name);
+        promotionJson.GetProperty("nameEn").GetString().Should().Be("Spring sale");
+        promotionJson.GetProperty("nameDe").ValueKind.Should().Be(JsonValueKind.Null);
+        promotionJson.GetProperty("value").GetInt64().Should().Be(30);
+        promotionJson.GetProperty("durationMonths").GetInt32().Should().Be(3);
+        promotionJson.GetProperty("planCodes").EnumerateArray().Select(code => code.GetString())
+            .Should().BeEquivalentTo(covered, bothRoles);
+
+        var plans = document.RootElement.GetProperty("plans").EnumerateArray().ToList();
+        var coveredPlan = plans.Single(plan => plan.GetProperty("code").GetString() == covered);
+        coveredPlan.GetProperty("discountedPriceMinorUnits").GetInt64().Should().Be(20930);
+        coveredPlan.GetProperty("discountedSecondRoleAddOnPriceMinorUnits").GetInt64().Should().Be(6930);
+
+        var bothRolesPlan = plans.Single(plan => plan.GetProperty("code").GetString() == bothRoles);
+        bothRolesPlan.GetProperty("discountedPriceMinorUnits").GetInt64().Should().Be(34930);
+        bothRolesPlan.GetProperty("discountedSecondRoleAddOnPriceMinorUnits").ValueKind.Should().Be(JsonValueKind.Null);
+
+        var uncoveredPlan = plans.Single(plan => plan.GetProperty("code").GetString() == uncovered);
+        uncoveredPlan.GetProperty("discountedPriceMinorUnits").ValueKind.Should().Be(JsonValueKind.Null);
+        uncoveredPlan.GetProperty("discountedSecondRoleAddOnPriceMinorUnits").ValueKind.Should().Be(JsonValueKind.Null);
+    }
+
+    [Fact]
+    public async Task Get_NoPromotion_ReturnsNullPromotionAndNoDiscountedPrices()
+    {
+        await PromotionBuilder.ClearAsync(factory);
+        await PaidPlanBuilder.CreateAsync(factory);
+
+        using var document = await GetJsonAsync(factory.CreateClient());
+
+        document.RootElement.GetProperty("promotion").ValueKind.Should().Be(JsonValueKind.Null);
+        document.RootElement.GetProperty("plans").EnumerateArray()
+            .Should().OnlyContain(plan => plan.GetProperty("discountedPriceMinorUnits").ValueKind == JsonValueKind.Null);
+    }
+
+    [Fact]
+    public async Task Get_PromotionsThatAreNotOpenAutomaticOffers_AreNotReturned()
+    {
+        await PromotionBuilder.ClearAsync(factory);
+        var plan = await PaidPlanBuilder.CreateAsync(factory);
+        await PromotionBuilder.CreateAsync(factory, [plan]);
+        await PromotionBuilder.CreateAsync(factory, [plan], PromotionMode.Automatic, scheduled =>
+            scheduled.ClaimFrom = DateTimeOffset.UtcNow.AddDays(2));
+        await PromotionBuilder.CreateAsync(factory, [plan], PromotionMode.Automatic, ended =>
+            ended.EndedAt = DateTimeOffset.UtcNow.AddHours(-1));
+        await PromotionBuilder.CreateAsync(factory, [plan], PromotionMode.Automatic, closed =>
+            closed.ClaimUntil = DateTimeOffset.UtcNow.AddHours(-1));
+        var usedUp = await PromotionBuilder.CreateAsync(factory, [plan], PromotionMode.Automatic, limited => limited.MaxUses = 1);
+        var redeemer = await TestActors.Trainer(factory).CreateAsync(Ct);
+        await PromotionBuilder.AddRedemptionAsync(factory, usedUp.Id, redeemer.ProfileId);
+
+        using var document = await GetJsonAsync(factory.CreateClient());
+
+        document.RootElement.GetProperty("promotion").ValueKind.Should().Be(JsonValueKind.Null);
+        document.RootElement.GetProperty("plans").EnumerateArray()
+            .Should().OnlyContain(item => item.GetProperty("discountedPriceMinorUnits").ValueKind == JsonValueKind.Null);
+    }
+
+    [Fact]
+    public async Task Get_SignedInCoach_GetsTheSameBodyAsAnonymous_AndExposesNoPromotionInternals()
+    {
+        await PromotionBuilder.ClearAsync(factory);
+        var plan = await PaidPlanBuilder.CreateAsync(factory);
+        await PromotionBuilder.CreateAsync(factory, [plan], PromotionMode.Automatic, configured =>
+        {
+            configured.NewCoachesOnly = true;
+            configured.OneUsePerCoach = true;
+            configured.MaxUses = 50;
+        });
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        await PromotionBuilder.MarkPaidBeforeAsync(factory, coach.ProfileId);
+
+        var anonymousBody = await (await factory.CreateClient().GetAsync("/subscription-plans", Ct)).Content.ReadAsStringAsync(Ct);
+        var signedInBody = await (await coach.Http.GetAsync("/subscription-plans", Ct)).Content.ReadAsStringAsync(Ct);
+
+        signedInBody.Should().Be(anonymousBody);
+
+        using var document = JsonDocument.Parse(anonymousBody);
+        var promotionNames = document.RootElement.GetProperty("promotion").EnumerateObject().Select(property => property.Name).ToList();
+        promotionNames.Should().BeEquivalentTo(
+            "name", "nameEn", "nameDe", "kind", "value", "currency", "duration", "durationMonths", "billingPeriod", "claimUntil", "planCodes");
+        anonymousBody.Should().NotContainAny("stripe", "maxUses", "usedCount", "newCoachesOnly", "oneUsePerCoach", "\"code\":\"CODE");
+    }
+
+    [Fact]
+    public async Task Get_PlanSoldAnnually_ReturnsAnnualLinesAndSaving_AndMonthlyFieldsStayMonthly()
+    {
+        await PromotionBuilder.ClearAsync(factory);
+        var annual = await PaidPlanBuilder.CreateAsync(factory, priceMinorUnits: 29900, addOnMinorUnits: 9900, bothRolesIncluded: false);
+        await SubscriptionPlanPriceBuilder.AddOpenAnnualPriceAsync(factory, annual, 299000, 99000);
+        var monthlyOnly = await PaidPlanBuilder.CreateAsync(factory, priceMinorUnits: 19900);
+
+        using var document = await GetJsonAsync(factory.CreateClient());
+
+        var plans = document.RootElement.GetProperty("plans").EnumerateArray().ToList();
+        var annualPlan = plans.Single(plan => plan.GetProperty("code").GetString() == annual);
+        annualPlan.GetProperty("priceMinorUnits").GetInt64().Should().Be(29900);
+        annualPlan.GetProperty("billingInterval").GetString().Should().Be("Monthly");
+        annualPlan.GetProperty("annualPriceMinorUnits").GetInt64().Should().Be(299000);
+        annualPlan.GetProperty("annualSecondRoleAddOnPriceMinorUnits").GetInt64().Should().Be(99000);
+        annualPlan.GetProperty("annualSavingPercent").GetInt32().Should().Be(17);
+        annualPlan.GetProperty("annualDiscountedPriceMinorUnits").ValueKind.Should().Be(JsonValueKind.Null);
+
+        var monthlyPlan = plans.Single(plan => plan.GetProperty("code").GetString() == monthlyOnly);
+        monthlyPlan.GetProperty("annualPriceMinorUnits").ValueKind.Should().Be(JsonValueKind.Null);
+        monthlyPlan.GetProperty("annualSecondRoleAddOnPriceMinorUnits").ValueKind.Should().Be(JsonValueKind.Null);
+        monthlyPlan.GetProperty("annualSavingPercent").ValueKind.Should().Be(JsonValueKind.Null);
+    }
+
+    [Fact]
+    public async Task Get_AnnualPlanBothRolesIncluded_HidesTheAnnualAddOn()
+    {
+        await PromotionBuilder.ClearAsync(factory);
+        var plan = await PaidPlanBuilder.CreateAsync(factory, priceMinorUnits: 49900);
+        await SubscriptionPlanPriceBuilder.AddOpenAnnualPriceAsync(factory, plan, 499000, 50000);
+        await PromotionBuilder.CreateAsync(factory, [plan], PromotionMode.Automatic, configured => configured.Value = 30);
+
+        using var document = await GetJsonAsync(factory.CreateClient());
+
+        var item = document.RootElement.GetProperty("plans").EnumerateArray()
+            .Single(candidate => candidate.GetProperty("code").GetString() == plan);
+        item.GetProperty("annualPriceMinorUnits").GetInt64().Should().Be(499000);
+        item.GetProperty("annualSecondRoleAddOnPriceMinorUnits").ValueKind.Should().Be(JsonValueKind.Null);
+        item.GetProperty("annualDiscountedPriceMinorUnits").GetInt64().Should().Be(349300);
+        item.GetProperty("annualDiscountedSecondRoleAddOnPriceMinorUnits").ValueKind.Should().Be(JsonValueKind.Null);
+    }
+
+    [Fact]
+    public async Task Get_PromotionCoversAnnualPlan_DiscountsBothAnnualLines()
+    {
+        await PromotionBuilder.ClearAsync(factory);
+        var covered = await PaidPlanBuilder.CreateAsync(factory, priceMinorUnits: 29900, addOnMinorUnits: 9900, bothRolesIncluded: false);
+        await SubscriptionPlanPriceBuilder.AddOpenAnnualPriceAsync(factory, covered, 299000, 99000);
+        var uncovered = await PaidPlanBuilder.CreateAsync(factory, priceMinorUnits: 19900, addOnMinorUnits: 5000, bothRolesIncluded: false);
+        await SubscriptionPlanPriceBuilder.AddOpenAnnualPriceAsync(factory, uncovered, 199000, 50000);
+        await PromotionBuilder.CreateAsync(factory, [covered], PromotionMode.Automatic, configured => configured.Value = 30);
+
+        using var document = await GetJsonAsync(factory.CreateClient());
+
+        var plans = document.RootElement.GetProperty("plans").EnumerateArray().ToList();
+        var coveredPlan = plans.Single(plan => plan.GetProperty("code").GetString() == covered);
+        coveredPlan.GetProperty("annualDiscountedPriceMinorUnits").GetInt64().Should().Be(209300);
+        coveredPlan.GetProperty("annualDiscountedSecondRoleAddOnPriceMinorUnits").GetInt64().Should().Be(69300);
+
+        var uncoveredPlan = plans.Single(plan => plan.GetProperty("code").GetString() == uncovered);
+        uncoveredPlan.GetProperty("annualDiscountedPriceMinorUnits").ValueKind.Should().Be(JsonValueKind.Null);
+        uncoveredPlan.GetProperty("annualDiscountedSecondRoleAddOnPriceMinorUnits").ValueKind.Should().Be(JsonValueKind.Null);
+    }
+
+    [Theory]
+    [InlineData(PromotionBillingPeriod.Monthly, true, false)]
+    [InlineData(PromotionBillingPeriod.Annual, false, true)]
+    [InlineData(PromotionBillingPeriod.Both, true, true)]
+    public async Task Get_TheBillingPeriodGatesTheMonthlyAndTheAnnualDiscountedFieldsSeparately(
+        PromotionBillingPeriod period, bool monthlyDiscounted, bool annualDiscounted)
+    {
+        await PromotionBuilder.ClearAsync(factory);
+        var plan = await PaidPlanBuilder.CreateAsync(factory, priceMinorUnits: 29900, addOnMinorUnits: 9900, bothRolesIncluded: false);
+        await SubscriptionPlanPriceBuilder.AddOpenAnnualPriceAsync(factory, plan, 299000, 99000);
+        await PromotionBuilder.CreateAsync(factory, [plan], PromotionMode.Automatic, configured =>
+        {
+            configured.Value = 30;
+            configured.BillingPeriod = period;
+        });
+
+        using var document = await GetJsonAsync(factory.CreateClient());
+
+        var item = document.RootElement.GetProperty("plans").EnumerateArray().Single(candidate => candidate.GetProperty("code").GetString() == plan);
+        (item.GetProperty("discountedPriceMinorUnits").ValueKind != JsonValueKind.Null).Should().Be(monthlyDiscounted);
+        (item.GetProperty("discountedSecondRoleAddOnPriceMinorUnits").ValueKind != JsonValueKind.Null).Should().Be(monthlyDiscounted);
+        (item.GetProperty("annualDiscountedPriceMinorUnits").ValueKind != JsonValueKind.Null).Should().Be(annualDiscounted);
+        (item.GetProperty("annualDiscountedSecondRoleAddOnPriceMinorUnits").ValueKind != JsonValueKind.Null).Should().Be(annualDiscounted);
+        document.RootElement.GetProperty("promotion").GetProperty("billingPeriod").GetString().Should().Be(period.ToString());
+    }
+
+    [Theory]
+    [InlineData("CZK", true)]
+    [InlineData("EUR", false)]
+    public async Task Get_AFixedAmountPromotion_DiscountsOnlyPlansInItsCurrency(string promotionCurrency, bool discounted)
+    {
+        await PromotionBuilder.ClearAsync(factory);
+        var plan = await PaidPlanBuilder.CreateAsync(factory, priceMinorUnits: 29900, addOnMinorUnits: 9900, bothRolesIncluded: false);
+        await SubscriptionPlanPriceBuilder.AddOpenAnnualPriceAsync(factory, plan, 299000, 99000);
+        await PromotionBuilder.CreateAsync(factory, [plan], PromotionMode.Automatic, configured =>
+        {
+            configured.Kind = PromotionKind.FixedAmount;
+            configured.Value = 1000;
+            configured.Currency = promotionCurrency;
+        });
+
+        using var document = await GetJsonAsync(factory.CreateClient());
+
+        var item = document.RootElement.GetProperty("plans").EnumerateArray().Single(candidate => candidate.GetProperty("code").GetString() == plan);
+        (item.GetProperty("discountedPriceMinorUnits").ValueKind != JsonValueKind.Null).Should().Be(discounted);
+        (item.GetProperty("annualDiscountedPriceMinorUnits").ValueKind != JsonValueKind.Null).Should().Be(discounted);
+
+        if (discounted)
+        {
+            item.GetProperty("discountedPriceMinorUnits").GetInt64().Should().Be(28900);
+            item.GetProperty("annualDiscountedPriceMinorUnits").GetInt64().Should().Be(298000);
+        }
+    }
+
+    private static async Task<JsonDocument> GetJsonAsync(HttpClient client)
+    {
+        var response = await client.GetAsync("/subscription-plans", Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        return JsonDocument.Parse(await response.Content.ReadAsStringAsync(Ct));
+    }
+
+    /// <inheritdoc />
+    public ValueTask InitializeAsync() => ValueTask.CompletedTask;
+
+    /// <summary>Leaves the promotions table empty for the next test class.</summary>
+    public async ValueTask DisposeAsync() => await PromotionBuilder.ClearAsync(factory);
 }

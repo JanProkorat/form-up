@@ -15,7 +15,7 @@ namespace FormUp.Tests.Services;
 /// Integration tests for <see cref="IClientVerdictService.GetLastActiveAtAsync(IReadOnlyCollection{ValueTuple{Guid, long}}, CancellationToken)"/>
 /// against the real Postgres and Mongo containers.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class ClientVerdictServiceLastActiveTests(FitnessApiFactory factory)
 {
     private static readonly CancellationToken Ct = TestContext.Current.CancellationToken;

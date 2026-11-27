@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Navigate, useLocation, useNavigate, useOutlet } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate, useOutlet, useSearchParams } from 'react-router-dom';
 import { XIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/stores/auth';
+import { resolveReturnTo } from '@/lib/landing';
 import { Dialog, DialogClose, DialogContent } from '@/components/ui/dialog';
 import HomeNav, { SIGN_IN_LINK_ID } from '@/components/home/HomeNav';
 import { scrollToId } from '@/components/home/smoothAnchor';
@@ -19,6 +20,7 @@ import HomeFooter from '@/components/home/HomeFooter';
 const DIALOG_PATHS = ['/login', '/forgot-password', '/auth/reset-password'];
 const LOGIN_PATH = '/login';
 const RESET_PATH = '/auth/reset-password';
+const NO_ROLES: string[] = [];
 
 interface DisplayedForm {
   key: string;
@@ -40,9 +42,10 @@ interface DisplayedForm {
  * just dismissed. Registration is a full page of its own (RegisterPage), not
  * a dialog route.
  *
- * Signed-in visitors are redirected to "/clients", except on the reset route:
- * the emailed link must reach its form, and a successful reset signs the
- * browser out locally.
+ * Signed-in visitors are redirected to a safe `returnTo` if one is given, else
+ * to the role's default landing page ("/admin" for admin-only accounts,
+ * "/clients" otherwise), except on the reset route: the emailed link must
+ * reach its form, and a successful reset signs the browser out locally.
  *
  * Focus: on open, Email is focused on the login route only; on forgot-password
  * and reset-password the dialog container takes focus, so no field is marked
@@ -52,6 +55,8 @@ interface DisplayedForm {
 export default function EntryPage() {
   const { t } = useTranslation();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const roles = useAuthStore((s) => s.user?.roles) ?? NO_ROLES;
+  const [searchParams] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
   const outlet = useOutlet();
@@ -79,7 +84,8 @@ export default function EntryPage() {
   }, [location.hash]);
 
   if (isAuthenticated && location.pathname !== RESET_PATH) {
-    return <Navigate to="/clients" replace />;
+    const target = resolveReturnTo(searchParams.get('returnTo'), location.state, roles);
+    return <Navigate to={target} replace />;
   }
 
   const handleOpenChange = (next: boolean) => {

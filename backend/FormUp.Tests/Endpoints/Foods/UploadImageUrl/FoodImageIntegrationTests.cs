@@ -16,7 +16,7 @@ namespace FormUp.Tests.Endpoints.Foods.UploadImageUrl;
 /// exercised.  NSubstitute unit tests in the sibling file cover logic-level
 /// branches; this file fills the AC gap by proving the role gate actually fires.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class FoodImageIntegrationTests(FitnessApiFactory factory)
 {
     // ── Helpers ────────────────────────────────────────────────────────────────

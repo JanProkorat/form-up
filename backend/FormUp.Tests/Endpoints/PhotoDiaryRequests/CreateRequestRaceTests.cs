@@ -16,7 +16,7 @@ namespace FormUp.Tests.Endpoints.PhotoDiaryRequests;
 /// POST /trainer/photo-diary-requests. The open-request check and the insert are separate
 /// statements, so without a lock two concurrent creates can both pass the check.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class CreateRequestRaceTests(FitnessApiFactory factory)
 {
     private const int ConcurrentCreates = 8;
@@ -50,7 +50,7 @@ public class CreateRequestRaceTests(FitnessApiFactory factory)
         await using var transactionB = await dbB.BeginTransactionAsync(ct);
         var racerB = dbB.LockProfessionalProfileAsync(coach.ProfileId, ct);
 
-        var raced = await Task.WhenAny(racerB, Task.Delay(TimeSpan.FromSeconds(2), ct));
+        var raced = await Task.WhenAny(racerB, Task.Delay(TimeSpan.FromMilliseconds(500), ct));
         raced.Should().NotBeSameAs(
             racerB,
             "racer B must still be blocked on the row lock that racer A's open transaction holds");

@@ -13,7 +13,7 @@ namespace FormUp.Tests.Endpoints.Client.PushToken;
 /// <summary>
 /// <c>POST /client/push-token/remove</c>: anonymous removal by token value, idempotent.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class RemovePushTokenAnonymousEndpointTests(FitnessApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

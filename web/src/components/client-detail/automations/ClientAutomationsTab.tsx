@@ -30,9 +30,8 @@ import {
   formValuesToPauseRequest,
   formValuesToRequest,
   overrideChanged,
+  overrideInitialValues,
   pauseChanged,
-  pauseToFormValues,
-  ruleToFormValues,
   ruleToToggleRequest,
   type AutomationRuleFormValues,
 } from '@/components/automations/automationRuleForm';
@@ -48,11 +47,6 @@ type DrawerState = { variant: 'override'; item: ClientAutomationItem } | { varia
 
 const ERROR_RULE_NOT_FOUND = 'AUTOMATION_RULE_NOT_FOUND';
 const SKELETON_ROW_COUNT = 4;
-
-/** The values the override drawer starts from, for telling which of its two saves are needed. */
-function overrideInitialValues(item: ClientAutomationItem): AutomationRuleFormValues {
-  return { ...ruleToFormValues(clientItemToRule(item)), ...pauseToFormValues(item) };
-}
 
 /**
  * Automations tab of the client detail page: the rules that apply to this client with their source,
@@ -262,6 +256,7 @@ export default function ClientAutomationsTab({ clientId, dashboard }: Props) {
               busyIds={busyIds}
               checkInOverrideLocked={!isEntitled('canUsePerClientCheckInConfig')}
               onOpen={handleOpen}
+              onLockedOpen={() => setPaywallOpen(true)}
               onToggle={handleToggle}
               onReset={handleReset}
               onDelete={setDeleteTarget}
@@ -283,6 +278,8 @@ export default function ClientAutomationsTab({ clientId, dashboard }: Props) {
           variant={drawer.variant}
           rule={drawer.item ? clientItemToRule(drawer.item) : undefined}
           pause={drawer.variant === 'override' ? drawer.item : undefined}
+          override={drawer.variant === 'override' ? drawer.item : undefined}
+          parentRule={drawer.variant === 'override' && drawer.item.ruleId ? parentRules.get(drawer.item.ruleId) : undefined}
           clientName={clientName}
           onSubmit={handleSave}
           isSaving={

@@ -19,6 +19,9 @@ public static class ErrorCodes
     /// <summary>Apple did not provide an email in the identity token, and no (apple, sub) link exists. Cannot provision or log in without an email address.</summary>
     public const string AppleNoEmailNoLink = "APPLE_NO_EMAIL_NO_LINK";
 
+    /// <summary>The caller's email is not confirmed yet, so the endpoint is refused (403) until it is verified.</summary>
+    public const string EmailNotVerified = "EMAIL_NOT_VERIFIED";
+
     /// <summary>Account is deactivated.</summary>
     public const string AccountDeactivated = "ACCOUNT_DEACTIVATED";
 
@@ -99,7 +102,13 @@ public static class ErrorCodes
     /// <summary>A food tag with this Name already exists for the owning nutritionist.</summary>
     public const string FoodTagNameAlreadyExists = "FOOD_TAG_NAME_ALREADY_EXISTS";
 
+    /// <summary>A coach cannot hide a food they own; they delete it instead.</summary>
+    public const string FoodHideOwnNotAllowed = "FOOD_HIDE_OWN_NOT_ALLOWED";
+
     // ── Recipes ──────────────────────────────────────────────────────
+    /// <summary>A coach cannot hide a recipe they own; they delete it instead.</summary>
+    public const string RecipeHideOwnNotAllowed = "RECIPE_HIDE_OWN_NOT_ALLOWED";
+
     /// <summary>User can only edit/delete/upload images for their own recipes.</summary>
     public const string RecipeNotOwned = "RECIPE_NOT_OWNED";
 
@@ -453,6 +462,12 @@ public static class ErrorCodes
     /// <summary>A plan must either include both roles or carry a positive second-role add-on price, never both or neither.</summary>
     public const string SecondRoleOptionInvalid = "SECOND_ROLE_OPTION_INVALID";
 
+    /// <summary>The annual price is not allowed on this plan (the Free plan is never sold annually).</summary>
+    public const string AnnualPriceInvalid = "ANNUAL_PRICE_INVALID";
+
+    /// <summary>The annual second-role add-on price does not match the plan: allowed and required only when the plan has a paid add-on and an annual price.</summary>
+    public const string AnnualAddOnPriceInvalid = "ANNUAL_ADD_ON_PRICE_INVALID";
+
     /// <summary>Per-client check-in settings require weekly check-ins on the same plan.</summary>
     public const string PerClientCheckInRequiresWeeklyCheckIns = "PER_CLIENT_CHECK_IN_REQUIRES_WEEKLY_CHECK_INS";
 
@@ -636,6 +651,9 @@ public static class ErrorCodes
     /// <summary>The coach has no ended free plan waiting for a choice, so there is nothing to choose.</summary>
     public const string PlanChoiceNotRequired = "PLAN_CHOICE_NOT_REQUIRED";
 
+    /// <summary>The coach is on a paid plan or a running given plan, so keeping the Free plan at sign-up does not apply.</summary>
+    public const string NotOnFreePlan = "NOT_ON_FREE_PLAN";
+
     /// <summary>The coach has no paying subscription whose renewal could be cancelled (no row, Free plan, a gift, or a plan that no longer applies).</summary>
     public const string NoRenewingSubscription = "NO_RENEWING_SUBSCRIPTION";
 
@@ -731,6 +749,9 @@ public static class ErrorCodes
     /// <summary>An answer does not fit its question's type or config.</summary>
     public const string QuestionnaireAnswerInvalid = "QUESTIONNAIRE_ANSWER_INVALID";
 
+    /// <summary>A file_upload answer references an upload that was never staged by this caller for this response.</summary>
+    public const string QuestionnaireFileUploadNotFound = "QUESTIONNAIRE_FILE_UPLOAD_NOT_FOUND";
+
     /// <summary>The coach tried to mark a response as seen before the client submitted it.</summary>
     public const string QuestionnaireResponseNotSubmitted = "QUESTIONNAIRE_RESPONSE_NOT_SUBMITTED";
 
@@ -750,7 +771,120 @@ public static class ErrorCodes
     /// <summary>The client-reported occurrence time is older than the 7-day offline window.</summary>
     public const string OccurredAtTooOld = "OCCURRED_AT_TOO_OLD";
 
+    // ── Billing ─────────────────────────────────────────────────────────
+    /// <summary>The payment-provider webhook signature is missing or does not match the body.</summary>
+    public const string WebhookSignatureInvalid = "WEBHOOK_SIGNATURE_INVALID";
+
+    /// <summary>The payment-provider webhook body is over the size cap and was not read further.</summary>
+    public const string WebhookPayloadTooLarge = "WEBHOOK_PAYLOAD_TOO_LARGE";
+
+    /// <summary>Billing is not configured on this server (no payment-provider keys).</summary>
+    public const string BillingNotConfigured = "BILLING_NOT_CONFIGURED";
+
+    /// <summary>The payment provider refused or failed a call; nothing was saved.</summary>
+    public const string BillingProviderError = "BILLING_PROVIDER_ERROR";
+
+    /// <summary>A second coach role cannot be added or restored: the plan scheduled for the next renewal offers no second role.</summary>
+    public const string SecondRoleNotOnScheduledPlan = "SECOND_ROLE_NOT_ON_SCHEDULED_PLAN";
+
+    /// <summary>The plan cannot be bought: it is the Free plan, inactive, or has no open paid price.</summary>
+    public const string PlanNotPurchasable = "PLAN_NOT_PURCHASABLE";
+
+    /// <summary>The coach already has a live paid subscription; changing it goes through the billing portal.</summary>
+    public const string BillingAlreadySubscribed = "BILLING_ALREADY_SUBSCRIBED";
+
+    /// <summary>The coach has no payment-provider customer yet, so there is no portal to open.</summary>
+    public const string BillingCustomerNotFound = "BILLING_CUSTOMER_NOT_FOUND";
+
+    /// <summary>An admin-given plan is in force, so the coach cannot change, discount or extend it through billing.</summary>
+    public const string BillingGiftInForce = "BILLING_GIFT_IN_FORCE";
+
+    /// <summary>The coach has no live paid subscription to change, cancel, discount or extend.</summary>
+    public const string BillingNoSubscription = "BILLING_NO_SUBSCRIPTION";
+
+    /// <summary>The requested plan is the one the coach is already on.</summary>
+    public const string BillingPlanUnchanged = "BILLING_PLAN_UNCHANGED";
+
+    /// <summary>The subscription is already set to end at the close of the period.</summary>
+    public const string BillingCancellationPending = "BILLING_CANCELLATION_PENDING";
+
+    /// <summary>A plan change is already scheduled for the next renewal, so the subscription cannot be extended first.</summary>
+    public const string BillingPlanChangePending = "BILLING_PLAN_CHANGE_PENDING";
+
+    /// <summary>Nothing is scheduled for the next renewal, so there is nothing to cancel.</summary>
+    public const string BillingNothingScheduled = "BILLING_NOTHING_SCHEDULED";
+
+    /// <summary>The coach account is being disabled; the coach keeps the account instead of undoing a plan change.</summary>
+    public const string BillingAccountDisabling = "BILLING_ACCOUNT_DISABLING";
+
+    /// <summary>An admin cancelled the renewal, and the coach cannot undo that.</summary>
+    public const string BillingRenewalCancelledByAdmin = "BILLING_RENEWAL_CANCELLED_BY_ADMIN";
+
+    /// <summary>The promotion code is empty, too long or has characters a code never contains.</summary>
+    public const string PromotionCodeInvalid = "PROMOTION_CODE_INVALID";
+
+    /// <summary>The promotion code is unknown or no longer active.</summary>
+    public const string PromotionCodeNotFound = "PROMOTION_CODE_NOT_FOUND";
+
+    /// <summary>Another promotion that has not ended already uses this code.</summary>
+    public const string PromotionCodeTaken = "PROMOTION_CODE_TAKEN";
+
+    /// <summary>The promotion's claim window has not opened yet.</summary>
+    public const string PromotionCodeNotStarted = "PROMOTION_CODE_NOT_STARTED";
+
+    /// <summary>The coach's current plan is not one of the promotion's plans.</summary>
+    public const string PromotionCodePlanNotEligible = "PROMOTION_CODE_PLAN_NOT_ELIGIBLE";
+
+    /// <summary>The promotion does not cover the billing interval (monthly or annual) of the subscription or checkout.</summary>
+    public const string PromotionCodeIntervalNotEligible = "PROMOTION_CODE_INTERVAL_NOT_ELIGIBLE";
+
+    /// <summary>Every use of the promotion is taken.</summary>
+    public const string PromotionCodeUsedUp = "PROMOTION_CODE_USED_UP";
+
+    /// <summary>The promotion is for coaches who never paid, and this coach has.</summary>
+    public const string PromotionCodeNewCoachesOnly = "PROMOTION_CODE_NEW_COACHES_ONLY";
+
+    /// <summary>The promotion allows one use per coach, and this coach already claimed it.</summary>
+    public const string PromotionCodeAlreadyUsed = "PROMOTION_CODE_ALREADY_USED";
+
+    /// <summary>The promotion value is out of range for its type, or a fixed amount has no CZK currency.</summary>
+    public const string PromotionValueInvalid = "PROMOTION_VALUE_INVALID";
+
+    /// <summary>The month count is missing for "several months", present for another duration, or outside 2 to 36.</summary>
+    public const string PromotionMonthsInvalid = "PROMOTION_MONTHS_INVALID";
+
+    /// <summary>The claim window ends before it starts, or already ended.</summary>
+    public const string PromotionWindowInvalid = "PROMOTION_WINDOW_INVALID";
+
+    /// <summary>No plan is selected, or a selected plan code is not a paid plan.</summary>
+    public const string PromotionPlansInvalid = "PROMOTION_PLANS_INVALID";
+
+    /// <summary>Max uses is below 1.</summary>
+    public const string PromotionMaxUsesInvalid = "PROMOTION_MAX_USES_INVALID";
+
+    /// <summary>The mode and the code disagree: a code is missing in code mode or present in automatic mode.</summary>
+    public const string PromotionModeInvalid = "PROMOTION_MODE_INVALID";
+
+    /// <summary>The promotion has already ended, by an admin, its claim window or its use limit.</summary>
+    public const string PromotionAlreadyEnded = "PROMOTION_ALREADY_ENDED";
+
+    /// <summary>The plan has no second-role add-on to buy: both roles are included, or it has no add-on price.</summary>
+    public const string BillingAddOnNotAvailable = "BILLING_ADD_ON_NOT_AVAILABLE";
+
+    /// <summary>The coach already pays for the second-role add-on.</summary>
+    public const string BillingAddOnAlreadyPaid = "BILLING_ADD_ON_ALREADY_PAID";
+
+    /// <summary>The card was declined; nothing was charged or applied.</summary>
+    public const string BillingPaymentDeclined = "BILLING_PAYMENT_DECLINED";
+
     // ── Onboarding form choice ──────────────────────────────────────────
     /// <summary>The request skips the onboarding form and also names a questionnaire.</summary>
     public const string SkipOnboardingFormWithQuestionnaire = "SKIP_ONBOARDING_FORM_WITH_QUESTIONNAIRE";
+
+    // ── Invite sign-up ──────────────────────────────────────────────────
+    /// <summary>Sign-up with a valid invite token used a different email than the one invited.</summary>
+    public const string InviteEmailMismatch = "INVITE_EMAIL_MISMATCH";
+
+    /// <summary>Sign-up with a valid invite token asked for a role other than Client.</summary>
+    public const string InviteRoleMismatch = "INVITE_ROLE_MISMATCH";
 }

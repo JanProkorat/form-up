@@ -31,16 +31,23 @@ internal static class AdminCoachQueries
         CurrentPeriodEndsAt = profile.CoachSubscription!.CurrentPeriodEndsAt,
         CancelAtPeriodEnd = profile.CoachSubscription != null && profile.CoachSubscription.CancelAtPeriodEnd,
         PaysSecondRoleAddOn = profile.CoachSubscription != null && profile.CoachSubscription.PaysSecondRoleAddOn,
+        HasCancellableSubscription = profile.CoachSubscription != null
+            && profile.CoachSubscription.ExternalSubscriptionId != null
+            && (profile.CoachSubscription.Status == SubscriptionStatus.Active
+                || profile.CoachSubscription.Status == SubscriptionStatus.Trialing
+                || profile.CoachSubscription.Status == SubscriptionStatus.PastDue
+                || profile.CoachSubscription.Status == SubscriptionStatus.Incomplete),
         PlanCode = profile.CoachSubscription!.SubscriptionPlan.Code,
         PlanNameCs = profile.CoachSubscription!.SubscriptionPlan.NameCs,
         PlanNameEn = profile.CoachSubscription!.SubscriptionPlan.NameEn,
         PlanNameDe = profile.CoachSubscription!.SubscriptionPlan.NameDe,
         PlanMaxActiveClients = profile.CoachSubscription!.SubscriptionPlan.MaxActiveClients,
         PlanBothRolesIncluded = profile.CoachSubscription != null && profile.CoachSubscription.SubscriptionPlan.BothRolesIncluded,
-        PlanBillingInterval = (BillingInterval?)profile.CoachSubscription!.SubscriptionPlan.BillingInterval,
+        PlanBillingInterval = (BillingInterval?)profile.CoachSubscription!.SubscriptionPlanPrice.BillingInterval,
         PriceMinorUnits = (long?)profile.CoachSubscription!.SubscriptionPlanPrice.PriceMinorUnits,
         AddOnMinorUnits = profile.CoachSubscription!.SubscriptionPlanPrice.SecondRoleAddOnPriceMinorUnits,
         Currency = profile.CoachSubscription!.SubscriptionPlanPrice.Currency,
+        StripeCustomerId = profile.CoachSubscription!.ExternalCustomerId,
     };
 
     /// <summary>

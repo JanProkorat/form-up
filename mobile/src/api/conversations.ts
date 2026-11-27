@@ -28,8 +28,13 @@ export async function fetchMessages(conversationId: string, signal?: AbortSignal
   return response.items ?? [];
 }
 
-export function sendMessage(conversationId: string, text: string): Promise<SendMessageResponse> {
-  return api.sendMessageEndpoint(conversationId, { text });
+/** Sends a message; repeating the same `clientMessageId` returns the original message instead of a duplicate. */
+export function sendMessage(
+  conversationId: string,
+  text: string,
+  clientMessageId: string,
+): Promise<SendMessageResponse> {
+  return api.sendMessageEndpoint(conversationId, { text, clientMessageId });
 }
 
 export function markConversationRead(conversationId: string): Promise<void> {

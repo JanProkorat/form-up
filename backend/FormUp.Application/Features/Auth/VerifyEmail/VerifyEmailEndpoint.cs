@@ -1,6 +1,7 @@
 using FastEndpoints;
 using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Entities;
+using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Extensions;
 using FormUp.Application.Domain.Interfaces;
 using FormUp.Application.Infrastructure.Data;
@@ -26,13 +27,15 @@ namespace FormUp.Application.Features.Auth.VerifyEmail;
 /// </param>
 /// <param name="logger">Logger for the seeders' non-fatal failure path.</param>
 /// <param name="userManager">Used to read the verified account's roles.</param>
+/// <param name="coachEvents">Records the coach's email-verified event in the same save as the confirmation.</param>
 public class VerifyEmailEndpoint(
     IApplicationDbContext db,
     IRealtimeNotifier notifier,
     IPendingInviteConversationSeeder inviteConversationSeeder,
     IPendingInviteNotificationSeeder inviteNotificationSeeder,
     ILogger<VerifyEmailEndpoint> logger,
-    UserManager<ApplicationUser> userManager)
+    UserManager<ApplicationUser> userManager,
+    ICoachEventRecorder coachEvents)
     : Endpoint<VerifyEmailRequest, VerifyEmailResponse>
 {
     /// <inheritdoc />
@@ -72,6 +75,12 @@ public class VerifyEmailEndpoint(
 
         token.UsedAt = DateTime.UtcNow;
         token.User.EmailConfirmed = true;
+
+        if (await db.ProfessionalProfiles.AnyAsync(profile => profile.UserId == token.UserId, ct))
+        {
+            await coachEvents.RecordAsync(CoachEventType.EmailVerified, token.UserId, $"verify:{token.UserId}", ct);
+        }
+
         await db.SaveChangesAsync(ct);
 
         // Verified accounts only (R4): a PendingInvite always represents inviting a Client, so

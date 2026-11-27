@@ -10,3 +10,10 @@ export function formatMoney(amountMinorUnits: number, currency: string, language
     maximumFractionDigits: digits,
   }).format(major);
 }
+
+/** Like formatMoney, but rounded to whole major units (crowns, euros) for "about" amounts. */
+export function formatApproxMoney(amountMinorUnits: number, currency: string, language: string): string {
+  const digits = new Intl.NumberFormat(language, { style: 'currency', currency }).resolvedOptions().maximumFractionDigits ?? 2;
+  const wholeMinor = Math.round(amountMinorUnits / 10 ** digits) * 10 ** digits;
+  return formatMoney(wholeMinor, currency, language);
+}

@@ -15,7 +15,7 @@ namespace FormUp.Tests.Endpoints.Messaging;
 /// A coach whose plan lacks messaging cannot write in chat, however they ask; the client of that coach still can.
 /// Reads, mark-read and archive stay open.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class MessagingEntitlementTests(FitnessApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

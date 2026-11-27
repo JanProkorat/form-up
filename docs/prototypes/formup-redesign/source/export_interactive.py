@@ -11,9 +11,14 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 canvas = json.load(open(os.path.join(HERE, "project", "canvas.json")))
 
 # Navigation shared by every page with the sidebar or the collapsed rail.
-NAV = {"Clients": "PageClients", "Inbox": "PageInbox", "Recipes": "PageRecipes", "Ingredients": "PageIngredients",
-       "Plan templates": "PageTemplates", "Forms": "PageForms", "Automations": "PageAutomations", "Packages": "PagePackages",
-       "Log out": "PageHome", "Martin Král": "PageAccountMenu"}
+NAV = {"Clients": "PageClients", "Inbox": "PageInbox", "Check-ins": "PageCheckIns", "Recipes": "PageRecipes",
+       "Ingredients": "PageIngredients", "Plan templates": "PageTemplates", "Forms": "PageForms", "Automations": "PageAutomations",
+       "Packages": "PagePackages", "Log out": "PageHome", "Martin Král": "PageAccountMenu"}
+# The Form Up admin section of the sidebar, wired on admin boards only ("Plans" is common text elsewhere).
+ADMIN_NAV = {"Overview": "PageAdminHome", "Plans": "PageAdminPlans", "Promotions": "PageAdminPromotions", "Coaches": "PageAdminCoaches", "Reports": "PageAdminReports"}
+# The client detail tab row, shared by every client detail board (#2351).
+CLIENT_TABS = {"Overview": "PageClientDetail", "Nutrition": "PageClientNutrition", "Photos": "PageClientPhotos",
+               "Payment": "PageClientPayment", "Automations": "PageClientAutomations", "Forms": "PageClientForms"}
 
 # Per page: visible text, aria-label or title of the clicked element -> target board.
 # A key starting with ^ matches the beginning of the text, * matches anywhere in it.
@@ -94,6 +99,19 @@ FLOWS = {
 # The recipe drawer's other tabs share the Details tab's map, plus a way back to Details.
 for tab in ("PageRecipeDrawerIngredients", "PageRecipeDrawerPreparation", "PageRecipeDrawerPictures"):
     FLOWS[tab] = dict(FLOWS["PageRecipeDrawer"], Details="PageRecipeDrawer")
+# Client detail boards share the tab row; a page's own entries win.
+for page in ("PageClientDetail", "PageClientDetailTrainer", "PageClientDetailNutritionist", "PageClientDetailRestricted",
+             "PageClientNutrition", "PageClientNutritionEmpty", "PageClientPhotos", "PageClientPhotosCompare",
+             "PageClientPhotosRequest", "PageClientPhotosViewer", "PageClientPayment", "PageClientPaymentRequest",
+             "PageClientAutomations", "PageClientAutomationOverrideCheckIn", "PageClientForms", "PageClientFormsEmpty",
+             "PageClientFormsCheckIn"):
+    FLOWS[page] = dict(CLIENT_TABS, **FLOWS.get(page, {}))
+FLOWS["PageAdminHome"] = {"^Open coaches": "PageAdminCoaches", "^Open promotion": "PageAdminPromotions",
+                          "^New promotion": "PageAdminPromotionDrawer", "Full reports": "PageAdminReports"}
+for page in ("PageAdminHome", "PageAdminPlans", "PageAdminPlanEditor", "PageAdminPlanEditorNew", "PageAdminPlanEditorAnnual", "PageAdminPromotions",
+             "PageAdminPromotionDrawer", "PageAdminPromotionDrawerAnnual", "PageAdminPromotionEnd", "PageAdminCoaches",
+             "PageAdminCoachProfile", "PageAdminCoachDialogs", "PageAdminReports"):
+    FLOWS[page] = dict(ADMIN_NAV, **FLOWS.get(page, {}))
 
 
 def prefixed(prefix, flows):

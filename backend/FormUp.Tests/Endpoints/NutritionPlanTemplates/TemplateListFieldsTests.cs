@@ -17,7 +17,7 @@ namespace FormUp.Tests.Endpoints.NutritionPlanTemplates;
 /// <c>usedBy</c>) and the <c>mealsPerDay</c> / <c>inUse</c> search filters. Every search narrows to
 /// the test's own unique name, and asserts <c>TotalCount</c>, because the collection is shared.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class TemplateListFieldsTests(FitnessApiFactory factory)
 {
     // Day shapes used throughout: three days with meals (3x200, 3x300, 2x100 kcal) and one empty

@@ -4,6 +4,7 @@ using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Infrastructure.Data;
+using FormUp.Tests.Endpoints.Billing;
 using FormUp.Tests.Builders;
 using FormUp.Tests.Infrastructure;
 using FluentAssertions;
@@ -15,9 +16,12 @@ namespace FormUp.Tests.Endpoints.Users;
 /// <summary>
 /// Integration tests for <c>POST /users/me/coach-account/disable</c> and the date fields it feeds.
 /// </summary>
-[Collection(TestCollection.Name)]
-public class DisableCoachAccountIntegrationTests(FitnessApiFactory factory)
+[Collection(TestCollection.Shard3)]
+public class DisableCoachAccountIntegrationTests(FitnessApiFactory factory) : IDisposable
 {
+    /// <summary>Leaves the shared fake provider in its defaults for the next test class.</summary>
+    public void Dispose() => BillingTestData.ResetProvider(factory);
+
     private record DisableResult(DateTime ActiveUntil, List<string> RolesRemoved);
 
     private record RolesResult(DateTime? CoachAccountActiveUntil, DateTime? ActiveUntilIfDisabled);
@@ -223,6 +227,113 @@ public class DisableCoachAccountIntegrationTests(FitnessApiFactory factory)
         var after = await coach.Http.GetFromJsonAsync<RolesResult>("/users/me/roles", Ct);
         after!.CoachAccountActiveUntil.Should().BeCloseTo(periodEnd.UtcDateTime, TimeSpan.FromSeconds(1));
         after.ActiveUntilIfDisabled.Should().Be(after.CoachAccountActiveUntil);
+    }
+
+    [Fact]
+    public async Task Disable_GiftedCoachWithFreeUntil_UsesFreeUntil_AndRolesShowTheSameDateBeforehand()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var freeUntil = DateTimeOffset.UtcNow.AddDays(45);
+        await SeedSubscriptionAsync(factory, coach.ProfileId, SubscriptionStatus.Active, periodEndsAt: null);
+        await BillingTestData.UpdateRowAsync(factory, coach.ProfileId, row =>
+        {
+            row.GivenFreeAt = DateTimeOffset.UtcNow;
+            row.FreeUntil = freeUntil;
+        });
+
+        var before = await coach.Http.GetFromJsonAsync<RolesResult>("/users/me/roles", Ct);
+        var response = await coach.Http.PostAsync("/users/me/coach-account/disable", null, Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<DisableResult>(cancellationToken: Ct);
+        body!.ActiveUntil.Should().BeCloseTo(freeUntil.UtcDateTime, TimeSpan.FromSeconds(1));
+        before!.ActiveUntilIfDisabled.Should().BeCloseTo(freeUntil.UtcDateTime, TimeSpan.FromSeconds(1));
+        body.ActiveUntil.Should().Be(before.ActiveUntilIfDisabled!.Value);
+        (await ReadProfileAsync(coach.UserId)).CoachAccountActiveUntil
+            .Should().BeCloseTo(freeUntil.UtcDateTime, TimeSpan.FromSeconds(1));
+    }
+
+    [Fact]
+    public async Task Disable_LiveStripeSubscription_CancelsAtTheProviderOnce_AndClearsTheScheduledChange()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (plan, _) = await BillingTestData.StripePlanAsync(factory);
+        var subscriptionId = await BillingTestData.SubscribeLiveAsync(factory, coach, plan, paysSecondRoleAddOn: true);
+        await BillingTestData.SetPendingPlanAsync(factory, coach.ProfileId, plan);
+        await BillingTestData.UpdateRowAsync(factory, coach.ProfileId, row => row.SecondRoleAddOnEndsAt = DateTimeOffset.UtcNow.AddDays(3));
+
+        var response = await coach.Http.PostAsync("/users/me/coach-account/disable", null, Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.CancelledAtPeriodEnd.Should().ContainSingle().Which.Should().Be(subscriptionId);
+        var row = await BillingTestData.ReadRowAsync(factory, coach.ProfileId);
+        row.CancelAtPeriodEnd.Should().BeTrue();
+        row.PendingSubscriptionPlanPriceId.Should().BeNull();
+        row.SecondRoleAddOnEndsAt.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Disable_LiveStripeSubscription_WhenTheProviderFails_Returns502AndSavesNothing()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (plan, _) = await BillingTestData.StripePlanAsync(factory);
+        await BillingTestData.SubscribeLiveAsync(factory, coach, plan);
+        fake.Fail = true;
+
+        var response = await coach.Http.PostAsync("/users/me/coach-account/disable", null, Ct);
+
+        (await response.Content.ReadAsStringAsync(Ct)).Should().Contain(ErrorCodes.BillingProviderError);
+        response.StatusCode.Should().Be(HttpStatusCode.BadGateway);
+        (await ReadProfileAsync(coach.UserId)).CoachAccountActiveUntil.Should().BeNull();
+        (await ReadCancelAtPeriodEndAsync(coach.ProfileId)).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Disable_LiveStripeSubscription_WhenBillingIsNotConfigured_Returns503AndSavesNothing()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (plan, _) = await BillingTestData.StripePlanAsync(factory);
+        await BillingTestData.SubscribeLiveAsync(factory, coach, plan);
+        fake.IsConfigured = false;
+
+        var response = await coach.Http.PostAsync("/users/me/coach-account/disable", null, Ct);
+
+        (await response.Content.ReadAsStringAsync(Ct)).Should().Contain(ErrorCodes.BillingNotConfigured);
+        response.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
+        fake.CancelledAtPeriodEnd.Should().BeEmpty();
+        (await ReadCancelAtPeriodEndAsync(coach.ProfileId)).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Disable_SubscriptionWithoutALiveProviderSubscription_SkipsTheProvider_EvenWhenNotConfigured()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        fake.IsConfigured = false;
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        await SeedSubscriptionAsync(factory, coach.ProfileId, SubscriptionStatus.Active, DateTimeOffset.UtcNow.AddDays(5));
+
+        var response = await coach.Http.PostAsync("/users/me/coach-account/disable", null, Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.CancelledAtPeriodEnd.Should().BeEmpty();
+        (await ReadCancelAtPeriodEndAsync(coach.ProfileId)).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Disable_WhenTheRowAlreadyCancelsAtPeriodEnd_DoesNotCallTheProvider()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var (plan, _) = await BillingTestData.StripePlanAsync(factory);
+        await BillingTestData.SubscribeLiveAsync(factory, coach, plan, cancelAtPeriodEnd: true);
+
+        var response = await coach.Http.PostAsync("/users/me/coach-account/disable", null, Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.CancelledAtPeriodEnd.Should().BeEmpty();
     }
 
     [Fact]

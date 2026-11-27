@@ -66,6 +66,12 @@ public class AutomationClientOverride : TimestampableEntity
     /// <summary>Customised send limit; null means no limit.</summary>
     public int? StopAfterSends { get; set; }
 
+    /// <summary>
+    /// Check-in form this client gets instead of the rule's own; null means the rule's form. Only set on
+    /// an override of a check-in rule.
+    /// </summary>
+    public long? CheckInQuestionnaireId { get; set; }
+
     /// <summary>Customised enabled flag.</summary>
     public bool Enabled { get; set; } = true;
 
@@ -90,4 +96,7 @@ public class AutomationClientOverride : TimestampableEntity
 
     /// <summary>Navigation to the client.</summary>
     public ClientProfile ClientProfile { get; set; } = null!;
+
+    /// <summary>Navigation to the check-in form this client gets instead of the rule's own.</summary>
+    public Questionnaire? CheckInQuestionnaire { get; set; }
 }

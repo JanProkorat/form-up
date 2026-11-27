@@ -11,6 +11,9 @@ import {
   removeRecipeGalleryImage,
   promoteRecipeGalleryImage,
   replaceRecipeTagAssignments,
+  copyRecipe,
+  hideRecipe,
+  unhideRecipe,
 } from '@/api/recipes';
 import { searchFoods } from '@/api/foods';
 import type { CreateRecipeRequest, UpdateRecipeRequest, UploadRecipeImageUrlRequest } from '@/api/recipe-types';
@@ -46,6 +49,7 @@ export function useRecipes(filters: RecipeListFilters, enabled: boolean) {
         dietKey,
         ownersKey,
         tagsKey,
+        hidden: filters.hidden,
         sortBy: filters.sortBy,
         sortDir: filters.sortDir,
         page: filters.page,
@@ -59,6 +63,7 @@ export function useRecipes(filters: RecipeListFilters, enabled: boolean) {
         dietaryPreferences: filters.dietaryPreferences,
         owners: filters.owners,
         tagIds: filters.tags,
+        hidden: filters.hidden,
         page: filters.page,
         pageSize: filters.pageSize,
         sortBy: filters.sortBy ?? undefined,
@@ -103,6 +108,7 @@ export function useIngredientSearch(term: string) {
         categories: [],
         tagIds: [],
         owners: [],
+        hidden: false,
         page: 1,
         pageSize: 8,
         sortBy: FoodSortField.Name,
@@ -144,6 +150,51 @@ export function useUpdateRecipe() {
     },
     onError: (error) => {
       showApiError(error, 'recipes.drawer.updateError');
+    },
+  });
+}
+
+/** Copies a visible recipe into the caller's own library. The new private copy shows up in the list. */
+export function useCopyRecipe() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (recipeId: string) => copyRecipe(recipeId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recipes'] });
+      showSuccess('recipes.copySuccess');
+    },
+    onError: (error) => {
+      showApiError(error, 'recipes.copyError');
+    },
+  });
+}
+
+/** Hides a recipe the caller does not own from their lists. */
+export function useHideRecipe() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (recipeId: string) => hideRecipe(recipeId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recipes'] });
+      showSuccess('recipes.hideSuccess');
+    },
+    onError: (error) => {
+      showApiError(error, 'recipes.hideError');
+    },
+  });
+}
+
+/** Brings a hidden recipe back into the caller's lists. */
+export function useUnhideRecipe() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (recipeId: string) => unhideRecipe(recipeId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recipes'] });
+      showSuccess('recipes.unhideSuccess');
+    },
+    onError: (error) => {
+      showApiError(error, 'recipes.unhideError');
     },
   });
 }

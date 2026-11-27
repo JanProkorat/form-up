@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Check, X } from 'lucide-react';
-import type { PublicSubscriptionPlanDto } from '@/api/generated';
+import { BillingInterval, type PublicSubscriptionPlanDto } from '@/api/generated';
 import {
   PRICING_COMPARE_ID,
   PRICING_FEATURES,
@@ -8,18 +8,21 @@ import {
 } from '@/components/pricing/pricingFeatures';
 import { formatMoney } from '@/components/subscription/money';
 import { coachPlanName } from '@/components/subscription/planNames';
+import { effectiveInterval, secondRoleAddOnFor } from '@/components/subscription/planPricing';
 
 interface Props {
   plans: PublicSubscriptionPlanDto[];
+  /** The interval picked on the switch; the second-role row shows the add-on of that interval. */
+  interval?: BillingInterval;
 }
 
 /** Compare table: one column per plan; rows are the client cap, the second role and every feature. */
-export default function PricingCompareTable({ plans }: Props) {
+export default function PricingCompareTable({ plans, interval = BillingInterval.Monthly }: Props) {
   const { t, i18n } = useTranslation();
 
   const secondRole = (plan: PublicSubscriptionPlanDto): string => {
-    const addOn = plan.secondRoleAddOnPriceMinorUnits;
-    if (addOn !== undefined && addOn !== null) {
+    const addOn = secondRoleAddOnFor(plan, effectiveInterval(plan, interval));
+    if (addOn !== null) {
       return `+${formatMoney(addOn, plan.currency ?? 'CZK', i18n.language)}`;
     }
     return plan.bothRolesIncluded ? t('pricing.table.included') : '–';

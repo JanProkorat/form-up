@@ -1,5 +1,10 @@
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useQueryClient } from '@tanstack/react-query';
+import { adminCoachDetailKey } from '@/api/admin-coaches';
+import { stripeDashboardUrl } from '@/components/admin-reports/reportFormat';
+import { useSignalR } from '@/hooks/useSignalR';
+import { getStripeDashboardUrl } from '@/lib/config';
 import { ChevronLeft, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -18,16 +23,39 @@ const ROLE_CHIP_CLASS: Record<string, string> = {
   Trainer: 'bg-training-soft text-training-ink',
 };
 
+/** The coach id carried by an `admincoachsubscriptionchanged` payload, or null when the payload has none. */
+function changedCoachId(payload: unknown): string | null {
+  if (typeof payload !== 'object' || payload === null || !('coachId' in payload)) return null;
+  return typeof payload.coachId === 'string' ? payload.coachId : null;
+}
+
 /** Form Up admin → one coach: plan, admin actions and history. Shows counts about the coach's clients, never the clients. */
 export default function AdminCoachProfilePage() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { coachId = '' } = useParams();
+  const queryClient = useQueryClient();
   const coachQuery = useAdminCoach(coachId || null);
   const plansQuery = useAdminPlans();
   const coach = coachQuery.data;
   const plans = plansQuery.data ?? [];
   const joined = formatCoachDate(coach?.joinedAt, i18n.language);
+  const stripeBase = stripeDashboardUrl(getStripeDashboardUrl());
+  const stripeCustomerUrl =
+    stripeBase && coach?.stripeCustomerId
+      ? `${stripeBase.replace(/\/+$/, '')}/customers/${encodeURIComponent(coach.stripeCustomerId)}`
+      : null;
+
+  // A subscription change for this coach (Stripe webhook or an admin action) refetches the page; other coaches are ignored.
+  const refetchCoach = () => void queryClient.invalidateQueries({ queryKey: adminCoachDetailKey(coachId) });
+  useSignalR(
+    {
+      admincoachsubscriptionchanged: (payload) => {
+        if (changedCoachId(payload) === coachId) refetchCoach();
+      },
+    },
+    refetchCoach,
+  );
   // Same square back button as the client detail header.
   const backButton = (
     <Link
@@ -92,17 +120,26 @@ export default function AdminCoachProfilePage() {
                 ))}
               </div>
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="lg"
-              className="ml-auto px-3.5 font-semibold"
-              disabled
-              title={t('shell.comingSoon')}
-            >
-              <ExternalLink aria-hidden="true" />
-              {t('adminCoaches.drawer.openInStripe')}
-            </Button>
+            {stripeCustomerUrl ? (
+              <Button asChild variant="outline" size="lg" className="ml-auto px-3.5 font-semibold">
+                <a href={stripeCustomerUrl} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink aria-hidden="true" />
+                  {t('adminCoaches.drawer.openInStripe')}
+                </a>
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                className="ml-auto px-3.5 font-semibold"
+                disabled
+                title={t('adminCoaches.drawer.noStripeCustomer')}
+              >
+                <ExternalLink aria-hidden="true" />
+                {t('adminCoaches.drawer.openInStripe')}
+              </Button>
+            )}
           </header>
 
           <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_23.75rem]">

@@ -5,11 +5,15 @@
  * an unread message from the client and a coach message containing a
  * YouTube link; a third, conversation-less client keeps the "No messages"
  * filter non-zero on both the clients list and the inbox.
+ *
+ * What stays here needs the real backend or a real browser: the send journey, the live-filter parity
+ * against the clients list, the SignalR push and typing test, the scroll test and the client-detail
+ * round trips. Selection on entry, the empty state, search, the Active/Archived view, the disabled
+ * filters, the YouTube preview and the client panel's status pill are Vitest component tests
+ * (src/pages/InboxPage.test.tsx).
  */
 import type { Locator, Page } from '@playwright/test';
 import { trainerTest as test, expect, openClientContext } from '../fixtures/auth';
-
-const QA_CLIENT_NAME = /QA Client/;
 
 /**
  * The inbox list row button for the "QA Client" conversation, scoped to an
@@ -23,11 +27,6 @@ const QA_CLIENT_NAME = /QA Client/;
  */
 function qaClientRow(page: Page): Locator {
   return page.getByRole('button').filter({ has: page.getByText('QA Client', { exact: true }) });
-}
-
-/** The inbox row for the seeded ended-link "QA Former" conversation — never the first row, so it is not auto-opened. */
-function qaFormerRow(page: Page): Locator {
-  return page.getByRole('button').filter({ has: page.getByText('QA Former', { exact: true }) });
 }
 
 /** Every visible clients-list row's name link on the CURRENT tab, for filter-parity comparisons. */
@@ -156,120 +155,6 @@ test.describe('inbox page', () => {
     await expect(page.getByRole('heading', { name: 'Inbox' })).toBeVisible();
   });
 
-  test('the first conversation is selected and its thread is open on entry', async ({ page }) => {
-    // Which conversation sorts first depends on what earlier tests created in the shared DB, so
-    // nothing here assumes a specific participant. The mark-read deferral is proven over the wire.
-    const markReadRequests: string[] = [];
-    page.on('request', (request) => {
-      if (request.method() === 'POST' && /\/conversations\/[^/?]+\/read$/.test(new URL(request.url()).pathname)) {
-        markReadRequests.push(request.url());
-      }
-    });
-
-    // Fresh navigation (the beforeEach load predates the listener).
-    const listResponsePromise = page.waitForResponse((r) => r.url().includes('/conversations?') && r.status() === 200);
-    await page.goto('/inbox');
-    const listBody = (await (await listResponsePromise).json()) as Array<{ id?: string; participant?: { name?: string } }>;
-    await page.waitForLoadState('networkidle');
-
-    const firstRowName = (await page.locator('[data-testid="inbox-row-name"]').first().innerText()).trim();
-    const firstConversation = listBody.find((r) => r.participant?.name?.trim() === firstRowName);
-    if (!firstConversation?.id) {
-      throw new Error(`Conversation id not found for first inbox row "${firstRowName}"`);
-    }
-
-    await expect(page.getByText('Select a chat to begin messaging')).toHaveCount(0);
-    await expect(page.getByPlaceholder('Type your message here...')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Hide client' })).toBeVisible();
-    // The open thread's header shows the first row's participant (the row itself also carries this text).
-    const headerName = page
-      .getByText(firstRowName, { exact: true })
-      .and(page.locator(':not([data-testid="inbox-row-name"])'))
-      .first();
-    await expect(headerName).toBeVisible();
-
-    // Merely entering the inbox must not mark the auto-selected thread read.
-    await page.waitForLoadState('networkidle');
-    expect(markReadRequests).toHaveLength(0);
-
-    // The first interaction inside the thread pane marks exactly that conversation read.
-    await page.getByTestId('thread-message-list').click();
-    await expect.poll(() => markReadRequests.length).toBe(1);
-    expect(markReadRequests[0]).toContain(`/conversations/${firstConversation.id}/read`);
-  });
-
-  test('empty-state copy matches the wireframe when the selected chat is not in the current list', async ({ page }) => {
-    // The first row is auto-selected on entry; the Archived view (nothing seeded there) no longer
-    // contains it, so the thread pane falls back to the empty state.
-    await expect(page.getByPlaceholder('Type your message here...')).toBeVisible();
-    await page.getByRole('button', { name: /Active/ }).click();
-    await page.getByRole('menuitem', { name: 'Archived' }).click();
-    await page.waitForLoadState('networkidle');
-
-    await expect(page.getByText('Select a chat to begin messaging')).toBeVisible();
-    await expect(
-      page.getByText('Your client inbox, workout questions, and onboarding metrics live here.'),
-    ).toBeVisible();
-  });
-
-  test('list renders with unread count badge, time, and last-message preview; opening the thread marks it read', async ({
-    page,
-  }) => {
-    // QA Client is auto-opened on entry but stays unread until the trainer interacts; QA Former keeps
-    // its seeded unread message until the trainer opens that thread.
-    const row = qaFormerRow(page);
-    await expect(row).toBeVisible();
-    // Unread badge: a red count (a plain message counts, a cooperation event row does not).
-    await expect(row.locator('[role="status"]')).toBeVisible();
-    await expect(row.getByTestId('inbox-row-unread-count')).toHaveText(/^\d+\+?$/);
-
-    await row.click();
-    await page.waitForLoadState('networkidle');
-    await expect(page.getByText('QA Former').first()).toBeVisible();
-
-    // Read mark round-trips through the backend + a list invalidation —
-    // re-fetch the row and confirm the unread badge is gone.
-    await expect(row.locator('[role="status"]')).toHaveCount(0);
-  });
-
-  test('search narrows the list by participant name', async ({ page }) => {
-    await expect(qaClientRow(page)).toBeVisible();
-
-    await page.getByPlaceholder('Search chats...').fill('zzz-no-such-participant');
-    await expect(page.getByText('No conversations found')).toBeVisible();
-    await expect(qaClientRow(page)).toHaveCount(0);
-
-    await page.getByPlaceholder('Search chats...').fill('QA Client');
-    await expect(qaClientRow(page)).toBeVisible();
-  });
-
-  test('the Active/Archived switch changes the visible rows', async ({ page }) => {
-    await expect(qaClientRow(page)).toBeVisible();
-
-    await page.getByRole('button', { name: /Active/ }).click();
-    await page.getByRole('menuitem', { name: 'Archived' }).click();
-    await page.waitForLoadState('networkidle');
-
-    // No conversation is seeded as archived — the active-view row disappears.
-    await expect(qaClientRow(page)).toHaveCount(0);
-
-    await page.getByRole('button', { name: /Archived/ }).click();
-    await page.getByRole('menuitem', { name: 'Active' }).click();
-    await page.waitForLoadState('networkidle');
-    await expect(qaClientRow(page)).toBeVisible();
-  });
-
-  test('the three domain-less filters render disabled with the coming-soon tooltip', async ({ page }) => {
-    await page.getByRole('button', { name: /^All \(\d+\)$/ }).click();
-
-    for (const label of ['Failed payments', 'Blocked automations', 'Tasks overdue']) {
-      const item = page.getByRole('menuitem', { name: new RegExp(label) });
-      await expect(item).toBeVisible();
-      await expect(item).toHaveAttribute('aria-disabled', 'true');
-      await expect(item).toHaveAttribute('title', 'This page is coming soon.');
-    }
-  });
-
   for (const { name, inboxLabel, filterParam } of FILTERS) {
     test(`a live filter returns the clients-list chip set restricted to clients with a conversation (#1095): ${name}`, async ({
       page,
@@ -300,14 +185,6 @@ test.describe('inbox page', () => {
     });
   }
 
-  test('a YouTube link in message text renders as an embedded preview card', async ({ page }) => {
-    await qaClientRow(page).click();
-    await page.waitForLoadState('networkidle');
-
-    const thumbnail = page.locator('img[src*="img.youtube.com"]');
-    await expect(thumbnail).toBeVisible();
-  });
-
   test('sending a message appends it to the thread and updates the list preview', async ({ page }) => {
     await qaClientRow(page).click();
     await page.waitForLoadState('networkidle');
@@ -321,66 +198,6 @@ test.describe('inbox page', () => {
     // avoid a strict-mode "resolved to 2 elements" violation.
     await expect(page.getByText(uniqueText, { exact: true }).last()).toBeVisible();
     await expect(qaClientRow(page).getByText(uniqueText)).toBeVisible();
-  });
-
-  test('the Show-client panel status pill equals the clients-list status pill, and the external link opens the client', async ({
-    page,
-  }) => {
-    await page.goto('/clients');
-    await page.waitForLoadState('networkidle');
-    const listRow = page.getByRole('row', { name: QA_CLIENT_NAME }).filter({
-      has: page.getByRole('link', { name: 'QA Client', exact: true }),
-    });
-    // The list pill reads "Active plans" where the panel pill reads "Active"; "No plan" and "Archived" match.
-    const listStatusText = (await listRow.locator('[data-slot="badge"]').first().innerText())
-      .trim()
-      .replace(/^Active plans$/, 'Active');
-    const qaClientHref = await listRow.getByRole('link', { name: 'QA Client', exact: true }).getAttribute('href');
-    const qaClientId = qaClientHref?.split('/').pop();
-    if (!qaClientId) {
-      throw new Error('QA Client id not found on the clients list');
-    }
-
-    // Which row is auto-selected depends on earlier tests, so open QA Client explicitly. Its
-    // dashboard is fetched either on load (if it is first) or on the click — register the wait
-    // before navigating so both cases are covered.
-    const dashboardResponse = page.waitForResponse(
-      (r) => new RegExp(`/trainer/clients/${qaClientId}(\\?|$)`).test(r.url()) && r.status() === 200,
-    );
-    await page.goto('/inbox');
-    await qaClientRow(page).click();
-    const dashboard = (await (await dashboardResponse).json()) as {
-      sessionsCompletedThisWeek?: number | null;
-      sessionsPlannedThisWeek?: number | null;
-    };
-    await page.waitForLoadState('networkidle');
-
-    // At the default 1280px viewport the panel is docked and open; "Hide client" closes it and
-    // "Show client" brings it back.
-    const panel = page.getByRole('complementary', { name: 'Client details' });
-    await expect(panel).toBeVisible();
-    await page.getByRole('button', { name: 'Hide client' }).click();
-    // The aside stays mounted at width 0 with aria-hidden + inert, so role queries no longer see it.
-    await expect(panel).toBeHidden();
-    await page.getByRole('button', { name: 'Show client' }).click();
-    const panelStatusBadge = panel.locator('[data-slot="badge"]').first();
-    await expect(panelStatusBadge).toHaveText(listStatusText);
-
-    // The caption mirrors the dashboard numbers (the seeded week varies); hidden when nothing is planned.
-    const done = dashboard.sessionsCompletedThisWeek;
-    const planned = dashboard.sessionsPlannedThisWeek;
-    if (done != null && planned != null && planned > 0) {
-      const shown = Math.min(done, planned);
-      const caption = `Done this week · ${shown} of ${planned} ${planned === 1 ? 'session' : 'sessions'}`;
-      await expect(panel.getByText(caption, { exact: true })).toBeVisible();
-    } else {
-      await expect(panel.getByText(/Done this week/)).toHaveCount(0);
-    }
-
-    await page.getByRole('link', { name: 'Open client profile' }).click();
-    await page.waitForLoadState('networkidle');
-    await expect(page).toHaveURL(/\/clients\/[0-9a-f-]{36}$/);
-    await expect(page.getByRole('heading', { name: QA_CLIENT_NAME })).toBeVisible();
   });
 
   test('the client-detail back arrow returns to the inbox with the same thread open', async ({ page }) => {
@@ -404,7 +221,7 @@ test.describe('inbox page', () => {
   test('the client-detail Chat button opens the existing thread', async ({ page }) => {
     await page.goto('/clients');
     await page.waitForLoadState('networkidle');
-    // Exact name: "QA Client3" also sits on the All tab and matches QA_CLIENT_NAME.
+    // Exact name: "QA Client3" also sits on the All tab and matches /QA Client/.
     await page.getByRole('link', { name: 'QA Client', exact: true }).click();
     await page.waitForLoadState('networkidle');
 

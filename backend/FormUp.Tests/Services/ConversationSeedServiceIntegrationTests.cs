@@ -19,7 +19,7 @@ namespace FormUp.Tests.Services;
 /// that a rolled-back duplicate leaves the context's change tracker clean enough for the
 /// caller's NEXT unrelated save to succeed.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class ConversationSeedServiceIntegrationTests(FitnessApiFactory factory)
 {
     private static string UniqueEmail(string prefix) => $"{prefix}-{Guid.NewGuid():N}@test.com";
@@ -32,7 +32,7 @@ public class ConversationSeedServiceIntegrationTests(FitnessApiFactory factory)
     private static (ApplicationDbContext Db, ConversationSeedService Service) CreateService(IServiceScope scope)
     {
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var service = new ConversationSeedService(db, Substitute.For<IRealtimeNotifier>());
+        var service = new ConversationSeedService(db, Substitute.For<IChatMessageNotifier>());
         return (db, service);
     }
 

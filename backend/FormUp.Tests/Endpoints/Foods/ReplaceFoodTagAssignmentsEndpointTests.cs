@@ -15,7 +15,7 @@ namespace FormUp.Tests.Endpoints.Foods;
 /// <summary>
 /// Integration tests (#1120) for <c>PUT /trainer/foods/{FoodId}/tags</c>.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class ReplaceFoodTagAssignmentsEndpointTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };

@@ -19,7 +19,7 @@ namespace FormUp.Tests.Endpoints.Trainers;
 /// unit on purpose: the mock Mongo ignores filters, so a unit test could not tell whether the
 /// plan, session, client and date-window scoping is actually applied.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class GetClientDashboardSessionsThisWeekIntegrationTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };

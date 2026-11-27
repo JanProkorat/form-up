@@ -3,6 +3,7 @@ using FastEndpoints;
 using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Documents;
 using FormUp.Application.Domain.Enums;
+using FormUp.Application.Domain.Extensions;
 using FormUp.Application.Domain.Services;
 using FormUp.Application.Features.Foods.Shared;
 using FormUp.Application.Infrastructure.Data.MongoDb;
@@ -41,6 +42,11 @@ public class GetFoodEndpoint(IMongoContext mongo) : Endpoint<GetFoodRequest, Foo
 
         var filter = filterBuilder.Eq(f => f.ExternalId, req.FoodId)
             & filterBuilder.Eq(f => f.IsDeleted, false);
+
+        if (User.IsAdminOnly())
+        {
+            filter &= filterBuilder.Eq(f => f.NutritionistId, null);
+        }
 
         // Private foods are hidden from other nutritionists. Gated in the query rather than after
         // the read, matching the three own-or-public sites #992 guarded. Non-nutritionists (e.g. a

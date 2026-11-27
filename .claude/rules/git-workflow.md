@@ -1,6 +1,6 @@
 ---
 paths:
-  - ".claude/state/**"
+  - ".pipeline/state/**"
 description: Branch naming, base branch, and staging discipline — stack- and remote-agnostic
 ---
 

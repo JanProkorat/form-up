@@ -20,6 +20,7 @@ export interface ComposerSendPayload {
   imageUploadId?: string;
   imageWidth?: number;
   imageHeight?: number;
+  clientMessageId?: string;
 }
 
 interface PendingImage {
@@ -64,6 +65,9 @@ export default function Composer({ conversationId, onSend, isSending, onTyping, 
   const [pendingImage, setPendingImage] = useState<PendingImage | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // The id of the last attempted send. Reused only while the payload (trimmed text + picked file) is
+  // unchanged, so an edited retry is never swallowed by the server's replay.
+  const lastAttemptRef = useRef<{ text: string; file: File | null; id: string } | null>(null);
   const requestUploadUrlMutation = useRequestChatImageUploadUrl(conversationId);
   const isUploading = requestUploadUrlMutation.isPending;
   const isBusy = isSending || isUploading;
@@ -122,6 +126,16 @@ export default function Composer({ conversationId, onSend, isSending, onTyping, 
     }
   }
 
+  function clientMessageIdFor(text: string, file: File | null): string {
+    const last = lastAttemptRef.current;
+    if (last && last.text === text && last.file === file) {
+      return last.id;
+    }
+    const id = crypto.randomUUID();
+    lastAttemptRef.current = { text, file, id };
+    return id;
+  }
+
   async function submit() {
     const trimmed = value.trim();
     if (isBusy || (!trimmed && !pendingImage)) {
@@ -130,7 +144,8 @@ export default function Composer({ conversationId, onSend, isSending, onTyping, 
 
     if (!pendingImage) {
       try {
-        await onSend({ text: trimmed });
+        await onSend({ text: trimmed, clientMessageId: clientMessageIdFor(trimmed, null) });
+        lastAttemptRef.current = null;
         setValue('');
       } catch {
         // The send mutation's own onError already raised a toast; keep the
@@ -174,7 +189,9 @@ export default function Composer({ conversationId, onSend, isSending, onTyping, 
         imageUploadId: uploadId,
         imageWidth: pendingImage.width,
         imageHeight: pendingImage.height,
+        clientMessageId: clientMessageIdFor(trimmed, pendingImage.file),
       });
+      lastAttemptRef.current = null;
       removePendingImage();
       setValue('');
     } catch {

@@ -18,7 +18,7 @@ namespace FormUp.Tests.Endpoints.CoachSubscriptions;
 /// Over-cap behaviour through the real pipeline: the two instantiate endpoints refuse an over-cap client, and the
 /// client's own plan reads carry <c>runsUntil</c> only for an over-cap client.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class OverCapIntegrationTests(FitnessApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

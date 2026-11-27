@@ -13,7 +13,8 @@
 # Network behaviour: only this container reads the qa-net DNS for `web`
 # and `api`. Specs target http://web:5173.
 
-FROM mcr.microsoft.com/playwright:v1.60.0-jammy
+# Keep in step with @playwright/test in web/package.json (pinned exactly).
+FROM mcr.microsoft.com/playwright:v1.61.1-jammy
 
 WORKDIR /work/web
 

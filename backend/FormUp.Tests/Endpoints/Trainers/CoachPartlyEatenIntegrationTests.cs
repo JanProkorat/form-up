@@ -13,7 +13,7 @@ namespace FormUp.Tests.Endpoints.Trainers;
 /// Partly eaten meals in the coach timeline, dashboard and progress, and in the client's own plan list
 /// and full plan. Real Mongo: the row filters used to select by <c>EatenAt</c>, which a partly eaten row lacks.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class CoachPartlyEatenIntegrationTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions JsonOptions = new()

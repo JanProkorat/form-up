@@ -2,6 +2,7 @@ using FastEndpoints;
 using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
+using FormUp.Application.Domain.Interfaces;
 using FormUp.Application.Domain.Services;
 using FormUp.Application.Features.AdminCoaches.Shared;
 using FormUp.Application.Infrastructure.Data;
@@ -15,11 +16,10 @@ namespace FormUp.Application.Features.AdminCoaches.ListAdminCoaches;
 /// </summary>
 /// <param name="db">Application database context.</param>
 /// <param name="timeProvider">Clock.</param>
-internal sealed class ListAdminCoachesEndpoint(IApplicationDbContext db, TimeProvider timeProvider)
+/// <param name="revenue">Shared coach counts and revenue, also read by the daily snapshot.</param>
+internal sealed class ListAdminCoachesEndpoint(IApplicationDbContext db, TimeProvider timeProvider, ICoachRevenueService revenue)
     : Endpoint<ListAdminCoachesRequest, ListAdminCoachesResponse>
 {
-    private const int MonthsPerYear = 12;
-
     /// <inheritdoc />
     public override void Configure()
     {
@@ -122,72 +122,25 @@ internal sealed class ListAdminCoachesEndpoint(IApplicationDbContext db, TimePro
 
     private async Task<AdminCoachStatsDto> LoadStatsAsync(DateTimeOffset now, CancellationToken ct)
     {
-        var counts = await db.ProfessionalProfiles
-            .AsNoTracking()
-            .Select(CoachSubscriptionStatusClassifier.ProjectStatus(now))
-            .GroupBy(row => row.Status)
-            .Select(group => new { Status = group.Key, Count = group.Count() })
-            .ToDictionaryAsync(row => row.Status, row => row.Count, ct);
-
-        var paying = db.ProfessionalProfiles
-            .AsNoTracking()
-            .Where(CoachSubscriptionStatusClassifier.Matches(AdminCoachStatusFilter.Paying, now));
-
-        var payingByPlan = await paying
-            .GroupBy(profile => new
-            {
-                profile.CoachSubscription!.SubscriptionPlan.Code,
-                profile.CoachSubscription.SubscriptionPlan.NameCs,
-                profile.CoachSubscription.SubscriptionPlan.NameEn,
-                profile.CoachSubscription.SubscriptionPlan.NameDe,
-            })
-            .Select(group => new { group.Key.Code, group.Key.NameCs, group.Key.NameEn, group.Key.NameDe, Count = group.Count() })
-            .ToListAsync(ct);
-
-        // Each coach pays the price row they were sold, not the plan's current price.
-        var revenueRows = await paying
-            .Where(profile => profile.CoachSubscription!.Status != SubscriptionStatus.Trialing)
-            .Select(profile => new
-            {
-                profile.CoachSubscription!.SubscriptionPlanPrice.Currency,
-                Annual = profile.CoachSubscription.SubscriptionPlan.BillingInterval == BillingInterval.Annual,
-                Amount = profile.CoachSubscription.SubscriptionPlanPrice.PriceMinorUnits
-                         + (profile.CoachSubscription.PaysSecondRoleAddOn && !profile.CoachSubscription.SubscriptionPlan.BothRolesIncluded
-                             ? profile.CoachSubscription.SubscriptionPlanPrice.SecondRoleAddOnPriceMinorUnits ?? 0
-                             : 0),
-            })
-            .GroupBy(row => new { row.Currency, row.Annual })
-            .Select(group => new { group.Key.Currency, group.Key.Annual, Total = group.Sum(row => row.Amount) })
-            .ToListAsync(ct);
-
-        int Count(AdminCoachStatus status) => counts.GetValueOrDefault(status);
+        var summary = await revenue.GetSummaryAsync(now, ct);
 
         return new AdminCoachStatsDto
         {
-            AllCount = counts.Values.Sum(),
-            PayingCount = Count(AdminCoachStatus.Paying) + Count(AdminCoachStatus.PaymentFailed) + Count(AdminCoachStatus.Cancelling),
-            PaymentFailedCount = Count(AdminCoachStatus.PaymentFailed),
-            CancellingCount = Count(AdminCoachStatus.Cancelling),
-            FreeCount = Count(AdminCoachStatus.Free),
-            GivenFreeCount = Count(AdminCoachStatus.GivenFree),
-            PayingByPlan = payingByPlan
-                .OrderByDescending(row => row.Count)
-                .ThenBy(row => row.Code, StringComparer.Ordinal)
+            AllCount = summary.AllCount,
+            PayingCount = summary.PayingCount,
+            PaymentFailedCount = summary.PaymentFailedCount,
+            CancellingCount = summary.CancellingCount,
+            FreeCount = summary.FreeCount,
+            GivenFreeCount = summary.GivenFreeCount,
+            PayingByPlan = summary.PayingByPlan
                 .Select(row => new AdminCoachPlanCountDto
                 {
                     Plan = new AdminCoachPlanDto { Code = row.Code, NameCs = row.NameCs, NameEn = row.NameEn, NameDe = row.NameDe },
                     Count = row.Count,
                 })
                 .ToList(),
-            MonthlyRevenue = revenueRows
-                .GroupBy(row => row.Currency)
-                .Select(group => new AdminCoachRevenueDto
-                {
-                    Currency = group.Key,
-                    AmountMinorUnits = group.Where(row => !row.Annual).Sum(row => row.Total)
-                                       + group.Where(row => row.Annual).Sum(row => row.Total) / MonthsPerYear,
-                })
-                .OrderBy(row => row.Currency, StringComparer.Ordinal)
+            MonthlyRevenue = summary.FullMonthlyRevenue
+                .Select(row => new AdminCoachRevenueDto { Currency = row.Currency, AmountMinorUnits = row.AmountMinorUnits })
                 .ToList(),
         };
     }

@@ -15,7 +15,7 @@ namespace FormUp.Tests.Endpoints.Questionnaires;
 /// <summary>
 /// The coach's check-in email from POST /client/questionnaire/response/{id}/submit.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class SubmitResponseNotificationEmailTests(FitnessApiFactory factory)
 {
     private static readonly SeedQuestion[] Form = [new("note", QuestionTypes.ShortText)];

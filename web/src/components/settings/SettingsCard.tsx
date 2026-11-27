@@ -2,6 +2,8 @@ import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 interface Props {
+  /** Optional DOM id, e.g. a stable hook for e2e scoping or an anchor link. */
+  id?: string;
   title: string;
   description: string;
   /** Right-aligned control on the header row. */
@@ -11,9 +13,10 @@ interface Props {
 }
 
 /** Card with a title, one-line description and optional header action wrapping one settings group. */
-export default function SettingsCard({ title, description, action, danger, children }: Props) {
+export default function SettingsCard({ id, title, description, action, danger, children }: Props) {
   return (
     <section
+      id={id}
       className={cn(
         'flex flex-col gap-4.5 rounded-lg border border-border bg-surface px-6 pt-5.5 pb-6 shadow-panel',
         danger && 'border-error/30',

@@ -45,4 +45,9 @@ public class RegisterRequest
     /// Must be true for the Client role; must be null for Trainer and Nutritionist roles.
     /// </summary>
     public bool? HealthDataConsent { get; set; }
+
+    /// <summary>
+    /// Optional invitation token from an invite link. When valid, the email and Client role are bound to the invite.
+    /// </summary>
+    public string? InviteToken { get; set; }
 }

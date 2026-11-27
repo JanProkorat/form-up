@@ -3,7 +3,9 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using FluentAssertions;
+using FormUp.Application.Infrastructure.Data;
 using FormUp.Tests.Infrastructure;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace FormUp.Tests.Endpoints.Client.Invites;
@@ -23,7 +25,7 @@ namespace FormUp.Tests.Endpoints.Client.Invites;
 /// earliest VERIFIED seam (email verification), called from VerifyEmailEndpoint /
 /// GoogleSocialLoginEndpoint / AppleSocialLoginEndpoint.
 /// </remarks>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class PendingInviteConversationSeedingIntegrationTests(FitnessApiFactory factory)
 {
     // Per-host singleton (#726 refinement) — resolved from this factory's own DI
@@ -65,7 +67,7 @@ public class PendingInviteConversationSeedingIntegrationTests(FitnessApiFactory 
     private async Task RegisterAndVerifyAsync(HttpClient clientClient, string clientEmail)
     {
         var registerResponse = await TestHelpers.RegisterAsync(
-            clientClient, clientEmail, "TestPass1!", "Prospective", "Client", "Client");
+            clientClient, clientEmail, "TestPass1!", "Prospective", "Client", "Client", confirmEmail: false);
         registerResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
         var verification = EmailService.SentVerifications.Should().ContainSingle(
@@ -121,19 +123,17 @@ public class PendingInviteConversationSeedingIntegrationTests(FitnessApiFactory 
 
         var clientClient = factory.CreateClient();
         var registerResponse = await TestHelpers.RegisterAsync(
-            clientClient, clientEmail, "TestPass1!", "Prospective", "Client", "Client");
+            clientClient, clientEmail, "TestPass1!", "Prospective", "Client", "Client", confirmEmail: false);
         registerResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
-        var (clientAccessToken, _) = await TestHelpers.LoginAsync(clientClient, clientEmail, "TestPass1!");
-        TestHelpers.SetBearerToken(clientClient, clientAccessToken);
+        // The account cannot read /conversations while unverified (#1517), so look at the table directly.
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var clientUserId = await db.Users.Where(u => u.Email == clientEmail).Select(u => u.Id)
+            .SingleAsync(TestContext.Current.CancellationToken);
 
-        var conversationsResponse = await clientClient.GetAsync("/conversations", TestContext.Current.CancellationToken);
-        conversationsResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        var conversations = await conversationsResponse.Content.ReadFromJsonAsync<List<ConversationResult>>(
-            cancellationToken: TestContext.Current.CancellationToken);
-
-        conversations.Should().BeEmpty("the account is not yet verified — no invite thread must exist");
+        (await db.Conversations.AnyAsync(c => c.ClientUserId == clientUserId, TestContext.Current.CancellationToken))
+            .Should().BeFalse("the account is not yet verified — no invite thread must exist");
     }
 
     /// <summary>

@@ -4,6 +4,7 @@ using FluentAssertions;
 using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Infrastructure.Data;
+using FormUp.Application.Infrastructure.Services;
 using FormUp.Tests.Builders;
 using FormUp.Tests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -12,10 +13,11 @@ using Microsoft.Extensions.DependencyInjection;
 namespace FormUp.Tests.Endpoints.Messaging;
 
 /// <summary>
-/// The coach-side effects of POST /conversations/{id}/messages: the in-app notice and the grouped-email burst. Only
-/// a client's message to the coach creates either, and a failing burst upsert never fails the send.
+/// The notification effects of POST /conversations/{id}/messages: an offline recipient (coach or client) gets a
+/// push, only a client's message to the coach opens the grouped-email burst, no in-app notice row is written, and a
+/// failing push or burst upsert never fails the send.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class SendMessageNotificationTests(FitnessApiFactory factory)
 {
     private async Task<(Actor Coach, Actor Client, Guid ConversationId)> SeedConversationAsync()
@@ -44,8 +46,12 @@ public class SendMessageNotificationTests(FitnessApiFactory factory)
             TestContext.Current.CancellationToken);
     }
 
+    private List<FakePushNotificationService.PushCall> PushesTo(Guid userId) =>
+        factory.Services.GetRequiredService<FakePushNotificationService>().Calls
+            .Where(call => call.UserId == userId).ToList();
+
     [Fact]
-    public async Task Send_ClientWritesToCoach_CreatesOneNoticeForTheCoach()
+    public async Task Send_ClientWritesToCoach_PushesToTheCoachWithoutAnInAppNotice()
     {
         var (coach, client, conversationId) = await SeedConversationAsync();
 
@@ -53,8 +59,12 @@ public class SendMessageNotificationTests(FitnessApiFactory factory)
             $"/conversations/{conversationId}/messages", new { Text = "Hello coach" }, TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        (await NewMessageNoticeCountAsync(coach.UserId)).Should().Be(1);
-        (await NewMessageNoticeCountAsync(client.UserId)).Should().Be(0);
+        (await NewMessageNoticeCountAsync(coach.UserId)).Should().Be(0);
+        var push = PushesTo(coach.UserId).Should().ContainSingle().Subject;
+        var data = push.Data.Should().BeAssignableTo<IDictionary<string, string>>().Subject;
+        data["type"].Should().Be(nameof(NotificationType.NewMessage));
+        data["conversationId"].Should().Be(conversationId.ToString());
+        PushesTo(client.UserId).Should().BeEmpty();
     }
 
     private async Task<List<PendingNotificationEmail>> PendingEmailsAsync(Guid recipientUserId)
@@ -83,7 +93,6 @@ public class SendMessageNotificationTests(FitnessApiFactory factory)
         burst.Event.Should().Be(NotificationEvent.NewMessage);
         burst.GroupId.Should().Be(conversationId);
         burst.DueAt.Should().BeAfter(burst.LastEventAt);
-        (await NewMessageNoticeCountAsync(coach.UserId)).Should().Be(3, "the per-message in-app notice is unchanged");
         (await PendingEmailsAsync(client.UserId)).Should().BeEmpty();
     }
 
@@ -123,7 +132,7 @@ public class SendMessageNotificationTests(FitnessApiFactory factory)
 
             response.StatusCode.Should().Be(HttpStatusCode.OK);
             (await PendingEmailsAsync(coach.UserId)).Should().BeEmpty();
-            (await NewMessageNoticeCountAsync(coach.UserId)).Should().Be(1);
+            PushesTo(coach.UserId).Should().ContainSingle();
         }
         finally
         {
@@ -134,7 +143,7 @@ public class SendMessageNotificationTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task Send_CoachWritesToClient_CreatesNoNoticeForTheClient()
+    public async Task Send_CoachWritesToClient_PushesToTheClientWithSenderNameAndText()
     {
         var (coach, client, conversationId) = await SeedConversationAsync();
 
@@ -142,7 +151,44 @@ public class SendMessageNotificationTests(FitnessApiFactory factory)
             $"/conversations/{conversationId}/messages", new { Text = "Hello client" }, TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var push = PushesTo(client.UserId).Should().ContainSingle().Subject;
+        push.Body.Should().Be("Hello client");
+        push.Title.Should().NotBeNullOrWhiteSpace().And.NotContain("{");
         (await NewMessageNoticeCountAsync(client.UserId)).Should().Be(0);
-        (await NewMessageNoticeCountAsync(coach.UserId)).Should().Be(0);
+        PushesTo(coach.UserId).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Send_RecipientIsOnline_SendsNoPush()
+    {
+        var (coach, client, conversationId) = await SeedConversationAsync();
+        var presence = factory.Services.GetRequiredService<PresenceTracker>();
+        presence.UserConnected(coach.UserId.ToString());
+
+        try
+        {
+            var response = await client.Http.PostAsJsonAsync(
+                $"/conversations/{conversationId}/messages", new { Text = "Hello coach" }, TestContext.Current.CancellationToken);
+
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+            PushesTo(coach.UserId).Should().BeEmpty();
+        }
+        finally
+        {
+            presence.UserDisconnected(coach.UserId.ToString());
+        }
+    }
+
+    [Fact]
+    public async Task Send_PushServiceThrows_StillReturns200()
+    {
+        var (coach, client, conversationId) = await SeedConversationAsync();
+        factory.Services.GetRequiredService<FakePushNotificationService>().SimulateThrowOnNextCall();
+
+        var response = await coach.Http.PostAsJsonAsync(
+            $"/conversations/{conversationId}/messages", new { Text = "Hello client" }, TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        PushesTo(client.UserId).Should().BeEmpty();
     }
 }

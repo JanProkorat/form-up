@@ -2,8 +2,9 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router-dom';
 import type { UseQueryResult } from '@tanstack/react-query';
-import { ChevronLeft, ListChecks, MessageSquare, NotebookText } from 'lucide-react';
+import { ChevronLeft, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import ClientAvatar from '@/components/clients/ClientAvatar';
 import ClientHeaderFacts from '@/components/client-detail/ClientHeaderFacts';
 import { useClientHeaderFacts } from '@/components/client-detail/useClientHeaderFacts';
 import { calculateAge, resolveOverviewRole } from '@/lib/client-metrics';
@@ -23,10 +24,9 @@ const META_SEPARATOR = ' · ';
 
 /**
  * Client-detail page header (board PageClientDetail, option B): back button,
- * name with a status dot and a muted age / sex / height line, a facts strip
+ * client avatar (photo or initials), name with a status dot and a muted age / sex / height line, a facts strip
  * (goal, weight, plan weeks), then the tab row with the actions. Chat opens
- * `/inbox?client=<publicId>`; Tasks and Notes stay disabled with the shell's
- * coming-soon treatment (no backend concept for tasks, no notes UI yet).
+ * `/inbox?client=<publicId>`.
  */
 export default function ClientDetailHeader({ clientId, dashboard, plansQuery, measurementsQuery, tabs }: Props) {
   const { t } = useTranslation();
@@ -54,7 +54,7 @@ export default function ClientDetailHeader({ clientId, dashboard, plansQuery, me
   return (
     <div className="flex flex-col gap-4.5">
       <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3">
-        <div className="flex min-w-0 items-center gap-3.5">
+        <div className="flex min-w-0 items-center gap-2.5 md:gap-3.5">
           <Link
             to={getClientDetailBackPath(location.state)}
             aria-label={t('clientDetail.overview.backAriaLabel')}
@@ -62,6 +62,15 @@ export default function ClientDetailHeader({ clientId, dashboard, plansQuery, me
           >
             <ChevronLeft className="size-4.5" aria-hidden="true" />
           </Link>
+          <span aria-hidden="true" data-testid="client-avatar" className="shrink-0">
+            <ClientAvatar
+              firstName={dashboard.firstName}
+              lastName={dashboard.lastName}
+              avatarBlobUrl={dashboard.avatarBlobUrl ?? undefined}
+              className="size-10 shrink-0 md:size-16"
+              fallbackClassName="bg-sunken text-body md:text-card-title font-semibold text-ink"
+            />
+          </span>
           <div className="flex min-w-0 flex-col gap-1">
             <div className="flex min-w-0 items-center gap-2.5">
               <h1 className="min-w-0 truncate font-display text-title font-semibold text-ink">
@@ -99,14 +108,6 @@ export default function ClientDetailHeader({ clientId, dashboard, plansQuery, me
               <MessageSquare className="size-4" aria-hidden="true" />
               {t('clientDetail.overview.actions.chat')}
             </Link>
-          </Button>
-          <Button type="button" variant="outline" size="sm" disabled title={t('shell.comingSoon')} className="gap-1.5">
-            <ListChecks className="size-4" aria-hidden="true" />
-            {t('clientDetail.overview.actions.tasks')}
-          </Button>
-          <Button type="button" variant="outline" size="sm" disabled title={t('shell.comingSoon')} className="gap-1.5">
-            <NotebookText className="size-4" aria-hidden="true" />
-            {t('clientDetail.overview.actions.notes')}
           </Button>
         </div>
       </div>

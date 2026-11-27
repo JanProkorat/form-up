@@ -18,7 +18,7 @@ namespace FormUp.Tests.Endpoints.NutritionPlans;
 /// and the stored <c>Notification.Data</c> must carry <c>planKind=nutrition</c> and <c>planId</c>
 /// so a tapped push can tell a nutrition plan from a training plan, and the SignalR event fires.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class NutritionPlanNotificationIntegrationTests(FitnessApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

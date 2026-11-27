@@ -500,6 +500,66 @@ export class ApiClient {
     }
 
     /**
+     * Get my check-in schedule (client)
+     * @return Check-in schedule, possibly empty
+     */
+    getMyCheckInScheduleEndpoint(signal?: AbortSignal): Promise<GetMyCheckInScheduleResponse> {
+        let url_ = this.baseUrl + "/client/weekly-check-ins/schedule";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetMyCheckInScheduleEndpoint(_response);
+        });
+    }
+
+    protected processGetMyCheckInScheduleEndpoint(response: AxiosResponse): Promise<GetMyCheckInScheduleResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetMyCheckInScheduleResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetMyCheckInScheduleResponse>(null as any);
+    }
+
+    /**
      * List my check-in history (client)
      * @param page Page number (1-based). Defaults to 1.
      * @param pageSize Number of items per page (1-100). Defaults to 20.
@@ -908,7 +968,7 @@ export class ApiClient {
 
     /**
      * Delete current user account
-     * @return No Content
+     * @return Account deleted
      */
     deleteAccountEndpoint(signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/users/me";
@@ -947,9 +1007,28 @@ export class ApiClient {
             const _responseText = response.data;
             return Promise.resolve<void>(null as any);
 
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Account deletion failed", status, _responseText, _headers, result400);
+
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("User not found", status, _responseText, _headers);
+
+        } else if (status === 502) {
+            const _responseText = response.data;
+            return throwException("The payment provider failed; nothing was deleted (BILLING_PROVIDER_ERROR)", status, _responseText, _headers);
+
+        } else if (status === 503) {
+            const _responseText = response.data;
+            return throwException("A provider subscription must be cancelled or a provider customer deleted and Stripe is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -1141,6 +1220,14 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
 
+        } else if (status === 502) {
+            const _responseText = response.data;
+            return throwException("Stripe failed; the role was not removed (BILLING_PROVIDER_ERROR)", status, _responseText, _headers);
+
+        } else if (status === 503) {
+            const _responseText = response.data;
+            return throwException("The add-on is billed and Stripe is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -1210,7 +1297,7 @@ export class ApiClient {
 
     /**
      * Get my coach subscription
-     * @return The caller's subscription block
+     * @return The caller's subscription block, with the current promotion and its display-only discount and the plan scheduled to start next while the paid subscription is live
      */
     getMySubscriptionEndpoint(signal?: AbortSignal): Promise<GetMySubscriptionResponse> {
         let url_ = this.baseUrl + "/users/me/subscription";
@@ -1395,6 +1482,18 @@ export class ApiClient {
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("The subscription does not cover a second professional role (SUBSCRIPTION_REQUIRED)", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("The plan scheduled for the next renewal offers no second role (SECOND_ROLE_NOT_ON_SCHEDULED_PLAN)", status, _responseText, _headers);
+
+        } else if (status === 502) {
+            const _responseText = response.data;
+            return throwException("Restoring a role whose add-on removal is scheduled: Stripe failed, the role stays removed (BILLING_PROVIDER_ERROR)", status, _responseText, _headers);
+
+        } else if (status === 503) {
+            const _responseText = response.data;
+            return throwException("Restoring a role whose add-on removal is scheduled: Stripe is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -1643,6 +1742,13 @@ export class ApiClient {
             result200 = JSON.parse(resultData200);
             return Promise.resolve<DisableCoachAccountResponse>(result200);
 
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("NO_ACTIVE_COACH_ROLE", status, _responseText, _headers, result400);
+
         } else if (status === 401) {
             const _responseText = response.data;
             return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
@@ -1650,6 +1756,14 @@ export class ApiClient {
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status === 502) {
+            const _responseText = response.data;
+            return throwException("Stripe failed; nothing was saved (BILLING_PROVIDER_ERROR)", status, _responseText, _headers);
+
+        } else if (status === 503) {
+            const _responseText = response.data;
+            return throwException("You have a live Stripe subscription and Stripe is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -5611,6 +5725,13 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("The Free plan cannot be repriced or deactivated", status, _responseText, _headers);
 
+        } else if (status === 502) {
+            const _responseText = response.data;
+            let result502: any = null;
+            let resultData502  = _responseText;
+            result502 = JSON.parse(resultData502);
+            return throwException("Stripe failed; nothing was saved when the price could not be created, otherwise the plan change is saved and a resend moves the remaining coaches (BILLING_PROVIDER_ERROR)", status, _responseText, _headers, result502);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -5820,6 +5941,13 @@ export class ApiClient {
         } else if (status === 409) {
             const _responseText = response.data;
             return throwException("A plan with this Code already exists", status, _responseText, _headers);
+
+        } else if (status === 502) {
+            const _responseText = response.data;
+            let result502: any = null;
+            let resultData502  = _responseText;
+            result502 = JSON.parse(resultData502);
+            return throwException("Stripe could not create the price; nothing was saved (BILLING_PROVIDER_ERROR)", status, _responseText, _headers, result502);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -7198,6 +7326,70 @@ export class ApiClient {
     }
 
     /**
+     * Unhide recipe
+     * @param recipeId Route parameter — public id of the recipe to unhide.
+     * @return Recipe visible again
+     */
+    unhideRecipeEndpoint(recipeId: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/recipes/{recipeId}/unhide";
+        if (recipeId === undefined || recipeId === null)
+            throw new globalThis.Error("The parameter 'recipeId' must be defined.");
+        url_ = url_.replace("{recipeId}", encodeURIComponent("" + recipeId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "PUT",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUnhideRecipeEndpoint(_response);
+        });
+    }
+
+    protected processUnhideRecipeEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The coach role was removed", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Recipe not found, or another coach\'s private recipe", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Search recipes
      * @param mealType Optional meal type filter — matches a recipe carrying ANY of the supplied meal types. Bound
     from the repeated mealType query param.
@@ -7207,6 +7399,8 @@ export class ApiClient {
     values (System means the platform catalog). Bound from the repeated owner query param.
      * @param tagId Optional tags filter — matches a recipe the caller has tagged with ANY of the supplied tag
     ids. At most 20. Bound from the repeated tagId query param.
+     * @param hidden When true, returns only the recipes the caller has hidden instead of the
+    library without them. Defaults to false.
      * @param page Page number (1-based). Defaults to 1.
      * @param pageSize Number of items per page. Defaults to 20.
      * @param search (optional) Optional search term matched against recipe name and description.
@@ -7215,7 +7409,7 @@ export class ApiClient {
     Ignored when SortBy is null.
      * @return Success
      */
-    searchRecipesEndpoint(mealType: RecipeMealType[], dietaryPreference: DietaryPreference[], owner: FoodOwnerFilter[], tagId: string[], page: number, pageSize: number, search?: string | null | undefined, sortBy?: RecipeSortField | null | undefined, sortDir?: FoodSortDirection | null | undefined, signal?: AbortSignal): Promise<SearchRecipesResponse> {
+    searchRecipesEndpoint(mealType: RecipeMealType[], dietaryPreference: DietaryPreference[], owner: FoodOwnerFilter[], tagId: string[], hidden: boolean, page: number, pageSize: number, search?: string | null | undefined, sortBy?: RecipeSortField | null | undefined, sortDir?: FoodSortDirection | null | undefined, signal?: AbortSignal): Promise<SearchRecipesResponse> {
         let url_ = this.baseUrl + "/recipes?";
         if (mealType === undefined || mealType === null)
             throw new globalThis.Error("The parameter 'mealType' must be defined and cannot be null.");
@@ -7233,6 +7427,10 @@ export class ApiClient {
             throw new globalThis.Error("The parameter 'tagId' must be defined and cannot be null.");
         else
             tagId && tagId.forEach(item => { url_ += "tagId=" + encodeURIComponent("" + item) + "&"; });
+        if (hidden === undefined || hidden === null)
+            throw new globalThis.Error("The parameter 'hidden' must be defined and cannot be null.");
+        else
+            url_ += "hidden=" + encodeURIComponent("" + hidden) + "&";
         if (page === undefined || page === null)
             throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
         else
@@ -7606,6 +7804,74 @@ export class ApiClient {
     }
 
     /**
+     * Hide recipe
+     * @param recipeId Route parameter — public id of the recipe to hide.
+     * @return Recipe hidden
+     */
+    hideRecipeEndpoint(recipeId: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/recipes/{recipeId}/hide";
+        if (recipeId === undefined || recipeId === null)
+            throw new globalThis.Error("The parameter 'recipeId' must be defined.");
+        url_ = url_.replace("{recipeId}", encodeURIComponent("" + recipeId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "PUT",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processHideRecipeEndpoint(_response);
+        });
+    }
+
+    protected processHideRecipeEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            return throwException("The caller owns the recipe (RECIPE_HIDE_OWN_NOT_ALLOWED)", status, _responseText, _headers);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The coach role was removed", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Recipe not found, or another coach\'s private recipe", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Remove recipe image
      * @param recipeId The recipe's public identifier (from route).
      * @return Image cleared (or was already unset)
@@ -7743,6 +8009,78 @@ export class ApiClient {
     }
 
     /**
+     * Copy recipe to own library
+     * @param recipeId Route parameter — public id of the recipe to copy.
+     * @return Copy created
+     */
+    copyRecipeEndpoint(recipeId: string, signal?: AbortSignal): Promise<GetRecipeResponse> {
+        let url_ = this.baseUrl + "/recipes/{recipeId}/copy";
+        if (recipeId === undefined || recipeId === null)
+            throw new globalThis.Error("The parameter 'recipeId' must be defined.");
+        url_ = url_.replace("{recipeId}", encodeURIComponent("" + recipeId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCopyRecipeEndpoint(_response);
+        });
+    }
+
+    protected processCopyRecipeEndpoint(response: AxiosResponse): Promise<GetRecipeResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<GetRecipeResponse>(result201);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            return throwException("An ingredient food is deleted or not visible to the caller", status, _responseText, _headers);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The subscription does not include recipes, or the coach role was removed", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Recipe not found, or another coach\'s private recipe", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetRecipeResponse>(null as any);
+    }
+
+    /**
      * Update questionnaire response
      * @return Answers saved
      */
@@ -7795,7 +8133,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("An answer is invalid (QUESTIONNAIRE_ANSWER_INVALID) or a question is not part of the form (QUESTIONNAIRE_QUESTION_NOT_IN_FORM)", status, _responseText, _headers, result400);
+            return throwException("An answer is invalid (QUESTIONNAIRE_ANSWER_INVALID), a question is not part of the form (QUESTIONNAIRE_QUESTION_NOT_IN_FORM), or a fileUploadId is unknown or repeated (QUESTIONNAIRE_FILE_UPLOAD_NOT_FOUND)", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -8861,6 +9199,89 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<GetClientFormsResponse>(null as any);
+    }
+
+    /**
+     * Generate a questionnaire file upload URL
+     * @param responsePublicId Route parameter — the in-progress response the file belongs to.
+     * @return Upload URL and uploadId
+     */
+    generateAnswerFileUploadUrlEndpoint(responsePublicId: string, generateAnswerFileUploadUrlRequest: GenerateAnswerFileUploadUrlRequest, signal?: AbortSignal): Promise<GenerateAnswerFileUploadUrlResponse> {
+        let url_ = this.baseUrl + "/client/questionnaire/response/{responsePublicId}/file-upload-url";
+        if (responsePublicId === undefined || responsePublicId === null)
+            throw new globalThis.Error("The parameter 'responsePublicId' must be defined.");
+        url_ = url_.replace("{responsePublicId}", encodeURIComponent("" + responsePublicId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(generateAnswerFileUploadUrlRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGenerateAnswerFileUploadUrlEndpoint(_response);
+        });
+    }
+
+    protected processGenerateAnswerFileUploadUrlEndpoint(response: AxiosResponse): Promise<GenerateAnswerFileUploadUrlResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GenerateAnswerFileUploadUrlResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid content type or size, or the question is not a visible file_upload question of the form", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The response belongs to another client", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Unknown response, or one outside the current collaboration", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("The response has already been submitted, or it is a check-in past its answer window (CHECK_IN_ANSWER_WINDOW_CLOSED)", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GenerateAnswerFileUploadUrlResponse>(null as any);
     }
 
     /**
@@ -11943,7 +12364,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid request, or the staged image upload was not found", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -13382,6 +13803,70 @@ export class ApiClient {
     }
 
     /**
+     * Unhide food
+     * @param foodId Route parameter — public id of the food to unhide.
+     * @return Food visible again
+     */
+    unhideFoodEndpoint(foodId: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/foods/{foodId}/unhide";
+        if (foodId === undefined || foodId === null)
+            throw new globalThis.Error("The parameter 'foodId' must be defined.");
+        url_ = url_.replace("{foodId}", encodeURIComponent("" + foodId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "PUT",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUnhideFoodEndpoint(_response);
+        });
+    }
+
+    protected processUnhideFoodEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The coach role was removed", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Food not found, deleted, or another coach\'s private food", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Search foods
      * @param category Optional category filter — matches a food carrying ANY of the supplied categories. Bound
     from the repeated category query param, so a single ?category=Dairy still
@@ -13392,6 +13877,8 @@ export class ApiClient {
     FoodOwnerFilter values. Bound from the repeated owner query param, so
     a single ?owner=Mine still binds a one-item list. At most 3 (one per enum member).
     None supplied applies no owner filter.
+     * @param hidden When true, returns only the foods the caller has hidden instead of the
+    library without them. Defaults to false.
      * @param page Page number (1-based). Defaults to 1.
      * @param pageSize Number of items per page. Defaults to 20.
      * @param q (optional) Free-text search query.
@@ -13402,7 +13889,7 @@ export class ApiClient {
     null.
      * @return Matching foods
      */
-    searchFoodsEndpoint(category: FoodCategory[], tagIds: string[], owner: FoodOwnerFilter[], page: number, pageSize: number, q?: string | null | undefined, sortBy?: FoodSortField | null | undefined, sortDir?: FoodSortDirection | null | undefined, signal?: AbortSignal): Promise<SearchFoodsResponse> {
+    searchFoodsEndpoint(category: FoodCategory[], tagIds: string[], owner: FoodOwnerFilter[], hidden: boolean, page: number, pageSize: number, q?: string | null | undefined, sortBy?: FoodSortField | null | undefined, sortDir?: FoodSortDirection | null | undefined, signal?: AbortSignal): Promise<SearchFoodsResponse> {
         let url_ = this.baseUrl + "/foods/search?";
         if (category === undefined || category === null)
             throw new globalThis.Error("The parameter 'category' must be defined and cannot be null.");
@@ -13416,6 +13903,10 @@ export class ApiClient {
             throw new globalThis.Error("The parameter 'owner' must be defined and cannot be null.");
         else
             owner && owner.forEach(item => { url_ += "owner=" + encodeURIComponent("" + item) + "&"; });
+        if (hidden === undefined || hidden === null)
+            throw new globalThis.Error("The parameter 'hidden' must be defined and cannot be null.");
+        else
+            url_ += "hidden=" + encodeURIComponent("" + hidden) + "&";
         if (page === undefined || page === null)
             throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
         else
@@ -13705,6 +14196,74 @@ export class ApiClient {
         } else if (status === 409) {
             const _responseText = response.data;
             return throwException("FOOD_IMAGES_CONFLICT \u2014 the images changed concurrently", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Hide food
+     * @param foodId Route parameter — public id of the food to hide.
+     * @return Food hidden
+     */
+    hideFoodEndpoint(foodId: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/foods/{foodId}/hide";
+        if (foodId === undefined || foodId === null)
+            throw new globalThis.Error("The parameter 'foodId' must be defined.");
+        url_ = url_.replace("{foodId}", encodeURIComponent("" + foodId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "PUT",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processHideFoodEndpoint(_response);
+        });
+    }
+
+    protected processHideFoodEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            return throwException("The caller owns the food (FOOD_HIDE_OWN_NOT_ALLOWED)", status, _responseText, _headers);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The coach role was removed", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Food not found, deleted, or another coach\'s private food", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -14121,6 +14680,74 @@ export class ApiClient {
         } else if (status === 403) {
             const _responseText = response.data;
             return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<FoodSummary>(null as any);
+    }
+
+    /**
+     * Copy food to own library
+     * @param foodId Route parameter — public id of the food to copy.
+     * @return Copy created
+     */
+    copyFoodEndpoint(foodId: string, signal?: AbortSignal): Promise<FoodSummary> {
+        let url_ = this.baseUrl + "/foods/{foodId}/copy";
+        if (foodId === undefined || foodId === null)
+            throw new globalThis.Error("The parameter 'foodId' must be defined.");
+        url_ = url_.replace("{foodId}", encodeURIComponent("" + foodId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCopyFoodEndpoint(_response);
+        });
+    }
+
+    protected processCopyFoodEndpoint(response: AxiosResponse): Promise<FoodSummary> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<FoodSummary>(result201);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The subscription does not include ingredients, or the coach role was removed", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Food not found, deleted, or another coach\'s private food", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -15186,8 +15813,72 @@ export class ApiClient {
     }
 
     /**
+     * Record that the Free plan was kept at sign-up
+     * @return The choice is recorded
+     */
+    keepFreePlanAtSignUpEndpoint(signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/users/me/subscription/keep-free";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processKeepFreePlanAtSignUpEndpoint(_response);
+        });
+    }
+
+    protected processKeepFreePlanAtSignUpEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The caller is not a trainer or nutritionist, the coach role was removed, or a plan choice is required first", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("The caller has no professional profile", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("The coach is on a paid plan or a running given plan (NOT_ON_FREE_PLAN)", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * List the plans a coach can choose
-     * @return The active plans, cheapest first
+     * @return The active plans, cheapest monthly price first
      */
     getCoachPlansEndpoint(signal?: AbortSignal): Promise<GetCoachPlansResponse> {
         let url_ = this.baseUrl + "/users/me/subscription/plans";
@@ -21789,6 +22480,725 @@ export class ApiClient {
     }
 
     /**
+     * Switch my paid subscription to Free at period end
+     * @return The cancellation is scheduled
+     */
+    scheduleSwitchToFreeEndpoint(signal?: AbortSignal): Promise<ScheduleSwitchToFreeResponse> {
+        let url_ = this.baseUrl + "/billing/switch-to-free";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processScheduleSwitchToFreeEndpoint(_response);
+        });
+    }
+
+    protected processScheduleSwitchToFreeEndpoint(response: AxiosResponse): Promise<ScheduleSwitchToFreeResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<ScheduleSwitchToFreeResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The caller is not a trainer or nutritionist, or the coach role was removed", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("No live paid subscription (BILLING_NO_SUBSCRIPTION), an admin gift is in force (BILLING_GIFT_IN_FORCE), or a cancellation is already pending (BILLING_CANCELLATION_PENDING)", status, _responseText, _headers);
+
+        } else if (status === 502) {
+            const _responseText = response.data;
+            return throwException("Stripe failed; nothing was saved (BILLING_PROVIDER_ERROR)", status, _responseText, _headers);
+
+        } else if (status === 503) {
+            const _responseText = response.data;
+            return throwException("Stripe is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ScheduleSwitchToFreeResponse>(null as any);
+    }
+
+    /**
+     * Preview adding the second role
+     * @return The preview
+     */
+    previewSecondRoleAddOnEndpoint(signal?: AbortSignal): Promise<PreviewSecondRoleAddOnResponse> {
+        let url_ = this.baseUrl + "/billing/second-role/preview";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processPreviewSecondRoleAddOnEndpoint(_response);
+        });
+    }
+
+    protected processPreviewSecondRoleAddOnEndpoint(response: AxiosResponse): Promise<PreviewSecondRoleAddOnResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<PreviewSecondRoleAddOnResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The caller is not a trainer or nutritionist, or the coach role was removed", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("No live paid subscription (BILLING_NO_SUBSCRIPTION), an admin gift is in force (BILLING_GIFT_IN_FORCE), the plan has no add-on (BILLING_ADD_ON_NOT_AVAILABLE) or the add-on is already paid (BILLING_ADD_ON_ALREADY_PAID)", status, _responseText, _headers);
+
+        } else if (status === 502) {
+            const _responseText = response.data;
+            return throwException("Stripe failed (BILLING_PROVIDER_ERROR)", status, _responseText, _headers);
+
+        } else if (status === 503) {
+            const _responseText = response.data;
+            return throwException("Stripe is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<PreviewSecondRoleAddOnResponse>(null as any);
+    }
+
+    /**
+     * Preview a plan change
+     * @return The preview
+     */
+    previewPlanChangeEndpoint(previewPlanChangeRequest: PreviewPlanChangeRequest, signal?: AbortSignal): Promise<PreviewPlanChangeResponse> {
+        let url_ = this.baseUrl + "/billing/change-plan/preview";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(previewPlanChangeRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processPreviewPlanChangeEndpoint(_response);
+        });
+    }
+
+    protected processPreviewPlanChangeEndpoint(response: AxiosResponse): Promise<PreviewPlanChangeResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<PreviewPlanChangeResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid body, or the plan cannot be bought: unknown, Free, inactive, no open price for the interval, not priced in Stripe, or the caller has two active roles and the plan has no add-on price (PLAN_NOT_PURCHASABLE)", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The caller is not a trainer or nutritionist, or the coach role was removed", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("No live paid subscription (BILLING_NO_SUBSCRIPTION), an admin gift is in force (BILLING_GIFT_IN_FORCE), or the plan is the current one at the current interval (BILLING_PLAN_UNCHANGED)", status, _responseText, _headers);
+
+        } else if (status === 502) {
+            const _responseText = response.data;
+            return throwException("Stripe failed (BILLING_PROVIDER_ERROR)", status, _responseText, _headers);
+
+        } else if (status === 503) {
+            const _responseText = response.data;
+            return throwException("Stripe is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<PreviewPlanChangeResponse>(null as any);
+    }
+
+    /**
+     * Open the Stripe Customer Portal
+     * @return The portal page to redirect to
+     */
+    createPortalSessionEndpoint(signal?: AbortSignal): Promise<CreatePortalSessionResponse> {
+        let url_ = this.baseUrl + "/billing/portal-session";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCreatePortalSessionEndpoint(_response);
+        });
+    }
+
+    protected processCreatePortalSessionEndpoint(response: AxiosResponse): Promise<CreatePortalSessionResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<CreatePortalSessionResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The caller is not a trainer or nutritionist", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("The coach has no Stripe customer yet (BILLING_CUSTOMER_NOT_FOUND)", status, _responseText, _headers);
+
+        } else if (status === 502) {
+            const _responseText = response.data;
+            return throwException("Stripe failed (BILLING_PROVIDER_ERROR)", status, _responseText, _headers);
+
+        } else if (status === 503) {
+            const _responseText = response.data;
+            return throwException("Stripe is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<CreatePortalSessionResponse>(null as any);
+    }
+
+    /**
+     * Start a Stripe Checkout
+     * @return The Checkout page to redirect to
+     */
+    createCheckoutSessionEndpoint(createCheckoutSessionRequest: CreateCheckoutSessionRequest, signal?: AbortSignal): Promise<CreateCheckoutSessionResponse> {
+        let url_ = this.baseUrl + "/billing/checkout-session";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(createCheckoutSessionRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCreateCheckoutSessionEndpoint(_response);
+        });
+    }
+
+    protected processCreateCheckoutSessionEndpoint(response: AxiosResponse): Promise<CreateCheckoutSessionResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<CreateCheckoutSessionResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid body (a Code that is too long or has invalid characters is PROMOTION_CODE_INVALID), or the plan cannot be bought: unknown, Free, inactive, no open price for the interval, not priced in Stripe, or the caller has two active roles and the plan has no add-on price (PLAN_NOT_PURCHASABLE)", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The caller is not a trainer or nutritionist, or the coach role was removed", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("The caller has no professional profile, or the Free plan is missing, or no promotion has the Code, its claim window has closed, or an admin ended it (PROMOTION_CODE_NOT_FOUND)", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("The coach already has a live paid subscription (BILLING_ALREADY_SUBSCRIBED), or the Code fails a rule: PROMOTION_CODE_NOT_STARTED, PROMOTION_CODE_PLAN_NOT_ELIGIBLE, PROMOTION_CODE_INTERVAL_NOT_ELIGIBLE, PROMOTION_CODE_USED_UP, PROMOTION_CODE_NEW_COACHES_ONLY, PROMOTION_CODE_ALREADY_USED", status, _responseText, _headers);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("The per-account rate limit was exceeded", status, _responseText, _headers);
+
+        } else if (status === 502) {
+            const _responseText = response.data;
+            return throwException("Stripe failed; nothing was started (BILLING_PROVIDER_ERROR)", status, _responseText, _headers);
+
+        } else if (status === 503) {
+            const _responseText = response.data;
+            return throwException("Stripe is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<CreateCheckoutSessionResponse>(null as any);
+    }
+
+    /**
+     * Pay for the second role
+     * @return The add-on is paid, or awaits payment on paymentUrl (paysSecondRoleAddOn is false)
+     */
+    confirmSecondRoleAddOnEndpoint(confirmSecondRoleAddOnRequest: ConfirmSecondRoleAddOnRequest, signal?: AbortSignal): Promise<ConfirmSecondRoleAddOnResponse> {
+        let url_ = this.baseUrl + "/billing/second-role/confirm";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(confirmSecondRoleAddOnRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processConfirmSecondRoleAddOnEndpoint(_response);
+        });
+    }
+
+    protected processConfirmSecondRoleAddOnEndpoint(response: AxiosResponse): Promise<ConfirmSecondRoleAddOnResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<ConfirmSecondRoleAddOnResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid body", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 402) {
+            const _responseText = response.data;
+            return throwException("The card was declined (BILLING_PAYMENT_DECLINED); nothing was applied", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The caller is not a trainer or nutritionist, or the coach role was removed", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("No live paid subscription (BILLING_NO_SUBSCRIPTION), an admin gift is in force (BILLING_GIFT_IN_FORCE), the plan has no add-on (BILLING_ADD_ON_NOT_AVAILABLE), the add-on is already paid (BILLING_ADD_ON_ALREADY_PAID) or a plan change is scheduled or waiting for payment (BILLING_PLAN_CHANGE_PENDING)", status, _responseText, _headers);
+
+        } else if (status === 502) {
+            const _responseText = response.data;
+            return throwException("Stripe failed; nothing was saved (BILLING_PROVIDER_ERROR)", status, _responseText, _headers);
+
+        } else if (status === 503) {
+            const _responseText = response.data;
+            return throwException("Stripe is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ConfirmSecondRoleAddOnResponse>(null as any);
+    }
+
+    /**
+     * Change the plan of my paid subscription
+     * @return The change was applied or scheduled, or awaits payment on the hosted page (Timing AwaitingPayment, PaymentUrl set)
+     */
+    changePlanEndpoint(changePlanRequest: ChangePlanRequest, signal?: AbortSignal): Promise<ChangePlanResponse> {
+        let url_ = this.baseUrl + "/billing/change-plan";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(changePlanRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processChangePlanEndpoint(_response);
+        });
+    }
+
+    protected processChangePlanEndpoint(response: AxiosResponse): Promise<ChangePlanResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<ChangePlanResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid body (including a missing AttemptId), or the plan cannot be bought: unknown, Free, inactive, no open price for the interval, not priced in Stripe, or the caller has two active roles and the plan has no add-on price (PLAN_NOT_PURCHASABLE)", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The caller is not a trainer or nutritionist, or the coach role was removed", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("No live paid subscription (BILLING_NO_SUBSCRIPTION), an admin gift is in force (BILLING_GIFT_IN_FORCE), or the plan is the current one at the current interval (BILLING_PLAN_UNCHANGED)", status, _responseText, _headers);
+
+        } else if (status === 502) {
+            const _responseText = response.data;
+            return throwException("Stripe failed or the card was declined; nothing was changed or saved (BILLING_PROVIDER_ERROR)", status, _responseText, _headers);
+
+        } else if (status === 503) {
+            const _responseText = response.data;
+            return throwException("Stripe is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ChangePlanResponse>(null as any);
+    }
+
+    /**
+     * Cancel my scheduled plan change
+     * @return The scheduled change is cancelled
+     */
+    cancelScheduledPlanChangeEndpoint(signal?: AbortSignal): Promise<CancelScheduledPlanChangeResponse> {
+        let url_ = this.baseUrl + "/billing/scheduled-change/cancel";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCancelScheduledPlanChangeEndpoint(_response);
+        });
+    }
+
+    protected processCancelScheduledPlanChangeEndpoint(response: AxiosResponse): Promise<CancelScheduledPlanChangeResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<CancelScheduledPlanChangeResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The caller is not a trainer or nutritionist, or the coach role was removed", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("No live paid subscription (BILLING_NO_SUBSCRIPTION), an admin gift is in force (BILLING_GIFT_IN_FORCE), the coach account is being disabled (BILLING_ACCOUNT_DISABLING), Form Up cancelled the renewal (BILLING_RENEWAL_CANCELLED_BY_ADMIN), or nothing is scheduled (BILLING_NOTHING_SCHEDULED)", status, _responseText, _headers);
+
+        } else if (status === 502) {
+            const _responseText = response.data;
+            return throwException("Stripe failed; nothing was saved (BILLING_PROVIDER_ERROR)", status, _responseText, _headers);
+
+        } else if (status === 503) {
+            const _responseText = response.data;
+            return throwException("Stripe is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<CancelScheduledPlanChangeResponse>(null as any);
+    }
+
+    /**
+     * Apply a promotion code to my subscription
+     * @return The code was applied, or is already the current promotion
+     */
+    applyPromotionCodeEndpoint(applyPromotionCodeRequest: ApplyPromotionCodeRequest, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/billing/promotion-code";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(applyPromotionCodeRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processApplyPromotionCodeEndpoint(_response);
+        });
+    }
+
+    protected processApplyPromotionCodeEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("The code is empty, too long or has invalid characters (PROMOTION_CODE_INVALID)", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The caller is not a trainer or nutritionist, or the coach role was removed", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("No promotion has this code, its claim window has closed, or an admin ended it (PROMOTION_CODE_NOT_FOUND)", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("No live paid subscription (BILLING_NO_SUBSCRIPTION), an admin gift is in force (BILLING_GIFT_IN_FORCE), or the code fails a rule: PROMOTION_CODE_NOT_STARTED, PROMOTION_CODE_PLAN_NOT_ELIGIBLE, PROMOTION_CODE_INTERVAL_NOT_ELIGIBLE, PROMOTION_CODE_USED_UP, PROMOTION_CODE_NEW_COACHES_ONLY, PROMOTION_CODE_ALREADY_USED", status, _responseText, _headers);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("The per-account rate limit was exceeded", status, _responseText, _headers);
+
+        } else if (status === 502) {
+            const _responseText = response.data;
+            return throwException("Stripe failed (BILLING_PROVIDER_ERROR)", status, _responseText, _headers);
+
+        } else if (status === 503) {
+            const _responseText = response.data;
+            return throwException("Stripe is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Update an automation rule
      * @param ruleId Route parameter: public id of the rule.
      * @return The updated rule
@@ -22109,7 +23519,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Invalid trigger or options, a progress photos message over 500 characters, or check-in fields that do not match the rule\'s form", status, _responseText, _headers, result400);
+            return throwException("Invalid trigger or options, a progress photos message over 500 characters, check-in fields that do not match the rule\'s form, or a check-in form that is inactive, not a check-in form, or sent for a rule that is not a check-in", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -22761,6 +24171,77 @@ export class ApiClient {
     }
 
     /**
+     * Resolve an invitation token to the invited email
+     * @return Invited email
+     */
+    resolveInviteTokenEndpoint(resolveInviteTokenRequest: ResolveInviteTokenRequest, signal?: AbortSignal): Promise<ResolveInviteTokenResponse> {
+        let url_ = this.baseUrl + "/auth/invite/resolve";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(resolveInviteTokenRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processResolveInviteTokenEndpoint(_response);
+        });
+    }
+
+    protected processResolveInviteTokenEndpoint(response: AxiosResponse): Promise<ResolveInviteTokenResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<ResolveInviteTokenResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Validation error", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Token unknown, expired or already used", status, _responseText, _headers);
+
+        } else if (status === 429) {
+            const _responseText = response.data;
+            return throwException("Rate limit exceeded", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ResolveInviteTokenResponse>(null as any);
+    }
+
+    /**
      * Reset password
      * @return Password reset; all sessions revoked
      */
@@ -23395,7 +24876,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Invalid, used or expired token, or the profession slot is already taken (PROFESSION_ALREADY_OCCUPIED)", status, _responseText, _headers, result400);
+            return throwException("Invalid, used, revoked, expired or not-addressed-to-caller token (INVALID_INVITATION), or the profession slot is already taken (PROFESSION_ALREADY_OCCUPIED)", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -23410,6 +24891,398 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<AcceptInvitationResponse>(null as any);
+    }
+
+    /**
+     * Admin reports
+     * @param period Look-back window: Days30, Days90 or Months12. Defaults to Days30.
+     * @return The report totals
+     */
+    getAdminReportsEndpoint(period: AdminReportPeriod, signal?: AbortSignal): Promise<GetAdminReportsResponse> {
+        let url_ = this.baseUrl + "/admin/reports?";
+        if (period === undefined || period === null)
+            throw new globalThis.Error("The parameter 'period' must be defined and cannot be null.");
+        else
+            url_ += "period=" + encodeURIComponent("" + period) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetAdminReportsEndpoint(_response);
+        });
+    }
+
+    protected processGetAdminReportsEndpoint(response: AxiosResponse): Promise<GetAdminReportsResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetAdminReportsResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid period", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Caller is not an Admin", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetAdminReportsResponse>(null as any);
+    }
+
+    /**
+     * List promotions
+     * @param status Tab to show; All when omitted.
+     * @return The promotions of the tab
+     */
+    listPromotionsEndpoint(status: PromotionStatusFilter, signal?: AbortSignal): Promise<ListPromotionsResponse> {
+        let url_ = this.baseUrl + "/admin/promotions?";
+        if (status === undefined || status === null)
+            throw new globalThis.Error("The parameter 'status' must be defined and cannot be null.");
+        else
+            url_ += "status=" + encodeURIComponent("" + status) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processListPromotionsEndpoint(_response);
+        });
+    }
+
+    protected processListPromotionsEndpoint(response: AxiosResponse): Promise<ListPromotionsResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<ListPromotionsResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid status filter", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Caller is not an Admin", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ListPromotionsResponse>(null as any);
+    }
+
+    /**
+     * Create a promotion
+     * @return The promotion that was created
+     */
+    createPromotionEndpoint(createPromotionRequest: CreatePromotionRequest, signal?: AbortSignal): Promise<PromotionDto> {
+        let url_ = this.baseUrl + "/admin/promotions";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(createPromotionRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCreatePromotionEndpoint(_response);
+        });
+    }
+
+    protected processCreatePromotionEndpoint(response: AxiosResponse): Promise<PromotionDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<PromotionDto>(result201);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request: name, value, code, month count, claim window, plans, billing period or max uses (PROMOTION_VALUE_INVALID, PROMOTION_CODE_INVALID, PROMOTION_MODE_INVALID, PROMOTION_MONTHS_INVALID, PROMOTION_WINDOW_INVALID, PROMOTION_PLANS_INVALID, PROMOTION_MAX_USES_INVALID)", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Caller is not an Admin", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = JSON.parse(resultData409);
+            return throwException("Another promotion that has not ended uses this code (PROMOTION_CODE_TAKEN)", status, _responseText, _headers, result409);
+
+        } else if (status === 502) {
+            const _responseText = response.data;
+            let result502: any = null;
+            let resultData502  = _responseText;
+            result502 = JSON.parse(resultData502);
+            return throwException("Stripe failed; nothing was saved (BILLING_PROVIDER_ERROR)", status, _responseText, _headers, result502);
+
+        } else if (status === 503) {
+            const _responseText = response.data;
+            let result503: any = null;
+            let resultData503  = _responseText;
+            result503 = JSON.parse(resultData503);
+            return throwException("Stripe is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers, result503);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<PromotionDto>(null as any);
+    }
+
+    /**
+     * End a promotion
+     * @param promotionId Route parameter — the promotion's public id; matches {PromotionId} in the route exactly.
+     * @return The promotion, now Ended
+     */
+    endPromotionEndpoint(promotionId: string, signal?: AbortSignal): Promise<PromotionDto> {
+        let url_ = this.baseUrl + "/admin/promotions/{promotionId}/end";
+        if (promotionId === undefined || promotionId === null)
+            throw new globalThis.Error("The parameter 'promotionId' must be defined.");
+        url_ = url_.replace("{promotionId}", encodeURIComponent("" + promotionId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processEndPromotionEndpoint(_response);
+        });
+    }
+
+    protected processEndPromotionEndpoint(response: AxiosResponse): Promise<PromotionDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<PromotionDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("The promotion id is empty", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Caller is not an Admin", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("No promotion has this id", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = JSON.parse(resultData409);
+            return throwException("The promotion has already ended (PROMOTION_ALREADY_ENDED)", status, _responseText, _headers, result409);
+
+        } else if (status === 502) {
+            const _responseText = response.data;
+            let result502: any = null;
+            let resultData502  = _responseText;
+            result502 = JSON.parse(resultData502);
+            return throwException("Stripe failed; nothing was saved (BILLING_PROVIDER_ERROR)", status, _responseText, _headers, result502);
+
+        } else if (status === 503) {
+            const _responseText = response.data;
+            let result503: any = null;
+            let resultData503  = _responseText;
+            result503 = JSON.parse(resultData503);
+            return throwException("A promotion with a Stripe promotion code needs Stripe, which is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers, result503);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<PromotionDto>(null as any);
+    }
+
+    /**
+     * Get the admin overview attention block
+     * @return The attention block
+     */
+    getAdminAttentionEndpoint(signal?: AbortSignal): Promise<GetAdminAttentionResponse> {
+        let url_ = this.baseUrl + "/admin/overview/attention";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetAdminAttentionEndpoint(_response);
+        });
+    }
+
+    protected processGetAdminAttentionEndpoint(response: AxiosResponse): Promise<GetAdminAttentionResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetAdminAttentionResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Caller is not an Admin", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetAdminAttentionResponse>(null as any);
     }
 
     /**
@@ -23569,6 +25442,20 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("The coach or the plan code is unknown (PROFESSIONAL_NOT_FOUND, SUBSCRIPTION_PLAN_NOT_FOUND)", status, _responseText, _headers);
 
+        } else if (status === 502) {
+            const _responseText = response.data;
+            let result502: any = null;
+            let resultData502  = _responseText;
+            result502 = JSON.parse(resultData502);
+            return throwException("Stripe failed; the plan is unchanged and the refund stays owed for a retry (BILLING_PROVIDER_ERROR)", status, _responseText, _headers, result502);
+
+        } else if (status === 503) {
+            const _responseText = response.data;
+            let result503: any = null;
+            let resultData503  = _responseText;
+            result503 = JSON.parse(resultData503);
+            return throwException("The coach has a cancellable Stripe subscription and Stripe is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers, result503);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -23721,7 +25608,15 @@ export class ApiClient {
             let result409: any = null;
             let resultData409  = _responseText;
             result409 = JSON.parse(resultData409);
-            return throwException("No plan to end: no subscription, the Free plan, an ended paid plan, or a gift that has expired (NO_PLAN_TO_END)", status, _responseText, _headers, result409);
+            return throwException("No plan to end: no subscription, the Free plan, an ended paid plan, or a gift that has expired, and no refund left owed by an earlier attempt (NO_PLAN_TO_END)", status, _responseText, _headers, result409);
+
+        } else if (status === 502) {
+            const _responseText = response.data;
+            return throwException("Stripe failed; the plan is unchanged and the refund stays owed for a retry (BILLING_PROVIDER_ERROR)", status, _responseText, _headers);
+
+        } else if (status === 503) {
+            const _responseText = response.data;
+            return throwException("The coach has a live Stripe subscription and Stripe is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -23801,6 +25696,14 @@ export class ApiClient {
         } else if (status === 404) {
             const _responseText = response.data;
             return throwException("The coach is unknown (PROFESSIONAL_NOT_FOUND)", status, _responseText, _headers);
+
+        } else if (status === 502) {
+            const _responseText = response.data;
+            return throwException("Stripe failed; nothing was saved (BILLING_PROVIDER_ERROR)", status, _responseText, _headers);
+
+        } else if (status === 503) {
+            const _responseText = response.data;
+            return throwException("The coach has a live Stripe subscription and Stripe is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -23887,6 +25790,14 @@ export class ApiClient {
             let resultData409  = _responseText;
             result409 = JSON.parse(resultData409);
             return throwException("Nothing renews: no subscription, the Free plan, a given-free plan, or a plan that no longer applies (NO_RENEWING_SUBSCRIPTION)", status, _responseText, _headers, result409);
+
+        } else if (status === 502) {
+            const _responseText = response.data;
+            return throwException("Stripe failed; nothing was saved (BILLING_PROVIDER_ERROR)", status, _responseText, _headers);
+
+        } else if (status === 503) {
+            const _responseText = response.data;
+            return throwException("The coach has a live Stripe subscription and Stripe is not configured on this server (BILLING_NOT_CONFIGURED)", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -24171,6 +26082,14 @@ ClientProfile row (should not happen in practice, but the join is null-safe). */
     status?: string;
     /** UTC deadline by which the client must respond. Null for rows created before v1 deadline feature. */
     dueAt?: string | undefined;
+    /** Public id of the check-in form this row was answered on. */
+    formId?: string;
+    /** Title of the check-in form this row was answered on. */
+    formName?: string;
+    /** Client's IANA time zone id. */
+    clientTimeZone?: string;
+    /** True when the client is over the cap of the coach's plan, as on the clients list. */
+    clientIsOutsidePlan?: boolean;
 }
 
 /** Flags a client can select when responding to a weekly check-in reminder, indicating events or circumstances that may affect the upcoming week's plan. */
@@ -24185,6 +26104,38 @@ export enum CheckInFlag {
 
 /** Query parameters for GET /trainer/weekly-check-ins. */
 export interface GetTrainerCheckInsRequest {
+}
+
+/** The client's check-in schedule: one entry per coach whose check-in is currently set to arrive. */
+export interface GetMyCheckInScheduleResponse {
+    /** One entry per coach with an active check-in rule; empty when none applies. */
+    items?: MyCheckInScheduleItem[];
+}
+
+/** When one coach's weekly check-in arrives and how long the client can answer, in the client's time zone. */
+export interface MyCheckInScheduleItem {
+    /** Public id of the coach. */
+    professionalPublicId?: string;
+    /** Full name of the coach. */
+    professionalName?: string;
+    /** Profession of the link: Training or Nutrition. */
+    profession?: string;
+    /** Day of the week the check-in is sent, in the client's time zone. */
+    sendWeekday?: DayOfWeek;
+    /** Local time of day the check-in is sent (HH:mm), in the client's time zone. */
+    sendTime?: string;
+    /** Day of the week the answer window ends, in the client's time zone. */
+    answerUntilWeekday?: DayOfWeek;
+}
+
+export enum DayOfWeek {
+    Sunday = "Sunday",
+    Monday = "Monday",
+    Tuesday = "Tuesday",
+    Wednesday = "Wednesday",
+    Thursday = "Thursday",
+    Friday = "Friday",
+    Saturday = "Saturday",
 }
 
 /** One page of the caller's own weekly check-in history, newest first. */
@@ -24403,7 +26354,7 @@ export interface GetNotificationPreferencesResponse {
     preferences?: NotificationPreferenceDto[];
 }
 
-/** The caller's coach subscription: plan, standing, client usage, second-role state, monthly price and the feature flags that currently apply. */
+/** The caller's coach subscription: plan, standing, client usage, second-role state, price and the feature flags that currently apply. */
 export interface GetMySubscriptionResponse {
     /** Code of the plan the subscription is on (the Free plan when the coach has no subscription). */
     planCode?: string;
@@ -24413,18 +26364,26 @@ export interface GetMySubscriptionResponse {
     nameEn?: string;
     /** German plan name. */
     nameDe?: string;
-    /** Subscription status, or null when the coach has no subscription and is on Free by default. */
+    /** When the provider retries a failed payment next; null unless the last payment failed. */
+    nextPaymentAttemptAt?: string | undefined;
+    /** VAT handling, so the plan page knows whether to show a VAT line. */
+    taxMode?: BillingTaxMode;
+    /** True when the coach has a billing customer, so the billing portal can be opened. */
+    hasBillingAccount?: boolean;
+    /** Subscription status, or null when the coach has no subscription and is on Free by default. Also null once a plan
+has ended (IsLapsed). */
     status?: SubscriptionStatus | undefined;
-    /** When the current billing period ends, if known. */
+    /** When the current billing period ends, if known. Null once a plan has ended; see EndedAt. */
     currentPeriodEndsAt?: string | undefined;
-    /** True when the subscription will not renew. */
+    /** True when the subscription will not renew. False once a plan has ended. */
     cancelAtPeriodEnd?: boolean;
     /** While now is before this instant the assigned plan's features apply whatever the status is. */
     freeUntil?: string | undefined;
     /** True when an admin set the plan (given free) and it still applies. */
     isSetByFormUp?: boolean;
     /** True when the paid plan has lapsed (Canceled or Incomplete with no free-features deadline in force). The plan
-fields then describe the Free plan and ActiveClientCount is the number of kept clients. */
+fields then describe the Free plan, Status, CurrentPeriodEndsAt and
+CancelAtPeriodEnd are empty, and ActiveClientCount is the number of kept clients. */
     isLapsed?: boolean;
     /** Czech name of the plan that lapsed; null unless IsLapsed. */
     lapsedPlanNameCs?: string | undefined;
@@ -24457,10 +26416,28 @@ the cap, the plan is unlimited or a plan choice is required. */
     clientLimit?: number | undefined;
     /** Whether a second professional role is included, paid for as an add-on, or not available. */
     secondRole?: SecondRoleState;
-    /** Monthly price lines: the plan, plus the second-role add-on when it is paid. */
+    /** How often the PriceLines bill: the interval of the subscription's own price row. Monthly for the Free
+plan and for a lapsed plan. */
+    billingInterval?: BillingInterval;
+    /** Price lines per BillingInterval: the plan, plus the second-role add-on when it is paid. */
     priceLines?: SubscriptionPriceLineDto[];
     /** The feature flags that currently apply. */
     features?: SubscriptionFeaturesDto;
+    /** The promotion discounting the live subscription now; null when there is none. */
+    promotion?: CurrentPromotionDto | undefined;
+    /** The plan that replaces the current one at the end of the period: a scheduled downgrade, or Free when the
+subscription is set to end. Null when nothing is scheduled. */
+    scheduledPlan?: ScheduledPlanDto | undefined;
+    /** When the second-role add-on stops being billed, while its removal is scheduled (the coach removed a role); the
+PriceLines keep the add-on line until then. Null when nothing is scheduled, the subscription is not
+live or it is set to end anyway. */
+    secondRoleAddOnEndsAt?: string | undefined;
+}
+
+/** How VAT is handled on Stripe subscriptions and invoices. Selected by configuration, never by code. */
+export enum BillingTaxMode {
+    None = "None",
+    Vat21 = "Vat21",
 }
 
 /** Lifecycle status of a coach's subscription. */
@@ -24477,6 +26454,13 @@ export enum SecondRoleState {
     Included = "Included",
     PaidAddOn = "PaidAddOn",
     NotAvailable = "NotAvailable",
+    Purchasable = "Purchasable",
+}
+
+/** Billing cadence for a SubscriptionPlan. */
+export enum BillingInterval {
+    Monthly = "Monthly",
+    Annual = "Annual",
 }
 
 /** One line of the monthly price. */
@@ -24523,6 +26507,77 @@ export interface SubscriptionFeaturesDto {
     canUseAutomations?: boolean;
     /** Coach packages and discounts. */
     canUsePackages?: boolean;
+}
+
+/** The promotion discounting the coach's subscription. */
+export interface CurrentPromotionDto {
+    /** Promotion name. */
+    name?: string;
+    /** English promotion name; null when none was entered. */
+    nameEn?: string | undefined;
+    /** German promotion name; null when none was entered. */
+    nameDe?: string | undefined;
+    /** Percentage or fixed amount. */
+    kind?: PromotionKind;
+    /** Percent (1 to 100), or the amount in the smallest unit of Currency. */
+    value?: number;
+    /** ISO 4217 currency of a fixed amount; null for a percentage. */
+    currency?: string | undefined;
+    /** How long the discount lasts for this coach. */
+    duration?: PromotionDuration;
+    /** Months the discount lasts; set only for Months. */
+    durationMonths?: number | undefined;
+    /** Which billing cadences the promotion discounts. */
+    billingPeriod?: PromotionBillingPeriod;
+    /** When the discount ends, as Stripe reports it; null for a forever discount. */
+    endsAt?: string | undefined;
+    /** Display-only amount the promotion takes off one billing period: the plan line plus the add-on line where the coupon
+covers it, in the currency of PriceLines. Zero when the promotion does not
+apply to the coach's plan. Stripe computes the real charge. */
+    discountMinorUnits?: number;
+    /** Display-only total of the price lines after DiscountMinorUnits. */
+    discountedTotalMinorUnits?: number;
+}
+
+/** How a Promotion takes money off the bill. */
+export enum PromotionKind {
+    Percent = "Percent",
+    FixedAmount = "FixedAmount",
+}
+
+/** How long a Promotion discounts a coach's bill once claimed. */
+export enum PromotionDuration {
+    FirstMonth = "FirstMonth",
+    Months = "Months",
+    Forever = "Forever",
+}
+
+/** Which billing cadences a Promotion discounts. Stored as an integer; Both is 0 so a promotion created before the cadence existed keeps covering monthly and annual alike. */
+export enum PromotionBillingPeriod {
+    Both = "Both",
+    Monthly = "Monthly",
+    Annual = "Annual",
+}
+
+/** The plan a coach's subscription moves to at the end of the current period. */
+export interface ScheduledPlanDto {
+    /** Code of the plan that starts next. */
+    planCode?: string;
+    /** Czech plan name. */
+    nameCs?: string;
+    /** English plan name. */
+    nameEn?: string;
+    /** German plan name. */
+    nameDe?: string;
+    /** When the plan starts: the end of the current period; null when unknown. */
+    startsAt?: string | undefined;
+    /** True when the coach can cancel this change: a live provider subscription, no admin gift in force, no pending
+coach-account disable and no renewal cancelled by Form Up. */
+    cancellable?: boolean;
+    /** How often the scheduled plan's PriceLines bill; Monthly when it is Free. */
+    billingInterval?: BillingInterval;
+    /** Price lines of the plan that starts next: the plan, plus the second-role add-on when the coach would pay it. */
+    priceLines?: SubscriptionPriceLineDto[];
 }
 
 /** The caller's active coach roles with client counts. */
@@ -25584,9 +27639,6 @@ export interface GetPendingInvitesResponse {
 
 /** DTO representing a single pending invitation. */
 export interface PendingInviteDto {
-    /** Internal integer primary key of the PendingInvite row.
-Used to populate pendingInviteId on the photo-diary-request create form. */
-    id?: number;
     /** Public identifier of the pending invite. */
     publicId?: string;
     /** Email address of the invited client. */
@@ -25620,9 +27672,6 @@ export interface DeletePendingInviteRequest {
 
 /** Response model returned after creating a pending invitation. */
 export interface CreatePendingInviteResponse {
-    /** Internal integer primary key of the PendingInvite row.
-Used to populate pendingInviteId on the photo-diary-request create form. */
-    id?: number;
     /** Public identifier of the created pending invite. */
     publicId?: string;
     /** Email address of the invited client. */
@@ -26431,6 +28480,9 @@ endpoints — it differs from ClientPublicId. */
     /** True when the client is outside the plan in force (over its client cap): visible to the
 coach but not workable. Same source as the CLIENT_OVER_PLAN_LIMIT gate. */
     isOutsidePlan?: boolean;
+    /** The client's avatar, if uploaded. Read straight off ApplicationUser.AvatarBlobUrl —
+same as GetClientsResponse, no presigning at this layer. */
+    avatarBlobUrl?: string | undefined;
     /** Derived Active/Paused/Archived status — computed by
 Classify, the same derivation
 GetClientsEndpoint uses, so this value always agrees with the caller's clients-list
@@ -26793,27 +28845,27 @@ export interface SubscriptionPlanDto {
     canUsePackages?: boolean;
     /** Maximum number of active clients allowed under this plan. Null means unlimited. */
     maxActiveClients?: number | undefined;
-    /** Current plan price, expressed in the smallest unit of Currency. */
+    /** Current monthly plan price, expressed in the smallest unit of Currency. */
     priceMinorUnits?: number;
-    /** Current price of the second-role add-on. Null when both roles are included. */
+    /** Current monthly price of the second-role add-on. Null when both roles are included. */
     secondRoleAddOnPriceMinorUnits?: number | undefined;
     /** ISO 4217 currency code for the prices. */
     currency?: string;
-    /** Billing cadence for this plan. */
+    /** Billing cadence of the price fields above; always Monthly, the annual price has its own fields. */
     billingInterval?: BillingInterval;
-    /** External payment-provider price identifier of the current price, once billing integration ships. */
+    /** External payment-provider price identifier of the current monthly price. */
     externalPriceId?: string | undefined;
+    /** Current annual plan price per year. Null when the plan is not sold annually. */
+    annualPriceMinorUnits?: number | undefined;
+    /** Current annual price of the second-role add-on per year. Null when none. */
+    annualSecondRoleAddOnPriceMinorUnits?: number | undefined;
+    /** External payment-provider price identifier of the current annual price. */
+    annualExternalPriceId?: string | undefined;
     /** Whether the plan is currently offered/selectable. */
     isActive?: boolean;
     /** Number of coaches with a live subscription (trialing, active or past due) on this plan.
 Coaches without a subscription row are not counted. */
     coachCount?: number;
-}
-
-/** Billing cadence for a SubscriptionPlan. */
-export enum BillingInterval {
-    Monthly = "Monthly",
-    Annual = "Annual",
 }
 
 /** Request model for updating an existing subscription tier. Code is bound from the route and identifies which plan to update — it is not an updatable field (immutable after create; see Code). */
@@ -26861,13 +28913,18 @@ at their next renewal. Defaults to false: coaches keep the price row they pay. *
     /** Maximum number of active clients allowed under this plan. Required — must be present
 in the body. An explicit null means unlimited; omitting the field entirely 400s. */
     maxActiveClients?: OptionalFieldOfNullableOfInt32;
-    /** Plan price, expressed in the smallest unit of Currency. */
+    /** Monthly plan price, expressed in the smallest unit of Currency. */
     priceMinorUnits?: number;
     /** ISO 4217 currency code for PriceMinorUnits. */
     currency?: string;
-    /** Billing cadence for this plan. */
-    billingInterval?: BillingInterval;
-    /** External payment-provider price identifier, once billing integration ships. */
+    /** Annual plan price per year. A PUT is a full update: omitting it closes the plan's open annual price, so the plan
+is no longer sold annually (coaches already on it keep their row). Never set on the Free plan. */
+    annualPriceMinorUnits?: number | undefined;
+    /** Annual price of the second-role add-on per year. Required with an annual price when the plan has a paid add-on;
+not allowed when both roles are included or there is no annual price. */
+    annualSecondRoleAddOnPriceMinorUnits?: number | undefined;
+    /** Ignored. The backend creates the Stripe price itself when a price row opens; the field stays only so existing
+clients keep working. The response returns the price id the backend stored. */
     externalPriceId?: string | undefined;
     /** Whether the plan is currently offered/selectable. Required — reactivation/deactivation
 happens through this field, and an omitted value must not silently deactivate a live
@@ -26893,6 +28950,9 @@ export interface GetSubscriptionPlansResponse {
 export interface GetPublicSubscriptionPlansResponse {
     /** Offered plans, cheapest first. */
     plans?: PublicSubscriptionPlanDto[];
+    /** The active automatic promotion for a new coach, or null. Same for every caller; a plan it does not cover shows
+no discounted price. */
+    promotion?: PublicPromotionDto | undefined;
 }
 
 /** One offered plan as the public pricing page shows it. Carries no ids, no activity flag and no coach counts. */
@@ -26905,15 +28965,29 @@ export interface PublicSubscriptionPlanDto {
     nameEn?: string;
     /** German name. */
     nameDe?: string;
-    /** Current price in minor units of Currency. */
+    /** Current monthly price in minor units of Currency. */
     priceMinorUnits?: number;
     /** Second-role add-on price; null when both roles are included. */
     secondRoleAddOnPriceMinorUnits?: number | undefined;
+    /** Display-only price after the promotion; null when no promotion covers this plan. */
+    discountedPriceMinorUnits?: number | undefined;
+    /** Display-only add-on price after the promotion; null when not covered or both roles are included. */
+    discountedSecondRoleAddOnPriceMinorUnits?: number | undefined;
+    /** Annual plan price per year; null when the plan is not sold annually. */
+    annualPriceMinorUnits?: number | undefined;
+    /** Annual second-role add-on price per year; null when not sold annually, none is set or both roles are included. */
+    annualSecondRoleAddOnPriceMinorUnits?: number | undefined;
+    /** Display-only annual price after the promotion; null when not sold annually or no promotion covers this plan. */
+    annualDiscountedPriceMinorUnits?: number | undefined;
+    /** Display-only annual add-on price after the promotion; null when not covered or there is no annual add-on. */
+    annualDiscountedSecondRoleAddOnPriceMinorUnits?: number | undefined;
+    /** Whole percent the annual plan line saves against twelve monthly ones; null when there is no saving. */
+    annualSavingPercent?: number | undefined;
     /** True when the plan covers both professional roles. */
     bothRolesIncluded?: boolean;
     /** ISO 4217 currency code. */
     currency?: string;
-    /** Billing cadence. */
+    /** Billing cadence of the monthly price fields; always Monthly, the annual price has its own fields. */
     billingInterval?: BillingInterval;
     /** Active-client cap; null means unlimited. */
     maxActiveClients?: number | undefined;
@@ -26945,6 +29019,32 @@ export interface PublicSubscriptionPlanDto {
     canUsePackages?: boolean;
     /** True for the single plan with the most live coaches; no plan is flagged on a tie. */
     isMostPopular?: boolean;
+}
+
+/** The automatic promotion shown on the public pricing page. Carries no code, usage, limit or Stripe data. */
+export interface PublicPromotionDto {
+    /** Promotion name. */
+    name?: string;
+    /** English promotion name; null when none was entered. */
+    nameEn?: string | undefined;
+    /** German promotion name; null when none was entered. */
+    nameDe?: string | undefined;
+    /** Percentage or fixed amount. */
+    kind?: PromotionKind;
+    /** Percent (1 to 100), or the amount in the smallest unit of Currency. */
+    value?: number;
+    /** ISO 4217 currency of a fixed amount; null for a percentage. */
+    currency?: string | undefined;
+    /** How long the discount lasts once claimed. */
+    duration?: PromotionDuration;
+    /** Months the discount lasts; set only for Months. */
+    durationMonths?: number | undefined;
+    /** Which billing cadences the promotion discounts; the discounted fields of a cadence it does not cover stay null. */
+    billingPeriod?: PromotionBillingPeriod;
+    /** Last moment the offer can be claimed; null for no end. */
+    claimUntil?: string | undefined;
+    /** Codes of the plans the promotion covers. */
+    planCodes?: string[];
 }
 
 /** Request model for deactivating a subscription tier. */
@@ -26994,13 +29094,17 @@ and SecondRoleAddOnPriceMinorUnits must be set. */
     canUsePackages?: boolean;
     /** Maximum number of active clients allowed under this plan. Null means unlimited. */
     maxActiveClients?: number | undefined;
-    /** Plan price, expressed in the smallest unit of Currency. */
+    /** Monthly plan price, expressed in the smallest unit of Currency. */
     priceMinorUnits?: number;
     /** ISO 4217 currency code for PriceMinorUnits. */
     currency?: string;
-    /** Billing cadence for this plan. */
-    billingInterval?: BillingInterval;
-    /** External payment-provider price identifier, once billing integration ships. */
+    /** Annual plan price per year. Omit when the plan is not sold annually; never set on the Free plan. */
+    annualPriceMinorUnits?: number | undefined;
+    /** Annual price of the second-role add-on per year. Required with an annual price when the plan has a paid add-on;
+not allowed when both roles are included or there is no annual price. */
+    annualSecondRoleAddOnPriceMinorUnits?: number | undefined;
+    /** Ignored. The backend creates the Stripe price itself when a price row opens; the field stays only so existing
+clients keep working. The response returns the price id the backend stored. */
     externalPriceId?: string | undefined;
     /** Whether the plan is currently offered/selectable. Defaults to true on create. */
     isActive?: boolean;
@@ -27681,6 +29785,10 @@ export interface RecipeFoodDto {
     note?: string | undefined;
 }
 
+/** Request for restoring a hidden recipe to the caller's library. */
+export interface UnhideRecipeRequest {
+}
+
 /** Paginated response for recipe search results. */
 export interface SearchRecipesResponse {
     /** List of matching recipes. */
@@ -27719,6 +29827,9 @@ export interface RecipeSummaryDto {
     version?: number;
     /** True when the recipe belongs to the platform catalog rather than a coach. */
     isSystem?: boolean;
+    /** True when the authenticated caller has hidden this recipe from their library. Only the caller's
+own flag is exposed, never who else hid it. */
+    isHiddenByCurrentUser?: boolean;
     /** Number of servings the recipe yields. */
     servings?: number;
     /** Meal types the recipe is suited for. */
@@ -27780,6 +29891,10 @@ export interface PromoteRecipeGalleryImageRequest {
     imageUrl: string;
 }
 
+/** Request for hiding a recipe from the caller's library. */
+export interface HideRecipeRequest {
+}
+
 /** Request model for retrieving a single recipe. */
 export interface GetRecipeRequest {
 }
@@ -27821,6 +29936,10 @@ title at most 120 and description at most 2000 characters, optional minutes 1 to
     visibility?: RecipeVisibility;
 }
 
+/** Request for copying a recipe into the caller's own library. */
+export interface CopyRecipeRequest {
+}
+
 /** Request model for confirming the uploaded recipe image blob URL. */
 export interface ConfirmRecipeImageRequest {
     /** The permanent blob URL returned by POST /recipes/{id}/image/upload-url. */
@@ -27836,7 +29955,9 @@ export interface AnswerDto {
     valueText?: string | undefined;
     valueNumber?: number | undefined;
     valueJson?: string | undefined;
-    fileUrl?: string | undefined;
+    /** For file_upload questions: the uploadId issued by the file-upload-url endpoint, or the one
+already stored on this answer (a no-op resend). Never a URL. */
+    fileUploadId?: string | undefined;
 }
 
 export interface GetTrainerQuestionnaireResponse {
@@ -28025,7 +30146,11 @@ export interface ClientAnswerDto {
     valueText?: string | undefined;
     valueNumber?: number | undefined;
     valueJson?: string | undefined;
+    /** Short-lived signed URL of the stored file; empty when it cannot be signed. */
     fileUrl?: string | undefined;
+    /** The uploadId behind FileUrl, or null for a foreign or legacy value. Resend it as
+fileUploadId to keep the file unchanged. */
+    fileUploadId?: string | undefined;
 }
 
 /** Query parameters of GET /client/questionnaire. */
@@ -28161,10 +30286,30 @@ export interface ClientFormAnswer {
     valueJson?: string | undefined;
     /** File URL, for upload questions. */
     fileUrl?: string | undefined;
+    /** Configured max of a scale question; null for other types or when the config has none. */
+    scaleMax?: number | undefined;
     /** Label of the section the question sits under, or null before the first section. */
     sectionLabel?: string | undefined;
     /** 0-based order of the section, or null when SectionLabel is null. */
     sectionOrder?: number | undefined;
+}
+
+/** Pre-signed upload URL and the id to reference from the answer save. */
+export interface GenerateAnswerFileUploadUrlResponse {
+    /** The pre-signed URL the client should PUT the file bytes to. */
+    uploadUrl?: string;
+    /** The identifier to send as fileUploadId in PUT /client/questionnaire/response/{id} once the upload completes. */
+    uploadId?: string;
+}
+
+/** Request for a pre-signed upload URL for one file_upload answer. */
+export interface GenerateAnswerFileUploadUrlRequest {
+    /** Public id of the file_upload question being answered. */
+    questionPublicId: string;
+    /** Declared content type: image/jpeg, image/png or image/webp. */
+    contentType?: string;
+    /** Declared size in bytes, 1 to 5 MiB. */
+    sizeBytes?: number;
 }
 
 export interface DeleteQuestionnaireRequest {
@@ -29562,6 +31707,8 @@ export interface SendMessageResponse {
     imageUrl?: string | undefined;
     imageWidth?: number | undefined;
     imageHeight?: number | undefined;
+    /** Echo of the request's ClientMessageId; null when the send carried none. */
+    clientMessageId?: string | undefined;
 }
 
 export interface SendMessageRequest {
@@ -29573,6 +31720,10 @@ when absent, the message is text-only. */
     imageWidth?: number | undefined;
     /** Client-reported layout hint. Never trusted for security; ignored unless ImageUploadId is set. */
     imageHeight?: number | undefined;
+    /** Optional client-generated id that makes a retry safe. Reuse it only while the payload is
+unchanged; a repeat from the same sender in the same conversation within 24 hours returns
+the original message instead of creating another. */
+    clientMessageId?: string | undefined;
 }
 
 export interface MarkConversationReadRequest {
@@ -29900,6 +32051,9 @@ Lets clients distinguish the three Library badge states — System, Mine
 (IsOwnedByCurrentUser), and Shared (another coach's Public food, neither of
 the above) — without exposing the owner's identifier itself. */
     isSystem?: boolean;
+    /** True when the authenticated caller has hidden this food from their library. Only the caller's
+own flag is exposed, never who else hid it. */
+    isHiddenByCurrentUser?: boolean;
 }
 
 /** Nutrient values DTO for API responses. */
@@ -29980,6 +32134,10 @@ Only the food's creator can change this value. */
     commonServings: ServingSizeDto[];
 }
 
+/** Request for restoring a hidden food to the caller's library. */
+export interface UnhideFoodRequest {
+}
+
 /** Response model for food search results. */
 export interface SearchFoodsResponse {
     /** List of matching food items. */
@@ -30028,6 +32186,10 @@ export interface RemoveFoodGalleryImageRequest {
 export interface PromoteFoodGalleryImageRequest {
     /** The exact stored gallery URL to promote. */
     imageUrl: string;
+}
+
+/** Request for hiding a food from the caller's library. */
+export interface HideFoodRequest {
 }
 
 /** The food tags owned by the calling nutritionist. */
@@ -30103,6 +32265,10 @@ a coach-authored ingredient starts out visible only to its creator. */
     dietaryPreferences?: DietaryPreference[];
     /** Common serving sizes. The first entry is the default serving and is required. */
     commonServings: ServingSizeDto[];
+}
+
+/** Request for copying a food into the caller's own library. */
+export interface CopyFoodRequest {
 }
 
 /** Request model for confirming the uploaded food image blob URL. */
@@ -30507,6 +32673,11 @@ export enum KeepClientAfterLapse {
 export interface GetCoachPlansResponse {
     /** Active plans, cheapest first. */
     plans?: CoachPlanDto[];
+    /** VAT handling: with None the listed prices carry no VAT line. */
+    taxMode?: BillingTaxMode;
+    /** The automatic promotion that applies to the caller, or null. One wins per coach; a plan it does not cover shows
+full price (no discounted price on that plan). */
+    promotion?: CoachPromotionDto | undefined;
 }
 
 /** One plan a coach can choose: names, current price, client cap and feature flags. */
@@ -30519,13 +32690,29 @@ export interface CoachPlanDto {
     nameEn?: string;
     /** German plan name. */
     nameDe?: string;
-    /** Current price per billing interval, in the smallest unit of Currency. */
+    /** Current monthly price, in the smallest unit of Currency. */
     priceMinorUnits?: number;
     /** Current price of the second-role add-on in the same unit; null when both roles are included. */
     secondRoleAddOnPriceMinorUnits?: number | undefined;
     /** ISO 4217 currency code. */
     currency?: string;
-    /** How often the plan is billed. */
+    /** Display-only plan price after the automatic promotion; null when no promotion covers this plan. Stripe computes
+the real charge. */
+    discountedPriceMinorUnits?: number | undefined;
+    /** Display-only second-role add-on price after the promotion; null when no promotion covers this plan or the plan has
+no add-on. A promotion that covers a plan always discounts its add-on line too. */
+    discountedSecondRoleAddOnPriceMinorUnits?: number | undefined;
+    /** Annual plan price per year; null when the plan is not sold annually. */
+    annualPriceMinorUnits?: number | undefined;
+    /** Annual second-role add-on price per year; null when not sold annually or the plan has no annual add-on. */
+    annualSecondRoleAddOnPriceMinorUnits?: number | undefined;
+    /** Display-only annual plan price after the promotion; null when not sold annually or no promotion covers this plan. */
+    annualDiscountedPriceMinorUnits?: number | undefined;
+    /** Display-only annual add-on price after the promotion; null when not covered or there is no annual add-on. */
+    annualDiscountedSecondRoleAddOnPriceMinorUnits?: number | undefined;
+    /** Whole percent the annual plan line saves against twelve monthly ones; null when there is no saving. */
+    annualSavingPercent?: number | undefined;
+    /** Billing cadence of the monthly price fields; always Monthly, the annual price has its own fields. */
     billingInterval?: BillingInterval;
     /** Active-client cap; null means unlimited. */
     maxActiveClients?: number | undefined;
@@ -30557,6 +32744,32 @@ export interface CoachPlanDto {
     canUseAutomations?: boolean;
     /** Coach packages and discounts. */
     canUsePackages?: boolean;
+}
+
+/** The automatic promotion shown on the plan picker. */
+export interface CoachPromotionDto {
+    /** Promotion name. */
+    name?: string;
+    /** English promotion name; null when none was entered. */
+    nameEn?: string | undefined;
+    /** German promotion name; null when none was entered. */
+    nameDe?: string | undefined;
+    /** Percentage or fixed amount. */
+    kind?: PromotionKind;
+    /** Percent (1 to 100), or the amount in the smallest unit of Currency. */
+    value?: number;
+    /** ISO 4217 currency of a fixed amount; null for a percentage. */
+    currency?: string | undefined;
+    /** How long the discount lasts once claimed. */
+    duration?: PromotionDuration;
+    /** Months the discount lasts; set only for Months. */
+    durationMonths?: number | undefined;
+    /** Which billing cadences the promotion discounts; the discounted fields of a cadence it does not cover stay null. */
+    billingPeriod?: PromotionBillingPeriod;
+    /** Last moment the offer can be claimed; null for no end. */
+    claimUntil?: string | undefined;
+    /** Codes of the plans the promotion covers. */
+    planCodes?: string[];
 }
 
 /** The coach's choice of the Free plan after an admin-given plan ended. */
@@ -33217,14 +35430,176 @@ export interface CollaborationCheckInDto {
     dayOfWeek?: DayOfWeek;
 }
 
-export enum DayOfWeek {
-    Sunday = "Sunday",
-    Monday = "Monday",
-    Tuesday = "Tuesday",
-    Wednesday = "Wednesday",
-    Thursday = "Thursday",
-    Friday = "Friday",
-    Saturday = "Saturday",
+/** The outcome of scheduling a switch to the Free plan. */
+export interface ScheduleSwitchToFreeResponse {
+    /** When the paid plan ends and Free starts (the period end); null when unknown. */
+    endsAt?: string | undefined;
+}
+
+/** What adding the second-role add-on would cost: the new bill and today's prorated charge. */
+export interface PreviewSecondRoleAddOnResponse {
+    /** The plan line of the bill, per billing interval, in the smallest currency unit. */
+    planAmountMinorUnits?: number;
+    /** The add-on line of the bill, per billing interval. */
+    addOnAmountMinorUnits?: number;
+    /** The recurring total after the add-on: plan plus add-on, before any tax. */
+    newTotalMinorUnits?: number;
+    /** The plan line after the coach's promotion; null when no promotion applies. */
+    discountedPlanAmountMinorUnits?: number | undefined;
+    /** The add-on line after the coach's promotion; null when no promotion applies. */
+    discountedAddOnAmountMinorUnits?: number | undefined;
+    /** The recurring total after the add-on and the promotion; null when no promotion applies. */
+    discountedNewTotalMinorUnits?: number | undefined;
+    /** When the promotion ends; null when none applies or it lasts forever. */
+    promotionEndsAt?: string | undefined;
+    /** How often the bill recurs. */
+    billingInterval?: BillingInterval;
+    /** ISO 4217 currency of every amount. */
+    currency?: string;
+    /** The prorated amount due today including tax. */
+    todayAmountMinorUnits?: number;
+    /** The tax part of TodayAmountMinorUnits; zero when no VAT is charged. */
+    todayTaxMinorUnits?: number;
+    /** When the current billing period ends and the new total starts to recur; null when unknown. */
+    periodEndsAt?: string | undefined;
+    /** VAT handling: with None there is no VAT line. */
+    taxMode?: BillingTaxMode;
+}
+
+/** What moving to another paid plan would do: when it starts, what is charged today and what the regular bill becomes. */
+export interface PreviewPlanChangeResponse {
+    /** Code of the plan the coach asked about. */
+    planCode?: string;
+    /** Whether the change would apply now (upgrade) or at the next renewal (downgrade). */
+    timing?: PlanChangeTiming;
+    /** How often the target plan bills. */
+    billingInterval?: BillingInterval;
+    /** How often the caller's current subscription bills. */
+    currentBillingInterval?: BillingInterval;
+    /** ISO 4217 currency of every amount. */
+    currency?: string;
+    /** The prorated amount charged now including tax; zero when the change is scheduled for renewal. */
+    todayAmountMinorUnits?: number;
+    /** The tax part of TodayAmountMinorUnits; zero when no VAT is charged. */
+    todayTaxMinorUnits?: number;
+    /** The regular bill per billing interval from NextChargeAt on: the target plan, plus the second-role
+add-on when the coach would pay it. List price before tax and before any promotion. */
+    nextAmountMinorUnits?: number;
+    /** When the current billing period ends and the regular bill starts; null when unknown. */
+    nextChargeAt?: string | undefined;
+    /** True when the upgrade also drops the switch to Free that is scheduled for the period end. */
+    cancelsScheduledSwitchToFree?: boolean;
+    /** VAT handling: with None there is no VAT line. */
+    taxMode?: BillingTaxMode;
+}
+
+/** When a coach's plan change takes effect. */
+export enum PlanChangeTiming {
+    Now = "Now",
+    AtNextRenewal = "AtNextRenewal",
+    AwaitingPayment = "AwaitingPayment",
+}
+
+/** Request for previewing a move of the caller's live paid subscription to another paid plan. */
+export interface PreviewPlanChangeRequest {
+    /** Code of the paid plan to move to. Never the Free plan. */
+    planCode: string;
+    /** How often the target plan bills. Monthly when omitted, so clients that predate annual billing keep working. */
+    billingInterval?: BillingInterval;
+}
+
+/** The Stripe Customer Portal page to send the coach to. */
+export interface CreatePortalSessionResponse {
+    /** URL of the portal session. */
+    url?: string;
+}
+
+/** The hosted Stripe Checkout page to send the coach to. */
+export interface CreateCheckoutSessionResponse {
+    /** URL of the Checkout session. */
+    url?: string;
+}
+
+/** Request for starting a Stripe Checkout for the caller's own subscription. */
+export interface CreateCheckoutSessionRequest {
+    /** Code of the paid plan to buy. Never the Free plan. */
+    planCode: string;
+    /** How often the plan bills. Monthly when omitted, so clients that predate annual billing keep working. */
+    billingInterval?: BillingInterval;
+    /** Ignored: the server bills the second-role add-on from the coach's active roles. Kept so existing clients still bind. */
+    includeSecondRoleAddOn?: boolean;
+    /** Where the coach started, so the return URL lands on the right page. Never a URL. */
+    flow?: CheckoutFlow;
+    /** Optional promotion code typed in our app. It is checked against our promotion before anything is sent to Stripe and
+replaces the automatic promotion. Never logged or echoed back. */
+    code?: string | undefined;
+}
+
+/** Where in the web app a coach started a checkout, so the return URL lands on the right page. */
+export enum CheckoutFlow {
+    Settings = "Settings",
+    SignUp = "SignUp",
+}
+
+/** The outcome of paying the second-role add-on. */
+export interface ConfirmSecondRoleAddOnResponse {
+    /** True once the add-on is paid; the client then adds the role through POST /users/me/roles. */
+    paysSecondRoleAddOn?: boolean;
+    /** Stripe's hosted payment page when the card needs authentication: the add-on is not paid yet, and the role can be
+added once the payment goes through. Null otherwise. */
+    paymentUrl?: string | undefined;
+}
+
+/** Request for paying the second-role add-on now. */
+export interface ConfirmSecondRoleAddOnRequest {
+    /** One id per confirm attempt, made by the client when the dialog opens. Repeating a request with the same id never
+charges twice; after a declined card the client sends a new id. */
+    attemptId: string;
+}
+
+/** The outcome of a plan change request. */
+export interface ChangePlanResponse {
+    /** Code of the plan the coach asked for. */
+    planCode?: string;
+    /** Whether the change applied now (upgrade) or is scheduled for the next renewal (downgrade). */
+    timing?: PlanChangeTiming;
+    /** When the new plan starts: now for an upgrade, the period end for a scheduled change (null when unknown). */
+    effectiveAt?: string | undefined;
+    /** Stripe's hosted payment page; set only when Timing is AwaitingPayment, null otherwise. */
+    paymentUrl?: string | undefined;
+}
+
+/** Request for moving the caller's live paid subscription to another paid plan. */
+export interface ChangePlanRequest {
+    /** Code of the paid plan to move to. Never the Free plan. */
+    planCode: string;
+    /** How often the target plan bills. Monthly when omitted, so clients that predate annual billing keep working. */
+    billingInterval?: BillingInterval;
+    /** Client-generated id of this attempt. It keys the charge, so a double click does not bill twice; the client sends a
+fresh one after a declined card. */
+    attemptId: string;
+}
+
+/** The plan the subscription renews on after the scheduled change was cancelled. */
+export interface CancelScheduledPlanChangeResponse {
+    /** What was cancelled. */
+    kind?: ScheduledPlanChangeKind;
+    /** Code of the plan the subscription stays on. */
+    planCode?: string;
+    /** When the subscription renews next, if known. */
+    renewsAt?: string | undefined;
+}
+
+/** What a coach's scheduled plan change was before it was cancelled. */
+export enum ScheduledPlanChangeKind {
+    Downgrade = "Downgrade",
+    SwitchToFree = "SwitchToFree",
+}
+
+/** Request for applying a promotion code to the caller's own live subscription. */
+export interface ApplyPromotionCodeRequest {
+    /** The code as the coach typed it. Letters, digits, hyphen and underscore only. */
+    code: string;
 }
 
 /** A coach's automation rule as returned by the management endpoints. */
@@ -33431,6 +35806,9 @@ export interface PauseClientAutomationRequest {
 
 /** Request for customising a global rule for one client; the body is the customised message, trigger and options. */
 export interface OverrideClientAutomationRequest extends AutomationTriggerBody {
+    /** Public id of the check-in form this client gets instead of the rule's own; null keeps (or returns to) the
+rule's form. Only valid on a check-in rule. */
+    checkInQuestionnaireId?: string | undefined;
 }
 
 /** A client's effective automation rules with a 30-day summary of what was sent. */
@@ -33455,6 +35833,10 @@ export interface ClientAutomationItem {
     actionType?: AutomationActionType | undefined;
     /** Public id of the questionnaire a SendForm rule sends. */
     questionnaireId?: string | undefined;
+    /** Public id of the check-in form this client gets instead of the rule's own; null when they follow the rule's form. */
+    checkInQuestionnaireId?: string | undefined;
+    /** Title of the client's own check-in form; null when they follow the rule's form. */
+    checkInQuestionnaireName?: string | undefined;
     /** Effective message. */
     message?: string | undefined;
     /** Effective trigger kind; null for a linked check-in row. */
@@ -33686,6 +36068,18 @@ must be absent for a coach sign-up. Ignored when the Apple identity is already l
     healthDataConsent?: boolean | undefined;
 }
 
+/** The email an invitation token was issued for. */
+export interface ResolveInviteTokenResponse {
+    /** Invited email address. */
+    email?: string;
+}
+
+/** Request for resolving an invitation token to the invited email. */
+export interface ResolveInviteTokenRequest {
+    /** The invitation token from the invite link. */
+    token: string;
+}
+
 /** Request model for completing a password reset using a token. */
 export interface ResetPasswordRequest {
     /** The password reset token received via email. */
@@ -33733,6 +36127,8 @@ export interface RegisterRequest {
     /** Explicit consent for processing health data under GDPR Art. 9.
 Must be true for the Client role; must be null for Trainer and Nutritionist roles. */
     healthDataConsent?: boolean | undefined;
+    /** Optional invitation token from an invite link. When valid, the email and Client role are bound to the invite. */
+    inviteToken?: string | undefined;
 }
 
 /** Response model returned after successful token refresh. */
@@ -33815,6 +36211,364 @@ export interface AcceptInvitationResponse {
 export interface AcceptInvitationRequest {
     /** The one-time invitation token received from the trainer. */
     token: string;
+}
+
+/** Totals for the admin Reports page. Holds counts and amounts only, never a per-client or per-coach row. Money is in minor units per currency, with no VAT, Stripe fees, refunds or payouts. Every previous is the raw baseline value (null when there is no baseline); the client computes percentages. */
+export interface GetAdminReportsResponse {
+    /** The window the figures were read for. */
+    period?: AdminReportPeriod;
+    /** UTC day of the latest daily snapshot, null when none exists yet. */
+    snapshotDay?: string | undefined;
+    /** UTC day of the snapshot the baseline comes from: the one on the period start day, else the earliest one inside
+the period. Today's own snapshot is never the baseline. Null when the period holds no snapshot earlier than today. */
+    comparedFrom?: string | undefined;
+    /** Revenue, collections and churn. */
+    money?: AdminReportMoneyDto;
+    /** Sign-up funnel of the coaches who signed up in the period. */
+    funnel?: AdminReportFunnelDto;
+    /** Plan changes in the period. */
+    planChanges?: AdminReportPlanChangesDto;
+    /** One point per snapshot day inside the period, oldest first. Days without a snapshot are omitted. */
+    mrrSeries?: AdminReportMrrPointDto[];
+    /** Usage figures from the latest snapshot, null when no snapshot exists. */
+    usage?: AdminReportUsageDto | undefined;
+}
+
+/** The look-back window of the admin Reports page. */
+export enum AdminReportPeriod {
+    Days30 = "Days30",
+    Days90 = "Days90",
+    Months12 = "Months12",
+}
+
+/** Revenue, collections and churn. */
+export interface AdminReportMoneyDto {
+    /** Monthly revenue at full price per currency. Previous comes from the baseline snapshot. */
+    monthlyRevenueFull?: AdminReportCurrencyValueDto[];
+    /** Monthly revenue after promotions per currency. Previous comes from the baseline snapshot. */
+    monthlyRevenueAfterPromotions?: AdminReportCurrencyValueDto[];
+    /** Revenue after promotions divided by the coaches billed in that currency. Previous divides the baseline snapshot's
+revenue by its total paying coach count, so it is approximate when there is more than one currency. */
+    averagePerPayingCoach?: AdminReportAverageDto[];
+    /** Invoices paid since the start of the current UTC month. Previous is the previous calendar month up to the same
+moment of the month. */
+    collectedThisMonth?: AdminReportCurrencyValueDto[];
+    /** Subscriptions cancelled in the period and the monthly revenue (after promotions) they took away. Previous is the
+previous window of the same length. */
+    lostToCancellations?: AdminReportLostDto;
+    /** Distinct coaches who cancelled in the period divided by the baseline snapshot's paying coach count, in percent.
+Null when there is no baseline or it had no paying coach. */
+    churnPercent?: number | undefined;
+    /** Churn of the previous window of the same length: distinct coaches who cancelled in it divided by the paying coach
+count of its baseline snapshot (the earliest one inside that window), in percent. Null when that window holds no
+snapshot or its baseline had no paying coach. */
+    churnPercentPrevious?: number | undefined;
+    /** Paying coaches now, including failed and cancelling ones. Previous is the paying coach count of the baseline
+snapshot, null when there is no baseline. */
+    payingCoaches?: AdminReportCountDto;
+    /** Paying coaches and plan-line revenue after promotions per plan. */
+    plans?: AdminReportPlanRevenueDto[];
+    /** Second-role add-ons per currency. */
+    addOns?: AdminReportAddOnDto[];
+}
+
+/** An amount in one currency with its baseline. */
+export interface AdminReportCurrencyValueDto {
+    /** ISO 4217 currency, upper case. */
+    currency?: string;
+    /** Current amount in minor units. */
+    value?: number;
+    /** Baseline amount in minor units, null when there is no baseline. */
+    previous?: number | undefined;
+}
+
+/** Average revenue per paying coach in one currency. */
+export interface AdminReportAverageDto {
+    /** ISO 4217 currency, upper case. */
+    currency?: string;
+    /** Current average in minor units. */
+    value?: number;
+    /** Baseline average in minor units, null when there is no baseline. */
+    previous?: number | undefined;
+    /** Coaches billed in this currency now. */
+    coachesBilled?: number;
+}
+
+/** Subscriptions lost to cancellations. */
+export interface AdminReportLostDto {
+    /** Cancellation events in the window. A coach who cancels twice counts twice. */
+    count?: AdminReportCountDto;
+    /** Monthly revenue after promotions the cancellations took away, per currency, as positive amounts. */
+    amounts?: AdminReportCurrencyValueDto[];
+}
+
+/** A count with its baseline. */
+export interface AdminReportCountDto {
+    /** Current count. */
+    value?: number;
+    /** Baseline count, null when there is no baseline. */
+    previous?: number | undefined;
+}
+
+/** One plan's paying coaches and revenue. */
+export interface AdminReportPlanRevenueDto {
+    /** Plan code. */
+    planCode?: string;
+    /** Czech plan name. */
+    nameCs?: string;
+    /** English plan name. */
+    nameEn?: string;
+    /** German plan name. */
+    nameDe?: string;
+    /** Paying coaches on the plan. */
+    payingCoaches?: number;
+    /** Monthly plan-line revenue after promotions per currency, add-ons excluded. */
+    revenue?: AdminReportCurrencyAmountDto[];
+}
+
+/** An amount in one currency. */
+export interface AdminReportCurrencyAmountDto {
+    /** ISO 4217 currency, upper case. */
+    currency?: string;
+    /** Amount in minor units. */
+    amountMinorUnits?: number;
+}
+
+/** Second-role add-ons in one currency. */
+export interface AdminReportAddOnDto {
+    /** ISO 4217 currency, upper case. */
+    currency?: string;
+    /** Billed coaches who pay the add-on. */
+    count?: number;
+    /** Monthly add-on revenue after promotions in minor units. */
+    revenueMinorUnits?: number;
+}
+
+/** The sign-up funnel of the coaches who signed up in the period. Deleted coaches stay in every step: their events keep an anonymous per-coach key instead of the coach link. */
+export interface AdminReportFunnelDto {
+    /** Sign-ups in the period. */
+    signedUp?: number;
+    /** Sign-ups in the previous window of the same length. Always a count, 0 when there are none, because it comes from
+the event history and not a snapshot; 0 before the events were recorded means no data. */
+    signedUpPrevious?: number | undefined;
+    /** Distinct sign-ups who verified their email, on or after sign-up. */
+    emailVerified?: number;
+    /** Distinct sign-ups who chose a plan, on or after sign-up. */
+    chosePlan?: number;
+    /** Distinct sign-ups whose paid plan went live, on or after sign-up. */
+    startedPaidPlan?: number;
+}
+
+/** Plan changes in the period. */
+export interface AdminReportPlanChangesDto {
+    /** Upgrades. */
+    upgraded?: AdminReportPlanChangeDto;
+    /** Downgrades. */
+    downgraded?: AdminReportPlanChangeDto;
+    /** Cancellations. */
+    cancelled?: AdminReportPlanChangeDto;
+    /** Distinct coaches with a failed payment. */
+    paymentFailedCoaches?: number;
+    /** Promotion codes applied. A count only; the names are not returned. */
+    promotionCodesApplied?: number;
+}
+
+/** One kind of plan change. */
+export interface AdminReportPlanChangeDto {
+    /** Events in the period. */
+    count?: number;
+    /** Summed change of monthly revenue after promotions per currency (negative for a cancellation). */
+    revenueEffect?: AdminReportCurrencyAmountDto[];
+}
+
+/** Monthly recurring revenue of one snapshot day. */
+export interface AdminReportMrrPointDto {
+    /** The UTC day. */
+    day?: string;
+    /** Monthly revenue at full price per currency. */
+    full?: AdminReportCurrencyAmountDto[];
+    /** Monthly revenue after promotions per currency. */
+    afterPromotions?: AdminReportCurrencyAmountDto[];
+}
+
+/** Usage figures from the latest daily snapshot. */
+export interface AdminReportUsageDto {
+    /** All coaches in the latest snapshot, the denominator for active coaches. */
+    totalCoaches?: number;
+    /** Coaches with a refresh token issued in the last 30 days. */
+    activeCoachesLast30Days?: number;
+    /** Clients with a refresh token issued in the last 7 days. Previous comes from the baseline snapshot. */
+    activeClientsLast7Days?: AdminReportCountDto;
+    /** Plan weeks published in the last 7 days. */
+    planWeeksPublishedLast7Days?: number;
+    /** Free coaches at the Free plan's client limit. */
+    freeCoachesAtClientCap?: number;
+    /** Median live clients per coach over all coach profiles, including those with none. */
+    medianClientsPerCoach?: number;
+}
+
+/** Query for the admin Reports page. */
+export interface GetAdminReportsRequest {
+}
+
+/** The promotions of one admin list tab. */
+export interface ListPromotionsResponse {
+    /** Promotions matching the tab, newest claim window first. */
+    items?: PromotionDto[];
+}
+
+/** One promotion as the admin list and the create response show it. */
+export interface PromotionDto {
+    /** Public id of the promotion. */
+    promotionId?: string;
+    /** Admin-facing name. */
+    name?: string;
+    /** English name; null when none was entered. */
+    nameEn?: string | undefined;
+    /** German name; null when none was entered. */
+    nameDe?: string | undefined;
+    /** Percentage or fixed amount. */
+    kind?: PromotionKind;
+    /** Percent (1 to 100), or the amount in the smallest unit of Currency. */
+    value?: number;
+    /** ISO 4217 currency of a fixed amount; null for a percentage. */
+    currency?: string | undefined;
+    /** Automatic at checkout, or claimed with a code. */
+    mode?: PromotionMode;
+    /** The code; null in automatic mode. */
+    code?: string | undefined;
+    /** How long the discount lasts for a coach. */
+    duration?: PromotionDuration;
+    /** Months the discount lasts; set only for Months. */
+    durationMonths?: number | undefined;
+    /** When the promotion becomes claimable. */
+    claimFrom?: string;
+    /** When the promotion stops being claimable; null for no end. */
+    claimUntil?: string | undefined;
+    /** Which billing cadences the promotion discounts. */
+    billingPeriod?: PromotionBillingPeriod;
+    /** Codes of the plans the promotion covers. */
+    planCodes?: string[];
+    /** Most coaches who may claim it; null for no limit. */
+    maxUses?: number | undefined;
+    /** How many coaches claimed it. */
+    usedCount?: number;
+    /** True when only coaches who never paid before may claim it. */
+    newCoachesOnly?: boolean;
+    /** True when a coach may claim it once. */
+    oneUsePerCoach?: boolean;
+    /** Derived status: Scheduled, Active or Ended. */
+    status?: PromotionStatus;
+    /** When the promotion was created (UTC). */
+    createdAt?: string;
+}
+
+/** How coaches get a Promotion. */
+export enum PromotionMode {
+    Automatic = "Automatic",
+    Code = "Code",
+}
+
+/** Where a Promotion stands now. Never stored; derived from the claim window and the uses. */
+export enum PromotionStatus {
+    Active = "Active",
+    Scheduled = "Scheduled",
+    Ended = "Ended",
+}
+
+/** Request for the admin Promotions list. */
+export interface ListPromotionsRequest {
+}
+
+/** The tab of the admin Promotions list. */
+export enum PromotionStatusFilter {
+    All = "All",
+    Active = "Active",
+    Scheduled = "Scheduled",
+    Ended = "Ended",
+}
+
+/** Request for ending a promotion early. */
+export interface EndPromotionRequest {
+}
+
+/** Request for creating a promotion. */
+export interface CreatePromotionRequest {
+    /** Admin-facing name, up to 200 characters. */
+    name: string;
+    /** Optional English name for coaches and visitors, up to 200 characters. */
+    nameEn?: string | undefined;
+    /** Optional German name for coaches and visitors, up to 200 characters. */
+    nameDe?: string | undefined;
+    /** Percentage or fixed amount. */
+    kind?: PromotionKind;
+    /** Percent (1 to 100), or the amount in the smallest unit of Currency. */
+    value?: number;
+    /** Currency of a fixed amount; only CZK is accepted. Ignored for a percentage. */
+    currency?: string | undefined;
+    /** Automatic at checkout, or claimed with a code. */
+    mode?: PromotionMode;
+    /** The code, letters and digits only; required in code mode and absent in automatic mode. */
+    code?: string | undefined;
+    /** How long the discount lasts for a coach. */
+    duration?: PromotionDuration;
+    /** Months the discount lasts, 2 to 36; required for Months, absent otherwise. */
+    durationMonths?: number | undefined;
+    /** When the promotion becomes claimable. */
+    claimFrom?: string;
+    /** When the promotion stops being claimable; null for no end. Must be after ClaimFrom. */
+    claimUntil?: string | undefined;
+    /** Which billing cadences the promotion discounts; both when omitted. An annual-only promotion needs every selected plan
+to have an open annual price. */
+    billingPeriod?: PromotionBillingPeriod;
+    /** Codes of the paid plans the promotion covers; at least one. */
+    planCodes: string[];
+    /** Most coaches who may claim it, at least 1; null for no limit. */
+    maxUses?: number | undefined;
+    /** True to limit it to coaches who never paid before. */
+    newCoachesOnly?: boolean;
+    /** True to let a coach claim it once. */
+    oneUsePerCoach?: boolean;
+}
+
+/** The "needs attention" block of the admin overview: failed payments, cancelling coaches, gifts about to end and promotions about to run out. */
+export interface GetAdminAttentionResponse {
+    /** Number of paying coaches whose last payment failed. */
+    paymentFailedCount?: number;
+    /** Up to three of those coaches, ordered by last name, first name and id. */
+    paymentFailedCoaches?: AdminAttentionCoachDto[];
+    /** Number of paying coaches who cancelled their renewal. */
+    cancellingCount?: number;
+    /** Earliest paid-period end among the cancelling coaches; null when there is none. */
+    cancellingEarliestPeriodEndsAt?: string | undefined;
+    /** Latest paid-period end among the cancelling coaches; null when there is none. */
+    cancellingLatestPeriodEndsAt?: string | undefined;
+    /** Number of given-free plans that end within the next 14 days (open-ended gifts excluded). */
+    givenFreeEndingSoonCount?: number;
+    /** Active promotions whose claim window closes within 14 days or whose uses are at least 90 % taken. */
+    promotionsEndingSoon?: AdminAttentionPromotionDto[];
+}
+
+/** A coach named in the attention block. */
+export interface AdminAttentionCoachDto {
+    /** The coach's user id, the same id the Coaches list uses. */
+    coachId?: string;
+    /** Display name. */
+    name?: string;
+}
+
+/** A promotion named in the attention block. */
+export interface AdminAttentionPromotionDto {
+    /** Public id of the promotion. */
+    promotionId?: string;
+    /** Admin-facing name. */
+    name?: string;
+    /** When the claim window closes; null for no end. */
+    claimUntil?: string | undefined;
+    /** How many coaches claimed it. */
+    usedCount?: number;
+    /** Use limit; null for no limit. */
+    maxUses?: number | undefined;
 }
 
 /** One page of coaches plus the stats over all coaches. */
@@ -33933,6 +36687,10 @@ export interface GiveCoachPlanFreeResponse {
     givenFreeAt?: string;
     /** When the gift ends; null means it has no end. */
     freeUntil?: string | undefined;
+    /** Amount refunded to the card in the smallest currency unit; null when nothing was refunded. */
+    refundedMinorUnits?: number | undefined;
+    /** Upper-case ISO 4217 currency of the refund; null when nothing was refunded. */
+    refundCurrency?: string | undefined;
 }
 
 /** Request for giving a coach a paid plan for free. */
@@ -33975,7 +36733,7 @@ export interface GetAdminCoachResponse {
     givenFreeUntil?: string | undefined;
     /** True when the renewal is cancelled. */
     cancelAtPeriodEnd?: boolean;
-    /** Why the last payment failed. Always null: there is no payment provider yet. */
+    /** Why the last payment failed. Always null: the failure reason is not stored. */
     failureDetail?: string | undefined;
     /** Active clients: distinct clients with a link that is not ended. */
     clientsUsed?: number;
@@ -33983,8 +36741,13 @@ export interface GetAdminCoachResponse {
     clientsMax?: number | undefined;
     /** True when an admin can end the plan now: the coach pays, or has a gift in force. */
     canEndPlanNow?: boolean;
+    /** True when the coach has a Stripe subscription that giving a plan or ending the plan cancels (Active, Trialing, PastDue
+or Incomplete), so the unused days are refunded to the card. */
+    hasCancellableSubscription?: boolean;
     /** The Free plan's client limit, to show what ending the plan leaves; null means unlimited. */
     freePlanMaxActiveClients?: number | undefined;
+    /** The coach's Stripe customer id; null when the coach has no subscription row or no Stripe customer yet. */
+    stripeCustomerId?: string | undefined;
     /** Newest first. Holds the admin and coach actions on the subscription and account, not payments. */
     history?: AdminCoachHistoryEntryDto[];
 }
@@ -34020,6 +36783,11 @@ export enum AdminCoachHistoryKind {
     RoleAdded = "RoleAdded",
     RoleRemoved = "RoleRemoved",
     PlanEnded = "PlanEnded",
+    ChoseFreePlan = "ChoseFreePlan",
+    PaidPlanStarted = "PaidPlanStarted",
+    PaidPlanUpgraded = "PaidPlanUpgraded",
+    PaidPlanDowngraded = "PaidPlanDowngraded",
+    PaidPlanEnded = "PaidPlanEnded",
 }
 
 /** Request for one coach's admin detail. */
@@ -34034,6 +36802,10 @@ export interface EndCoachPlanResponse {
     planCode?: string;
     /** True when the ended plan was a gift rather than a paid plan. */
     wasGivenFree?: boolean;
+    /** Amount refunded to the card in the smallest currency unit; null when nothing was refunded. */
+    refundedMinorUnits?: number | undefined;
+    /** Upper-case ISO 4217 currency of the refund; null when nothing was refunded. */
+    refundCurrency?: string | undefined;
 }
 
 /** Request for ending a coach's paid or given plan now. */

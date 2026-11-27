@@ -1,9 +1,12 @@
 using FastEndpoints;
 using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Entities;
+using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Extensions;
+using FormUp.Application.Domain.Interfaces;
 using FormUp.Application.Features.SubscriptionPlans.Shared;
 using FormUp.Application.Infrastructure.Data;
+using FormUp.Application.Infrastructure.Services.Billing;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -15,7 +18,12 @@ namespace FormUp.Application.Features.SubscriptionPlans.CreateSubscriptionPlan;
 /// not hardcoded (#595).
 /// </summary>
 /// <param name="db">Application database context.</param>
-internal sealed class CreateSubscriptionPlanEndpoint(IApplicationDbContext db)
+/// <param name="subscriptionService">The payment provider seam.</param>
+/// <param name="logger">Logger.</param>
+internal sealed class CreateSubscriptionPlanEndpoint(
+    IApplicationDbContext db,
+    ISubscriptionService subscriptionService,
+    ILogger<CreateSubscriptionPlanEndpoint> logger)
     : Endpoint<CreateSubscriptionPlanRequest, SubscriptionPlanDto>
 {
     /// <inheritdoc />
@@ -26,12 +34,16 @@ internal sealed class CreateSubscriptionPlanEndpoint(IApplicationDbContext db)
         Summary(s =>
         {
             s.Summary = "Create subscription plan";
-            s.Description = "Creates a new subscription tier. Code is the immutable entitlement/Stripe mapping key.";
+            s.Description = "Creates a new subscription tier. Code is the immutable entitlement/Stripe mapping key. A paid plan " +
+                            "gets its Stripe price created here, and the request's ExternalPriceId is ignored; without Stripe keys the " +
+                            "plan is saved without a Stripe price. A Stripe failure saves nothing.";
             s.Response<SubscriptionPlanDto>(StatusCodes.Status201Created, "Subscription plan created");
             s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Invalid request body");
             s.Response(StatusCodes.Status401Unauthorized, "Missing or invalid credentials");
             s.Response(StatusCodes.Status403Forbidden, "Caller is not an Admin");
             s.Response(StatusCodes.Status409Conflict, "A plan with this Code already exists");
+            s.Response<ProblemDetails>(StatusCodes.Status502BadGateway,
+                "Stripe could not create the price; nothing was saved (BILLING_PROVIDER_ERROR)");
         });
     }
 
@@ -76,20 +88,65 @@ internal sealed class CreateSubscriptionPlanEndpoint(IApplicationDbContext db)
             PriceMinorUnits = req.PriceMinorUnits,
             SecondRoleAddOnPriceMinorUnits = req.SecondRoleAddOnPriceMinorUnits,
             Currency = req.Currency,
-            BillingInterval = req.BillingInterval,
             IsActive = req.IsActive,
         };
+
+        string? externalPriceId = null;
+        string? annualExternalPriceId = null;
+
+        // Stripe first, so a failure leaves nothing saved. A zero price (the Free plan) never gets a Stripe price.
+        try
+        {
+            if (req.PriceMinorUnits > 0)
+            {
+                externalPriceId = await TryCreateStripePriceAsync(req.Code, req.PriceMinorUnits, req.Currency, BillingInterval.Monthly, ct);
+            }
+
+            if (req.AnnualPriceMinorUnits is > 0)
+            {
+                annualExternalPriceId = await TryCreateStripePriceAsync(
+                    req.Code, req.AnnualPriceMinorUnits.Value, req.Currency, BillingInterval.Annual, ct);
+            }
+        }
+        catch (BillingProviderException)
+        {
+            await this.SendProblemAsync(
+                StatusCodes.Status502BadGateway,
+                ErrorCodes.BillingProviderError,
+                "The payment provider failed; nothing was saved.",
+                ct);
+            return;
+        }
 
         plan.Prices.Add(new SubscriptionPlanPrice
         {
             SubscriptionPlan = plan,
             SubscriptionPlanId = 0,
+            BillingInterval = BillingInterval.Monthly,
             PriceMinorUnits = req.PriceMinorUnits,
             SecondRoleAddOnPriceMinorUnits = req.SecondRoleAddOnPriceMinorUnits,
             Currency = req.Currency,
-            ExternalPriceId = req.ExternalPriceId,
+            ExternalPriceId = externalPriceId,
             ValidFrom = DateTime.UtcNow,
         });
+
+        SubscriptionPlanPrice? annualRow = null;
+
+        if (req.AnnualPriceMinorUnits is not null)
+        {
+            annualRow = new SubscriptionPlanPrice
+            {
+                SubscriptionPlan = plan,
+                SubscriptionPlanId = 0,
+                BillingInterval = BillingInterval.Annual,
+                PriceMinorUnits = req.AnnualPriceMinorUnits.Value,
+                SecondRoleAddOnPriceMinorUnits = req.AnnualSecondRoleAddOnPriceMinorUnits,
+                Currency = req.Currency,
+                ExternalPriceId = annualExternalPriceId,
+                ValidFrom = DateTime.UtcNow,
+            };
+            plan.Prices.Add(annualRow);
+        }
 
         db.SubscriptionPlans.Add(plan);
 
@@ -111,7 +168,26 @@ internal sealed class CreateSubscriptionPlanEndpoint(IApplicationDbContext db)
             return;
         }
 
-        await Send.ResponseAsync(SubscriptionPlanDto.FromEntity(plan, req.ExternalPriceId, 0), StatusCodes.Status201Created, ct);
+        var annualSnapshot = annualRow is null
+            ? null
+            : new AnnualPriceSnapshot(annualRow.PriceMinorUnits, annualRow.SecondRoleAddOnPriceMinorUnits, annualRow.ExternalPriceId);
+
+        await Send.ResponseAsync(
+            SubscriptionPlanDto.FromEntity(plan, externalPriceId, 0, annualSnapshot), StatusCodes.Status201Created, ct);
+    }
+
+    /// <summary>Creates a Stripe price; returns null when Stripe is not configured. Throws <see cref="BillingProviderException"/> on failure.</summary>
+    private async Task<string?> TryCreateStripePriceAsync(
+        string planCode, long amountMinorUnits, string currency, BillingInterval interval, CancellationToken ct)
+    {
+        if (!subscriptionService.IsConfigured)
+        {
+            logger.LogWarning("Stripe is not configured; plan {PlanCode} is saved without a Stripe price", planCode);
+
+            return null;
+        }
+
+        return await subscriptionService.CreatePriceAsync(planCode, amountMinorUnits, currency, interval, ct);
     }
 
     private static bool IsUniqueViolation(DbUpdateException ex) =>

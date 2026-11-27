@@ -79,7 +79,12 @@ public sealed class PlanChoiceWriteGateMiddleware(RequestDelegate next)
             return true;
         }
 
-        if (allowedRoles.Contains(AppRoles.Admin) && user.IsInRole(AppRoles.Admin))
+        // On an endpoint open to one coach role plus Admin, only an admin-only caller skips; an Admin who also
+        // holds the coach role is a coach call. On the dual-coach endpoints any Admin skips, as before.
+        var oneCoachRole = allowedRoles.Count(CoachRoles.Contains) == 1;
+
+        if (allowedRoles.Contains(AppRoles.Admin)
+            && (oneCoachRole ? user.IsAdminOnly() : user.IsInRole(AppRoles.Admin)))
         {
             return false;
         }

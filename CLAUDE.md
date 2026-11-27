@@ -174,11 +174,14 @@ src/
 - Auth: access token in memory, refresh token in localStorage
 - API proxy: Vite dev server proxies `/auth`, `/users`, `/trainer`, `/nutrition`,
   `/training`, `/foods`, `/exercises`, `/conversations`, `/hubs` to `https://localhost:5001`
-- Tests: Playwright end-to-end only, in `web/tests/e2e` (`npm run test:e2e`).
-  27 live specs in `trainer/`, `nutritionist/`, `coach/` and `public/`;
-  4 more quarantined under `_legacy/`. `qa-playwright/` is
-  the Docker runner for that same suite, not a second one. No unit or
-  component test runner.
+- Tests: two layers; which one proves what is in `.claude/rules/web-testing.md`.
+  - Vitest component tests (jsdom, Testing Library, msw) next to the code as
+    `src/**/*.test.tsx` (`npm run test`). The default for new tests.
+  - Playwright end-to-end in `web/tests/e2e` (`npm run test:e2e`), sharded in
+    CI by `tests/e2e/ci-shards.json`. 49 live specs in `trainer/`,
+    `nutritionist/`, `coach/` and `public/`; 4 more quarantined under
+    `_legacy/`. `qa-playwright/` is the Docker runner for that same suite,
+    not a second one.
 
 ---
 
@@ -246,7 +249,7 @@ token hygiene, no verbatim spec in subagent prompts). This repo adds only:
 - **Root cause in handoffs.** If a bug comes from a sub-agent's handoff, re-dispatch
   with the root cause named — sub-agents never proceed on a speculative fix.
 - **Verification surface per package.** Backend: `dotnet build` + the relevant
-  `dotnet test` slice. Web: `npm run build`. Mobile: `npm run typecheck`, and for
+  `dotnet test` slice. Web: `npm run build` + `npm run test`. Mobile: `npm run typecheck`, and for
   UI/animation work a simulator check or an explicit user check.
 - **Scoped backend runs need the MTP filter syntax.** Plain `dotnet test --filter`
   is silently ignored by the xunit v3 runner and runs the whole suite. Use
@@ -257,3 +260,20 @@ token hygiene, no verbatim spec in subagent prompts). This repo adds only:
 - **Plans** go to `PLAN.md` (or `PLAN-<topic>.md`) at the repo root.
 - **Fresh context before `ship-epic`**; `ship-epic` and `signalr-event` must not
   paste issue bodies into child prompts.
+
+<!-- claude-reflect: learned rules (saved from the band; edit freely) -->
+## Learned rules
+- In Form Up, a plan from Form Up and a paid plan must never overlap; they replace each other, and a Form Up plan is only an edge case for when the coach cannot get a proper plan.
+- Disable paid accounts only at subscription end; disable free-plan accounts immediately.
+- Keep pricing on its own dedicated page; never include pricing content in the entry page.
+- Keep a single stored copy of .env.test in a stable location and reuse it in new worktrees instead of recreating it.
+- Show all package features in every paywall surface (cards, dialogs, etc.) so that features added later appear everywhere.
+- Don't ask the user to test individual PRs. When all changes are in the epic branch, Claude walks the test guide in a real browser first (`.claude/docs/guide-walk.md`) and fixes what it finds; the user tests only the guide's "Needs you" list.
+- After generating the iOS project with expo prebuild, remove the push notification entitlement from ios/FormUp/FormUp.entitlements before running the app.
+- When a save is rejected, show a translated error toast and highlight the offending tile with a red outline; never reload the page.
+- Always display active clients above clients who are out of plan in client lists.
+- Assume the user is a non-VAT-registered sole trader (IČO); do not add VAT to invoices, prices or tax calculations.
+- Continue through remaining tasks without prompting the user; only notify them when the full epic is ready for review and merge.
+- When an epic implementation is finished, automatically test its features end-to-end without asking the user to test them manually.
+- Implement each epic as separate task sessions per sub-task, merging in dependency order, with test steps tracked in a shared test guide.
+<!-- end claude-reflect -->

@@ -1,6 +1,9 @@
 /**
- * #1066 — Clients list page regression smoke (tab switch, the Filter menu, legacy URLs, the
- * invite flow). Path is deliberately under trainer/ — every project in
+ * #1066 — Clients list page, the parts that need a real browser or the real backend: the invite
+ * journey, control geometry, drawer animation and the selection bar at narrow widths. Tab and Filter
+ * URL state, legacy URLs, the invite request body, the slot check, client tags and the plans popup are
+ * Vitest component tests (src/pages/ClientsPage.test.tsx, src/components/clients/*.test.tsx).
+ * Path is deliberately under trainer/ — every project in
  * playwright.config.ts matches a role subfolder via testMatch, so a spec at
  * the e2e/ root is collected by no project and silently never runs (see
  * PLAN-1066-clients-page.md §1).
@@ -10,12 +13,11 @@
  * `test` export lands on the login page and asserts against the marketing
  * page instead of the authenticated portal.
  */
-import { request as apiRequest } from '@playwright/test';
 import type { Page, Route } from '@playwright/test';
-import { trainerTest as test, coachTest, expect } from '../fixtures/auth';
+import { trainerTest as test, expect } from '../fixtures/auth';
+import { recordExit, readExit } from '../fixtures/sheet-exit';
 
 const STUB_PACKAGE_ID = 'bbbbbbbb-0000-0000-0000-000000001907';
-const STUB_FORM_ID = 'bbbbbbbb-0000-0000-0000-000000001930';
 
 /**
  * The e2e coach has payments but no packages, so the drawer's offer pieces are stubbed to hold one package and no
@@ -49,73 +51,6 @@ test.describe('clients list page', () => {
     await page.goto('/clients');
     await page.waitForLoadState('networkidle');
     await expect(page.getByRole('heading', { name: 'Clients' })).toBeVisible();
-  });
-
-  test('switching tabs updates the URL and the active tab', async ({ page }) => {
-    await expect(page.getByRole('tab', { name: /^Active/ })).toHaveAttribute('data-state', 'active');
-    const allTab = page.getByRole('tab', { name: /^All/ });
-    await allTab.click();
-    await page.waitForLoadState('networkidle');
-
-    await expect(page).toHaveURL(/tab=All/);
-    await expect(allTab).toHaveAttribute('data-state', 'active');
-
-    // Table settles into either rows or the empty state — never stuck loading.
-    await expect(page.getByText('Loading', { exact: false })).toHaveCount(0);
-  });
-
-  test('the Filter menu picks one plan, which lands in the URL and as a removable chip', async ({ page }) => {
-    // The old chip row (All / Ending soon) is gone; the filter lives in one menu.
-    await expect(page.getByRole('button', { name: /Ending soon/ })).toHaveCount(0);
-
-    await page.getByRole('button', { name: /^Filter/ }).click();
-    const allPlans = page.getByRole('menuitemradio', { name: /^All plans/ });
-    await expect(allPlans).toHaveAttribute('aria-checked', 'true');
-    await expect(page.getByRole('menuitemradio')).toHaveCount(4);
-
-    // A zero count disables the option, which the fixture may produce for "Active plans".
-    const activePlans = page.getByRole('menuitemradio', { name: /^Active plans/ });
-    test.skip(
-      (await activePlans.getAttribute('data-disabled')) !== null,
-      'No client has a current plan on this fixture, so the menu option is disabled',
-    );
-    await activePlans.click();
-    await page.waitForLoadState('networkidle');
-
-    // A single choice closes the menu.
-    await expect(page.getByRole('menuitemradio')).toHaveCount(0);
-    await expect(page).toHaveURL(/plan=Active/);
-    await expect(page.getByRole('button', { name: /^Filter/ })).toContainText('1');
-
-    // Switching tab keeps the plan choice.
-    await page.getByRole('tab', { name: /^All/ }).click();
-    await expect(page).toHaveURL(/plan=Active/);
-
-    await page.getByRole('button', { name: 'Remove filter Active plans' }).click();
-    await expect(page).not.toHaveURL(/plan=/);
-  });
-
-  test('the Filter menu and its chip are hidden on the Pending tab', async ({ page }) => {
-    await page.goto('/clients?tab=Pending&plan=Active');
-    await expect(page.getByRole('tab', { name: /^Pending/ })).toHaveAttribute('data-state', 'active');
-    await expect(page.getByRole('button', { name: /^Filter/ })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: /Remove filter/ })).toHaveCount(0);
-  });
-
-  test('legacy ?tab=Paused, ?chip=, ?endingSoon= and ?outsidePlan= URLs fall back to the default tab with no plan', async ({
-    page,
-  }) => {
-    for (const query of ['tab=Paused', 'chip=EndingSoon', 'endingSoon=1', 'outsidePlan=1', 'tab=Paused&chip=EndingSoon']) {
-      await page.goto(`/clients?${query}`);
-      await expect(page.getByRole('tab', { name: /^Active/ })).toHaveAttribute('data-state', 'active');
-      await expect(page.getByRole('button', { name: /Remove filter/ })).toHaveCount(0);
-    }
-  });
-
-  test('a valid ?tab=Archived&plan=None URL opens that tab with the plan chip', async ({ page }) => {
-    await page.goto('/clients?tab=Archived&plan=None');
-    await expect(page.getByRole('tab', { name: /^Archived/ })).toHaveAttribute('data-state', 'active');
-    await expect(page.getByRole('button', { name: 'Remove filter No plan' })).toBeVisible();
   });
 
   test('inviting a new client sends the invite and closes the drawer', async ({ page }) => {
@@ -167,80 +102,6 @@ test.describe('clients list page', () => {
     await expect(page.getByRole('heading', { name: 'Invite client', exact: true })).not.toBeVisible();
   });
 
-  test('choosing a package tile sends its id and shows what the client pays', async ({ page }) => {
-    await stubOneCoachPackage(page);
-    await page.getByRole('button', { name: 'Invite client', exact: true }).click();
-    await expect(page.getByRole('heading', { name: 'Invite client', exact: true })).toBeVisible();
-
-    const packageTile = page.getByTestId('offer-package-tiles').getByRole('radio', { name: /Monthly coaching/ });
-    await page.getByRole('textbox', { name: 'Email', exact: true }).fill(`qa.invite.pkg.${Date.now()}@formup.test`);
-    await page.getByRole('textbox', { name: 'Email', exact: true }).press('Tab');
-
-    await packageTile.click();
-    await expect(packageTile).toBeChecked();
-    await expect(page.getByTestId('offer-payable')).toBeVisible();
-
-    // Stubbed so the spec does not create a second real invite (pending invites are rate-limited).
-    let sentBody: Record<string, unknown> | undefined;
-    await page.route('**/trainer/pending-invites', async (route) => {
-      if (route.request().method() !== 'POST') {
-        await route.fallback();
-        return;
-      }
-      sentBody = route.request().postDataJSON() as Record<string, unknown>;
-      await route.fulfill({ status: 201, contentType: 'application/json', body: '{}' });
-    });
-    await page.getByRole('button', { name: 'Send invitation' }).click();
-
-    await expect(page.getByRole('heading', { name: 'Invite client', exact: true })).not.toBeVisible();
-    expect(sentBody?.packageId).toBe(STUB_PACKAGE_ID);
-  });
-
-  test('an untouched onboarding form row sends the default form and no skip flag', async ({ page }) => {
-    await stubOneCoachPackage(page);
-    await page.route(
-      (url) => url.pathname === '/trainer/questionnaires',
-      (route) =>
-        route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            questionnaires: [
-              {
-                publicId: STUB_FORM_ID,
-                title: 'Default onboarding',
-                type: 'Onboarding',
-                isActive: true,
-                isDefault: true,
-                questionCount: 4,
-                usedForClientCount: 0,
-              },
-            ],
-          }),
-        }),
-    );
-    await page.getByRole('button', { name: 'Invite client', exact: true }).click();
-    await expect(page.getByRole('heading', { name: 'Invite client', exact: true })).toBeVisible();
-    await expect(page.getByTestId('offer-form-row')).toContainText('Default onboarding');
-    await page.getByRole('textbox', { name: 'Email', exact: true }).fill(`qa.invite.form.${Date.now()}@formup.test`);
-    await page.getByRole('textbox', { name: 'Email', exact: true }).press('Tab');
-
-    let sentBody: Record<string, unknown> | undefined;
-    await page.route('**/trainer/pending-invites', async (route) => {
-      if (route.request().method() !== 'POST') {
-        await route.fallback();
-        return;
-      }
-      sentBody = route.request().postDataJSON() as Record<string, unknown>;
-      await route.fulfill({ status: 201, contentType: 'application/json', body: '{}' });
-    });
-    await page.getByRole('button', { name: 'Send invitation' }).click();
-
-    await expect(page.getByRole('heading', { name: 'Invite client', exact: true })).not.toBeVisible();
-    expect(sentBody?.questionnairePublicId).toBe(STUB_FORM_ID);
-    expect(sentBody).not.toHaveProperty('skipOnboardingForm');
-  });
-
   /**
    * Inviting a coach's email (Trainer or Nutritionist account) takes the
    * normal success path: the server no longer reveals whether an email
@@ -265,75 +126,6 @@ test.describe('clients list page', () => {
 
     await expect(page.getByText('Invitation sent.', { exact: true })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Invite client', exact: true })).not.toBeVisible();
-  });
-
-  test.describe('live slot check in the invite drawer (#1148)', () => {
-    const SLOT_CHECK = (url: URL) => url.pathname === '/trainer/pending-invites/slot-check';
-    const TAKEN_EMAIL = 'taken.client@formup.test';
-
-    async function openDrawerAndType(page: Page, email: string): Promise<void> {
-      await page.getByRole('button', { name: 'Invite client', exact: true }).click();
-      await expect(page.getByRole('heading', { name: 'Invite client', exact: true })).toBeVisible();
-      await page.getByRole('textbox', { name: 'Email', exact: true }).fill(email);
-    }
-
-    test('a taken training slot shows the label with the typed email in place of the helper', async ({ page }) => {
-      await page.route(SLOT_CHECK, (route) =>
-        route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({ nutritionTaken: false, trainingTaken: true }),
-        }),
-      );
-      await openDrawerAndType(page, TAKEN_EMAIL);
-
-      await expect(page.getByText(`User with email ${TAKEN_EMAIL} already has a coach for training.`)).toBeVisible();
-      await expect(page.getByText('Already on Form Up?')).toHaveCount(0);
-    });
-
-    test('free slots keep the helper line and show no label', async ({ page }) => {
-      const checked = page.waitForRequest((request) => SLOT_CHECK(new URL(request.url())));
-      await page.route(SLOT_CHECK, (route) =>
-        route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({ nutritionTaken: false, trainingTaken: false }),
-        }),
-      );
-      await openDrawerAndType(page, TAKEN_EMAIL);
-      await checked;
-
-      await expect(page.getByText('Already on Form Up?')).toBeVisible();
-      await expect(page.getByTestId('invite-slot-taken')).toHaveCount(0);
-    });
-
-    test('an invalid email sends no slot check', async ({ page }) => {
-      let calls = 0;
-      await page.route(SLOT_CHECK, (route) => {
-        calls += 1;
-        return route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
-      });
-      await openDrawerAndType(page, 'not-an-email');
-      await page.getByRole('textbox', { name: 'Email', exact: true }).press('Tab');
-
-      await expect(page.getByTestId('invite-slot-taken')).toHaveCount(0);
-      // The debounce is 400 ms; the poll window below outlasts it, so a premature request would be counted.
-      await expect.poll(async () => calls, { timeout: 1500, intervals: [1500] }).toBe(0);
-    });
-
-    test('a rate-limited check shows no label and keeps Send enabled', async ({ page }) => {
-      const checked = page.waitForResponse((response) => SLOT_CHECK(new URL(response.url())));
-      await page.route(SLOT_CHECK, (route) =>
-        route.fulfill({ status: 429, contentType: 'application/problem+json', body: '{}' }),
-      );
-      await openDrawerAndType(page, TAKEN_EMAIL);
-      await page.getByRole('textbox', { name: 'Email', exact: true }).press('Tab');
-      await checked;
-
-      await expect(page.getByTestId('invite-slot-taken')).toHaveCount(0);
-      await expect(page.getByText('Already on Form Up?')).toBeVisible();
-      await expect(page.getByRole('button', { name: 'Send invitation' })).toBeEnabled();
-    });
   });
 
   /**
@@ -361,8 +153,8 @@ test.describe('clients list page', () => {
     expect(searchHeight).toBeGreaterThan(35);
     expect(searchHeight).toBeLessThan(37);
 
-    // The page eyebrow repeats this copy, so scope to the sidebar nav.
-    const navSectionHeader = page.locator('nav').getByText('Client management', { exact: true });
+    // Scope to the sidebar nav; a trainer sees the Library header (Forms).
+    const navSectionHeader = page.locator('nav').getByText('Library', { exact: true });
     await expect(navSectionHeader).toBeVisible();
     const navHeaderHeight = (await navSectionHeader.boundingBox())?.height ?? 0;
     expect(navHeaderHeight).toBeGreaterThan(10);
@@ -437,282 +229,28 @@ test.describe('clients list page', () => {
     const enterContentName = await dialog.evaluate((el) => getComputedStyle(el).animationName);
     const enterOverlayName = await overlay.evaluate((el) => getComputedStyle(el).animationName);
 
+    // The exit animations last 200ms, shorter than a few sequential Playwright
+    // round trips under load: once Radix unmounts the overlay, a post-close
+    // locator read waits on a detached element until the test timeout. Record
+    // the closed state inside the page before closing instead.
+    await recordExit(dialog, 'content');
+    await recordExit(overlay, 'overlay');
+
     await dialog.getByRole('button', { name: 'Close' }).click();
 
     // B. Exit suspension — the actual regression test.
-    await expect(dialog).toHaveAttribute('data-state', 'closed');
-    await expect(dialog).toHaveCSS('animation-name', 'sheet-out-right');
-    await expect(overlay).toHaveCSS('animation-name', 'sheet-overlay-out');
-    const exitContentName = await dialog.evaluate((el) => getComputedStyle(el).animationName);
-    const exitOverlayName = await overlay.evaluate((el) => getComputedStyle(el).animationName);
-    expect(exitContentName).not.toBe(enterContentName);
-    expect(exitOverlayName).not.toBe(enterOverlayName);
+    await expect
+      .poll(() => readExit(page, 'content'))
+      .toMatchObject({ closedWhileConnected: true, closedAnimationName: 'sheet-out-right' });
+    await expect
+      .poll(() => readExit(page, 'overlay'))
+      .toMatchObject({ closedWhileConnected: true, closedAnimationName: 'sheet-overlay-out' });
+    const contentExit = await readExit(page, 'content');
+    const overlayExit = await readExit(page, 'overlay');
+    expect(contentExit?.closedAnimationName).not.toBe(enterContentName);
+    expect(overlayExit?.closedAnimationName).not.toBe(enterOverlayName);
 
     await expect(dialog).toBeHidden();
-  });
-
-  /**
-   * #1091 — the plans-column popup had its content inverted relative to the
-   * wireframe: the plan name rendered bold on line 1 with the type conveyed
-   * only by an icon, and never as text. Restructured to a header (avatar +
-   * full name + active-plan count) followed by one block per plan: the bold
-   * type label with the start date right-aligned on line 1, the muted plan
-   * name demoted to line 2. The QA seed's trainer link grants
-   * CanViewTrainingPlans only (CanViewNutritionPlans is false), so the
-   * fixture client "QA Client" surfaces exactly one training plan.
-   */
-  test('the plans popup states the plan type as text and demotes the name to line 2 (#1091)', async ({ page }) => {
-    const trigger = page.getByRole('button', { name: '1 active plan' });
-    await trigger.hover();
-
-    const card = page.locator("[data-slot='hover-card-content']");
-    await expect(card).toBeVisible();
-
-    await expect(card.getByText('QA Client', { exact: false })).toBeVisible();
-    await expect(card.getByText('Training', { exact: true })).toBeVisible();
-    await expect(card.getByText('1 active plan', { exact: true })).toBeVisible();
-    await expect(card.getByText('QA Test Plan — ForTime fixture', { exact: false })).toBeVisible();
-    await expect(card.getByText('Since', { exact: false })).toHaveCount(0);
-  });
-});
-
-const TRAINER_EMAIL = 'qa.trainer@formup.test';
-
-interface LoginResponseBody {
-  accessToken: string;
-}
-
-interface ClientTagApiBody {
-  tagId?: string;
-}
-
-interface GetClientTagsApiBody {
-  tags?: ClientTagApiBody[];
-}
-
-/**
- * Logs in as qa.trainer via a bare API context (same one-off pattern as
- * `nutritionist/ingredients.spec.ts`'s `loginAsNutritionist`), so tag
- * cleanup below never touches the fixture's own per-attempt browser-session
- * token (see `../fixtures/auth.ts`'s header comment).
- */
-async function loginAsTrainer(baseURL: string): Promise<string> {
-  const password = process.env['QA_SEED_PASSWORD'];
-  if (!password) {
-    throw new Error('[clients] QA_SEED_PASSWORD is not set. Copy .env.test.example to .env.test and fill it in.');
-  }
-  const api = await apiRequest.newContext({ baseURL });
-  try {
-    const response = await api.post('/auth/login', { data: { email: TRAINER_EMAIL, password } });
-    if (!response.ok()) {
-      throw new Error(`[clients] login as qa.trainer returned ${response.status()} ${response.statusText()}.`);
-    }
-    return ((await response.json()) as LoginResponseBody).accessToken;
-  } finally {
-    await api.dispose();
-  }
-}
-
-/**
- * Deletes every client tag the caller owns via GET + DELETE
- * /trainer/client-tags, so each test starts and ends from zero tags —
- * CreateClientTagEndpoint 409s on a duplicate name otherwise.
- */
-async function deleteAllClientTags(baseURL: string | undefined): Promise<void> {
-  const resolvedBaseUrl = baseURL ?? 'http://localhost:5173';
-  const accessToken = await loginAsTrainer(resolvedBaseUrl);
-  const api = await apiRequest.newContext({ baseURL: resolvedBaseUrl });
-  try {
-    const listResponse = await api.get('/trainer/client-tags', {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    if (!listResponse.ok()) {
-      throw new Error(
-        `[clients] GET /trainer/client-tags returned ${listResponse.status()} ${listResponse.statusText()}.`,
-      );
-    }
-    const { tags } = (await listResponse.json()) as GetClientTagsApiBody;
-    for (const tag of tags ?? []) {
-      if (!tag.tagId) {
-        continue;
-      }
-      const deleteResponse = await api.delete(`/trainer/client-tags/${tag.tagId}`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      if (!deleteResponse.ok()) {
-        throw new Error(
-          `[clients] DELETE /trainer/client-tags/${tag.tagId} returned ${deleteResponse.status()} ${deleteResponse.statusText()}.`,
-        );
-      }
-    }
-  } finally {
-    await api.dispose();
-  }
-}
-
-/**
- * Creating a client tag from the tag *filter* popover: the popover closes
- * itself before CreateTagDialog opens, then reopens on success with the new
- * tag listed but unticked (a fresh tag has no clients yet, so ticking it
- * would filter the table to empty).
- */
-test.describe('client tag filter — create a tag (#1119)', () => {
-  test.beforeEach(async ({ page, baseURL }) => {
-    await deleteAllClientTags(baseURL);
-    await page.goto('/clients');
-    await page.waitForLoadState('networkidle');
-  });
-
-  test.afterEach(async ({ baseURL }) => {
-    await deleteAllClientTags(baseURL);
-  });
-
-  test('creates a tag from the filter popup and reopens it listed, unticked', async ({ page }) => {
-    const popoverContent = page.locator("[data-slot='popover-content']");
-
-    await page.getByRole('button', { name: 'Select tags' }).click();
-    await expect(popoverContent).toBeVisible();
-    await expect(popoverContent.getByText("You haven't created any tags yet.")).toBeVisible();
-
-    await popoverContent.getByRole('button', { name: 'Create tag' }).click();
-
-    // Scoped to data-slot, not role: Radix's Popover.Content also carries
-    // role="dialog" (the WAI-ARIA "non-modal dialog" pattern), so
-    // page.getByRole('dialog') matches both this modal AND the filter
-    // popover whenever they briefly coexist mid-transition — exactly the
-    // ambiguity that made the popover's own reopening race this locator.
-    const dialog = page.locator("[data-slot='dialog-content']");
-    await expect(dialog).toBeVisible();
-    await expect(dialog.getByRole('heading', { name: 'Create a new tag' })).toBeVisible();
-
-    const tagName = `QA Filter Tag ${Date.now()}`;
-    await dialog.getByLabel('Name').fill(tagName);
-
-    const submitButton = dialog.getByRole('button', { name: 'Create tag', exact: true });
-    await expect(submitButton).toBeEnabled();
-    await submitButton.click();
-
-    // Dialog closes and the filter popover reopens on its own (see
-    // ClientTagFilterPopover's `handleCreated`) — the same trigger click is
-    // not repeated.
-    await expect(dialog).toBeHidden();
-    await expect(popoverContent).toBeVisible();
-
-    const newTagRow = popoverContent.locator('li', { hasText: tagName });
-    await expect(newTagRow).toBeVisible();
-    await expect(newTagRow.getByRole('checkbox')).not.toBeChecked();
-  });
-
-  /** Duplicate tag name shows the specific translated error, not the generic fallback, and leaves the dialog open. */
-  test('duplicate tag name shows the specific error toast and keeps the dialog open', async ({ page }) => {
-    const popoverContent = page.locator("[data-slot='popover-content']");
-    const dialog = page.locator("[data-slot='dialog-content']");
-    const tagName = `QA Duplicate Tag ${Date.now()}`;
-
-    await page.getByRole('button', { name: 'Select tags' }).click();
-    await popoverContent.getByRole('button', { name: 'Create tag' }).click();
-    await expect(dialog).toBeVisible();
-    await dialog.getByLabel('Name').fill(tagName);
-    await dialog.getByRole('button', { name: 'Create tag', exact: true }).click();
-    await expect(dialog).toBeHidden();
-    await expect(popoverContent).toBeVisible();
-    await expect(popoverContent.locator('li', { hasText: tagName })).toBeVisible();
-
-    // Same name again — the backend 409s.
-    await popoverContent.getByRole('button', { name: 'Create tag' }).click();
-    await expect(dialog).toBeVisible();
-    await dialog.getByLabel('Name').fill(tagName);
-    const submitButton = dialog.getByRole('button', { name: 'Create tag', exact: true });
-    await expect(submitButton).toBeEnabled();
-    await submitButton.click();
-
-    const specificToast = page
-      .locator("[data-slot='toast']")
-      .filter({ hasText: 'A tag with this name already exists.' });
-    await expect(specificToast).toBeVisible();
-    await expect(page.getByText("Couldn't create the tag. Please try again.")).toHaveCount(0);
-
-    // Dialog stays open on error, per the create-mutation's onError contract.
-    await expect(dialog).toBeVisible();
-  });
-
-  /** The per-row tag picker returns focus to its own trigger, not `<body>`, after Cancel and after a successful create. */
-  test('the per-row tag picker returns focus to its own trigger after cancel and after create', async ({ page }) => {
-    const rowTrigger = page.getByRole('button', { name: 'Assign tags' }).first();
-    const popoverContent = page.locator("[data-slot='popover-content']");
-    const dialog = page.locator("[data-slot='dialog-content']");
-
-    // Cancel path.
-    await rowTrigger.click();
-    await expect(popoverContent).toBeVisible();
-    await popoverContent.getByRole('button', { name: 'Create tag' }).click();
-    await expect(dialog).toBeVisible();
-    await dialog.getByRole('button', { name: 'Cancel' }).click();
-    await expect(dialog).toBeHidden();
-    await expect(rowTrigger).toBeFocused();
-
-    // Create path.
-    await rowTrigger.click();
-    await expect(popoverContent).toBeVisible();
-    await popoverContent.getByRole('button', { name: 'Create tag' }).click();
-    await expect(dialog).toBeVisible();
-    const tagName = `QA Row Tag ${Date.now()}`;
-    await dialog.getByLabel('Name').fill(tagName);
-    await dialog.getByRole('button', { name: 'Create tag', exact: true }).click();
-    await expect(dialog).toBeHidden();
-    await expect(rowTrigger).toBeFocused();
-  });
-
-  /**
-   * An ended link has no detail page (the API 404s it), so neither the name nor the row menu may open one.
-   * The menu offers the kept payments instead (#1711).
-   */
-  test('an archived row with an ended link is not a link and its menu offers Payments, not the detail', async ({ page }) => {
-    // The seed has no ended link, so fake the Archived tab's list response.
-    await page.route(
-      // The clients page selects its tab with `tab`, not the legacy `status` (#2086).
-      (url) => url.pathname.endsWith('/trainer/clients') && url.searchParams.get('tab') === 'Archived',
-      async (route) => {
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            clients: [
-              {
-                publicId: '99999999-9999-9999-9999-999999999999',
-                userId: '88888888-8888-8888-8888-888888888888',
-                email: 'ended.link@formup.test',
-                firstName: 'Ended',
-                lastName: 'Link',
-                isActive: false,
-                status: 'Archived',
-                tags: [],
-                unreadMessageCount: 0,
-                activePlans: [],
-              },
-            ],
-            totalCount: 1,
-            page: 1,
-            pageSize: 25,
-            tabCounts: {},
-            filterCounts: {},
-          }),
-        });
-      },
-    );
-
-    await page.getByRole('tab', { name: /Archived/ }).click();
-
-    const row = page.getByRole('row', { name: /Ended Link/ });
-    await expect(row).toBeVisible();
-    await expect(row.getByRole('link')).toHaveCount(0);
-
-    await row.getByRole('button', { name: 'Open row menu' }).click();
-    await expect(page.getByRole('menuitem', { name: 'Open client detail' })).toHaveCount(0);
-    await expect(page.getByRole('menuitem', { name: 'Payments' })).toHaveAttribute(
-      'href',
-      '/clients/99999999-9999-9999-9999-999999999999/payment',
-    );
   });
 });
 
@@ -760,7 +298,7 @@ test.describe('clients selection bar at narrow viewports (#1085)', () => {
         await expect(selectAll).toBeEnabled();
         await selectAll.click();
 
-        // The All tab also lists pending rows with their own Cancel button, so scope to the selection bar.
+        // Scope to the selection bar so its Cancel button is the one matched.
         const bar = page
           .locator('div.fixed')
           .filter({ has: page.getByRole('button', { name: locale.broadcast, exact: true }) });
@@ -816,40 +354,4 @@ test.describe('clients selection bar at narrow viewports (#1085)', () => {
       }
     });
   }
-});
-
-// A coach holding both roles picks the invite scope, and the slot-check label follows it (#1148).
-coachTest.describe('invite drawer slot check for a both-roles coach (#1148)', () => {
-  coachTest('the label lists only the professions inside the selected scope', async ({ page }) => {
-    const email = 'taken.both@formup.test';
-    await page.route(
-      (url) => url.pathname === '/trainer/pending-invites/slot-check',
-      (route) =>
-        route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({ nutritionTaken: true, trainingTaken: true }),
-        }),
-    );
-    await page.goto('/clients');
-    await page.getByRole('button', { name: 'Invite client', exact: true }).click();
-    await expect(page.getByRole('heading', { name: 'Invite client', exact: true })).toBeVisible();
-    await page.getByRole('textbox', { name: 'Email', exact: true }).fill(email);
-
-    const training = page.getByText(`User with email ${email} already has a coach for training.`);
-    const nutrition = page.getByText(`User with email ${email} already has a coach for nutrition.`);
-
-    // Default scope is Both.
-    await expect(training).toBeVisible();
-    await expect(nutrition).toBeVisible();
-
-    const scopeGroup = page.getByRole('group', { name: "What you'll coach" });
-    await scopeGroup.getByRole('button', { name: 'Training', exact: true }).click();
-    await expect(training).toBeVisible();
-    await expect(nutrition).toHaveCount(0);
-
-    await scopeGroup.getByRole('button', { name: 'Nutrition', exact: true }).click();
-    await expect(nutrition).toBeVisible();
-    await expect(training).toHaveCount(0);
-  });
 });

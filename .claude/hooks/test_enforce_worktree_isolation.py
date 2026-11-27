@@ -54,7 +54,7 @@ def check(name: str, actual: str, expected: str) -> None:
 
 def make_project(with_worktree: bool) -> str:
     root = tempfile.mkdtemp(prefix="fp-hook-test-")
-    for d in ("backend", "web", "mobile", ".claude/state"):
+    for d in ("backend", "web", "mobile", ".pipeline/state"):
         os.makedirs(os.path.join(root, d), exist_ok=True)
     if with_worktree:
         os.makedirs(os.path.join(root, ".worktrees", "935-client-timezone", "backend"),
@@ -94,10 +94,14 @@ def main() -> int:
               wt, ".worktrees/935-client-timezone/backend/FormUp.Application/Foo.cs")}}, wt)),
           "allow")
 
-    # Handoffs are written to the MAIN .claude/state/ by design.
-    check("allows handoff JSON in main .claude/state/",
+    # Handoffs go to .pipeline/state/ — the main checkout's or the agent's own worktree's.
+    check("allows handoff JSON in main .pipeline/state/",
           decision(run({**SUBAGENT, "tool_input": {
-              "file_path": os.path.join(wt, ".claude/state/handoff-dev-935.json")}}, wt)),
+              "file_path": os.path.join(wt, ".pipeline/state/handoff-dev-935.json")}}, wt)),
+          "allow")
+    check("allows handoff JSON in the worktree's own .pipeline/state/",
+          decision(run({**SUBAGENT, "tool_input": {
+              "file_path": os.path.join(wt, ".worktrees/935-client-timezone/.pipeline/state/handoff-dev-935.json")}}, wt)),
           "allow")
 
     # rules/branch-and-pr.md#serial-dispatch permits reusing main when no

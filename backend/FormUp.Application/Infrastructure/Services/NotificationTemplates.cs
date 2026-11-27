@@ -41,6 +41,10 @@ public static class NotificationTemplates
     public const string QuestionnaireAssignedRevoked = "revoked";
     public const string MeasurementRequestedWithMessage = "withMessage";
     public const string CoachPlanNoDate = "noDate";
+    public const string NewMessageImageOnly = "imageOnly";
+
+    /// <summary>Parameter key of a chat message's text; always interpolated last.</summary>
+    public const string MessageTextKey = "messageText";
 
     // language -> "Type" or "Type:variant" -> Template
     private static readonly Dictionary<string, Dictionary<string, Template>> Templates = new()
@@ -137,7 +141,9 @@ public static class NotificationTemplates
                 new("Proposal withdrawn", "{profName} withdrew the package proposal."),
 
             [Key(NotificationType.NewMessage)] =
-                new("New message", "New message from {clientName}."),
+                new("{senderName}", "{messageText}"),
+            [Key(NotificationType.NewMessage, NewMessageImageOnly)] =
+                new("{senderName}", "📷 Photo"),
             [Key(NotificationType.ProgressPhotosSubmitted)] =
                 new("Progress photos submitted", "The photos from {clientName} are ready to view."),
             [Key(NotificationType.WorkoutFinished)] =
@@ -242,7 +248,9 @@ public static class NotificationTemplates
                 new("Návrh stažen", "{profName} stáhl(a) návrh balíčku."),
 
             [Key(NotificationType.NewMessage)] =
-                new("Nová zpráva", "Nová zpráva od {clientName}."),
+                new("{senderName}", "{messageText}"),
+            [Key(NotificationType.NewMessage, NewMessageImageOnly)] =
+                new("{senderName}", "📷 Fotka"),
             [Key(NotificationType.ProgressPhotosSubmitted)] =
                 new("Odeslané fotky pokroku", "Fotky od {clientName} jsou připravené k zobrazení."),
             [Key(NotificationType.WorkoutFinished)] =
@@ -347,7 +355,9 @@ public static class NotificationTemplates
                 new("Vorschlag zurückgezogen", "{profName} hat den Paketvorschlag zurückgezogen."),
 
             [Key(NotificationType.NewMessage)] =
-                new("Neue Nachricht", "Neue Nachricht von {clientName}."),
+                new("{senderName}", "{messageText}"),
+            [Key(NotificationType.NewMessage, NewMessageImageOnly)] =
+                new("{senderName}", "📷 Foto"),
             [Key(NotificationType.ProgressPhotosSubmitted)] =
                 new("Fortschrittsfotos eingereicht", "Die Fotos von {clientName} liegen zur Ansicht bereit."),
             [Key(NotificationType.WorkoutFinished)] =
@@ -528,8 +538,10 @@ public static class NotificationTemplates
     {
         if (parameters is null || parameters.Count == 0) return template;
 
+        // The chat message text goes last so a literal "{senderName}" typed into a message is
+        // never substituted.
         var result = template;
-        foreach (var (paramKey, value) in parameters)
+        foreach (var (paramKey, value) in parameters.OrderBy(parameter => parameter.Key == MessageTextKey))
         {
             result = result.Replace("{" + paramKey + "}", value, StringComparison.Ordinal);
         }

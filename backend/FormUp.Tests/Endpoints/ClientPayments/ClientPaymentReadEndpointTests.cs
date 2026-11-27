@@ -15,7 +15,7 @@ namespace FormUp.Tests.Endpoints.ClientPayments;
 /// <summary>
 /// Integration tests for the coach's read endpoints: payment summary, payment list and change history.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class ClientPaymentReadEndpointTests(FitnessApiFactory factory)
 {
     private async Task<GetClientPaymentSummaryResponse> GetSummaryAsync(PaymentWorld world)

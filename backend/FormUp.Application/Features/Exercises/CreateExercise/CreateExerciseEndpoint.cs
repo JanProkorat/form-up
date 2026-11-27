@@ -2,6 +2,7 @@ using FormUp.Application.Domain.Authorization;
 using FormUp.Application.Domain.Enums;
 using System.Security.Claims;
 using FastEndpoints;
+using FormUp.Application.Domain.Services;
 using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Documents;
 using FormUp.Application.Features.Exercises.Shared;
@@ -21,7 +22,7 @@ public class CreateExerciseEndpoint(IMongoContext mongo) : Endpoint<CreateExerci
     public override void Configure()
     {
         Post("/exercises");
-        Roles(AppRoles.Trainer);
+        Roles(AppRoles.Trainer, AppRoles.Admin);
         Summary(s =>
         {
             s.Summary = "Create custom exercise";
@@ -40,6 +41,8 @@ public class CreateExerciseEndpoint(IMongoContext mongo) : Endpoint<CreateExerci
             return;
         }
 
+        var scope = LibraryCallerScope.From(User, Guid.Parse(userId));
+
         var exercise = new Exercise
         {
             ExternalId = Guid.NewGuid(),
@@ -56,10 +59,10 @@ public class CreateExerciseEndpoint(IMongoContext mongo) : Endpoint<CreateExerci
             Category = req.Category,
             Difficulty = req.Difficulty,
             TechniqueNotes = req.TechniqueNotes?.Trim(),
-            IsCustom = true,
-            TrainerId = Guid.Parse(userId),
+            IsCustom = !scope.SystemOnly,
+            TrainerId = scope.SystemOnly ? null : scope.UserId,
             IsActive = true,
-            Source = "custom",
+            Source = scope.SystemOnly ? LibraryCallerScope.SystemSource : "custom",
             DateCreated = DateTime.UtcNow,
             Version = 1
         };

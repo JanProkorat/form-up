@@ -42,6 +42,36 @@ versions above.
 were re-exported, light and dark. `GlassRecipeDetail` is now 1280 px tall; the merged
 `canvas.json` keeps the old row positions, so it overlaps the row below there only.
 
+**Partial update, 2026-11-14 (#2113):** `PageAdminPromotionEnd` (C and D, frames "1 End button"
+and "2 End promotion") added from web portal 1794676722-091e, source files only: no static
+export, no PNGs, and the merged `canvas.json` does not list it yet.
+
+**Partial update, 2026-11-19 (#2156, code field):** `PageRegisterPlanCode` (sign-up confirm bar with a "Have a code?"
+field, wrong-period code refused) and `PagePlanPickerAnnualCode` (/plan confirm bar, code applied with a remove button)
+added (C and D) from web portal 1795097417-de32 (canvas v68). Source files only: no static export, no PNGs, merged
+`canvas.json` not updated.
+
+**Partial update, 2026-11-19 (#2156):** annual billing boards added (C and D): `PagePricingAnnual`,
+`PageRegisterPlanAnnual`, `PagePlanPickerAnnualSelected`, `PageSettingsPlanAnnual`, `PageAdminPlanEditorAnnual`,
+`PageAdminPromotionDrawerAnnual`, from web portal 1795086551-384f (canvas v66). Source files only: no static
+export, no PNGs, merged `canvas.json` not updated. Prices on them are placeholders (annual = 10 × monthly).
+
+**Partial update, 2026-11-16 (#2154):** `PageSettingsPlanScheduled` updated ("Cancel change" beside the scheduled
+line) and `PagePlanPickerKeep` added (C and D, keep the current plan while a switch to Free is scheduled) from web
+portal 1794833339-d392 (canvas v58), source files only: no static export, no PNGs, merged `canvas.json` not updated.
+
+**Partial update, 2026-11-16 (#2144):** `PagePlanPickerSelected` updated (back button beside the title, upgrade
+"pay now" hint), `PagePlanPickerDowngrade` and `PageSettingsPlanScheduled` added (C and D) from web portal
+1794821595-7b47 (canvas v56), source files only: no static export, no PNGs, merged `canvas.json` not updated.
+
+**Partial update, 2026-11-15 (#2142):** `PageRegisterPlanSelected` and `PagePlanPickerSelected` (C and D,
+select a plan then confirm in a sticky bottom bar, Pro selected) added from web portal 1794776115-811e (canvas v54),
+source files only: no static export, no PNGs, and the merged `canvas.json` does not list them yet.
+
+**Partial update, 2026-11-15 (#2139):** `PageRegisterPlanBothRoles` (C and D, the sign-up plan
+step for a coach who picked both roles) added from web portal 1794760905-f0cb (canvas v53), source
+files only: no static export, no PNGs, and the merged `canvas.json` does not list it yet.
+
 **Partial update, 2026-11-14 (#2107):** `PageAdminPlanDrawer` was replaced by
 `PageAdminPlanEditor` and `PageAdminPlanEditorNew` (web portal 1794650599-2dcb), light
 and dark. The admin coach boards moved one column right (`39-06`…`39-08`, `40-06`…`40-08`).
@@ -56,12 +86,47 @@ the merged `canvas.json` stacks it below the last web board. The launch-offer ba
 crossed-out prices on the board belong to #1599, not #2119. The interactive prototype was
 not re-exported.
 
+**Partial update, 2026-11-15 (#2130):** `PageAdminReports` (C and D) added from web portal
+1794736264-9e39, with static export, clickable prototype and PNGs (`39-09`, `40-09`). In the
+merged `canvas.json` it sits right of the coach dialogs; `PageAdminPromotionEnd` is still unlisted.
+
+**Partial update, 2026-11-21 (#1538):** `PageClientAutomationOverrideCheckIn` (C and D, the check-in
+drawer changed for one client, with a form picker) added on the check-in row, and `PageCheckIns`
+(C and D, the weekly check-in review page) added as a new row at the bottom, from web portal
+1795247449-d5a6. `GlassCheckInHistory` (light and dark, "When check-ins arrive" card) updated from
+client app 1795247417-cb01. Static export and clickable prototype, without PNGs.
+
+**Web re-sync, 2026-11-23 (#2351):** every web portal and email board re-exported from web portal
+1795433849-28ce (canvas v77), with static export, clickable prototype and PNGs. The canvas now has one
+page per screen in sidebar order (starting at "Start here"), and every board uses the same sidebar
+(Clients, Inbox, Check-ins · Library · Business · Form Up admin), collapsed rail and client header
+(Overview, Nutrition, Photos, Payment, Automations, Forms; no Tasks, Notes, Workouts or Metrics).
+Web export file names changed because their row-column prefix follows the new page layout. Client-app
+and coach-app boards are unchanged: they are still from the versions above.
+
+**Web re-sync, 2026-11-23 (#2360):** every web portal and email board re-exported from web portal
+1795438181-b5db (canvas v81). Adds `PageAdminHome` (C and D, the admin Overview at `/admin`: This month,
+Needs attention, Quick actions) on its own page, adds "Overview" as the first item of the Form Up admin
+sidebar on every admin board, and removes the `ClientHeaderOptions` exploration board.
+
+**Partial update, 2026-11-23 (#2360, KPI tiles):** only `PageAdminHome` (C and D) re-exported, from web
+portal 1795468435-1bec (canvas v84): "This month" became "Last 30 days" (the reports API periods are
+rolling), and every tile's note now compares with the 30 days before. Other exports are unchanged, and
+their PNGs were not re-rendered.
+
+**Partial update, 2026-11-26 (#2092, #2091):** the 34 client-detail boards (`PageClientDetail` and its
+Trainer/Nutritionist/Restricted variants, `PageClientNutrition*`, `PageClientPhotos*`, `PageClientPayment*`,
+`PageClientAutomation*`, `PageClientForms*`, C and D) re-exported from web portal 1795692234-55ef (canvas
+v87): the client's avatar (initials, 64 px) sits between the back button and the name, as on
+`PageAdminCoachProfile`. `PageClientNutrition` also gains ‹ › arrows, a "Today" button and the visible
+range label in the Plan timeline title row. Web PNGs re-rendered; other exports unchanged.
+
 | Path | Contents |
 |---|---|
 | `index.html` | Gallery of every board, grouped by app and module |
 | `interactive/` | Clickable web-portal prototype, light and dark (open `interactive/index.html`) |
 | `interactive-client/`, `interactive-coach/` | Clickable client-app and coach-app prototypes, light and dark, shown in a phone frame |
-| `web/` | Web portal: entry page, registration, clients (incl. Payment and Automations tabs), inbox, recipes, ingredients, plan templates, forms, automations, packages and discounts, coach profile, settings (incl. payments, plan and billing) and account menu, password reset, coach plans (plan picker, sign-up plan step, paywalls, plan ended), Form Up admin (plans, promotions, coaches) — light and dark |
+| `web/` | Web portal: entry page, registration, clients, client detail (Overview, Nutrition, Photos, Payment, Automations and Forms tabs), client plan editor, inbox, check-ins, recipes, ingredients, plan templates, forms, automations, packages and discounts, coach profile, settings (incl. payments, plan and billing) and account menu, password reset, coach plans (plan picker, sign-up plan step, paywalls, plan ended), Form Up admin (plans, promotions, coaches, reports) — light and dark |
 | `mobile-light/`, `mobile-dark/` | Client mobile app (Liquid Glass) |
 | `coach-light/`, `coach-dark/` | Coach mobile app |
 | `email/` | Account, notification and payment emails — light (`C`) and dark (`D`) |
@@ -101,6 +166,10 @@ python3 export_static.py ..          # boards → standalone HTML + index.html +
 python3 export_interactive.py ..     # boards → clickable prototypes in ../interactive*/
 node screenshot.mjs ..               # PNG per screen (uses web/node_modules/playwright and Brave)
 ```
+
+To re-sync one canvas only, pass `-` for the canvas you keep (`merge_canvases.py <web> - -` keeps
+the client-app and coach-app boards as they are), and limit the screenshots to the folders that
+changed (`node screenshot.mjs .. web email`).
 
 Before exporting, download each canvas's `project/canvas.json` and every board file
 into its own folder (`<web>/project/…`, `<client>/project/…`, `<coach>/project/…`) and

@@ -44,4 +44,11 @@ public enum ImageUploadScope
     /// Blob path: <c>chat-uploads/{conversationId}/{callerUserId}/{uploadId}</c>
     /// </summary>
     ChatUpload,
+
+    /// <summary>
+    /// A staged questionnaire file_upload answer awaiting promotion at answer-save time. Carries no
+    /// extension — the real content type is sniffed from its bytes when the answer is saved.
+    /// Blob path: <c>questionnaire-uploads/{responsePublicId}/{callerUserId}/{uploadId}</c>
+    /// </summary>
+    QuestionnaireUpload,
 }

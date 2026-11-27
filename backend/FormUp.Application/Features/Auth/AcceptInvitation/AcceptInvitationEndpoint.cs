@@ -27,6 +27,8 @@ namespace FormUp.Application.Features.Auth.AcceptInvitation;
 /// </param>
 /// <param name="timeProvider">Clock.</param>
 /// <param name="termsApplier">Gives the client the package the invite carried, for a created or reactivated link.</param>
+/// <param name="tokenService">Sends the verification email to a caller whose address is still unverified.</param>
+/// <param name="logger">Logger.</param>
 public class AcceptInvitationEndpoint(
     IApplicationDbContext db,
     UserManager<ApplicationUser> userManager,
@@ -35,7 +37,9 @@ public class AcceptInvitationEndpoint(
     IRealtimeNotifier notifier,
     IConversationSeedService conversationSeedService,
     TimeProvider timeProvider,
-    InvitePackageTermsApplier termsApplier)
+    InvitePackageTermsApplier termsApplier,
+    IEmailVerificationTokenService tokenService,
+    ILogger<AcceptInvitationEndpoint> logger)
     : Endpoint<AcceptInvitationRequest, AcceptInvitationResponse>
 {
     /// <inheritdoc />
@@ -46,9 +50,9 @@ public class AcceptInvitationEndpoint(
         Summary(s =>
         {
             s.Summary = "Accept a trainer invitation";
-            s.Description = "Accepts a one-time invitation token from a trainer, creating a client-professional relationship.";
+            s.Description = "Accepts a one-time invitation token from a trainer, creating a client-professional relationship. Does not verify the caller's email; an unverified caller gets a verification email.";
             s.Response<AcceptInvitationResponse>(StatusCodes.Status200OK, "Invitation accepted");
-            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Invalid, used or expired token, or the profession slot is already taken (PROFESSION_ALREADY_OCCUPIED)");
+            s.Response<ProblemDetails>(StatusCodes.Status400BadRequest, "Invalid, used, revoked, expired or not-addressed-to-caller token (INVALID_INVITATION), or the profession slot is already taken (PROFESSION_ALREADY_OCCUPIED)");
             s.Response(StatusCodes.Status401Unauthorized, "Missing or unreadable caller claim");
             s.Response(StatusCodes.Status403Forbidden,
                 "The coach role was removed, or the coach is at the active-client limit (CLIENT_LIMIT_REACHED)");
@@ -68,26 +72,24 @@ public class AcceptInvitationEndpoint(
 
         var userGuid = Guid.Parse(userId);
 
-        // Find the invitation token (must not be used and not expired)
+        // Find the invitation token (must not be used, expired, or addressed to someone else)
         var invitation = await db.InvitationTokens
             .Include(i => i.ProfessionalProfile)
             .FirstOrDefaultAsync(i => i.Token == req.Token, ct);
 
-        if (invitation is null)
-        {
-            ThrowError("Invalid invitation token.");
-            return;
-        }
+        // Tracked caller; its email is checked against the invitation and used for the verification send.
+        var caller = await userManager.FindByIdAsync(userGuid.ToString());
 
-        if (invitation.IsUsed)
+        // One guard, one response: an unknown, used, expired or foreign-addressed token is
+        // indistinguishable to the caller, and nothing is written on this path (#2333).
+        if (invitation is null
+            || invitation.IsUsed
+            || invitation.ExpiresAt < timeProvider.GetUtcNow().UtcDateTime
+            || caller is null
+            || string.IsNullOrWhiteSpace(caller.Email)
+            || !string.Equals(invitation.Email.Trim(), caller.Email.Trim(), StringComparison.OrdinalIgnoreCase))
         {
-            ThrowError("This invitation has already been used.");
-            return;
-        }
-
-        if (invitation.ExpiresAt < DateTime.UtcNow)
-        {
-            ThrowError("This invitation has expired.");
+            this.ThrowErrorWithCode(ErrorCodes.InvalidInvitation, "Invalid or expired invitation token.");
             return;
         }
 
@@ -172,15 +174,10 @@ public class AcceptInvitationEndpoint(
         // Mark invitation as used
         invitation.IsUsed = true;
 
-        // Auto-confirm email since user clicked the invitation link
-        var currentUser = await userManager.FindByIdAsync(userGuid.ToString());
-        if (currentUser is not null && !currentUser.EmailConfirmed)
-        {
-            currentUser.EmailConfirmed = true;
-        }
-
         await db.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
+
+        await SendVerificationIfNeededAsync(caller, ct);
 
         // Only for a link that was just created or reactivated (#1108 review) — an already-linked
         // client re-using this token would otherwise get a fresh, undeduplicated Accepted
@@ -251,9 +248,7 @@ public class AcceptInvitationEndpoint(
         // SignalR emit at all, so the professional's notification bell and web client-list
         // never learned about the new link until an unrelated action refreshed the page.
         // Mirrors the pattern used by AcceptClientInviteEndpoint for the in-app invite flow.
-        var clientName = currentUser is not null
-            ? $"{currentUser.FirstName} {currentUser.LastName}"
-            : "A client";
+        var clientName = $"{caller.FirstName} {caller.LastName}";
 
         await notificationService.CreateAsync(
             invitation.ProfessionalProfile.UserId,
@@ -272,5 +267,39 @@ public class AcceptInvitationEndpoint(
             Message = "Invitation accepted successfully.",
             TrainerPublicId = invitation.ProfessionalProfile.PublicId
         }, ct);
+    }
+
+    /// <summary>
+    /// Sends a verification email when the caller is unverified and holds no live token. Never fails the accept.
+    /// </summary>
+    private async Task SendVerificationIfNeededAsync(ApplicationUser caller, CancellationToken ct)
+    {
+        if (caller.EmailConfirmed)
+        {
+            return;
+        }
+
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+
+        // Accepted gap: if the register-time send failed, its token row still exists, so this
+        // skips and the user uses resend on the check-email page.
+        var hasLiveToken = await db.EmailVerificationTokens
+            .AsNoTracking()
+            .AnyAsync(t => t.UserId == caller.Id && t.UsedAt == null && t.ExpiresAt > now, ct);
+
+        if (hasLiveToken)
+        {
+            return;
+        }
+
+        try
+        {
+            var language = HttpContext.Request.Headers.AcceptLanguage.FirstOrDefault() ?? "en";
+            await tokenService.IssueAndSendAsync(caller, language, ct, countTowardLifetimeCap: false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogError(ex, "Failed to send verification email after invitation accept for user {UserId}.", caller.Id);
+        }
     }
 }

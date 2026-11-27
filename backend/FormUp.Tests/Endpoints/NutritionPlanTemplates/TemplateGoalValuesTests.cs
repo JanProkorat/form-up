@@ -14,7 +14,7 @@ namespace FormUp.Tests.Endpoints.NutritionPlanTemplates;
 /// Real-DB integration tests for the <c>Maintain</c> and <c>Performance</c> template goals. Every search
 /// narrows to the test's own unique name because the collection is shared.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class TemplateGoalValuesTests(FitnessApiFactory factory)
 {
     private static string UniqueName() => $"tgv-{Guid.NewGuid():N}";

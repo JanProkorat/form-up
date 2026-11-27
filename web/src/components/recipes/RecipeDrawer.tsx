@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Loader2, Tag } from 'lucide-react';
+import { Copy, Eye, EyeOff, Loader2, Tag } from 'lucide-react';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { useActiveRoles } from '@/hooks/useActiveRoles';
 import {
   Allergen,
   DietaryPreference,
@@ -26,10 +27,13 @@ import {
 } from '@/api/recipe-types';
 import type { FoodTagDto } from '@/api/food-types';
 import {
+  useCopyRecipe,
   useCreateRecipe,
+  useHideRecipe,
   useRecipe,
   useRecipeStagedUploads,
   useReplaceRecipeTagAssignments,
+  useUnhideRecipe,
   useUpdateRecipe,
 } from '@/hooks/useRecipesQueries';
 import MultiSelectPopover from '@/components/library/MultiSelectPopover';
@@ -152,6 +156,10 @@ interface FormProps {
   onDeleteClick: () => void;
   /** Reports whether staged pictures are uploading, so the drawer can refuse to close meanwhile. */
   onBusyChange: (busy: boolean) => void;
+  /** The list row the drawer was opened from; carries the ownership and hidden flags the detail lacks. */
+  summary: RecipeSummaryDto | null;
+  /** Copy / hide / unhide are nutritionist-only — false hides the buttons (admin-only accounts). */
+  libraryActions: boolean;
 }
 
 /**
@@ -160,9 +168,23 @@ interface FormProps {
  * reset effects, and a background refetch of the recipe never overwrites
  * what the coach is typing.
  */
-function RecipeForm({ recipe, mode, onClose, onDeleteClick, onBusyChange }: FormProps) {
+function RecipeForm({ recipe, mode, onClose, onDeleteClick, onBusyChange, summary, libraryActions }: FormProps) {
   const { t } = useTranslation();
+  const copyMutation = useCopyRecipe();
+  const hideMutation = useHideRecipe();
+  const unhideMutation = useUnhideRecipe();
+  const libraryActionPending = copyMutation.isPending || hideMutation.isPending || unhideMutation.isPending;
+
+  // The toast lives in the hook; the drawer closes only on success (a rejected action keeps it open).
+  function runLibraryAction(
+    mutation: { mutate: (id: string, options: { onSuccess: () => void }) => void },
+    recipeId: string,
+  ) {
+    mutation.mutate(recipeId, { onSuccess: onClose });
+  }
   const readOnly = mode === 'view';
+  // System recipes are always public and carry no coach tags, so an admin-only account sees neither control.
+  const { isAdminOnly } = useActiveRoles();
   const [tab, setTab] = useState<TabValue>('details');
   const [lines, setLines] = useState<IngredientLine[]>(() => (recipe ? linesFromRecipe(recipe) : []));
   const [steps, setSteps] = useState<StepItem[]>(() => (recipe ? stepsFromRecipe(recipe) : []));
@@ -373,7 +395,7 @@ function RecipeForm({ recipe, mode, onClose, onDeleteClick, onBusyChange }: Form
                 />
               </div>
 
-              {!readOnly && (
+              {!readOnly && !isAdminOnly && (
                 <VisibilityToggle
                   id="recipe-visibility"
                   entity="recipe"
@@ -478,7 +500,7 @@ function RecipeForm({ recipe, mode, onClose, onDeleteClick, onBusyChange }: Form
                 a nutritionist can tag ANY visible recipe (system, shared, own),
                 even one whose fields are read-only. Hidden on create — tag
                 assignment needs a saved recipe id. */}
-            {recipe?.recipeId && (
+            {recipe?.recipeId && !isAdminOnly && (
               <div className="flex flex-col gap-3 border-t border-border pt-6">
                 <h3 className="flex items-center gap-2 text-body font-semibold text-foreground">
                   <Tag className="size-4 text-muted-foreground" aria-hidden="true" />
@@ -543,6 +565,40 @@ function RecipeForm({ recipe, mode, onClose, onDeleteClick, onBusyChange }: Form
           <Button type="button" variant="destructive" onClick={onDeleteClick}>
             {t('recipes.drawer.delete')}
           </Button>
+        ) : mode === 'view' && libraryActions && summary?.recipeId ? (
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={libraryActionPending}
+              onClick={() => runLibraryAction(copyMutation, summary.recipeId as string)}
+            >
+              <Copy aria-hidden="true" />
+              {t('recipes.drawer.copy')}
+            </Button>
+            {!summary.isOwnedByCurrentUser &&
+              (summary.isHiddenByCurrentUser ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={libraryActionPending}
+                  onClick={() => runLibraryAction(unhideMutation, summary.recipeId as string)}
+                >
+                  <Eye aria-hidden="true" />
+                  {t('recipes.drawer.unhide')}
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={libraryActionPending}
+                  onClick={() => runLibraryAction(hideMutation, summary.recipeId as string)}
+                >
+                  <EyeOff aria-hidden="true" />
+                  {t('recipes.drawer.hide')}
+                </Button>
+              ))}
+          </div>
         ) : (
           <span />
         )}
@@ -569,6 +625,8 @@ interface Props {
   recipe: RecipeSummaryDto | null;
   /** True for a system/shared recipe, or when the caller may not edit. */
   readOnly: boolean;
+  /** Shows Copy / Hide / Unhide in the read-only footer. Off for admin-only accounts (nutritionist-only endpoints). */
+  libraryActions?: boolean;
 }
 
 /**
@@ -578,7 +636,7 @@ interface Props {
  * only carries a summary, so an existing recipe's full detail is fetched when
  * the drawer opens.
  */
-export default function RecipeDrawer({ open, onOpenChange, recipe, readOnly }: Props) {
+export default function RecipeDrawer({ open, onOpenChange, recipe, readOnly, libraryActions = false }: Props) {
   const { t } = useTranslation();
   const mode = recipe === null ? 'create' : readOnly ? 'view' : 'edit';
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -614,7 +672,15 @@ export default function RecipeDrawer({ open, onOpenChange, recipe, readOnly }: P
           </SheetHeader>
 
           {mode === 'create' && (
-            <RecipeForm recipe={null} mode={mode} onClose={close} onDeleteClick={() => undefined} onBusyChange={setBusy} />
+            <RecipeForm
+              recipe={null}
+              mode={mode}
+              onClose={close}
+              onDeleteClick={() => undefined}
+              onBusyChange={setBusy}
+              summary={null}
+              libraryActions={false}
+            />
           )}
 
           {mode !== 'create' && detailQuery.isPending && (
@@ -642,6 +708,8 @@ export default function RecipeDrawer({ open, onOpenChange, recipe, readOnly }: P
               onClose={close}
               onDeleteClick={() => setDeleteOpen(true)}
               onBusyChange={setBusy}
+              summary={recipe}
+              libraryActions={libraryActions}
             />
           )}
         </SheetContent>

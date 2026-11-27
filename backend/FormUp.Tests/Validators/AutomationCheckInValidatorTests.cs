@@ -111,4 +111,32 @@ public class AutomationCheckInValidatorTests
 
         result.Errors.Count(e => e.ErrorCode == ErrorCodes.AutomationCheckInInvalid).Should().Be(2);
     }
+
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public void Validate_OverrideCheckInFormId_RejectsOnlyAnEmptyGuid(bool isEmptyGuid, bool passes)
+    {
+        var request = new OverrideClientAutomationRequest
+        {
+            ClientId = Guid.NewGuid(),
+            RuleId = Guid.NewGuid(),
+            TriggerKind = AutomationTriggerKind.Schedule,
+            ScheduleInterval = 1,
+            ScheduleUnit = AutomationScheduleUnit.Weeks,
+            LocalTime = TimeSpan.FromHours(8),
+            CheckInQuestionnaireId = isEmptyGuid ? Guid.Empty : Guid.NewGuid(),
+        };
+
+        var result = new OverrideClientAutomationValidator().TestValidate(request);
+
+        if (passes)
+        {
+            result.ShouldNotHaveAnyValidationErrors();
+        }
+        else
+        {
+            result.IsValid.Should().BeFalse();
+        }
+    }
 }

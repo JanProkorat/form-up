@@ -12,7 +12,7 @@ namespace FormUp.Tests.Architecture;
 /// Pins the one list of writes a coach may still make while a plan choice is required. Adding to it must be a
 /// reviewed change to this file.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class PlanChoiceExemptionsArchitectureTests(FitnessApiFactory factory)
 {
     private static readonly string[] ExpectedExemptions =
@@ -22,6 +22,7 @@ public class PlanChoiceExemptionsArchitectureTests(FitnessApiFactory factory)
         "ChooseFreePlanEndpoint",
         "ConfirmAvatarEndpoint",
         "ConfirmProfessionalAvatarEndpoint",
+        "CreateCheckoutSessionEndpoint",
         "DeleteAccountEndpoint",
         "DeleteAvatarEndpoint",
         "DeleteProfessionalAvatarEndpoint",

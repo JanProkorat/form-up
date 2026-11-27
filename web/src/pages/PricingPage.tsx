@@ -1,9 +1,14 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { BillingInterval } from '@/api/generated';
 import HomeFooter from '@/components/home/HomeFooter';
 import HomeNav from '@/components/home/HomeNav';
 import PricingCompareTable from '@/components/pricing/PricingCompareTable';
 import PricingPlanCard from '@/components/pricing/PricingPlanCard';
+import BillingIntervalSwitch from '@/components/subscription/BillingIntervalSwitch';
 import { PLAN_BILLING_PATH } from '@/components/subscription/planLinks';
+import { anyPlanSoldAnnually, maxAnnualSavingPercent } from '@/components/subscription/planPricing';
+import PromotionBanner from '@/components/subscription/PromotionBanner';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePublicPlans } from '@/hooks/useSubscriptionQueries';
@@ -20,7 +25,11 @@ export default function PricingPage() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const plansQuery = usePublicPlans();
   const plans = plansQuery.data?.plans ?? [];
+  const promotion = plansQuery.data?.promotion;
   const ctaTo = isAuthenticated ? PLAN_BILLING_PATH : REGISTER_PATH;
+  const [chosen, setChosen] = useState(BillingInterval.Monthly);
+  const showSwitch = anyPlanSoldAnnually(plans);
+  const interval = showSwitch ? chosen : BillingInterval.Monthly;
 
   return (
     <div className="home-page-wash isolate flex min-h-svh flex-col bg-background">
@@ -58,12 +67,24 @@ export default function PricingPage() {
           <p className="text-center text-copy text-muted-foreground">{t('pricing.empty')}</p>
         ) : (
           <>
+            {promotion && <PromotionBanner promotion={promotion} plans={plans} variant="picker" interval={interval} />}
+            {showSwitch && (
+              <div className="flex flex-wrap items-center gap-3.5">
+                <BillingIntervalSwitch value={interval} onChange={setChosen} savingPercent={maxAnnualSavingPercent(plans)} />
+                {interval === BillingInterval.Annual && (
+                  <span className="text-body text-muted-foreground">{t('pricing.interval.annualNote')}</span>
+                )}
+              </div>
+            )}
             <div className="grid items-stretch gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {plans.map((plan) => (
-                <PricingPlanCard key={plan.code} plan={plan} ctaTo={ctaTo} />
+                <PricingPlanCard key={plan.code} plan={plan} promotion={promotion} interval={interval} ctaTo={ctaTo} />
               ))}
             </div>
-            <PricingCompareTable plans={plans} />
+            {interval === BillingInterval.Annual && (
+              <p className="text-center text-body text-muted-foreground">{t('pricing.interval.annualFooter')}</p>
+            )}
+            <PricingCompareTable plans={plans} interval={interval} />
           </>
         )}
       </main>

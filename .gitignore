@@ -131,6 +131,7 @@ Thumbs.db
 **/.claude/.typecheck-state/
 **/.claude/hooks/log/
 **/.claude/state/
+**/.pipeline/
 **/.claude/private/
 **/.claude/agent-memory-local/
 .worktrees/

@@ -130,11 +130,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/build-on-stop.py"
+            "command": "[ -f \"$CLAUDE_PROJECT_DIR/.claude/hooks/build-on-stop.py\" ] || exit 0; python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/build-on-stop.py"
           },
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/typecheck-on-stop.sh"
+            "command": "[ -f \"$CLAUDE_PROJECT_DIR/.claude/hooks/typecheck-on-stop.sh\" ] || exit 0; bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/typecheck-on-stop.sh"
           }
         ]
       }
@@ -145,11 +145,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/build-on-submit.py"
+            "command": "[ -f \"$CLAUDE_PROJECT_DIR/.claude/hooks/build-on-submit.py\" ] || exit 0; python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/build-on-submit.py"
           },
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/typecheck-on-submit.sh"
+            "command": "[ -f \"$CLAUDE_PROJECT_DIR/.claude/hooks/typecheck-on-submit.sh\" ] || exit 0; bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/typecheck-on-submit.sh"
           }
         ]
       }

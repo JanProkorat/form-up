@@ -22,7 +22,7 @@ namespace FormUp.Tests.Endpoints.Auth;
 /// in <see cref="AnonymousResendVerificationRateLimitTests"/> below, backed by
 /// <see cref="RateLimitEnabledFactory"/> instead.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class AnonymousResendVerificationEndpointTests(FitnessApiFactory factory)
 {
     // Per-host singleton (#726 refinement) — resolved from this factory's own DI
@@ -88,7 +88,7 @@ public class AnonymousResendVerificationEndpointTests(FitnessApiFactory factory)
         var client = factory.CreateClient();
         var email = UniqueEmail();
 
-        await TestHelpers.RegisterAsync(client, email, "TestPass1!", "Anon", "Unverified", "Client");
+        await TestHelpers.RegisterAsync(client, email, "TestPass1!", "Anon", "Unverified", "Client", confirmEmail: false);
 
         var response = await client.PostAsJsonAsync(Route, new { Email = email }, TestContext.Current.CancellationToken);
 
@@ -132,7 +132,7 @@ public class AnonymousResendVerificationEndpointTests(FitnessApiFactory factory)
         var client = factory.CreateClient();
         var email = UniqueEmail();
 
-        await TestHelpers.RegisterAsync(client, email, "TestPass1!", "Anon", "Capped", "Client");
+        await TestHelpers.RegisterAsync(client, email, "TestPass1!", "Anon", "Capped", "Client", confirmEmail: false);
 
         using (var scope = factory.Services.CreateScope())
         {
@@ -165,7 +165,7 @@ public class AnonymousResendVerificationEndpointTests(FitnessApiFactory factory)
         var client = factory.CreateClient();
         var email = UniqueEmail();
 
-        await TestHelpers.RegisterAsync(client, email, "TestPass1!", "Anon", "Windowed", "Client");
+        await TestHelpers.RegisterAsync(client, email, "TestPass1!", "Anon", "Windowed", "Client", confirmEmail: false);
 
         Guid userId;
         using (var scope = factory.Services.CreateScope())
@@ -206,7 +206,7 @@ public class AnonymousResendVerificationEndpointTests(FitnessApiFactory factory)
         var email = UniqueEmail();
         const string password = "TestPass1!";
 
-        await TestHelpers.RegisterAsync(client, email, password, "Anon", "Decoupled", "Client");
+        await TestHelpers.RegisterAsync(client, email, password, "Anon", "Decoupled", "Client", confirmEmail: false);
 
         using (var scope = factory.Services.CreateScope())
         {
@@ -283,7 +283,7 @@ public class AnonymousResendVerificationEndpointTests(FitnessApiFactory factory)
 
         // -- Throttled (no-op): window cap already exhausted.
         var throttledEmail = UniqueEmail();
-        await TestHelpers.RegisterAsync(client, throttledEmail, "TestPass1!", "Anon", "AllFourThrottled", "Client");
+        await TestHelpers.RegisterAsync(client, throttledEmail, "TestPass1!", "Anon", "AllFourThrottled", "Client", confirmEmail: false);
         using (var scope = factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -301,7 +301,7 @@ public class AnonymousResendVerificationEndpointTests(FitnessApiFactory factory)
         // -- Real send (registered + unverified + under-throttle): exactly one enqueued
         // send, observed once the background worker drains it.
         var sendEmail = UniqueEmail();
-        await TestHelpers.RegisterAsync(client, sendEmail, "TestPass1!", "Anon", "AllFourRealSend", "Client");
+        await TestHelpers.RegisterAsync(client, sendEmail, "TestPass1!", "Anon", "AllFourRealSend", "Client", confirmEmail: false);
         var sentBeforeSend = EmailService.SentVerifications.Count(v => v.Email == sendEmail);
         var sendResponse = await client.PostAsJsonAsync(Route, new { Email = sendEmail }, TestContext.Current.CancellationToken);
 

@@ -17,7 +17,7 @@ requests go back to the orchestrator.
 ## First action — read your design-review approval
 
 Your **first action** on any issue-driven dispatch is to read
-`.claude/state/handoff-design-<issue>.json`. The orchestrator runs
+`.pipeline/state/handoff-design-<issue>.json`. The orchestrator runs
 `design-reviewer` ahead of you. Use:
 
 - `approved_scope.files_in_scope` — your boundary.
@@ -25,6 +25,12 @@ Your **first action** on any issue-driven dispatch is to read
 - `approved_scope.error_paths` — structured failure modes for tests.
 - `approved_scope.needs_library_research` — true → dispatch a Haiku scout;
   false (default) → don't research what's already in-codebase.
+
+If the file is not in the checkout you work in (you run in an isolated
+worktree), read the main checkout's copy: the `.pipeline/state/` folder of
+the repo root above `.claude/worktrees/` or `.worktrees/` in your path.
+Reading across checkouts is fine; only writing there is refused. Check
+both places before you report the handoff missing.
 
 If the design handoff is missing, return to the orchestrator and ask
 it to run design-review first (Rule 5.5).
@@ -38,6 +44,7 @@ it to run design-review first (Rule 5.5).
 - [`rules/code-style.md#no-hardcoded-api-base-urls`](../rules/code-style.md#no-hardcoded-api-base-urls) — env / config base URLs.
 - [`rules/code-style.md#no-any-in-typescript`](../rules/code-style.md#no-any-in-typescript) — strict-mode TS.
 - [`rules/code-style.md#generated-files-are-write-locked-if-the-repo-has-one`](../rules/code-style.md#generated-files-are-write-locked-if-the-repo-has-one) — `web/src/api/generated.ts` is write-locked; use `regen-api`.
+- [`rules/web-testing.md#which-layer-proves-what`](../rules/web-testing.md#which-layer-proves-what) — write the Vitest component test first; Playwright only for real-browser behaviour and one real-backend journey per feature. A test you move leaves E2E in the same change.
 - Supported locales (`cs`/`en`/`de` — see this repo's `.claude/CLAUDE.md`) in
   the same PR; the react pack's i18n rule covers the mechanism generically.
 - Verify via the **`react-verify`** skill (build+lint+test) / `react-build`
@@ -153,8 +160,9 @@ Then, for the rest of the task:
   **denies** subagent writes to `backend/`, `web/` and `mobile/` in the
   main checkout while any worktree exists. If you hit that denial, you are
   in the wrong tree — do not try to route around it, re-target the edit.
-- Writing your handoff JSON to the main `.claude/state/` is still correct
-  and is not blocked.
+- Write your handoff JSON to `.pipeline/state/` by **relative** path, in
+  the checkout you work in. Never the main checkout's absolute path:
+  Claude Code refuses an isolated worktree agent's write there.
 - Never reuse a branch another sub-agent is already working on. If `git
   status` shows commits or uncommitted files that don't belong to your
   issue, stop and return to the orchestrator — it means a dispatch went
@@ -163,7 +171,7 @@ Then, for the rest of the task:
 ## Final step — write your handoff JSON
 
 Before returning control to the orchestrator, write
-`.claude/state/handoff-dev-<issue>.json` matching
+`.pipeline/state/handoff-dev-<issue>.json` matching
 `.claude/schemas/dev-handoff.v1.json`:
 
 ```json
@@ -216,6 +224,8 @@ comment, a missing test) goes into the optional `noticed` array as
 - Use `any`, `as any`, or `@ts-ignore` without a comment explaining why.
 - Hardcode colors, font sizes, or spacing — use tokens.
 - Add dependencies without asking the orchestrator first.
+- Add a Playwright test for something a Vitest component test can prove
+  (see `rules/web-testing.md#which-layer-proves-what`).
 - Add `page.waitForTimeout` to a Playwright spec. Wait on a locator state,
   `expect.poll` or `waitForResponse`; a fixed sleep needs a one-line comment
   saying what it waits for.

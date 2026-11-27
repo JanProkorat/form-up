@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 import { Apple, EyeIcon, EyeOffIcon } from 'lucide-react';
@@ -12,6 +12,7 @@ import { getMyProfile } from '@/api/profile';
 import type { GetProfileResponse } from '@/api/generated';
 import { useAuthStore } from '@/stores/auth';
 import { getApiErrorMessage } from '@/lib/api-errors';
+import { resolveReturnTo } from '@/lib/landing';
 import { Button } from '@/components/ui/button';
 import EntryDialogTitle from '@/components/entry/EntryDialogTitle';
 import { Input } from '@/components/ui/input';
@@ -27,21 +28,6 @@ import { Checkbox } from '@/components/ui/checkbox';
  * instead.
  */
 class ProfileLoadError extends Error {}
-
-/** In-app path only; anything else (protocol-relative, backslash, /login itself) falls back to /clients. */
-function resolveReturnTo(state: unknown): string {
-  const from = (state as { from?: unknown } | null)?.from;
-  if (
-    typeof from === 'string' &&
-    from.startsWith('/') &&
-    !from.startsWith('//') &&
-    !from.startsWith('/\\') &&
-    !from.startsWith('/login')
-  ) {
-    return from;
-  }
-  return '/clients';
-}
 
 interface LoginFormValues {
   email: string;
@@ -68,6 +54,7 @@ export default function LoginForm() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const setTokens = useAuthStore((s) => s.setTokens);
   const storeLogin = useAuthStore((s) => s.login);
   const storeLogout = useAuthStore((s) => s.logout);
@@ -127,9 +114,10 @@ export default function LoginForm() {
         refreshToken,
         rememberMe
       );
+      return profile.roles ?? [];
     },
-    onSuccess: () => {
-      navigate(resolveReturnTo(location.state), { replace: true });
+    onSuccess: (roles) => {
+      navigate(resolveReturnTo(searchParams.get('returnTo'), location.state, roles), { replace: true });
     },
   });
 

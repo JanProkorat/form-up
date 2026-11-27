@@ -13,7 +13,7 @@ namespace FormUp.Tests.Endpoints.Users;
 /// <summary>
 /// Integration tests for <c>POST /users/me/coach-account/keep</c>.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class KeepCoachAccountIntegrationTests(FitnessApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
@@ -38,6 +38,30 @@ public class KeepCoachAccountIntegrationTests(FitnessApiFactory factory)
             .Where(cs => cs.ProfessionalProfileId == coach.ProfileId)
             .Select(cs => cs.CancelAtPeriodEnd)
             .FirstAsync(Ct)).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Keep_WhenAnAdminCancelledTheRenewal_ClearsTheDisable_ButKeepsTheCancellation()
+    {
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        await DisableCoachAccountIntegrationTests.SeedSubscriptionAsync(
+            factory, coach.ProfileId, SubscriptionStatus.Active, DateTimeOffset.UtcNow.AddDays(10));
+        (await coach.Http.PostAsync("/users/me/coach-account/disable", null, Ct)).StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        await db.CoachSubscriptions
+            .Where(cs => cs.ProfessionalProfileId == coach.ProfileId)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(cs => cs.RenewalCancelledByAdminAt, DateTimeOffset.UtcNow), Ct);
+
+        var response = await coach.Http.PostAsync("/users/me/coach-account/keep", null, Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await db.ProfessionalProfiles.AsNoTracking().Where(p => p.UserId == coach.UserId)
+            .Select(p => p.CoachAccountActiveUntil).FirstAsync(Ct)).Should().BeNull();
+        var row = await db.CoachSubscriptions.AsNoTracking().FirstAsync(cs => cs.ProfessionalProfileId == coach.ProfileId, Ct);
+        row.CancelAtPeriodEnd.Should().BeTrue("the admin's cancellation is not the coach's to undo");
+        row.RenewalCancelledByAdminAt.Should().NotBeNull();
     }
 
     [Fact]

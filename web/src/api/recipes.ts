@@ -2,6 +2,7 @@
  * Recipes API module — wraps the NSwag-generated recipe endpoints.
  */
 import { apiClient } from '@/api/client';
+import { postEmptyJson, putEmptyJson } from '@/api/empty-body';
 import type {
   ConfirmRecipeImageRequest,
   CreateRecipeRequest,
@@ -30,6 +31,8 @@ export interface SearchRecipesParams {
   owners: FoodOwnerFilter[];
   /** Matches a recipe carrying ANY of the caller's tags with these ids. */
   tagIds: string[];
+  /** `true` returns ONLY the recipes the caller hid; `false` (default) excludes them. */
+  hidden: boolean;
   page: number;
   pageSize: number;
   /** `undefined` means the server default: newest-created first. */
@@ -53,6 +56,7 @@ export async function searchRecipes(params: SearchRecipesParams): Promise<Search
     params.dietaryPreferences,
     params.owners,
     params.tagIds,
+    params.hidden,
     params.page,
     params.pageSize,
     params.search,
@@ -80,6 +84,21 @@ export async function createRecipe(request: CreateRecipeRequest): Promise<GetRec
 /** Update a recipe (owner only). Full-state PUT; `version` must echo the loaded value. */
 export async function updateRecipe(recipeId: string, request: UpdateRecipeRequest): Promise<GetRecipeResponse> {
   return apiClient.updateRecipeEndpoint(recipeId, request);
+}
+
+/** Copies a visible recipe into the caller's own library (Nutritionist only). The copy is Private. */
+export async function copyRecipe(recipeId: string): Promise<void> {
+  await postEmptyJson(`/recipes/${encodeURIComponent(recipeId)}/copy`);
+}
+
+/** Hides another coach's / a system recipe from the caller's lists. Not allowed for the caller's own recipes. */
+export async function hideRecipe(recipeId: string): Promise<void> {
+  await putEmptyJson(`/recipes/${encodeURIComponent(recipeId)}/hide`);
+}
+
+/** Reverses `hideRecipe`. */
+export async function unhideRecipe(recipeId: string): Promise<void> {
+  await putEmptyJson(`/recipes/${encodeURIComponent(recipeId)}/unhide`);
 }
 
 /** Delete a recipe (owner only). */

@@ -64,6 +64,13 @@ public class RateLimitEnabledFactory(SharedTestContainers sharedContainers)
     private string _postgresConnectionString = string.Empty;
     private string _mongoDatabaseName = string.Empty;
 
+    /// <summary>Lets <c>TestHelpers.RegisterAsync</c> confirm registered accounts in this host's database (#1517).</summary>
+    protected override void ConfigureClient(HttpClient client)
+    {
+        base.ConfigureClient(client);
+        TestHelpers.RememberHost(client, this);
+    }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         // Provide required secrets
@@ -154,6 +161,8 @@ public class RateLimitEnabledFactory(SharedTestContainers sharedContainers)
     {
         _postgresConnectionString = await sharedContainers.CreatePostgresDatabaseAsync("ratelimit");
         _mongoDatabaseName = SharedTestContainers.CreateMongoDatabaseName("ratelimit");
+
+        FastEndpointsBootGate.Start(this);
 
         await ApplicationDbContextSeed.SeedAsync(Services);
     }

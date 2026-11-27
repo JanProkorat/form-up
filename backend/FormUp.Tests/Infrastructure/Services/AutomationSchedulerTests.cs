@@ -21,7 +21,7 @@ namespace FormUp.Tests.Infrastructure.Services;
 /// Integration tests for <see cref="AutomationScheduler"/>. They call <c>RunDueNowAsync</c> with an
 /// explicit instant, never relying on the hosted loop, and read plan data from the real Mongo container.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class AutomationSchedulerTests(FitnessApiFactory factory) : IAsyncLifetime
 {
     private static readonly CancellationToken Ct = TestContext.Current.CancellationToken;

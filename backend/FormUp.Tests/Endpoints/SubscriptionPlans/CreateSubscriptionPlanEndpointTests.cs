@@ -2,8 +2,10 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using FormUp.Application.Domain.Enums;
 using FormUp.Application.Features.SubscriptionPlans.Shared;
 using FormUp.Application.Infrastructure.Data;
+using FormUp.Tests.Endpoints.Billing;
 using FormUp.Tests.Infrastructure;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -17,8 +19,8 @@ namespace FormUp.Tests.Endpoints.SubscriptionPlans;
 /// Uses <see cref="FitnessApiFactory"/> since Admin is not publicly self-registerable — the
 /// only way to prove the role gate is the real ASP.NET Core pipeline.
 /// </summary>
-[Collection(TestCollection.Name)]
-public class CreateSubscriptionPlanEndpointTests(FitnessApiFactory factory)
+[Collection(TestCollection.Shard2)]
+public class CreateSubscriptionPlanEndpointTests(FitnessApiFactory factory) : IDisposable
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -51,7 +53,6 @@ public class CreateSubscriptionPlanEndpointTests(FitnessApiFactory factory)
         MaxActiveClients: 10,
         PriceMinorUnits: 29900,
         Currency: "CZK",
-        BillingInterval: "Monthly",
         ExternalPriceId: null,
         IsActive: true);
 
@@ -119,7 +120,7 @@ public class CreateSubscriptionPlanEndpointTests(FitnessApiFactory factory)
             {
                 BothRolesIncluded = false,
                 SecondRoleAddOnPriceMinorUnits = 14900,
-                ExternalPriceId = "price_create",
+                ExternalPriceId = "price_typed_by_admin",
             },
             TestContext.Current.CancellationToken);
 
@@ -129,7 +130,7 @@ public class CreateSubscriptionPlanEndpointTests(FitnessApiFactory factory)
             JsonOptions, TestContext.Current.CancellationToken);
         body!.SecondRoleAddOnPriceMinorUnits.Should().Be(14900);
         body.BothRolesIncluded.Should().BeFalse();
-        body.ExternalPriceId.Should().Be("price_create");
+        body.ExternalPriceId.Should().StartWith("price_fake_", "the typed ExternalPriceId is ignored; the backend creates the price");
         body.CoachCount.Should().Be(0);
 
         using var scope = factory.Services.CreateScope();
@@ -143,8 +144,107 @@ public class CreateSubscriptionPlanEndpointTests(FitnessApiFactory factory)
         price.ValidTo.Should().BeNull();
         price.PriceMinorUnits.Should().Be(plan.PriceMinorUnits);
         price.SecondRoleAddOnPriceMinorUnits.Should().Be(14900);
-        price.ExternalPriceId.Should().Be("price_create");
+        price.ExternalPriceId.Should().Be(body.ExternalPriceId);
     }
+
+    [Fact]
+    public async Task Create_PaidPlan_CreatesTheStripePriceFromTheRowNotFromTheRequest()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var client = await TestHelpers.RegisterAdminAsync(factory, TestContext.Current.CancellationToken);
+        var code = UniqueCode();
+
+        var response = await client.PostAsJsonAsync(
+            "/admin/subscription-plans", ValidPayload(code), TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        fake.Prices.Should().ContainSingle(call => call.PlanCode == code)
+            .Which.Should().Be(new FakeSubscriptionService.PriceCall(code, 29900, "CZK", BillingInterval.Monthly));
+    }
+
+    [Fact]
+    public async Task Create_WithAnAnnualPrice_WritesAMonthlyAndAnAnnualRowAndCreatesBothStripePrices()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var client = await TestHelpers.RegisterAdminAsync(factory, TestContext.Current.CancellationToken);
+        var code = UniqueCode();
+
+        var response = await client.PostAsJsonAsync(
+            "/admin/subscription-plans",
+            ValidPayload(code) with { AnnualPriceMinorUnits = 299000 },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        fake.Prices.Where(call => call.PlanCode == code).Select(call => (call.AmountMinorUnits, call.Interval))
+            .Should().BeEquivalentTo([(29900L, BillingInterval.Monthly), (299000L, BillingInterval.Annual)]);
+
+        var body = await response.Content.ReadFromJsonAsync<SubscriptionPlanDto>(
+            JsonOptions, TestContext.Current.CancellationToken);
+        body!.PriceMinorUnits.Should().Be(29900);
+        body.AnnualPriceMinorUnits.Should().Be(299000);
+        body.AnnualExternalPriceId.Should().StartWith("price_fake_");
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var prices = await db.SubscriptionPlanPrices.AsNoTracking()
+            .Where(p => p.SubscriptionPlan.Code == code).ToListAsync(TestContext.Current.CancellationToken);
+
+        prices.Should().HaveCount(2);
+        prices.Should().OnlyContain(p => p.ValidTo == null);
+        prices.Select(p => p.BillingInterval).Should().BeEquivalentTo([BillingInterval.Monthly, BillingInterval.Annual]);
+    }
+
+    [Fact]
+    public async Task Create_ZeroPrice_NeverCreatesAStripePrice()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var client = await TestHelpers.RegisterAdminAsync(factory, TestContext.Current.CancellationToken);
+        var code = UniqueCode();
+
+        var response = await client.PostAsJsonAsync(
+            "/admin/subscription-plans", ValidPayload(code) with { PriceMinorUnits = 0 }, TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        fake.Prices.Should().BeEmpty();
+        (await response.Content.ReadFromJsonAsync<SubscriptionPlanDto>(JsonOptions, TestContext.Current.CancellationToken))!
+            .ExternalPriceId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Create_WhenStripeIsNotConfigured_SavesThePlanWithoutAStripePrice()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        fake.IsConfigured = false;
+        var client = await TestHelpers.RegisterAdminAsync(factory, TestContext.Current.CancellationToken);
+        var code = UniqueCode();
+
+        var response = await client.PostAsJsonAsync(
+            "/admin/subscription-plans", ValidPayload(code), TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        fake.Prices.Should().BeEmpty();
+        (await response.Content.ReadFromJsonAsync<SubscriptionPlanDto>(JsonOptions, TestContext.Current.CancellationToken))!
+            .ExternalPriceId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Create_WhenStripeFails_Returns502_AndSavesNothing()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        fake.Fail = true;
+        var client = await TestHelpers.RegisterAdminAsync(factory, TestContext.Current.CancellationToken);
+        var code = UniqueCode();
+
+        var response = await client.PostAsJsonAsync(
+            "/admin/subscription-plans", ValidPayload(code), TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadGateway);
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        (await db.SubscriptionPlans.AnyAsync(p => p.Code == code, TestContext.Current.CancellationToken)).Should().BeFalse();
+    }
+
+    public void Dispose() => BillingTestData.ResetProvider(factory);
 
     [Fact]
     public async Task Create_WithBothRolesAndAddOnPrice_Returns400()
@@ -175,7 +275,6 @@ public class CreateSubscriptionPlanEndpointTests(FitnessApiFactory factory)
                 NameDe = "Klein",
                 BothRolesIncluded = true,
                 Currency = "CZK",
-                BillingInterval = "Monthly",
             },
             TestContext.Current.CancellationToken);
 
@@ -250,7 +349,8 @@ public class CreateSubscriptionPlanEndpointTests(FitnessApiFactory factory)
         int? MaxActiveClients,
         long PriceMinorUnits,
         string Currency,
-        string BillingInterval,
         string? ExternalPriceId,
-        bool IsActive);
+        bool IsActive,
+        long? AnnualPriceMinorUnits = null,
+        long? AnnualSecondRoleAddOnPriceMinorUnits = null);
 }

@@ -16,7 +16,7 @@ namespace FormUp.Tests.Services;
 /// the rules up again once the flag is back on. Each test works on its own coach and drives the jobs with an explicit
 /// instant, so nothing waits on the hosted loop and no other coach's data is touched.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class AutomationEntitlementTests(FitnessApiFactory factory)
 {
     private static readonly CancellationToken Ct = TestContext.Current.CancellationToken;
@@ -130,7 +130,7 @@ public class AutomationEntitlementTests(FitnessApiFactory factory)
 
         await WithDbAsync(async db =>
         {
-            db.QuestionnaireResponses.Add(new QuestionnaireResponse
+            var response = new QuestionnaireResponse
             {
                 QuestionnaireId = form.Id,
                 ClientId = client.UserId,
@@ -140,6 +140,19 @@ public class AutomationEntitlementTests(FitnessApiFactory factory)
                 Kind = QuestionnaireResponseKind.CheckIn,
                 CheckInWeekStart = new DateOnly(2027, 1, 4),
                 CheckInDueAtUtc = dueAt,
+            };
+            db.QuestionnaireResponses.Add(response);
+            await db.SaveChangesAsync(Ct);
+
+            // The sweeper finds a response through the run that delivered it.
+            db.AutomationRuns.Add(new AutomationRun
+            {
+                AutomationRuleId = rule.Id,
+                ClientProfileId = client.ProfileId,
+                Occurrence = "seeded",
+                Status = AutomationRunStatus.Sent,
+                SentAt = SentAt,
+                DeliveredEntityId = response.PublicId,
             });
             await db.SaveChangesAsync(Ct);
 

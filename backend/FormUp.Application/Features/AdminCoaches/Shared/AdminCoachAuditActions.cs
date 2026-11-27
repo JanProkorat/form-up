@@ -21,6 +21,9 @@ internal static class AdminCoachAuditActions
     /// <summary>The coach kept their account (written by the coach's own endpoint).</summary>
     public const string KeepAccount = "KeepCoachAccount";
 
+    /// <summary>The coach chose the Free plan after a given plan ended (written by the coach's own endpoint).</summary>
+    public const string ChooseFreePlan = "ChooseFreePlan";
+
     /// <summary>The coach added a role (written by the coach's own endpoint).</summary>
     public const string AddRole = "AddRole";
 

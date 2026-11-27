@@ -14,7 +14,7 @@ namespace FormUp.Tests.Domain.Services;
 /// Testcontainers coverage for <see cref="EntitlementService"/> — resolves a coach's effective
 /// feature entitlements and client-count limit from their <see cref="CoachSubscription"/> (#593).
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class EntitlementServiceTests(FitnessApiFactory factory)
 {
     private static string UniqueEmail(string tag) => $"{Guid.NewGuid():N}@entitlement-service-{tag}.com";
@@ -68,6 +68,17 @@ public class EntitlementServiceTests(FitnessApiFactory factory)
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
+    /// <summary>
+    /// A unique plan code that satisfies the real rule (<c>^[a-z0-9-]{1,50}$</c>): the tag is lower-cased, anything else
+    /// becomes a hyphen, and it is cut to 12 characters so <c>plan-{tag}-{32 hex}</c> stays within 50.
+    /// </summary>
+    private static string PlanCode(string tag)
+    {
+        var slug = new string(tag.ToLowerInvariant().Select(c => char.IsAsciiLetterOrDigit(c) ? c : '-').ToArray());
+
+        return $"plan-{slug[..Math.Min(slug.Length, 12)]}-{Guid.NewGuid():N}";
+    }
+
     private async Task<long> CreateSubscriptionPlanAsync(
         string tag,
         int? maxActiveClients = null,
@@ -83,7 +94,7 @@ public class EntitlementServiceTests(FitnessApiFactory factory)
 
         var plan = new SubscriptionPlan
         {
-            Code = $"plan-{tag}-{Guid.NewGuid():N}",
+            Code = PlanCode(tag),
             NameCs = "Plán",
             NameEn = "Plan",
             NameDe = "Plan",
@@ -104,7 +115,6 @@ public class EntitlementServiceTests(FitnessApiFactory factory)
             MaxActiveClients = maxActiveClients,
             PriceMinorUnits = 99900,
             Currency = "CZK",
-            BillingInterval = BillingInterval.Monthly,
             IsActive = true
         };
 

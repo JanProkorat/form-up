@@ -31,14 +31,14 @@ public class SearchRecipesEndpoint(IMongoContext mongo)
     public override void Configure()
     {
         Get("/recipes");
-        Roles(AppRoles.Nutritionist);
+        Roles(AppRoles.Nutritionist, AppRoles.Admin);
         Summary(s =>
         {
             s.Summary = "Search recipes";
             s.Description = "Search recipes by name or description with optional meal type (any), dietary "
                 + "preference (all) and owner filters, sortable columns and pagination. "
                 + "Returns the caller's own recipes (any visibility) plus public recipes owned by other nutritionists. "
-                + "With no sort, newest-created first.";
+                + "With no sort, newest-created first. Recipes the caller hid are left out; Hidden=true returns only those.";
             s.Responses[StatusCodes.Status400BadRequest] =
                 "Invalid page, page size, filter value, or sort field/direction";
         });
@@ -55,11 +55,17 @@ public class SearchRecipesEndpoint(IMongoContext mongo)
             return;
         }
 
-        var nutritionistId = Guid.Parse(userId);
+        var scope = LibraryCallerScope.From(User, Guid.Parse(userId));
+        var nutritionistId = scope.RecipeOwnerId;
 
         var filterBuilder = Builders<Recipe>.Filter;
 
-        var filter = RecipeVisibilityFilter.BuildOwnOrPublic(nutritionistId);
+        var filter = RecipeVisibilityFilter.BuildOwnOrPublic(nutritionistId) & scope.RecipeFilter();
+
+        // Typed Guid filters only: GUIDs are stored as binary UUIDs, so a string filter would match nothing.
+        // Not(AnyEq) also matches legacy documents that have no hiddenByNutritionistIds field.
+        var hiddenByCaller = filterBuilder.AnyEq(r => r.HiddenByNutritionistIds, nutritionistId);
+        filter &= req.Hidden ? hiddenByCaller : filterBuilder.Not(hiddenByCaller);
 
         if (!string.IsNullOrWhiteSpace(req.Search))
         {

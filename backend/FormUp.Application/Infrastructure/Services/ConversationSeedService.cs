@@ -8,7 +8,7 @@ using Npgsql;
 namespace FormUp.Application.Infrastructure.Services;
 
 /// <inheritdoc cref="IConversationSeedService"/>
-public class ConversationSeedService(IApplicationDbContext db, IRealtimeNotifier notifier)
+public class ConversationSeedService(IApplicationDbContext db, IChatMessageNotifier chatMessageNotifier)
     : IConversationSeedService
 {
     /// <inheritdoc />
@@ -103,15 +103,8 @@ public class ConversationSeedService(IApplicationDbContext db, IRealtimeNotifier
         {
             var recipientUserId = senderUserId == professionalUserId ? clientUserId : professionalUserId;
 
-            await notifier.NotifyAsync(recipientUserId, "newmessage", new
-            {
-                conversationId = conversation.PublicId,
-                messageId = message!.PublicId,
-                senderId = senderUserId,
-                senderName,
-                text = message.Text,
-                timestamp = message.DateCreated,
-            }, ct);
+            await chatMessageNotifier.NotifyNewMessageAsync(
+                message!, conversation.PublicId, recipientUserId, senderName, imageUrl: null, sendPush: true, ct);
         }
 
         return conversation;
@@ -126,7 +119,8 @@ public class ConversationSeedService(IApplicationDbContext db, IRealtimeNotifier
         Guid? sourceId,
         string? messageText,
         bool createConversationIfMissing,
-        CancellationToken ct)
+        CancellationToken ct,
+        bool pushCompanionText = false)
     {
         var conversation = await db.Conversations
             .FirstOrDefaultAsync(c =>
@@ -249,7 +243,7 @@ public class ConversationSeedService(IApplicationDbContext db, IRealtimeNotifier
 
                 await AppendCooperationEventAsync(
                     professionalUserId, clientUserId, actorUserId, eventType, sourceId,
-                    messageText, createConversationIfMissing: false, ct);
+                    messageText, createConversationIfMissing: false, ct, pushCompanionText);
                 return;
             }
 
@@ -272,20 +266,9 @@ public class ConversationSeedService(IApplicationDbContext db, IRealtimeNotifier
             return;
         }
 
-        // kind/eventType are stringified explicitly — the SignalR hub's JSON protocol does
-        // not share the REST pipeline's JsonStringEnumConverter, so an unconverted enum here
-        // would serialize as an integer while every REST response sends the string name.
-        await notifier.NotifyAsync(recipientUserId, "newmessage", new
-        {
-            conversationId = conversation.PublicId,
-            messageId = lastMessage.PublicId,
-            senderId = actorUserId,
-            senderName = actorName,
-            text = lastMessage.Text,
-            timestamp = lastMessage.DateCreated,
-            kind = lastMessage.Kind.ToString(),
-            eventType = textMessage is null ? eventType.ToString() : null,
-        }, ct);
+        // One event for the last row; the Event row itself never pushes (the seam checks the kind).
+        await chatMessageNotifier.NotifyNewMessageAsync(
+            lastMessage, conversation.PublicId, recipientUserId, actorName, imageUrl: null, pushCompanionText, ct);
     }
 
     /// <summary>

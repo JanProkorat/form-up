@@ -47,8 +47,25 @@ internal sealed class CreateSubscriptionPlanValidator : Validator<CreateSubscrip
             .WithErrorCode(ErrorCodes.PerClientCheckInRequiresWeeklyCheckIns)
             .WithMessage("Per-client check-in settings require weekly check-ins.");
 
-        RuleFor(x => x.BillingInterval)
-            .IsInEnum().WithErrorCode(ErrorCodes.OutOfRange);
+        RuleFor(x => x.AnnualPriceMinorUnits)
+            .GreaterThan(0).WithErrorCode(ErrorCodes.OutOfRange)
+            .When(x => x.AnnualPriceMinorUnits.HasValue);
+
+        RuleFor(x => x)
+            .Must(x => x.Code != SubscriptionPlanCodes.Free)
+            .WithErrorCode(ErrorCodes.AnnualPriceInvalid)
+            .WithMessage("The Free plan is not sold annually.")
+            .When(x => x.AnnualPriceMinorUnits.HasValue);
+
+        RuleFor(x => x.AnnualSecondRoleAddOnPriceMinorUnits)
+            .GreaterThan(0).WithErrorCode(ErrorCodes.OutOfRange)
+            .When(x => x.AnnualSecondRoleAddOnPriceMinorUnits.HasValue);
+
+        RuleFor(x => x)
+            .Must(x => x.AnnualSecondRoleAddOnPriceMinorUnits.HasValue
+                       == (x.AnnualPriceMinorUnits.HasValue && !x.BothRolesIncluded))
+            .WithErrorCode(ErrorCodes.AnnualAddOnPriceInvalid)
+            .WithMessage("The annual add-on price is required with an annual price on a plan with a paid add-on, and not allowed otherwise.");
 
         RuleFor(x => x.Currency)
             .Matches("^[A-Z]{3}$").WithErrorCode(ErrorCodes.OutOfRange)

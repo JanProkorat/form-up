@@ -15,7 +15,7 @@ namespace FormUp.Tests.Endpoints.Users;
 /// <summary>
 /// Integration tests for <c>POST /users/me/password</c> against a real PostgreSQL instance.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class ChangePasswordEndpointIntegrationTests(FitnessApiFactory factory)
 {
     private const string OldPassword = "OldPass123!";
@@ -145,8 +145,10 @@ public class ChangePasswordEndpointIntegrationTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task Post_UserNoLongerExists_Returns404()
+    public async Task Post_UserNoLongerExists_Returns401()
     {
+        // #1517: the email-verification gate answers 401 for a valid token whose user no longer exists,
+        // so the request never reaches the endpoint's own 404 guard.
         var http = factory.CreateClient();
         var token = TestTokenFactory.CreateAccessToken(
             factory, Guid.NewGuid(), UniqueEmail(), [UserRole.Trainer.ToString()]);
@@ -155,7 +157,7 @@ public class ChangePasswordEndpointIntegrationTests(FitnessApiFactory factory)
         var response = await http.PostAsJsonAsync(
             "/users/me/password", Body(OldPassword, NewPassword), TestContext.Current.CancellationToken);
 
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     private record ChangePasswordResult(

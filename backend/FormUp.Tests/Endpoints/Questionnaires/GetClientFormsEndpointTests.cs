@@ -1,4 +1,6 @@
 using System.Net;
+using FormUp.Application.Domain.Interfaces;
+using FormUp.Application.Features.Questionnaires.Shared;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -17,7 +19,7 @@ namespace FormUp.Tests.Endpoints.Questionnaires;
 /// <summary>
 /// GET /trainer/clients/{clientPublicId}/forms: the coach's forms for a linked client, split by collaboration.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class GetClientFormsEndpointTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -161,6 +163,48 @@ public class GetClientFormsEndpointTests(FitnessApiFactory factory)
         forms.Current.Single(f => f.ResponsePublicId == answered).CheckInWeekStart.Should().Be(week);
     }
 
+    [Theory]
+    [InlineData("scale", "{\"min\":1,\"max\":5}", 5)]
+    [InlineData("scale", null, null)]
+    [InlineData("scale", "{\"min\":1}", null)]
+    [InlineData("scale", "{not json", null)]
+    [InlineData("number", "{\"min\":0,\"max\":100}", null)]
+    public async Task GetForms_NumericAnswer_ReturnsScaleMaxOnlyForAConfiguredScale(
+        string questionType, string? config, int? expectedScaleMax)
+    {
+        var (coach, client, linkId, _) = await SetupAsync(DateTime.UtcNow.AddDays(-5));
+        var form = EntityBuilder.Questionnaire
+            .WithProfessionalUserId(coach.UserId)
+            .WithQuestion(questionType, "Energy")
+            .Build();
+        var question = form.Questions.Single();
+        question.Config = config;
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            db.Questionnaires.Add(form);
+            await db.SaveChangesAsync(Ct);
+        }
+
+        var response = ResponseFor(
+            coach, client, linkId, form, QuestionnaireResponseStatus.Submitted, DateTime.UtcNow.AddDays(-1)).Build();
+        response.Answers.Add(new QuestionnaireAnswer
+        {
+            PublicId = Guid.NewGuid(),
+            QuestionId = question.Id,
+            ValueNumber = 3,
+        });
+        var responseId = await InsertAsync(response);
+
+        var forms = await GetFormsAsync(coach, client);
+
+        var answer = forms.Current.Single(f => f.ResponsePublicId == responseId).Answers.Should().ContainSingle().Subject;
+        answer.QuestionType.Should().Be(questionType);
+        answer.ValueNumber.Should().Be(3);
+        answer.ScaleMax.Should().Be(expectedScaleMax);
+    }
+
     [Fact]
     public async Task GetForms_UnansweredNonCheckInForm_NeverShowsAsMissed()
     {
@@ -228,5 +272,19 @@ public class GetClientFormsEndpointTests(FitnessApiFactory factory)
         var response = await coach.Http.GetAsync($"/trainer/clients/{Guid.NewGuid()}/forms", Ct);
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task GetForms_FileAnswer_ReturnsSignedUrlNotTheStoredValue()
+    {
+        var scenario = await QuestionnaireAnswerScenario.CreateAsync(
+            factory, [new("file", QuestionTypes.FileUpload)], status: QuestionnaireResponseStatus.Submitted);
+        var storedUrl = QuestionnaireFilePolicy.BuildFinalContainerPath(scenario.ResponsePublicId, Guid.NewGuid(), "png");
+        await scenario.AddFileAnswerAsync(factory, "file", storedUrl);
+
+        var forms = await GetFormsAsync(scenario.Coach, scenario.Client);
+
+        forms.Current.Should().ContainSingle()
+            .Which.Answers.Should().ContainSingle().Which.FileUrl.Should().Be($"{storedUrl}?signed=test");
     }
 }

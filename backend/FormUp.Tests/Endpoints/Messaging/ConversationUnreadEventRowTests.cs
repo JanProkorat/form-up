@@ -10,7 +10,7 @@ namespace FormUp.Tests.Endpoints.Messaging;
 /// A cooperation event row never counts as unread, so an invite or request that comes with a
 /// message counts once. The four unread computations must agree.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class ConversationUnreadEventRowTests(FitnessApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

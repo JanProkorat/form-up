@@ -16,7 +16,7 @@ namespace FormUp.Tests.Endpoints.Automations;
 /// <summary>
 /// Integration tests for the global automation rule endpoints under <c>/trainer/automations/rules</c>.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class AutomationRuleEndpointTests(FitnessApiFactory factory)
 {
     private static readonly CancellationToken Ct = TestContext.Current.CancellationToken;

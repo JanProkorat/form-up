@@ -16,7 +16,7 @@ namespace FormUp.Tests.Endpoints.Messaging;
 /// link / conversation / check-in dimensions of <c>ConversationRosterLoader</c>; the plan dimension
 /// is pinned by <c>PlanAuthorFilterIntegrationTests</c>.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class ConversationRosterLoaderCrossTenantTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };

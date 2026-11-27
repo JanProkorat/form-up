@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FormUp.Application.Domain.Constants;
+using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Extensions;
 using FormUp.Application.Domain.Services;
 using FormUp.Application.Infrastructure.Data;
@@ -31,6 +32,8 @@ internal sealed class DisableCoachAccountByAdminEndpoint(IApplicationDbContext d
             s.Response(StatusCodes.Status401Unauthorized, "Missing or invalid credentials");
             s.Response(StatusCodes.Status403Forbidden, "Caller is not an Admin");
             s.Response(StatusCodes.Status404NotFound, "The coach is unknown (PROFESSIONAL_NOT_FOUND)");
+            s.Response(StatusCodes.Status502BadGateway, "Stripe failed; nothing was saved (BILLING_PROVIDER_ERROR)");
+            s.Response(StatusCodes.Status503ServiceUnavailable, "The coach has a live Stripe subscription and Stripe is not configured on this server (BILLING_NOT_CONFIGURED)");
         });
     }
 
@@ -56,6 +59,18 @@ internal sealed class DisableCoachAccountByAdminEndpoint(IApplicationDbContext d
         if (result is null)
         {
             this.ThrowErrorWithCode(ErrorCodes.NoActiveCoachRole, "The coach has no active coach role.");
+            return;
+        }
+
+        if (result.Failure is { } failure)
+        {
+            await this.SendProblemAsync(
+                failure == CoachAccountDisableFailure.NotConfigured
+                    ? StatusCodes.Status503ServiceUnavailable
+                    : StatusCodes.Status502BadGateway,
+                failure == CoachAccountDisableFailure.NotConfigured ? ErrorCodes.BillingNotConfigured : ErrorCodes.BillingProviderError,
+                failure == CoachAccountDisableFailure.NotConfigured ? "Billing is not configured." : "The payment provider failed.",
+                ct);
             return;
         }
 

@@ -18,7 +18,7 @@ namespace FormUp.Tests.Endpoints.ClientPayments;
 /// <summary>
 /// Integration tests for PUT /payments/clients/{ClientId}/terms.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class SetClientPaymentTermsEndpointTests(FitnessApiFactory factory)
 {
     [Fact]

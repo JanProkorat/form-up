@@ -143,6 +143,8 @@ public abstract class ResetEndpointFactoryBase(SharedTestContainers sharedContai
         _postgresConnectionString = await sharedContainers.CreatePostgresDatabaseAsync(GetType().Name);
         _mongoDatabaseName = SharedTestContainers.CreateMongoDatabaseName(GetType().Name);
 
+        FastEndpointsBootGate.Start(this);
+
         // Apply migrations + seed roles (not QA users — the reset endpoint handles that)
         await ApplicationDbContextSeed.SeedAsync(Services);
     }
@@ -201,7 +203,8 @@ public class ResetEndpointProductionFactory(SharedTestContainers sharedContainer
 /// call performs a full drop-schema/drop-collections wipe as its first action,
 /// so no fact ever depends on state left behind by a previous one.
 /// </summary>
-[CollectionDefinition("ResetTests")]
+// Sets QA_SEED_PASSWORD and runs QaSeedRunner, which reads process-wide env vars; run alone.
+[CollectionDefinition("ResetTests", DisableParallelization = true)]
 public class ResetTestsCollection :
     ICollectionFixture<ResetEndpointEnabledFactory>,
     ICollectionFixture<ResetEndpointDisabledFactory>,

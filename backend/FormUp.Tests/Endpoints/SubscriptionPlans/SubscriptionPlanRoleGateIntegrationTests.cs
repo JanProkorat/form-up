@@ -11,7 +11,7 @@ namespace FormUp.Tests.Endpoints.SubscriptionPlans;
 /// this is the only place the <c>Roles(AppRoles.Admin)</c> gate is actually proven — same
 /// precedent as <c>SessionTemplateRoleGateIntegrationTests</c>.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class SubscriptionPlanRoleGateIntegrationTests(FitnessApiFactory factory)
 {
     private static string UniqueEmail(string tag) => $"{Guid.NewGuid():N}@subscriptionplan-rolegate-{tag}.com";

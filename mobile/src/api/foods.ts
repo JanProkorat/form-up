@@ -16,7 +16,7 @@ export function fetchFood(foodId: string, signal?: AbortSignal): Promise<FoodSum
 
 /** Foods matching a name (GET /foods/search), without any category, tag or owner filter. */
 export function searchFoods(term: string, signal?: AbortSignal): Promise<SearchFoodsResponse> {
-  return api.searchFoodsEndpoint([], [], [], 1, FOOD_SEARCH_PAGE_SIZE, term, undefined, undefined, signal);
+  return api.searchFoodsEndpoint([], [], [], false, 1, FOOD_SEARCH_PAGE_SIZE, term, undefined, undefined, signal);
 }
 
 /** The food's name in the app language, falling back to the resolved name. */

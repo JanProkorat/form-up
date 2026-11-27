@@ -44,8 +44,11 @@ public class RemovedCoachRoleGateArchitectureTests(FitnessApiFactory factory)
 
     private static bool IsSingleDisciplineWrite(string[] methods, string[] roles) =>
         methods.Any(m => !ReadMethods.Contains(m, StringComparer.OrdinalIgnoreCase))
-        && roles.Length == 1
-        && roles[0] is AppRoles.Trainer or AppRoles.Nutritionist;
+        && roles.Count(role => role != AppRoles.Admin) == 1
+        && roles.Length <= (roles.Contains(AppRoles.Admin) ? 2 : 1)
+        && roles.Single(role => role != AppRoles.Admin) is AppRoles.Trainer or AppRoles.Nutritionist;
+
+    private static string SingleRole(string[] roles) => roles.Single(role => role != AppRoles.Admin);
 
     private static bool IsDualDisciplineWrite(string[] methods, string[] roles) =>
         methods.Any(m => !ReadMethods.Contains(m, StringComparer.OrdinalIgnoreCase))
@@ -67,9 +70,9 @@ public class RemovedCoachRoleGateArchitectureTests(FitnessApiFactory factory)
             {
                 violations.Add($"{label} has no [RemovedCoachRole]");
             }
-            else if (attribute.Role != roles[0])
+            else if (attribute.Role != SingleRole(roles))
             {
-                violations.Add($"{label} declares {attribute.Role} but is gated to {roles[0]}");
+                violations.Add($"{label} declares {attribute.Role} but is gated to {SingleRole(roles)}");
             }
             else if (attribute.Mode == RemovedCoachRoleMode.Exempt && string.IsNullOrWhiteSpace(attribute.Reason))
             {
@@ -122,16 +125,21 @@ public class RemovedCoachRoleGateArchitectureTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public void NoWrite_IsGatedToOneCoachRolePlusAdmin()
+    public void OneCoachRolePlusAdminWrites_AreTheReviewedLibraryEndpoints_AndGatedAsSingleDiscipline()
     {
-        var uncovered = Endpoints()
+        var libraryWrites = Endpoints()
             .Where(e => e.Methods.Any(m => !ReadMethods.Contains(m, StringComparer.OrdinalIgnoreCase)))
             .Where(e => e.Roles.Contains(AppRoles.Trainer) != e.Roles.Contains(AppRoles.Nutritionist))
             .Where(e => e.Roles.Contains(AppRoles.Admin) && !e.Roles.Contains(AppRoles.Client))
-            .Select(e => $"{string.Join('/', e.Methods)} {e.Endpoint.RoutePattern.RawText} ({e.Type.Name})")
             .ToList();
 
-        uncovered.Should().BeEmpty("a write gated to one coach role plus Admin matches neither attribute form, so the gate leaves it open without anyone deciding it");
+        libraryWrites.Should().OnlyContain(
+            e => IsSingleDisciplineWrite(e.Methods, e.Roles),
+            "the gate must recognise one coach role plus Admin as a single-discipline write, or it leaves it open");
+
+        // Recipes 8 + foods 8 (Nutritionist), exercises 4 (Trainer).
+        libraryWrites.Count(e => SingleRole(e.Roles) == AppRoles.Nutritionist).Should().Be(16);
+        libraryWrites.Count(e => SingleRole(e.Roles) == AppRoles.Trainer).Should().Be(4);
     }
 
     [Fact]
@@ -139,17 +147,17 @@ public class RemovedCoachRoleGateArchitectureTests(FitnessApiFactory factory)
     {
         var counts = Endpoints()
             .Where(e => IsSingleDisciplineWrite(e.Methods, e.Roles))
-            .Select(e => (Role: e.Roles[0], Mode: e.Type.GetCustomAttribute<RemovedCoachRoleAttribute>()!.Mode))
+            .Select(e => (Role: SingleRole(e.Roles), Mode: e.Type.GetCustomAttribute<RemovedCoachRoleAttribute>()!.Mode))
             .GroupBy(e => e)
             .ToDictionary(g => g.Key, g => g.Count());
 
         counts.GetValueOrDefault((AppRoles.Trainer, RemovedCoachRoleMode.Refuse)).Should().Be(22);
         counts.GetValueOrDefault((AppRoles.Trainer, RemovedCoachRoleMode.WhilePlanInProgress)).Should().Be(8);
         counts.GetValueOrDefault((AppRoles.Trainer, RemovedCoachRoleMode.Exempt)).Should().Be(0);
-        counts.GetValueOrDefault((AppRoles.Nutritionist, RemovedCoachRoleMode.Refuse)).Should().Be(34);
+        counts.GetValueOrDefault((AppRoles.Nutritionist, RemovedCoachRoleMode.Refuse)).Should().Be(40);
         counts.GetValueOrDefault((AppRoles.Nutritionist, RemovedCoachRoleMode.WhilePlanInProgress)).Should().Be(5);
         counts.GetValueOrDefault((AppRoles.Nutritionist, RemovedCoachRoleMode.Exempt)).Should().Be(1);
-        counts.Values.Sum().Should().Be(70);
+        counts.Values.Sum().Should().Be(76);
     }
 
     [Fact]
@@ -160,8 +168,8 @@ public class RemovedCoachRoleGateArchitectureTests(FitnessApiFactory factory)
             .GroupBy(e => e.Type.GetCustomAttribute<RemovedCoachRoleAttribute>()!.Mode)
             .ToDictionary(g => g.Key, g => g.Count());
 
-        counts.GetValueOrDefault(RemovedCoachRoleMode.Refuse).Should().Be(47);
-        counts.GetValueOrDefault(RemovedCoachRoleMode.Exempt).Should().Be(11);
-        counts.Values.Sum().Should().Be(58);
+        counts.GetValueOrDefault(RemovedCoachRoleMode.Refuse).Should().Be(56);
+        counts.GetValueOrDefault(RemovedCoachRoleMode.Exempt).Should().Be(12);
+        counts.Values.Sum().Should().Be(68);
     }
 }

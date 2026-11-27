@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using FastEndpoints;
+using FormUp.Application.Domain.Services;
 using FormUp.Application.Domain.Documents;
 using FormUp.Application.Features.Exercises.Shared;
 using FormUp.Application.Infrastructure.Data.MongoDb;
@@ -31,7 +32,8 @@ public class SearchExercisesEndpoint(IMongoContext mongo) : Endpoint<SearchExerc
         var language = HttpContext.Request.Headers.AcceptLanguage.FirstOrDefault()?.Split(',').FirstOrDefault()?.Split('-').FirstOrDefault();
 
         var filterBuilder = Builders<Exercise>.Filter;
-        var filter = filterBuilder.Eq(e => e.IsActive, true);
+        var filter = filterBuilder.Eq(e => e.IsActive, true)
+            & LibraryCallerScope.From(User, Guid.Empty).ExerciseFilter();
 
         if (!string.IsNullOrWhiteSpace(req.Query))
         {

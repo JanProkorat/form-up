@@ -7,7 +7,7 @@
 # Networking:
 #   All services join the project-scoped `qa-net` network. `api` and
 #   `mailhog-test` publish ephemeral host ports; `minio-test` publishes a
-#   FIXED one (E2E_MINIO_HOST_PORT, default 59000) because presigned URLs
+#   FIXED one (E2E_MINIO_HOST_PORT, default 29000) because presigned URLs
 #   handed to the browser must name it — see that service. web and
 #   playwright talk to api via internal DNS — they MUST NOT publish host
 #   ports of their own, or parallel runs collide on host :5173.
@@ -83,9 +83,11 @@ services:
     # address into presigned upload/read URLs at boot (MinIO__PresignEndpoint
     # below), and a host-run browser — local Playwright and CI's host suite —
     # cannot resolve minio-test. Two stacks running at once need different
-    # E2E_MINIO_HOST_PORT values or the second one fails to bind.
+    # E2E_MINIO_HOST_PORT values or the second one fails to bind. Keep the
+    # default below 32768: Linux hands out 32768–60999 as ephemeral ports, and
+    # the old 59000 lost that race on a CI runner.
     ports:
-      - "${E2E_MINIO_HOST_PORT:-59000}:9000"
+      - "${E2E_MINIO_HOST_PORT:-29000}:9000"
     networks:
       - qa-net
     healthcheck:
@@ -217,7 +219,7 @@ services:
       # Presigned URLs are handed to the BROWSER, so they must name a host it
       # can reach — see the port note on minio-test. Server-side calls keep
       # using MinIO__Endpoint inside the network.
-      MinIO__PresignEndpoint: "localhost:${E2E_MINIO_HOST_PORT:-59000}"
+      MinIO__PresignEndpoint: "localhost:${E2E_MINIO_HOST_PORT:-29000}"
       MinIO__ManageBucket: "true"
       MinIO__PublicUrlIncludesBucket: "true"
       MinIO__AccessKey: "minioadmin"

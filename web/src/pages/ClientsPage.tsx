@@ -185,9 +185,6 @@ export default function ClientsPage() {
     });
   }
 
-  // The All tab lists the waiting invites and requests under the clients; with none waiting it shows no section.
-  const showPendingSection =
-    filters.tab === 'All' && (pendingQuery.isPending || pendingQuery.isError || (pendingQuery.data ?? []).length > 0);
   const tabCounts = clientsQuery.data?.tabCounts;
   const subscription = useSubscription();
   const choicePending = subscription.isCoach && subscription.keepClientsChoiceRequired;
@@ -292,7 +289,6 @@ export default function ClientsPage() {
           onRetry={() => void pendingQuery.refetch()}
         />
       ) : (
-        <>
         <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-selection-bar">
           <ClientsTable
             clients={clientsQuery.data?.clients ?? []}
@@ -314,22 +310,6 @@ export default function ClientsPage() {
             onPageChange={setPage}
           />
         </div>
-        {showPendingSection && (
-          <section aria-labelledby="clients-waiting-heading" className="flex flex-col gap-2">
-            <h2 id="clients-waiting-heading" className="text-label font-bold tracking-label text-ink-2 uppercase">
-              {t('clients.tabs.pending')}
-            </h2>
-            <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-selection-bar">
-              <PendingTable
-                rows={pendingQuery.data ?? []}
-                isPending={pendingQuery.isPending}
-                isError={pendingQuery.isError}
-                onRetry={() => void pendingQuery.refetch()}
-              />
-            </div>
-          </section>
-        )}
-        </>
       )}
 
       <ClientSelectionBar

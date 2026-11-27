@@ -85,7 +85,8 @@ public static class EntitlementGateExtensions
     }
 
     /// <summary>
-    /// Answers 403 <see cref="ErrorCodes.SubscriptionRequired"/> when the user may not hold a second professional role.
+    /// Answers 403 <see cref="ErrorCodes.SubscriptionRequired"/> unless the second role is included or already paid;
+    /// an add-on that can still be bought does not pass the free path.
     /// </summary>
     /// <param name="endpoint">The endpoint instance.</param>
     /// <param name="db">Application database context.</param>
@@ -97,7 +98,7 @@ public static class EntitlementGateExtensions
         var state = await endpoint.ResolveEntitlementService(db).GetSecondRoleStateForUserAsync(userId, ct);
 
         return await endpoint.RespondIfNotEntitledAsync(
-            state != SecondRoleState.NotAvailable,
+            state is SecondRoleState.Included or SecondRoleState.PaidAddOn,
             "The current subscription does not include a second professional role.",
             ct);
     }

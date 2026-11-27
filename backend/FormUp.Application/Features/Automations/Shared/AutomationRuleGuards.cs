@@ -93,6 +93,55 @@ public static class AutomationRuleGuards
     }
 
     /// <summary>
+    /// Resolves the check-in form a per-client override picks: a coded 404 when it is not one of the
+    /// caller's forms, a coded 400 when it is inactive or not a check-in form. A form equal to the rule's
+    /// own resolves to a null id, since the client then simply follows the rule.
+    /// </summary>
+    /// <param name="endpoint">The endpoint instance.</param>
+    /// <param name="db">Application database context.</param>
+    /// <param name="userId">The caller's user id.</param>
+    /// <param name="questionnairePublicId">Public id of the picked form.</param>
+    /// <param name="ruleQuestionnaireId">Internal id of the rule's own form.</param>
+    /// <param name="ct">Cancellation token.</param>
+    public static async Task<(bool Ok, long? QuestionnaireId)> ResolveOverrideCheckInFormOrRespondAsync(
+        this IEndpoint endpoint,
+        IApplicationDbContext db,
+        Guid userId,
+        Guid questionnairePublicId,
+        long? ruleQuestionnaireId,
+        CancellationToken ct)
+    {
+        var questionnaire = await db.Questionnaires
+            .AsNoTracking()
+            .Where(q => q.PublicId == questionnairePublicId && q.ProfessionalId == userId)
+            .Select(q => new { q.Id, q.IsActive, q.Type })
+            .FirstOrDefaultAsync(ct);
+
+        if (questionnaire is null)
+        {
+            await endpoint.SendProblemAsync(
+                StatusCodes.Status404NotFound,
+                ErrorCodes.AutomationQuestionnaireNotFound,
+                "Questionnaire not found.",
+                ct);
+            return (false, null);
+        }
+
+        if (!AutomationQuestionnaireUsability.IsUsable(questionnaire.IsActive)
+            || !AutomationQuestionnaireUsability.IsCheckInForm(questionnaire.Type))
+        {
+            await endpoint.SendProblemAsync(
+                StatusCodes.Status400BadRequest,
+                ErrorCodes.AutomationQuestionnaireNotUsable,
+                "The questionnaire must be an active check-in form.",
+                ct);
+            return (false, null);
+        }
+
+        return (true, questionnaire.Id == ruleQuestionnaireId ? null : questionnaire.Id);
+    }
+
+    /// <summary>
     /// A check-in rule needs a weekday, a local time and an answer window on a weekly schedule; any other
     /// rule carries none of the check-in fields. Answers a coded 400 and returns true when that is not so.
     /// </summary>

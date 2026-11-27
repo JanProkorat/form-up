@@ -10,7 +10,7 @@ namespace FormUp.Tests.Endpoints.ClientNutrition;
 /// Integration tests (real MongoDB) for the client recipe-visibility rule on
 /// <c>GET /client/recipes/{RecipeId}</c>.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class GetRecipeDetailEndpointTests(FitnessApiFactory factory)
 {
     private static readonly DateTime Start = ClientNutritionFixtures.CurrentWeekMondayUtc();

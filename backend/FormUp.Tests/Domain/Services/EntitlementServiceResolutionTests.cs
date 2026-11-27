@@ -47,16 +47,32 @@ public class EntitlementServiceResolutionTests
         long profileId = ProfileId,
         DateTimeOffset? freeUntil = null,
         bool paysSecondRoleAddOn = false,
-        DateTimeOffset? givenFreeAt = null) => new()
+        DateTimeOffset? givenFreeAt = null,
+        long? addOnPriceMinorUnits = null,
+        bool live = false,
+        bool cancelAtPeriodEnd = false,
+        long? pendingPriceId = null) => new()
     {
         ProfessionalProfileId = profileId,
         SubscriptionPlanId = plan.Id,
         SubscriptionPlanPriceId = 1,
         SubscriptionPlan = plan,
+        SubscriptionPlanPrice = addOnPriceMinorUnits is null
+            ? null!
+            : new SubscriptionPlanPrice
+            {
+                SubscriptionPlanId = plan.Id,
+                Currency = "CZK",
+                SecondRoleAddOnPriceMinorUnits = addOnPriceMinorUnits,
+            },
         Status = status,
         FreeUntil = freeUntil,
         GivenFreeAt = givenFreeAt,
         PaysSecondRoleAddOn = paysSecondRoleAddOn,
+        ExternalCustomerId = live ? "cus_test" : null,
+        ExternalSubscriptionId = live ? "sub_test" : null,
+        CancelAtPeriodEnd = cancelAtPeriodEnd,
+        PendingSubscriptionPlanPriceId = pendingPriceId,
     };
 
     private static ClientProfessionalLink Link(long clientProfileId, bool isActive = true, long profileId = ProfileId) => new()
@@ -186,6 +202,112 @@ public class EntitlementServiceResolutionTests
         var state = await service.GetSecondRoleStateAsync(ProfileId, TestContext.Current.CancellationToken);
 
         state.Should().Be(expected);
+    }
+
+    [Fact]
+    public async Task GetSecondRoleStateAsync_LiveSubscriptionWithAnAddOnPrice_IsPurchasable()
+    {
+        var start = Plan(2, "start", bothRolesIncluded: false);
+        var service = CreateService(
+            [Plan(1, "free"), start],
+            [Subscription(start, SubscriptionStatus.Active, addOnPriceMinorUnits: 9900, live: true)]);
+
+        (await service.GetSecondRoleStateAsync(ProfileId, TestContext.Current.CancellationToken))
+            .Should().Be(SecondRoleState.Purchasable);
+    }
+
+    [Theory]
+    [InlineData(SubscriptionStatus.Trialing, true)]
+    [InlineData(SubscriptionStatus.PastDue, true)]
+    [InlineData(SubscriptionStatus.Canceled, false)]
+    [InlineData(SubscriptionStatus.Incomplete, false)]
+    public async Task GetSecondRoleStateAsync_Status_IsPurchasableOnlyWhileTheSubscriptionIsLive(
+        SubscriptionStatus status, bool purchasable)
+    {
+        var start = Plan(2, "start", bothRolesIncluded: false);
+        var service = CreateService(
+            [Plan(1, "free"), start], [Subscription(start, status, addOnPriceMinorUnits: 9900, live: true)]);
+
+        var state = await service.GetSecondRoleStateAsync(ProfileId, TestContext.Current.CancellationToken);
+
+        (state == SecondRoleState.Purchasable).Should().Be(purchasable);
+    }
+
+    [Theory]
+    [InlineData("noProviderIds")]
+    [InlineData("noAddOnPrice")]
+    [InlineData("zeroAddOnPrice")]
+    [InlineData("noPriceRow")]
+    [InlineData("endedGiftAwaitingChoice")]
+    [InlineData("pendingPlanChange")]
+    [InlineData("cancelAtPeriodEnd")]
+    public async Task GetSecondRoleStateAsync_PurchaseNotPossible_IsNotAvailable(string blocker)
+    {
+        var start = Plan(2, "start", bothRolesIncluded: false);
+        var subscription = Subscription(
+            start,
+            SubscriptionStatus.Active,
+            addOnPriceMinorUnits: blocker switch
+            {
+                "noAddOnPrice" => null,
+                "noPriceRow" => null,
+                "zeroAddOnPrice" => 0,
+                _ => 9900,
+            },
+            live: blocker != "noProviderIds",
+            cancelAtPeriodEnd: blocker == "cancelAtPeriodEnd",
+            pendingPriceId: blocker == "pendingPlanChange" ? 5 : null,
+            givenFreeAt: blocker == "endedGiftAwaitingChoice" ? Now.AddDays(-10) : null,
+            freeUntil: blocker == "endedGiftAwaitingChoice" ? Now.AddDays(-1) : null);
+        var service = CreateService([Plan(1, "free"), start], [subscription]);
+
+        (await service.GetSecondRoleStateAsync(ProfileId, TestContext.Current.CancellationToken))
+            .Should().Be(SecondRoleState.NotAvailable);
+    }
+
+    [Theory]
+    [InlineData(5, SecondRoleState.Included)]
+    [InlineData(null, SecondRoleState.Included)]
+    [InlineData(-1, SecondRoleState.NotAvailable)]
+    public async Task GetSecondRoleStateAsync_GivenSingleRolePlan_IsIncludedOnlyWhileTheGiftIsInForce(
+        int? freeUntilDaysFromNow, SecondRoleState expected)
+    {
+        var start = Plan(2, "start", bothRolesIncluded: false);
+        var subscription = Subscription(
+            start,
+            SubscriptionStatus.Active,
+            givenFreeAt: Now.AddDays(-10),
+            freeUntil: freeUntilDaysFromNow is null ? null : Now.AddDays(freeUntilDaysFromNow.Value));
+        var service = CreateService([Plan(1, "free"), start], [subscription]);
+
+        (await service.GetSecondRoleStateAsync(ProfileId, TestContext.Current.CancellationToken)).Should().Be(expected);
+    }
+
+    [Fact]
+    public async Task GetSecondRoleStateAsync_PaidSingleRolePlanWithoutAGift_IsUnchanged()
+    {
+        var start = Plan(2, "start", bothRolesIncluded: false);
+        var service = CreateService([Plan(1, "free"), start], [Subscription(start, SubscriptionStatus.Active)]);
+
+        (await service.GetSecondRoleStateAsync(ProfileId, TestContext.Current.CancellationToken))
+            .Should().Be(SecondRoleState.NotAvailable);
+    }
+
+    [Fact]
+    public async Task GetSecondRoleStateAsync_PaidAddOnOrBothRolesIncluded_WinsOverPurchasable()
+    {
+        var start = Plan(2, "start", bothRolesIncluded: false);
+        var pro = Plan(3, "pro", bothRolesIncluded: true);
+
+        var paid = CreateService(
+            [Plan(1, "free"), start],
+            [Subscription(start, SubscriptionStatus.Active, paysSecondRoleAddOn: true, addOnPriceMinorUnits: 9900, live: true)]);
+        var included = CreateService(
+            [Plan(1, "free"), pro],
+            [Subscription(pro, SubscriptionStatus.Active, addOnPriceMinorUnits: 9900, live: true)]);
+
+        (await paid.GetSecondRoleStateAsync(ProfileId, TestContext.Current.CancellationToken)).Should().Be(SecondRoleState.PaidAddOn);
+        (await included.GetSecondRoleStateAsync(ProfileId, TestContext.Current.CancellationToken)).Should().Be(SecondRoleState.Included);
     }
 
     [Fact]

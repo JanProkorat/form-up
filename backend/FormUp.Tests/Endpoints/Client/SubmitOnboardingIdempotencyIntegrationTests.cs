@@ -20,7 +20,7 @@ namespace FormUp.Tests.Endpoints.Client;
 /// <c>ClientOnboardingDataId</c> is the thing actually being tested, so it needs a real
 /// database, not a mock that would silently accept two rows.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class SubmitOnboardingIdempotencyIntegrationTests(FitnessApiFactory factory)
 {
     private static string UniqueEmail() => $"{Guid.NewGuid():N}@onboarding-idempotency.com";

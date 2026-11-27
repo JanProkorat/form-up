@@ -14,7 +14,7 @@ namespace FormUp.Tests.Endpoints.WeeklyCheckIns;
 /// Integration tests for POST /trainer/weekly-check-ins/{id}/mark-reviewed, which stamps the check-in's
 /// form response. Uses Testcontainers PostgreSQL (Docker required).
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class MarkCheckInReviewedEndpointTests(FitnessApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

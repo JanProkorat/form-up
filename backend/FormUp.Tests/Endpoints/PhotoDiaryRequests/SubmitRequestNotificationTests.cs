@@ -16,7 +16,7 @@ namespace FormUp.Tests.Endpoints.PhotoDiaryRequests;
 /// The coach's in-app notice and email when a client submits a photo request
 /// (POST /client/photo-diary-requests/{id}/submit).
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class SubmitRequestNotificationTests(FitnessApiFactory factory)
 {
     private async Task<(Actor Coach, Actor Client, Guid RequestId)> SeedAsync(

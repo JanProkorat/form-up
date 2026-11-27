@@ -4,6 +4,7 @@ using FormUp.Application.Infrastructure.Data;
 using FormUp.Tests.Infrastructure;
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace FormUp.Tests.Builders;
@@ -107,7 +108,7 @@ public sealed class ActorBuilder(FitnessApiFactory factory, UserRole[] roles)
     private string _firstName = "Test";
     private string _lastName = "Actor";
     private UserRole[] _removedRoles = [];
-    private bool _emailConfirmed;
+    private bool _emailConfirmed = true;
     private DateTime? _dateCreated;
     private bool _withPayments;
 
@@ -136,9 +137,14 @@ public sealed class ActorBuilder(FitnessApiFactory factory, UserRole[] roles)
     public ActorBuilder WithLanguage(string language) { _language = language; return this; }
 
     /// <summary>
-    /// Marks the actor's email as verified (the default is unverified).
+    /// Marks the actor's email as verified (already the default, since the server blocks unverified accounts).
     /// </summary>
     public ActorBuilder Verified() { _emailConfirmed = true; return this; }
+
+    /// <summary>
+    /// Leaves the actor's email unconfirmed, for tests of the verification flow and of the email gate.
+    /// </summary>
+    public ActorBuilder Unverified() { _emailConfirmed = false; return this; }
 
     /// <summary>
     /// Overrides the account creation timestamp (default is now).
@@ -172,7 +178,6 @@ public sealed class ActorBuilder(FitnessApiFactory factory, UserRole[] roles)
     public async Task<Actor> CreateAsync(CancellationToken ct = default)
     {
         using var scope = factory.Services.CreateScope();
-        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
         var user = EntityBuilder.User
@@ -185,16 +190,36 @@ public sealed class ActorBuilder(FitnessApiFactory factory, UserRole[] roles)
 
         user.Language = _language;
 
-        var createResult = _password is null
-            ? await userManager.CreateAsync(user)
-            : await userManager.CreateAsync(user, _password);
-        createResult.Succeeded.Should().BeTrue(
-            $"actor creation failed: {string.Join(", ", createResult.Errors.Select(e => e.Description))}");
-
         var roleNames = roles.Select(r => r.ToString()).ToArray();
-        var roleResult = await userManager.AddToRolesAsync(user, roleNames);
-        roleResult.Succeeded.Should().BeTrue(
-            $"role assignment failed: {string.Join(", ", roleResult.Errors.Select(e => e.Description))}");
+
+        if (_password is null)
+        {
+            // No password to hash, so write the user, its roles and its profile in one round trip, with the
+            // same normalized names and stamps UserManager would set.
+            var normalizer = scope.ServiceProvider.GetRequiredService<ILookupNormalizer>();
+            user.NormalizedUserName = normalizer.NormalizeName(user.UserName);
+            user.NormalizedEmail = normalizer.NormalizeEmail(user.Email);
+            user.SecurityStamp = Guid.NewGuid().ToString();
+            user.ConcurrencyStamp = Guid.NewGuid().ToString();
+            db.Users.Add(user);
+
+            var roleIds = await RoleIdsAsync(factory, db, ct);
+            foreach (var roleName in roleNames)
+            {
+                db.UserRoles.Add(new IdentityUserRole<Guid> { UserId = user.Id, RoleId = roleIds[roleName] });
+            }
+        }
+        else
+        {
+            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var createResult = await userManager.CreateAsync(user, _password);
+            createResult.Succeeded.Should().BeTrue(
+                $"actor creation failed: {string.Join(", ", createResult.Errors.Select(e => e.Description))}");
+
+            var roleResult = await userManager.AddToRolesAsync(user, roleNames);
+            roleResult.Succeeded.Should().BeTrue(
+                $"role assignment failed: {string.Join(", ", roleResult.Errors.Select(e => e.Description))}");
+        }
 
         long profileId;
         Guid publicId;
@@ -234,6 +259,23 @@ public sealed class ActorBuilder(FitnessApiFactory factory, UserRole[] roles)
         }
 
         return actor;
+    }
+
+    /// <summary>The seeded role ids of each host's database, read once per host (roles are never wiped on it).</summary>
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<FitnessApiFactory, Dictionary<string, Guid>> RoleIdsByHost = new();
+
+    private static async Task<Dictionary<string, Guid>> RoleIdsAsync(
+        FitnessApiFactory host, ApplicationDbContext db, CancellationToken ct)
+    {
+        if (RoleIdsByHost.TryGetValue(host, out var cached))
+        {
+            return cached;
+        }
+
+        var roleIds = await db.Roles.AsNoTracking().ToDictionaryAsync(role => role.Name!, role => role.Id, ct);
+        RoleIdsByHost.AddOrUpdate(host, roleIds);
+
+        return roleIds;
     }
 }
 

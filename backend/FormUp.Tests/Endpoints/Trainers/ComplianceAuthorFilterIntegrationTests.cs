@@ -20,7 +20,7 @@ namespace FormUp.Tests.Endpoints.Trainers;
 /// wrote; another coach's plan for the same client must not move them. Real Mongo, because the
 /// mock harness ignores filters.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class ComplianceAuthorFilterIntegrationTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions JsonOptions = new()

@@ -19,7 +19,7 @@ namespace FormUp.Tests.Services;
 /// <see cref="NotificationEmailGroupingScheduler"/>. Tests drive <c>RunDueNowAsync</c> with explicit instants
 /// taken from the stored burst, so nothing waits for the hosted loop.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class NotificationEmailGroupingSchedulerTests(FitnessApiFactory factory) : IAsyncLifetime
 {
     private const string Marker = "ZQX-private-marker-7731";

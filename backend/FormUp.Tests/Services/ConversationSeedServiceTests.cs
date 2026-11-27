@@ -6,6 +6,7 @@ using FormUp.Application.Infrastructure.Services;
 using FormUp.Tests.Builders;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using MockQueryable.NSubstitute;
 using Npgsql;
 using NSubstitute;
@@ -23,6 +24,12 @@ namespace FormUp.Tests.Services;
 public class ConversationSeedServiceTests
 {
     private readonly IRealtimeNotifier _notifier = Substitute.For<IRealtimeNotifier>();
+    private readonly INotificationService _notificationService = Substitute.For<INotificationService>();
+
+    /// <summary>Real <see cref="ChatMessageNotifier"/> over the substituted transports.</summary>
+    private ConversationSeedService NewService(IApplicationDbContext db) =>
+        new(db, new ChatMessageNotifier(
+            _notifier, _notificationService, new PresenceTracker(), NullLogger<ChatMessageNotifier>.Instance));
 
     private static ApplicationUser MakeUser(Guid id, string firstName, string lastName, string? language = "en") =>
         new()
@@ -40,7 +47,7 @@ public class ConversationSeedServiceTests
         var clientId = Guid.NewGuid();
 
         var db = new MockDbBuilder().Build();
-        var service = new ConversationSeedService(db, _notifier);
+        var service = NewService(db);
 
         var conversation = await service.GetOrSeedConversationAsync(
             professionalId, clientId, professionalId, "Coach Carl", "Welcome aboard!",
@@ -70,7 +77,7 @@ public class ConversationSeedServiceTests
         var clientId = Guid.NewGuid();
 
         var db = new MockDbBuilder().Build();
-        var service = new ConversationSeedService(db, _notifier);
+        var service = NewService(db);
 
         var conversation = await service.GetOrSeedConversationAsync(
             professionalId, clientId, professionalId, "Coach Carl", null,
@@ -102,7 +109,7 @@ public class ConversationSeedServiceTests
         };
 
         var db = new MockDbBuilder().With(existingConversation).Build();
-        var service = new ConversationSeedService(db, _notifier);
+        var service = NewService(db);
 
         var conversation = await service.GetOrSeedConversationAsync(
             professionalId, clientId, professionalId, "Coach Carl", "Welcome aboard!",
@@ -137,7 +144,7 @@ public class ConversationSeedServiceTests
         };
 
         var db = new MockDbBuilder().With(existingConversation).Build();
-        var service = new ConversationSeedService(db, _notifier);
+        var service = NewService(db);
 
         var conversation = await service.GetOrSeedConversationAsync(
             professionalId, clientId, professionalId, "Coach Carl", "Great to reconnect!",
@@ -194,7 +201,7 @@ public class ConversationSeedServiceTests
             throw new DbUpdateException("conflict", pgEx);
         });
 
-        var service = new ConversationSeedService(db, _notifier);
+        var service = NewService(db);
 
         var conversation = await service.GetOrSeedConversationAsync(
             professionalId, clientId, professionalId, "Coach Carl", "Welcome aboard!",
@@ -215,7 +222,7 @@ public class ConversationSeedServiceTests
         var client = MakeUser(clientId, "Jane", "Client", "en");
 
         var db = new MockDbBuilder().With(professional).With(client).Build();
-        var service = new ConversationSeedService(db, _notifier);
+        var service = NewService(db);
 
         await service.AppendCooperationEventAsync(
             professionalId, clientId, professionalId, ChatEventType.Invited, sourceId,
@@ -252,7 +259,7 @@ public class ConversationSeedServiceTests
         var clientId = Guid.NewGuid();
 
         var db = new MockDbBuilder().Build();
-        var service = new ConversationSeedService(db, _notifier);
+        var service = NewService(db);
 
         await service.AppendCooperationEventAsync(
             professionalId, clientId, professionalId, ChatEventType.Withdrawn, Guid.NewGuid(),
@@ -280,7 +287,7 @@ public class ConversationSeedServiceTests
         var client = MakeUser(clientId, "Jane", "Client");
 
         var db = new MockDbBuilder().With(professional).With(client).Build();
-        var service = new ConversationSeedService(db, _notifier);
+        var service = NewService(db);
 
         await service.AppendCooperationEventAsync(
             professionalId, clientId, professionalId, ChatEventType.Invited, Guid.NewGuid(),
@@ -304,7 +311,7 @@ public class ConversationSeedServiceTests
         var client = MakeUser(clientId, "Jane", "Client");
 
         var db = new MockDbBuilder().With(professional).With(client).Build();
-        var service = new ConversationSeedService(db, _notifier);
+        var service = NewService(db);
 
         await service.AppendCooperationEventAsync(
             professionalId, clientId, professionalId, ChatEventType.Withdrawn, Guid.NewGuid(),
@@ -355,7 +362,7 @@ public class ConversationSeedServiceTests
             .With(existingConversation)
             .With(existingEvent)
             .Build();
-        var service = new ConversationSeedService(db, _notifier);
+        var service = NewService(db);
 
         await service.AppendCooperationEventAsync(
             professionalId, clientId, professionalId, ChatEventType.Invited, sourceId,
@@ -422,7 +429,7 @@ public class ConversationSeedServiceTests
         db.SaveChangesAsync(Arg.Any<CancellationToken>())
             .Returns<int>(_ => throw new DbUpdateException("conflict", pgEx));
 
-        var service = new ConversationSeedService(db, _notifier);
+        var service = NewService(db);
 
         await service.AppendCooperationEventAsync(
             professionalId, clientId, professionalId, ChatEventType.Accepted, Guid.NewGuid(),
@@ -462,7 +469,7 @@ public class ConversationSeedServiceTests
         };
 
         var db = new MockDbBuilder().With(professional).With(client).With(existingConversation).Build();
-        var service = new ConversationSeedService(db, _notifier);
+        var service = NewService(db);
 
         await service.AppendCooperationEventAsync(
             professionalId, clientId, clientId, ChatEventType.Requested, Guid.NewGuid(),
@@ -493,7 +500,7 @@ public class ConversationSeedServiceTests
         var client = MakeUser(clientId, "Jane", "Client");
 
         var db = new MockDbBuilder().With(professional).With(client).Build();
-        var service = new ConversationSeedService(db, _notifier);
+        var service = NewService(db);
 
         await service.AppendCooperationEventAsync(
             professionalId, clientId, professionalId, ChatEventType.Declined, Guid.NewGuid(),
@@ -512,5 +519,76 @@ public class ConversationSeedServiceTests
         kind.Should().Be(nameof(ChatMessageKind.Event));
         eventType.Should().BeOfType<string>();
         eventType.Should().Be(nameof(ChatEventType.Declined));
+    }
+
+    /// <summary>
+    /// Pins the default: every caller except Accept/Reject keeps the companion text SignalR-only.
+    /// </summary>
+    [Fact]
+    public async Task AppendCooperationEvent_CompanionTextWithoutPushFlag_SendsNoPush()
+    {
+        var professionalId = Guid.NewGuid();
+        var clientId = Guid.NewGuid();
+        var db = new MockDbBuilder().With(MakeUser(professionalId, "Coach", "Carl")).With(MakeUser(clientId, "Jane", "Client")).Build();
+
+        await NewService(db).AppendCooperationEventAsync(
+            professionalId, clientId, professionalId, ChatEventType.Invited, Guid.NewGuid(),
+            "Welcome!", createConversationIfMissing: true,
+            TestContext.Current.CancellationToken);
+
+        await _notifier.Received(1).NotifyAsync(
+            clientId, "newmessage", Arg.Any<object>(), Arg.Any<CancellationToken>());
+        await _notificationService.DidNotReceiveWithAnyArgs().SendPushOnlyAsync(default, default, default, default, default);
+    }
+
+    [Fact]
+    public async Task AppendCooperationEvent_CompanionTextWithPushFlag_PushesTheTextOnce()
+    {
+        var professionalId = Guid.NewGuid();
+        var clientId = Guid.NewGuid();
+        var db = new MockDbBuilder().With(MakeUser(professionalId, "Coach", "Carl")).With(MakeUser(clientId, "Jane", "Client")).Build();
+
+        await NewService(db).AppendCooperationEventAsync(
+            professionalId, clientId, professionalId, ChatEventType.Accepted, Guid.NewGuid(),
+            "Glad to have you", createConversationIfMissing: true,
+            TestContext.Current.CancellationToken, pushCompanionText: true);
+
+        await _notificationService.Received(1).SendPushOnlyAsync(
+            clientId, NotificationType.NewMessage,
+            Arg.Is<IReadOnlyDictionary<string, string>>(p => p["messageText"] == "Glad to have you"),
+            Arg.Any<string?>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task AppendCooperationEvent_EventOnlyWithPushFlag_NeverPushes()
+    {
+        var professionalId = Guid.NewGuid();
+        var clientId = Guid.NewGuid();
+        var db = new MockDbBuilder().With(MakeUser(professionalId, "Coach", "Carl")).With(MakeUser(clientId, "Jane", "Client")).Build();
+
+        await NewService(db).AppendCooperationEventAsync(
+            professionalId, clientId, professionalId, ChatEventType.Accepted, Guid.NewGuid(),
+            messageText: null, createConversationIfMissing: true,
+            TestContext.Current.CancellationToken, pushCompanionText: true);
+
+        await _notifier.Received(1).NotifyAsync(
+            clientId, "newmessage", Arg.Any<object>(), Arg.Any<CancellationToken>());
+        await _notificationService.DidNotReceiveWithAnyArgs().SendPushOnlyAsync(default, default, default, default, default);
+    }
+
+    [Fact]
+    public async Task GetOrSeedConversation_SeededText_PushesToOfflineRecipient()
+    {
+        var professionalId = Guid.NewGuid();
+        var clientId = Guid.NewGuid();
+        var db = new MockDbBuilder().Build();
+
+        await NewService(db).GetOrSeedConversationAsync(
+            professionalId, clientId, professionalId, "Coach Carl", "Welcome aboard!",
+            seedIntoExisting: false, TestContext.Current.CancellationToken);
+
+        await _notificationService.Received(1).SendPushOnlyAsync(
+            clientId, NotificationType.NewMessage, Arg.Any<IReadOnlyDictionary<string, string>>(),
+            Arg.Any<string?>(), Arg.Any<CancellationToken>());
     }
 }

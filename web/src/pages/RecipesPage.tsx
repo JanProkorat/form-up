@@ -4,6 +4,7 @@ import { Lock, Plus, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuthStore } from '@/stores/auth';
+import { useActiveRoles } from '@/hooks/useActiveRoles';
 import { getErrorStatus } from '@/lib/api-errors';
 import { isSubscriptionRequired } from '@/lib/subscriptionErrors';
 import { useSubscription } from '@/hooks/useSubscriptionQueries';
@@ -12,6 +13,7 @@ import { useRecipeListParams } from '@/hooks/useRecipeListParams';
 import { useRecipes } from '@/hooks/useRecipesQueries';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { DietaryPreference, RecipeMealType, type RecipeSummaryDto } from '@/api/recipe-types';
+import FilterChip from '@/components/library/FilterChip';
 import OptionFilterPopover from '@/components/library/OptionFilterPopover';
 import OwnerFilterPopover from '@/components/library/OwnerFilterPopover';
 import LibraryTagFilterPopover from '@/components/library/LibraryTagFilterPopover';
@@ -41,6 +43,7 @@ export default function RecipesPage() {
     setMealTypes,
     setDietaryPreferences,
     setOwners,
+    setHidden,
     setTags,
     cycleSort,
     setPage,
@@ -48,6 +51,9 @@ export default function RecipesPage() {
   } = useRecipeListParams();
   const roles = useAuthStore((s) => s.user?.roles ?? []);
   const isNutritionist = roles.includes('Nutritionist');
+  // Admin-only accounts manage the system recipes: no owner or tag filters, no tag requests.
+  const { isAdminOnly } = useActiveRoles();
+  const canUseLibrary = isNutritionist || isAdminOnly;
 
   const { viewMode, setViewMode } = useViewMode(RECIPES_VIEW_MODE_KEY, 'grid');
 
@@ -72,13 +78,16 @@ export default function RecipesPage() {
 
   const { isEntitled } = useSubscription();
   const planAllows = isEntitled('canUseRecipes');
-  const recipesQuery = useRecipes(filters, isNutritionist && planAllows);
+  // A stale owner/tag value left in the URL must not filter an admin-only account's list.
+  // Hiding is a nutritionist-only action, so a stale `hidden=1` must not narrow an admin-only list either.
+  const effectiveFilters = isAdminOnly ? { ...filters, owners: [], tags: [], hidden: false } : filters;
+  const recipesQuery = useRecipes(effectiveFilters, canUseLibrary && planAllows);
   // isEntitled is true while the plan loads, so a refusal from the server locks the page as well.
   const isLocked =
     isNutritionist &&
     (!planAllows || (recipesQuery.isError && isSubscriptionRequired(recipesQuery.error)));
   const isForbidden =
-    !isNutritionist || (!isLocked && recipesQuery.isError && getErrorStatus(recipesQuery.error) === 403);
+    !canUseLibrary || (!isLocked && recipesQuery.isError && getErrorStatus(recipesQuery.error) === 403);
 
   const recipes = recipesQuery.data?.recipes ?? [];
   const totalCount = recipesQuery.data?.totalCount ?? 0;
@@ -86,8 +95,9 @@ export default function RecipesPage() {
     filters.search !== '' ||
     filters.mealTypes.length > 0 ||
     filters.dietaryPreferences.length > 0 ||
-    filters.owners.length > 0 ||
-    filters.tags.length > 0;
+    effectiveFilters.owners.length > 0 ||
+    effectiveFilters.tags.length > 0 ||
+    effectiveFilters.hidden;
   const showEmptyState = !recipesQuery.isPending && !recipesQuery.isError && totalCount === 0 && !hasActiveFilter;
 
   function openCreateDrawer() {
@@ -102,7 +112,10 @@ export default function RecipesPage() {
 
   // Creating (selectedRecipe === null) is always editable; the "not owned"
   // half only applies to an EXISTING recipe (system row, or a shared one).
-  const drawerReadOnly = selectedRecipe !== null && !selectedRecipe.isOwnedByCurrentUser;
+  // An admin-only account edits system recipes (the only rows it sees) instead.
+  const drawerReadOnly =
+    selectedRecipe !== null &&
+    (isAdminOnly ? selectedRecipe.isSystem !== true : !selectedRecipe.isOwnedByCurrentUser);
 
   if (isLocked) {
     return (
@@ -163,9 +176,23 @@ export default function RecipesPage() {
               selected={filters.dietaryPreferences}
               onChange={setDietaryPreferences}
             />
-            <OwnerFilterPopover selectedOwners={filters.owners} onChange={setOwners} />
-            <LibraryTagFilterPopover selectedTagIds={filters.tags} onChange={setTags} />
+            {!isAdminOnly && (
+              <>
+                <OwnerFilterPopover selectedOwners={filters.owners} onChange={setOwners} />
+                <LibraryTagFilterPopover selectedTagIds={filters.tags} onChange={setTags} />
+              </>
+            )}
           </>
+        )}
+        {/* Outside the empty-state gate: hiding the last visible recipe empties the list,
+            and the chip is the only way back to the hidden ones. */}
+        {!isAdminOnly && (
+          <FilterChip
+            label={t('library.showHidden')}
+            count={filters.hidden ? 1 : 0}
+            aria-pressed={filters.hidden}
+            onClick={() => setHidden(!filters.hidden)}
+          />
         )}
         <div className="ml-auto flex items-center gap-3">
           {!showEmptyState && <ViewModeToggle value={viewMode} onChange={setViewMode} />}
@@ -242,7 +269,7 @@ export default function RecipesPage() {
         </div>
       )}
 
-      <RecipeDrawer open={drawerOpen} onOpenChange={setDrawerOpen} recipe={selectedRecipe} readOnly={drawerReadOnly} />
+      <RecipeDrawer open={drawerOpen} onOpenChange={setDrawerOpen} recipe={selectedRecipe} readOnly={drawerReadOnly} libraryActions={isNutritionist} />
     </div>
   );
 }

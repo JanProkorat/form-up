@@ -18,7 +18,7 @@ namespace FormUp.Tests.Endpoints.AdminCoaches;
 /// Integration tests for <c>GET /admin/coaches</c> (<c>ListAdminCoachesEndpoint</c>). The database is shared, so list
 /// assertions filter to the test's own coaches by an email token, and stats assert deltas.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class ListAdminCoachesEndpointTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions JsonOptions = new()

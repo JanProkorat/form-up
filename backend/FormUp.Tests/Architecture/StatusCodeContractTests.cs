@@ -10,7 +10,7 @@ namespace FormUp.Tests.Architecture;
 /// codes it can return (FastEndpoints adds 401 and, for role-gated routes, 403 itself). Typed success
 /// responses must keep their schema, and a 400 that sends a body must keep its ProblemDetails schema.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class StatusCodeContractTests(FitnessApiFactory factory)
 {
     private const string Body = "body";
@@ -21,6 +21,7 @@ public class StatusCodeContractTests(FitnessApiFactory factory)
 
     [Theory]
     [InlineData("put", "/users/me", "200,400,401,404", false, Body)]
+    [InlineData("delete", "/users/me", "204,400,401,404,502,503", false, Body)]
     [InlineData("put", "/users/me/timezone", "200,400,401,404", false, Body)]
     [InlineData("put", "/trainer/profile", "200,400,401,403,404", false, Body)]
     [InlineData("post", "/auth/password/reset", "200,400,404,429", false, Body)]
@@ -31,6 +32,7 @@ public class StatusCodeContractTests(FitnessApiFactory factory)
     [InlineData("post", "/auth/verify-email", "200,400,429", true, Body)]
     [InlineData("post", "/auth/register", "201,400,429", true, Body)]
     [InlineData("post", "/auth/resend-verification/anonymous", "200,400,429", true, Body)]
+    [InlineData("post", "/auth/invite/resolve", "200,400,404,429", true, Body)]
     [InlineData("post", "/auth/login", "200,400,429", true, Body)]
     [InlineData("post", "/auth/refresh", "200,400,429", true, Body)]
     [InlineData("post", "/auth/social/google", "200,400,401,403,409,429", true, Body)]
@@ -44,19 +46,38 @@ public class StatusCodeContractTests(FitnessApiFactory factory)
     [InlineData("post", "/payments/bank-account/undo", "204,400,409,429", false, Body)]
     [InlineData("post", "/payments/bank-account/code", "204,400,401,403,404,429", false, Body)]
     [InlineData("post", "/payments/clients/{clientId}/payments/{paymentId}/request", "200,400,401,403,404,409,429", true, Body)]
+    [InlineData("post", "/users/me/roles", "200,400,401,403,409,502,503", true, Body)]
+    [InlineData("delete", "/users/me/roles/{role}", "200,400,401,403,502,503", true, Body)]
     [InlineData("get", "/users/me/subscription", "200,401,403,404", true, Absent)]
     [InlineData("get", "/users/me/subscription/keep-clients", "200,401,403,404,409", true, Absent)]
     [InlineData("put", "/users/me/subscription/keep-clients", "204,400,401,403,404,409", false, Body)]
     [InlineData("get", "/users/me/subscription/plans", "200,401,403", true, Absent)]
     [InlineData("get", "/subscription-plans", "200,429", true, Absent)]
     [InlineData("post", "/users/me/subscription/choose-free", "204,400,401,403,404,409", false, Body)]
+    [InlineData("post", "/users/me/subscription/keep-free", "204,401,403,404,409", false, Absent)]
     [InlineData("put", "/admin/coaches/{coachId}/subscription", "200,400,401,403,404", true, Body)]
     [InlineData("get", "/admin/coaches", "200,400,401,403", true, Body)]
     [InlineData("get", "/admin/coaches/{coachId}", "200,401,403,404", true, Absent)]
-    [InlineData("post", "/admin/coaches/{coachId}/give-free", "200,400,401,403,404", true, Body)]
-    [InlineData("post", "/admin/coaches/{coachId}/cancel-renewal", "200,400,401,403,404,409", true, Body)]
-    [InlineData("post", "/admin/coaches/{coachId}/end-plan", "200,400,401,403,404,409", true, Body)]
-    [InlineData("post", "/admin/coaches/{coachId}/disable", "200,400,401,403,404", true, Body)]
+    [InlineData("post", "/admin/coaches/{coachId}/give-free", "200,400,401,403,404,502,503", true, Body)]
+    [InlineData("post", "/billing/checkout-session", "200,400,401,403,404,409,429,502,503", true, Body)]
+    [InlineData("post", "/billing/portal-session", "200,401,403,404,502,503", true, Absent)]
+    [InlineData("post", "/billing/change-plan", "200,400,401,403,409,502,503", true, Body)]
+    [InlineData("post", "/billing/change-plan/preview", "200,400,401,403,409,502,503", true, Body)]
+    [InlineData("post", "/billing/switch-to-free", "200,401,403,409,502,503", true, Absent)]
+    [InlineData("post", "/billing/scheduled-change/cancel", "200,401,403,409,502,503", true, Absent)]
+    [InlineData("post", "/billing/promotion-code", "204,400,401,403,404,409,429,502,503", false, Body)]
+    [InlineData("post", "/billing/second-role/preview", "200,401,403,409,502,503", true, Absent)]
+    [InlineData("post", "/billing/second-role/confirm", "200,400,401,402,403,409,502,503", true, Body)]
+    [InlineData("post", "/admin/coaches/{coachId}/cancel-renewal", "200,400,401,403,404,409,502,503", true, Body)]
+    [InlineData("post", "/admin/coaches/{coachId}/end-plan", "200,400,401,403,404,409,502,503", true, Body)]
+    [InlineData("post", "/admin/coaches/{coachId}/disable", "200,400,401,403,404,502,503", true, Body)]
+    [InlineData("post", "/users/me/coach-account/disable", "200,400,401,403,502,503", true, Body)]
+    [InlineData("get", "/admin/promotions", "200,400,401,403", true, Body)]
+    [InlineData("post", "/admin/promotions", "201,400,401,403,409,502,503", true, Body)]
+    [InlineData("post", "/admin/promotions/{promotionId}/end", "200,400,401,403,404,409,502,503", true, Body)]
+    [InlineData("get", "/admin/reports", "200,400,401,403", true, Body)]
+    [InlineData("get", "/admin/overview/attention", "200,401,403", true, Absent)]
+    [InlineData("post", "/client/questionnaire/response/{responsePublicId}/file-upload-url", "200,400,401,403,404,409", true, Body)]
     public async Task Swagger_Operation_DeclaresExactlyTheStatusCodesItCanReturn(
         string method, string route, string expected, bool typedSuccess, string badRequest)
     {

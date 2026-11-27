@@ -19,7 +19,7 @@ namespace FormUp.Tests.Endpoints.CoachSubscriptions;
 /// <summary>
 /// Integration tests for <c>POST /users/me/subscription/choose-free</c>.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class ChooseFreePlanEndpointTests(FitnessApiFactory factory)
 {
     private const string Route = "/users/me/subscription/choose-free";
@@ -116,6 +116,41 @@ public class ChooseFreePlanEndpointTests(FitnessApiFactory factory)
             .ToListAsync(Ct);
 
         audit.Should().ContainSingle().Which.UserId.Should().Be(coach.UserId);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Choose_NotifiesAdminsWithTheCoachId_AndAnAdminSendFailureDoesNotFailTheCall(bool adminSendFails)
+    {
+        var (coach, _) = await EndedGiftCoachAsync();
+        var notifier = factory.Services.GetRequiredService<FakeRealtimeNotifier>();
+        var before = notifier.AdminCalls.Count;
+
+        if (adminSendFails)
+        {
+            notifier.SimulateThrowOnNextAdminCall();
+        }
+
+        (await coach.Http.PostAsJsonAsync(Route, new { }, Ct)).StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        var sent = notifier.AdminCalls.Skip(before)
+            .Where(call => JsonSerializer.Serialize(call.Payload).Contains(coach.UserId.ToString())).ToList();
+
+        if (adminSendFails)
+        {
+            sent.Should().BeEmpty();
+        }
+        else
+        {
+            sent.Should().ContainSingle().Which.EventType.Should().Be("admincoachsubscriptionchanged");
+            JsonSerializer.Serialize(sent[0].Payload).Should().Be($"{{\"coachId\":\"{coach.UserId}\"}}");
+        }
+
+        using var scope = factory.Services.CreateScope();
+        (await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().AuditLogs.AsNoTracking()
+            .CountAsync(a => a.EntityId == coach.UserId && a.Action == ChooseFreePlanEndpoint.AuditAction, Ct))
+            .Should().Be(1, "the audit row is written whether or not the admin send worked");
     }
 
     [Fact]

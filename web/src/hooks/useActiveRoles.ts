@@ -12,6 +12,11 @@ export interface ActiveRoles {
   isLoading: boolean;
   /** True when the coach-role lookup failed; coach roles must be treated as absent. */
   isError: boolean;
+  /**
+   * Admin whose token has neither a Trainer nor a Nutritionist role (the backend's rule). Independent of the
+   * coach-role lookup: an Admin with a removed coach role is not admin-only.
+   */
+  isAdminOnly: boolean;
 }
 
 function canonical(role: string): string {
@@ -38,10 +43,17 @@ export function useActiveRoles(): ActiveRoles {
   const coachRoles = query.data ? query.data.roles.map((r) => r.role.toLowerCase()) : [];
   const roles = [...tokenRoles.filter((role) => !COACH_ROLES.has(role)), ...coachRoles].map(canonical);
 
+  const isLoading = hasCoachToken && query.isPending;
+  const isError = hasCoachToken && query.isError;
+  // Same rule as the backend: decided from the token roles alone, so a removed coach role (which the JWT keeps)
+  // still means "not admin-only", and it is known immediately, without waiting for the roles lookup.
+  const isAdminOnly = tokenRoles.includes('admin') && !hasCoachToken;
+
   return {
     roles,
     hasRole: (role) => roles.includes(canonical(role)),
-    isLoading: hasCoachToken && query.isPending,
-    isError: hasCoachToken && query.isError,
+    isLoading,
+    isError,
+    isAdminOnly,
   };
 }

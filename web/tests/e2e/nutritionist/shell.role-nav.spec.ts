@@ -1,6 +1,6 @@
 /**
- * #1325 — the nutrition section of the shell belongs to the active
- * Nutritionist role. The trainer-only side (no section, /recipes redirects)
+ * #1325 — the nutrition Library items of the shell belong to the active
+ * Nutritionist role. The trainer-only side (no such items, /recipes redirects)
  * lives in trainer/shell.smoke.spec.ts and trainer/shell.responsive.spec.ts;
  * this spec holds the nutritionist side, including the nutrition routes'
  * desktop render and overflow checks that used to run as the trainer.
@@ -14,7 +14,7 @@ const NUTRITION_ROUTES = [
 ];
 
 test.describe('nutritionist shell', () => {
-  test('sidebar shows the client items and the nutrition section', async ({ page }) => {
+  test('sidebar shows the client items and the nutrition Library items', async ({ page }) => {
     await page.goto('/clients');
     await page.waitForLoadState('networkidle');
 

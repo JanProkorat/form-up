@@ -12,7 +12,7 @@ namespace FormUp.Tests.Endpoints.ClientNutrition;
 /// <summary>
 /// The week meal log reports the per-item eaten state of a partly eaten and a fully eaten meal.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class GetWeekMealLogItemStateTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions JsonOptions = new()

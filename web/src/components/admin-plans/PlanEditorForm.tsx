@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { SubscriptionPlanDto } from '@/api/admin-subscription-plans';
 import { ChoiceButton, SectionHeading } from '@/components/automations/automationFormParts';
-import { Field, FieldHint } from '@/components/package-catalog/packageFormParts';
+import { Field } from '@/components/package-catalog/packageFormParts';
 import PlanCheckRow from '@/components/admin-plans/PlanCheckRow';
 import {
   EDITOR_FEATURES,
@@ -16,6 +16,7 @@ import {
   editorFeatureLabelKey,
 } from '@/components/admin-plans/planFeatureLabels';
 import {
+  annualSavingPercent,
   createPlanSchema,
   defaultPlanValues,
   formatPlanMoney,
@@ -66,7 +67,7 @@ export default function PlanEditorForm({ plan, onSubmit, onCancel, isSaving }: P
   const isFree = isFreePlan(plan);
   const currency = plan?.currency ?? 'CZK';
   const coachCount = plan?.coachCount ?? 0;
-  const schema = useMemo(() => createPlanSchema(isNew), [isNew]);
+  const schema = useMemo(() => createPlanSchema(isNew, isFree), [isNew, isFree]);
 
   const {
     register,
@@ -115,6 +116,35 @@ export default function PlanEditorForm({ plan, onSubmit, onCancel, isSaving }: P
       i18n.language,
     ) || t('adminPlans.editor.untitled');
   const addOn = parseAmount(values.addOnPrice ?? '');
+
+  // Yearly prices: the saving hints and the coach-facing line follow what is typed.
+  const annualText = values.annualPrice ?? initial.annualPrice;
+  const parsedAnnual = parseAmount(annualText);
+  const newAnnualMinor = inputToMinor(annualText);
+  const annualAddOnText = values.annualAddOnPrice ?? initial.annualAddOnPrice;
+  const parsedAnnualAddOn = parseAmount(annualAddOnText);
+  const newAddOnMinor = inputToMinor(values.addOnPrice ?? '');
+  const newAnnualAddOnMinor = inputToMinor(annualAddOnText);
+  const annualSaving =
+    parsedPrice !== null && parsedAnnual !== null ? annualSavingPercent(newPriceMinor, newAnnualMinor) : null;
+  const annualAddOnSaving =
+    addOn !== null && parsedAnnualAddOn !== null ? annualSavingPercent(newAddOnMinor, newAnnualAddOnMinor) : null;
+  const sellsAnnually = !isFree && parsedAnnual !== null && parsedAnnual > 0;
+  const annualHint = annualSaving
+    ? t('adminPlans.drawer.annualSavingHint', {
+        percent: annualSaving,
+        monthly: formatPlanMoney(newPriceMinor, currency, i18n.language),
+        total: formatPlanMoney(12 * newPriceMinor, currency, i18n.language),
+      })
+    : annualText.trim() === ''
+      ? t('adminPlans.drawer.annualEmptyHint')
+      : undefined;
+  const annualAddOnHint = annualAddOnSaving
+    ? t('adminPlans.drawer.annualAddOnSavingHint', {
+        percent: annualAddOnSaving,
+        monthly: formatPlanMoney(newAddOnMinor, currency, i18n.language),
+      })
+    : undefined;
 
   const title = isNew ? t('adminPlans.editor.titleNew') : planName(plan, i18n.language);
   const savedOffered = plan?.isActive ?? false;
@@ -232,11 +262,20 @@ export default function PlanEditorForm({ plan, onSubmit, onCancel, isSaving }: P
                   </MoneyInput>
                 )}
               </Field>
-              <div className="flex flex-col gap-1.5">
-                <span className="text-body font-medium text-ink-2">{t('adminPlans.drawer.billing')}</span>
-                <span className="flex h-10 items-center text-copy text-ink-2">{t('adminPlans.drawer.billingMonthly')}</span>
-                <FieldHint>{t('adminPlans.drawer.billingAnnualLater')}</FieldHint>
-              </div>
+              {!isFree && (
+                <Field label={t('adminPlans.drawer.perYear')} error={errors.annualPrice?.message} hint={annualHint}>
+                  {(fieldControl) => (
+                    <MoneyInput currency={currency}>
+                      <Input
+                        {...register('annualPrice')}
+                        inputMode="decimal"
+                        className={FIELD_INPUT_CLASS}
+                        {...fieldControl}
+                      />
+                    </MoneyInput>
+                  )}
+                </Field>
+              )}
             </div>
 
             {showPriceWarning && plan && (
@@ -278,9 +317,26 @@ export default function PlanEditorForm({ plan, onSubmit, onCancel, isSaving }: P
                     </MoneyInput>
                   )}
                 </Field>
+                {!isFree && (
+                  <Field
+                    label={t('adminPlans.drawer.annualAddOnPrice')}
+                    error={errors.annualAddOnPrice?.message}
+                    hint={annualAddOnHint}
+                  >
+                    {(fieldControl) => (
+                      <MoneyInput currency={currency}>
+                        <Input
+                          {...register('annualAddOnPrice')}
+                          inputMode="decimal"
+                          className={FIELD_INPUT_CLASS}
+                          {...fieldControl}
+                        />
+                      </MoneyInput>
+                    )}
+                  </Field>
+                )}
               </div>
             )}
-
           </section>
         </div>
 
@@ -323,6 +379,18 @@ export default function PlanEditorForm({ plan, onSubmit, onCancel, isSaving }: P
                         : null
                       : t('adminPlans.editor.secondRoleIncludedLine')}
                   </p>
+                  {sellsAnnually && (
+                    <p className="text-copy text-ink-2">
+                      {secondRole === 'addon' && parsedAnnualAddOn !== null && parsedAnnualAddOn > 0
+                        ? t('adminPlans.editor.annualLineWithSecondRole', {
+                            price: formatPlanMoney(newAnnualMinor, currency, i18n.language),
+                            addOn: formatPlanMoney(newAnnualAddOnMinor, currency, i18n.language),
+                          })
+                        : t('adminPlans.editor.annualLine', {
+                            price: formatPlanMoney(newAnnualMinor, currency, i18n.language),
+                          })}
+                    </p>
+                  )}
                   <p className="text-copy text-ink-2">
                     {unlimited
                       ? t('adminPlans.editor.unlimitedClientsLine')

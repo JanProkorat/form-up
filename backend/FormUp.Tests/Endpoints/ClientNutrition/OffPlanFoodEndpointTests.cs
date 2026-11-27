@@ -20,7 +20,7 @@ namespace FormUp.Tests.Endpoints.ClientNutrition;
 /// <c>DELETE /client/nutrition/log/off-plan-foods/{EntryId}</c> and their effect on
 /// <c>GET /client/nutrition/log/today</c>.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class OffPlanFoodEndpointTests(FitnessApiFactory factory)
 {
     private static readonly DateTime Start = ClientNutritionFixtures.CurrentWeekMondayUtc();

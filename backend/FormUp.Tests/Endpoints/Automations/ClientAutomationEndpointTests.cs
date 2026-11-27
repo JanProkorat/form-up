@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Features.Automations.GetClientAutomations;
@@ -17,7 +18,7 @@ namespace FormUp.Tests.Endpoints.Automations;
 /// <summary>
 /// Integration tests for the per-client automation endpoints under <c>/trainer/clients/{ClientId}/automations</c>.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class ClientAutomationEndpointTests(FitnessApiFactory factory)
 {
     private static readonly CancellationToken Ct = TestContext.Current.CancellationToken;
@@ -565,5 +566,184 @@ public class ClientAutomationEndpointTests(FitnessApiFactory factory)
         item.ScheduleWeekday.Should().Be(DayOfWeek.Thursday);
         item.AnswerWindowHours.Should().Be(48);
         item.Source.Should().Be(AutomationRuleSource.Default);
+    }
+
+    // ── per-client check-in form ────────────────────────────────────────────
+
+    private async Task<(Actor Coach, Actor Client, Guid RuleId, Guid RuleFormId)> CheckInRuleAsync()
+    {
+        var (coach, client, _) = await LinkedPairAsync();
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, "studio");
+        var ruleFormId = await AutomationTestData.CreateQuestionnaireAsync(factory, coach, QuestionnaireType.CheckIn);
+        var rule = await CreateRuleAsync(coach, new Dictionary<string, object?>
+        {
+            ["name"] = "Weekly check-in",
+            ["actionType"] = "SendForm",
+            ["questionnaireId"] = ruleFormId,
+            ["triggerKind"] = "Schedule",
+            ["scheduleInterval"] = 1,
+            ["scheduleUnit"] = "Weeks",
+            ["localTime"] = "18:00:00",
+            ["scheduleWeekday"] = "Thursday",
+            ["answerWindowHours"] = 48,
+        });
+
+        return (coach, client, rule.RuleId, ruleFormId);
+    }
+
+    private static Dictionary<string, object?> CheckInOverrideBody(Guid? formId) => new()
+    {
+        ["triggerKind"] = "Schedule",
+        ["scheduleInterval"] = 1,
+        ["scheduleUnit"] = "Weeks",
+        ["localTime"] = "18:00:00",
+        ["scheduleWeekday"] = "Thursday",
+        ["answerWindowHours"] = 48,
+        ["enabled"] = true,
+        ["checkInQuestionnaireId"] = formId,
+    };
+
+    private async Task<DateTime?> StoredEnabledAtAsync(Actor client)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        return (await db.AutomationClientOverrides.AsNoTracking()
+            .SingleAsync(o => o.ClientProfileId == client.ProfileId, Ct)).EnabledAtUtc;
+    }
+
+    [Fact]
+    public async Task Override_WithOwnCheckInForm_ListShowsItAndOtherRowsStayOnTheRuleForm()
+    {
+        var (coach, client, ruleId, ruleFormId) = await CheckInRuleAsync();
+        var otherFormId = await AutomationTestData.CreateQuestionnaireAsync(factory, coach, QuestionnaireType.CheckIn);
+
+        var response = await coach.Http.PutAsJsonAsync(
+            RuleRoute(client, ruleId, "override"), CheckInOverrideBody(otherFormId), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        var item = (await ListAsync(coach, client)).Items.Single(i => i.RuleId == ruleId);
+        item.CheckInQuestionnaireId.Should().Be(otherFormId);
+        item.CheckInQuestionnaireName.Should().Be("Plan review");
+        item.QuestionnaireId.Should().Be(ruleFormId, "the rule itself keeps its own form");
+
+        var secondClient = await TestActors.Client(factory).CreateAsync(Ct);
+        await TestActors.Link(factory, coach, secondClient).CreateAsync(Ct);
+        (await ListAsync(coach, secondClient)).Items.Single(i => i.RuleId == ruleId)
+            .CheckInQuestionnaireId.Should().BeNull("another client is unaffected");
+    }
+
+    [Fact]
+    public async Task Override_WithTheRulesOwnForm_StoresNoOverrideForm()
+    {
+        var (coach, client, ruleId, ruleFormId) = await CheckInRuleAsync();
+
+        var response = await coach.Http.PutAsJsonAsync(
+            RuleRoute(client, ruleId, "override"), CheckInOverrideBody(ruleFormId), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await ListAsync(coach, client)).Items.Single(i => i.RuleId == ruleId)
+            .CheckInQuestionnaireId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Override_FormChange_SetsEnabledAtOnlyWhenTheEffectiveFormChanges()
+    {
+        var (coach, client, ruleId, _) = await CheckInRuleAsync();
+        var otherFormId = await AutomationTestData.CreateQuestionnaireAsync(factory, coach, QuestionnaireType.CheckIn);
+        var route = RuleRoute(client, ruleId, "override");
+
+        // Same schedule as the rule, so only a form change can move the first-full-week bound.
+        await coach.Http.PutAsJsonAsync(route, CheckInOverrideBody(null), Ct);
+        var beforeChange = await StoredEnabledAtAsync(client);
+
+        await coach.Http.PutAsJsonAsync(route, CheckInOverrideBody(otherFormId), Ct);
+        var afterPick = await StoredEnabledAtAsync(client);
+
+        await coach.Http.PutAsJsonAsync(route, CheckInOverrideBody(otherFormId), Ct);
+        var afterRepeat = await StoredEnabledAtAsync(client);
+
+        await coach.Http.PutAsJsonAsync(route, CheckInOverrideBody(null), Ct);
+        var afterClear = await StoredEnabledAtAsync(client);
+
+        afterPick.Should().NotBeNull();
+        afterPick.Should().BeAfter(beforeChange ?? DateTime.MinValue);
+        afterRepeat.Should().Be(afterPick, "saving the same form again is no change");
+        afterClear.Should().BeAfter(afterPick!.Value, "returning to the rule's form is a change too");
+        (await ListAsync(coach, client)).Items.Single(i => i.RuleId == ruleId)
+            .CheckInQuestionnaireId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Override_FormOfAnotherCoach_Returns404()
+    {
+        var (coach, client, ruleId, _) = await CheckInRuleAsync();
+        var otherCoach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var foreignFormId = await AutomationTestData.CreateQuestionnaireAsync(factory, otherCoach, QuestionnaireType.CheckIn);
+
+        var response = await coach.Http.PutAsJsonAsync(
+            RuleRoute(client, ruleId, "override"), CheckInOverrideBody(foreignFormId), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await response.Content.ReadAsStringAsync(Ct)).Should().Contain(ErrorCodes.AutomationQuestionnaireNotFound);
+    }
+
+    [Theory]
+    [InlineData(QuestionnaireType.Onboarding, true)]
+    [InlineData(QuestionnaireType.CheckIn, false)]
+    public async Task Override_FormThatIsNotAnActiveCheckInForm_Returns400(QuestionnaireType type, bool isActive)
+    {
+        var (coach, client, ruleId, _) = await CheckInRuleAsync();
+        var formId = await AutomationTestData.CreateQuestionnaireAsync(factory, coach, type, isActive);
+
+        var response = await coach.Http.PutAsJsonAsync(
+            RuleRoute(client, ruleId, "override"), CheckInOverrideBody(formId), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await response.Content.ReadAsStringAsync(Ct)).Should().Contain(ErrorCodes.AutomationQuestionnaireNotUsable);
+    }
+
+    [Fact]
+    public async Task Override_FormOnARuleThatIsNotACheckIn_Returns400()
+    {
+        var (coach, client, _) = await LinkedPairAsync();
+        var rule = await CreateRuleAsync(coach, AutomationTestData.ScheduleRule());
+        var formId = await AutomationTestData.CreateQuestionnaireAsync(factory, coach, QuestionnaireType.CheckIn);
+        var body = OverrideBody();
+        body["checkInQuestionnaireId"] = formId;
+
+        var response = await coach.Http.PutAsJsonAsync(RuleRoute(client, rule.RuleId, "override"), body, Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await response.Content.ReadAsStringAsync(Ct)).Should().Contain(ErrorCodes.AutomationCheckInFieldsNotAllowed);
+    }
+
+    [Fact]
+    public async Task Override_FormWithoutPerClientCheckInConfig_Returns403()
+    {
+        var (coach, client, ruleId, _) = await CheckInRuleAsync();
+        var otherFormId = await AutomationTestData.CreateQuestionnaireAsync(factory, coach, QuestionnaireType.CheckIn);
+        await CoachSubscriptionBuilder.SubscribeAsync(
+            factory, coach, canUseWeeklyCheckIns: true, canUsePerClientCheckInConfig: false);
+
+        var response = await coach.Http.PutAsJsonAsync(
+            RuleRoute(client, ruleId, "override"), CheckInOverrideBody(otherFormId), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await response.Content.ReadAsStringAsync(Ct)).Should().Contain(ErrorCodes.SubscriptionRequired);
+    }
+
+    [Fact]
+    public async Task Reset_AfterFormOverride_ReturnsTheClientToTheRuleForm()
+    {
+        var (coach, client, ruleId, _) = await CheckInRuleAsync();
+        var otherFormId = await AutomationTestData.CreateQuestionnaireAsync(factory, coach, QuestionnaireType.CheckIn);
+        await coach.Http.PutAsJsonAsync(RuleRoute(client, ruleId, "override"), CheckInOverrideBody(otherFormId), Ct);
+
+        var response = await coach.Http.DeleteAsync(RuleRoute(client, ruleId, "override"), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await ListAsync(coach, client)).Items.Single(i => i.RuleId == ruleId)
+            .CheckInQuestionnaireId.Should().BeNull();
     }
 }

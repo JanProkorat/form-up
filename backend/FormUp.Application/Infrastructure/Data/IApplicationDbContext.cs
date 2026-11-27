@@ -180,6 +180,36 @@ public interface IApplicationDbContext
     DbSet<CoachSubscription> CoachSubscriptions { get; set; }
 
     /// <summary>
+    /// Ids of the payment-provider webhook events already applied, so a repeated delivery is a no-op.
+    /// </summary>
+    DbSet<ProcessedWebhookEvent> ProcessedWebhookEvents { get; set; }
+
+    /// <summary>
+    /// The coach sign-up and billing event history behind the admin Reports funnel.
+    /// </summary>
+    DbSet<CoachEvent> CoachEvents { get; set; }
+
+    /// <summary>
+    /// One row of totals per UTC day for the admin Reports trends.
+    /// </summary>
+    DbSet<DailyReportSnapshot> DailyReportSnapshots { get; set; }
+
+    /// <summary>
+    /// Paid Stripe invoices of coach subscriptions, for revenue reporting.
+    /// </summary>
+    DbSet<PaidInvoice> PaidInvoices { get; set; }
+
+    /// <summary>
+    /// Our copy of the Stripe coupons that discount coach plans.
+    /// </summary>
+    DbSet<Promotion> Promotions { get; set; }
+
+    /// <summary>
+    /// Coaches who claimed a <see cref="Promotion"/>, one row per coach and promotion.
+    /// </summary>
+    DbSet<PromotionRedemption> PromotionRedemptions { get; set; }
+
+    /// <summary>
     /// Coach-owned tags used to label clients.
     /// </summary>
     DbSet<ClientTag> ClientTags { get; set; }

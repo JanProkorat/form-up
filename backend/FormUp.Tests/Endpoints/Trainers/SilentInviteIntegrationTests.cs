@@ -21,7 +21,7 @@ namespace FormUp.Tests.Endpoints.Trainers;
 /// counted, 409 on repeat, deletable) but creates no token, notification or conversation, and the
 /// coach-role invitee can neither see nor act on it.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class SilentInviteIntegrationTests(FitnessApiFactory factory)
 {
     private static readonly CancellationToken Ct = TestContext.Current.CancellationToken;
@@ -165,6 +165,8 @@ public class SilentInviteIntegrationTests(FitnessApiFactory factory)
         var realClient = await TestActors.Client(factory).CreateAsync(Ct);
         var silentInvite = await InviteAsync(inviter, coach.Email);
         var realInvite = await InviteAsync(inviter, realClient.Email);
+        var silentInviteId = await InternalIdAsync(silentInvite);
+        var realInviteId = await InternalIdAsync(realInvite);
 
         using (var scope = factory.Services.CreateScope())
         {
@@ -173,13 +175,13 @@ public class SilentInviteIntegrationTests(FitnessApiFactory factory)
             {
                 Id = Guid.NewGuid(),
                 ProfessionalId = inviter.UserId,
-                PendingInviteId = silentInvite.Id,
+                PendingInviteId = silentInviteId,
             });
             db.PhotoDiaryRequests.Add(new PhotoDiaryRequest
             {
                 Id = Guid.NewGuid(),
                 ProfessionalId = inviter.UserId,
-                PendingInviteId = realInvite.Id,
+                PendingInviteId = realInviteId,
             });
             await db.SaveChangesAsync(Ct);
         }
@@ -191,7 +193,7 @@ public class SilentInviteIntegrationTests(FitnessApiFactory factory)
         (await coachResponse.Content.ReadFromJsonAsync<ListClientRequestsResponse>(EnumJson, Ct))!.Items
             .Should().BeEmpty("a coach-role caller must not see requests hung on a silent invite");
         (await clientResponse.Content.ReadFromJsonAsync<ListClientRequestsResponse>(EnumJson, Ct))!.Items
-            .Should().ContainSingle(r => r.PendingInviteId == realInvite.Id);
+            .Should().ContainSingle(r => r.PendingInviteId == realInviteId);
     }
 
     [Fact]
@@ -209,11 +211,15 @@ public class SilentInviteIntegrationTests(FitnessApiFactory factory)
         {
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var coachConversation = new Conversation { ProfessionalUserId = inviter.UserId, ClientUserId = coach.UserId };
-            var clientConversation = new Conversation { ProfessionalUserId = inviter.UserId, ClientUserId = realClient.UserId };
-            db.Conversations.AddRange(coachConversation, clientConversation);
+            db.Conversations.Add(coachConversation);
             await db.SaveChangesAsync(Ct);
             coachConversationId = coachConversation.PublicId;
-            clientConversationId = clientConversation.PublicId;
+
+            // The real invitee is verified, so the invite already seeded its thread (#1100 C3).
+            clientConversationId = await db.Conversations
+                .Where(c => c.ProfessionalUserId == inviter.UserId && c.ClientUserId == realClient.UserId)
+                .Select(c => c.PublicId)
+                .SingleAsync(Ct);
         }
 
         var coachContext = await coach.Http.GetAsync($"/conversations/{coachConversationId}/context", Ct);
@@ -230,17 +236,32 @@ public class SilentInviteIntegrationTests(FitnessApiFactory factory)
         var realClient = await TestActors.Client(factory).CreateAsync(Ct);
         var silentInvite = await InviteAsync(inviter, coach.Email);
         var realInvite = await InviteAsync(inviter, realClient.Email);
+        var silentInviteId = await InternalIdAsync(silentInvite);
+        var realInviteId = await InternalIdAsync(realInvite);
         var notifier = factory.Services.GetRequiredService<FakeRealtimeNotifier>();
 
         var toCoach = await inviter.Http.PostAsJsonAsync(
-            "/trainer/photo-diary-requests", new { PendingInviteId = silentInvite.Id, Mode = "Workflow" }, Ct);
+            "/trainer/photo-diary-requests", new { PendingInviteId = silentInviteId, Mode = "Workflow" }, Ct);
         var toClient = await inviter.Http.PostAsJsonAsync(
-            "/trainer/photo-diary-requests", new { PendingInviteId = realInvite.Id, Mode = "Workflow" }, Ct);
+            "/trainer/photo-diary-requests", new { PendingInviteId = realInviteId, Mode = "Workflow" }, Ct);
 
         toCoach.StatusCode.Should().Be(HttpStatusCode.OK);
         toClient.StatusCode.Should().Be(HttpStatusCode.OK);
         notifier.Calls.Should().NotContain(c => c.UserId == coach.UserId && c.EventType == "photodiaryrequested");
         notifier.Calls.Should().Contain(c => c.UserId == realClient.UserId && c.EventType == "photodiaryrequested");
+    }
+
+    /// <summary>
+    /// Resolves the internal long id of a created invite; the photo-diary API still takes it.
+    /// </summary>
+    private async Task<long> InternalIdAsync(CreatePendingInviteResponse invite)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        return await db.PendingInvites
+            .Where(i => i.PublicId == invite.PublicId)
+            .Select(i => i.Id)
+            .SingleAsync(Ct);
     }
 
     private sealed class ProblemDto

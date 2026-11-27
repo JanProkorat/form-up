@@ -54,11 +54,26 @@ public static class AppPolicies
     public const string PushTokenRemoveRateLimit = "push-token-remove";
 
     /// <summary>
+    /// Rate limiting policy for applying a promotion code to the caller's subscription.
+    /// Partitioned per authenticated coach (not per IP) — the abuse case is one account guessing codes, so the account is
+    /// the meaningful bucket. 10 requests per 15 minutes per coach: a typo or two is normal, guessing is not.
+    /// </summary>
+    public const string PromotionCodeRateLimit = "promotion-code";
+
+    /// <summary>
     /// Rate limiting policy for the anonymous public pricing list.
     /// 120 requests per 15 minutes per IP — a read-only page that shared office or carrier IPs load often,
     /// so the login budget would be too tight; the response is also cacheable.
     /// </summary>
     public const string PublicPricingRateLimit = "public-pricing";
+
+    /// <summary>
+    /// Rate limiting policy for the anonymous invite token lookup used by the sign-up page.
+    /// 20 requests per 15 minutes per IP — a real invitee loads the page a few times, while token guessing
+    /// must stay expensive; kept apart from the auth budget so opening an invite link never burns the
+    /// invitee's register/login attempts.
+    /// </summary>
+    public const string InviteResolveRateLimit = "invite-resolve";
 
     /// <summary>
     /// CORS policy for the web application.

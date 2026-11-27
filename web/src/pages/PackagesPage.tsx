@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ChevronRight, Eye, Plus, Tag } from 'lucide-react';
+import { ChevronRight, Eye, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -265,24 +265,6 @@ export default function PackagesPage() {
                     {t('packages.discounts.footer')}
                   </p>
                 )}
-              </div>
-              <div className="flex items-center gap-4 rounded-2xl border border-line bg-card px-5 py-4">
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-sunken text-ink-2">
-                  <Tag className="size-4.5" aria-hidden="true" />
-                </span>
-                <div className="flex min-w-0 flex-1 flex-col">
-                  <span className="flex items-center gap-2 text-copy font-semibold text-ink">
-                    {t('packages.discounts.codes.title')}
-                    <span className="rounded-full border border-line px-2.5 py-0.5 text-meta font-medium text-ink-2">
-                      {t('packages.discounts.codes.comingLater')}
-                    </span>
-                  </span>
-                  <span className="text-body text-muted-foreground">{t('packages.discounts.codes.body')}</span>
-                </div>
-                <Button type="button" variant="outline" disabled>
-                  <Plus aria-hidden="true" />
-                  {t('packages.discounts.codes.create')}
-                </Button>
               </div>
             </>
           )}

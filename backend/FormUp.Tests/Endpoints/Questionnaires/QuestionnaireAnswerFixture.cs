@@ -3,6 +3,7 @@ using FormUp.Application.Domain.Enums;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Tests.Builders;
 using FormUp.Tests.Infrastructure;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace FormUp.Tests.Endpoints.Questionnaires;
@@ -15,6 +16,7 @@ internal sealed record SeedQuestion(
 internal sealed class QuestionnaireAnswerScenario
 {
     public required Actor Client { get; init; }
+    public required Actor Coach { get; init; }
     public required Guid LinkPublicId { get; init; }
     /// <summary>The open response's public id; <see cref="Guid.Empty"/> when seeded without a response.</summary>
     public required Guid ResponsePublicId { get; init; }
@@ -92,6 +94,7 @@ internal sealed class QuestionnaireAnswerScenario
         return new QuestionnaireAnswerScenario
         {
             Client = client,
+            Coach = coach,
             LinkPublicId = link.PublicId,
             ResponsePublicId = response?.PublicId ?? Guid.Empty,
             LinkId = linkId,
@@ -99,5 +102,27 @@ internal sealed class QuestionnaireAnswerScenario
             QuestionnairePublicId = questionnaire.PublicId,
             QuestionIds = questionIds,
         };
+    }
+
+    /// <summary>Stores a file_upload answer with the given stored URL straight through the DbContext.</summary>
+    public async Task AddFileAnswerAsync(FitnessApiFactory factory, string questionKey, string storedFileUrl)
+    {
+        var ct = TestContext.Current.CancellationToken;
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var questionPublicId = QuestionIds[questionKey];
+        var questionId = await db.QuestionnaireQuestions
+            .Where(q => q.PublicId == questionPublicId)
+            .Select(q => q.Id)
+            .FirstAsync(ct);
+
+        db.QuestionnaireAnswers.Add(new QuestionnaireAnswer
+        {
+            PublicId = Guid.NewGuid(),
+            ResponseId = ResponseId,
+            QuestionId = questionId,
+            FileUrl = storedFileUrl,
+        });
+        await db.SaveChangesAsync(ct);
     }
 }

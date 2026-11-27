@@ -7,7 +7,9 @@ using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Interfaces;
 using FormUp.Application.Features.AdminCoaches.GiveCoachPlanFree;
 using FormUp.Application.Infrastructure.Data;
+using FormUp.Application.Infrastructure.Services.Billing;
 using FormUp.Tests.Builders;
+using FormUp.Tests.Endpoints.Billing;
 using FormUp.Tests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,8 +19,8 @@ namespace FormUp.Tests.Endpoints.AdminCoaches;
 /// <summary>
 /// Integration tests for <c>POST /admin/coaches/{CoachId}/give-free</c> (<c>GiveCoachPlanFreeEndpoint</c>).
 /// </summary>
-[Collection(TestCollection.Name)]
-public class GiveCoachPlanFreeEndpointTests(FitnessApiFactory factory)
+[Collection(TestCollection.Shard2)]
+public class GiveCoachPlanFreeEndpointTests(FitnessApiFactory factory) : IDisposable
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -122,6 +124,294 @@ public class GiveCoachPlanFreeEndpointTests(FitnessApiFactory factory)
             .ToListAsync(Ct);
         states.Should().OnlyContain(state => state == ConnectionState.Connected);
     }
+
+    private async Task<string> SubscribeWithStripeAsync(
+        Actor coach, string paidPlan, SubscriptionStatus status = SubscriptionStatus.Active, bool paysAddOn = false)
+    {
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(
+            factory, coach, paidPlan, status, paysSecondRoleAddOn: paysAddOn, currentPeriodEndsAt: DateTimeOffset.UtcNow.AddDays(10));
+        var subscriptionId = $"sub_{Guid.NewGuid():N}";
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        await db.CoachSubscriptions.Where(cs => cs.ProfessionalProfileId == coach.ProfileId)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(cs => cs.ExternalSubscriptionId, subscriptionId)
+                .SetProperty(cs => cs.SecondRoleAddOnEndsAt, paysAddOn ? DateTimeOffset.UtcNow.AddDays(10) : null), Ct);
+
+        return subscriptionId;
+    }
+
+    [Theory]
+    [InlineData(SubscriptionStatus.Active)]
+    [InlineData(SubscriptionStatus.PastDue)]
+    [InlineData(SubscriptionStatus.Incomplete)]
+    public async Task Give_ToACoachWithAStripeSubscription_CancelsItAndRefundsThenSavesTheGift(SubscriptionStatus status)
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        fake.CancelNowResult = new CancelRefundResult(12300, "czk");
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var plan = await PaidPlanBuilder.CreateAsync(factory);
+        var subscriptionId = await SubscribeWithStripeAsync(coach, plan, status);
+
+        var response = await admin.Http.PostAsJsonAsync($"/admin/coaches/{coach.UserId}/give-free", Body(plan, null), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.CancelledNow.Should().ContainSingle().Which.Should().Be(subscriptionId);
+        var row = await ReadSubscriptionAsync(coach.ProfileId);
+        row.GivenFreeAt.Should().NotBeNull();
+        row.Status.Should().Be(SubscriptionStatus.Active);
+        row.ExternalSubscriptionId.Should().BeNull("the subscription is gone, so a later End plan cannot touch Stripe");
+        row.CurrentPeriodEndsAt.Should().BeNull();
+
+        var audit = (await AuditRowsAsync(coach.UserId, "AdminGiveCoachPlanFree")).Should().ContainSingle().Subject;
+        using var values = JsonDocument.Parse(audit.NewValues!);
+        values.RootElement.GetProperty("providerSubscriptionCancelled").GetBoolean().Should().BeTrue();
+        values.RootElement.GetProperty("refundedMinorUnits").GetInt64().Should().Be(12300);
+    }
+
+    [Theory]
+    [InlineData("czk", "CZK")]
+    [InlineData("eur", "EUR")]
+    public async Task Give_WhenStripeRefunds_ReturnsTheAmountAndUpperCasedCurrency(string stripeCurrency, string expected)
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        fake.CancelNowResult = new CancelRefundResult(65673, stripeCurrency);
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var plan = await PaidPlanBuilder.CreateAsync(factory);
+        await SubscribeWithStripeAsync(coach, plan);
+
+        var response = await admin.Http.PostAsJsonAsync($"/admin/coaches/{coach.UserId}/give-free", Body(plan, null), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = (await response.Content.ReadFromJsonAsync<GiveCoachPlanFreeResponse>(Ct))!;
+        body.RefundedMinorUnits.Should().Be(65673);
+        body.RefundCurrency.Should().Be(expected);
+    }
+
+    [Fact]
+    public async Task Give_WhenNothingIsRefunded_ReturnsNullRefundFields()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        fake.CancelNowResult = CancelRefundResult.None;
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var plan = await PaidPlanBuilder.CreateAsync(factory);
+        await SubscribeWithStripeAsync(coach, plan);
+
+        var response = await admin.Http.PostAsJsonAsync($"/admin/coaches/{coach.UserId}/give-free", Body(plan, null), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = (await response.Content.ReadFromJsonAsync<GiveCoachPlanFreeResponse>(Ct))!;
+        body.RefundedMinorUnits.Should().BeNull();
+        body.RefundCurrency.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Give_WhenTheDeletedWebhookLandsDuringTheStripeCancel_StillEndsActiveOnTheGivenPlan()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var plan = await PaidPlanBuilder.CreateAsync(factory);
+        var gift = await PaidPlanBuilder.CreateAsync(factory, priceMinorUnits: 50000);
+        await SubscribeWithStripeAsync(coach, plan, paysAddOn: true);
+        var webhookAt = DateTimeOffset.UtcNow.AddSeconds(5);
+        webhookAt = new DateTimeOffset(webhookAt.Ticks - (webhookAt.Ticks % TimeSpan.TicksPerSecond), webhookAt.Offset);
+
+        // The deleted webhook for a row with no gift in force commits while the endpoint waits for Stripe.
+        fake.CancelNowHook = _ => BillingTestData.UpdateRowAsync(factory, coach.ProfileId, row =>
+        {
+            row.Status = SubscriptionStatus.Canceled;
+            row.ExternalSubscriptionId = null;
+            row.NextPaymentAttemptAt = null;
+            row.CancelAtPeriodEnd = false;
+            row.RenewalCancelledByAdminAt = null;
+            row.PendingSubscriptionPlanPriceId = null;
+            row.SecondRoleAddOnEndsAt = null;
+            row.LastExternalEventAt = webhookAt;
+        });
+
+        var response = await admin.Http.PostAsJsonAsync($"/admin/coaches/{coach.UserId}/give-free", Body(gift, null), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var row = await ReadSubscriptionAsync(coach.ProfileId);
+        row.Status.Should().Be(SubscriptionStatus.Active, "the given plan must win over the webhook's Canceled");
+        row.SubscriptionPlan.Code.Should().Be(gift);
+        row.GivenFreeAt.Should().NotBeNull();
+        row.ExternalSubscriptionId.Should().BeNull();
+        row.PaysSecondRoleAddOn.Should().BeFalse();
+        row.LastExternalEventAt.Should().BeOnOrAfter(webhookAt, "the event time never moves backwards");
+    }
+
+    [Fact]
+    public async Task Give_WhenStripeFails_Returns502_KeepsThePlan_AndKeepsTheRefundOwed()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var plan = await PaidPlanBuilder.CreateAsync(factory);
+        var gift = await PaidPlanBuilder.CreateAsync(factory, priceMinorUnits: 50000);
+        var subscriptionId = await SubscribeWithStripeAsync(coach, plan);
+        fake.Fail = true;
+
+        var response = await admin.Http.PostAsJsonAsync($"/admin/coaches/{coach.UserId}/give-free", Body(gift, null), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadGateway);
+        var row = await ReadSubscriptionAsync(coach.ProfileId);
+        row.SubscriptionPlan.Code.Should().Be(plan);
+        row.GivenFreeAt.Should().BeNull();
+        row.ExternalSubscriptionId.Should().Be(subscriptionId, "a retry must still find the subscription to refund");
+        row.PendingRefundSubscriptionId.Should().Be(subscriptionId, "the refund stays owed so a retry can still pay it");
+        (await AuditRowsAsync(coach.UserId, "AdminGiveCoachPlanFree")).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Give_RetryAfterTheWebhookCancelledTheSubscription_PaysTheRefundOnce_AndClearsTheMarker()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var plan = await PaidPlanBuilder.CreateAsync(factory);
+        var gift = await PaidPlanBuilder.CreateAsync(factory, priceMinorUnits: 50000);
+        var subscriptionId = await SubscribeWithStripeAsync(coach, plan);
+        fake.Fail = true;
+        (await admin.Http.PostAsJsonAsync($"/admin/coaches/{coach.UserId}/give-free", Body(gift, null), Ct))
+            .StatusCode.Should().Be(HttpStatusCode.BadGateway);
+
+        // What Stripe's subscription-deleted webhook does after the cancel went through.
+        await BillingTestData.UpdateRowAsync(factory, coach.ProfileId, row =>
+        {
+            row.ExternalSubscriptionId = null;
+            row.Status = SubscriptionStatus.Canceled;
+        });
+        fake.Fail = false;
+        fake.CancelNowResult = new CancelRefundResult(8000, "czk");
+
+        var retry = await admin.Http.PostAsJsonAsync($"/admin/coaches/{coach.UserId}/give-free", Body(gift, null), Ct);
+
+        retry.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = (await retry.Content.ReadFromJsonAsync<GiveCoachPlanFreeResponse>(Ct))!;
+        body.RefundedMinorUnits.Should().Be(8000);
+        body.RefundCurrency.Should().Be("CZK");
+        fake.CancelledNow.Should().Equal(subscriptionId);
+        var row = await ReadSubscriptionAsync(coach.ProfileId);
+        row.SubscriptionPlan.Code.Should().Be(gift);
+        row.GivenFreeAt.Should().NotBeNull();
+        row.PendingRefundSubscriptionId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Give_RetryBeforeAnyWebhook_CancelsTheSubscriptionOnce_AndClearsTheMarker()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var plan = await PaidPlanBuilder.CreateAsync(factory);
+        var gift = await PaidPlanBuilder.CreateAsync(factory, priceMinorUnits: 50000);
+        var subscriptionId = await SubscribeWithStripeAsync(coach, plan);
+        fake.Fail = true;
+        (await admin.Http.PostAsJsonAsync($"/admin/coaches/{coach.UserId}/give-free", Body(gift, null), Ct))
+            .StatusCode.Should().Be(HttpStatusCode.BadGateway);
+        fake.Fail = false;
+
+        var retry = await admin.Http.PostAsJsonAsync($"/admin/coaches/{coach.UserId}/give-free", Body(gift, null), Ct);
+
+        retry.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.CancelledNow.Should().Equal(subscriptionId);
+        var row = await ReadSubscriptionAsync(coach.ProfileId);
+        row.PendingRefundSubscriptionId.Should().BeNull();
+        row.ExternalSubscriptionId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Give_OwedRefundOnly_WhenStripeIsNotConfigured_Returns503_AndKeepsTheMarker()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var plan = await PaidPlanBuilder.CreateAsync(factory);
+        var subscriptionId = await SubscribeWithStripeAsync(coach, plan);
+        await BillingTestData.UpdateRowAsync(factory, coach.ProfileId, row =>
+        {
+            row.ExternalSubscriptionId = null;
+            row.Status = SubscriptionStatus.Canceled;
+            row.PendingRefundSubscriptionId = subscriptionId;
+        });
+        fake.IsConfigured = false;
+
+        var response = await admin.Http.PostAsJsonAsync($"/admin/coaches/{coach.UserId}/give-free", Body(plan, null), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
+        (await response.Content.ReadAsStringAsync(Ct)).Should().Contain("BILLING_NOT_CONFIGURED");
+        (await ReadSubscriptionAsync(coach.ProfileId)).PendingRefundSubscriptionId.Should().Be(subscriptionId);
+    }
+
+    [Fact]
+    public async Task Give_WhenStripeIsNotConfiguredAndTheCoachHasASubscription_Returns503_AndSavesNothing()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        fake.IsConfigured = false;
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var plan = await PaidPlanBuilder.CreateAsync(factory);
+        await SubscribeWithStripeAsync(coach, plan);
+
+        var response = await admin.Http.PostAsJsonAsync($"/admin/coaches/{coach.UserId}/give-free", Body(plan, null), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
+        (await response.Content.ReadAsStringAsync(Ct)).Should().Contain("BILLING_NOT_CONFIGURED");
+        fake.CancelledNow.Should().BeEmpty();
+        (await ReadSubscriptionAsync(coach.ProfileId)).GivenFreeAt.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Give_ToACoachWithoutAStripeSubscription_MakesNoStripeCall_EvenWithoutStripeKeys()
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        fake.IsConfigured = false;
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var plan = await PaidPlanBuilder.CreateAsync(factory);
+
+        var response = await admin.Http.PostAsJsonAsync($"/admin/coaches/{coach.UserId}/give-free", Body(plan, null), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.CancelledNow.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Give_ToAnAddOnPayer_EndsTheAddOnWithTheSubscription_AndRemovesNoRole(bool bothRolesIncluded)
+    {
+        var fake = BillingTestData.ResetProvider(factory);
+        var admin = await TestActors.Admin(factory).CreateAsync(Ct);
+        var coach = await TestActors.Trainer(factory).CreateAsync(Ct);
+        var paid = await PaidPlanBuilder.CreateAsync(factory, addOnMinorUnits: 9900, bothRolesIncluded: false);
+        var gift = await PaidPlanBuilder.CreateAsync(factory, bothRolesIncluded: bothRolesIncluded);
+        await SubscribeWithStripeAsync(coach, paid, paysAddOn: true);
+
+        var response = await admin.Http.PostAsJsonAsync($"/admin/coaches/{coach.UserId}/give-free", Body(gift, null), Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        fake.CancelledNow.Should().ContainSingle();
+        var row = await ReadSubscriptionAsync(coach.ProfileId);
+        row.PaysSecondRoleAddOn.Should().BeFalse();
+        row.SecondRoleAddOnEndsAt.Should().BeNull();
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var profile = await db.ProfessionalProfiles.AsNoTracking().SingleAsync(p => p.Id == coach.ProfileId, Ct);
+        profile.TrainerRoleRemovedAt.Should().BeNull();
+        profile.NutritionistRoleRemovedAt.Should().BeNull();
+
+        var audit = (await AuditRowsAsync(coach.UserId, "AdminGiveCoachPlanFree")).Should().ContainSingle().Subject;
+        audit.NewValues.Should().Contain("\"secondRoleAddOnEnded\":true");
+    }
+
+    public void Dispose() => BillingTestData.ResetProvider(factory);
 
     [Fact]
     public async Task Give_ReasonWithQuotesAndInjectedJson_IsStoredAsDataAndTheAuditRowStaysWithinItsColumn()

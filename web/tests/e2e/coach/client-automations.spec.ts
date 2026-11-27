@@ -171,7 +171,8 @@ test.describe('client automations tab', () => {
       await expect(drawer.getByText(`Customise · ${rule.name}`)).toBeVisible();
       await expect(drawer.getByRole('button', { name: 'Mon', exact: true })).toHaveAttribute('aria-pressed', 'true');
       await drawer.getByRole('button', { name: 'Wed', exact: true }).click();
-      await drawer.getByRole('button', { name: 'Save rule' }).click();
+      // The check-in override saves "for <client>", not "rule".
+      await drawer.getByRole('button', { name: /^Save for / }).click();
       await expect(drawer).toBeHidden();
 
       await expect(row).toContainText('Custom for');

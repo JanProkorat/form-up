@@ -25,7 +25,7 @@ import OutsidePlanBanner from '@/components/subscription/OutsidePlanBanner';
 import { useClientNutritionRealtime } from '@/hooks/useClientNutritionRealtime';
 import ClientPhotosTab from '@/components/client-detail/photos/ClientPhotosTab';
 import ClientFormsTab from '@/components/client-detail/forms/ClientFormsTab';
-import { hasNewForms } from '@/components/client-detail/forms/clientFormsModel';
+import { hasNewForms, isCheckIn } from '@/components/client-detail/forms/clientFormsModel';
 import { useClientForms } from '@/components/client-forms/useClientForms';
 
 const MEASUREMENTS_PAGE_SIZE = 50;
@@ -84,7 +84,10 @@ export default function ClientDetailPage() {
 
   // Shares the Forms tab's cache entry. An ended link (404) just shows no dot.
   const formsQuery = useClientForms(clientId);
-  const hasNewFormAnswers = !formsQuery.isError && hasNewForms(formsQuery.data?.current);
+  // Without the forms feature only check-in answers are readable, so only they count as new.
+  const checkInsOnly = !subscription.isEntitled('canSendQuestionnaires') && subscription.isEntitled('canUseWeeklyCheckIns');
+  const newFormsSource = checkInsOnly ? formsQuery.data?.current?.filter(isCheckIn) : formsQuery.data?.current;
+  const hasNewFormAnswers = !formsQuery.isError && hasNewForms(newFormsSource);
 
   // The event carries no client id, so the open page refreshes its own keys every time.
   useSignalR({
@@ -156,7 +159,6 @@ export default function ClientDetailPage() {
             activeTab={activeTab}
             onTabChange={handleTabChange}
             canViewNutritionPlans={role !== 'trainer'}
-            canViewTrainingPlans={role !== 'nutritionist'}
             hasNewForms={hasNewFormAnswers}
           />
         }

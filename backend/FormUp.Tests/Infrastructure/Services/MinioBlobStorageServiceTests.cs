@@ -336,12 +336,12 @@ public class MinioBlobStorageServiceTests
         // a URL against a host the caller (a browser, outside the docker network) may not be able
         // to reach — e.g. "minio-test:9000" in docker-compose.test.yml. With MinIO:PresignEndpoint
         // configured, the presigned upload URL must name THAT host instead.
-        var service = CreateService(out _, presignEndpoint: "localhost:59000");
+        var service = CreateService(out _, presignEndpoint: "localhost:29000");
 
         var result = await service.GenerateUploadUrlAsync(
             "chat-uploads/conv-1/upload-1.jpg", "image/jpeg", TimeSpan.FromMinutes(15), CancellationToken.None);
 
-        result.UploadUrl.Should().StartWith("http://localhost:59000/");
+        result.UploadUrl.Should().StartWith("http://localhost:29000/");
         result.UploadUrl.Should().NotContain("localhost:9000/", "the presign endpoint host must fully replace the regular endpoint, not merely be appended");
     }
 
@@ -351,7 +351,7 @@ public class MinioBlobStorageServiceTests
         // Same contract as the upload URL, for the read/GET side — GenerateReadUrlAsync is the
         // only path a stored blob URL resolves to fetchable bytes through (F9), so it must honor
         // MinIO:PresignEndpoint too.
-        var service = CreateService(out _, presignEndpoint: "localhost:59000");
+        var service = CreateService(out _, presignEndpoint: "localhost:29000");
 
         const string containerPath = "chat/conv-1/msg-1.jpg";
         var storedBlobUrl = service.BuildPublicUrl(containerPath);
@@ -359,7 +359,7 @@ public class MinioBlobStorageServiceTests
         var result = await service.GenerateReadUrlAsync(storedBlobUrl, CancellationToken.None);
 
         result.Should().NotBeNullOrEmpty();
-        result!.Should().StartWith("http://localhost:59000/");
+        result!.Should().StartWith("http://localhost:29000/");
         result.Should().NotContain("localhost:9000/", "the presign endpoint host must fully replace the regular endpoint, not merely be appended");
     }
 
@@ -368,7 +368,7 @@ public class MinioBlobStorageServiceTests
     {
         // MinIO:PresignSecure is optional and must fall back to MinIO:Secure (false in every test
         // fixture here) rather than defaulting independently to true or false.
-        var service = CreateService(out _, presignEndpoint: "localhost:59000");
+        var service = CreateService(out _, presignEndpoint: "localhost:29000");
 
         var result = await service.GenerateUploadUrlAsync(
             "chat-uploads/conv-1/upload-1.jpg", "image/jpeg", TimeSpan.FromMinutes(15), CancellationToken.None);
@@ -382,11 +382,11 @@ public class MinioBlobStorageServiceTests
         // PresignSecure must be settable independently of Secure — the two clients can genuinely
         // differ (e.g. a harness serving plain HTTP internally behind a TLS-terminating host
         // proxy the browser reaches over HTTPS).
-        var service = CreateService(out _, presignEndpoint: "localhost:59000", presignSecure: "true");
+        var service = CreateService(out _, presignEndpoint: "localhost:29000", presignSecure: "true");
 
         var result = await service.GenerateUploadUrlAsync(
             "chat-uploads/conv-1/upload-1.jpg", "image/jpeg", TimeSpan.FromMinutes(15), CancellationToken.None);
 
-        result.UploadUrl.Should().StartWith("https://localhost:59000/");
+        result.UploadUrl.Should().StartWith("https://localhost:29000/");
     }
 }

@@ -15,7 +15,7 @@ namespace FormUp.Tests.Endpoints.Client.Collaborations;
 /// Integration tests for the check-in days of <c>GET /client/collaborations</c>, which come from the
 /// coach's enabled check-in rule that covers the client.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard4)]
 public class GetCollaborationsCheckInIntegrationTests(FitnessApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;

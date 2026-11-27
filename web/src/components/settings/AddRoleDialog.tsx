@@ -1,0 +1,270 @@
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { ChevronRight, Dumbbell, ExternalLink, Info, Leaf, Loader2 } from 'lucide-react';
+import { BillingInterval } from '@/api/generated';
+import type { CoachRoleKey } from '@/components/settings/RemoveRoleDialog';
+import { billingErrorCode, billingErrorMessage } from '@/components/subscription/billingErrors';
+import { formatMoney } from '@/components/subscription/money';
+import { coachPlanName } from '@/components/subscription/planNames';
+import { PLAN_PICKER_PATH } from '@/components/subscription/planLinks';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  useCoachPlans,
+  useConfirmSecondRole,
+  useSecondRolePreview,
+  useSubscription,
+} from '@/hooks/useSubscriptionQueries';
+import UpgradePaymentNotice, { PaymentNoticeReveal } from '@/components/subscription/UpgradePaymentNotice';
+import { getErrorStatus } from '@/lib/api-errors';
+import { useAuthStore } from '@/stores/auth';
+import { useCheckoutActivationStore } from '@/stores/checkoutActivation';
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+interface Props {
+  /** The role being added; the dialog is open while this is set. */
+  role: CoachRoleKey | null;
+  onClose: () => void;
+  /** The add-on is paid (or was already): the caller adds the role through POST /users/me/roles. */
+  onPaid: () => void;
+  /** The role is being added after payment. */
+  adding: boolean;
+}
+
+/**
+ * Add the second role on a plan that charges for it: shows the new bill and today's prorated charge, takes the
+ * payment, and only then lets the caller add the role. A declined card leaves the dialog open and the role unadded.
+ */
+export default function AddRoleDialog({ role, onClose, onPaid, adding }: Props) {
+  const { t, i18n } = useTranslation();
+  const open = role !== null;
+  const subscription = useSubscription();
+  const plansQuery = useCoachPlans(open && subscription.isCoach);
+  const previewQuery = useSecondRolePreview(open && subscription.isCoach);
+  const confirm = useConfirmSecondRole();
+  // One id per confirm attempt: a new one each time the dialog opens and after every decline, because
+  // the server replays the stored answer for an id it has already seen.
+  const [attemptId, setAttemptId] = useState(() => crypto.randomUUID());
+  const [openedFor, setOpenedFor] = useState<CoachRoleKey | null>(role);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
+  // Stripe's hosted payment page when the bank must confirm the add-on: only ever an href, never shown or logged.
+  const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
+  const userId = useAuthStore((s) => s.user?.publicId ?? null);
+
+  // Adjusted during render (own state only): opening the dialog starts a fresh attempt and clears the last error.
+  if (role !== openedFor) {
+    setOpenedFor(role);
+    if (role !== null) {
+      setAttemptId(crypto.randomUUID());
+      setConfirmError(null);
+      setPaymentUrl(null);
+    }
+  }
+
+  const preview = previewQuery.data;
+  const language = i18n.language;
+  const alreadyPaid = previewQuery.isError && billingErrorCode(previewQuery.error) === 'BILLING_ADD_ON_ALREADY_PAID';
+  const currency = preview?.currency ?? 'CZK';
+  const money = (amount: number | undefined) => formatMoney(amount ?? 0, currency, language);
+  const per = t(
+    `subscription.planChoice.card.per.${preview?.billingInterval === BillingInterval.Annual ? 'year' : 'month'}`,
+  );
+  const RoleIcon = role === 'nutritionist' ? Leaf : Dumbbell;
+  const roleLabel = role ? t(`roles.${role}`) : '';
+
+  // Counted from the moment the preview was read, so the number matches the prorated amount beside it.
+  const days =
+    preview?.periodEndsAt !== undefined
+      ? Math.max(1, Math.ceil((new Date(preview.periodEndsAt).getTime() - previewQuery.dataUpdatedAt) / DAY_MS))
+      : null;
+  const tax = preview?.todayTaxMinorUnits ?? 0;
+  // The discounted amounts come together: all null when no promotion covers the plan. A forever promotion has no end date.
+  const hasDiscount =
+    preview?.discountedPlanAmountMinorUnits != null &&
+    preview.discountedAddOnAmountMinorUnits != null &&
+    preview.discountedNewTotalMinorUnits != null;
+  const discountedPlan = hasDiscount ? preview.discountedPlanAmountMinorUnits : undefined;
+  const discountedAddOn = hasDiscount ? preview.discountedAddOnAmountMinorUnits : undefined;
+  const discountedTotal = hasDiscount ? preview.discountedNewTotalMinorUnits : undefined;
+  const discountEndsAt = hasDiscount && preview.promotionEndsAt ? new Date(preview.promotionEndsAt) : null;
+  const studio = (plansQuery.data?.plans ?? [])
+    .filter((plan) => plan.bothRolesIncluded && (plan.priceMinorUnits ?? 0) > 0)
+    .sort((a, b) => (a.priceMinorUnits ?? 0) - (b.priceMinorUnits ?? 0))[0];
+  // The Studio line follows the subscription's interval; a Studio not sold yearly falls back to its monthly price.
+  const studioAnnual =
+    preview?.billingInterval === BillingInterval.Annual && (studio?.annualPriceMinorUnits ?? 0) > 0;
+  const studioPrice = studioAnnual ? (studio?.annualPriceMinorUnits ?? 0) : (studio?.priceMinorUnits ?? 0);
+  const studioPer = t(`subscription.planChoice.card.per.${studioAnnual ? 'year' : 'month'}`);
+
+  const pay = () => {
+    setConfirmError(null);
+    confirm.mutate(attemptId, {
+      onSuccess: (result) => {
+        // Awaiting the bank: nothing is paid and the role is not added until Stripe confirms the payment.
+        if (result.paymentUrl && !result.paysSecondRoleAddOn) setPaymentUrl(result.paymentUrl);
+        else onPaid();
+      },
+      onError: (error) => {
+        setConfirmError(billingErrorMessage(error, 'subscription.billing.errors.addRole'));
+        // Any 402 is final for this attempt id; the next try needs its own.
+        if (getErrorStatus(error) === 402) setAttemptId(crypto.randomUUID());
+      },
+    });
+  };
+
+  // Starts watching for the add-on to be paid, then closes once the click has opened the tab.
+  const openPayment = () => {
+    if (userId) useCheckoutActivationStore.getState().startSecondRoleAddOn(userId);
+    setTimeout(onClose, 0);
+  };
+
+  const busy = confirm.isPending || adding;
+  const loadFailed = previewQuery.isError && !alreadyPaid;
+
+  return (
+    <Dialog open={open} onOpenChange={(next) => !next && !busy && onClose()}>
+      <DialogContent showCloseButton={false}>
+        <DialogHeader>
+          <span className="flex size-11 items-center justify-center rounded-md bg-sunken text-ink-2">
+            <RoleIcon className="size-5" aria-hidden="true" />
+          </span>
+          <DialogTitle>{t('subscription.billing.addRole.title', { role: roleLabel })}</DialogTitle>
+          <DialogDescription>
+            {role ? t(`subscription.billing.addRole.body.${role}`) : null}
+          </DialogDescription>
+        </DialogHeader>
+
+        {previewQuery.isPending && open ? (
+          <div role="status" aria-label={t('common.loading')} className="flex h-40 w-full items-center justify-center">
+            <Loader2 className="size-6 animate-spin text-muted-foreground" aria-hidden="true" />
+          </div>
+        ) : loadFailed ? (
+          <p role="alert" className="text-body text-error">
+            {billingErrorMessage(previewQuery.error, 'subscription.billing.errors.preview')}
+          </p>
+        ) : alreadyPaid ? (
+          <p className="flex gap-2.5 rounded-xl bg-sunken px-3.5 py-3 text-body text-ink-2">
+            <Info className="mt-px size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+            {t('subscription.billing.addRole.alreadyPaid')}
+          </p>
+        ) : preview ? (
+          <>
+            <div className="flex flex-col gap-2.5 rounded-xl bg-sunken p-4">
+              <div className="flex items-baseline gap-3 text-copy text-ink-2">
+                <span>{t('subscription.billing.addRole.planLine', { plan: subscription.planName })}</span>
+                <span className="ml-auto font-semibold whitespace-nowrap">
+                  {money(discountedPlan ?? preview.planAmountMinorUnits)}
+                </span>
+              </div>
+              <div className="flex items-baseline gap-3 text-copy text-ink-2">
+                <span>{t('subscription.billing.addRole.addOnLine', { role: roleLabel })}</span>
+                <span className="ml-auto font-semibold whitespace-nowrap">
+                  +{money(discountedAddOn ?? preview.addOnAmountMinorUnits)}
+                </span>
+              </div>
+              <div className="flex items-baseline gap-3 border-t border-border pt-2.5 text-subhead font-semibold text-ink">
+                <span>{t('subscription.billing.addRole.total')}</span>
+                <span className="ml-auto whitespace-nowrap">
+                  {money(discountedTotal ?? preview.newTotalMinorUnits)} {per}
+                </span>
+              </div>
+              {discountEndsAt && (
+                <span className="text-meta text-muted-foreground">
+                  {t('subscription.billing.addRole.discountEnds', {
+                    date: new Intl.DateTimeFormat(language, { dateStyle: 'medium' }).format(discountEndsAt),
+                    amount: money(preview.newTotalMinorUnits),
+                    per,
+                  })}
+                </span>
+              )}
+            </div>
+
+            <div className="flex gap-2.5 rounded-xl bg-sunken px-3.5 py-3 text-ink-2">
+              <Info className="mt-px size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+              <p className="text-body leading-normal">
+                {days !== null && preview.periodEndsAt
+                  ? t('subscription.billing.addRole.today', {
+                      amount: money(preview.todayAmountMinorUnits),
+                      count: days,
+                      date: new Intl.DateTimeFormat(language, { dateStyle: 'medium' }).format(new Date(preview.periodEndsAt)),
+                    })
+                  : t('subscription.billing.addRole.todayNoDate', { amount: money(preview.todayAmountMinorUnits) })}
+                {tax > 0 && ` ${t('subscription.billing.addRole.taxIncluded', { tax: money(tax) })}`}
+              </p>
+            </div>
+
+            {studio && (
+              <div className="flex flex-wrap items-center gap-2 text-body text-muted-foreground">
+                <span>
+                  {t('subscription.billing.addRole.studio', {
+                    plan: coachPlanName(studio, language),
+                    price: formatMoney(studioPrice, studio.currency ?? currency, language),
+                    per: studioPer,
+                  })}
+                </span>
+                <Link
+                  to={PLAN_PICKER_PATH}
+                  className="ml-auto inline-flex items-center gap-1 font-semibold text-ink underline underline-offset-2"
+                >
+                  {t('subscription.billing.addRole.compare')}
+                  <ChevronRight className="size-3.5" aria-hidden="true" />
+                </Link>
+              </div>
+            )}
+          </>
+        ) : null}
+
+        <PaymentNoticeReveal open={paymentUrl !== null}>
+          {paymentUrl && (
+            <UpgradePaymentNotice
+              message={t('subscription.billing.addRole.paymentNotice')}
+              paymentUrl={paymentUrl}
+              onOpen={openPayment}
+              hideAction
+            />
+          )}
+        </PaymentNoticeReveal>
+
+        {confirmError && (
+          <p role="alert" className="text-body text-error">
+            {confirmError}
+          </p>
+        )}
+
+        <DialogFooter>
+          <Button type="button" variant="outline" size="lg" disabled={busy} onClick={onClose}>
+            {t('common.cancel')}
+          </Button>
+          {alreadyPaid ? (
+            <Button type="button" size="lg" disabled={busy} onClick={onPaid}>
+              {t('settings.roles.add')}
+            </Button>
+          ) : paymentUrl ? (
+            <Button asChild size="lg" className="gap-2">
+              <a href={paymentUrl} target="_blank" rel="noopener noreferrer" onClick={openPayment}>
+                {t('subscription.billing.upgradePayment.open')}
+                <ExternalLink className="size-4" aria-hidden="true" />
+              </a>
+            </Button>
+          ) : (
+            <Button type="button" size="lg" disabled={busy || !preview || loadFailed} onClick={pay}>
+              {busy && <Loader2 className="animate-spin" aria-hidden="true" />}
+              {preview
+                ? t('subscription.billing.addRole.confirm', { amount: money(preview.todayAmountMinorUnits) })
+                : t('settings.roles.add')}
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

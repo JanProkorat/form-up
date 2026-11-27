@@ -1111,6 +1111,29 @@
     "openNow": "Open now",
     "weekOf": "Week of {{date}}",
     "answerBy": "{{coach}} · answer by {{weekday}}",
+    "schedule": {
+      "label": "When check-ins arrive",
+      "title": "{{weekday}}, {{time}}",
+      "caption": "{{coach}} · you can answer until {{weekday}}",
+      "every": {
+        "monday": "Every Monday",
+        "tuesday": "Every Tuesday",
+        "wednesday": "Every Wednesday",
+        "thursday": "Every Thursday",
+        "friday": "Every Friday",
+        "saturday": "Every Saturday",
+        "sunday": "Every Sunday"
+      },
+      "until": {
+        "monday": "Monday",
+        "tuesday": "Tuesday",
+        "wednesday": "Wednesday",
+        "thursday": "Thursday",
+        "friday": "Friday",
+        "saturday": "Saturday",
+        "sunday": "Sunday"
+      }
+    },
     "status": {
       "sent": "Sent",
       "reviewed": "Reviewed",

@@ -33,5 +33,13 @@ public class ClientAnswerDto
     public string? ValueText { get; set; }
     public decimal? ValueNumber { get; set; }
     public string? ValueJson { get; set; }
+
+    /// <summary>Short-lived signed URL of the stored file; empty when it cannot be signed.</summary>
     public string? FileUrl { get; set; }
+
+    /// <summary>
+    /// The uploadId behind <see cref="FileUrl"/>, or null for a foreign or legacy value. Resend it as
+    /// <c>fileUploadId</c> to keep the file unchanged.
+    /// </summary>
+    public Guid? FileUploadId { get; set; }
 }

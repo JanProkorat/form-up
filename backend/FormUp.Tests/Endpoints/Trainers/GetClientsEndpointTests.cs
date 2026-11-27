@@ -22,7 +22,7 @@ namespace FormUp.Tests.Endpoints.Trainers;
 /// seeded document regardless of <c>FilterDefinition</c> and would make every Active/Paused
 /// assertion below unfalsifiable.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard2)]
 public class GetClientsEndpointTests(FitnessApiFactory factory)
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
@@ -891,7 +891,7 @@ public class GetClientsEndpointTests(FitnessApiFactory factory)
     /// memoized in a static field and never disposed (the same pattern as
     /// <c>GetTodayPlanProjectionIntegrationTests</c>).
     /// </summary>
-    private WebApplicationFactory<Program> PinnedFactory => _pinnedFactory ??= factory.WithWebHostBuilder(builder =>
+    private WebApplicationFactory<Program> PinnedFactory => _pinnedFactory ??= FastEndpointsBootGate.Booted(factory.WithWebHostBuilder(builder =>
     {
         builder.ConfigureServices(services =>
         {
@@ -902,25 +902,17 @@ public class GetClientsEndpointTests(FitnessApiFactory factory)
 
             services.AddSingleton<TimeProvider, SettableTimeProvider>();
         });
-    });
+    }));
 
     // ── fixtures ─────────────────────────────────────────────────────────────
 
     private async Task<(HttpClient Http, Guid UserId)> SetupTrainerAsync()
     {
-        var http = factory.CreateClient();
-        var email = UniqueEmail("trainer");
+        var trainer = await TestActors.Trainer(factory)
+            .WithEmail(UniqueEmail("trainer"))
+            .CreateAsync(TestContext.Current.CancellationToken);
 
-        await TestHelpers.RegisterAsync(http, email, "TestPass1!", "Test", "Trainer", "Trainer");
-        var (token, _) = await TestHelpers.LoginAsync(http, email, "TestPass1!");
-        TestHelpers.SetBearerToken(http, token);
-
-        using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var user = await db.Users.AsNoTracking()
-            .FirstAsync(u => u.Email == email, TestContext.Current.CancellationToken);
-
-        return (http, user.Id);
+        return (trainer.Http, trainer.UserId);
     }
 
     private async Task<(Guid ClientUserId, Guid ClientPublicId)> SetupLinkedClientAsync(

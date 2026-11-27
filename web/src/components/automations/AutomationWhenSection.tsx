@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Clock, Flag } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import {
+  type AutomationRuleDto,
   AutomationEventType,
   AutomationOffsetDirection,
   AutomationScheduleUnit,
@@ -27,8 +28,11 @@ import {
 import { cn } from '@/lib/utils';
 
 /** Section 1: schedule or event trigger, with its timing fields. */
-export default function AutomationWhenSection() {
+export default function AutomationWhenSection({ parentRule }: { parentRule?: AutomationRuleDto }) {
   const { t } = useTranslation();
+  const ruleWeekday = parentRule?.scheduleWeekday;
+  const ruleWindowDays =
+    parentRule?.answerWindowHours != null ? Math.round(parentRule.answerWindowHours / 24) : undefined;
   const { register, setValue, control, getValues } = useFormContext<AutomationRuleFormValues>();
   const triggerKind = useWatch({ control, name: 'triggerKind' });
   const eventType = useWatch({ control, name: 'eventType' });
@@ -102,6 +106,11 @@ export default function AutomationWhenSection() {
                 </button>
               ))}
             </div>
+            {ruleWeekday && (
+              <span className="text-meta font-normal text-muted-foreground">
+                {t('automations.drawer.when.weekdayRuleHint', { day: t(`automations.weekday.every.${ruleWeekday}`) })}
+              </span>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-3">
             {timeField}
@@ -118,7 +127,11 @@ export default function AutomationWhenSection() {
                 <SelectChevron />
               </div>
               <span className="text-meta font-normal text-muted-foreground">
-                {t('automations.drawer.when.answerWindowHint')}
+                {ruleWindowDays !== undefined
+                  ? t('automations.drawer.when.answerWindowRuleHint', {
+                      window: t('automations.drawer.when.answerWindowDays', { count: ruleWindowDays }),
+                    })
+                  : t('automations.drawer.when.answerWindowHint')}
               </span>
             </label>
           </div>

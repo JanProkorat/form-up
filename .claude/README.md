@@ -113,7 +113,7 @@ GitHub issue
     └─ ship-epic skill drives this loop for an epic + N children
 ```
 
-Each agent writes a schema-validated JSON handoff to `state/` that the
+Each agent writes a schema-validated JSON handoff to `.pipeline/state/` that the
 next phase reads as its sole structured input. `gate-check.sh` validates
 on the way out (SubagentStop). `reinject-state.sh` re-hydrates pipeline
 state on session restart (SessionStart).

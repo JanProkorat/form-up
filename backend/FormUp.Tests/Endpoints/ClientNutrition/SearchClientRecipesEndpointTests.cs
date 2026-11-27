@@ -13,7 +13,7 @@ namespace FormUp.Tests.Endpoints.ClientNutrition;
 /// <summary>
 /// Integration tests (real MongoDB) for <c>GET /client/nutrition/recipes</c>.
 /// </summary>
-[Collection(TestCollection.Name)]
+[Collection(TestCollection.Shard3)]
 public class SearchClientRecipesEndpointTests(FitnessApiFactory factory)
 {
     private static readonly DateTime Start = ClientNutritionFixtures.CurrentWeekMondayUtc();

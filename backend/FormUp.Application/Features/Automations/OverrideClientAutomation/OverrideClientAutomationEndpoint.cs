@@ -37,10 +37,10 @@ public class OverrideClientAutomationEndpoint(
             s.Description = "Stores a per-client copy of the rule's message, trigger and options.";
             s.Responses[StatusCodes.Status204NoContent] = "Override saved";
             s.Responses[StatusCodes.Status400BadRequest] =
-                "Invalid trigger or options, a progress photos message over 500 characters, or check-in fields that do not match the rule's form";
+                "Invalid trigger or options, a progress photos message over 500 characters, check-in fields that do not match the rule's form, or a check-in form that is inactive, not a check-in form, or sent for a rule that is not a check-in";
             s.Responses[StatusCodes.Status401Unauthorized] = "Missing or invalid credentials";
             s.Responses[StatusCodes.Status403Forbidden] = "The live link grants no access, or the subscription does not include per-client check-in configuration";
-            s.Responses[StatusCodes.Status404NotFound] = "No live link to the client, or the rule does not apply to them";
+            s.Responses[StatusCodes.Status404NotFound] = "No live link to the client, the rule does not apply to them, or the check-in form is not one of the caller's";
             s.Responses[StatusCodes.Status409Conflict] = "A client-only rule is changed through the rule itself";
         });
     }
@@ -88,9 +88,34 @@ public class OverrideClientAutomationEndpoint(
             return;
         }
 
+        if (req.CheckInQuestionnaireId is not null && !isCheckIn)
+        {
+            await this.SendProblemAsync(
+                StatusCodes.Status400BadRequest,
+                ErrorCodes.AutomationCheckInFieldsNotAllowed,
+                "A check-in form belongs to a rule that sends a check-in form.",
+                ct);
+            return;
+        }
+
         if (isCheckIn && await this.RespondIfCheckInNotEntitledAsync(entitlementService, context.Profile.Id, true, ct))
         {
             return;
+        }
+
+        long? overrideFormId = null;
+
+        if (req.CheckInQuestionnaireId is { } pickedFormId)
+        {
+            var (formOk, resolvedFormId) = await this.ResolveOverrideCheckInFormOrRespondAsync(
+                db, Guid.Parse(userId), pickedFormId, rule.QuestionnaireId, ct);
+
+            if (!formOk)
+            {
+                return;
+            }
+
+            overrideFormId = resolvedFormId;
         }
 
         var clientOverride = await db.AutomationClientOverrides
@@ -106,7 +131,18 @@ public class OverrideClientAutomationEndpoint(
             db.AutomationClientOverrides.Add(clientOverride);
         }
 
+        // The form the client gets today against the one they get after this save; a clear counts as a change.
+        var currentFormId = (clientOverride.IsCustomized ? clientOverride.CheckInQuestionnaireId : null) ?? rule.QuestionnaireId;
+        var formChanged = currentFormId != (overrideFormId ?? rule.QuestionnaireId);
+
         AutomationRuleWriter.Apply(clientOverride, req, isCheckIn, parentRule: rule);
+        clientOverride.CheckInQuestionnaireId = overrideFormId;
+
+        if (formChanged && clientOverride.Enabled)
+        {
+            clientOverride.EnabledAtUtc = DateTime.UtcNow;
+        }
+
         await db.SaveChangesAsync(ct);
 
         await Send.NoContentAsync(ct);

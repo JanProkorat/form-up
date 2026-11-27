@@ -66,20 +66,29 @@ public class SubscriptionPlanDto
     /// <summary>Maximum number of active clients allowed under this plan. Null means unlimited.</summary>
     public int? MaxActiveClients { get; set; }
 
-    /// <summary>Current plan price, expressed in the smallest unit of <see cref="Currency"/>.</summary>
+    /// <summary>Current monthly plan price, expressed in the smallest unit of <see cref="Currency"/>.</summary>
     public long PriceMinorUnits { get; set; }
 
-    /// <summary>Current price of the second-role add-on. Null when both roles are included.</summary>
+    /// <summary>Current monthly price of the second-role add-on. Null when both roles are included.</summary>
     public long? SecondRoleAddOnPriceMinorUnits { get; set; }
 
     /// <summary>ISO 4217 currency code for the prices.</summary>
     public string Currency { get; set; } = string.Empty;
 
-    /// <summary>Billing cadence for this plan.</summary>
+    /// <summary>Billing cadence of the price fields above; always Monthly, the annual price has its own fields.</summary>
     public BillingInterval BillingInterval { get; set; }
 
-    /// <summary>External payment-provider price identifier of the current price, once billing integration ships.</summary>
+    /// <summary>External payment-provider price identifier of the current monthly price.</summary>
     public string? ExternalPriceId { get; set; }
+
+    /// <summary>Current annual plan price per year. Null when the plan is not sold annually.</summary>
+    public long? AnnualPriceMinorUnits { get; set; }
+
+    /// <summary>Current annual price of the second-role add-on per year. Null when none.</summary>
+    public long? AnnualSecondRoleAddOnPriceMinorUnits { get; set; }
+
+    /// <summary>External payment-provider price identifier of the current annual price.</summary>
+    public string? AnnualExternalPriceId { get; set; }
 
     /// <summary>Whether the plan is currently offered/selectable.</summary>
     public bool IsActive { get; set; }
@@ -94,9 +103,11 @@ public class SubscriptionPlanDto
     /// Maps a <see cref="SubscriptionPlan"/> entity to its wire representation.
     /// </summary>
     /// <param name="plan">The plan.</param>
-    /// <param name="externalPriceId">External price id of the plan's open price row.</param>
+    /// <param name="externalPriceId">External price id of the plan's open Monthly price row.</param>
     /// <param name="coachCount">Coaches currently on the plan.</param>
-    public static SubscriptionPlanDto FromEntity(SubscriptionPlan plan, string? externalPriceId, int coachCount) => new()
+    /// <param name="annualPrice">The plan's open Annual price row, or null when it is not sold annually.</param>
+    public static SubscriptionPlanDto FromEntity(
+        SubscriptionPlan plan, string? externalPriceId, int coachCount, AnnualPriceSnapshot? annualPrice = null) => new()
     {
         Code = plan.Code,
         NameCs = plan.NameCs,
@@ -120,8 +131,11 @@ public class SubscriptionPlanDto
         PriceMinorUnits = plan.PriceMinorUnits,
         SecondRoleAddOnPriceMinorUnits = plan.SecondRoleAddOnPriceMinorUnits,
         Currency = plan.Currency,
-        BillingInterval = plan.BillingInterval,
+        BillingInterval = BillingInterval.Monthly,
         ExternalPriceId = externalPriceId,
+        AnnualPriceMinorUnits = annualPrice?.PriceMinorUnits,
+        AnnualSecondRoleAddOnPriceMinorUnits = annualPrice?.SecondRoleAddOnPriceMinorUnits,
+        AnnualExternalPriceId = annualPrice?.ExternalPriceId,
         IsActive = plan.IsActive,
         CoachCount = coachCount,
     };

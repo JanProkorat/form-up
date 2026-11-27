@@ -6,12 +6,6 @@ namespace FormUp.Application.Features.Trainers.PendingInvites.Create;
 public class CreatePendingInviteResponse
 {
     /// <summary>
-    /// Internal integer primary key of the PendingInvite row.
-    /// Used to populate <c>pendingInviteId</c> on the photo-diary-request create form.
-    /// </summary>
-    public long Id { get; set; }
-
-    /// <summary>
     /// Public identifier of the created pending invite.
     /// </summary>
     public Guid PublicId { get; set; }

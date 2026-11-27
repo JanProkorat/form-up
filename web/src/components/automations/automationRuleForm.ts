@@ -92,6 +92,8 @@ export const automationRuleSchema = z
     name: z.string(),
     actionType: z.enum(AutomationActionType),
     questionnaireId: z.string(),
+    /** Client override of a check-in rule: the form this client gets instead of the rule's; empty follows the rule. */
+    checkInQuestionnaireId: z.string(),
     message: z.string(),
     triggerKind: z.enum(AutomationTriggerKind),
     scheduleInterval: z.string(),
@@ -220,6 +222,7 @@ export function defaultRuleValues(): AutomationRuleFormValues {
     name: '',
     actionType: AutomationActionType.SendForm,
     questionnaireId: '',
+    checkInQuestionnaireId: '',
     message: '',
     triggerKind: AutomationTriggerKind.Schedule,
     scheduleInterval: '1',
@@ -378,10 +381,25 @@ export function clientItemToRule(item: ClientAutomationItem): AutomationRuleDto 
   };
 }
 
-/** The customisable part only: message, trigger and options. Name, action and audience stay with the global rule. */
+/** The values the override drawer starts from: the client's effective row, its pause and its own check-in form. */
+export function overrideInitialValues(item: ClientAutomationItem): AutomationRuleFormValues {
+  return {
+    ...ruleToFormValues(clientItemToRule(item)),
+    ...pauseToFormValues(item),
+    checkInQuestionnaireId: item.checkInQuestionnaireId ?? '',
+  };
+}
+
+/**
+ * The customisable part only: message, trigger, options and, for a check-in rule, the client's own form.
+ * Name, action and audience stay with the global rule.
+ */
 export function formValuesToOverrideRequest(values: AutomationRuleFormValues): OverrideClientAutomationRequest {
   const full = formValuesToRequest(values, 'clientOnly');
   return {
+    // The server reads a missing form as "back to the rule's form", so a check-in save always carries the pick.
+    // Any other rule must not send it at all (400 AUTOMATION_CHECK_IN_FIELDS_NOT_ALLOWED).
+    checkInQuestionnaireId: values.checkIn && values.checkInQuestionnaireId !== '' ? values.checkInQuestionnaireId : undefined,
     message: full.message,
     triggerKind: full.triggerKind,
     scheduleInterval: full.scheduleInterval,

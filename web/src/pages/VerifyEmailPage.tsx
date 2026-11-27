@@ -10,6 +10,7 @@ import { getMyProfile } from '@/api/profile';
 import { useAuthStore } from '@/stores/auth';
 import { getApiErrorMessage, getErrorCode } from '@/lib/api-errors';
 import { Button } from '@/components/ui/button';
+import Wordmark from '@/components/brand/Wordmark';
 import RegisterShell from '@/components/register/RegisterShell';
 import GetAppState from '@/components/register/GetAppState';
 import CoachVerifiedState from '@/components/register/CoachVerifiedState';
@@ -165,10 +166,7 @@ export default function VerifyEmailPage() {
 
   const brandRow = (
     <CardHeader>
-      <span className="flex size-7.5 items-center justify-center rounded-md bg-marker text-caption font-bold tracking-wide text-on-dark">
-        {t('entry.brandMark')}
-      </span>
-      <span>{t('entry.brand')}</span>
+      <Wordmark />
     </CardHeader>
   );
 
@@ -206,8 +204,7 @@ export default function VerifyEmailPage() {
         <RegisterShell showSignIn={false}>
           <CoachVerifiedState
             firstName={verifyQuery.data.firstName}
-            profileTo={verifyQuery.data.staleSession ? '/login' : '/profile'}
-            skipTo={verifyQuery.data.staleSession ? '/login' : '/clients'}
+            needsSignIn={!isAuthenticated || verifyQuery.data.staleSession}
           />
         </RegisterShell>
       );

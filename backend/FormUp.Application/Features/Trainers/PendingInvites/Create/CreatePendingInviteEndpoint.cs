@@ -458,7 +458,6 @@ public class CreatePendingInviteEndpoint(
     private static CreatePendingInviteResponse BuildResponse(PendingInvite pendingInvite, Guid? questionnairePublicId) =>
         new()
         {
-            Id = pendingInvite.Id,
             PublicId = pendingInvite.PublicId,
             Email = pendingInvite.Email,
             SentAt = pendingInvite.SentAt,

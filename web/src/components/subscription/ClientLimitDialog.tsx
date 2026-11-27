@@ -1,6 +1,8 @@
+import { Link } from 'react-router-dom';
 import { Dialog as DialogPrimitive } from 'radix-ui';
 import { useTranslation } from 'react-i18next';
 import { Users } from 'lucide-react';
+import { PLAN_PICKER_PATH } from '@/components/subscription/planLinks';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import UsageBar from '@/components/subscription/UsageBar';
@@ -62,8 +64,10 @@ export default function ClientLimitDialog({ open, onOpenChange, context, clientN
           <Button type="button" variant="outline" size="lg" className="px-3.5 font-semibold" onClick={() => onOpenChange(false)}>
             {t('subscription.clientLimit.notNow')}
           </Button>
-          <Button type="button" size="lg" className="px-3.5 font-semibold" disabled>
-            {t('subscription.seePlans')}
+          <Button asChild size="lg" className="px-3.5 font-semibold">
+            <Link to={PLAN_PICKER_PATH} onClick={() => onOpenChange(false)}>
+              {t('subscription.seePlans')}
+            </Link>
           </Button>
         </div>
       </DialogContent>

@@ -34,8 +34,13 @@ export default function RecipeCard({ recipe, onClick, onViewPicture }: Props) {
           className="size-full rounded-none"
         />
         <div className="absolute top-2.5 left-2.5">
-          <CardLibraryPill isOwnedByCurrentUser={recipe.isOwnedByCurrentUser} />
+          <CardLibraryPill isOwnedByCurrentUser={recipe.isOwnedByCurrentUser && !recipe.isSystem} />
         </div>
+        {recipe.isHiddenByCurrentUser && (
+          <Badge variant="library-system" className="absolute bottom-2.5 left-2.5">
+            {t('library.badge.hidden')}
+          </Badge>
+        )}
         {totalMinutes > 0 && (
           <Badge variant="outline" className="absolute top-2.5 right-2.5 gap-1.5 bg-card text-meta font-semibold">
             <Clock className="size-3" aria-hidden="true" />

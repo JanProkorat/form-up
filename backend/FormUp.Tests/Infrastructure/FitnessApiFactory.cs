@@ -1,4 +1,5 @@
 using FormUp.Application.Domain.Interfaces;
+using FormUp.Application.Domain.Services;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Application.Infrastructure.Data.MongoDb;
 using FormUp.Application.Infrastructure.Services;
@@ -19,8 +20,21 @@ namespace FormUp.Tests.Infrastructure;
 /// </summary>
 public class FitnessApiFactory(SharedTestContainers sharedContainers) : WebApplicationFactory<Program>, IAsyncLifetime
 {
+    /// <summary>Webhook signing secret the test host verifies against; a test-only constant, not a credential.</summary>
+    public const string TestWebhookSecret = "test-only-webhook-signing-secret";
+
     private string _postgresConnectionString = string.Empty;
     private string _mongoDatabaseName = string.Empty;
+
+    /// <summary>
+    /// Remembers which host each client talks to, so <c>TestHelpers.RegisterAsync</c> can confirm the registered
+    /// account's email in this host's database (#1517).
+    /// </summary>
+    protected override void ConfigureClient(HttpClient client)
+    {
+        base.ConfigureClient(client);
+        TestHelpers.RememberHost(client, this);
+    }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -31,6 +45,7 @@ public class FitnessApiFactory(SharedTestContainers sharedContainers) : WebAppli
         builder.UseSetting("MINIO_SECRET_KEY", "test");
         builder.UseSetting("JWT_SECRET", new string('x', 64));
         builder.UseSetting("RateLimiting:Disabled", "true");
+        builder.UseSetting("Stripe:WebhookSecret", TestWebhookSecret);
 
         // Provide placeholder connection strings so Program.cs ConnectionStringFactory
         // does not throw during host startup.  The real DB contexts are replaced below
@@ -110,6 +125,29 @@ public class FitnessApiFactory(SharedTestContainers sharedContainers) : WebAppli
             services.AddSingleton<IPushNotificationService>(
                 sp => sp.GetRequiredService<FakePushNotificationService>());
 
+            // Replace the Stripe seam with an in-memory fake so no test makes a network call and billing
+            // behaviour can be asserted. Tests reset it before use; it is shared across the host.
+            var subscriptionDescriptor = services.SingleOrDefault(
+                d => d.ServiceType == typeof(ISubscriptionService));
+            if (subscriptionDescriptor is not null)
+                services.Remove(subscriptionDescriptor);
+
+            services.AddSingleton<FakeSubscriptionService>();
+            services.AddSingleton<ISubscriptionService>(
+                sp => sp.GetRequiredService<FakeSubscriptionService>());
+
+            // Coach-event recorder with a test hook (no-op unless a test sets one), to simulate a concurrent request
+            // storing the same idempotency key without starting a second host.
+            var recorderDescriptor = services.SingleOrDefault(
+                d => d.ServiceType == typeof(ICoachEventRecorder));
+            if (recorderDescriptor is not null)
+                services.Remove(recorderDescriptor);
+
+            services.AddSingleton<CoachEventRecorderHooks>();
+            services.AddScoped<ICoachEventRecorder>(sp => new HookedCoachEventRecorder(
+                ActivatorUtilities.CreateInstance<CoachEventRecorder>(sp),
+                sp.GetRequiredService<CoachEventRecorderHooks>()));
+
             // #1104: PBKDF2 at the production default (100,000 iterations) is deliberately slow
             // and dominates every real register/login round trip in the suite. Test-host-only —
             // never touches the production default in Program.cs.
@@ -135,6 +173,8 @@ public class FitnessApiFactory(SharedTestContainers sharedContainers) : WebAppli
     {
         _postgresConnectionString = await sharedContainers.CreatePostgresDatabaseAsync("fitness_api");
         _mongoDatabaseName = SharedTestContainers.CreateMongoDatabaseName("fitness_api");
+
+        FastEndpointsBootGate.Start(this);
 
         // Apply migrations and seed
         await ApplicationDbContextSeed.SeedAsync(Services);

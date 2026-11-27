@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import type { FieldError } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Info, Activity, Loader2, Tag, Trash2, ChevronDown } from 'lucide-react';
+import { Info, Activity, Loader2, Tag, Trash2, ChevronDown, Copy, Eye, EyeOff } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -30,6 +30,9 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   useCreateFood,
+  useCopyFood,
+  useHideFood,
+  useUnhideFood,
   useFood,
   useFoodStagedUploads,
   useReplaceFoodTagAssignments,
@@ -166,6 +169,8 @@ interface Props {
   /** Gates the coach-private tag section (#1120) — kept separate from
    * `readOnly` since a nutritionist can tag any visible food, even a read-only one. */
   isNutritionist: boolean;
+  /** System foods are always public, so an admin-only account gets no visibility control. */
+  hideVisibility?: boolean;
 }
 
 /**
@@ -183,7 +188,14 @@ interface Props {
  * beyond the default (index 0) straight from the loaded `food`, since the
  * drawer's own fields never touch them.
  */
-export default function IngredientDrawer({ open, onOpenChange, food, readOnly, isNutritionist }: Props) {
+export default function IngredientDrawer({
+  open,
+  onOpenChange,
+  food,
+  readOnly,
+  isNutritionist,
+  hideVisibility = false,
+}: Props) {
   const { t } = useTranslation();
   const mode = food === null ? 'create' : readOnly ? 'view' : 'edit';
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -199,6 +211,16 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly, i
   const updateMutation = useUpdateFood();
   const replaceTagsMutation = useReplaceFoodTagAssignments();
   const uploads = useFoodStagedUploads();
+  const copyMutation = useCopyFood();
+  const hideMutation = useHideFood();
+  const unhideMutation = useUnhideFood();
+  const libraryActionPending = copyMutation.isPending || hideMutation.isPending || unhideMutation.isPending;
+
+  // Copy / hide / unhide: the toast lives in the hook; the drawer closes only on success
+  // (a rejected action keeps it open, and never reloads the page).
+  function runLibraryAction(mutation: { mutate: (id: string, options: { onSuccess: () => void }) => void }, foodId: string) {
+    mutation.mutate(foodId, { onSuccess: () => onOpenChange(false) });
+  }
   const isPending = createMutation.isPending || updateMutation.isPending || isUploadingPictures;
 
   // The Pictures tab reads the loaded food so a refetch after each picture
@@ -663,7 +685,7 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly, i
                 </div>
               </div>
 
-              {!readOnly && (
+              {!readOnly && !hideVisibility && (
                 <VisibilityToggle
                   id="ingredient-visibility"
                   entity="ingredient"
@@ -774,6 +796,46 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly, i
                 <Trash2 aria-hidden="true" />
                 {t('ingredients.drawer.delete')}
               </Button>
+            ) : mode === 'view' && isNutritionist && food?.foodId ? (
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  className="font-semibold"
+                  disabled={libraryActionPending}
+                  onClick={() => runLibraryAction(copyMutation, food.foodId as string)}
+                >
+                  <Copy aria-hidden="true" />
+                  {t('ingredients.drawer.copy')}
+                </Button>
+                {!food.isOwnedByCurrentUser &&
+                  (food.isHiddenByCurrentUser ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="lg"
+                      className="font-semibold"
+                      disabled={libraryActionPending}
+                      onClick={() => runLibraryAction(unhideMutation, food.foodId as string)}
+                    >
+                      <Eye aria-hidden="true" />
+                      {t('ingredients.drawer.unhide')}
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="lg"
+                      className="font-semibold"
+                      disabled={libraryActionPending}
+                      onClick={() => runLibraryAction(hideMutation, food.foodId as string)}
+                    >
+                      <EyeOff aria-hidden="true" />
+                      {t('ingredients.drawer.hide')}
+                    </Button>
+                  ))}
+              </div>
             ) : (
               <span />
             )}
