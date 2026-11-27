@@ -53,7 +53,7 @@ export default function FormsTable({ forms, isPending, isError, onRetry, hasActi
       <Table>
         <TableHeader className="sticky top-0 z-10 bg-card">
           <TableRow>
-            <TableHead className={HEAD_CLASS}>{t('forms.table.columnForm')}</TableHead>
+            <TableHead className={`${HEAD_CLASS} w-full max-w-0`}>{t('forms.table.columnForm')}</TableHead>
             <TableHead className={`${HEAD_CLASS} whitespace-nowrap`}>{t('forms.table.columnType')}</TableHead>
             <TableHead className={`${HEAD_CLASS} whitespace-nowrap`}>{t('forms.table.columnQuestions')}</TableHead>
             <TableHead className={HEAD_CLASS}>{t('forms.table.columnUsedFor')}</TableHead>
@@ -112,7 +112,7 @@ export default function FormsTable({ forms, isPending, isError, onRetry, hasActi
                   className="cursor-pointer border-line"
                   onClick={() => navigate(`/forms/${formId}`)}
                 >
-                  <TableCell className={CELL_CLASS}>
+                  <TableCell className={`${CELL_CLASS} w-full max-w-0`}>
                     <div className="flex items-center gap-3">
                       <span
                         className={cn(
