@@ -1515,6 +1515,12 @@
       "subtitle": "Co klienti uvidí, když vás najdou, a jak se vám ozvou",
       "allSaved": "Všechny změny uloženy",
       "saved": "Profil uložen",
+      "leave": {
+        "title": "Odejít bez uložení?",
+        "body": "Máte neuložené změny. Pokud teď odejdete, přijdete o ně.",
+        "stay": "Pokračovat v úpravách",
+        "discard": "Odejít"
+      },
       "photo": {
         "title": "Fotka a jméno",
         "description": "Klienti to uvidí na vašem profilu, ve vyhledávání a v chatu.",
