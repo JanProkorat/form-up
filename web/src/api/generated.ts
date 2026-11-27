@@ -11538,6 +11538,89 @@ export class ApiClient {
     }
 
     /**
+     * Unpublish a week of a nutrition plan
+     * @param planId Plan identifier.
+     * @param weekNumber Week number to unpublish.
+     * @return The plan with the week unpublished
+     */
+    unpublishNutritionWeekEndpoint(planId: string, weekNumber: number, signal?: AbortSignal): Promise<GetPlanResponse> {
+        let url_ = this.baseUrl + "/nutrition/plans/{planId}/weeks/{weekNumber}/unpublish";
+        if (planId === undefined || planId === null)
+            throw new globalThis.Error("The parameter 'planId' must be defined.");
+        url_ = url_.replace("{planId}", encodeURIComponent("" + planId));
+        if (weekNumber === undefined || weekNumber === null)
+            throw new globalThis.Error("The parameter 'weekNumber' must be defined.");
+        url_ = url_.replace("{weekNumber}", encodeURIComponent("" + weekNumber));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUnpublishNutritionWeekEndpoint(_response);
+        });
+    }
+
+    protected processUnpublishNutritionWeekEndpoint(response: AxiosResponse): Promise<GetPlanResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetPlanResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("The week is missing or not published, or the plan is not Active", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or unreadable caller claim", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("The caller\'s coach role was removed (COACH_ROLE_REMOVED)", status, _responseText, _headers);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            return throwException("Plan not found, or not editable by the caller", status, _responseText, _headers);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            return throwException("The week has already started (WEEK_ALREADY_STARTED), the client logged meals in it (WEEK_HAS_MEAL_LOGS), or the plan was changed concurrently (PLAN_VERSION_CONFLICT)", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetPlanResponse>(null as any);
+    }
+
+    /**
      * Publish a week of a nutrition plan
      * @param planId Plan identifier.
      * @param weekNumber Week number to publish.
@@ -31419,6 +31502,10 @@ When empty, the endpoint generates a new Guid. */
     dose?: string | undefined;
     /** Optional additional notes for the client. */
     notes?: string | undefined;
+}
+
+/** Request to unpublish a specific week of a nutrition plan. Route-bound only; no body. */
+export interface UnpublishNutritionWeekRequest {
 }
 
 /** Request to publish a specific week of a nutrition plan. */
