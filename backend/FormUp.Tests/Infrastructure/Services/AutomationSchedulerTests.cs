@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using FormUp.Application.Domain.Documents;
 using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
+using FormUp.Application.Domain.Interfaces;
 using FormUp.Application.Domain.Services;
 using FormUp.Application.Features.Automations.GetClientAutomations;
 using FormUp.Application.Infrastructure.Data;
@@ -13,7 +14,9 @@ using FormUp.Tests.Endpoints.SessionExecutions;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 using MongoDB.Driver;
+using NSubstitute;
 
 namespace FormUp.Tests.Infrastructure.Services;
 
@@ -337,8 +340,15 @@ public class AutomationSchedulerTests(FitnessApiFactory factory) : IAsyncLifetim
 
         var run = (await RunsAsync(rule.Id)).Should().ContainSingle().Subject;
         run.Status.Should().Be(AutomationRunStatus.Failed);
+        run.NextRetryAt.Should().BeNull("a rule-caused failure is final");
         (await WithDbAsync(db => db.QuestionnaireResponses.CountAsync(r => r.ClientId == client.UserId, Ct))).Should().Be(0);
         (await ScheduleAsync(rule.Id, client.ProfileId))!.NextRunAt.Should().BeAfter(After(due), "a failed row is moved on, not retried every tick");
+
+        await Scheduler.RunDueNowAsync(After(due).AddHours(1), Ct);
+
+        var later = (await RunsAsync(rule.Id)).Should().ContainSingle().Subject;
+        later.Status.Should().Be(AutomationRunStatus.Failed);
+        later.AttemptCount.Should().Be(0, "it is never retried");
     }
 
     [Fact]
@@ -417,8 +427,256 @@ public class AutomationSchedulerTests(FitnessApiFactory factory) : IAsyncLifetim
         await act.Should().NotThrowAsync("a failing delivery never escapes the worker");
         var run = (await RunsAsync(rule.Id)).Should().ContainSingle().Subject;
         run.Status.Should().Be(AutomationRunStatus.Failed);
+        run.AttemptCount.Should().Be(1);
+        run.NextRetryAt.Should().BeCloseTo(After(due) + AutomationRetryPolicy.Delays[0], TimeSpan.FromSeconds(1));
         (await WithDbAsync(db => db.PhotoDiaryRequests.CountAsync(r => r.LinkId == linkId, Ct))).Should().Be(0);
         (await ScheduleAsync(rule.Id, client.ProfileId))!.NextRunAt.Should().BeAfter(After(due));
+    }
+
+    // ── retry ───────────────────────────────────────────────────────────────
+
+    private Task SetRuleMessageAsync(long ruleId, string? message) =>
+        WithDbAsync(db => db.AutomationRules.Where(r => r.Id == ruleId)
+            .ExecuteUpdateAsync(s => s.SetProperty(r => r.Message, message), Ct));
+
+    private async Task<AutomationRun> SingleRunAsync(long ruleId) =>
+        (await RunsAsync(ruleId)).Should().ContainSingle().Subject;
+
+    /// <summary>Arms a photo rule whose 600-char message makes every send throw, ticks once and returns the Failed run.</summary>
+    private async Task<(AutomationRule Rule, Actor Client, long LinkId, DateTime FirstTick, AutomationRun Failed)> FailedPhotoRunAsync()
+    {
+        var (coach, client, linkId) = await PairAsync();
+        var rule = await AutomationTestData.InsertRuleAsync(factory, coach, r =>
+        {
+            r.ActionType = AutomationActionType.RequestProgressPhotos;
+            r.Message = new string('x', 600);
+        });
+        var due = await ArmAsync(rule, client);
+
+        await Scheduler.RunDueNowAsync(After(due), Ct);
+
+        return (rule, client, linkId, After(due), await SingleRunAsync(rule.Id));
+    }
+
+    [Fact]
+    public async Task Retry_TemporaryFailureThatClearsUp_SendsOnTheSameRow()
+    {
+        var (rule, _, linkId, firstTick, failed) = await FailedPhotoRunAsync();
+        await SetRuleMessageAsync(rule.Id, "Front and side");
+
+        await Scheduler.RunDueNowAsync(firstTick.AddMinutes(4), Ct);
+
+        (await SingleRunAsync(rule.Id)).Status.Should().Be(AutomationRunStatus.Failed, "the first retry is not due yet");
+
+        await Scheduler.RunDueNowAsync(failed.NextRetryAt!.Value.AddSeconds(1), Ct);
+
+        var run = await SingleRunAsync(rule.Id);
+        run.Id.Should().Be(failed.Id, "the retry updates the row, it never adds one");
+        run.Status.Should().Be(AutomationRunStatus.Sent);
+        run.NextRetryAt.Should().BeNull();
+        run.SentAt.Should().BeCloseTo(failed.NextRetryAt!.Value.AddSeconds(1), TimeSpan.FromSeconds(1));
+
+        var request = await WithDbAsync(db => db.PhotoDiaryRequests.AsNoTracking().SingleAsync(r => r.LinkId == linkId, Ct));
+        run.DeliveredEntityId.Should().Be(request.Id);
+    }
+
+    [Fact]
+    public async Task Retry_FailureThatNeverClearsUp_EndsFinalAfterThreeRetries()
+    {
+        var (rule, _, linkId, _, failed) = await FailedPhotoRunAsync();
+        var run = failed;
+
+        for (var retry = 1; retry <= AutomationRetryPolicy.Delays.Count; retry++)
+        {
+            var tickAt = run.NextRetryAt!.Value.AddSeconds(1);
+            await Scheduler.RunDueNowAsync(tickAt, Ct);
+
+            run = await SingleRunAsync(rule.Id);
+            run.Status.Should().Be(AutomationRunStatus.Failed);
+            run.AttemptCount.Should().Be(retry + 1);
+
+            if (retry < AutomationRetryPolicy.Delays.Count)
+            {
+                run.NextRetryAt.Should().BeCloseTo(tickAt + AutomationRetryPolicy.Delays[retry], TimeSpan.FromSeconds(1));
+            }
+        }
+
+        run.NextRetryAt.Should().BeNull("the retries are used up");
+
+        await Scheduler.RunDueNowAsync(failed.NextRetryAt!.Value.AddHours(2), Ct);
+
+        var after = await SingleRunAsync(rule.Id);
+        after.AttemptCount.Should().Be(AutomationRetryPolicy.Delays.Count + 1, "a final failure is never attempted again");
+        (await WithDbAsync(db => db.PhotoDiaryRequests.CountAsync(r => r.LinkId == linkId, Ct))).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Retry_RuleSwitchedOffMeanwhile_EndsFinalWithoutSending()
+    {
+        var (rule, _, linkId, _, failed) = await FailedPhotoRunAsync();
+        await SetRuleMessageAsync(rule.Id, "Front and side");
+        await WithDbAsync(db => db.AutomationRules.Where(r => r.Id == rule.Id)
+            .ExecuteUpdateAsync(s => s.SetProperty(r => r.Enabled, false), Ct));
+
+        await Scheduler.RunDueNowAsync(failed.NextRetryAt!.Value.AddSeconds(1), Ct);
+
+        var run = await SingleRunAsync(rule.Id);
+        run.Status.Should().Be(AutomationRunStatus.Failed);
+        run.NextRetryAt.Should().BeNull();
+        (await WithDbAsync(db => db.PhotoDiaryRequests.CountAsync(r => r.LinkId == linkId, Ct))).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Retry_PhotoRequestOpenMeanwhile_TurnsTheRowIntoSkipped()
+    {
+        var (rule, _, linkId, _, failed) = await FailedPhotoRunAsync();
+        await SetRuleMessageAsync(rule.Id, "Front and side");
+        var retryAt = failed.NextRetryAt!.Value.AddSeconds(1);
+        var coachUserId = await WithDbAsync(db => db.ProfessionalProfiles.AsNoTracking()
+            .Where(p => p.Id == rule.OwnerProfessionalProfileId)
+            .Select(p => p.UserId)
+            .SingleAsync(Ct));
+
+        await WithDbAsync(async db =>
+        {
+            db.PhotoDiaryRequests.Add(new PhotoDiaryRequest
+            {
+                Id = Guid.NewGuid(),
+                ProfessionalId = coachUserId,
+                LinkId = linkId,
+                Mode = PhotoDiaryMode.Bulk,
+                DurationDays = 30,
+                Status = PhotoDiaryStatus.Pending,
+                CreatedAt = retryAt,
+                UpdatedAt = retryAt,
+            });
+            await db.SaveChangesAsync(Ct);
+            return 0;
+        });
+
+        await Scheduler.RunDueNowAsync(retryAt, Ct);
+
+        var run = await SingleRunAsync(rule.Id);
+        run.Id.Should().Be(failed.Id);
+        run.Status.Should().Be(AutomationRunStatus.Skipped);
+        run.SkipReason.Should().Be(AutomationSkipReason.PreviousUnanswered);
+        run.NextRetryAt.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Retry_TwoWorkersAtOnce_SendExactlyOnce()
+    {
+        var (rule, _, linkId, _, failed) = await FailedPhotoRunAsync();
+        await SetRuleMessageAsync(rule.Id, "Front and side");
+        var retryAt = failed.NextRetryAt!.Value.AddSeconds(1);
+
+        await Task.WhenAll(
+            Scheduler.RunDueNowAsync(retryAt, Ct),
+            Scheduler.RunDueNowAsync(retryAt, Ct));
+
+        (await SingleRunAsync(rule.Id)).Status.Should().Be(AutomationRunStatus.Sent);
+        (await WithDbAsync(db => db.PhotoDiaryRequests.CountAsync(r => r.LinkId == linkId, Ct))).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Retry_CheckInThatFailedLateSunday_StaysInTheWeekItWasDueFor()
+    {
+        var (coach, client, _) = await PairAsync();
+        await CoachSubscriptionBuilder.SubscribeToPlanAsync(factory, coach, "studio");
+        var questionnaire = await AutomationTestData.InsertQuestionnaireAsync(factory, coach, QuestionnaireType.CheckIn);
+        var rule = await AutomationTestData.InsertRuleAsync(factory, coach, r =>
+        {
+            r.ActionType = AutomationActionType.SendForm;
+            r.QuestionnaireId = questionnaire.Id;
+            r.AnswerWindowHours = 48;
+        });
+
+        // Due Sunday 2026-11-22 23:30 Prague (22:30 UTC); the retry lands after local midnight, on Monday.
+        var retryAt = new DateTime(2026, 11, 23, 0, 30, 0, DateTimeKind.Utc);
+        await WithDbAsync(async db =>
+        {
+            db.AutomationRuns.Add(new AutomationRun
+            {
+                AutomationRuleId = rule.Id,
+                ClientProfileId = client.ProfileId,
+                Occurrence = "sched:20261122T223000",
+                Status = AutomationRunStatus.Failed,
+                AttemptCount = 1,
+                NextRetryAt = retryAt.AddMinutes(-1),
+            });
+            await db.SaveChangesAsync(Ct);
+            return 0;
+        });
+
+        await Scheduler.RunDueNowAsync(retryAt, Ct);
+
+        (await SingleRunAsync(rule.Id)).Status.Should().Be(AutomationRunStatus.Sent);
+        var response = await WithDbAsync(db => db.QuestionnaireResponses.AsNoTracking()
+            .SingleAsync(r => r.ClientId == client.UserId, Ct));
+        response.CheckInWeekStart.Should().Be(new DateOnly(2026, 11, 16), "the week comes from the scheduled instant, not the retry");
+        response.CheckInDueAtUtc.Should().BeCloseTo(retryAt.AddHours(48), TimeSpan.FromSeconds(1));
+    }
+
+    // ── after commit ────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task Run_SendThatRollsBack_PushesAndBroadcastsNothingUntilItCommits()
+    {
+        var (coach, client, _) = await PairAsync();
+        var rule = await AutomationTestData.InsertRuleAsync(factory, coach);
+        var due = await ArmAsync(rule, client);
+        var scheduleId = (await ScheduleAsync(rule.Id, client.ProfileId))!.Id;
+        var push = factory.Services.GetRequiredService<FakePushNotificationService>();
+        var realtime = factory.Services.GetRequiredService<FakeRealtimeNotifier>();
+        var name = $"fail_schedule_update_{scheduleId}";
+
+        // The send queues its push and broadcast, then moving the schedule row on fails: everything rolls back.
+        await WithDbAsync(db => db.Database.ExecuteSqlRawAsync(
+            "CREATE FUNCTION " + name + "() RETURNS trigger AS $$ BEGIN RAISE EXCEPTION 'simulated'; END; $$ LANGUAGE plpgsql;"
+            + " CREATE TRIGGER " + name + " BEFORE UPDATE ON automation_schedules FOR EACH ROW WHEN (OLD.id = " + scheduleId + ")"
+            + " EXECUTE FUNCTION " + name + "();", Ct));
+
+        try
+        {
+            var act = () => Scheduler.RunDueNowAsync(After(due), Ct);
+            await act.Should().NotThrowAsync();
+
+            (await RunsAsync(rule.Id)).Should().BeEmpty();
+            (await NotificationCountAsync(client.UserId, NotificationType.MeasurementRequested)).Should().Be(0);
+            push.Calls.Should().NotContain(c => c.UserId == client.UserId);
+            realtime.Calls.Should().NotContain(c => c.UserId == client.UserId);
+        }
+        finally
+        {
+            await WithDbAsync(db => db.Database.ExecuteSqlRawAsync(
+                "DROP TRIGGER IF EXISTS " + name + " ON automation_schedules; DROP FUNCTION IF EXISTS " + name + "();", Ct));
+        }
+
+        await Scheduler.RunDueNowAsync(After(due), Ct);
+
+        (await SingleRunAsync(rule.Id)).Status.Should().Be(AutomationRunStatus.Sent);
+        push.Calls.Should().ContainSingle(c => c.UserId == client.UserId);
+        realtime.Calls.Should().ContainSingle(c => c.UserId == client.UserId && c.EventType == "newnotification");
+    }
+
+    [Fact]
+    public async Task AfterCommitQueue_FlushWithAFailingPush_StillBroadcastsAndNeverThrows()
+    {
+        var notifications = Substitute.For<INotificationService>();
+        var notifier = Substitute.For<IRealtimeNotifier>();
+        notifications
+            .SendPushOnlyAsync(Arg.Any<Guid>(), Arg.Any<NotificationType>(), Arg.Any<IReadOnlyDictionary<string, string>?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromException(new InvalidOperationException("push down")));
+        var queue = new AutomationAfterCommitQueue(notifications, notifier, NullLogger<AutomationAfterCommitQueue>.Instance);
+        var userId = Guid.NewGuid();
+        queue.EnqueuePush(userId, NotificationType.MeasurementRequested, null, null);
+        queue.EnqueueBroadcast(userId, "newnotification", new { });
+
+        var act = () => queue.FlushAsync(Ct);
+
+        await act.Should().NotThrowAsync();
+        await notifier.Received(1).NotifyAsync(userId, "newnotification", Arg.Any<object>(), Arg.Any<CancellationToken>());
+        queue.Count.Should().Be(0);
     }
 
     // ── concurrency ─────────────────────────────────────────────────────────

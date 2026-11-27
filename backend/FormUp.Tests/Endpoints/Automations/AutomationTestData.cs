@@ -152,7 +152,9 @@ internal static class AutomationTestData
         AutomationRunStatus status,
         AutomationSkipReason? skipReason = null,
         DateTime? sentAt = null,
-        DateTime? answeredAt = null)
+        DateTime? answeredAt = null,
+        int attemptCount = 0,
+        DateTime? nextRetryAt = null)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -171,6 +173,8 @@ internal static class AutomationTestData
             SkipReason = skipReason,
             SentAt = sentAt,
             AnsweredAt = answeredAt,
+            AttemptCount = attemptCount,
+            NextRetryAt = nextRetryAt,
         });
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
