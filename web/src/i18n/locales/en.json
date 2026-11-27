@@ -3174,7 +3174,7 @@
     "unpublish": {
       "title": "Unpublish week {{week}}?",
       "body": "Unsaved changes are saved first. The client no longer sees this week until you publish it again.",
-      "confirm": "Unpublish week",
+      "confirm": "Back to draft",
       "success": "Week {{week}} is unpublished.",
       "error": "Couldn't unpublish the week. Please try again."
     },
