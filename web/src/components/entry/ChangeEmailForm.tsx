@@ -120,17 +120,17 @@ export default function ChangeEmailForm({
     if (axios.isAxiosError(cause)) {
       if (cause.response?.status === 429) return t('errors.rateLimitRefresh');
       if (!cause.response) return t('entry.register.errors.network');
-      if (error instanceof SignInFailedError) return t('entry.register.errors.generic');
+      if (error instanceof SignInFailedError) return t('entry.register.changeEmail.generic');
       const code = getErrorCode(cause);
       if (
         cause.response.status === 400 &&
         (code === 'VERIFICATION_RESEND_LIMIT_REACHED' || code === 'EMAIL_ALREADY_VERIFIED')
       ) {
-        return getApiErrorMessage(cause, 'entry.register.errors.generic');
+        return getApiErrorMessage(cause, 'entry.register.changeEmail.generic');
       }
       if (cause.response.status === 400) return null; // inline on the field
     }
-    return t('entry.register.errors.generic');
+    return t('entry.register.changeEmail.generic');
   };
 
   const banner = bannerMessage();

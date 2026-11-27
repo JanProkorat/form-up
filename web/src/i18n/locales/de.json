@@ -6096,7 +6096,8 @@
         "required": "Geben Sie die neue E-Mail-Adresse ein.",
         "invalid": "Geben Sie eine gültige E-Mail-Adresse ein.",
         "taken": "Diese E-Mail-Adresse ist bereits registriert.",
-        "unchanged": "Das ist bereits Ihre Adresse. Geben Sie eine andere ein."
+        "unchanged": "Das ist bereits Ihre Adresse. Geben Sie eine andere ein.",
+        "generic": "Ihre E-Mail-Adresse konnte nicht geändert werden. Bitte versuchen Sie es erneut."
       }
     },
     "forgotPassword": {

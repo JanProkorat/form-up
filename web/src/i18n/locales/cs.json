@@ -6321,7 +6321,8 @@
         "required": "Zadejte novou e-mailovou adresu.",
         "invalid": "Zadejte platnou e-mailovou adresu.",
         "taken": "Tento e-mail je již registrován.",
-        "unchanged": "Tuto adresu už máte. Zadejte jinou."
+        "unchanged": "Tuto adresu už máte. Zadejte jinou.",
+        "generic": "E-mail se nepodařilo změnit. Zkuste to prosím znovu."
       }
     },
     "forgotPassword": {

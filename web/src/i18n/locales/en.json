@@ -6097,7 +6097,8 @@
         "required": "Enter the new email address.",
         "invalid": "Enter a valid email address.",
         "taken": "This email is already registered.",
-        "unchanged": "That is the address you already have. Enter a different one."
+        "unchanged": "That is the address you already have. Enter a different one.",
+        "generic": "We couldn't change your email. Please try again."
       }
     },
     "forgotPassword": {

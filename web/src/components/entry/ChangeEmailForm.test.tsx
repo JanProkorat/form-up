@@ -280,7 +280,9 @@ describe('RegisterForm change email', () => {
     await registerAndOpenChange(user);
     await change(user, 'other@example.com');
 
-    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      "We couldn't change your email. Please try again.",
+    );
     expect(screen.getByLabelText('New email address')).not.toHaveAttribute('aria-invalid', 'true');
     expect(backend.log.some((entry) => entry.path === '/auth/email')).toBe(false);
   });
