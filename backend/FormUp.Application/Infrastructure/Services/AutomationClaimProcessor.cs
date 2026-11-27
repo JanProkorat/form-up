@@ -17,12 +17,14 @@ namespace FormUp.Application.Infrastructure.Services;
 /// <param name="db">Application database context.</param>
 /// <param name="mongo">MongoDB context, read for plan windows.</param>
 /// <param name="sender">Sends one occurrence.</param>
+/// <param name="afterCommit">Holds the pushes and realtime events until the row has committed.</param>
 /// <param name="entitlementService">Resolves the coach's subscription entitlements.</param>
 /// <param name="logger">Logger.</param>
 public sealed class AutomationClaimProcessor(
     IApplicationDbContext db,
     IMongoContext mongo,
     AutomationOccurrenceSender sender,
+    AutomationAfterCommitQueue afterCommit,
     EntitlementService entitlementService,
     ILogger<AutomationClaimProcessor> logger)
 {
@@ -57,20 +59,26 @@ public sealed class AutomationClaimProcessor(
         {
             if (!await RunAsync(schedule, nowUtc, RunMode.Send, ct))
             {
+                afterCommit.Discard();
+
                 return new AutomationClaimResult(AutomationClaimState.Duplicate, scheduleId);
             }
 
             await db.SaveChangesAsync(ct);
             await transaction.CommitAsync(ct);
-
-            return new AutomationClaimResult(AutomationClaimState.Done, scheduleId);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
+            afterCommit.Discard();
             logger.LogError(ex, "AutomationScheduler: running schedule {ScheduleId} failed; rolling it back.", scheduleId);
 
             return new AutomationClaimResult(AutomationClaimState.Failed, scheduleId);
         }
+
+        // The row is committed: tell the client now, and never fail the row over it.
+        await afterCommit.FlushAsync(ct);
+
+        return new AutomationClaimResult(AutomationClaimState.Done, scheduleId);
     }
 
     /// <summary>
@@ -137,7 +145,7 @@ public sealed class AutomationClaimProcessor(
 
                 case RunMode.RecordFailure:
                     await sender.RecordFailureAsync(
-                        evaluation.Rule.Id, evaluation.Client.ClientProfileId, occurrence.Key, ct);
+                        evaluation.Rule.Id, evaluation.Client.ClientProfileId, occurrence.Key, nowUtc, ct);
                     break;
             }
         }
