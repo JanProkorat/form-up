@@ -6086,6 +6086,18 @@
         "resendConfirmation": "If needed, we’ve sent a new link.",
         "wrongEmail": "Wrong address?",
         "changeEmail": "Change email"
+      },
+      "changeEmail": {
+        "title": "Change your email",
+        "lede": "We'll move your account to the new address and send a fresh link.<br/>The link sent to <old>{{email}}</old> stops working.",
+        "label": "New email address",
+        "submit": "Send new link",
+        "submitting": "Sending...",
+        "cancel": "Cancel",
+        "required": "Enter the new email address.",
+        "invalid": "Enter a valid email address.",
+        "taken": "This email is already registered.",
+        "unchanged": "That is the address you already have. Enter a different one."
       }
     },
     "forgotPassword": {

@@ -5,6 +5,7 @@ import axios from 'axios';
 import { MailIcon } from 'lucide-react';
 import { resendVerificationAnonymous } from '@/api/auth';
 import { cn } from '@/lib/utils';
+import ChangeEmailForm from '@/components/entry/ChangeEmailForm';
 import RegisterStepper from '@/components/register/RegisterStepper';
 
 /**
@@ -17,7 +18,9 @@ const RESEND_COOLDOWN_SECONDS = 60;
 interface VerificationSentStateProps {
   email: string;
   isClient: boolean;
-  onWrongEmail: () => void;
+  /** Registration password, in memory only; used to sign in for an email change. */
+  password: string;
+  onEmailChanged: (newEmail: string) => void;
 }
 
 function formatCountdown(totalSeconds: number): string {
@@ -35,9 +38,11 @@ function formatCountdown(totalSeconds: number): string {
 export default function VerificationSentState({
   email,
   isClient,
-  onWrongEmail,
+  password,
+  onEmailChanged,
 }: VerificationSentStateProps) {
   const { t } = useTranslation();
+  const [changing, setChanging] = useState(false);
   const [resendConfirmed, setResendConfirmed] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(RESEND_COOLDOWN_SECONDS);
 
@@ -88,6 +93,15 @@ export default function VerificationSentState({
         <MailIcon className="size-9.5 short:size-7" strokeWidth={1.8} aria-hidden="true" />
       </span>
 
+      {changing ? (
+        <ChangeEmailForm
+          email={email}
+          password={password}
+          onChanged={onEmailChanged}
+          onCancel={() => setChanging(false)}
+        />
+      ) : (
+        <>
       <h1 className="font-display text-display font-semibold tracking-heading text-ink short:text-card-title">
         {t('entry.register.sent.title')}
       </h1>
@@ -140,12 +154,14 @@ export default function VerificationSentState({
         {t('entry.register.sent.wrongEmail')}{' '}
         <button
           type="button"
-          onClick={onWrongEmail}
+          onClick={() => setChanging(true)}
           className="font-bold text-ink underline underline-offset-2"
         >
           {t('entry.register.sent.changeEmail')}
         </button>
       </p>
+        </>
+      )}
     </div>
   );
 }
