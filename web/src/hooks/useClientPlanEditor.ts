@@ -7,6 +7,7 @@ import {
   deletePlanFromEditor,
   publishPlanWeekFromEditor,
   savePlanFromEditor,
+  unpublishPlanWeekFromEditor,
 } from '@/api/plans';
 import { planHasEnded, publishedWeekHasStarted } from '@/components/client-plan-editor/clientPlanDates';
 import type { PlanEditorPrimaryAction, PlanEditorSaveState } from '@/components/plan-editor/PlanEditor';
@@ -188,6 +189,9 @@ export function useClientPlanEditor(loadedPlan: GetPlanResponse, clientId: strin
     }
   }
 
+  const unpublishMutation = useMutation({
+    mutationFn: (weekNumber: number) => unpublishPlanWeekFromEditor(planId, weekNumber),
+  });
   const deleteMutation = useMutation({ mutationFn: () => deletePlanFromEditor(planId) });
   const completeMutation = useMutation({
     mutationFn: (version: number | undefined) => completePlanFromEditor(planId, version),
@@ -234,6 +238,38 @@ export function useClientPlanEditor(loadedPlan: GetPlanResponse, clientId: strin
     void queryClient.invalidateQueries({ queryKey: ['nutrition-plan-detail', planId] });
     void queryClient.invalidateQueries({ queryKey: ['client-dashboard', clientId] });
     return true;
+  }
+
+  /**
+   * Takes a published week that has not started back to draft. `flush` saves pending edits first so the version
+   * moves only once; resolves the unpublished week number, or null when the call did not go through.
+   */
+  async function unpublishWeek(flush: () => Promise<boolean>, weekIndex: number): Promise<number | null> {
+    const weekNumber = (planRef.current.weeks ?? [])[weekIndex]?.weekNumber ?? weekIndex + 1;
+    if (!(await flush())) {
+      return null;
+    }
+    try {
+      adopt(await unpublishMutation.mutateAsync(weekNumber));
+    } catch (error) {
+      if (handleOverPlanLimit(error)) {
+        return null;
+      }
+      if (getErrorStatus(error) === 409) {
+        const code = getRfc7807ErrorCode(error);
+        if (code === 'WEEK_HAS_MEAL_LOGS' || code === 'WEEK_ALREADY_STARTED') {
+          // The plan did not change, so there is nothing to refetch: say why and leave the editor as it is.
+          useToastStore.getState().addToast(t(`apiErrors.${code}`), 'error');
+        } else {
+          setSaveState({ status: 'conflict', message: t('planEditor.conflict.message') });
+        }
+      } else {
+        showApiError(error, 'clientPlanEditor.unpublish.error');
+      }
+      return null;
+    }
+    useToastStore.getState().addToast(t('clientPlanEditor.unpublish.success', { week: weekNumber }), 'success');
+    return weekNumber;
   }
 
   /** Saves the document when it has unsaved changes, then publishes the selected week. */
@@ -307,9 +343,22 @@ export function useClientPlanEditor(loadedPlan: GetPlanResponse, clientId: strin
     })),
   );
 
+  /** Unpublishing is offered for a published week that has not started, on an Active plan. */
+  function canUnpublish(weekIndex: number): boolean {
+    const weekNumber = storedWeeks[weekIndex]?.weekNumber;
+    return (
+      isActive &&
+      weekNumber !== undefined &&
+      weekStatus(weekIndex) === 'published' &&
+      !publishedWeekHasStarted(savedStartDate, [{ weekNumber, published: true }])
+    );
+  }
+
   return {
     initial,
     saveState,
+    canUnpublish,
+    unpublishWeek,
     lockRejection,
     clearLockRejection: () => setLockRejection(null),
     save,
@@ -328,6 +377,6 @@ export function useClientPlanEditor(loadedPlan: GetPlanResponse, clientId: strin
     },
     deletePlan,
     finishPlan,
-    lifecycleBusy: deleteMutation.isPending || completeMutation.isPending,
+    lifecycleBusy: deleteMutation.isPending || completeMutation.isPending || unpublishMutation.isPending,
   };
 }

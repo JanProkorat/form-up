@@ -12,7 +12,11 @@ import OutsidePlanPaywallDialog from '@/components/client-detail/OutsidePlanPayw
 import PlanEditorFormsTab from '@/components/client-plan-editor/forms/PlanEditorFormsTab';
 import { selectPlanEditorForms } from '@/components/client-plan-editor/forms/planEditorForms';
 import ClientPlanInfoPanel from '@/components/client-plan-editor/ClientPlanInfoPanel';
-import PlanActionsMenu, { DeletePlanDialog, FinishPlanDialog } from '@/components/client-plan-editor/PlanActionsMenu';
+import PlanActionsMenu, {
+  DeletePlanDialog,
+  FinishPlanDialog,
+  UnpublishWeekDialog,
+} from '@/components/client-plan-editor/PlanActionsMenu';
 import PlanEndedBanner from '@/components/client-plan-editor/PlanEndedBanner';
 import TemplatesLibraryTab from '@/components/client-plan-editor/TemplatesLibraryTab';
 import PlanEditor from '@/components/plan-editor/PlanEditor';
@@ -56,6 +60,7 @@ function LoadedClientPlanEditor({
   const navigate = useNavigate();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [finishOpen, setFinishOpen] = useState(false);
+  const [unpublishOpen, setUnpublishOpen] = useState(false);
   const [paywallOpen, setPaywallOpen] = useState(false);
   const openPaywall = useCallback(() => setPaywallOpen(true), []);
   // A closed plan stays read-only as before; the outside-plan lock only applies to a plan that could be edited.
@@ -74,6 +79,8 @@ function LoadedClientPlanEditor({
     ended,
     deletePlan,
     finishPlan,
+    canUnpublish,
+    unpublishWeek,
     lifecycleBusy,
     markTemplateApplied,
   } = useClientPlanEditor(plan, clientId, openPaywall);
@@ -173,12 +180,16 @@ function LoadedClientPlanEditor({
       }}
       weekStatus={weekStatus}
       allowWeekRemoval
-      renderHeaderActions={(host) =>
-        canDelete || canFinish ? (
+      renderHeaderActions={(host) => {
+        const unpublishable = canUnpublish(host.weekIndex);
+        const weekNumber = host.weekIndex + 1;
+        return canDelete || canFinish || unpublishable ? (
           <>
             <PlanActionsMenu
               canDelete={canDelete}
               canFinish={canFinish}
+              unpublishWeek={unpublishable ? weekNumber : undefined}
+              onUnpublish={() => setUnpublishOpen(true)}
               disabled={host.busy || lifecycleBusy}
               onDelete={() => setDeleteOpen(true)}
               onFinish={() => setFinishOpen(true)}
@@ -209,9 +220,18 @@ function LoadedClientPlanEditor({
                 });
               }}
             />
+            <UnpublishWeekDialog
+              open={unpublishOpen}
+              busy={host.busy || lifecycleBusy}
+              week={weekNumber}
+              onCancel={() => setUnpublishOpen(false)}
+              onConfirm={() => {
+                void unpublishWeek(host.flush, host.weekIndex).then(() => setUnpublishOpen(false));
+              }}
+            />
           </>
-        ) : null
-      }
+        ) : null;
+      }}
       renderBanner={(host) =>
         ended ? <PlanEndedBanner disabled={host.busy || lifecycleBusy} onFinish={() => setFinishOpen(true)} /> : null
       }

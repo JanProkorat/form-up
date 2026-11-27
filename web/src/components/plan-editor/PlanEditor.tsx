@@ -197,6 +197,8 @@ export interface PlanEditorHostContext {
   busy: boolean;
   /** Runs a navigation without the unsaved-changes prompt, for flows that delete or have saved the plan. */
   leaveWithoutPrompt: (navigate: () => void) => void;
+  /** Zero-based index of the week the editor shows. */
+  weekIndex: number;
 }
 
 interface Props {
@@ -1589,7 +1591,7 @@ export default function PlanEditor({
     return null;
   }
 
-  const hostContext: PlanEditorHostContext = { flush, busy: actionBusy || saveState.status === 'saving' || removingWeek, leaveWithoutPrompt };
+  const hostContext: PlanEditorHostContext = { flush, busy: actionBusy || saveState.status === 'saving' || removingWeek, leaveWithoutPrompt, weekIndex: currentIndex };
   const allKindsPresent = CHRONOLOGICAL_KINDS.every((kind) => activeDay?.meals.some((meal) => meal.kind === kind));
   const pendingSource = pendingDrop ? findMeal(pendingDrop.source.dayOfWeek, pendingDrop.source.mealId) : undefined;
   const pendingTarget = pendingDrop

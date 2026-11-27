@@ -3295,7 +3295,15 @@
     "actions": {
       "label": "Akce plánu",
       "finish": "Ukončit plán",
+      "unpublish": "Zrušit publikování týdne {{week}}",
       "delete": "Smazat plán"
+    },
+    "unpublish": {
+      "title": "Zrušit publikování týdne {{week}}?",
+      "body": "Neuložené změny se nejdřív uloží. Klient tento týden neuvidí, dokud ho znovu nepublikujete.",
+      "confirm": "Zrušit publikování",
+      "success": "Publikování týdne {{week}} bylo zrušeno.",
+      "error": "Publikování týdne se nepodařilo zrušit. Zkuste to prosím znovu."
     },
     "delete": {
       "title": "Smazat tento plán?",
@@ -3969,6 +3977,8 @@
     "START_DATE_LOCKED": "Datum zahájení nelze změnit poté, co nastalo.",
     "START_DATE_REQUIRED": "Před publikováním týdne nastavte datum zahájení.",
     "WEEK_START_IN_PAST": "Datum zahájení tohoto týdne je v minulosti a nelze jej publikovat.",
+    "WEEK_HAS_MEAL_LOGS": "Klient už v tomto týdnu zapsal jídla, publikování proto nelze zrušit.",
+    "WEEK_ALREADY_STARTED": "Tento týden už začal, publikování proto nelze zrušit.",
     "PLAN_OVERLAP": "Zvolené období se překrývá s existujícím plánem tohoto klienta.",
     "PLAN_ALREADY_STARTED": "Plán nelze smazat, protože publikovaný týden už začal.",
     "CLIENT_NUTRITION_PROFILE_MISSING": "Tento klient zatím nemá výživové cíle ani odpovědi z dotazníku, které by šlo upravit.",
@@ -5205,7 +5215,7 @@
           "upcoming": "Zveřejněno, nadcházející",
           "draft": "Koncept – klient ho zatím nevidí"
         },
-        "needsPublishing": "{{week}}. týden je potřeba zveřejnit do neděle"
+        "needsPublishing": "{{week}}. týden je potřeba zveřejnit před jeho začátkem"
       },
       "timeline": {
         "heading": "Časová osa plánů",

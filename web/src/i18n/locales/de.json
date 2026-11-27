@@ -3164,7 +3164,15 @@
     "actions": {
       "label": "Planaktionen",
       "finish": "Plan beenden",
+      "unpublish": "Veröffentlichung von Woche {{week}} zurückziehen",
       "delete": "Plan löschen"
+    },
+    "unpublish": {
+      "title": "Veröffentlichung von Woche {{week}} zurückziehen?",
+      "body": "Nicht gespeicherte Änderungen werden zuerst gespeichert. Der Klient sieht diese Woche erst wieder, wenn Sie sie erneut veröffentlichen.",
+      "confirm": "Veröffentlichung zurückziehen",
+      "success": "Die Veröffentlichung von Woche {{week}} wurde zurückgezogen.",
+      "error": "Die Veröffentlichung konnte nicht zurückgezogen werden. Bitte versuchen Sie es erneut."
     },
     "delete": {
       "title": "Diesen Plan löschen?",
@@ -3816,6 +3824,8 @@
     "START_DATE_LOCKED": "Das Startdatum kann nicht mehr geändert werden, nachdem es erreicht wurde.",
     "START_DATE_REQUIRED": "Legen Sie ein Startdatum fest, bevor Sie eine Woche veröffentlichen.",
     "WEEK_START_IN_PAST": "Das Startdatum dieser Woche liegt in der Vergangenheit und kann nicht veröffentlicht werden.",
+    "WEEK_HAS_MEAL_LOGS": "Der Klient hat in dieser Woche bereits Mahlzeiten erfasst, daher kann die Veröffentlichung nicht zurückgezogen werden.",
+    "WEEK_ALREADY_STARTED": "Diese Woche hat bereits begonnen, daher kann die Veröffentlichung nicht zurückgezogen werden.",
     "PLAN_OVERLAP": "Der gewählte Zeitraum überschneidet sich mit einem bestehenden Plan dieses Klienten.",
     "PLAN_ALREADY_STARTED": "Der Plan kann nicht gelöscht werden, weil eine veröffentlichte Woche bereits begonnen hat.",
     "CLIENT_NUTRITION_PROFILE_MISSING": "Dieser Klient hat noch keine Ernährungsziele oder Fragebogenantworten, die sich bearbeiten ließen.",
@@ -5032,7 +5042,7 @@
           "upcoming": "Veröffentlicht, kommend",
           "draft": "Entwurf – für den Klienten noch nicht sichtbar"
         },
-        "needsPublishing": "Woche {{week}} muss bis Sonntag veröffentlicht werden"
+        "needsPublishing": "Woche {{week}} muss vor ihrem Beginn veröffentlicht werden"
       },
       "timeline": {
         "heading": "Plan-Zeitleiste",

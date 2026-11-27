@@ -3165,7 +3165,15 @@
     "actions": {
       "label": "Plan actions",
       "finish": "Finish plan",
+      "unpublish": "Unpublish week {{week}}",
       "delete": "Delete plan"
+    },
+    "unpublish": {
+      "title": "Unpublish week {{week}}?",
+      "body": "Unsaved changes are saved first. The client no longer sees this week until you publish it again.",
+      "confirm": "Unpublish week",
+      "success": "Week {{week}} is unpublished.",
+      "error": "Couldn't unpublish the week. Please try again."
     },
     "delete": {
       "title": "Delete this plan?",
@@ -3817,6 +3825,8 @@
     "START_DATE_LOCKED": "Start date cannot be changed after it has arrived.",
     "START_DATE_REQUIRED": "Set a start date before publishing a week.",
     "WEEK_START_IN_PAST": "This week's start date is in the past and cannot be published.",
+    "WEEK_HAS_MEAL_LOGS": "The client has already logged meals in this week, so it can't be unpublished.",
+    "WEEK_ALREADY_STARTED": "This week has already started, so it can't be unpublished.",
     "PLAN_OVERLAP": "The selected date range overlaps an existing plan for this client.",
     "PLAN_ALREADY_STARTED": "This plan can't be deleted because a published week has already started.",
     "CLIENT_NUTRITION_PROFILE_MISSING": "This client has no nutrition targets or onboarding answers to edit yet.",
@@ -5033,7 +5043,7 @@
           "upcoming": "Published, upcoming",
           "draft": "Draft — client can't see it yet"
         },
-        "needsPublishing": "Week {{week}} needs publishing by Sunday"
+        "needsPublishing": "Week {{week}} needs publishing before it starts"
       },
       "timeline": {
         "heading": "Plan timeline",
