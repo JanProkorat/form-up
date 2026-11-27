@@ -50,14 +50,14 @@ export default function FormsTable({ forms, isPending, isError, onRetry, hasActi
 
   return (
     <>
-      <Table className="min-w-200">
+      <Table>
         <TableHeader className="sticky top-0 z-10 bg-card">
           <TableRow>
             <TableHead className={HEAD_CLASS}>{t('forms.table.columnForm')}</TableHead>
-            <TableHead className={`w-56 ${HEAD_CLASS}`}>{t('forms.table.columnType')}</TableHead>
-            <TableHead className={`w-32 ${HEAD_CLASS}`}>{t('forms.table.columnQuestions')}</TableHead>
-            <TableHead className={`w-36 ${HEAD_CLASS}`}>{t('forms.table.columnUsedFor')}</TableHead>
-            <TableHead className={`w-32 ${HEAD_CLASS}`}>{t('forms.table.columnEdited')}</TableHead>
+            <TableHead className={`${HEAD_CLASS} whitespace-nowrap`}>{t('forms.table.columnType')}</TableHead>
+            <TableHead className={`${HEAD_CLASS} whitespace-nowrap`}>{t('forms.table.columnQuestions')}</TableHead>
+            <TableHead className={HEAD_CLASS}>{t('forms.table.columnUsedFor')}</TableHead>
+            <TableHead className={`${HEAD_CLASS} whitespace-nowrap`}>{t('forms.table.columnEdited')}</TableHead>
             <TableHead className="w-12 px-4 py-3.5">
               <span className="sr-only">{t('forms.table.columnActions')}</span>
             </TableHead>
@@ -125,7 +125,7 @@ export default function FormsTable({ forms, isPending, isError, onRetry, hasActi
                       <div className="flex min-w-0 max-w-96 flex-col">
                         <Link
                           to={`/forms/${formId}`}
-                          className="text-copy font-semibold text-ink outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+                          className="block truncate text-copy font-semibold text-ink outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
                           onClick={(event) => event.stopPropagation()}
                         >
                           {form.title}
@@ -137,21 +137,31 @@ export default function FormsTable({ forms, isPending, isError, onRetry, hasActi
                     </div>
                   </TableCell>
                   <TableCell className={CELL_CLASS}>
-                    <div className="flex flex-wrap items-center gap-1.5">
+                    <div className="flex flex-wrap items-center gap-1.5 whitespace-nowrap">
                       <FormTypeBadge type={form.type} />
                       {isOnboarding && form.isDefault && <FormDefaultBadge />}
                     </div>
                   </TableCell>
-                  <TableCell className={`${CELL_CLASS} text-body text-ink-2`}>
+                  <TableCell className={`${CELL_CLASS} whitespace-nowrap text-body text-ink-2`}>
                     {t('forms.table.questions', { count: form.questionCount })}
                   </TableCell>
                   <TableCell className={`${CELL_CLASS} text-body text-ink-2`}>
-                    {t('forms.table.clients', { count: form.usedForClientCount })}
-                    {form.type === QuestionnaireType.CheckIn && form.lastWeekAnswerRatePercent != null && (
-                      <> · {t('forms.table.answeredLastWeek', { percent: form.lastWeekAnswerRatePercent })}</>
+                    {form.type === QuestionnaireType.CheckIn && form.lastWeekAnswerRatePercent != null ? (
+                      <>
+                        <span className="whitespace-nowrap">
+                          {t('forms.table.clients', { count: form.usedForClientCount })} ·
+                        </span>{' '}
+                        <span className="whitespace-nowrap">
+                          {t('forms.table.answeredLastWeek', { percent: form.lastWeekAnswerRatePercent })}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="whitespace-nowrap">
+                        {t('forms.table.clients', { count: form.usedForClientCount })}
+                      </span>
                     )}
                   </TableCell>
-                  <TableCell className={`${CELL_CLASS} text-body text-muted-foreground`}>
+                  <TableCell className={`${CELL_CLASS} whitespace-nowrap text-body text-muted-foreground`}>
                     {editedLabel(form.editedAt, i18n.language)}
                   </TableCell>
                   <TableCell className={CELL_CLASS}>
