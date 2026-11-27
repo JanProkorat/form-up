@@ -8,6 +8,7 @@ using FormUp.Application.Features.Automations.GetAutomationRules;
 using FormUp.Application.Features.Automations.GetClientAutomations;
 using FormUp.Application.Features.Automations.Shared;
 using FormUp.Application.Infrastructure.Data;
+using FormUp.Application.Infrastructure.Services;
 using FormUp.Tests.Builders;
 using FormUp.Tests.Infrastructure;
 using FluentAssertions;
@@ -111,6 +112,38 @@ public class AutomationSummaryEndpointTests(FitnessApiFactory factory)
         summary.CustomCount.Should().Be(1);
         summary.PausedCount.Should().Be(1);
         summary.NextSendAt.Should().NotBeNull().And.BeAfter(DateTime.UtcNow);
+    }
+
+    [Fact]
+    public async Task ClientSummary_OccurrenceThatFailedThenSendsOnRetry_CountsOneSentRun()
+    {
+        var (coach, client) = await LinkedPairAsync();
+        var rule = await AutomationTestData.InsertRuleAsync(factory, coach);
+        await AutomationTestData.AddRunAsync(
+            factory, rule.PublicId, client.ProfileId, AutomationRunStatus.Failed,
+            attemptCount: 1, nextRetryAt: DateTime.UtcNow.AddMinutes(-1));
+
+        var before = await coach.Http.GetFromJsonAsync<GetClientAutomationsResponse>(
+            $"/trainer/clients/{client.PublicId}/automations", AutomationTestData.Json, Ct);
+        before!.Last30Days.Sent.Should().Be(0);
+
+        // Only the retry processor runs: the full scheduler tick would sweep every coach in the shard.
+        for (var claimed = 0; claimed < 20; claimed++)
+        {
+            using var scope = factory.Services.CreateScope();
+
+            if (!await scope.ServiceProvider.GetRequiredService<AutomationRetryProcessor>().ProcessNextAsync(DateTime.UtcNow, Ct))
+            {
+                break;
+            }
+        }
+
+        var after = await coach.Http.GetFromJsonAsync<GetClientAutomationsResponse>(
+            $"/trainer/clients/{client.PublicId}/automations", AutomationTestData.Json, Ct);
+        after!.Last30Days.Sent.Should().Be(1, "the run changed status in place, so it counts once");
+        var item = after.Items.Single(i => i.RuleId == rule.PublicId);
+        item.Sent30Days.Should().Be(1);
+        item.LastResult!.Status.Should().Be(AutomationRunStatus.Sent);
     }
 
     [Fact]
