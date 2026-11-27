@@ -46,6 +46,7 @@ export default function PaymentsTable({ rows, canRequest, onMarkPaid, onRequest,
   };
 
   return (
+    <div className="@container">
     <Table className="min-w-170">
       <TableHeader className="bg-card">
         <TableRow>
@@ -82,15 +83,25 @@ export default function PaymentsTable({ rows, canRequest, onMarkPaid, onRequest,
                 {row.status === ClientPaymentStatus.Waived ? '—' : formatShortDay(row.dueDate, language)}
               </TableCell>
               <TableCell className={`${CELL_CLASS} tabular-nums`}>{row.variableSymbol ?? '—'}</TableCell>
-              <TableCell className={CELL_CLASS}>
+              <TableCell
+                className={`${CELL_CLASS} whitespace-normal [&_[data-slot=badge]]:h-auto [&_[data-slot=badge]]:max-w-48 [&_[data-slot=badge]]:whitespace-normal`}
+              >
                 <PaymentStatusChip row={row} />
               </TableCell>
-              <TableCell className={CELL_CLASS}>
-                <span className="flex items-center justify-end gap-1.5">
+              <TableCell className={`${CELL_CLASS} whitespace-nowrap`}>
+                <span className="flex shrink-0 items-center justify-end gap-1.5">
                   {canMarkPaid && (
-                    <Button type="button" variant="outline" size="sm" className="h-7.5 px-3.5 font-semibold" onClick={() => onMarkPaid(row)}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      aria-label={t('payments.client.row.markPaid')}
+                      title={t('payments.client.row.markPaid')}
+                      className="h-7.5 px-2 font-semibold @[54rem]:px-3.5"
+                      onClick={() => onMarkPaid(row)}
+                    >
                       <Check aria-hidden="true" />
-                      {t('payments.client.row.markPaid')}
+                      <span className="hidden @[54rem]:inline">{t('payments.client.row.markPaid')}</span>
                     </Button>
                   )}
                   {hasMenu && (
@@ -144,5 +155,6 @@ export default function PaymentsTable({ rows, canRequest, onMarkPaid, onRequest,
         })}
       </TableBody>
     </Table>
+    </div>
   );
 }
