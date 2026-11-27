@@ -158,6 +158,25 @@ public class MongoIndexInitializer : IHostedService
             new CreateIndexOptions { Name = "idx_meallog_clientId_eatenAt" });
 
         await indexes.CreateManyAsync([clientDateIndex], ct);
+
+        // One row per client, plan, meal and day. Legacy rows deserialise LogDate as DateTime.MinValue
+        // (they were keyed by EatenAt only), so the partial filter leaves them out. Created without a
+        // catch on purpose: a dev database that already holds duplicates must fail loudly at boot,
+        // not silently run without the guarantee.
+        var uniqueRowIndex = new CreateIndexModel<MealLog>(
+            Builders<MealLog>.IndexKeys
+                .Ascending(l => l.ClientId)
+                .Ascending(l => l.PlanId)
+                .Ascending(l => l.MealId)
+                .Ascending(l => l.LogDate),
+            new CreateIndexOptions<MealLog>
+            {
+                Name = "idx_meallog_clientId_planId_mealId_logDate_unique",
+                Unique = true,
+                PartialFilterExpression = Builders<MealLog>.Filter.Gt(l => l.LogDate, DateTime.MinValue),
+            });
+
+        await indexes.CreateOneAsync(uniqueRowIndex, cancellationToken: ct);
     }
 
     private async Task CreateExerciseIndexes(CancellationToken ct)

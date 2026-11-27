@@ -9,6 +9,7 @@ using FormUp.Application.Domain.Interfaces;
 using FormUp.Application.Features.Trainers.GetDashboardSummary;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Application.Infrastructure.Data.MongoDb;
+using FormUp.Application.Infrastructure.Services;
 using FormUp.Tests.Builders;
 using FormUp.Tests.Endpoints.NutritionPlans;
 using MongoDB.Driver;
@@ -117,7 +118,8 @@ public class GetDashboardSummaryEndpointTests
                     EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
             db,
             mongo ?? CreateEmptyMongo(),
-            compliance ?? CreateStubComplianceService());
+            compliance ?? CreateStubComplianceService(),
+            new MacroCalculatorService());
     }
 
     [Fact]

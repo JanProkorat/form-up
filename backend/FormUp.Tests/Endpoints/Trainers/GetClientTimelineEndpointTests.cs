@@ -1312,7 +1312,9 @@ public class GetClientTimelineEndpointTests(FitnessApiFactory factory)
                 ClientId = clientUserId,
                 PlanId = plan.ExternalId,
                 MealId = mealId,
-                LogDate = day,
+                // The unique (client, plan, meal, day) index rejects a second row with the same LogDate, so the
+                // repeat is a legacy row: no LogDate, keyed to the day only by its EatenAt.
+                LogDate = hour == 13 ? DateTime.MinValue : day,
                 EatenAt = day.AddHours(hour),
                 FoodsEaten = [],
             }, cancellationToken: TestContext.Current.CancellationToken);

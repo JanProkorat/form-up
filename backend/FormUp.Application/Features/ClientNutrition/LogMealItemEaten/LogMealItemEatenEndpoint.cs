@@ -2,13 +2,14 @@ using System.Security.Claims;
 using FastEndpoints;
 using FormUp.Application.Domain.Constants;
 using FormUp.Application.Domain.Documents;
+using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Extensions;
 using FormUp.Application.Domain.Interfaces;
 using FormUp.Application.Domain.Services;
-using FormUp.Application.Features.ClientNutrition.Shared;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Application.Infrastructure.Data.MongoDb;
+using FormUp.Application.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 
@@ -17,16 +18,24 @@ namespace FormUp.Application.Features.ClientNutrition.LogMealItemEaten;
 /// <summary>
 /// Marks one food or recipe of a meal in the client's current plan as eaten. The meal's own
 /// <c>EatenAt</c> is set only once every current item is eaten; until then the row stays partly eaten.
+/// An offline-synced tick (one carrying <c>BasedOnPlanVersion</c>) that collides with a plan change is
+/// recorded as an <see cref="OfflineSyncConflict"/> and the plan's author is notified.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">Relational database context.</param>
 /// <param name="notifier">Realtime notifier for pushing SignalR events.</param>
 /// <param name="timeProvider">Clock.</param>
+/// <param name="notifications">Creates the localized in-app notification and push for a conflict.</param>
+/// <param name="coachDiscipline">Narrows link flags to the disciplines the coach still holds a role for.</param>
+/// <param name="logger">Logger for the non-fatal coach notification step.</param>
 internal sealed class LogMealItemEatenEndpoint(
     IMongoContext mongo,
     IApplicationDbContext db,
     IRealtimeNotifier notifier,
-    TimeProvider timeProvider)
+    TimeProvider timeProvider,
+    INotificationService notifications,
+    ICoachDisciplineAccess coachDiscipline,
+    ILogger<LogMealItemEatenEndpoint> logger)
     : Endpoint<LogMealItemEatenRequest, LogMealItemEatenResponse>
 {
     private const string OperationName = "LogMealItemEaten";
@@ -77,41 +86,58 @@ internal sealed class LogMealItemEatenEndpoint(
         var now = req.OccurredAt?.UtcDateTime ?? timeProvider.GetUtcNow().UtcDateTime;
         var (todayLocalUtc, windowStartUtc, windowEndUtc) = await db.ResolveClientLocalDayWindowAsync(clientId, now, ct);
 
-        var meal = await FindCurrentPlanMealAsync(clientId, req.MealId, todayLocalUtc, ct);
+        var current = await CurrentPlanMealResolver.FindCurrentPlanMealAsync(mongo, clientId, req.MealId, todayLocalUtc, ct);
 
-        if (meal is null)
+        if (current is null)
         {
+            await RecordMealRemovedAsync(req, clientProfile, alreadyApplied, now, todayLocalUtc, ct);
             await Send.NotFoundAsync(ct);
             return;
         }
 
-        var row = await FindRowAsync(clientId, meal.Plan.ExternalId, req.MealId, todayLocalUtc, windowStartUtc, windowEndUtc, ct);
+        var dayFilter = MealLogDayFilter.Build(
+            clientId, current.Plan.ExternalId, req.MealId, todayLocalUtc, windowStartUtc, windowEndUtc);
+        using var rowCursor = await mongo.MealLogs.FindAsync(dayFilter, cancellationToken: ct);
+        var row = await rowCursor.FirstOrDefaultAsync(ct);
 
         // A row with a snapshot is judged against the items it was eaten from, not the live meal.
-        var items = row is null ? MealItemEatenState.ItemIds(meal.Meal) : MealItemEatenState.ItemIds(row, meal.Meal);
+        var items = row is null ? MealItemEatenState.ItemIds(current.Meal) : MealItemEatenState.ItemIds(row, current.Meal);
 
         if (!items.Contains(req.ItemId))
         {
+            await RecordItemRemovedAsync(req, current, clientProfile, alreadyApplied, now, todayLocalUtc, ct);
             await this.SendProblemAsync(404, ErrorCodes.MealItemNotFound, "The item is not part of this meal.", ct);
             return;
         }
 
         if (!alreadyApplied)
         {
-            var eatenIds = row is null ? [] : MealItemEatenState.EffectiveEatenIds(row, meal.Meal);
-            var hadEatenItems = eatenIds.Count > 0;
-            eatenIds.Add(req.ItemId);
-            row = await WriteRowAsync(
-                req, meal, row, eatenIds, items.IsSubsetOf(eatenIds), !hadEatenItems, now, todayLocalUtc, ct);
+            row = await ApplyTickAsync(req, current, row, items, dayFilter, now, todayLocalUtc, ct);
+
+            OfflineSyncConflict? conflict = null;
+
+            if (req.BasedOnPlanVersion is { } basedOn && current.Meal.ChangedAtPlanVersion > basedOn)
+            {
+                conflict = await OfflineSyncConflictRecorder.RecordForPlanMealAsync(
+                    mongo, current, OperationName, basedOn, clientId, OfflineSyncConflictKind.PlanChanged,
+                    mealLogged: true, now, todayLocalUtc, timeProvider.GetUtcNow().UtcDateTime, ct);
+            }
 
             await ClientRequestDeduplicator.RecordAsync(
-                mongo, clientId, req.ClientRequestId, OperationName, req.BasedOnPlanVersion, null,
+                mongo, clientId, req.ClientRequestId, OperationName, req.BasedOnPlanVersion, conflict?.ExternalId,
                 timeProvider.GetUtcNow().UtcDateTime, ct);
 
-            await NotifyLinkedProfessionalsAsync(clientProfile.Id, clientProfile.PublicId, ct);
+            if (conflict is not null)
+            {
+                await OfflineSyncConflictRecorder.NotifyCoachesAsync(
+                    db, mongo, notifications, notifier, coachDiscipline, logger, clientProfile, conflict, ct);
+            }
+
+            await ClientComplianceNotifier.NotifyLinkedProfessionalsAsync(
+                db, notifier, clientProfile.Id, clientProfile.PublicId, ct);
         }
 
-        var currentIds = row is null ? [] : MealItemEatenState.EffectiveEatenIds(row, meal.Meal);
+        var currentIds = row is null ? [] : MealItemEatenState.EffectiveEatenIds(row, current.Meal);
         var state = MealItemEatenState.StateOf(items, currentIds, row?.EatenAt is not null);
 
         await Send.OkAsync(new LogMealItemEatenResponse
@@ -125,131 +151,171 @@ internal sealed class LogMealItemEatenEndpoint(
     }
 
     /// <summary>
-    /// Resolves the Active plan whose date window contains today (a client may hold several
-    /// sequential plans, #780) and the meal inside it; null when either is missing.
+    /// Adds the item to the day's row with atomic updates: <c>$addToSet</c> on the row found by the day filter,
+    /// else an upsert on the row's natural key. The snapshot and <c>EatenAt</c> are then set or cleared by
+    /// conditional updates, so a concurrent tick or untick on the same meal cannot lose an id or add a second row.
+    /// Returns the row as it stands afterwards (null only if a concurrent untick deleted it again).
     /// </summary>
-    private async Task<PlanAndMeal?> FindCurrentPlanMealAsync(
-        Guid clientId, Guid mealId, DateTime todayLocalUtc, CancellationToken ct)
+    private async Task<MealLog?> ApplyTickAsync(
+        LogMealItemEatenRequest req, CurrentPlanMeal current, MealLog? row, HashSet<Guid> items,
+        FilterDefinition<MealLog> dayFilter, DateTime now, DateTime todayLocalUtc, CancellationToken ct)
     {
-        var filter = Builders<NutritionPlan>.Filter.And(
-            Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientId),
-            Builders<NutritionPlan>.Filter.Eq(p => p.Status, NutritionPlanStatus.Active));
-
-        using var cursor = await mongo.NutritionPlans.FindAsync(filter, cancellationToken: ct);
-        var activePlans = await cursor.ToListAsync(ct);
-        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, todayLocalUtc);
-
-        var meal = plan?.Weeks
-            .SelectMany(w => w.Days)
-            .SelectMany(d => d.Meals)
-            .FirstOrDefault(m => m.MealId == mealId);
-
-        return plan is null || meal is null ? null : new PlanAndMeal(plan, meal);
-    }
-
-    /// <summary>
-    /// Finds today's row of the meal — the same lookup as marking the whole meal, so one meal has one row per day.
-    /// </summary>
-    private async Task<MealLog?> FindRowAsync(
-        Guid clientId, Guid planId, Guid mealId, DateTime todayLocalUtc, DateTime windowStartUtc, DateTime windowEndUtc,
-        CancellationToken ct)
-    {
-        var filter = Builders<MealLog>.Filter.And(
-            Builders<MealLog>.Filter.Eq(l => l.ClientId, clientId),
-            Builders<MealLog>.Filter.Eq(l => l.PlanId, planId),
-            Builders<MealLog>.Filter.Eq(l => l.MealId, mealId),
-            Builders<MealLog>.Filter.Or(
-                Builders<MealLog>.Filter.Eq(l => l.LogDate, todayLocalUtc),
-                Builders<MealLog>.Filter.And(
-                    Builders<MealLog>.Filter.Gte(l => l.EatenAt, windowStartUtc),
-                    Builders<MealLog>.Filter.Lt(l => l.EatenAt, windowEndUtc))));
-
-        using var cursor = await mongo.MealLogs.FindAsync(filter, cancellationToken: ct);
-        return await cursor.FirstOrDefaultAsync(ct);
-    }
-
-    private async Task<MealLog> WriteRowAsync(
-        LogMealItemEatenRequest req, PlanAndMeal meal, MealLog? row, HashSet<Guid> eatenIds, bool everyItemEaten,
-        bool firstEatenItem, DateTime now, DateTime todayLocalUtc, CancellationToken ct)
-    {
-        if (row is null)
+        if (row is not null)
         {
-            var created = new MealLog
-            {
-                EatenSnapshot = MealItemEatenState.BuildSnapshot(meal.Meal),
-                ClientId = meal.Plan.ClientId,
-                PlanId = meal.Plan.ExternalId,
-                MealId = req.MealId,
-                LogDate = todayLocalUtc,
-                EatenAt = everyItemEaten ? now : null,
-                EatenItemIds = eatenIds.ToList(),
-                FoodsEaten = meal.Meal.Foods,
-                BasedOnPlanVersion = req.BasedOnPlanVersion,
-            };
-
-            await mongo.MealLogs.InsertOneAsync(created, cancellationToken: ct);
-            return created;
+            await MealItemEatenWriter.MaterialiseLegacyRowAsync(mongo, row, items, ct);
         }
 
-        var update = Builders<MealLog>.Update
-            .Set(l => l.EatenItemIds, eatenIds.ToList())
-            .Set(l => l.LogDate, todayLocalUtc)
-            .Set(l => l.FoodsEaten, meal.Meal.Foods);
+        var hadEatenItems = row is not null && MealItemEatenState.EffectiveEatenIds(row, current.Meal).Count > 0;
+        var after = await AddItemAsync(req, current, dayFilter, todayLocalUtc, ct);
+        var rowFilter = Builders<MealLog>.Filter.Eq(l => l.Id, after.Id);
 
         // The snapshot is written once, when the row goes from nothing eaten to something eaten, and
-        // never overwritten by later ticks.
-        if (firstEatenItem && row.EatenSnapshot is null)
+        // never overwritten by later ticks. A row holding only this item counts as that moment even when the
+        // row read earlier showed other items, because a racing untick may have emptied it meanwhile. The
+        // filter keeps that untick's cleanup from being undone.
+        if ((!hadEatenItems || after.EatenItemIds.Count == 1) && after.EatenSnapshot is null)
         {
-            row.EatenSnapshot = MealItemEatenState.BuildSnapshot(meal.Meal);
-            update = update.Set(l => l.EatenSnapshot, row.EatenSnapshot);
+            await mongo.MealLogs.UpdateOneAsync(
+                Builders<MealLog>.Filter.And(
+                    rowFilter,
+                    Builders<MealLog>.Filter.Exists(l => l.EatenSnapshot, false),
+                    Builders<MealLog>.Filter.Not(Builders<MealLog>.Filter.Size(l => l.EatenItemIds, 0))),
+                Builders<MealLog>.Update.Set(l => l.EatenSnapshot, MealItemEatenState.BuildSnapshot(current.Meal)),
+                cancellationToken: ct);
         }
 
-        if (everyItemEaten)
-        {
-            row.EatenAt ??= now;
-            update = update.Set(l => l.EatenAt, row.EatenAt);
-        }
-        else
-        {
-            row.EatenAt = null;
-            update = update.Unset(l => l.EatenAt);
-        }
+        // An item tick always has at least one item (an unknown item answers 404 earlier); Filter.All with an
+        // empty list would match nothing.
+        var allItems = items.ToList();
+        var allEaten = Builders<MealLog>.Filter.All(l => l.EatenItemIds, allItems);
+
+        await mongo.MealLogs.UpdateOneAsync(
+            Builders<MealLog>.Filter.And(rowFilter, Builders<MealLog>.Filter.Exists(l => l.EatenAt, false), allEaten),
+            Builders<MealLog>.Update.Set(l => l.EatenAt, now),
+            cancellationToken: ct);
+
+        await mongo.MealLogs.UpdateOneAsync(
+            Builders<MealLog>.Filter.And(
+                rowFilter, Builders<MealLog>.Filter.Exists(l => l.EatenAt, true), Builders<MealLog>.Filter.Not(allEaten)),
+            Builders<MealLog>.Update.Unset(l => l.EatenAt),
+            cancellationToken: ct);
+
+        return await MealItemEatenWriter.FindByIdAsync(mongo, after.Id, ct);
+    }
+
+    private async Task<MealLog> AddItemAsync(
+        LogMealItemEatenRequest req, CurrentPlanMeal current, FilterDefinition<MealLog> dayFilter,
+        DateTime todayLocalUtc, CancellationToken ct)
+    {
+        var update = Builders<MealLog>.Update
+            .AddToSet(l => l.EatenItemIds, req.ItemId)
+            .Set(l => l.LogDate, todayLocalUtc)
+            .Set(l => l.FoodsEaten, current.Meal.Foods);
 
         if (req.BasedOnPlanVersion is not null)
         {
             update = update.Set(l => l.BasedOnPlanVersion, req.BasedOnPlanVersion);
         }
 
-        row.EatenItemIds = eatenIds.ToList();
+        // The natural key of a row. The partial unique index on it makes a racing insert fail loudly.
+        var naturalKey = Builders<MealLog>.Filter.And(
+            Builders<MealLog>.Filter.Eq(l => l.ClientId, current.Plan.ClientId),
+            Builders<MealLog>.Filter.Eq(l => l.PlanId, current.Plan.ExternalId),
+            Builders<MealLog>.Filter.Eq(l => l.MealId, req.MealId),
+            Builders<MealLog>.Filter.Eq(l => l.LogDate, todayLocalUtc));
 
-        await mongo.MealLogs.UpdateOneAsync(Builders<MealLog>.Filter.Eq(l => l.Id, row.Id), update, cancellationToken: ct);
-        return row;
+        var upsert = update.SetOnInsert(l => l.Photos, new List<MealPhoto>());
+        var matchOptions = new FindOneAndUpdateOptions<MealLog> { ReturnDocument = ReturnDocument.After };
+
+        for (var attempt = 0; attempt < 5; attempt++)
+        {
+            // Matched by the day filter, never by a previously read _id: a concurrent untick may have deleted
+            // the row meanwhile, in which case this returns null and the upsert below recreates it.
+            var matched = await mongo.MealLogs.FindOneAndUpdateAsync(dayFilter, update, matchOptions, ct);
+
+            if (matched is not null)
+            {
+                return matched;
+            }
+
+            try
+            {
+                await mongo.MealLogs.UpdateOneAsync(
+                    naturalKey, upsert, new UpdateOptions { IsUpsert = true }, ct);
+            }
+            catch (MongoWriteException ex) when (ex.WriteError.Category == ServerErrorCategory.DuplicateKey)
+            {
+                // A concurrent request inserted the row between the match and the upsert; match it again.
+                continue;
+            }
+
+            using var cursor = await mongo.MealLogs.FindAsync(naturalKey, cancellationToken: ct);
+            var created = await cursor.FirstOrDefaultAsync(ct);
+
+            if (created is not null)
+            {
+                return created;
+            }
+        }
+
+        throw new InvalidOperationException("The meal log row kept disappearing while an item was being ticked.");
     }
 
     /// <summary>
-    /// Pushes a <c>clientcomplianceupdated</c> SignalR event to every active professional linked to
-    /// this client so their dashboards can refresh without polling. The payload's ClientId is the
-    /// trainer-facing ClientProfile.PublicId.
+    /// Records a MealRemoved conflict (and tells the plan's author) for an offline tick on a meal that left
+    /// the plan. Online requests, replays and meal ids unknown to the client record nothing.
     /// </summary>
-    private async Task NotifyLinkedProfessionalsAsync(long clientProfileId, Guid clientPublicId, CancellationToken ct)
+    private async Task RecordMealRemovedAsync(
+        LogMealItemEatenRequest req, ClientProfile clientProfile, bool alreadyApplied, DateTime now,
+        DateTime todayLocalUtc, CancellationToken ct)
     {
-        var professionalUserIds = await db.ClientProfessionalLinks
-            .AsNoTracking()
-            .Where(l => l.ClientProfileId == clientProfileId && l.ConnectionState != ConnectionState.Ended)
-            .Join(db.ProfessionalProfiles.AsNoTracking(),
-                link => link.ProfessionalProfileId,
-                prof => prof.Id,
-                (_, prof) => prof.UserId)
-            .Distinct()
-            .ToListAsync(ct);
-
-        var payload = new { ClientId = clientPublicId };
-
-        foreach (var professionalUserId in professionalUserIds)
+        if (alreadyApplied || req.BasedOnPlanVersion is not { } basedOn)
         {
-            await notifier.NotifyAsync(professionalUserId, "clientcomplianceupdated", payload, ct);
+            return;
         }
+
+        var conflict = await OfflineSyncConflictRecorder.RecordMealRemovedAsync(
+            mongo, clientProfile.UserId, req.MealId, OperationName, basedOn, now, todayLocalUtc,
+            timeProvider.GetUtcNow().UtcDateTime, ct);
+
+        await FinishConflictAsync(req, clientProfile, conflict, ct);
     }
 
-    private sealed record PlanAndMeal(NutritionPlan Plan, PlanMeal Meal);
+    /// <summary>
+    /// Records a MealRemoved conflict (and tells the plan's author) for an offline tick on an item the coach
+    /// removed from a meal that is still in the plan.
+    /// </summary>
+    private async Task RecordItemRemovedAsync(
+        LogMealItemEatenRequest req, CurrentPlanMeal current, ClientProfile clientProfile,
+        bool alreadyApplied, DateTime now, DateTime todayLocalUtc, CancellationToken ct)
+    {
+        if (alreadyApplied || req.BasedOnPlanVersion is not { } basedOn)
+        {
+            return;
+        }
+
+        var conflict = await OfflineSyncConflictRecorder.RecordForPlanMealAsync(
+            mongo, current, OperationName, basedOn, clientProfile.UserId, OfflineSyncConflictKind.MealRemoved,
+            mealLogged: false, now, todayLocalUtc, timeProvider.GetUtcNow().UtcDateTime, ct);
+
+        await FinishConflictAsync(req, clientProfile, conflict, ct);
+    }
+
+    private async Task FinishConflictAsync(
+        LogMealItemEatenRequest req, ClientProfile clientProfile, OfflineSyncConflict? conflict,
+        CancellationToken ct)
+    {
+        if (conflict is null)
+        {
+            return;
+        }
+
+        // Recorded so a replay of this request creates no second conflict and no second notification.
+        await ClientRequestDeduplicator.RecordAsync(
+            mongo, clientProfile.UserId, req.ClientRequestId, OperationName, req.BasedOnPlanVersion, conflict.ExternalId,
+            timeProvider.GetUtcNow().UtcDateTime, ct);
+
+        await OfflineSyncConflictRecorder.NotifyCoachesAsync(
+            db, mongo, notifications, notifier, coachDiscipline, logger, clientProfile, conflict, ct);
+    }
 }
