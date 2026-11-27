@@ -200,9 +200,9 @@ public class PublishTrainingWeekEndpointTests
 
     /// <summary>
     /// Regression test for #839 AC#4: publishing must no longer 409 just because the plan's
-    /// Version has moved since the caller last read it. The endpoint no longer compares
-    /// req.Version against the document at all — concurrency for the write is gated on the
-    /// TARGET WEEK's own state via the write filter's ElemMatch, not the document-level Version.
+    /// Version has moved since the caller last read it. The request carries no version since
+    /// #851 — concurrency for the write is gated on the TARGET WEEK's own state via the write
+    /// filter's ElemMatch, not the document-level Version.
     /// </summary>
     [Fact]
     public async Task HandleAsync_ConcurrentVersionBump_StillPublishes_Returns200()
