@@ -14,7 +14,7 @@ interface Props {
   /** The blocker from `useUnsavedChangesBlocker`. */
   blocker: Blocker;
   /** Copy lives at `<i18nPrefix>.{title,body,stay,discard}`. */
-  i18nPrefix: string;
+  i18nPrefix: 'forms.builder.leave' | 'profile.page.leave';
 }
 
 /** Asks whether to leave a page with unsaved edits; shown while the router holds the navigation. */
