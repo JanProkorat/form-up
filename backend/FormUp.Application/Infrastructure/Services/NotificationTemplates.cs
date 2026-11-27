@@ -28,6 +28,7 @@ public static class NotificationTemplates
     // Variant keys — only needed for NotificationTypes with more than one distinct wording.
     public const string PlanPublishedNutritionCompleted = "nutritionCompleted";
     public const string PlanPublishedNutritionPublished = "nutritionPublished";
+    public const string PlanPublishedNutritionUnpublished = "nutritionUnpublished";
 
     // Push/notification data keys that let a client tell a nutrition plan from a training plan.
     public const string PlanKindKey = "planKind";
@@ -58,6 +59,8 @@ public static class NotificationTemplates
                 new("Nutrition plan completed", "Your nutrition plan \"{planName}\" has been marked as completed."),
             [Key(NotificationType.PlanPublished, PlanPublishedNutritionPublished)] =
                 new("Nutrition plan updated", "Week {weekNumber} of your nutrition plan has been published."),
+            [Key(NotificationType.PlanPublished, PlanPublishedNutritionUnpublished)] =
+                new("Nutrition plan updated", "Week {weekNumber} of your nutrition plan is no longer published."),
             [Key(NotificationType.PlanPublished, PlanPublishedTrainingCompleted)] =
                 new("Training plan completed", "Your training plan \"{planName}\" has been marked as completed."),
             [Key(NotificationType.PlanPublished, PlanPublishedTrainingPublished)] =
@@ -169,6 +172,8 @@ public static class NotificationTemplates
                 new("Jídelníček dokončen", "Váš jídelníček \"{planName}\" byl označen jako dokončený."),
             [Key(NotificationType.PlanPublished, PlanPublishedNutritionPublished)] =
                 new("Jídelníček aktualizován", "Týden {weekNumber} vašeho jídelníčku byl zveřejněn."),
+            [Key(NotificationType.PlanPublished, PlanPublishedNutritionUnpublished)] =
+                new("Jídelníček aktualizován", "Týden {weekNumber} vašeho jídelníčku už není zveřejněn."),
             [Key(NotificationType.PlanPublished, PlanPublishedTrainingCompleted)] =
                 new("Tréninkový plán dokončen", "Váš tréninkový plán \"{planName}\" byl označen jako dokončený."),
             [Key(NotificationType.PlanPublished, PlanPublishedTrainingPublished)] =
@@ -276,6 +281,8 @@ public static class NotificationTemplates
                 new("Ernährungsplan abgeschlossen", "Ihr Ernährungsplan \"{planName}\" wurde als abgeschlossen markiert."),
             [Key(NotificationType.PlanPublished, PlanPublishedNutritionPublished)] =
                 new("Ernährungsplan aktualisiert", "Woche {weekNumber} Ihres Ernährungsplans wurde veröffentlicht."),
+            [Key(NotificationType.PlanPublished, PlanPublishedNutritionUnpublished)] =
+                new("Ernährungsplan aktualisiert", "Woche {weekNumber} Ihres Ernährungsplans ist nicht mehr veröffentlicht."),
             [Key(NotificationType.PlanPublished, PlanPublishedTrainingCompleted)] =
                 new("Trainingsplan abgeschlossen", "Ihr Trainingsplan \"{planName}\" wurde als abgeschlossen markiert."),
             [Key(NotificationType.PlanPublished, PlanPublishedTrainingPublished)] =

@@ -210,6 +210,12 @@ public static class ErrorCodes
     /// <summary>The target week's start Monday is in the past.</summary>
     public const string WeekStartInPast = "WEEK_START_IN_PAST";
 
+    /// <summary>The week's Monday has arrived, so it can no longer be unpublished.</summary>
+    public const string WeekAlreadyStarted = "WEEK_ALREADY_STARTED";
+
+    /// <summary>The week has meal logs from the client, so it can no longer be unpublished.</summary>
+    public const string WeekHasMealLogs = "WEEK_HAS_MEAL_LOGS";
+
     /// <summary>
     /// The new plan's date window ([StartDate, StartDate + WeekCount * 7)) overlaps an existing
     /// Draft or Active same-type plan for the client (#780 — multiple sequential plans per client

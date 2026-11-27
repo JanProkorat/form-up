@@ -155,9 +155,9 @@ public class RemovedCoachRoleGateArchitectureTests(FitnessApiFactory factory)
         counts.GetValueOrDefault((AppRoles.Trainer, RemovedCoachRoleMode.WhilePlanInProgress)).Should().Be(8);
         counts.GetValueOrDefault((AppRoles.Trainer, RemovedCoachRoleMode.Exempt)).Should().Be(0);
         counts.GetValueOrDefault((AppRoles.Nutritionist, RemovedCoachRoleMode.Refuse)).Should().Be(40);
-        counts.GetValueOrDefault((AppRoles.Nutritionist, RemovedCoachRoleMode.WhilePlanInProgress)).Should().Be(5);
+        counts.GetValueOrDefault((AppRoles.Nutritionist, RemovedCoachRoleMode.WhilePlanInProgress)).Should().Be(6);
         counts.GetValueOrDefault((AppRoles.Nutritionist, RemovedCoachRoleMode.Exempt)).Should().Be(1);
-        counts.Values.Sum().Should().Be(76);
+        counts.Values.Sum().Should().Be(77);
     }
 
     [Fact]
