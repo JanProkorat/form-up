@@ -1437,6 +1437,12 @@
       "subtitle": "Was Kunden sehen, wenn sie Sie finden, und wie sie Sie erreichen",
       "allSaved": "Alle Änderungen gespeichert",
       "saved": "Profil gespeichert",
+      "leave": {
+        "title": "Ohne Speichern verlassen?",
+        "body": "Sie haben nicht gespeicherte Änderungen. Wenn Sie jetzt gehen, gehen sie verloren.",
+        "stay": "Weiter bearbeiten",
+        "discard": "Verlassen"
+      },
       "photo": {
         "title": "Foto und Name",
         "description": "Kunden sehen das auf Ihrem Profil, in der Suche und im Chat.",

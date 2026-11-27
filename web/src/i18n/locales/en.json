@@ -1438,6 +1438,12 @@
       "subtitle": "What clients see when they find you, and how they reach you",
       "allSaved": "All changes saved",
       "saved": "Profile saved",
+      "leave": {
+        "title": "Leave without saving?",
+        "body": "You have unsaved changes. If you leave now they are lost.",
+        "stay": "Keep editing",
+        "discard": "Leave"
+      },
       "photo": {
         "title": "Photo and name",
         "description": "Clients see this on your profile, in search and in chat.",
