@@ -10,7 +10,4 @@ public class PublishWeekRequest
 
     /// <summary>Week number to publish.</summary>
     public int WeekNumber { get; set; }
-
-    /// <summary>Optimistic concurrency version.</summary>
-    public int Version { get; set; }
 }

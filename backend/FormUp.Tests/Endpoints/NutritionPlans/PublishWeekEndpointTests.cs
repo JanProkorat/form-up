@@ -126,8 +126,7 @@ public class PublishWeekEndpointTests
         var req = new PublishWeekRequest
         {
             PlanId = planId,
-            WeekNumber = 1,
-            Version = 1
+            WeekNumber = 1
         };
 
         await ep.HandleAsync(req, TestContext.Current.CancellationToken);
@@ -191,8 +190,7 @@ public class PublishWeekEndpointTests
         var req = new PublishWeekRequest
         {
             PlanId = planBId,
-            WeekNumber = 1,
-            Version = 1
+            WeekNumber = 1
         };
 
         await ep.HandleAsync(req, TestContext.Current.CancellationToken);
@@ -228,8 +226,7 @@ public class PublishWeekEndpointTests
         var req = new PublishWeekRequest
         {
             PlanId = planId,
-            WeekNumber = 1,
-            Version = 1
+            WeekNumber = 1
         };
 
         var act = () => ep.HandleAsync(req, TestContext.Current.CancellationToken);
@@ -270,8 +267,7 @@ public class PublishWeekEndpointTests
         var req = new PublishWeekRequest
         {
             PlanId = planId,
-            WeekNumber = 1,
-            Version = 1 // stale relative to plan.Version — must NOT cause a 409
+            WeekNumber = 1
         };
 
         await ep.HandleAsync(req, TestContext.Current.CancellationToken);
@@ -288,8 +284,7 @@ public class PublishWeekEndpointTests
         var req = new PublishWeekRequest
         {
             PlanId = Guid.NewGuid(),
-            WeekNumber = 1,
-            Version = 1
+            WeekNumber = 1
         };
 
         await ep.HandleAsync(req, TestContext.Current.CancellationToken);
@@ -318,8 +313,7 @@ public class PublishWeekEndpointTests
         var req = new PublishWeekRequest
         {
             PlanId = planId,
-            WeekNumber = 1,
-            Version = 1
+            WeekNumber = 1
         };
 
         await ep.HandleAsync(req, TestContext.Current.CancellationToken);
@@ -357,8 +351,7 @@ public class PublishWeekEndpointTests
         var req = new PublishWeekRequest
         {
             PlanId = planId,
-            WeekNumber = 1,
-            Version = 1
+            WeekNumber = 1
         };
 
         await ep.HandleAsync(req, TestContext.Current.CancellationToken);
@@ -396,8 +389,7 @@ public class PublishWeekEndpointTests
         var req = new PublishWeekRequest
         {
             PlanId = planId,
-            WeekNumber = 1,
-            Version = 1
+            WeekNumber = 1
         };
 
         await ep.HandleAsync(req, TestContext.Current.CancellationToken);
@@ -435,8 +427,7 @@ public class PublishWeekEndpointTests
         var req = new PublishWeekRequest
         {
             PlanId = planId,
-            WeekNumber = 1,
-            Version = 1
+            WeekNumber = 1
         };
 
         await ep.HandleAsync(req, TestContext.Current.CancellationToken);

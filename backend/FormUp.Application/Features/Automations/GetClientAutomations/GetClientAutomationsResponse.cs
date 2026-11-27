@@ -19,19 +19,16 @@ public class GetClientAutomationsResponse
 /// </summary>
 public class ClientAutomationItem
 {
-    /// <summary>Public id of the rule; null for a linked check-in row.</summary>
+    /// <summary>Public id of the rule.</summary>
     public Guid? RuleId { get; set; }
 
     /// <summary>Where the row comes from.</summary>
     public AutomationRuleSource Source { get; set; }
 
-    /// <summary>Rule name; null for a linked check-in row.</summary>
+    /// <summary>Rule name.</summary>
     public string? Name { get; set; }
 
-    /// <summary>Training or Nutrition for a linked check-in row; null for rules.</summary>
-    public string? Profession { get; set; }
-
-    /// <summary>What the rule asks of the client; null for a linked check-in row.</summary>
+    /// <summary>What the rule asks of the client.</summary>
     public AutomationActionType? ActionType { get; set; }
 
     /// <summary>Public id of the questionnaire a SendForm rule sends.</summary>
@@ -46,7 +43,7 @@ public class ClientAutomationItem
     /// <summary>Effective message.</summary>
     public string? Message { get; set; }
 
-    /// <summary>Effective trigger kind; null for a linked check-in row.</summary>
+    /// <summary>Effective trigger kind.</summary>
     public AutomationTriggerKind? TriggerKind { get; set; }
 
     /// <summary>Effective schedule interval.</summary>

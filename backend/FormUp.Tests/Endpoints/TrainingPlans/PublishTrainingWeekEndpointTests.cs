@@ -105,8 +105,7 @@ public class PublishTrainingWeekEndpointTests
         await ep.HandleAsync(new PublishTrainingWeekRequest
         {
             PlanId = planId,
-            WeekNumber = 1,
-            Version = 1
+            WeekNumber = 1
         }, TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
@@ -143,8 +142,7 @@ public class PublishTrainingWeekEndpointTests
         await ep.HandleAsync(new PublishTrainingWeekRequest
         {
             PlanId = planId,
-            WeekNumber = 1,
-            Version = 1
+            WeekNumber = 1
         }, TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(404);
@@ -188,8 +186,7 @@ public class PublishTrainingWeekEndpointTests
         await ep.HandleAsync(new PublishTrainingWeekRequest
         {
             PlanId = planId,
-            WeekNumber = 1,
-            Version = 1
+            WeekNumber = 1
         }, TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(404);
@@ -232,8 +229,7 @@ public class PublishTrainingWeekEndpointTests
         await ep.HandleAsync(new PublishTrainingWeekRequest
         {
             PlanId = planId,
-            WeekNumber = 1,
-            Version = 1 // stale relative to plan.Version=3 — must NOT cause a 409
+            WeekNumber = 1
         }, TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
@@ -273,8 +269,7 @@ public class PublishTrainingWeekEndpointTests
         await ep.HandleAsync(new PublishTrainingWeekRequest
         {
             PlanId = planId,
-            WeekNumber = 1,
-            Version = 1
+            WeekNumber = 1
         }, TestContext.Current.CancellationToken);
 
         // 1. HTTP status
@@ -334,8 +329,7 @@ public class PublishTrainingWeekEndpointTests
         await ep.HandleAsync(new PublishTrainingWeekRequest
         {
             PlanId = planBId,
-            WeekNumber = 1,
-            Version = 1
+            WeekNumber = 1
         }, TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
@@ -377,8 +371,7 @@ public class PublishTrainingWeekEndpointTests
         await ep.HandleAsync(new PublishTrainingWeekRequest
         {
             PlanId = planId,
-            WeekNumber = 1,
-            Version = 1
+            WeekNumber = 1
         }, TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(409);

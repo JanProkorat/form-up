@@ -106,9 +106,10 @@ public class PublishTrainingWeekConcurrencyIntegrationTests(FitnessApiFactory fa
                 cancellationToken: TestContext.Current.CancellationToken);
         }
 
+        // Empty JSON body: the plan id and week number come from the route.
         var response = await client.PostAsync(
             $"/training/plans/{plan.ExternalId}/weeks/1/publish",
-            JsonContent.Create(new { PlanId = plan.ExternalId, WeekNumber = 1, Version = 1 }),
+            JsonContent.Create(new { }),
             TestContext.Current.CancellationToken);
 
         var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
