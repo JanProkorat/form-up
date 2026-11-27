@@ -3304,7 +3304,7 @@
     "unpublish": {
       "title": "Zrušit publikování týdne {{week}}?",
       "body": "Neuložené změny se nejdřív uloží. Klient tento týden neuvidí, dokud ho znovu nepublikujete.",
-      "confirm": "Zrušit publikování",
+      "confirm": "Vrátit do konceptu",
       "success": "Publikování týdne {{week}} bylo zrušeno.",
       "error": "Publikování týdne se nepodařilo zrušit. Zkuste to prosím znovu."
     },
