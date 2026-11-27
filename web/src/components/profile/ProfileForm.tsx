@@ -13,7 +13,9 @@ import {
 } from '@/api/profile';
 import { useAuthStore } from '@/stores/auth';
 import { showApiError, showSuccess } from '@/lib/api-errors';
+import { useUnsavedChangesBlocker } from '@/hooks/useUnsavedChangesBlocker';
 import { Button } from '@/components/ui/button';
+import UnsavedChangesDialog from '@/components/layout/UnsavedChangesDialog';
 import PhotoNameSection from '@/components/profile/PhotoNameSection';
 import AccountSection from '@/components/profile/AccountSection';
 import AboutSection from '@/components/profile/AboutSection';
@@ -101,6 +103,9 @@ export default function ProfileForm({ me, trainer }: Props) {
   const setDraft = (field: TagField, value: string) => setDrafts((prev) => ({ ...prev, [field]: value }));
   const hasPendingDraft = drafts.specializations.trim() !== '' || drafts.languages.trim() !== '';
   const isDirty = formState.isDirty || hasPendingDraft;
+
+  // In-app navigation away (sidebar, in-page link, browser back) asks first while dirty; reload is the effect below.
+  const { blocker: leaveBlocker } = useUnsavedChangesBlocker(isDirty);
 
   useEffect(() => {
     if (!isDirty) return;
@@ -254,6 +259,7 @@ export default function ProfileForm({ me, trainer }: Props) {
           />
         </div>
       </form>
+      <UnsavedChangesDialog blocker={leaveBlocker} i18nPrefix="profile.page.leave" />
     </FormProvider>
   );
 }

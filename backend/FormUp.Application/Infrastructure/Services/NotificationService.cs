@@ -24,6 +24,36 @@ public class NotificationService(IApplicationDbContext db, IPushNotificationServ
         string? variant = null,
         CancellationToken ct = default)
     {
+        var (notification, title, body) = await SaveNotificationAsync(recipientUserId, type, parameters, variant, ct);
+
+        // Send push notification to the user's mobile devices. Uses the SAME resolved
+        // title/body as the in-app notification — the OS push banner renders before the
+        // app opens, so it must already be in the recipient's language at send time.
+        await PushIfEnabledAsync(recipientUserId, type, title, body, parameters, ct);
+
+        return notification;
+    }
+
+    /// <inheritdoc />
+    public async Task<Notification> CreateWithoutPushAsync(
+        Guid recipientUserId,
+        NotificationType type,
+        IReadOnlyDictionary<string, string>? parameters = null,
+        string? variant = null,
+        CancellationToken ct = default)
+    {
+        var (notification, _, _) = await SaveNotificationAsync(recipientUserId, type, parameters, variant, ct);
+
+        return notification;
+    }
+
+    private async Task<(Notification Notification, string Title, string Body)> SaveNotificationAsync(
+        Guid recipientUserId,
+        NotificationType type,
+        IReadOnlyDictionary<string, string>? parameters,
+        string? variant,
+        CancellationToken ct)
+    {
         var (title, body) = await ResolveTemplateAsync(recipientUserId, type, parameters, variant, ct);
 
         var notification = new Notification
@@ -38,12 +68,7 @@ public class NotificationService(IApplicationDbContext db, IPushNotificationServ
         db.Notifications.Add(notification);
         await db.SaveChangesAsync(ct);
 
-        // Send push notification to the user's mobile devices. Uses the SAME resolved
-        // title/body as the in-app notification — the OS push banner renders before the
-        // app opens, so it must already be in the recipient's language at send time.
-        await PushIfEnabledAsync(recipientUserId, type, title, body, parameters, ct);
-
-        return notification;
+        return (notification, title, body);
     }
 
     /// <inheritdoc />

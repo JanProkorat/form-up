@@ -7,12 +7,29 @@ import type {
 } from '@/api/client';
 import type {
   AnonymousResendVerificationResponse,
+  ChangeUnverifiedEmailRequest,
+  ChangeUnverifiedEmailResponse,
+  LogoutRequest,
   ResolveInviteTokenRequest,
   ResolveInviteTokenResponse,
   VerifyEmailRequest,
   VerifyEmailResponse,
 } from '@/api/generated';
 import api from '@/lib/api';
+import { useAuthStore } from '@/stores/auth';
+
+/**
+ * Per-request bearer header for the throwaway registration session. The
+ * `lib/api.ts` request interceptor (`attachToken`) overwrites `Authorization`
+ * whenever the auth store holds a token, so an explicit header would silently
+ * lose; refuse to run instead of sending the wrong identity.
+ */
+function throwawayBearer(accessToken: string) {
+  if (useAuthStore.getState().accessToken) {
+    throw new Error('Refusing a per-request bearer token while the auth store holds a session.');
+  }
+  return { headers: { Authorization: `Bearer ${accessToken}` } };
+}
 
 /**
  * POST /auth/login
@@ -185,4 +202,36 @@ export async function requestPasswordReset(email: string): Promise<void> {
  */
 export async function resetPassword(payload: ResetPasswordRequest): Promise<void> {
   await api.put('/auth/password/reset', payload);
+}
+
+/**
+ * PUT /auth/email
+ * Moves an UNVERIFIED account to a corrected address and sends a fresh link.
+ * Authenticated with the throwaway session from `login` (never stored), passed
+ * as a per-request `Authorization: Bearer` header. `lib/api.ts` attachToken
+ * overrides that header when the auth store holds a token, so this throws if
+ * the store has one. Failure codes (`getErrorCode`): EMAIL_ALREADY_IN_USE,
+ * EMAIL_UNCHANGED, EMAIL_ALREADY_VERIFIED, VERIFICATION_RESEND_LIMIT_REACHED.
+ */
+export async function changeUnverifiedEmail(
+  accessToken: string,
+  newEmail: string
+): Promise<ChangeUnverifiedEmailResponse> {
+  const payload: ChangeUnverifiedEmailRequest = { newEmail };
+  const { data } = await api.put<ChangeUnverifiedEmailResponse>(
+    '/auth/email',
+    payload,
+    throwawayBearer(accessToken)
+  );
+  return data;
+}
+
+/**
+ * POST /auth/logout
+ * Revokes a refresh token of the throwaway session from `login`. Same bearer
+ * header rules (and refusal) as `changeUnverifiedEmail`.
+ */
+export async function revokeSession(accessToken: string, refreshToken: string): Promise<void> {
+  const payload: LogoutRequest = { refreshToken };
+  await api.post('/auth/logout', payload, throwawayBearer(accessToken));
 }
