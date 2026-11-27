@@ -3289,7 +3289,7 @@
   },
   "clientPlanEditor": {
     "conflict": {
-      "message": "Tento jídelníček byl od otevření změněn jinde. Vaše úpravy zůstávají zachované zde a nic nebylo přepsáno. Načtením nejnovější verze o své úpravy přijdete."
+      "message": "Tento plán byl od otevření změněn jinde. Vaše úpravy zůstávají zachované zde a nic nebylo přepsáno. Načtením nejnovější verze o své úpravy přijdete."
     },
     "publishWeek": "Publikovat týden {{week}}",
     "clientFallback": "Klient",
