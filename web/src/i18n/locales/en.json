@@ -1438,6 +1438,12 @@
       "subtitle": "What clients see when they find you, and how they reach you",
       "allSaved": "All changes saved",
       "saved": "Profile saved",
+      "leave": {
+        "title": "Leave without saving?",
+        "body": "You have unsaved changes. If you leave now they are lost.",
+        "stay": "Keep editing",
+        "discard": "Leave"
+      },
       "photo": {
         "title": "Photo and name",
         "description": "Clients see this on your profile, in search and in chat.",
@@ -6087,6 +6093,19 @@
         "resendConfirmation": "If needed, we’ve sent a new link.",
         "wrongEmail": "Wrong address?",
         "changeEmail": "Change email"
+      },
+      "changeEmail": {
+        "title": "Change your email",
+        "lede": "We'll move your account to the new address and send a fresh link.<br/>The link sent to <old>{{email}}</old> stops working.",
+        "label": "New email address",
+        "submit": "Send new link",
+        "submitting": "Sending...",
+        "cancel": "Cancel",
+        "required": "Enter the new email address.",
+        "invalid": "Enter a valid email address.",
+        "taken": "This email is already registered.",
+        "unchanged": "That is the address you already have. Enter a different one.",
+        "generic": "We couldn't change your email. Please try again."
       }
     },
     "forgotPassword": {

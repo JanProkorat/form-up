@@ -4,15 +4,7 @@ import { Feedback, KeyboardSensor, PointerSensor } from '@dnd-kit/dom';
 import { DragDropProvider, useDroppable } from '@dnd-kit/react';
 import { BookOpen, CalendarDays, Info } from 'lucide-react';
 import { QuestionnaireType, type QuestionnaireDto } from '@/api/questionnaires';
-import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import UnsavedChangesDialog from '@/components/layout/UnsavedChangesDialog';
 import EditorSidePanel, { type EditorSideTabDef } from '@/components/editor/EditorSidePanel';
 import CheckInScheduleLine from '@/components/forms/builder/CheckInScheduleLine';
 import FormBuilderHeader from '@/components/forms/builder/FormBuilderHeader';
@@ -45,6 +37,7 @@ import {
   type PaletteKind,
 } from '@/components/forms/builder/form-builder-model';
 import { useFormBuilderState } from '@/components/forms/builder/useFormBuilderState';
+import { useUnsavedChangesBlocker } from '@/hooks/useUnsavedChangesBlocker';
 import { useUpdateQuestionnaire } from '@/hooks/useQuestionnaireQueries';
 import { showApiError, showError } from '@/lib/api-errors';
 
@@ -96,7 +89,8 @@ export default function FormBuilder({ initial, onBack }: Props) {
   const [panelOpen, setPanelOpen] = useState(true);
   const [sideTab, setSideTab] = useState<SideTab>('library');
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [leaveOpen, setLeaveOpen] = useState(false);
+  // Any in-app navigation away (back button, sidebar, in-page link, browser back) asks first while dirty.
+  const { blocker: leaveBlocker } = useUnsavedChangesBlocker(dirty);
   const [scrollToKey, setScrollToKey] = useState<string | null>(null);
 
   const errors = useMemo(() => validateDraft(doc), [doc]);
@@ -123,14 +117,6 @@ export default function FormBuilder({ initial, onBack }: Props) {
     document.querySelector(`[data-key="${scrollToKey}"]`)?.scrollIntoView({ block: 'nearest' });
     setScrollToKey(null);
   }, [scrollToKey, doc.questions]);
-
-  function leave() {
-    if (dirty) {
-      setLeaveOpen(true);
-      return;
-    }
-    onBack();
-  }
 
   function patchQuestion(key: string, patch: Partial<DraftQuestion>) {
     edit((current) => ({
@@ -323,7 +309,7 @@ export default function FormBuilder({ initial, onBack }: Props) {
             isDefault={doc.isDefault}
             dirty={dirty}
             saving={updateMutation.isPending}
-            onBack={leave}
+            onBack={onBack}
             onPreview={() => setPreviewOpen(true)}
             onSave={() => void save()}
           />
@@ -363,22 +349,7 @@ export default function FormBuilder({ initial, onBack }: Props) {
 
       <FormPreviewDialog open={previewOpen} onOpenChange={setPreviewOpen} doc={doc} />
 
-      <Dialog open={leaveOpen} onOpenChange={setLeaveOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('forms.builder.leave.title')}</DialogTitle>
-            <DialogDescription>{t('forms.builder.leave.body')}</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setLeaveOpen(false)}>
-              {t('forms.builder.leave.stay')}
-            </Button>
-            <Button type="button" variant="destructive" onClick={onBack}>
-              {t('forms.builder.leave.discard')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <UnsavedChangesDialog blocker={leaveBlocker} i18nPrefix="forms.builder.leave" />
     </DragDropProvider>
   );
 }

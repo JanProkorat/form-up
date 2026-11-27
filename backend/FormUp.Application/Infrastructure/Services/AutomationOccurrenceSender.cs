@@ -1,3 +1,4 @@
+using System.Globalization;
 using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
 using FormUp.Application.Domain.Interfaces;
@@ -12,22 +13,25 @@ namespace FormUp.Application.Infrastructure.Services;
 /// <summary>
 /// Sends one occurrence of an automation rule to one client: re-checks that the client is still
 /// reachable, applies the rule's options, records the run and delivers the request. The caller owns
-/// the transaction, so the run and the delivery commit or roll back together.
+/// the transaction, so the run and the delivery commit or roll back together. Pushes and realtime
+/// events wait in <paramref name="afterCommit"/> until the caller has committed.
 /// </summary>
 /// <param name="db">Application database context.</param>
-/// <param name="notifications">Creates the in-app and push notification.</param>
-/// <param name="notifier">Realtime broadcast to the client.</param>
+/// <param name="notifications">Writes the in-app notification row.</param>
+/// <param name="afterCommit">Holds the pushes and realtime events until the transaction commits.</param>
 /// <param name="entitlementService">Resolves the coach's subscription entitlements.</param>
 /// <param name="logger">Logger.</param>
 public sealed class AutomationOccurrenceSender(
     IApplicationDbContext db,
     INotificationService notifications,
-    IRealtimeNotifier notifier,
+    AutomationAfterCommitQueue afterCommit,
     EntitlementService entitlementService,
     ILogger<AutomationOccurrenceSender> logger)
 {
     /// <summary>How long a photo request an automation sends stays open.</summary>
     public const int PhotoRequestDurationDays = 7;
+
+    private const string ScheduledKeyPrefix = "sched:";
 
     /// <summary>
     /// Sends the occurrence unless the client is unreachable or an option says to hold back.
@@ -98,21 +102,23 @@ public sealed class AutomationOccurrenceSender(
             return AutomationSendOutcome.Duplicate;
         }
 
-        run.DeliveredEntityId = await DeliverAsync(evaluation, nowUtc, ct);
+        run.DeliveredEntityId = await DeliverAsync(evaluation, nowUtc, nowUtc, ct);
         await db.SaveChangesAsync(ct);
 
         return AutomationSendOutcome.Sent;
     }
 
     /// <summary>
-    /// Records a Failed run for an occurrence that could not be sent, unless it already has a run.
-    /// Call it in a fresh scope after the send's own transaction rolled back.
+    /// Records a Failed run for an occurrence whose send threw, unless it already has a run. The run
+    /// waits for its first retry. Call it in a fresh scope after the send's own transaction rolled back.
     /// </summary>
     /// <param name="ruleId">Internal id of the rule.</param>
     /// <param name="clientProfileId">Internal id of the client profile.</param>
     /// <param name="occurrence">Key of the occurrence.</param>
+    /// <param name="nowUtc">The current instant.</param>
     /// <param name="ct">Cancellation token.</param>
-    public async Task RecordFailureAsync(long ruleId, long clientProfileId, string occurrence, CancellationToken ct)
+    public async Task RecordFailureAsync(
+        long ruleId, long clientProfileId, string occurrence, DateTime nowUtc, CancellationToken ct)
     {
         var alreadyRecorded = await db.AutomationRuns
             .AsNoTracking()
@@ -131,10 +137,86 @@ public sealed class AutomationOccurrenceSender(
             ClientProfileId = clientProfileId,
             Occurrence = occurrence,
             Status = AutomationRunStatus.Failed,
+            AttemptCount = 1,
+            NextRetryAt = AutomationRetryPolicy.NextRetryAt(1, nowUtc),
         });
 
         await TrySaveAsync(ct);
     }
+
+    /// <summary>
+    /// Retries a Failed run in place: it becomes Sent, Skipped or a final Failed and never gets a
+    /// second row. The caller claimed and locked the row and owns the transaction.
+    /// </summary>
+    /// <param name="run">The tracked, claimed Failed run.</param>
+    /// <param name="nowUtc">The current instant.</param>
+    /// <param name="ct">Cancellation token.</param>
+    public async Task<AutomationSendOutcome> RetryAsync(AutomationRun run, DateTime nowUtc, CancellationToken ct)
+    {
+        var evaluation = await AutomationEvaluationLoader.LoadAsync(
+            db, entitlementService, run.AutomationRuleId, run.ClientProfileId, nowUtc, ct);
+
+        // The rule is gone, off or not usable any more: retrying cannot help.
+        if (evaluation is null || !evaluation.Effective.Enabled || !IsActionUsable(evaluation))
+        {
+            run.NextRetryAt = null;
+            await db.SaveChangesAsync(ct);
+
+            return AutomationSendOutcome.Failed;
+        }
+
+        var skipReason = await FindSkipReasonAsync(evaluation, PlanKeyPrefixOf(evaluation, run.Occurrence), nowUtc, ct);
+
+        if (skipReason is not null)
+        {
+            run.Status = AutomationRunStatus.Skipped;
+            run.SkipReason = skipReason;
+            run.NextRetryAt = null;
+            await db.SaveChangesAsync(ct);
+
+            return AutomationSendOutcome.Skipped;
+        }
+
+        run.DeliveredEntityId = await DeliverAsync(evaluation, nowUtc, WeekAnchorOf(run.Occurrence, nowUtc), ct);
+        run.Status = AutomationRunStatus.Sent;
+        run.SentAt = nowUtc;
+        run.NextRetryAt = null;
+        await db.SaveChangesAsync(ct);
+
+        return AutomationSendOutcome.Sent;
+    }
+
+    /// <summary>
+    /// The once-per-plan key prefix of a plan-event occurrence key
+    /// (<c>{EventType}:{PlanId:N}:{yyyyMMdd}</c>, up to and including the last colon); null for every
+    /// other kind of occurrence.
+    /// </summary>
+    private static string? PlanKeyPrefixOf(AutomationEvaluation evaluation, string occurrence)
+    {
+        if (!evaluation.Effective.IsPlanEvent)
+        {
+            return null;
+        }
+
+        var lastColon = occurrence.LastIndexOf(':');
+
+        return lastColon < 0 ? null : occurrence[..(lastColon + 1)];
+    }
+
+    /// <summary>
+    /// The instant a retried check-in takes its week from: the scheduled instant in a
+    /// <c>sched:yyyyMMddTHHmmss</c> key, so a late retry stays in the week it was due for.
+    /// </summary>
+    private static DateTime WeekAnchorOf(string occurrence, DateTime nowUtc) =>
+        occurrence.StartsWith(ScheduledKeyPrefix, StringComparison.Ordinal)
+        && DateTime.TryParseExact(
+            occurrence[ScheduledKeyPrefix.Length..],
+            "yyyyMMdd'T'HHmmss",
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
+            out var scheduledAt)
+            ? DateTime.SpecifyKind(scheduledAt, DateTimeKind.Utc)
+            : nowUtc;
 
     private async Task<AutomationSkipReason?> FindSkipReasonAsync(
         AutomationEvaluation evaluation, string? planKeyPrefix, DateTime nowUtc, CancellationToken ct)
@@ -304,18 +386,20 @@ public sealed class AutomationOccurrenceSender(
         }
     }
 
-    private async Task<Guid> DeliverAsync(AutomationEvaluation evaluation, DateTime nowUtc, CancellationToken ct)
+    private async Task<Guid> DeliverAsync(
+        AutomationEvaluation evaluation, DateTime nowUtc, DateTime weekAnchorUtc, CancellationToken ct)
     {
         return evaluation.Rule.ActionType switch
         {
-            AutomationActionType.SendForm => await DeliverFormAsync(evaluation, nowUtc, ct),
+            AutomationActionType.SendForm => await DeliverFormAsync(evaluation, nowUtc, weekAnchorUtc, ct),
             AutomationActionType.RequestMeasurements => await DeliverMeasurementRequestAsync(evaluation, ct),
             AutomationActionType.RequestProgressPhotos => await DeliverPhotoRequestAsync(evaluation, nowUtc, ct),
             _ => throw new InvalidOperationException($"Unsupported automation action {evaluation.Rule.ActionType}."),
         };
     }
 
-    private async Task<Guid> DeliverFormAsync(AutomationEvaluation evaluation, DateTime nowUtc, CancellationToken ct)
+    private async Task<Guid> DeliverFormAsync(
+        AutomationEvaluation evaluation, DateTime nowUtc, DateTime weekAnchorUtc, CancellationToken ct)
     {
         var questionnaire = evaluation.EffectiveQuestionnaire!;
         var clientUserId = evaluation.Client.ClientUserId;
@@ -334,7 +418,7 @@ public sealed class AutomationOccurrenceSender(
 
         if (isCheckIn)
         {
-            var localSendDate = ClientLocalDateResolver.ResolveLocalDate(nowUtc, evaluation.Zone);
+            var localSendDate = ClientLocalDateResolver.ResolveLocalDate(weekAnchorUtc, evaluation.Zone);
             response.CheckInWeekStart = AutomationScheduleCalculator.MondayOf(localSendDate);
             response.CheckInDueAtUtc = nowUtc.AddHours(evaluation.Effective.AnswerWindowHours!.Value);
         }
@@ -342,17 +426,15 @@ public sealed class AutomationOccurrenceSender(
         db.QuestionnaireResponses.Add(response);
         await db.SaveChangesAsync(ct);
 
-        await notifications.CreateAsync(
-            clientUserId,
-            NotificationType.QuestionnaireAssigned,
-            new Dictionary<string, string> { ["questionnaireTitle"] = questionnaire.Title },
-            ct: ct);
+        var parameters = new Dictionary<string, string> { ["questionnaireTitle"] = questionnaire.Title };
 
-        await BroadcastAsync(
+        await notifications.CreateWithoutPushAsync(clientUserId, NotificationType.QuestionnaireAssigned, parameters, ct: ct);
+
+        afterCommit.EnqueuePush(clientUserId, NotificationType.QuestionnaireAssigned, parameters, null);
+        afterCommit.EnqueueBroadcast(
             clientUserId,
             "questionnaireassigned",
-            new { QuestionnairePublicId = questionnaire.PublicId, questionnaire.Title },
-            ct);
+            new { QuestionnairePublicId = questionnaire.PublicId, questionnaire.Title });
 
         return response.PublicId;
     }
@@ -368,14 +450,13 @@ public sealed class AutomationOccurrenceSender(
             parameters["message"] = message;
         }
 
-        var notification = await notifications.CreateAsync(
-            clientUserId,
-            NotificationType.MeasurementRequested,
-            parameters,
-            variant: parameters.ContainsKey("message") ? NotificationTemplates.MeasurementRequestedWithMessage : null,
-            ct: ct);
+        var variant = parameters.ContainsKey("message") ? NotificationTemplates.MeasurementRequestedWithMessage : null;
 
-        await BroadcastAsync(
+        var notification = await notifications.CreateWithoutPushAsync(
+            clientUserId, NotificationType.MeasurementRequested, parameters, variant, ct);
+
+        afterCommit.EnqueuePush(clientUserId, NotificationType.MeasurementRequested, parameters, variant);
+        afterCommit.EnqueueBroadcast(
             clientUserId,
             "newnotification",
             new
@@ -383,8 +464,7 @@ public sealed class AutomationOccurrenceSender(
                 id = notification.Id,
                 type = NotificationType.MeasurementRequested.ToString(),
                 data = notification.Data,
-            },
-            ct);
+            });
 
         return notification.PublicId;
     }
@@ -409,7 +489,7 @@ public sealed class AutomationOccurrenceSender(
         db.PhotoDiaryRequests.Add(request);
         await db.SaveChangesAsync(ct);
 
-        await BroadcastAsync(
+        afterCommit.EnqueueBroadcast(
             evaluation.Client.ClientUserId,
             "photodiaryrequested",
             new PhotoDiaryRequestedEvent
@@ -422,23 +502,8 @@ public sealed class AutomationOccurrenceSender(
                 Message = request.Message,
                 PlanId = request.PlanId,
                 CreatedAt = request.CreatedAt,
-            },
-            ct);
+            });
 
         return request.Id;
-    }
-
-    private async Task BroadcastAsync(Guid clientUserId, string eventName, object payload, CancellationToken ct)
-    {
-        try
-        {
-            await notifier.NotifyAsync(clientUserId, eventName, payload, ct);
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            logger.LogWarning(ex,
-                "AutomationScheduler: failed to broadcast {EventName} to client {ClientUserId}.",
-                eventName, clientUserId);
-        }
     }
 }

@@ -140,8 +140,10 @@ services:
         condition: service_healthy
     # JWT_SECRET and QA_SEED_PASSWORD come from .env.test (gitignored).
     # Copy .env.test.example to .env.test and fill it in before `npm run e2e:up`.
+    # scripts/test-env sets E2E_ENV_FILE so a worktree uses the main checkout's
+    # copy; without it this is ./.env.test, as CI's bake step expects.
     env_file:
-      - .env.test
+      - ${E2E_ENV_FILE:-.env.test}
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       POSTGRES_PASSWORD: fitness_test_password
@@ -191,9 +193,9 @@ services:
       # on :5001 (separate stack); they cannot collide because we no longer
       # bind to a fixed host port here.
       - "8080"
-    # JWT_SECRET comes from .env.test (gitignored).
+    # JWT_SECRET comes from .env.test (gitignored); path as on the seed service.
     env_file:
-      - .env.test
+      - ${E2E_ENV_FILE:-.env.test}
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: "https://+:8080"
@@ -310,7 +312,7 @@ services:
       E2E_API_URL: "https://api:8080"
       CI: "true"
     env_file:
-      - .env.test
+      - ${E2E_ENV_FILE:-.env.test}
     volumes:
       # Surface playwright report + test-results to the host. `:rw` lets the
       # container write screenshots/traces; the host then uploads them as CI

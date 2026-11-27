@@ -18,6 +18,11 @@ public class AutomationRunConfiguration : IEntityTypeConfiguration<AutomationRun
         builder.HasIndex(r => new { r.AutomationRuleId, r.ClientProfileId, r.Occurrence }).IsUnique();
         builder.HasIndex(r => new { r.ClientProfileId, r.SentAt });
 
+
+        // The retry worker only reads rows that wait for a retry.
+        builder.HasIndex(r => r.NextRetryAt)
+            .HasFilter("next_retry_at IS NOT NULL");
+
         builder.HasOne(r => r.AutomationRule)
             .WithMany()
             .HasForeignKey(r => r.AutomationRuleId)

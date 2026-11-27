@@ -69,12 +69,14 @@ function Collapse({ open, children }: { open: boolean; children: ReactNode }) {
  * explainer, or the "check your email" card once `registerMutation` succeeds.
  * The sent state is the RESULT of the mutation, not a route, and nothing
  * about the submitted email is persisted — a reload degrades to this empty
- * form. Both live in one component so "Change email" returns to the form
- * with the typed values still in place.
+ * form. "Change email" edits the existing account in place; it never returns
+ * to the form, since resubmitting would register a second account.
  */
 export default function RegisterForm() {
   const { t } = useTranslation();
   const [showPassword, setShowPassword] = useState(false);
+  // Set once "Change email" moved the account; the form is never reset (that would create a second account).
+  const [changedEmail, setChangedEmail] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
   const inviteToken = searchParams.get('invite');
 
@@ -229,13 +231,18 @@ export default function RegisterForm() {
     registerMutation.mutate(values);
   };
 
+  const currentEmail = changedEmail ?? registerMutation.variables?.email ?? '';
+
   if (registerMutation.isSuccess) {
     return (
       <main className="flex flex-1 flex-col items-center px-4 pt-8 pb-16 short:pt-2 short:pb-6 sm:px-10 sm:py-12 short:sm:py-4">
         <VerificationSentState
-          email={registerMutation.variables?.email ?? ''}
+          // Remount on a change so the 60 s resend countdown restarts.
+          key={currentEmail}
+          email={currentEmail}
           isClient={registerMutation.variables?.roles.includes('Client') ?? false}
-          onWrongEmail={() => registerMutation.reset()}
+          password={registerMutation.variables?.password ?? ''}
+          onEmailChanged={setChangedEmail}
         />
       </main>
     );

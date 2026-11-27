@@ -367,6 +367,8 @@ builder.Services.AddSingleton<AutomationScheduler>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<AutomationScheduler>());
 builder.Services.AddScoped<AutomationOccurrenceSender>();
 builder.Services.AddScoped<AutomationClaimProcessor>();
+builder.Services.AddScoped<AutomationRetryProcessor>();
+builder.Services.AddScoped<AutomationAfterCommitQueue>();
 builder.Services.AddSingleton<NotificationEmailGroupingScheduler>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<NotificationEmailGroupingScheduler>());
 builder.Services.AddScoped<NotificationEmailGroupProcessor>();
