@@ -119,33 +119,10 @@ public class UnlogMealEatenEndpoint(IMongoContext mongo, IApplicationDbContext d
             // The SignalR payload's ClientId is the trainer-facing ClientProfile.PublicId
             // convention (unrelated to the Mongo document clientId key migrated in #840) —
             // pass clientProfile.PublicId explicitly rather than the (now UserId-valued) clientId.
-            await NotifyLinkedProfessionalsAsync(clientProfile.Id, clientProfile.PublicId, ct);
+            await ClientComplianceNotifier.NotifyLinkedProfessionalsAsync(
+                db, notifier, clientProfile.Id, clientProfile.PublicId, ct);
         }
 
         await Send.NoContentAsync(ct);
-    }
-
-    /// <summary>
-    /// Pushes a <c>clientcomplianceupdated</c> SignalR event to every active professional
-    /// (trainer/nutritionist) linked to this client so their dashboards can refresh streak
-    /// and compliance without polling.
-    /// </summary>
-    private async Task NotifyLinkedProfessionalsAsync(long clientProfileId, Guid clientPublicId, CancellationToken ct)
-    {
-        var professionalUserIds = await db.ClientProfessionalLinks
-            .AsNoTracking()
-            .Where(l => l.ClientProfileId == clientProfileId && l.ConnectionState != ConnectionState.Ended)
-            .Join(db.ProfessionalProfiles.AsNoTracking(),
-                link => link.ProfessionalProfileId,
-                prof => prof.Id,
-                (_, prof) => prof.UserId)
-            .Distinct()
-            .ToListAsync(ct);
-
-        var payload = new { ClientId = clientPublicId };
-        foreach (var userId in professionalUserIds)
-        {
-            await notifier.NotifyAsync(userId, "clientcomplianceupdated", payload, ct);
-        }
     }
 }
