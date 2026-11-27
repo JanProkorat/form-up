@@ -1,6 +1,6 @@
 using FormUp.Application.Domain.Documents;
 using FormUp.Application.Domain.Enums;
-using FormUp.Application.Infrastructure.Services;
+using FormUp.Application.Domain.Interfaces;
 
 namespace FormUp.Application.Domain.Services;
 
@@ -123,8 +123,9 @@ internal static class MealItemEatenState
     /// <summary>
     /// Nutrient totals of just the eaten items of the live plan meal.
     /// </summary>
-    public static NutrientTotals EatenTotals(PlanMeal meal, IReadOnlyCollection<Guid> eatenIds) =>
-        new MacroCalculatorService().CalculateMealTotals(
+    public static NutrientTotals EatenTotals(
+        PlanMeal meal, IReadOnlyCollection<Guid> eatenIds, IMacroCalculatorService macroCalculator) =>
+        macroCalculator.CalculateMealTotals(
             meal.Foods.Where(food => eatenIds.Contains(food.ItemId)).ToList(),
             meal.Recipes.Where(recipe => eatenIds.Contains(recipe.ItemId)).ToList());
 

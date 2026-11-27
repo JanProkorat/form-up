@@ -22,7 +22,13 @@ namespace FormUp.Application.Features.ClientNutrition.GetTodayLog;
 /// <param name="blobStorage">Blob storage service — converts each meal photo's stored BlobUrl into
 /// a short-lived pre-signed read URL before the response leaves the process (F9).</param>
 /// <param name="timeProvider">Clock abstraction (#955) — lets tests pin the "now" instant deterministically.</param>
-public class GetTodayLogEndpoint(IMongoContext mongo, IApplicationDbContext db, IBlobStorageService blobStorage, TimeProvider timeProvider)
+/// <param name="macroCalculator">Sums the nutrients of the eaten items.</param>
+public class GetTodayLogEndpoint(
+    IMongoContext mongo,
+    IApplicationDbContext db,
+    IBlobStorageService blobStorage,
+    TimeProvider timeProvider,
+    IMacroCalculatorService macroCalculator)
     : EndpointWithoutRequest<GetTodayLogResponse>
 {
     /// <inheritdoc />
@@ -155,7 +161,7 @@ public class GetTodayLogEndpoint(IMongoContext mongo, IApplicationDbContext db, 
             // A snapshot row reports what was eaten from its own snapshot, whatever the live plan says now.
             var totals = MealItemEatenState.SnapshotTotals(log.EatenSnapshot, eatenIds)
                          ?? (state == MealEatenState.PartlyEaten && planMeal is not null
-                             ? MealItemEatenState.EatenTotals(planMeal, eatenIds)
+                             ? MealItemEatenState.EatenTotals(planMeal, eatenIds, macroCalculator)
                              : planMeal?.MealTotals ?? CalculateTotals(log.FoodsEaten));
 
             return new TodayMealLogDto
