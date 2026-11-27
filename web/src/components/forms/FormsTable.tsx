@@ -147,6 +147,9 @@ export default function FormsTable({ forms, isPending, isError, onRetry, hasActi
                   </TableCell>
                   <TableCell className={`${CELL_CLASS} text-body text-ink-2`}>
                     {t('forms.table.clients', { count: form.usedForClientCount })}
+                    {form.type === QuestionnaireType.CheckIn && form.lastWeekAnswerRatePercent != null && (
+                      <> · {t('forms.table.answeredLastWeek', { percent: form.lastWeekAnswerRatePercent })}</>
+                    )}
                   </TableCell>
                   <TableCell className={`${CELL_CLASS} text-body text-muted-foreground`}>
                     {editedLabel(form.editedAt, i18n.language)}

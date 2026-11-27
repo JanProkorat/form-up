@@ -2887,7 +2887,8 @@
       "questions_one": "{{count}} Frage",
       "questions_other": "{{count}} Fragen",
       "clients_one": "{{count}} Klient",
-      "clients_other": "{{count}} Klienten"
+      "clients_other": "{{count}} Klienten",
+      "answeredLastWeek": "{{percent}} % letzte Woche beantwortet"
     },
     "rowMenu": {
       "open": "Aktionen für {{name}}",
