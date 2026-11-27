@@ -21,15 +21,26 @@ interface MenuProps {
   canDelete: boolean;
   /** The plan is Active, so it can be finished. */
   canFinish: boolean;
+  /** Number of the selected week when it can be unpublished; undefined hides the item. */
+  unpublishWeek?: number;
   disabled: boolean;
   onDelete: () => void;
   onFinish: () => void;
+  onUnpublish: () => void;
 }
 
 /** The "⋯" menu in the client plan editor header. Renders nothing when no action applies. */
-export default function PlanActionsMenu({ canDelete, canFinish, disabled, onDelete, onFinish }: MenuProps) {
+export default function PlanActionsMenu({
+  canDelete,
+  canFinish,
+  unpublishWeek,
+  disabled,
+  onDelete,
+  onFinish,
+  onUnpublish,
+}: MenuProps) {
   const { t } = useTranslation();
-  if (!canDelete && !canFinish) {
+  if (!canDelete && !canFinish && unpublishWeek === undefined) {
     return null;
   }
   return (
@@ -49,6 +60,11 @@ export default function PlanActionsMenu({ canDelete, canFinish, disabled, onDele
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         {canFinish && <DropdownMenuItem onSelect={onFinish}>{t('clientPlanEditor.actions.finish')}</DropdownMenuItem>}
+        {unpublishWeek !== undefined && (
+          <DropdownMenuItem onSelect={onUnpublish}>
+            {t('clientPlanEditor.actions.unpublish', { week: unpublishWeek })}
+          </DropdownMenuItem>
+        )}
         {canDelete && (
           <DropdownMenuItem variant="destructive" onSelect={onDelete}>
             {t('clientPlanEditor.actions.delete')}
@@ -105,6 +121,33 @@ export function FinishPlanDialog({ open, busy, onConfirm, onCancel }: DialogProp
           </Button>
           <Button type="button" disabled={busy} onClick={onConfirm}>
             {t('clientPlanEditor.finish.confirm')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+interface UnpublishDialogProps extends DialogProps {
+  week: number;
+}
+
+/** Asks before a published week goes back to draft; pending edits are saved first. Escape and Cancel change nothing. */
+export function UnpublishWeekDialog({ open, busy, week, onConfirm, onCancel }: UnpublishDialogProps) {
+  const { t } = useTranslation();
+  return (
+    <Dialog open={open} onOpenChange={(next) => !next && !busy && onCancel()}>
+      <DialogContent role="alertdialog" showCloseButton={false} className="max-w-115" data-testid="unpublish-week-dialog">
+        <DialogHeader>
+          <DialogTitle>{t('clientPlanEditor.unpublish.title', { week })}</DialogTitle>
+          <DialogDescription>{t('clientPlanEditor.unpublish.body', { week })}</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button type="button" variant="outline" disabled={busy} onClick={onCancel}>
+            {t('common.cancel')}
+          </Button>
+          <Button type="button" disabled={busy} onClick={onConfirm}>
+            {t('clientPlanEditor.unpublish.confirm')}
           </Button>
         </DialogFooter>
       </DialogContent>

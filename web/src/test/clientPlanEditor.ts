@@ -80,6 +80,8 @@ export interface PlanEditorState {
   rejectSaveOnce: boolean;
   saves: number;
   version: number;
+  /** Status of week 1 as the plan GET returns it. */
+  weekStatus: WeekStatus;
 }
 
 export function newPlanEditorState(overrides: Partial<PlanEditorState> = {}): PlanEditorState {
@@ -94,6 +96,7 @@ export function newPlanEditorState(overrides: Partial<PlanEditorState> = {}): Pl
     rejectSaveOnce: false,
     saves: 0,
     version: 3,
+    weekStatus: WeekStatus.Draft,
     ...overrides,
   };
 }
@@ -117,7 +120,7 @@ export function editorPlan(state: PlanEditorState): GetPlanResponse {
     weeks: [
       {
         weekNumber: 1,
-        status: WeekStatus.Draft,
+        status: state.weekStatus,
         days: Array.from({ length: 7 }, (_, index) => ({
           dayOfWeek: index + 1,
           meals:

@@ -124,3 +124,8 @@ export function publishPlanWeekFromEditor(
 ): Promise<GetPlanResponse> {
   return apiClient.publishWeekEndpoint(planId, weekNumber, { version });
 }
+
+/** Unpublishes one stored week (POST /nutrition/plans/{planId}/weeks/{weekNumber}/unpublish); returns the plan. */
+export function unpublishPlanWeekFromEditor(planId: string, weekNumber: number): Promise<GetPlanResponse> {
+  return apiClient.unpublishNutritionWeekEndpoint(planId, weekNumber);
+}
