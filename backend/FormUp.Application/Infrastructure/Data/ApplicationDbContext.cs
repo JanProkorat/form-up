@@ -657,6 +657,32 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     }
 
     /// <inheritdoc />
+    public async Task<AutomationRun?> ClaimDueAutomationRetryAsync(
+        DateTime nowUtc, CancellationToken cancellationToken = default)
+    {
+        // Identifiers come from the EF model, never from input; the instant and the status are real
+        // parameters. See LockClientProfileAsync for why this is concatenated, not interpolated.
+        var entityType = Model.FindEntityType(typeof(AutomationRun))!;
+        var table = entityType.GetSchema() is { } schema
+            ? QuoteIdentifier(schema) + "." + QuoteIdentifier(entityType.GetTableName()!)
+            : QuoteIdentifier(entityType.GetTableName()!);
+        var retryColumn = QuoteIdentifier(entityType.FindProperty(nameof(AutomationRun.NextRetryAt))!.GetColumnName()!);
+        var statusColumn = QuoteIdentifier(entityType.FindProperty(nameof(AutomationRun.Status))!.GetColumnName()!);
+        var keyColumn = QuoteIdentifier(entityType.FindPrimaryKey()!.Properties[0].GetColumnName()!);
+
+        var sql = "SELECT * FROM " + table
+                  + " WHERE " + retryColumn + " <= {0} AND " + statusColumn + " = {1}"
+                  + " ORDER BY " + retryColumn + ", " + keyColumn
+                  + " LIMIT 1 FOR UPDATE SKIP LOCKED";
+
+        var claimed = await AutomationRuns
+            .FromSqlRaw(sql, DateTime.SpecifyKind(nowUtc, DateTimeKind.Utc), (int)AutomationRunStatus.Failed)
+            .ToListAsync(cancellationToken);
+
+        return claimed.SingleOrDefault();
+    }
+
+    /// <inheritdoc />
     public Task UpsertPendingNotificationEmailAsync(
         Guid recipientUserId,
         NotificationEvent notificationEvent,

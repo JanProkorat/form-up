@@ -38,6 +38,15 @@ public class AutomationRun : TimestampableEntity
     /// </summary>
     public Guid? DeliveredEntityId { get; set; }
 
+    /// <summary>How many sends of this occurrence have failed so far; 0 until the first failure.</summary>
+    public int AttemptCount { get; set; }
+
+    /// <summary>
+    /// When the worker retries a failed send (UTC). A Failed run with a value is waiting for a
+    /// retry; a Failed run without one is final.
+    /// </summary>
+    public DateTime? NextRetryAt { get; set; }
+
     /// <summary>Navigation to the rule.</summary>
     public AutomationRule AutomationRule { get; set; } = null!;
 

@@ -1515,6 +1515,12 @@
       "subtitle": "Co klienti uvidí, když vás najdou, a jak se vám ozvou",
       "allSaved": "Všechny změny uloženy",
       "saved": "Profil uložen",
+      "leave": {
+        "title": "Odejít bez uložení?",
+        "body": "Máte neuložené změny. Pokud teď odejdete, přijdete o ně.",
+        "stay": "Pokračovat v úpravách",
+        "discard": "Odejít"
+      },
       "photo": {
         "title": "Fotka a jméno",
         "description": "Klienti to uvidí na vašem profilu, ve vyhledávání a v chatu.",
@@ -3000,7 +3006,8 @@
       "clients_one": "{{count}} klient",
       "clients_few": "{{count}} klienti",
       "clients_many": "{{count}} klienta",
-      "clients_other": "{{count}} klientů"
+      "clients_other": "{{count}} klientů",
+      "answeredLastWeek": "{{percent}} % odpovědělo minulý týden"
     },
     "rowMenu": {
       "open": "Akce pro {{name}}",
@@ -6310,6 +6317,19 @@
         "resendConfirmation": "Pokud je to potřeba, poslali jsme nový odkaz.",
         "wrongEmail": "Špatná adresa?",
         "changeEmail": "Změnit e-mail"
+      },
+      "changeEmail": {
+        "title": "Změňte svůj e-mail",
+        "lede": "Účet přesuneme na novou adresu a pošleme nový odkaz.<br/>Odkaz poslaný na <old>{{email}}</old> přestane fungovat.",
+        "label": "Nová e-mailová adresa",
+        "submit": "Poslat nový odkaz",
+        "cancel": "Zrušit",
+        "submitting": "Odesílám...",
+        "required": "Zadejte novou e-mailovou adresu.",
+        "invalid": "Zadejte platnou e-mailovou adresu.",
+        "taken": "Tento e-mail je již registrován.",
+        "unchanged": "Tuto adresu už máte. Zadejte jinou.",
+        "generic": "E-mail se nepodařilo změnit. Zkuste to prosím znovu."
       }
     },
     "forgotPassword": {

@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using FormUp.Application.Domain.Entities;
 using FormUp.Application.Domain.Enums;
+using FormUp.Application.Domain.Services;
 using FormUp.Application.Features.Questionnaires.GetTrainerQuestionnaire;
 using FormUp.Application.Infrastructure.Data;
 using FormUp.Tests.Builders;
@@ -175,5 +176,98 @@ public class GetTrainerQuestionnairesEndpointTests(FitnessApiFactory factory)
         untouchedRow.QuestionCount.Should().Be(0);
         untouchedRow.UsedForClientCount.Should().Be(0);
         untouchedRow.EditedAt.Should().BeCloseTo(untouchedRow.DateCreated, TimeSpan.FromSeconds(1));
+    }
+
+    private static DateOnly LastWeekMonday() =>
+        AutomationScheduleCalculator.MondayOf(DateOnly.FromDateTime(DateTime.UtcNow)).AddDays(-7);
+
+    private async Task SeedCheckInRowsAsync(
+        Actor trainer, Questionnaire questionnaire, QuestionnaireResponseKind kind,
+        params (DateOnly Week, QuestionnaireResponseStatus Status)[] rows)
+    {
+        foreach (var (week, status) in rows)
+        {
+            var client = await TestActors.Client(factory).CreateAsync(TestContext.Current.CancellationToken);
+            var linkId = await TestActors.Link(factory, trainer, client).CreateAsync(TestContext.Current.CancellationToken);
+
+            using var scope = factory.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+            db.QuestionnaireResponses.Add(new QuestionnaireResponse
+            {
+                QuestionnaireId = questionnaire.Id,
+                ClientId = client.UserId,
+                ProfessionalId = trainer.UserId,
+                LinkId = linkId,
+                Status = status,
+                Kind = kind,
+                CheckInWeekStart = week,
+            });
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+    }
+
+    [Fact]
+    public async Task List_CheckInForm_RateCountsOnlyLastWeekAndRounds()
+    {
+        var trainer = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var form = await SeedQuestionnaireAsync(trainer.UserId, "Weekly", QuestionnaireType.CheckIn);
+        var lastWeek = LastWeekMonday();
+
+        await SeedCheckInRowsAsync(trainer, form, QuestionnaireResponseKind.CheckIn,
+            (lastWeek, QuestionnaireResponseStatus.Submitted),
+            (lastWeek, QuestionnaireResponseStatus.Submitted),
+            (lastWeek, QuestionnaireResponseStatus.Pending),
+            (lastWeek.AddDays(7), QuestionnaireResponseStatus.Pending),
+            (lastWeek.AddDays(-7), QuestionnaireResponseStatus.Pending));
+
+        var list = await GetListAsync(trainer);
+
+        list.Questionnaires.Single(q => q.PublicId == form.PublicId).LastWeekAnswerRatePercent.Should().Be(67);
+    }
+
+    [Fact]
+    public async Task List_CheckInForm_CancelledRowsAreIgnored()
+    {
+        var trainer = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var form = await SeedQuestionnaireAsync(trainer.UserId, "Weekly", QuestionnaireType.CheckIn);
+        var lastWeek = LastWeekMonday();
+
+        await SeedCheckInRowsAsync(trainer, form, QuestionnaireResponseKind.CheckIn,
+            (lastWeek, QuestionnaireResponseStatus.Submitted),
+            (lastWeek, QuestionnaireResponseStatus.Cancelled),
+            (lastWeek, QuestionnaireResponseStatus.Cancelled));
+
+        var list = await GetListAsync(trainer);
+
+        list.Questionnaires.Single(q => q.PublicId == form.PublicId).LastWeekAnswerRatePercent.Should().Be(100);
+    }
+
+    [Fact]
+    public async Task List_CheckInFormWithoutLastWeekRows_RateIsNull()
+    {
+        var trainer = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var form = await SeedQuestionnaireAsync(trainer.UserId, "Weekly", QuestionnaireType.CheckIn);
+
+        await SeedCheckInRowsAsync(trainer, form, QuestionnaireResponseKind.CheckIn,
+            (LastWeekMonday().AddDays(-7), QuestionnaireResponseStatus.Submitted));
+
+        var list = await GetListAsync(trainer);
+
+        list.Questionnaires.Single(q => q.PublicId == form.PublicId).LastWeekAnswerRatePercent.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task List_NonCheckInForm_RateIsNullEvenWithResponses()
+    {
+        var trainer = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
+        var form = await SeedQuestionnaireAsync(trainer.UserId, "Intake", QuestionnaireType.Onboarding);
+
+        await SeedCheckInRowsAsync(trainer, form, QuestionnaireResponseKind.Questionnaire,
+            (LastWeekMonday(), QuestionnaireResponseStatus.Submitted));
+
+        var list = await GetListAsync(trainer);
+
+        list.Questionnaires.Single(q => q.PublicId == form.PublicId).LastWeekAnswerRatePercent.Should().BeNull();
     }
 }

@@ -217,6 +217,54 @@ public class AutomationRuleEndpointTests(FitnessApiFactory factory)
         list!.Rules.Should().BeEmpty();
     }
 
+    private static async Task AssertAudienceClientNotFoundAsync(HttpResponseMessage response)
+    {
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        using var body = System.Text.Json.JsonDocument.Parse(await response.Content.ReadAsStringAsync(Ct));
+        body.RootElement.GetProperty("errorCode").GetString().Should().Be("AUTOMATION_AUDIENCE_CLIENT_NOT_FOUND");
+    }
+
+    [Fact]
+    public async Task Create_ChosenAudienceWithClientWhoSharesNothing_Returns404WithTheCode()
+    {
+        var coach = await CreateCoachAsync();
+        var client = await TestActors.Client(factory).CreateAsync(Ct);
+        await TestActors.Link(factory, coach, client).CanViewNutritionPlans(false).CanViewTrainingPlans(false).CreateAsync(Ct);
+        var body = AutomationTestData.ScheduleRule("Should not exist");
+        body["audience"] = "Chosen";
+        body["audienceClientIds"] = new[] { client.PublicId };
+
+        var response = await coach.Http.PostAsJsonAsync("/trainer/automations/rules", body, Ct);
+
+        await AssertAudienceClientNotFoundAsync(response);
+        var list = await (await coach.Http.GetAsync("/trainer/automations/rules", Ct))
+            .Content.ReadFromJsonAsync<GetAutomationRulesResponse>(AutomationTestData.Json, Ct);
+        list!.Rules.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Update_ChosenAudienceWithClientWhoSharesNothing_Returns404AndKeepsTheAudience()
+    {
+        var coach = await CreateCoachAsync();
+        var covered = await TestActors.Client(factory).CreateAsync(Ct);
+        var noAccess = await TestActors.Client(factory).CreateAsync(Ct);
+        await TestActors.Link(factory, coach, covered).CreateAsync(Ct);
+        await TestActors.Link(factory, coach, noAccess).CanViewNutritionPlans(false).CanViewTrainingPlans(false).CreateAsync(Ct);
+        var createBody = AutomationTestData.ScheduleRule();
+        createBody["audience"] = "Chosen";
+        createBody["audienceClientIds"] = new[] { covered.PublicId };
+        var created = await ReadRuleAsync(await coach.Http.PostAsJsonAsync("/trainer/automations/rules", createBody, Ct));
+
+        var update = AutomationTestData.ScheduleRule();
+        update["audience"] = "Chosen";
+        update["audienceClientIds"] = new[] { covered.PublicId, noAccess.PublicId };
+        var response = await coach.Http.PutAsJsonAsync($"/trainer/automations/rules/{created.RuleId}", update, Ct);
+
+        await AssertAudienceClientNotFoundAsync(response);
+        var stored = await ReadRuleAsync(await coach.Http.GetAsync($"/trainer/automations/rules/{created.RuleId}", Ct));
+        stored.Clients.Select(c => c.ClientId).Should().BeEquivalentTo([covered.PublicId]);
+    }
+
     [Fact]
     public async Task Create_ChosenAudienceWithInactiveLink_Returns404()
     {
