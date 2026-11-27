@@ -69,19 +69,6 @@ export async function linkTrainingQuestionnaire(
   return data;
 }
 
-/** Publish a single week of a training plan. */
-export async function publishTrainingWeek(
-  planId: string,
-  weekNumber: number,
-  version: number,
-): Promise<RawTrainingPlanDetail> {
-  const { data } = await api.post<RawTrainingPlanDetail>(
-    `/training/plans/${planId}/weeks/${weekNumber}/publish`,
-    { version },
-  );
-  return data;
-}
-
 /** Response from the retroactive session-finish endpoint. */
 export interface FinishSessionResponse {
   workoutLogId: string;
